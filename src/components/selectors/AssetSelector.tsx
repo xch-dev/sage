@@ -32,6 +32,7 @@ interface AssetSelectorProps {
   setAssets: (value: Assets) => void;
   splitNftOffers?: boolean;
   setSplitNftOffers?: (value: boolean) => void;
+  onXchStateChange?: (hasXchAdded: boolean) => void;
 }
 
 export function AssetSelector({
@@ -41,17 +42,23 @@ export function AssetSelector({
   setAssets,
   splitNftOffers,
   setSplitNftOffers,
+  onXchStateChange,
 }: AssetSelectorProps) {
   const [currentState] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
+  const [ownedTokens, setOwnedTokens] = useState<CatRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
+
+  // Notify parent of XCH state changes
+  useEffect(() => {
+    onXchStateChange?.(includeAmount);
+  }, [includeAmount, onXchStateChange]);
 
   useEffect(() => {
     if (!offering) return;
     commands
       .getCats({})
-      .then((data) => setTokens(data.cats))
+      .then((data) => setOwnedTokens(data.cats))
       .catch(console.error);
   }, [offering]);
 
@@ -243,7 +250,7 @@ export function AssetSelector({
                   .map((c) => c.asset_id)}
                 className='rounded-r-none'
                 hideZeroBalance={offering === true}
-                includeDexieList={offering !== true}
+                showAllCats={offering !== true}
               />
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
@@ -265,7 +272,7 @@ export function AssetSelector({
                           variant='outline'
                           className='border-l-0 rounded-none h-12 px-2 text-xs'
                           onClick={() => {
-                            const token = tokens.find(
+                            const token = ownedTokens.find(
                               (t) => t.asset_id === cat.asset_id,
                             );
                             if (token) {

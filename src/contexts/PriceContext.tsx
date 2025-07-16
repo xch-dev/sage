@@ -1,10 +1,10 @@
 import { commands, NetworkKind } from '@/bindings';
-import { useWalletState } from '@/state';
 import {
   createContext,
   ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -12,13 +12,6 @@ import {
 interface CatPriceData {
   lastPrice: number | null;
   askPrice: number | null;
-}
-
-interface CatListItem {
-  asset_id: string;
-  name: string;
-  ticker: string;
-  icon_url: string;
 }
 
 interface DexieTicker {
@@ -37,7 +30,7 @@ export interface PriceContextType {
   getBalanceInUsd: (assetId: string, balance: string) => string;
   getPriceInUsd: (assetId: string) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
-  getCatList: () => CatListItem[];
+  isLoading: boolean;
 }
 
 export const PriceContext = createContext<PriceContextType | undefined>(
@@ -45,12 +38,12 @@ export const PriceContext = createContext<PriceContextType | undefined>(
 );
 
 export function PriceProvider({ children }: { children: ReactNode }) {
-  const walletState = useWalletState();
   const [xchUsdPrice, setChiaPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
-  const [catList, setCatList] = useState<CatListItem[]>([]);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isNetworkLoading, setIsNetworkLoading] = useState(true);
+  const [isPriceLoading, setIsPriceLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch network on mount
   useEffect(() => {
@@ -61,7 +54,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         setNetwork(data.kind);
       } catch (error) {
         console.error('Failed to fetch network:', error);
-        // Set a default network or handle error appropriately
         setNetwork('mainnet');
       } finally {
         setIsNetworkLoading(false);
@@ -71,78 +63,98 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     fetchNetwork();
   }, []);
 
-  // Fetch prices when network is available and wallet is synced
   useEffect(() => {
     // Don't fetch prices until network is loaded
     if (isNetworkLoading || network === null) {
       return;
     }
 
-    const fetchCatPrices = () =>
-      fetch(
-        `https://${network === 'testnet' ? 'api-testnet' : 'api'}.dexie.space/v3/prices/tickers`,
-      )
-        .then((res) => res.json())
-        .then((data: DexieResponse) => {
-          const tickers = data.tickers.reduce(
-            (acc: Record<string, CatPriceData>, ticker: DexieTicker) => {
-              acc[ticker.base_currency] = {
-                lastPrice: ticker.last_price ? Number(ticker.last_price) : null,
-                askPrice: ticker.ask ? Number(ticker.ask) : null,
-              };
-              return acc;
-            },
-            {},
-          );
-          setCatPrices(tickers);
-
-          commands.getAllCats({}).then((data) => {
-            const cats = data.cats.map((cat) => ({
-              asset_id: cat.asset_id ?? '',
-              name: cat.name ?? '',
-              ticker: cat.ticker ?? '',
-              icon_url: cat.icon_url ?? '',
-            }));
-            setCatList(cats);
-          });
-        })
-        .catch((error) => {
-          console.error('Failed to fetch CAT prices:', error);
-          setCatPrices({});
-        });
-
-    const fetchChiaPrice = () =>
-      fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=chia&vs_currencies=usd',
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          setChiaPrice(data.chia.usd || 0);
-        })
-        .catch((error) => {
-          console.error('Failed to fetch Chia price:', error);
-          setChiaPrice(0);
-        });
-
-    const fetchPrices = () => Promise.all([fetchCatPrices(), fetchChiaPrice()]);
-
-    if (walletState.sync.unit.ticker === 'XCH') {
-      fetchPrices();
-      const interval = setInterval(fetchPrices, 60000);
-      return () => clearInterval(interval);
-    } else {
-      setChiaPrice(0);
-      setCatPrices({});
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  }, [walletState.sync.unit.ticker, network, isNetworkLoading]);
+
+    const fetchCatPrices = async () => {
+      try {
+        const response = await fetch(
+          `https://${network === 'testnet' ? 'api-testnet' : 'api'}.dexie.space/v3/prices/tickers`,
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data: DexieResponse = await response.json();
+        const tickers = data.tickers.reduce(
+          (acc: Record<string, CatPriceData>, ticker: DexieTicker) => {
+            acc[ticker.base_currency.toLowerCase()] = {
+              lastPrice: ticker.last_price ? Number(ticker.last_price) : null,
+              askPrice: ticker.ask ? Number(ticker.ask) : null,
+            };
+            return acc;
+          },
+          {},
+        );
+        setCatPrices(tickers);
+      } catch (error) {
+        console.error('Failed to fetch CAT prices:', error);
+        setCatPrices({});
+      }
+    };
+
+    const fetchChiaPrice = async () => {
+      try {
+        const response = await fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=chia&vs_currencies=usd',
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setChiaPrice(data.chia?.usd || 0);
+      } catch (error) {
+        console.error('Failed to fetch Chia price:', error);
+        setChiaPrice(0);
+      }
+    };
+
+    const fetchPrices = async () => {
+      setIsPriceLoading(true);
+      try {
+        await Promise.all([fetchCatPrices(), fetchChiaPrice()]);
+      } finally {
+        setIsPriceLoading(false);
+      }
+    };
+
+    fetchPrices();
+    intervalRef.current = setInterval(fetchPrices, 60000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [network]);
 
   const getPriceInUsd = useCallback(
     (assetId: string) => {
-      if (assetId === 'xch') {
+      const normalizedAssetId = assetId.toLowerCase();
+
+      if (normalizedAssetId === 'xch') {
         return xchUsdPrice;
       }
-      const priceData = catPrices[assetId];
-      const xchPrice = priceData?.lastPrice ?? 0;
+
+      const priceData = catPrices[normalizedAssetId];
+      const xchPrice = priceData?.lastPrice;
+
+      if (xchPrice === null || xchPrice === undefined) {
+        return 0;
+      }
+
       return xchPrice * xchUsdPrice;
     },
     [xchUsdPrice, catPrices],
@@ -150,12 +162,28 @@ export function PriceProvider({ children }: { children: ReactNode }) {
 
   const getBalanceInUsd = useCallback(
     (assetId: string, balance: string) => {
-      if (assetId === 'xch') {
-        return (Number(balance) * xchUsdPrice).toFixed(2);
+      // Validate balance input
+      const balanceNum = Number(balance);
+      if (isNaN(balanceNum)) {
+        return '0.00';
       }
+
+      // Normalize asset ID to lowercase for consistency
+      const normalizedAssetId = assetId.toLowerCase();
+
+      if (normalizedAssetId === 'xch') {
+        return (balanceNum * xchUsdPrice).toFixed(2);
+      }
+
       const priceData = catPrices[assetId];
-      const xchPrice = priceData?.lastPrice ?? 0;
-      return (Number(balance) * xchPrice * xchUsdPrice).toFixed(2);
+      const xchPrice = priceData?.lastPrice;
+
+      // Handle null values properly
+      if (xchPrice === null || xchPrice === undefined) {
+        return '0.00';
+      }
+
+      return (balanceNum * xchPrice * xchUsdPrice).toFixed(2);
     },
     [xchUsdPrice, catPrices],
   );
@@ -168,17 +196,13 @@ export function PriceProvider({ children }: { children: ReactNode }) {
     [catPrices],
   );
 
-  const getCatList = useCallback(() => {
-    return catList;
-  }, [catList]);
-
   return (
     <PriceContext.Provider
       value={{
         getBalanceInUsd,
         getPriceInUsd,
         getCatAskPriceInXch,
-        getCatList,
+        isLoading: isNetworkLoading || isPriceLoading,
       }}
     >
       {children}

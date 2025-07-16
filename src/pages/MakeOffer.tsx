@@ -33,6 +33,8 @@ export function MakeOffer() {
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
+  const [hasOfferedXchAdded, setHasOfferedXchAdded] = useState(false);
+  const [hasRequestedXchAdded, setHasRequestedXchAdded] = useState(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -56,25 +58,52 @@ export function MakeOffer() {
       if (isNaN(amount) || amount <= 0) {
         addError({
           kind: 'invalid',
-          reason: t`CATs must have a positive amount.`,
+          reason: t`Tokens must have a positive amount.`,
         });
         return;
       }
     }
 
-    const hasOfferedXch = state.offered.xch && state.offered.xch !== '0';
+    // Check if XCH amounts are valid (positive numbers)
+    const hasOfferedXchValid =
+      hasOfferedXchAdded &&
+      state.offered.xch !== '0' &&
+      !isNaN(parseFloat(String(state.offered.xch))) &&
+      parseFloat(String(state.offered.xch)) > 0;
+    const hasRequestedXchValid =
+      hasRequestedXchAdded &&
+      state.requested.xch !== '0' &&
+      !isNaN(parseFloat(String(state.requested.xch))) &&
+      parseFloat(String(state.requested.xch)) > 0;
+
+    // Validate XCH amounts if they've been added
+    if (hasOfferedXchAdded && !hasOfferedXchValid) {
+      addError({
+        kind: 'invalid',
+        reason: t`Offered XCH amount must be a positive number.`,
+      });
+      return;
+    }
+
+    if (hasRequestedXchAdded && !hasRequestedXchValid) {
+      addError({
+        kind: 'invalid',
+        reason: t`Requested XCH amount must be a positive number.`,
+      });
+      return;
+    }
+
     const hasOfferedCats = state.offered.cats.length > 0;
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
-    const hasRequestedXch = state.requested.xch && state.requested.xch !== '0';
     const hasRequestedCats = state.requested.cats.length > 0;
     const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
 
     if (
       !(
-        hasOfferedXch ||
+        hasOfferedXchValid ||
         hasOfferedCats ||
         hasOfferedNfts ||
-        hasRequestedXch ||
+        hasRequestedXchValid ||
         hasRequestedCats ||
         hasRequestedNfts
       )
@@ -129,6 +158,7 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                onXchStateChange={setHasOfferedXchAdded}
               />
             </CardContent>
           </Card>
@@ -151,6 +181,7 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ requested: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                onXchStateChange={setHasRequestedXchAdded}
               />
             </CardContent>
           </Card>
