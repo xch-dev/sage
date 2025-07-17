@@ -5,7 +5,7 @@ import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { Wallet } from 'lucide-react';
+import { AssetIcon } from '../AssetIcon';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -121,20 +121,12 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          {token.icon_url ? (
-            <img
-              src={token.icon_url}
-              className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? t`Unknown token`}
-              aria-hidden='true'
-              loading='lazy'
-            />
-          ) : (
-            <Wallet
-              className='w-10 h-10 rounded object-cover'
-              aria-hidden='true'
-            />
-          )}
+          <AssetIcon
+            iconUrl={token.icon_url}
+            name={token.name}
+            kind='token'
+            size='lg'
+          />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
               {token.name}
@@ -151,21 +143,11 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        {selectedToken?.icon_url ? (
-          <img
-            src={selectedToken.icon_url}
-            className='w-8 h-8 rounded object-cover'
-            alt={
-              selectedToken?.name
-                ? `Image of ${selectedToken.name}`
-                : 'No token name'
-            }
-            loading='lazy'
-            aria-hidden='true'
-          />
-        ) : (
-          <Wallet className='w-8 h-8 rounded object-cover' aria-hidden='true' />
-        )}
+        <AssetIcon
+          iconUrl={selectedToken?.icon_url}
+          name={selectedToken?.name}
+          kind='token'
+        />
         <div className='flex flex-col truncate text-left'>
           <span className='truncate'>
             {selectedToken?.name ?? t`Select Token`}

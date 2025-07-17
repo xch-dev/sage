@@ -19,11 +19,11 @@ import {
   EyeOff,
   MoreHorizontal,
   RefreshCw,
-  Wallet,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { NumberFormat } from './NumberFormat';
+import { AssetIcon } from './AssetIcon';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -40,15 +40,13 @@ export const columns = (
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
     size: 40,
     cell: ({ row }) => {
-      return row.original.icon_url ? (
-        <img
-          alt={t`Token logo`}
-          aria-hidden='true'
-          className='h-6 w-6 ml-1'
-          src={row.original.icon_url}
+      return (
+        <AssetIcon
+          iconUrl={row.original.icon_url}
+          name={row.original.name}
+          kind='token'
+          className='ml-1'
         />
-      ) : (
-        <Wallet className='h-6 w-6 ml-1' aria-hidden='true' />
       );
     },
   },

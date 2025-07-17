@@ -4,7 +4,7 @@ import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { CheckCircleIcon, Wallet, XCircleIcon } from 'lucide-react';
+import { CheckCircleIcon, XCircleIcon } from 'lucide-react';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
+import { AssetIcon } from './AssetIcon';
 
 // Interface to track CAT presence in wallet
 export type CatPresence = Record<string, boolean>;
@@ -81,16 +82,11 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
           </div>
 
           <div className='flex items-center gap-2'>
-            {asset.icon_url ? (
-              <img
-                src={asset.icon_url}
-                className={`w-6 h-6 ${asset.kind === 'token' ? 'rounded-full' : 'rounded-sm'}`}
-                alt={t`Icon`}
-              />
-            ) : (
-              <Wallet className='w-6 h-6' aria-hidden='true' />
-            )}
-
+            <AssetIcon
+              iconUrl={asset.icon_url}
+              name={asset.name}
+              kind={asset.kind}
+            />
             {asset.asset_id && (
               <>
                 <div className='text-sm font-mono text-muted-foreground truncate'>

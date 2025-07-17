@@ -14,10 +14,10 @@ import { formatAddress, formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { User, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AssetIcon } from '@/components/AssetIcon';
 
 export default function Transaction() {
   const { height } = useParams();
@@ -144,21 +144,12 @@ interface TransactionCoinKindProps {
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   return (
     <div className='flex items-center gap-2'>
-      {coin.asset.kind !== 'did' ? (
-        coin.asset.icon_url ? (
-          <img
-            alt={coin.asset.name ?? t`Unknown`}
-            src={coin.asset.icon_url ?? ''}
-            className='w-8 h-8'
-            aria-hidden={true}
-          />
-        ) : (
-          <Wallet className='w-8 h-8' aria-hidden={true} />
-        )
-      ) : (
-        <User className='w-8 h-8' aria-hidden={true} />
-      )}
-
+      <AssetIcon
+        iconUrl={coin.asset.icon_url}
+        name={coin.asset.name}
+        kind={coin.asset.kind}
+        size='md'
+      />
       <div className='flex flex-col'>
         <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
           {coin.asset.kind === 'token' ? (
