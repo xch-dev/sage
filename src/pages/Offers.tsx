@@ -46,9 +46,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 
 const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
-import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 
 export function Offers() {
   const navigate = useNavigate();

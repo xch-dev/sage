@@ -14,13 +14,15 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
-export function getAssetDisplayName(name: string | null, ticker: string | null, kind: AssetKind) {
+export function getAssetDisplayName(
+  name: string | null,
+  ticker: string | null,
+  kind: AssetKind,
+) {
   return (
     name ??
     ticker ??
-    (kind === 'token'
-      ? t`Unknown CAT`
-      : t`Untitled ${kind.toUpperCase()}`)
+    (kind === 'token' ? t`Unknown CAT` : t`Untitled ${kind.toUpperCase()}`)
   );
 }
 

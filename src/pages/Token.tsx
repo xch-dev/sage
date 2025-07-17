@@ -104,7 +104,9 @@ export default function Token() {
       <Header
         title={
           <span>
-            {asset ? getAssetDisplayName(asset.name, asset.ticker, 'token') : ''}{' '}
+            {asset
+              ? getAssetDisplayName(asset.name, asset.ticker, 'token')
+              : ''}{' '}
             {!asset?.is_xch && (
               <>
                 {' '}

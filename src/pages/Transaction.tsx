@@ -166,13 +166,15 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
                 minimumFractionDigits={0}
                 maximumFractionDigits={coin.asset.precision}
               />{' '}
-              <span className='break-normal'>
-                {name}
-              </span>
+              <span className='break-normal'>{name}</span>
             </>
           ) : (
             <span className='break-normal'>
-              {getAssetDisplayName(coin.asset.name, coin.asset.ticker, coin.asset.kind)}
+              {getAssetDisplayName(
+                coin.asset.name,
+                coin.asset.ticker,
+                coin.asset.kind,
+              )}
             </span>
           )}
         </div>
