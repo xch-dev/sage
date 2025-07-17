@@ -40,7 +40,6 @@ import { TokenRecord } from '../bindings';
 
 interface TokenCardProps {
   asset: TokenRecord | null;
-  assetId: string | undefined;
   precision: number;
   balanceInUsd: string;
   onRedownload: () => void;
@@ -51,7 +50,6 @@ interface TokenCardProps {
 
 export function TokenCard({
   asset,
-  assetId,
   precision,
   balanceInUsd,
   onRedownload,
@@ -120,7 +118,7 @@ export function TokenCard({
           <ReceiveAddress className='mt-2' />
 
           <div className='flex gap-2 mt-2 flex-wrap'>
-            <Link to={`/wallet/send/${assetId}`}>
+            <Link to={`/wallet/send/${asset?.asset_id}`}>
               <Button>
                 <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
               </Button>
@@ -129,7 +127,7 @@ export function TokenCard({
               <HandHelping className='mr-2 h-4 w-4' />
               <Trans>Receive</Trans>
             </Button>
-            {asset && assetId !== 'xch' && (
+            {asset && asset.asset_id !== 'xch' && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='icon'>

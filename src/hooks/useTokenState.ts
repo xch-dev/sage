@@ -117,14 +117,8 @@ export function useTokenState(assetId: string | undefined) {
 
   useEffect(() => {
     if (assetId === 'xch') {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
+      commands.getXchToken({}).then((res) => {
+        setAsset(res.xch);
       });
     } else {
       updateCat();

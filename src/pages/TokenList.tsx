@@ -30,9 +30,7 @@ export function TokenList() {
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<TokenRecord[]>([]);
-
   const { asset: xchAsset } = useTokenState('xch');
-  console.log(xchAsset);
   const xchRecord = useMemo(() => {
     if (!xchAsset) {
       return null;
@@ -211,7 +209,9 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() => xchRecord && exportTokens([xchRecord, ...filteredCats])}
+          onExport={() =>
+            xchRecord && exportTokens([xchRecord, ...filteredCats])
+          }
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -229,8 +229,8 @@ export function TokenList() {
           </Alert>
         )}
 
-        {xchRecord && (
-          viewMode === 'grid' ? (
+        {xchRecord &&
+          (viewMode === 'grid' ? (
             <TokenGridView
               cats={filteredCats}
               xchRecord={xchRecord}
@@ -244,8 +244,7 @@ export function TokenList() {
                 actionHandlers={tokenActionHandlers}
               />
             </div>
-          )
-        )}
+          ))}
       </Container>
     </>
   );

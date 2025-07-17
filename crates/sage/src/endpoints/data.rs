@@ -259,8 +259,8 @@ impl Sage {
 
     pub async fn get_xch_token(&self, _req: GetXchToken) -> Result<GetXchTokenResponse> {
         let xch = self.get_token(Bytes32::default()).await?;
-        let xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
-        
+        let mut xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
+        xch.asset_id = "xch".to_string(); // Bytes32::default() is only used internally
         Ok(GetXchTokenResponse { xch })
     }
 
