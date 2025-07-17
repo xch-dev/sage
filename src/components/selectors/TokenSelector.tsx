@@ -103,17 +103,7 @@ export function TokenSelector({
             if (/^[a-fA-F0-9]{64}$/.test(newValue)) {
               onChange(newValue);
               setSelectedToken(
-                tokens.find((token) => token.asset_id === newValue) ?? {
-                  name: 'Unknown',
-                  asset_id: newValue,
-                  icon_url: null,
-                  balance: 0,
-                  ticker: null,
-                  description: null,
-                  visible: false,
-                  precision: 0,
-                  is_xch: false,
-                },
+                tokens.find((token) => token.asset_id === newValue) ?? null,
               );
             }
           }}

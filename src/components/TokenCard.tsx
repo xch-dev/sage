@@ -127,7 +127,7 @@ export function TokenCard({
               <HandHelping className='mr-2 h-4 w-4' />
               <Trans>Receive</Trans>
             </Button>
-            {asset && asset.asset_id !== 'xch' && (
+            {asset && !asset.is_xch && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='icon'>

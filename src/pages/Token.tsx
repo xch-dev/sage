@@ -77,26 +77,25 @@ export default function Token() {
 
   // Get the appropriate handlers based on the asset type
   const splitHandler = useMemo(
-    () => (asset?.asset_id === 'xch' ? commands.splitXch : commands.splitCat),
-    [asset?.asset_id],
+    () => (asset?.is_xch ? commands.splitXch : commands.splitCat),
+    [asset?.is_xch],
   );
 
   const combineHandler = useMemo(
-    () =>
-      asset?.asset_id === 'xch' ? commands.combineXch : commands.combineCat,
-    [asset?.asset_id],
+    () => (asset?.is_xch ? commands.combineXch : commands.combineCat),
+    [asset?.is_xch],
   );
 
   const autoCombineHandler = useMemo(
     () =>
-      asset?.asset_id === 'xch'
+      asset?.is_xch
         ? commands.autoCombineXch
         : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
             commands.autoCombineCat({
               ...req,
               asset_id: asset?.asset_id ?? '',
             }),
-    [asset?.asset_id],
+    [asset?.is_xch],
   );
 
   return (
@@ -105,7 +104,7 @@ export default function Token() {
         title={
           <span>
             {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
-            {asset?.asset_id !== 'xch' && (
+            {!asset?.is_xch && (
               <>
                 {' '}
                 <span className='text-sm text-muted-foreground font-mono font-normal'>

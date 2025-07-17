@@ -70,7 +70,7 @@ export async function exportTransactions(params: TransactionQueryParams) {
             coin.address || '',
             coin.coin_id,
             type.toUpperCase(),
-            type === 'xch' ? 'XCH' : coin.asset.asset_id,
+            coin.asset.asset_id,
             (coin.asset.name ?? coin.asset.ticker ?? '').replace(/,/g, ''),
           ];
         }),
@@ -90,7 +90,7 @@ export async function exportTransactions(params: TransactionQueryParams) {
             coin.address || '',
             coin.coin_id,
             type.toUpperCase(),
-            type === 'xch' ? 'XCH' : coin.asset.asset_id,
+            coin.asset.asset_id,
             (coin.asset.name ?? coin.asset.ticker ?? '').replace(/,/g, ''),
           ];
         }),
