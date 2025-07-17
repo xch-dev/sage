@@ -25,7 +25,7 @@ export function TokenListView({
         rowLabelPlural={t`assets`}
         getRowStyles={(row) => ({
           className: cn(
-            !row.original.visible && !row.original.isXch && 'opacity-50',
+            !row.original.visible && !row.original.is_xch && 'opacity-50',
           ),
         })}
       />

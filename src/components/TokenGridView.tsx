@@ -48,7 +48,7 @@ function TokenCardMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
-        {!record.isXch && (
+        {!record.is_xch && (
           <>
             {actionHandlers?.onRefreshInfo && (
               <DropdownMenuItem

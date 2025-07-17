@@ -46,7 +46,6 @@ export function TokenList() {
         ),
       ),
       priceInUsd: getPriceInUsd('xch'),
-      isXch: true,
     };
   }, [
     xchAsset,
@@ -68,7 +67,6 @@ export function TokenList() {
           balanceInUsd: usdValue,
           sortValue: usdValue,
           priceInUsd: getPriceInUsd(cat.asset_id),
-          isXch: false,
         };
       }),
     [cats, getBalanceInUsd, getPriceInUsd],

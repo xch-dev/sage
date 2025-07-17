@@ -228,6 +228,7 @@ impl Sage {
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
                 precision: cat.precision,
+                is_xch: false,
             });
         }
 
@@ -253,6 +254,7 @@ impl Sage {
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
                 precision: cat.precision,
+                is_xch: false,
             });
         }
 
@@ -261,8 +263,8 @@ impl Sage {
 
     pub async fn get_xch_token(&self, _req: GetXchToken) -> Result<GetXchTokenResponse> {
         let xch = self.get_token(Bytes32::default()).await?;
-        let mut xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
-        xch.asset_id = "xch".to_string(); // Bytes32::default() is only used internally
+        let xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
+
         Ok(GetXchTokenResponse { xch })
     }
 
@@ -629,20 +631,24 @@ impl Sage {
         let token = wallet.db.asset(asset_id).await?;
         let balance = wallet.db.token_balance(asset_id).await?;
 
-        let token = token
-            .map(|token| {
-                Result::Ok(TokenRecord {
-                    asset_id: token.hash.to_string(),
-                    name: token.name,
-                    ticker: token.ticker,
-                    description: token.description,
-                    icon_url: token.icon_url,
-                    visible: token.is_visible,
-                    balance: Amount::u128(balance),
-                    precision: token.precision,
-                })
-            })
-            .transpose()?;
+        let token = token.map(|token| {
+            let is_xch = asset_id == Bytes32::default();
+            TokenRecord {
+                asset_id: if is_xch {
+                    "xch".to_string()
+                } else {
+                    token.hash.to_string()
+                },
+                name: token.name,
+                ticker: token.ticker,
+                description: token.description,
+                icon_url: token.icon_url,
+                visible: token.is_visible,
+                balance: Amount::u128(balance),
+                precision: token.precision,
+                is_xch,
+            }
+        });
 
         Ok(token)
     }

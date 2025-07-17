@@ -30,7 +30,7 @@ export async function exportTokens(tokens: TokenRecordWithPrices[]) {
       token.balanceInUsd?.toString() || '',
       token.priceInUsd?.toString() || '',
       (token.icon_url || '').replace(/,/g, ''),
-      token.isXch ? 'XCH' : 'CAT',
+      token.is_xch ? 'XCH' : 'CAT',
     ]);
 
     const csvContent = [

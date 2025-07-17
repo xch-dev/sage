@@ -12,4 +12,5 @@ pub struct TokenRecord {
     pub visible: bool,
     pub balance: Amount,
     pub precision: u8,
+    pub is_xch: bool,
 }

@@ -48,7 +48,10 @@ export function useTokenState(assetId: string | undefined) {
 
   const balanceInUsd = useMemo(() => {
     if (!asset) return '0';
-    return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, asset.precision));
+    return getBalanceInUsd(
+      asset.asset_id,
+      toDecimal(asset.balance, asset.precision),
+    );
   }, [asset, getBalanceInUsd]);
 
   const updateCoins = useMemo(
