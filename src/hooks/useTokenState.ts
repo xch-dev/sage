@@ -46,15 +46,10 @@ export function useTokenState(assetId: string | undefined) {
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
   const pageSize = 10;
 
-  const precision = useMemo(
-    () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
-    [assetId, walletState.sync.unit.decimals],
-  );
-
   const balanceInUsd = useMemo(() => {
     if (!asset) return '0';
-    return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, precision));
-  }, [asset, precision, getBalanceInUsd]);
+    return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, asset.precision));
+  }, [asset, getBalanceInUsd]);
 
   const updateCoins = useMemo(
     () =>
@@ -176,7 +171,6 @@ export function useTokenState(assetId: string | undefined) {
   return {
     asset,
     coins,
-    precision,
     balanceInUsd,
     response,
     selectedCoins,

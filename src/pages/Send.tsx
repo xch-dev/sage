@@ -58,22 +58,16 @@ function stringToUint8Array(str: string): Uint8Array {
 
 export default function Send() {
   const { asset_id: assetId } = useParams();
-  const isXch = assetId === 'xch';
   const navigate = useNavigate();
   const walletState = useWalletState();
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
-
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
-
   const [bulk, setBulk] = useState(false);
-
-  const ticker = asset?.ticker || 'CAT';
-
-  // Move useTokenState to the top level
   const xchTokenState = useTokenState('xch');
+  const ticker = asset?.ticker || 'CAT';
 
   const updateCat = useCallback(
     () =>
@@ -87,7 +81,7 @@ export default function Send() {
   );
 
   useEffect(() => {
-    if (isXch) {
+    if (assetId === 'xch') {
       if (xchTokenState.asset) {
         setAsset(xchTokenState.asset);
       }
@@ -111,7 +105,7 @@ export default function Send() {
     }
   }, [
     updateCat,
-    isXch,
+    assetId,
     xchTokenState.asset,
     walletState.sync.balance,
     walletState.sync.unit.decimals,
@@ -196,7 +190,7 @@ export default function Send() {
       walletState.sync.unit.decimals,
     );
 
-    if (isXch) {
+    if (assetId === 'xch') {
       if (bulk) {
         result = commands.bulkSendXch({
           addresses: [...new Set(addressList(values.address))],

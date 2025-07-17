@@ -46,7 +46,6 @@ export function TokenList() {
         ),
       ),
       priceInUsd: getPriceInUsd('xch'),
-      decimals: walletState.sync.unit.decimals,
       isXch: true,
     };
   }, [
@@ -69,7 +68,6 @@ export function TokenList() {
           balanceInUsd: usdValue,
           sortValue: usdValue,
           priceInUsd: getPriceInUsd(cat.asset_id),
-          decimals: 3,
           isXch: false,
         };
       }),

@@ -8,6 +8,6 @@ export interface TokenViewProps {
 export interface TokenRecordWithPrices extends TokenRecord {
   balanceInUsd: number;
   priceInUsd: number;
-  isXch?: boolean;
+  isXch: boolean;
   sortValue?: number;
 }
