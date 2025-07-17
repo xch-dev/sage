@@ -176,7 +176,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             <span className='break-normal'>
               {coin.asset.ticker ??
                 coin.asset.name ??
-                t`Unnamed ${coin.asset.kind}`}
+                t`Untitled ${coin.asset.kind.toUpperCase()}`}
             </span>
           )}
         </div>

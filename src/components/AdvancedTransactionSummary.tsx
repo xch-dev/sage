@@ -211,7 +211,7 @@ export function calculateTransaction(
       ) {
         spent.push({
           badge: t`Profile`,
-          label: input.asset.name ?? t`Unnamed`,
+          label: input.asset.name ?? t`Untitled DID`,
           coinId: input.coin_id,
           sort: 3,
         });
@@ -225,7 +225,7 @@ export function calculateTransaction(
         if (BigNumber(output.amount).mod(2).eq(1)) {
           created.push({
             badge: t`Profile`,
-            label: input.asset.name ?? t`Unnamed`,
+            label: input.asset.name ?? t`Untitled DID`,
             address: output.burning
               ? t`Permanently Burned`
               : output.receiving
@@ -246,7 +246,7 @@ export function calculateTransaction(
       ) {
         spent.push({
           badge: 'NFT',
-          label: input.asset.name ?? t`Unknown`,
+          label: input.asset.name ?? t`Unknown NFT`,
           coinId: input.coin_id,
           sort: 4,
         });
@@ -260,7 +260,7 @@ export function calculateTransaction(
         if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
           created.push({
             badge: 'NFT',
-            label: input.asset.name ?? t`Unknown`,
+            label: input.asset.name ?? t`Unknown NFT`,
             address: output.burning
               ? t`Permanently Burned`
               : output.receiving

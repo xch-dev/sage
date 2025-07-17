@@ -4,9 +4,19 @@ import { Row, SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { TransactionRecord } from '../bindings';
+import { Asset, TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
+
+function getDisplayName(asset: Asset) {
+  return (
+    asset.name ??
+    asset.ticker ??
+    (asset.kind === 'token'
+      ? `Unknown CAT`
+      : t`Untitled ${asset.kind.toUpperCase()}`)
+  );
+}
 
 export function TransactionListView({
   transactions,
@@ -26,7 +36,7 @@ export function TransactionListView({
       (coin): FlattenedTransaction => ({
         type: coin.asset.kind,
         address: coin.address,
-        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        displayName: getDisplayName(coin.asset),
         assetId: coin.asset.asset_id ?? 'XCH',
         amount: coin.amount.toString(),
         transactionHeight: transaction.height,
@@ -40,7 +50,7 @@ export function TransactionListView({
       (coin): FlattenedTransaction => ({
         type: coin.asset.kind,
         address: coin.address,
-        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        displayName: getDisplayName(coin.asset),
         assetId: coin.asset.asset_id ?? 'XCH',
         amount: BigNumber(coin.amount).negated().toString(),
         transactionHeight: transaction.height,
