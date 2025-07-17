@@ -1,5 +1,5 @@
-import { Coins, User, Image } from 'lucide-react';
 import { AssetKind } from '@/bindings';
+import { Coins, Image, User } from 'lucide-react';
 
 export interface AssetIconProps {
   iconUrl?: string | null;
@@ -38,10 +38,19 @@ export function AssetIcon({
   }
 
   return kind === 'token' ? (
-    <Coins className={`${baseClasses} ${className}`} aria-hidden='true' />
+    <Coins
+      className={`${baseClasses} ${className} stroke-1`}
+      aria-hidden='true'
+    />
   ) : kind === 'nft' ? (
-    <Image className={`${baseClasses} ${className}`} aria-hidden='true' />
+    <Image
+      className={`${baseClasses} ${className} stroke-1`}
+      aria-hidden='true'
+    />
   ) : (
-    <User className={`${baseClasses} ${className}`} aria-hidden='true' />
+    <User
+      className={`${baseClasses} ${className} stroke-1`}
+      aria-hidden='true'
+    />
   );
 }
