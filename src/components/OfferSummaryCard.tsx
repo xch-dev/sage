@@ -1,9 +1,9 @@
 import { OfferAsset, OfferRecord } from '@/bindings';
+import { AssetIcon } from '@/components/AssetIcon';
 import { NumberFormat } from '@/components/NumberFormat';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
-import { AssetIcon } from '@/components/AssetIcon';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -68,12 +68,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
       <div>{label}</div>
       {assets.map(({ amount, royalty, asset }, i) => (
         <div className='flex items-center gap-2' key={i}>
-          <AssetIcon
-            iconUrl={asset.icon_url}
-            name={asset.name}
-            kind={asset.kind}
-            size='md'
-          />
+          <AssetIcon iconUrl={asset.icon_url} kind={asset.kind} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
             {asset.kind !== 'nft' && (
               <NumberFormat

@@ -82,7 +82,6 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           >
             <AssetIcon
               iconUrl={row.original.iconUrl}
-              name={row.original.displayName}
               kind={row.original.type}
             />
           </div>

@@ -19,8 +19,8 @@ import { Trans } from '@lingui/react/macro';
 import { MoreHorizontal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { TokenActionHandlers } from './TokenColumns';
 import { AssetIcon } from './AssetIcon';
+import { TokenActionHandlers } from './TokenColumns';
 
 type TokenGridViewProps = TokenViewProps & {
   actionHandlers?: TokenActionHandlers;
@@ -120,11 +120,7 @@ export function TokenGridView({
                 </TooltipTrigger>
                 <TooltipContent>{xchRecord.name}</TooltipContent>
               </Tooltip>
-              <AssetIcon
-                iconUrl={xchRecord.icon_url}
-                name={xchRecord.name}
-                kind='token'
-              />
+              <AssetIcon iconUrl={xchRecord.icon_url} kind='token' />
             </CardHeader>
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
@@ -179,11 +175,7 @@ export function TokenGridView({
                       {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                     </TooltipContent>
                   </Tooltip>
-                  <AssetIcon
-                    iconUrl={cat.icon_url}
-                    name={cat.name}
-                    kind='token'
-                  />
+                  <AssetIcon iconUrl={cat.icon_url} kind='token' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>

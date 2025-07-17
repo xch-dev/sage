@@ -17,7 +17,6 @@ const sizeClasses = {
 
 export function AssetIcon({
   iconUrl,
-  name,
   kind,
   size = 'sm',
   className = '',
@@ -30,7 +29,7 @@ export function AssetIcon({
       <img
         src={iconUrl}
         className={`${baseClasses} ${className}`}
-        alt={name ?? 'Asset icon'}
+        alt='Asset icon'
         loading='lazy'
         aria-hidden='true'
       />

@@ -5,20 +5,24 @@ import {
   TransactionCoinRecord,
   TransactionRecord,
 } from '@/bindings';
+import { AssetIcon } from '@/components/AssetIcon';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import { formatAddress, formatTimestamp, fromMojos } from '@/lib/utils';
+import {
+  formatAddress,
+  formatTimestamp,
+  fromMojos,
+  getAssetDisplayName,
+} from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { AssetIcon } from '@/components/AssetIcon';
-import { getAssetDisplayName } from '@/lib/utils';
 
 export default function Transaction() {
   const { height } = useParams();
@@ -153,7 +157,6 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
     <div className='flex items-center gap-2'>
       <AssetIcon
         iconUrl={coin.asset.icon_url}
-        name={coin.asset.name}
         kind={coin.asset.kind}
         size='md'
       />

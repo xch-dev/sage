@@ -3,9 +3,9 @@ import { useErrors } from '@/hooks/useErrors';
 import { isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
+import { AssetIcon } from '../AssetIcon';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { AssetIcon } from '../AssetIcon';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -111,12 +111,7 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          <AssetIcon
-            iconUrl={token.icon_url}
-            name={token.name}
-            kind='token'
-            size='lg'
-          />
+          <AssetIcon iconUrl={token.icon_url} kind='token' size='lg' />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
               {token.name}
@@ -133,11 +128,7 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        <AssetIcon
-          iconUrl={selectedToken?.icon_url}
-          name={selectedToken?.name}
-          kind='token'
-        />
+        <AssetIcon iconUrl={selectedToken?.icon_url} kind='token' />
         <div className='flex flex-col truncate text-left'>
           <span className='truncate'>
             {selectedToken?.name ?? t`Select Token`}

@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatUsdPrice, toDecimal, getAssetDisplayName } from '@/lib/utils';
+import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { TokenRecordWithPrices } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { NumberFormat } from './NumberFormat';
 import { AssetIcon } from './AssetIcon';
+import { NumberFormat } from './NumberFormat';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -43,7 +43,6 @@ export const columns = (
       return (
         <AssetIcon
           iconUrl={row.original.icon_url}
-          name={row.original.name}
           kind='token'
           className='ml-1'
         />

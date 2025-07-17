@@ -1,3 +1,4 @@
+import { AssetIcon } from '@/components/AssetIcon';
 import { NumberFormat } from '@/components/NumberFormat';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
@@ -37,7 +38,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenRecord } from '../bindings';
-import { AssetIcon } from '@/components/AssetIcon';
 
 interface TokenCardProps {
   asset: TokenRecord | null;
@@ -96,12 +96,7 @@ export function TokenCard({
               {asset?.ticker}
             </div>
             <div className='flex-shrink-0'>
-              <AssetIcon
-                iconUrl={asset?.icon_url}
-                name={asset?.name}
-                kind='token'
-                size='md'
-              />
+              <AssetIcon iconUrl={asset?.icon_url} kind='token' size='md' />
             </div>
           </div>
           <div className='text-sm text-muted-foreground'>
