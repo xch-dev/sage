@@ -12,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { formatUsdPrice, fromMojos } from '@/lib/utils';
+import { formatUsdPrice, fromMojos, getAssetDisplayName } from '@/lib/utils';
 import { TokenRecordWithPrices, TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -172,11 +172,11 @@ export function TokenGridView({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <CardTitle className='text-md font-medium truncate'>
-                        {cat.name || <Trans>Unknown CAT</Trans>}
+                        {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                       </CardTitle>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {cat.name || <Trans>Unknown CAT</Trans>}
+                      {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                     </TooltipContent>
                   </Tooltip>
                   <AssetIcon

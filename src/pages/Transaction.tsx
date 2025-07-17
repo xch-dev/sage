@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AssetIcon } from '@/components/AssetIcon';
+import { getAssetDisplayName } from '@/lib/utils';
 
 export default function Transaction() {
   const { height } = useParams();
@@ -142,6 +143,12 @@ interface TransactionCoinKindProps {
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
+  const name = getAssetDisplayName(
+    coin.asset.name,
+    coin.asset.ticker,
+    coin.asset.kind,
+  );
+
   return (
     <div className='flex items-center gap-2'>
       <AssetIcon
@@ -160,14 +167,12 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
                 maximumFractionDigits={coin.asset.precision}
               />{' '}
               <span className='break-normal'>
-                {coin.asset.ticker ?? coin.asset.name ?? 'Unknown CAT'}
+                {name}
               </span>
             </>
           ) : (
             <span className='break-normal'>
-              {coin.asset.ticker ??
-                coin.asset.name ??
-                t`Untitled ${coin.asset.kind.toUpperCase()}`}
+              {getAssetDisplayName(coin.asset.name, coin.asset.ticker, coin.asset.kind)}
             </span>
           )}
         </div>

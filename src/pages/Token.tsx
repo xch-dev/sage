@@ -11,6 +11,7 @@ import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands } from '../bindings';
+import { getAssetDisplayName } from '@/lib/utils';
 
 export default function Token() {
   const { asset_id: assetId } = useParams();
@@ -103,7 +104,7 @@ export default function Token() {
       <Header
         title={
           <span>
-            {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
+            {asset ? getAssetDisplayName(asset.name, asset.ticker, 'token') : ''}{' '}
             {!asset?.is_xch && (
               <>
                 {' '}

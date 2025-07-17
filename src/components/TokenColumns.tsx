@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { formatUsdPrice, toDecimal, getAssetDisplayName } from '@/lib/utils';
 import { TokenRecordWithPrices } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -55,7 +55,11 @@ export const columns = (
     header: () => <Trans>Name</Trans>,
     minSize: 120,
     cell: ({ row }) => {
-      const name = row.original.name || <Trans>Unknown CAT</Trans>;
+      const name = getAssetDisplayName(
+        row.original.name,
+        row.original.ticker,
+        'token',
+      );
       const path = `/wallet/token/${row.original.asset_id}`;
       const ariaLabel = t`View ${name} token details`;
 
