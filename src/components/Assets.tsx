@@ -4,7 +4,7 @@ import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { CheckCircleIcon, Wallet, XCircleIcon } from 'lucide-react';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -81,12 +81,14 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
           </div>
 
           <div className='flex items-center gap-2'>
-            {asset.icon_url && (
+            {asset.icon_url ? (
               <img
                 src={asset.icon_url}
                 className={`w-6 h-6 ${asset.kind === 'token' ? 'rounded-full' : 'rounded-sm'}`}
                 alt={t`Icon`}
               />
+            ) : (
+              <Wallet className='w-6 h-6' aria-hidden='true' />
             )}
 
             {asset.asset_id && (

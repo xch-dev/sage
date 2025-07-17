@@ -19,6 +19,7 @@ import {
   EyeOff,
   MoreHorizontal,
   RefreshCw,
+  Wallet,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -46,7 +47,9 @@ export const columns = (
           className='h-6 w-6 ml-1'
           src={row.original.icon_url}
         />
-      ) : null;
+      ) : (
+        <Wallet className='h-6 w-6 ml-1' aria-hidden='true' />
+      );
     },
   },
   {

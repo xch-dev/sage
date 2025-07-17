@@ -32,6 +32,7 @@ import {
   Pencil,
   RefreshCw,
   Send,
+  Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -95,11 +96,15 @@ export function TokenCard({
               {asset?.ticker}
             </div>
             <div className='flex-shrink-0'>
-              <img
-                alt='asset icon'
-                src={asset?.icon_url ?? ''}
-                className='h-8 w-8'
-              />
+              {asset?.icon_url ? (
+                <img
+                  alt='asset icon'
+                  src={asset?.icon_url}
+                  className='h-8 w-8'
+                />
+              ) : (
+                <Wallet className='h-8 w-8' aria-hidden='true' />
+              )}
             </div>
           </div>
           <div className='text-sm text-muted-foreground'>

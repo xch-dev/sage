@@ -14,7 +14,7 @@ import { formatAddress, formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { User } from 'lucide-react';
+import { User, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -145,28 +145,40 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   return (
     <div className='flex items-center gap-2'>
       {coin.asset.kind !== 'did' ? (
-        <img
-          alt={coin.asset.name ?? t`Unknown`}
-          src={coin.asset.icon_url ?? ''}
-          className='w-8 h-8'
-          aria-hidden={true}
-        />
+        coin.asset.icon_url ? (
+          <img
+            alt={coin.asset.name ?? t`Unknown`}
+            src={coin.asset.icon_url ?? ''}
+            className='w-8 h-8'
+            aria-hidden={true}
+          />
+        ) : (
+          <Wallet className='w-8 h-8' aria-hidden={true} />
+        )
       ) : (
         <User className='w-8 h-8' aria-hidden={true} />
       )}
 
       <div className='flex flex-col'>
         <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-          {coin.asset.kind === 'token' && (
-            <NumberFormat
-              value={fromMojos(coin.amount, coin.asset.precision)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={coin.asset.precision}
-            />
+          {coin.asset.kind === 'token' ? (
+            <>
+              <NumberFormat
+                value={fromMojos(coin.amount, coin.asset.precision)}
+                minimumFractionDigits={0}
+                maximumFractionDigits={coin.asset.precision}
+              />{' '}
+              <span className='break-normal'>
+                {coin.asset.ticker ?? coin.asset.name ?? 'Unknown CAT'}
+              </span>
+            </>
+          ) : (
+            <span className='break-normal'>
+              {coin.asset.ticker ??
+                coin.asset.name ??
+                t`Unnamed ${coin.asset.kind}`}
+            </span>
           )}
-          <span className='break-normal'>
-            {coin.asset.ticker ?? coin.asset.name ?? coin.asset.kind}
-          </span>
         </div>
       </div>
     </div>

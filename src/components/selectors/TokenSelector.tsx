@@ -5,6 +5,7 @@ import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
+import { Wallet } from 'lucide-react';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -120,13 +121,18 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          {token.icon_url && (
+          {token.icon_url ? (
             <img
               src={token.icon_url}
               className='w-10 h-10 rounded object-cover'
               alt={token.name ?? t`Unknown token`}
               aria-hidden='true'
               loading='lazy'
+            />
+          ) : (
+            <Wallet
+              className='w-10 h-10 rounded object-cover'
+              aria-hidden='true'
             />
           )}
           <div className='flex flex-col truncate'>
@@ -145,7 +151,7 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        {selectedToken?.icon_url && (
+        {selectedToken?.icon_url ? (
           <img
             src={selectedToken.icon_url}
             className='w-8 h-8 rounded object-cover'
@@ -157,6 +163,8 @@ export function TokenSelector({
             loading='lazy'
             aria-hidden='true'
           />
+        ) : (
+          <Wallet className='w-8 h-8 rounded object-cover' aria-hidden='true' />
         )}
         <div className='flex flex-col truncate text-left'>
           <span className='truncate'>

@@ -87,9 +87,10 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               />
             ) : row.original.type === 'did' ? (
               <User className='w-6 h-6' aria-hidden='true' />
-            ) : null}
+            ) : (
+              <Wallet className='w-6 h-6' aria-hidden='true' />
+            )}
           </div>
-
           <div className='truncate'>{row.original.displayName}</div>
         </div>
       );
