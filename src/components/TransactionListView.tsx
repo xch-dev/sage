@@ -27,7 +27,7 @@ export function TransactionListView({
         type: coin.asset.kind,
         address: coin.address,
         displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
-        itemId: coin.asset.asset_id ?? 'XCH',
+        assetId: coin.asset.asset_id ?? 'XCH',
         amount: coin.amount.toString(),
         transactionHeight: transaction.height,
         iconUrl: coin.asset.icon_url ?? '',
@@ -41,7 +41,7 @@ export function TransactionListView({
         type: coin.asset.kind,
         address: coin.address,
         displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
-        itemId: coin.asset.asset_id ?? 'XCH',
+        assetId: coin.asset.asset_id ?? 'XCH',
         amount: BigNumber(coin.amount).negated().toString(),
         transactionHeight: transaction.height,
         iconUrl: coin.asset.icon_url ?? '',
@@ -61,16 +61,16 @@ export function TransactionListView({
     const summaryMap = new Map<string, FlattenedTransaction>();
 
     allCoins.forEach((coin) => {
-      const existing = summaryMap.get(coin.itemId);
+      const existing = summaryMap.get(coin.assetId);
       const amount = BigNumber(coin.amount);
 
       if (existing) {
-        summaryMap.set(coin.itemId, {
+        summaryMap.set(coin.assetId, {
           ...existing,
           amount: BigNumber(existing.amount).plus(amount).toString(),
         });
       } else {
-        summaryMap.set(coin.itemId, {
+        summaryMap.set(coin.assetId, {
           ...coin,
           amount: amount.toString(),
         });

@@ -11,10 +11,11 @@ import { formatAddress, formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
-import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
+import { Copy, MoreHorizontal, User, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
+
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -22,7 +23,7 @@ export interface FlattenedTransaction {
   iconUrl?: string | null;
   amount: string;
   address: string | null;
-  itemId: string;
+  assetId: string;
   displayName: string;
   timestamp: number | null;
   precision: number;
@@ -85,6 +86,8 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
                 aria-hidden='true'
                 loading='lazy'
               />
+            ) : row.original.type === 'did' ? (
+              <User className='w-6 h-6' aria-hidden='true' />
             ) : null}
           </div>
 

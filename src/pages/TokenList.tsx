@@ -40,24 +40,16 @@ export function TokenList() {
       ...xchAsset,
       balance: xchAsset.balance.toString(),
       balanceInUsd: Number(
-        getBalanceInUsd(
-          'xch',
-          toDecimal(xchAsset.balance, walletState.sync.unit.decimals),
-        ),
+        getBalanceInUsd('xch', toDecimal(xchAsset.balance, xchAsset.precision)),
       ),
       priceInUsd: getPriceInUsd('xch'),
     };
-  }, [
-    xchAsset,
-    getBalanceInUsd,
-    getPriceInUsd,
-    walletState.sync.unit.decimals,
-  ]);
+  }, [xchAsset, getBalanceInUsd, getPriceInUsd]);
 
   const catsWithBalanceInUsd = useMemo(
     () =>
       cats.map((cat) => {
-        const balance = Number(toDecimal(cat.balance, 3));
+        const balance = Number(toDecimal(cat.balance, cat.precision));
         const usdValue = parseFloat(
           getBalanceInUsd(cat.asset_id, balance.toString()),
         );
@@ -80,7 +72,10 @@ export function TokenList() {
       if (a.balanceInUsd !== b.balanceInUsd) {
         return b.balanceInUsd - a.balanceInUsd;
       }
-      return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
+      return (
+        Number(toDecimal(b.balance, b.precision)) -
+        Number(toDecimal(a.balance, a.precision))
+      );
     }
 
     const aName = a.name || 'Unknown CAT';
@@ -97,7 +92,10 @@ export function TokenList() {
       return false;
     }
 
-    if (!showZeroBalanceTokens && Number(toDecimal(cat.balance, 3)) === 0) {
+    if (
+      !showZeroBalanceTokens &&
+      Number(toDecimal(cat.balance, cat.precision)) === 0
+    ) {
       return false;
     }
 

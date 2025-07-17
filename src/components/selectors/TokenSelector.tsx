@@ -109,8 +109,9 @@ export function TokenSelector({
                   balance: 0,
                   ticker: null,
                   description: null,
-                  visible: true,
+                  visible: false,
                   precision: 0,
+                  is_xch: false,
                 },
               );
             }
