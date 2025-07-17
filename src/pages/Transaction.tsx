@@ -145,11 +145,11 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
   return (
     <div className='flex items-center gap-2'>
       {coin.asset.kind !== 'did' ? (
-      <img
-        alt={coin.asset.name ?? t`Unknown`}
-        src={coin.asset.icon_url ?? ''}
-        className='w-8 h-8'
-        aria-hidden={true}
+        <img
+          alt={coin.asset.name ?? t`Unknown`}
+          src={coin.asset.icon_url ?? ''}
+          className='w-8 h-8'
+          aria-hidden={true}
         />
       ) : (
         <User className='w-8 h-8' aria-hidden={true} />

@@ -16,7 +16,6 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
 
-
 export interface FlattenedTransaction {
   transactionHeight: number;
   type: AssetKind;
