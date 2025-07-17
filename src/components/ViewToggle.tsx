@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { t } from '@lingui/core/macro';
 import { LayoutGrid, List as ListIcon } from 'lucide-react';
 
-type ViewMode = 'grid' | 'list';
+export type ViewMode = 'grid' | 'list';
 
 interface ViewToggleProps {
   view: ViewMode;
@@ -25,5 +25,3 @@ export function ViewToggle({ view, onChange }: ViewToggleProps) {
     </Button>
   );
 }
-
-export type { ViewMode };

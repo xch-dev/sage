@@ -64,6 +64,7 @@ import { z } from 'zod';
 import { commands, Network, NetworkConfig, Wallet } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
+
 export default function Settings() {
   const { wallet } = useWallet();
   const [version, setVersion] = useState<string | null>(null);
