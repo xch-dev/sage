@@ -163,7 +163,7 @@ pub struct GetCatsResponse {
     pub cats: Vec<TokenRecord>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetXchToken {}
 

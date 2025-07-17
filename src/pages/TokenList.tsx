@@ -20,6 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
+import { useTokenState } from '@/hooks/useTokenState';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -30,27 +31,32 @@ export function TokenList() {
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
   const [cats, setCats] = useState<TokenRecord[]>([]);
 
-  const xchRecord = useMemo(
-    () => ({
-      asset_id: 'xch',
-      name: 'Chia',
-      ticker: walletState.sync.unit.ticker,
-      description: null,
-      icon_url: 'https://icons.dexie.space/xch.webp',
-      visible: true,
-      balance: walletState.sync.balance.toString(),
+  const { asset: xchAsset } = useTokenState('xch');
+  console.log(xchAsset);
+  const xchRecord = useMemo(() => {
+    if (!xchAsset) {
+      return null;
+    }
+
+    return {
+      ...xchAsset,
+      balance: xchAsset.balance.toString(),
       balanceInUsd: Number(
         getBalanceInUsd(
           'xch',
-          toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
+          toDecimal(xchAsset.balance, walletState.sync.unit.decimals),
         ),
       ),
       priceInUsd: getPriceInUsd('xch'),
       decimals: walletState.sync.unit.decimals,
       isXch: true,
-    }),
-    [walletState.sync, getBalanceInUsd, getPriceInUsd],
-  );
+    };
+  }, [
+    xchAsset,
+    getBalanceInUsd,
+    getPriceInUsd,
+    walletState.sync.unit.decimals,
+  ]);
 
   const catsWithBalanceInUsd = useMemo(
     () =>
@@ -205,7 +211,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() => exportTokens([xchRecord, ...filteredCats])}
+          onExport={() => xchRecord && exportTokens([xchRecord, ...filteredCats])}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -223,20 +229,22 @@ export function TokenList() {
           </Alert>
         )}
 
-        {viewMode === 'grid' ? (
-          <TokenGridView
-            cats={filteredCats}
-            xchRecord={xchRecord}
-            actionHandlers={tokenActionHandlers}
-          />
-        ) : (
-          <div className='mt-4'>
-            <TokenListView
+        {xchRecord && (
+          viewMode === 'grid' ? (
+            <TokenGridView
               cats={filteredCats}
               xchRecord={xchRecord}
               actionHandlers={tokenActionHandlers}
             />
-          </div>
+          ) : (
+            <div className='mt-4'>
+              <TokenListView
+                cats={filteredCats}
+                xchRecord={xchRecord}
+                actionHandlers={tokenActionHandlers}
+              />
+            </div>
+          )
         )}
       </Container>
     </>

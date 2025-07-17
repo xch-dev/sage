@@ -258,48 +258,15 @@ impl Sage {
     }
 
     pub async fn get_xch_token(&self, _req: GetXchToken) -> Result<GetXchTokenResponse> {
-        let wallet = self.wallet()?;
-
-        let xch = wallet.db.asset(Bytes32::default()).await?;
-        let balance = wallet.db.xch_balance().await?;
-
-        let xch = xch
-            .map(|cat| {
-                Result::Ok(TokenRecord {
-                    asset_id: "xch".to_string(),
-                    name: xch.name,
-                    ticker: xch.ticker,
-                    description: xch.description,
-                    icon_url: xch.icon_url,
-                    visible: xch.is_visible,
-                    balance: Amount::u128(balance),
-                })
-            })
-            .transpose()?;
-
+        let xch = self.get_token(Bytes32::default()).await?;
+        let xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
+        
         Ok(GetXchTokenResponse { xch })
     }
 
     pub async fn get_cat(&self, req: GetCat) -> Result<GetCatResponse> {
-        let wallet = self.wallet()?;
-
         let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.asset(asset_id).await?;
-        let balance = wallet.db.cat_balance(asset_id).await?;
-
-        let cat = cat
-            .map(|cat| {
-                Result::Ok(TokenRecord {
-                    asset_id: cat.hash.to_string(),
-                    name: cat.name,
-                    ticker: cat.ticker,
-                    description: cat.description,
-                    icon_url: cat.icon_url,
-                    visible: cat.is_visible,
-                    balance: Amount::u128(balance),
-                })
-            })
-            .transpose()?;
+        let cat = self.get_token(asset_id).await?;
 
         Ok(GetCatResponse { cat })
     }
@@ -652,6 +619,29 @@ impl Sage {
                 .await?
                 .map(|thumbnail| BASE64_STANDARD.encode(thumbnail.data)),
         })
+    }
+
+    async fn get_token(&self, asset_id: Bytes32) -> Result<Option<TokenRecord>> {
+        let wallet = self.wallet()?;
+
+        let token = wallet.db.asset(asset_id).await?;
+        let balance = wallet.db.token_balance(asset_id).await?;
+
+        let token = token
+            .map(|token| {
+                Result::Ok(TokenRecord {
+                    asset_id: token.hash.to_string(),
+                    name: token.name,
+                    ticker: token.ticker,
+                    description: token.description,
+                    icon_url: token.icon_url,
+                    visible: token.is_visible,
+                    balance: Amount::u128(balance),
+                })
+            })
+            .transpose()?;
+
+        Ok(token)
     }
 
     fn nft_record(&self, row: NftRow) -> Result<NftRecord> {

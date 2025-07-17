@@ -140,6 +140,10 @@ impl Database {
         token_balance(&self.pool, asset_id).await
     }
 
+    pub async fn token_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        token_balance(&self.pool, asset_id).await
+    }
+
     pub async fn spendable_xch_balance(&self) -> Result<u128> {
         spendable_token_balance(&self.pool, Bytes32::default()).await
     }

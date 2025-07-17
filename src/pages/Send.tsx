@@ -44,6 +44,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
+import { useTokenState } from '@/hooks/useTokenState';
 import {
   commands,
   events,
@@ -86,16 +87,10 @@ export default function Send() {
 
   useEffect(() => {
     if (isXch) {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        decimals: walletState.sync.unit.decimals,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
-      });
+      const token = useTokenState('xch').asset;
+      if (token) {
+        setAsset({ ...token, decimals: walletState.sync.unit.decimals });
+      }
     } else {
       updateCat();
 
