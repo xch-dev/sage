@@ -41,7 +41,6 @@ import {
 import { FeeAmountInput } from './ui/masked-input';
 
 interface CoinsCardProps {
-  precision: number;
   coins: CoinRecord[];
   asset: TokenRecord | null;
   splitHandler: typeof commands.splitXch | null;
@@ -64,7 +63,6 @@ interface CoinsCardProps {
 }
 
 export function CoinsCard({
-  precision,
   coins: pageCoins,
   asset,
   splitHandler,
@@ -230,7 +228,7 @@ export function CoinsCard({
               type: 'combine',
               coins: selectedCoinRecords,
               ticker: ticker || '',
-              precision,
+              precision: asset?.precision,
             },
           },
         });
@@ -281,7 +279,7 @@ export function CoinsCard({
               coins: selectedCoinRecords,
               outputCount: values.outputCount,
               ticker: ticker || '',
-              precision,
+              precision: asset?.precision,
             },
           },
         });
@@ -298,7 +296,7 @@ export function CoinsCard({
       t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
-    maxCoinAmount: amount(precision).optional(),
+    maxCoinAmount: amount(asset?.precision ?? 0).optional(),
   });
 
   const autoCombineForm = useForm<z.infer<typeof autoCombineFormSchema>>({
@@ -317,7 +315,7 @@ export function CoinsCard({
     const fee = toMojos(values.autoCombineFee, walletState.sync.unit.decimals);
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
-      ? toMojos(values.maxCoinAmount, precision)
+      ? toMojos(values.maxCoinAmount, asset?.precision ?? 0)
       : null;
 
     autoCombineHandler({
@@ -339,7 +337,7 @@ export function CoinsCard({
               type: 'combine',
               coins: resultCoins.coins,
               ticker: ticker || '',
-              precision,
+              precision: asset?.precision,
             },
           },
         });
@@ -363,7 +361,7 @@ export function CoinsCard({
       </CardHeader>
       <CardContent>
         <CoinList
-          precision={precision}
+          precision={asset?.precision ?? 0}
           coins={pageCoins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}

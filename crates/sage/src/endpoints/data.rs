@@ -227,6 +227,7 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                precision: cat.precision,
             });
         }
 
@@ -251,6 +252,7 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                precision: cat.precision,
             });
         }
 
@@ -637,6 +639,7 @@ impl Sage {
                     icon_url: token.icon_url,
                     visible: token.is_visible,
                     balance: Amount::u128(balance),
+                    precision: token.precision,
                 })
             })
             .transpose()?;

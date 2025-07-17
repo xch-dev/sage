@@ -152,9 +152,8 @@ export function useTokenState(assetId: string | undefined) {
 
   const setVisibility = (visible: boolean) => {
     if (!asset || assetId === 'xch') return;
-    const updatedAsset = { ...asset, visible };
 
-    commands.updateCat({ record: updatedAsset }).catch(addError);
+    commands.updateCat({ record: { ...asset, visible } }).catch(addError);
   };
 
   const updateCatDetails = async (updatedAsset: TokenRecord) => {

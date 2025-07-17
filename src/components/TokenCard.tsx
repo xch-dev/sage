@@ -40,7 +40,6 @@ import { TokenRecord } from '../bindings';
 
 interface TokenCardProps {
   asset: TokenRecord | null;
-  precision: number;
   balanceInUsd: string;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
@@ -50,7 +49,6 @@ interface TokenCardProps {
 
 export function TokenCard({
   asset,
-  precision,
   balanceInUsd,
   onRedownload,
   onVisibilityChange,
@@ -88,9 +86,9 @@ export function TokenCard({
             <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
               <span className='truncate'>
                 <NumberFormat
-                  value={fromMojos(asset?.balance ?? 0, precision)}
+                  value={fromMojos(asset?.balance ?? 0, asset?.precision ?? 0)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={precision}
+                  maximumFractionDigits={asset?.precision ?? 0}
                 />
                 &nbsp;
               </span>

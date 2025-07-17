@@ -110,6 +110,7 @@ export function TokenSelector({
                   ticker: null,
                   description: null,
                   visible: true,
+                  precision: 0,
                 },
               );
             }

@@ -32,7 +32,7 @@ function TokenCardMenu({
   record: TokenRecordWithPrices;
   actionHandlers?: TokenActionHandlers;
 }) {
-  const balance = fromMojos(record.balance, record.decimals);
+  const balance = fromMojos(record.balance, record.precision);
 
   return (
     <DropdownMenu>
@@ -130,9 +130,9 @@ export function TokenGridView({
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
                 <NumberFormat
-                  value={fromMojos(xchRecord.balance, xchRecord.decimals)}
+                  value={fromMojos(xchRecord.balance, xchRecord.precision)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={xchRecord.decimals}
+                  maximumFractionDigits={xchRecord.precision}
                 />
               </div>
               <div className='flex justify-between items-center text-sm text-neutral-500'>

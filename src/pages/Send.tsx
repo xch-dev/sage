@@ -64,9 +64,7 @@ export default function Send() {
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
 
-  const [asset, setAsset] = useState<
-    (TokenRecord & { decimals: number }) | null
-  >(null);
+  const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
   const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
 
@@ -74,12 +72,15 @@ export default function Send() {
 
   const ticker = asset?.ticker || 'CAT';
 
+  // Move useTokenState to the top level
+  const xchTokenState = useTokenState('xch');
+
   const updateCat = useCallback(
     () =>
       commands
         .getCat({ asset_id: assetId ?? '' })
         .then((data) => {
-          if (data.cat) setAsset({ ...data.cat, decimals: 3 });
+          if (data.cat) setAsset(data.cat);
         })
         .catch(addError),
     [assetId, addError],
@@ -87,9 +88,8 @@ export default function Send() {
 
   useEffect(() => {
     if (isXch) {
-      const token = useTokenState('xch').asset;
-      if (token) {
-        setAsset({ ...token, decimals: walletState.sync.unit.decimals });
+      if (xchTokenState.asset) {
+        setAsset(xchTokenState.asset);
       }
     } else {
       updateCat();
@@ -112,6 +112,7 @@ export default function Send() {
   }, [
     updateCat,
     isXch,
+    xchTokenState.asset,
     walletState.sync.balance,
     walletState.sync.unit.decimals,
     walletState.sync.unit.ticker,
@@ -141,10 +142,10 @@ export default function Send() {
           ).then((values) => values.every(Boolean)),
         bulk ? t`Invalid addresses` : t`Invalid address`,
       ),
-    amount: positiveAmount(asset?.decimals || 12).refine(
+    amount: positiveAmount(asset?.precision || 12).refine(
       (amount) =>
         asset
-          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.decimals))
+          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.precision))
           : true,
       'Amount exceeds balance',
     ),
@@ -189,7 +190,7 @@ export default function Send() {
 
     let result: Promise<TransactionResponse>;
 
-    const amount = toMojos(values.amount.toString(), asset?.decimals || 12);
+    const amount = toMojos(values.amount.toString(), asset?.precision || 12);
     const fee = toMojos(
       values.fee?.toString() || '0',
       walletState.sync.unit.decimals,
@@ -249,9 +250,9 @@ export default function Send() {
               </div>
               <div className='text-2xl font-medium mt-1'>
                 <NumberFormat
-                  value={fromMojos(asset.balance, asset.decimals)}
+                  value={fromMojos(asset.balance, asset.precision)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={asset.decimals}
+                  maximumFractionDigits={asset.precision}
                 />{' '}
                 {asset.ticker}
               </div>
@@ -328,7 +329,7 @@ export default function Send() {
                                   if (asset) {
                                     const maxAmount = fromMojos(
                                       asset.balance,
-                                      asset.decimals,
+                                      asset.precision,
                                     );
                                     form.setValue(
                                       'amount',

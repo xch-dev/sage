@@ -96,8 +96,8 @@ export const columns = (
       const record = row.original;
       return (
         <NumberFormat
-          value={toDecimal(record.balance, record.decimals)}
-          maximumFractionDigits={record.decimals}
+          value={toDecimal(record.balance, record.precision)}
+          maximumFractionDigits={record.precision}
         />
       );
     },
@@ -141,7 +141,7 @@ export const columns = (
     size: 44,
     cell: ({ row }) => {
       const record = row.original;
-      const balance = toDecimal(record.balance, record.decimals);
+      const balance = toDecimal(record.balance, record.precision);
 
       return (
         <DropdownMenu>
