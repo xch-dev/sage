@@ -5,11 +5,11 @@ import { useWalletState } from '@/state';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CatRecord,
   CoinRecord,
   CoinSortMode,
   commands,
   events,
+  TokenRecord,
   TransactionResponse,
 } from '../bindings';
 
@@ -32,7 +32,7 @@ export function useTokenState(assetId: string | undefined) {
   const { getBalanceInUsd } = usePrices();
   const { addError } = useErrors();
 
-  const [asset, setAsset] = useState<CatRecord | null>(null);
+  const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
     null,
@@ -46,15 +46,13 @@ export function useTokenState(assetId: string | undefined) {
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
   const pageSize = 10;
 
-  const precision = useMemo(
-    () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
-    [assetId, walletState.sync.unit.decimals],
-  );
-
   const balanceInUsd = useMemo(() => {
     if (!asset) return '0';
-    return getBalanceInUsd(asset.asset_id, toDecimal(asset.balance, precision));
-  }, [asset, precision, getBalanceInUsd]);
+    return getBalanceInUsd(
+      asset.asset_id,
+      toDecimal(asset.balance, asset.precision),
+    );
+  }, [asset, getBalanceInUsd]);
 
   const updateCoins = useMemo(
     () =>
@@ -117,14 +115,8 @@ export function useTokenState(assetId: string | undefined) {
 
   useEffect(() => {
     if (assetId === 'xch') {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
+      commands.getXchToken({}).then((res) => {
+        setAsset(res.xch);
       });
     } else {
       updateCat();
@@ -158,12 +150,11 @@ export function useTokenState(assetId: string | undefined) {
 
   const setVisibility = (visible: boolean) => {
     if (!asset || assetId === 'xch') return;
-    const updatedAsset = { ...asset, visible };
 
-    commands.updateCat({ record: updatedAsset }).catch(addError);
+    commands.updateCat({ record: { ...asset, visible } }).catch(addError);
   };
 
-  const updateCatDetails = async (updatedAsset: CatRecord) => {
+  const updateCatDetails = async (updatedAsset: TokenRecord) => {
     return commands
       .updateCat({ record: updatedAsset })
       .then(() => updateCat())
@@ -183,7 +174,6 @@ export function useTokenState(assetId: string | undefined) {
   return {
     asset,
     coins,
-    precision,
     balanceInUsd,
     response,
     selectedCoins,

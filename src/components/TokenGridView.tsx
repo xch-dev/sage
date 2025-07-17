@@ -1,23 +1,23 @@
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/NumberFormat';
-import { formatUsdPrice, fromMojos } from '@/lib/utils';
-import { TokenViewProps, TokenRecord } from '@/types/TokenViewProps';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { formatUsdPrice, fromMojos } from '@/lib/utils';
+import { TokenRecordWithPrices, TokenViewProps } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenActionHandlers } from './TokenColumns';
 
@@ -29,10 +29,10 @@ function TokenCardMenu({
   record,
   actionHandlers,
 }: {
-  record: TokenRecord;
+  record: TokenRecordWithPrices;
   actionHandlers?: TokenActionHandlers;
 }) {
-  const balance = fromMojos(record.balance, record.decimals);
+  const balance = fromMojos(record.balance, record.precision);
 
   return (
     <DropdownMenu>
@@ -48,7 +48,7 @@ function TokenCardMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align='end'>
-        {!record.isXch && (
+        {!record.is_xch && (
           <>
             {actionHandlers?.onRefreshInfo && (
               <DropdownMenuItem
@@ -130,9 +130,9 @@ export function TokenGridView({
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
                 <NumberFormat
-                  value={fromMojos(xchRecord.balance, xchRecord.decimals)}
+                  value={fromMojos(xchRecord.balance, xchRecord.precision)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={xchRecord.decimals}
+                  maximumFractionDigits={xchRecord.precision}
                 />
               </div>
               <div className='flex justify-between items-center text-sm text-neutral-500'>
@@ -164,19 +164,6 @@ export function TokenGridView({
           </Card>
         </Link>
         {cats.map((cat) => {
-          const record: TokenRecord = {
-            asset_id: cat.asset_id,
-            name: cat.name,
-            ticker: cat.ticker,
-            icon_url: cat.icon_url,
-            balance: cat.balance,
-            balanceInUsd: cat.balanceInUsd,
-            priceInUsd: cat.priceInUsd,
-            decimals: 3,
-            isXch: false,
-            visible: cat.visible,
-          };
-
           return (
             <Link key={cat.asset_id} to={`/wallet/token/${cat.asset_id}`}>
               <Card
@@ -233,7 +220,7 @@ export function TokenGridView({
                       </TooltipContent>
                     </Tooltip>
                     <TokenCardMenu
-                      record={record}
+                      record={cat}
                       actionHandlers={actionHandlers}
                     />
                   </div>

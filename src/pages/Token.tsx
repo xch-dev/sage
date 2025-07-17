@@ -17,7 +17,6 @@ export default function Token() {
   const {
     asset,
     coins,
-    precision,
     balanceInUsd,
     response,
     selectedCoins,
@@ -130,8 +129,6 @@ export default function Token() {
         <div className='flex flex-col gap-4 max-w-screen-lg'>
           <TokenCard
             asset={asset}
-            assetId={assetId}
-            precision={precision}
             balanceInUsd={balanceInUsd}
             onRedownload={redownload}
             onVisibilityChange={() => {
@@ -142,7 +139,6 @@ export default function Token() {
             receive_address={receive_address}
           />
           <CoinsCard
-            precision={precision}
             coins={coins}
             asset={asset}
             splitHandler={splitHandler}

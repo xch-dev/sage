@@ -21,6 +21,7 @@
   "get_cats": true,
   "get_all_cats": true,
   "get_cat": true,
+  "get_xch_token": true,
   "get_dids": true,
   "get_minter_did_ids": true,
   "get_pending_transactions": true,

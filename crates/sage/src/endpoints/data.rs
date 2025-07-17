@@ -3,6 +3,7 @@ use crate::{
     Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
+use chia::protocol::Bytes32;
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     puzzles::nft::NftMetadata,
@@ -10,10 +11,10 @@ use chia::{
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode,
-    CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats,
-    GetAllCatsResponse, GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse,
-    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
+    Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
+    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse, GetCats,
+    GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
     GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds,
     GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
     GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
@@ -21,8 +22,9 @@ use sage_api::{
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
     GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionCoinRecord, TransactionRecord,
+    GetVersionResponse, GetXchToken, GetXchTokenResponse, NftCollectionRecord, NftData, NftRecord,
+    NftSortMode as ApiNftSortMode, PendingTransactionRecord, TokenRecord, TransactionCoinRecord,
+    TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
@@ -217,7 +219,7 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
+            records.push(TokenRecord {
                 asset_id: hex::encode(cat.hash),
                 name: cat.name,
                 ticker: cat.ticker,
@@ -225,6 +227,8 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                precision: cat.precision,
+                is_xch: false,
             });
         }
 
@@ -241,7 +245,7 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
+            records.push(TokenRecord {
                 asset_id: hex::encode(cat.hash),
                 name: cat.name,
                 ticker: cat.ticker,
@@ -249,32 +253,24 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                precision: cat.precision,
+                is_xch: false,
             });
         }
 
         Ok(GetCatsResponse { cats: records })
     }
 
+    pub async fn get_xch_token(&self, _req: GetXchToken) -> Result<GetXchTokenResponse> {
+        let xch = self.get_token(Bytes32::default()).await?;
+        let xch = xch.ok_or(Error::InvalidAssetId("XCH asset not found".to_string()))?;
+
+        Ok(GetXchTokenResponse { xch })
+    }
+
     pub async fn get_cat(&self, req: GetCat) -> Result<GetCatResponse> {
-        let wallet = self.wallet()?;
-
         let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.asset(asset_id).await?;
-        let balance = wallet.db.cat_balance(asset_id).await?;
-
-        let cat = cat
-            .map(|cat| {
-                Result::Ok(CatRecord {
-                    asset_id: cat.hash.to_string(),
-                    name: cat.name,
-                    ticker: cat.ticker,
-                    description: cat.description,
-                    icon_url: cat.icon_url,
-                    visible: cat.is_visible,
-                    balance: Amount::u128(balance),
-                })
-            })
-            .transpose()?;
+        let cat = self.get_token(asset_id).await?;
 
         Ok(GetCatResponse { cat })
     }
@@ -627,6 +623,34 @@ impl Sage {
                 .await?
                 .map(|thumbnail| BASE64_STANDARD.encode(thumbnail.data)),
         })
+    }
+
+    async fn get_token(&self, asset_id: Bytes32) -> Result<Option<TokenRecord>> {
+        let wallet = self.wallet()?;
+
+        let token = wallet.db.asset(asset_id).await?;
+        let balance = wallet.db.token_balance(asset_id).await?;
+
+        let token = token.map(|token| {
+            let is_xch = asset_id == Bytes32::default();
+            TokenRecord {
+                asset_id: if is_xch {
+                    "xch".to_string()
+                } else {
+                    token.hash.to_string()
+                },
+                name: token.name,
+                ticker: token.ticker,
+                description: token.description,
+                icon_url: token.icon_url,
+                visible: token.is_visible,
+                balance: Amount::u128(balance),
+                precision: token.precision,
+                is_xch,
+            }
+        });
+
+        Ok(token)
     }
 
     fn nft_record(&self, row: NftRow) -> Result<NftRecord> {

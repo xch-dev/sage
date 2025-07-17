@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUsdPrice, toDecimal } from '@/lib/utils';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { TokenRecordWithPrices } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
@@ -27,29 +27,24 @@ import { NumberFormat } from './NumberFormat';
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
   onRefreshInfo?: (assetId: string) => void;
-  onToggleVisibility?: (asset: TokenRecord) => void;
+  onToggleVisibility?: (asset: TokenRecordWithPrices) => void;
 }
 
 export const columns = (
   actionHandlers?: TokenActionHandlers,
-): ColumnDef<TokenRecord>[] => [
+): ColumnDef<TokenRecordWithPrices>[] => [
   {
     id: 'icon',
     enableSorting: false,
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
     size: 40,
     cell: ({ row }) => {
-      const record = row.original;
-      const iconUrl = record.isXch
-        ? 'https://icons.dexie.space/xch.webp'
-        : record.icon_url;
-
-      return iconUrl ? (
+      return row.original.icon_url ? (
         <img
           alt={t`Token logo`}
           aria-hidden='true'
           className='h-6 w-6 ml-1'
-          src={iconUrl}
+          src={row.original.icon_url}
         />
       ) : null;
     },
@@ -59,16 +54,9 @@ export const columns = (
     header: () => <Trans>Name</Trans>,
     minSize: 120,
     cell: ({ row }) => {
-      const record = row.original;
-      const name = record.isXch
-        ? 'Chia'
-        : record.name || <Trans>Unknown CAT</Trans>;
-      const path = record.isXch
-        ? '/wallet/token/xch'
-        : `/wallet/token/${record.asset_id}`;
-      const ariaLabel = record.isXch
-        ? t`View Chia token details`
-        : t`View ${name} token details`;
+      const name = row.original.name || <Trans>Unknown CAT</Trans>;
+      const path = `/wallet/token/${row.original.asset_id}`;
+      const ariaLabel = t`View ${name} token details`;
 
       return (
         <Link to={path} className='hover:underline' aria-label={ariaLabel}>
@@ -96,8 +84,8 @@ export const columns = (
       const record = row.original;
       return (
         <NumberFormat
-          value={toDecimal(record.balance, record.decimals)}
-          maximumFractionDigits={record.decimals}
+          value={toDecimal(record.balance, record.precision)}
+          maximumFractionDigits={record.precision}
         />
       );
     },
@@ -141,7 +129,7 @@ export const columns = (
     size: 44,
     cell: ({ row }) => {
       const record = row.original;
-      const balance = toDecimal(record.balance, record.decimals);
+      const balance = toDecimal(record.balance, record.precision);
 
       return (
         <DropdownMenu>
@@ -156,7 +144,7 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!record.isXch && (
+            {!record.is_xch && (
               <>
                 {actionHandlers?.onRefreshInfo && (
                   <DropdownMenuItem

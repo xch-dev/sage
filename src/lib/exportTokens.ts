@@ -1,9 +1,9 @@
+import { exportText } from '@/lib/exportText';
+import { TokenRecordWithPrices } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
-import { TokenRecord } from '@/types/TokenViewProps';
-import { exportText } from '@/lib/exportText';
 
-export async function exportTokens(tokens: TokenRecord[]) {
+export async function exportTokens(tokens: TokenRecordWithPrices[]) {
   try {
     if (tokens.length === 0) {
       toast.error(t`No tokens to export`);
@@ -30,7 +30,7 @@ export async function exportTokens(tokens: TokenRecord[]) {
       token.balanceInUsd?.toString() || '',
       token.priceInUsd?.toString() || '',
       (token.icon_url || '').replace(/,/g, ''),
-      token.isXch ? 'XCH' : 'CAT',
+      token.is_xch ? 'XCH' : 'CAT',
     ]);
 
     const csvContent = [
