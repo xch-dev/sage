@@ -198,7 +198,6 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                     offerSummary.fee,
                     walletState.sync.unit.decimals,
                   )}
-                  minimumFractionDigits={0}
                   maximumFractionDigits={walletState.sync.unit.decimals}
                 />{' '}
                 {walletState.sync.unit.ticker}

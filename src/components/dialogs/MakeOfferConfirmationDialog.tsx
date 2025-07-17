@@ -169,7 +169,6 @@ function AssetDisplay({
                 <li key={index} className='text-sm'>
                   <NumberFormat
                     value={cat.amount || '0'}
-                    minimumFractionDigits={0}
                     maximumFractionDigits={3}
                   />{' '}
                   {cat.asset_id.slice(0, 8)}...

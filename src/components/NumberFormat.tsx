@@ -5,7 +5,7 @@ export function NumberFormat({
   value,
   style = 'decimal',
   currency,
-  minimumFractionDigits,
+  minimumFractionDigits = 0,
   maximumFractionDigits,
 }: NumberFormatProps) {
   try {

@@ -23,8 +23,8 @@ export function formatNumber({
   value,
   style = 'decimal',
   currency,
-  minimumFractionDigits,
-  maximumFractionDigits,
+  minimumFractionDigits = 0,
+  maximumFractionDigits = 3,
 }: NumberFormatProps): string {
   if (value == null) return '';
 

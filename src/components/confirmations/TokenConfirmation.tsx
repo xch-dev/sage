@@ -129,7 +129,6 @@ export function TokenConfirmation({
                 {formatNumber({
                   value: amount ?? '0',
                   style: 'decimal',
-                  minimumFractionDigits: 0,
                   maximumFractionDigits: 0,
                 })}{' '}
                 {ticker}

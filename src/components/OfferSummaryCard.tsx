@@ -76,7 +76,6 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
                   BigNumber(amount).plus(royalty),
                   asset.precision,
                 )}
-                minimumFractionDigits={0}
                 maximumFractionDigits={asset.precision}
               />
             )}{' '}

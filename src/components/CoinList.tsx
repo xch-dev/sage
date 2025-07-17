@@ -159,7 +159,6 @@ export default function CoinList(props: CoinListProps) {
         <div className='font-mono truncate'>
           <NumberFormat
             value={fromMojos(info.getValue() as string, props.precision)}
-            minimumFractionDigits={0}
             maximumFractionDigits={props.precision}
           />
         </div>

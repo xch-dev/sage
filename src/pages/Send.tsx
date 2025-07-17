@@ -245,7 +245,6 @@ export default function Send() {
               <div className='text-2xl font-medium mt-1'>
                 <NumberFormat
                   value={fromMojos(asset.balance, asset.precision)}
-                  minimumFractionDigits={0}
                   maximumFractionDigits={asset.precision}
                 />{' '}
                 {asset.ticker}

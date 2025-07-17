@@ -509,7 +509,6 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
                   asset.amount,
                   asset.assetId === '' ? walletState.sync.unit.decimals : 3,
                 ),
-                minimumFractionDigits: 0,
                 maximumFractionDigits:
                   asset.assetId === '' ? walletState.sync.unit.decimals : 3,
               })}{' '}
@@ -528,7 +527,6 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
                   asset.amount,
                   asset.assetId === '' ? walletState.sync.unit.decimals : 3,
                 ),
-                minimumFractionDigits: 0,
                 maximumFractionDigits:
                   asset.assetId === '' ? walletState.sync.unit.decimals : 3,
               })}{' '}
@@ -542,7 +540,6 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
         <div className='text-sm text-muted-foreground'>
           {formatNumber({
             value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
-            minimumFractionDigits: 0,
             maximumFractionDigits: walletState.sync.unit.decimals,
           })}{' '}
           {walletState.sync.unit.ticker}
@@ -573,7 +570,6 @@ function CancelOfferDialog({ params }: CommandDialogProps<'chia_cancelOffer'>) {
       <div className='text-sm text-muted-foreground'>
         {formatNumber({
           value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
-          minimumFractionDigits: 0,
           maximumFractionDigits: walletState.sync.unit.decimals,
         })}{' '}
         {walletState.sync.unit.ticker}
@@ -607,7 +603,6 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
               params.amount ?? 0,
               params.assetId ? 3 : walletState.sync.unit.decimals,
             ),
-            minimumFractionDigits: 0,
             maximumFractionDigits: params.assetId
               ? 3
               : walletState.sync.unit.decimals,
@@ -620,7 +615,6 @@ function SendDialog({ params }: CommandDialogProps<'chia_send'>) {
         <div className='text-sm text-muted-foreground'>
           {formatNumber({
             value: fromMojos(params.fee || 0, walletState.sync.unit.decimals),
-            minimumFractionDigits: 0,
             maximumFractionDigits: walletState.sync.unit.decimals,
           })}{' '}
           {walletState.sync.unit.ticker}

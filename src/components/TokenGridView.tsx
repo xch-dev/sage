@@ -126,7 +126,6 @@ export function TokenGridView({
               <div className='text-2xl font-medium truncate'>
                 <NumberFormat
                   value={fromMojos(xchRecord.balance, xchRecord.precision)}
-                  minimumFractionDigits={0}
                   maximumFractionDigits={xchRecord.precision}
                 />
               </div>
@@ -181,7 +180,6 @@ export function TokenGridView({
                   <div className='text-2xl font-medium truncate'>
                     <NumberFormat
                       value={fromMojos(cat.balance, 3)}
-                      minimumFractionDigits={0}
                       maximumFractionDigits={3}
                     />{' '}
                     {cat.ticker ?? ''}

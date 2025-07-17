@@ -137,7 +137,6 @@ export function calculateTransaction(
         badge: 'Chia',
         label: `${formatNumber({
           value: fromMojos(input.amount, xch.decimals),
-          minimumFractionDigits: 0,
           maximumFractionDigits: xch.decimals,
         })} ${xch.ticker}`,
         coinId: input.coin_id,
@@ -153,7 +152,6 @@ export function calculateTransaction(
           badge: 'Chia',
           label: `${formatNumber({
             value: fromMojos(output.amount, xch.decimals),
-            minimumFractionDigits: 0,
             maximumFractionDigits: xch.decimals,
           })} ${xch.ticker}`,
           address: output.burning
@@ -173,7 +171,6 @@ export function calculateTransaction(
         badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
         label: `${formatNumber({
           value: fromMojos(input.amount, 3),
-          minimumFractionDigits: 0,
           maximumFractionDigits: 3,
         })} ${ticker}`,
         coinId: input.coin_id,
@@ -189,7 +186,6 @@ export function calculateTransaction(
           badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
           label: `${formatNumber({
             value: fromMojos(output.amount, 3),
-            minimumFractionDigits: 0,
             maximumFractionDigits: 3,
           })} ${ticker}`,
           address: output.burning

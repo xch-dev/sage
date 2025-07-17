@@ -88,7 +88,6 @@ export function TokenCard({
               <span className='truncate'>
                 <NumberFormat
                   value={fromMojos(asset?.balance ?? 0, asset?.precision ?? 0)}
-                  minimumFractionDigits={0}
                   maximumFractionDigits={asset?.precision ?? 0}
                 />
                 &nbsp;

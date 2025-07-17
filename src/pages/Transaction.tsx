@@ -166,7 +166,6 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
             <>
               <NumberFormat
                 value={fromMojos(coin.amount, coin.asset.precision)}
-                minimumFractionDigits={0}
                 maximumFractionDigits={coin.asset.precision}
               />{' '}
               <span className='break-normal'>{name}</span>

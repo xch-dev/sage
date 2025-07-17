@@ -149,7 +149,6 @@ export default function ConfirmationDialog({
               const newTotal = currentTotal + newAmount;
               acc[key].totalAmount = formatNumber({
                 value: newTotal,
-                minimumFractionDigits: 0,
                 maximumFractionDigits: 12,
               });
               // Keep the original label format but update the total
@@ -442,7 +441,6 @@ export default function ConfirmationDialog({
                                   fee,
                                   walletState.sync.unit.decimals,
                                 ),
-                                minimumFractionDigits: 0,
                                 maximumFractionDigits:
                                   walletState.sync.unit.decimals,
                               })}{' '}
@@ -584,7 +582,6 @@ export default function ConfirmationDialog({
                 <>
                   {formatNumber({
                     value: fromMojos(fee, walletState.sync.unit.decimals),
-                    minimumFractionDigits: 0,
                     maximumFractionDigits: walletState.sync.unit.decimals,
                   })}{' '}
                   {ticker}

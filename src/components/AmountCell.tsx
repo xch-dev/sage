@@ -2,6 +2,7 @@ import { Amount, AssetKind } from '@/bindings';
 import { fromMojos } from '@/lib/utils';
 import BigNumber from 'bignumber.js';
 import { NumberFormat } from './NumberFormat';
+import { t } from '@lingui/core/macro';
 
 interface AmountCellProps {
   amount: Amount;
@@ -26,16 +27,15 @@ export function AmountCell({ amount, assetKind, precision }: AmountCellProps) {
       >
         {assetKind === 'nft' || assetKind === 'did' ? (
           amountNum.eq(0) ? (
-            'Edited'
+            t`Edited`
           ) : amountNum.gt(0) ? (
-            'Received'
+            t`Received`
           ) : (
-            'Sent'
+            t`Sent`
           )
         ) : (
           <NumberFormat
             value={fromMojos(amount, precision)}
-            minimumFractionDigits={0}
             maximumFractionDigits={precision}
           />
         )}

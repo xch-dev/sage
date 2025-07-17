@@ -44,7 +44,6 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                     BigNumber(amount).plus(royalty),
                     asset.precision,
                   )}
-                  minimumFractionDigits={0}
                   maximumFractionDigits={asset.precision}
                 />
               )}{' '}
@@ -101,7 +100,6 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               <Trans>Amount includes</Trans>{' '}
               <NumberFormat
                 value={fromMojos(royalty, asset.precision)}
-                minimumFractionDigits={0}
                 maximumFractionDigits={asset.precision}
               />{' '}
               <span className='truncate'>{asset.ticker ?? 'CAT'}</span>{' '}
