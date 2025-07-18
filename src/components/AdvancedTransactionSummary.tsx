@@ -170,8 +170,8 @@ export function calculateTransaction(
       spent.push({
         badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
         label: `${formatNumber({
-          value: fromMojos(input.amount, 3),
-          maximumFractionDigits: 3,
+          value: fromMojos(input.amount, input.asset.precision),
+          maximumFractionDigits: input.asset.precision,
         })} ${ticker}`,
         coinId: input.coin_id,
         sort: 2,
@@ -185,8 +185,8 @@ export function calculateTransaction(
         created.push({
           badge: `CAT ${input.asset.name ?? input.asset.ticker ?? input.asset.asset_id}`,
           label: `${formatNumber({
-            value: fromMojos(output.amount, 3),
-            maximumFractionDigits: 3,
+            value: fromMojos(output.amount, input.asset.precision),
+            maximumFractionDigits: input.asset.precision,
           })} ${ticker}`,
           address: output.burning
             ? t`Permanently Burned`

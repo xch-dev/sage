@@ -149,7 +149,7 @@ export default function ConfirmationDialog({
               const newTotal = currentTotal + newAmount;
               acc[key].totalAmount = formatNumber({
                 value: newTotal,
-                maximumFractionDigits: 12,
+                maximumFractionDigits: walletState.sync.unit.decimals,
               });
               // Keep the original label format but update the total
               acc[key].label = acc[key].originalLabel;

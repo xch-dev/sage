@@ -32,6 +32,7 @@ import {
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useTokenState } from '@/hooks/useTokenState';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -44,7 +45,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import * as z from 'zod';
-import { useTokenState } from '@/hooks/useTokenState';
 import {
   commands,
   events,
@@ -136,7 +136,9 @@ export default function Send() {
           ).then((values) => values.every(Boolean)),
         bulk ? t`Invalid addresses` : t`Invalid address`,
       ),
-    amount: positiveAmount(asset?.precision || 12).refine(
+    amount: positiveAmount(
+      asset?.precision || walletState.sync.unit.decimals,
+    ).refine(
       (amount) =>
         asset
           ? BigNumber(amount).lte(toDecimal(asset.balance, asset.precision))
@@ -184,7 +186,10 @@ export default function Send() {
 
     let result: Promise<TransactionResponse>;
 
-    const amount = toMojos(values.amount.toString(), asset?.precision || 12);
+    const amount = toMojos(
+      values.amount.toString(),
+      asset?.precision || walletState.sync.unit.decimals,
+    );
     const fee = toMojos(
       values.fee?.toString() || '0',
       walletState.sync.unit.decimals,

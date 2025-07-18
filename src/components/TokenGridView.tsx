@@ -179,8 +179,8 @@ export function TokenGridView({
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>
                     <NumberFormat
-                      value={fromMojos(cat.balance, 3)}
-                      maximumFractionDigits={3}
+                      value={fromMojos(cat.balance, cat.precision)}
+                      maximumFractionDigits={cat.precision}
                     />{' '}
                     {cat.ticker ?? ''}
                   </div>
