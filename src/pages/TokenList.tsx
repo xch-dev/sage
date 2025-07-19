@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
+import { useTokenState } from '@/hooks/useTokenState';
 import { exportTokens } from '@/lib/exportTokens';
 import { isValidAssetId, toDecimal } from '@/lib/utils';
 import { TokenRecordWithPrices } from '@/types/TokenViewProps';
@@ -20,7 +21,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { useTokenState } from '@/hooks/useTokenState';
 
 export function TokenList() {
   const navigate = useNavigate();

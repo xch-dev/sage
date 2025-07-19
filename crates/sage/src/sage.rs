@@ -399,11 +399,7 @@ impl Sage {
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(if cfg!(debug_assertions) {
-                        log::LevelFilter::Trace
-                    } else {
-                        log::LevelFilter::Error
-                    })
+                    .log_statements(log::LevelFilter::Trace)
                     .synchronous(SqliteSynchronous::Normal)
                     .busy_timeout(Duration::from_secs(60)),
             )
