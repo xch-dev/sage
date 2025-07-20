@@ -1,6 +1,6 @@
 import { CustomError } from '@/contexts/ErrorContext';
 import { queryNfts } from '@/lib/exportNfts';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   commands,
   DidRecord,
@@ -57,6 +57,9 @@ export function useNftData(params: NftDataParams) {
   const [ownerDidsTotal, setOwnerDidsTotal] = useState(0);
   const [minterDidsTotal, setMinterDidsTotal] = useState(0);
 
+  // Use ref to store the latest updateNfts function to avoid circular dependencies
+  const updateNftsRef = useRef<((page: number) => Promise<void>) | null>(null);
+
   const updateNfts = useCallback(
     async (page: number) => {
       setIsLoading(true);
@@ -78,15 +81,14 @@ export function useNftData(params: NftDataParams) {
             minterDid: params.minterDid,
           };
 
-          const allNfts = await queryNfts(queryParams);
+          const { nfts, total } = await queryNfts(
+            queryParams,
+            params.pageSize,
+            (page - 1) * params.pageSize,
+          );
 
-          // Calculate pagination
-          const start = (page - 1) * params.pageSize;
-          const end = start + params.pageSize;
-          const paginatedNfts = allNfts.slice(start, end);
-
-          setNfts(paginatedNfts);
-          setNftTotal(allNfts.length);
+          setNfts(nfts);
+          setNftTotal(total);
 
           if (params.collectionId) {
             const collectionResponse = await commands.getNftCollection({
@@ -201,6 +203,9 @@ export function useNftData(params: NftDataParams) {
     ],
   );
 
+  // Store the latest updateNfts function in ref
+  updateNftsRef.current = updateNfts;
+
   // Clear state and fetch new data when params change
   useEffect(() => {
     setNfts([]);
@@ -211,14 +216,18 @@ export function useNftData(params: NftDataParams) {
     setOwner(null);
     updateNfts(params.page);
   }, [
-    updateNfts,
     params.collectionId,
     params.ownerDid,
     params.minterDid,
     params.page,
+    params.pageSize,
+    params.showHidden,
+    params.sort,
+    params.group,
+    params.query,
   ]);
 
-  // Listen for sync events
+  // Listen for sync events - use ref to avoid circular dependency
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
@@ -227,14 +236,17 @@ export function useNftData(params: NftDataParams) {
         type === 'puzzle_batch_synced' ||
         type === 'nft_data'
       ) {
-        updateNfts(params.page);
+        // Use the ref to get the latest function without causing re-renders
+        if (updateNftsRef.current) {
+          updateNftsRef.current(params.page);
+        }
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateNfts, params.page]);
+  }, [params.page]); // Only depend on params.page, not the function
 
   // Helper function to get the correct total based on current view
   const getTotal = useCallback(() => {

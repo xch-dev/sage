@@ -203,8 +203,11 @@ impl Database {
             }
         }
 
-        query.push(" LIMIT ? OFFSET ?");
-        let query = query.build().bind(limit).bind(offset);
+        query.push(" LIMIT ");
+        query.push_bind(limit);
+        query.push(" OFFSET ");
+        query.push_bind(offset);
+        let query = query.build();
 
         let rows = query.fetch_all(&self.pool).await?;
         let total_count = rows
