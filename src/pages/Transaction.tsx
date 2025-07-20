@@ -78,8 +78,8 @@ export default function Transaction() {
                 <Trans>Sent</Trans>
               </div>
               <div className='space-y-4'>
-                {transaction?.spent.map((coin, i) => (
-                  <TransactionCoin key={i} coin={coin} />
+                {transaction?.spent.map((coin) => (
+                  <TransactionCoin key={coin.coin_id} coin={coin} />
                 ))}
               </div>
             </Card>
@@ -90,8 +90,8 @@ export default function Transaction() {
                 <Trans>Received</Trans>
               </div>
               <div className='space-y-4'>
-                {transaction?.created.map((coin, i) => (
-                  <TransactionCoin key={i} coin={coin} />
+                {transaction?.created.map((coin) => (
+                  <TransactionCoin key={coin.coin_id} coin={coin} />
                 ))}
               </div>
             </Card>

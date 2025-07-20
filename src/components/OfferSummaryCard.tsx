@@ -65,8 +65,8 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
   return (
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {assets.map(({ amount, royalty, asset }, i) => (
-        <div className='flex items-center gap-2' key={i}>
+      {assets.map(({ amount, royalty, asset }) => (
+        <div className='flex items-center gap-2' key={asset.asset_id}>
           <img
             alt={asset.name ?? asset.ticker ?? t`Unknown`}
             src={asset.icon_url ?? ''}

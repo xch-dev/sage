@@ -1,4 +1,4 @@
-import { Trans } from '@lingui/react/macro';
+import { Assets, CatAmount, commands } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,17 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { OfferState } from '@/state';
-import { Assets, CatAmount, commands } from '@/bindings';
-import { ScrollArea } from '../ui/scroll-area';
-import { NumberFormat } from '../NumberFormat';
-import BigNumber from 'bignumber.js';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { useEffect, useState } from 'react';
-import { nftUri } from '@/lib/nftUri';
-import { AlertTriangle } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
+import { nftUri } from '@/lib/nftUri';
+import { OfferState } from '@/state';
+import { Trans } from '@lingui/react/macro';
+import BigNumber from 'bignumber.js';
+import { AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { NumberFormat } from '../NumberFormat';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface MakeOfferConfirmationDialogProps {
   open: boolean;
@@ -165,8 +165,8 @@ function AssetDisplay({
           </h4>
           <ScrollArea className='max-h-32'>
             <ul className='space-y-1'>
-              {assets.cats.map((cat: CatAmount, index: number) => (
-                <li key={index} className='text-sm'>
+              {assets.cats.map((cat: CatAmount) => (
+                <li key={cat.asset_id} className='text-sm'>
                   <NumberFormat
                     value={cat.amount || '0'}
                     minimumFractionDigits={0}

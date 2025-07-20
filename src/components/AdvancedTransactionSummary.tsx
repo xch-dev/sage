@@ -50,9 +50,9 @@ export function AdvancedTransactionSummary({
         <div className='flex flex-col gap-2'>
           {spent
             .sort((a, b) => a.sort - b.sort)
-            .map((spent, i) => (
+            .map((spent) => (
               <div
-                key={i}
+                key={spent.coinId}
                 className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
               >
                 <div className='flex items-center gap-2'>
@@ -94,9 +94,9 @@ export function AdvancedTransactionSummary({
           )}
           {created
             .sort((a, b) => a.sort - b.sort)
-            .map((created, i) => (
+            .map((created) => (
               <div
-                key={i}
+                key={created.label}
                 className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
               >
                 <div className='flex items-center gap-2'>

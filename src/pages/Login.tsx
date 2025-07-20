@@ -186,10 +186,10 @@ export default function Login() {
                 strategy={rectSortingStrategy}
               >
                 <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
-                  {keys.map((key, i) => (
+                  {keys.map((key) => (
                     <WalletItem
                       draggable
-                      key={i}
+                      key={key.fingerprint}
                       info={key}
                       keys={keys}
                       setKeys={setKeys}
@@ -233,6 +233,7 @@ function SkeletonWalletList() {
   return (
     <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
       {Array.from({ length: 3 }).map((_, i) => (
+        // eslint-disable-next-line react/no-array-index-key
         <div key={i} className='w-full'>
           <Skeleton className='h-[100px] w-full' />
         </div>

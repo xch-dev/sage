@@ -37,7 +37,7 @@ export default tseslint.config(
       'react/no-invalid-html-attribute': 'warn',
       'react/no-unsafe': 'warn',
       'react/no-typos': 'warn',
-      'react/no-array-index-key': 'off',
+      'react/no-array-index-key': 'warn',
       'react/no-danger': 'warn',
       'react/no-unstable-nested-components': 'off',
       'react/require-optimization': 'warn',

@@ -245,6 +245,7 @@ export function DropdownSelector<T>({
                 const disabled = isDisabled?.(item) ?? false;
                 return (
                   <div
+                    // eslint-disable-next-line react/no-array-index-key
                     key={i}
                     ref={(el) => (optionsRef.current[i] = el)}
                     onClick={() => {

@@ -502,8 +502,8 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
       <div>
         <div className='font-medium mb-2'>Offering</div>
         <ul className='list-disc list-inside space-y-1'>
-          {params.offerAssets?.map((asset, i) => (
-            <li key={i} className='text-sm'>
+          {params.offerAssets?.map((asset) => (
+            <li key={asset.assetId} className='text-sm'>
               {formatNumber({
                 value: fromMojos(
                   asset.amount,
@@ -521,8 +521,8 @@ function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
       <div>
         <div className='font-medium mb-2'>Requesting</div>
         <ul className='list-disc list-inside space-y-1'>
-          {params.requestAssets?.map((asset, i) => (
-            <li key={i} className='text-sm'>
+          {params.requestAssets?.map((asset) => (
+            <li key={asset.assetId} className='text-sm'>
               {formatNumber({
                 value: fromMojos(
                   asset.amount,

@@ -26,8 +26,11 @@ export interface AssetsProps {
 export function Assets({ assets, catPresence = {} }: AssetsProps) {
   return (
     <div className='flex flex-col gap-3'>
-      {assets.map(({ asset, amount, royalty, nft_royalty }, i) => (
-        <div key={i} className='flex flex-col gap-2 rounded-lg border p-3'>
+      {assets.map(({ asset, amount, royalty, nft_royalty }) => (
+        <div
+          key={asset.asset_id}
+          className='flex flex-col gap-2 rounded-lg border p-3'
+        >
           <div className='flex items-center gap-2'>
             <Badge className='px-2 py-0.5 bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
               <span className='truncate'>

@@ -222,9 +222,9 @@ function CreateForm(props: {
             {form
               .watch('mnemonic')
               ?.split(' ')
-              .map((word, i) => (
+              .map((word) => (
                 <Badge
-                  key={i}
+                  key={word}
                   variant='outline'
                   className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
                 >

@@ -323,9 +323,9 @@ export default function ConfirmationDialog({
                                   : ''
                               }
                             >
-                              {group.recipients.map((address, i) => (
+                              {group.recipients.map((address) => (
                                 <div
-                                  key={i}
+                                  key={address}
                                   className='flex items-center gap-1.5 min-w-0 w-full pl-2'
                                 >
                                   <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
@@ -387,9 +387,9 @@ export default function ConfirmationDialog({
                       ) : (
                         spent
                           .sort((a, b) => a.sort - b.sort)
-                          .map((item, i) => (
+                          .map((item) => (
                             <div
-                              key={i}
+                              key={item.coinId}
                               className='flex flex-col gap-1.5 rounded-md border p-2'
                             >
                               <div className='flex items-center justify-between'>
@@ -455,9 +455,9 @@ export default function ConfirmationDialog({
                       {/* Created Coins */}
                       {created
                         .sort((a, b) => a.sort - b.sort)
-                        .map((item, i) => (
+                        .map((item) => (
                           <div
-                            key={i}
+                            key={item.label}
                             className='flex flex-col gap-1.5 rounded-md border p-2'
                           >
                             <div className='flex items-center justify-between'>

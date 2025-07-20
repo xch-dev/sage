@@ -340,11 +340,11 @@ export function Offers() {
               </div>
 
               <div className='flex flex-col gap-2'>
-                {filteredOffers.map((record, i) => (
+                {filteredOffers.map((record) => (
                   <OfferRowCard
                     record={record}
+                    key={record.offer_id}
                     refresh={updateOffers}
-                    key={i}
                   />
                 ))}
               </div>
