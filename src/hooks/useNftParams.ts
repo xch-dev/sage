@@ -60,29 +60,28 @@ export function useNftParams(): [NftParams, SetNftParams] {
     CardSize.Large,
   );
 
-  const params = useMemo(
-    () => {
-      // Validate page parameter - ensure it's a positive integer
-      const pageParam = searchParams.get('page');
-      const pageNumber = pageParam ? Number(pageParam) : 1;
-      const validPage = Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+  const params = useMemo(() => {
+    // Validate page parameter - ensure it's a positive integer
+    const pageParam = searchParams.get('page');
+    const pageNumber = pageParam ? Number(pageParam) : 1;
+    const validPage =
+      Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
 
-      // Validate query parameter - ensure it's not an empty string
-      const queryParam = searchParams.get('query');
-      const validQuery = queryParam && queryParam.trim() !== '' ? queryParam : null;
+    // Validate query parameter - ensure it's not an empty string
+    const queryParam = searchParams.get('query');
+    const validQuery =
+      queryParam && queryParam.trim() !== '' ? queryParam : null;
 
-      return {
-        pageSize,
-        page: validPage,
-        sort,
-        group,
-        showHidden,
-        query: validQuery,
-        cardSize,
-      };
-    },
-    [searchParams, sort, group, showHidden, pageSize, cardSize],
-  );
+    return {
+      pageSize,
+      page: validPage,
+      sort,
+      group,
+      showHidden,
+      query: validQuery,
+      cardSize,
+    };
+  }, [searchParams, sort, group, showHidden, pageSize, cardSize]);
 
   const setParams = useCallback(
     (newParams: Partial<NftParams>) => {

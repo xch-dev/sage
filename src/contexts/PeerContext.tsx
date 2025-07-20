@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import { createContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 import { useErrors } from '../hooks/useErrors';
 
@@ -13,18 +13,33 @@ export const PeerContext = createContext<PeerContextType | undefined>(
 export function PeerProvider({ children }: { children: ReactNode }) {
   const { addError } = useErrors();
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     const updatePeers = () => {
       commands
         .getPeers({})
-        .then((data) => setPeers(data.peers))
-        .catch(addError);
+        .then((data) => {
+          if (isMountedRef.current) {
+            setPeers(data.peers);
+          }
+        })
+        .catch((error) => {
+          if (isMountedRef.current) {
+            addError(error);
+          }
+        });
     };
 
     updatePeers();
     const interval = setInterval(updatePeers, 5000);
-    return () => clearInterval(interval);
+
+    return () => {
+      isMountedRef.current = false;
+      clearInterval(interval);
+    };
   }, [addError]);
 
   return (

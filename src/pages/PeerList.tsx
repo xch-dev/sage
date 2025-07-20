@@ -4,6 +4,8 @@ import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DataTable } from '@/components/ui/data-table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
   Dialog,
   DialogContent,
@@ -20,6 +22,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
 import { t } from '@lingui/core/macro';
@@ -34,22 +43,13 @@ import { platform } from '@tauri-apps/plugin-os';
 import { useDrag } from '@use-gesture/react';
 import {
   BanIcon,
+  CableIcon,
   HelpCircleIcon,
   Trash2Icon,
   UserIcon,
-  CableIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { DataTable } from '@/components/ui/data-table';
-import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Textarea } from '@/components/ui/textarea';
 
 const MobileRow = ({
   peer,
@@ -171,7 +171,7 @@ export default function PeerList() {
 
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [rowSelection, setRowSelection] = useState({});
-  const [isAddOpen, setAddOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [ip, setIp] = useState('');
   const [ban, setBan] = useState(false);
   const [peerToDelete, setPeerToDelete] = useState<PeerRecord[] | null>(null);
@@ -384,7 +384,7 @@ export default function PeerList() {
                   </Button>
                 </div>
               ) : (
-                <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
+                <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                   <DialogTrigger asChild>
                     <Button variant='outline'>
                       <Trans>Add Peers</Trans>
@@ -419,13 +419,13 @@ export default function PeerList() {
                     <DialogFooter>
                       <Button
                         variant='outline'
-                        onClick={() => setAddOpen(false)}
+                        onClick={() => setIsAddOpen(false)}
                       >
                         <Trans>Cancel</Trans>
                       </Button>
                       <Button
                         onClick={() => {
-                          setAddOpen(false);
+                          setIsAddOpen(false);
                           // Split by newlines or commas and clean up whitespace
                           const ips = ip
                             .split(/[\n,]+/)

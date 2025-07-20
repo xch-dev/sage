@@ -214,7 +214,11 @@ export function useNftData(params: NftDataParams) {
     setMinterDids([]);
     setCollection(null);
     setOwner(null);
-    updateNfts(params.page);
+    // Use ref to avoid adding updateNfts to deps (would cause infinite loop)
+    if (updateNftsRef.current) {
+      updateNftsRef.current(params.page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     params.collectionId,
     params.ownerDid,
@@ -225,7 +229,7 @@ export function useNftData(params: NftDataParams) {
     params.sort,
     params.group,
     params.query,
-  ]);
+  ]); // updateNfts not included to prevent infinite loop (stored in ref)
 
   // Listen for sync events - use ref to avoid circular dependency
   useEffect(() => {
@@ -246,7 +250,8 @@ export function useNftData(params: NftDataParams) {
     return () => {
       unlisten.then((u) => u());
     };
-  }, [params.page]); // Only depend on params.page, not the function
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.page]); // Only depend on params.page, not updateNfts (stored in ref to avoid infinite loop)
 
   // Helper function to get the correct total based on current view
   const getTotal = useCallback(() => {

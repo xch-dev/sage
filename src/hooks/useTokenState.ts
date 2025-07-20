@@ -80,14 +80,7 @@ export function useTokenState(assetId: string | undefined) {
           })
           .catch(addError);
       },
-    [
-      assetId,
-      addError,
-      pageSize,
-      sortMode,
-      sortDirection,
-      includeSpentCoins,
-    ],
+    [assetId, addError, pageSize, sortMode, sortDirection, includeSpentCoins],
   );
 
   const updateCat = useMemo(

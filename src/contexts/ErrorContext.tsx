@@ -7,14 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  createContext,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, ReactNode, useCallback, useState } from 'react';
 import { ErrorKind } from '../bindings';
 
 export interface CustomError {
@@ -33,18 +26,10 @@ export const ErrorContext = createContext<ErrorContextType | undefined>(
 
 export function ErrorProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<CustomError[]>([]);
-  const errorsRef = useRef(errors);
 
-  useEffect(() => {
-    errorsRef.current = errors;
-  }, [errors]);
-
-  const addError = useMemo(
-    () => (error: CustomError) => {
-      setErrors([...errorsRef.current, error]);
-    },
-    [],
-  );
+  const addError = useCallback((error: CustomError) => {
+    setErrors((prevErrors) => [...prevErrors, error]);
+  }, []);
 
   return (
     <ErrorContext.Provider value={{ errors, addError }}>
@@ -53,7 +38,7 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
       {errors.length > 0 && (
         <ErrorDialog
           error={errors[0]}
-          setError={() => setErrors(errors.slice(1))}
+          setError={() => setErrors((prevErrors) => prevErrors.slice(1))}
         />
       )}
     </ErrorContext.Provider>

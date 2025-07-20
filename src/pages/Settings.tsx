@@ -482,7 +482,7 @@ function NetworkSettings() {
   const { addError } = useErrors();
 
   const [discoverPeers, setDiscoverPeers] = useState<boolean | null>(null);
-  const [targetPeersText, setTargetPeers] = useState<string | null>(null);
+  const [targetPeersText, setTargetPeersText] = useState<string | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
 
@@ -569,7 +569,7 @@ function NetworkSettings() {
             className='w-[120px]'
             value={targetPeersText ?? config?.target_peers ?? 500}
             disabled={!(discoverPeers ?? config?.discover_peers)}
-            onChange={(event) => setTargetPeers(event.target.value)}
+            onChange={(event) => setTargetPeersText(event.target.value)}
             onBlur={() => {
               if (invalidTargetPeers) return;
 

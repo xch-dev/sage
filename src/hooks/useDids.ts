@@ -1,5 +1,5 @@
 import { commands, DidRecord, events } from '@/bindings';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useErrors } from './useErrors';
 
 export function useDids() {
@@ -34,8 +34,8 @@ export function useDids() {
     };
   }, [updateDids]);
 
-  return {
-    dids: dids.sort((a, b) => {
+  const sortedDids = useMemo(() => {
+    return [...dids].sort((a, b) => {
       if (a.visible !== b.visible) {
         return a.visible ? -1 : 1;
       }
@@ -49,7 +49,11 @@ export function useDids() {
       } else {
         return a.coin_id.localeCompare(b.coin_id);
       }
-    }),
+    });
+  }, [dids]);
+
+  return {
+    dids: sortedDids,
     updateDids,
   };
 }

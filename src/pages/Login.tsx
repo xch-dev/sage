@@ -254,13 +254,13 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const { dark } = useContext(DarkModeContext);
   const { promptIfEnabled } = useBiometric();
 
-  const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [isDetailsOpen, setDetailsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
-  const [isRenameOpen, setRenameOpen] = useState(false);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
-  const [isResyncOpen, setResyncOpen] = useState(false);
-  const [isMigrationDialogOpen, setMigrationDialogOpen] = useState(false);
+  const [isResyncOpen, setIsResyncOpen] = useState(false);
+  const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
@@ -272,7 +272,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         .catch(addError);
     }
 
-    setDeleteOpen(false);
+    setIsDeleteOpen(false);
   };
 
   const renameSelf = () => {
@@ -290,7 +290,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         ),
       )
       .catch(addError)
-      .finally(() => setRenameOpen(false));
+      .finally(() => setIsRenameOpen(false));
 
     setNewName('');
   };
@@ -331,7 +331,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         'kind' in error &&
         error.kind === 'database_migration'
       ) {
-        setMigrationDialogOpen(true);
+        setIsMigrationDialogOpen(true);
       } else {
         addError(error as CustomError);
       }
@@ -416,7 +416,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
-                    setDetailsOpen(true);
+                    setIsDetailsOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -428,7 +428,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
-                    setRenameOpen(true);
+                    setIsRenameOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -440,7 +440,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
-                    setResyncOpen(true);
+                    setIsResyncOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -452,7 +452,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
-                    setDeleteOpen(true);
+                    setIsDeleteOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -489,7 +489,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <ResyncDialog
         open={isResyncOpen}
-        setOpen={setResyncOpen}
+        setOpen={setIsResyncOpen}
         networkId={networkId}
         submit={async (options) => {
           await commands.resync({
@@ -501,7 +501,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isDeleteOpen}
-        onOpenChange={(open) => !open && setDeleteOpen(false)}
+        onOpenChange={(open) => !open && setIsDeleteOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -517,7 +517,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant='outline' onClick={() => setDeleteOpen(false)}>
+            <Button variant='outline' onClick={() => setIsDeleteOpen(false)}>
               <Trans>Cancel</Trans>
             </Button>
             <Button variant='destructive' onClick={deleteSelf} autoFocus>
@@ -529,7 +529,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isRenameOpen}
-        onOpenChange={(open) => !open && setRenameOpen(false)}
+        onOpenChange={(open) => !open && setIsRenameOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -564,7 +564,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='outline'
               onClick={() => {
-                setRenameOpen(false);
+                setIsRenameOpen(false);
                 setNewName('');
               }}
             >
@@ -579,7 +579,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isDetailsOpen}
-        onOpenChange={(open) => !open && setDetailsOpen(false)}
+        onOpenChange={(open) => !open && setIsDetailsOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -632,7 +632,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setDetailsOpen(false)}>
+            <Button onClick={() => setIsDetailsOpen(false)}>
               <Trans>Done</Trans>
             </Button>
           </DialogFooter>
@@ -641,7 +641,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isMigrationDialogOpen}
-        onOpenChange={(open) => !open && setMigrationDialogOpen(false)}
+        onOpenChange={(open) => !open && setIsMigrationDialogOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -660,7 +660,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='outline'
               onClick={async () => {
-                setMigrationDialogOpen(false);
+                setIsMigrationDialogOpen(false);
                 try {
                   await logoutAndUpdateState();
                 } catch (error) {
@@ -673,7 +673,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='destructive'
               onClick={async () => {
-                setMigrationDialogOpen(false);
+                setIsMigrationDialogOpen(false);
                 await logoutAndUpdateState();
                 await commands.deleteDatabase({
                   fingerprint: info.fingerprint,

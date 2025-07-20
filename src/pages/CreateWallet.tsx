@@ -1,4 +1,5 @@
 import Header from '@/components/Header';
+import SafeAreaView from '@/components/SafeAreaView';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -21,8 +22,11 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { CopyIcon, RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -32,10 +36,6 @@ import * as z from 'zod';
 import { commands } from '../bindings';
 import Container from '../components/Container';
 import { fetchState } from '../state';
-import SafeAreaView from '@/components/SafeAreaView';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { useWallet } from '@/contexts/WalletContext';
 
 export default function CreateWallet() {
   const { addError } = useErrors();
@@ -105,11 +105,11 @@ function CreateForm(props: {
     writeText(mnemonic);
   }, [mnemonic]);
 
-  const [isConfirmOpen, setConfirmOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const confirmAndSubmit = (values: z.infer<typeof formSchema>) => {
     if (!values.saveMnemonic) {
-      setConfirmOpen(true);
+      setIsConfirmOpen(true);
     } else {
       props.onSubmit(values);
     }
@@ -238,7 +238,7 @@ function CreateForm(props: {
           <Trans>Submit</Trans>
         </Button>
       </form>
-      <Dialog open={isConfirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -253,12 +253,12 @@ function CreateForm(props: {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant='outline' onClick={() => setConfirmOpen(false)}>
+            <Button variant='outline' onClick={() => setIsConfirmOpen(false)}>
               <Trans>Cancel</Trans>
             </Button>
             <Button
               onClick={() => {
-                setConfirmOpen(false);
+                setIsConfirmOpen(false);
                 props.onSubmit(form.getValues());
               }}
             >

@@ -160,7 +160,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           });
       }
     };
-  }, [nft.launcher_id]);
+  }, [nft.launcher_id, fetchThumbnail]);
 
   useEffect(() => {
     commands
