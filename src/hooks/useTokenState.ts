@@ -3,7 +3,7 @@ import { usePrices } from '@/hooks/usePrices';
 import { toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { RowSelectionState } from '@tanstack/react-table';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   CatRecord,
   CoinRecord,
@@ -46,6 +46,10 @@ export function useTokenState(assetId: string | undefined) {
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
   const pageSize = 10;
 
+  // Use ref to track current page to avoid dependency issues
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
+
   const precision = useMemo(
     () => (assetId === 'xch' ? walletState.sync.unit.decimals : 3),
     [assetId, walletState.sync.unit.decimals],
@@ -58,7 +62,7 @@ export function useTokenState(assetId: string | undefined) {
 
   const updateCoins = useMemo(
     () =>
-      (page: number = currentPage) => {
+      (page: number = currentPageRef.current) => {
         const offset = page * pageSize;
 
         commands
@@ -80,7 +84,6 @@ export function useTokenState(assetId: string | undefined) {
       assetId,
       addError,
       pageSize,
-      currentPage,
       sortMode,
       sortDirection,
       includeSpentCoins,
@@ -160,7 +163,10 @@ export function useTokenState(assetId: string | undefined) {
     if (!asset || assetId === 'xch') return;
     const updatedAsset = { ...asset, visible };
 
-    commands.updateCat({ record: updatedAsset }).catch(addError);
+    commands
+      .updateCat({ record: updatedAsset })
+      .then(() => setAsset(updatedAsset))
+      .catch(addError);
   };
 
   const updateCatDetails = async (updatedAsset: CatRecord) => {
@@ -170,15 +176,15 @@ export function useTokenState(assetId: string | undefined) {
       .catch(addError);
   };
 
-  // Add effect to update coins when page changes
-  useEffect(() => {
-    updateCoins(currentPage);
-  }, [currentPage, updateCoins]);
-
   // Reset to page 0 when sort parameters change
   useEffect(() => {
     setCurrentPage(0);
   }, [sortMode, sortDirection, includeSpentCoins]);
+
+  // Update coins when page changes
+  useEffect(() => {
+    updateCoins(currentPage);
+  }, [currentPage, updateCoins]);
 
   return {
     asset,

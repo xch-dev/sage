@@ -101,6 +101,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = 'NFC';
       break;
 
+    case 'database_migration':
+      kind = 'Database Migration';
+      break;
+
     default:
       kind = null;
   }
