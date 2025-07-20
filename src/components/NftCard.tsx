@@ -128,15 +128,39 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   useEffect(() => {
     fetchThumbnail();
 
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-      if (type === 'nft_data') fetchThumbnail();
-    });
+    let unlistenPromise: Promise<() => void> | null = null;
+    let isUnmounted = false;
+
+    const setupListener = async () => {
+      try {
+        unlistenPromise = events.syncEvent.listen((event) => {
+          const type = event.payload.type;
+          if (type === 'nft_data' && !isUnmounted) {
+            fetchThumbnail();
+          }
+        });
+      } catch (error) {
+        console.error('Failed to set up event listener:', error);
+      }
+    };
+
+    setupListener();
 
     return () => {
-      unlisten.then((u) => u());
+      isUnmounted = true;
+      if (unlistenPromise) {
+        unlistenPromise
+          .then((unlisten) => {
+            if (!isUnmounted) {
+              unlisten();
+            }
+          })
+          .catch((error) => {
+            console.error('Failed to cleanup event listener:', error);
+          });
+      }
     };
-  }, [fetchThumbnail]);
+  }, [nft.launcher_id]);
 
   useEffect(() => {
     commands
