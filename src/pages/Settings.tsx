@@ -893,8 +893,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
             <DialogDescription>
               <Trans>
                 Increase the derivation index to generate new addresses. Setting
-                this too high can cause issues, and it can't be reversed without
-                resyncing the wallet.
+                this too high can cause issues, and it can&apos;t be reversed
+                without resyncing the wallet.
               </Trans>
             </DialogDescription>
           </DialogHeader>

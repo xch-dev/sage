@@ -227,6 +227,8 @@ export const Item = forwardRef(
   },
 );
 
+Item.displayName = 'Item';
+
 function SkeletonWalletList() {
   return (
     <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
@@ -651,8 +653,8 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <DialogDescription>
               <Trans>
                 This wallet requires a database migration to continue. Would you
-                like to delete the wallet's data or cancel the login? The keys
-                will not be affected.
+                like to delete the wallet&apos;s data or cancel the login? The
+                keys will not be affected.
               </Trans>
             </DialogDescription>
           </DialogHeader>
@@ -703,8 +705,8 @@ function Welcome() {
 
       <div className='text-center mt-4'>
         <Trans>
-          There aren't any wallets to log into yet. To get started, create a new
-          wallet or import an existing one.
+          There aren&apos;t any wallets to log into yet. To get started, create
+          a new wallet or import an existing one.
         </Trans>
       </div>
 

@@ -46,7 +46,7 @@ export function ResyncDialog({
           </DialogTitle>
           <DialogDescription>
             <Trans>
-              Are you sure you want to resync this wallet's data? This will
+              Are you sure you want to resync this wallet&apos;s data? This will
               re-download data from the network which can take a while depending
               on the size of the wallet.
             </Trans>

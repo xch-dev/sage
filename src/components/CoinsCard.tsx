@@ -554,8 +554,8 @@ export function CoinsCard({
             </DialogTitle>
             <DialogDescription>
               <Trans>
-                This will combine small enough coins automatically, so you don't
-                have to manually select them.
+                This will combine small enough coins automatically, so you
+                don&apos;t have to manually select them.
               </Trans>
             </DialogDescription>
           </DialogHeader>

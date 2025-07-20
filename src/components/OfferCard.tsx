@@ -28,7 +28,6 @@ interface OfferCardProps {
   record?: OfferRecord;
   summary?: OfferSummary;
   content?: React.ReactNode;
-  children?: React.ReactNode;
 }
 
 export function OfferCard({ record, summary, content }: OfferCardProps) {
@@ -125,6 +124,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
               <div className='flex items-center gap-2'>
                 {!isMobile && (
                   <button
+                    type='button'
                     onClick={handleCopy}
                     className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
                     title={t`Copy offer`}
@@ -134,6 +134,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 )}
                 {isMobile && (
                   <button
+                    type='button'
                     onClick={handleShare}
                     className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
                     title={t`Share offer`}

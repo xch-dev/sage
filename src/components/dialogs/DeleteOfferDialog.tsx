@@ -39,15 +39,16 @@ export function DeleteOfferDialog({
             {isMultiple ? (
               <Trans>
                 This will delete {offerCount} offers from the wallet, but if
-                they're shared externally they can still be accepted. The only
-                way to truly cancel public offers is by spending one or more of
-                their coins.
+                they&apos;re shared externally they can still be accepted. The
+                only way to truly cancel public offers is by spending one or
+                more of their coins.
               </Trans>
             ) : (
               <Trans>
-                This will delete the offer from the wallet, but if it's shared
-                externally it can still be accepted. The only way to truly
-                cancel a public offer is by spending one or more of its coins.
+                This will delete the offer from the wallet, but if it&apos;s
+                shared externally it can still be accepted. The only way to
+                truly cancel a public offer is by spending one or more of its
+                coins.
               </Trans>
             )}
           </DialogDescription>

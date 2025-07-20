@@ -56,3 +56,5 @@ export const PasteInput = forwardRef<HTMLInputElement, PasteInputProps>(
     );
   },
 );
+
+PasteInput.displayName = 'PasteInput';
