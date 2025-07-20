@@ -93,6 +93,7 @@ impl PuzzleQueue {
         }
 
         let mut subscriptions = Vec::new();
+        let mut send_events = false;
 
         while let Some((addr, root, synced_coins)) = futures.next().await {
             match synced_coins {
@@ -128,7 +129,7 @@ impl PuzzleQueue {
                                     None,
                                 )
                                 .await?;
-
+                            send_events = true;
                             continue;
                         };
 
@@ -147,7 +148,7 @@ impl PuzzleQueue {
                         if !is_relevant {
                             continue;
                         }
-
+                        send_events = true;
                         if let Some(height) = item.coin_state.created_height {
                             tx.insert_height(height).await?;
                         }
@@ -193,18 +194,19 @@ impl PuzzleQueue {
             }
         }
 
-        self.command_sender
-            .send(SyncCommand::SubscribeCoins {
-                coin_ids: subscriptions,
-            })
-            .await
-            .ok();
+        if send_events {
+            self.command_sender
+                .send(SyncCommand::SubscribeCoins {
+                    coin_ids: subscriptions,
+                })
+                .await
+                .ok();
 
-        self.sync_sender
-            .send(SyncEvent::PuzzleBatchSynced)
-            .await
-            .ok();
-
+            self.sync_sender
+                .send(SyncEvent::PuzzleBatchSynced)
+                .await
+                .ok();
+        }
         Ok(())
     }
 }
