@@ -1,5 +1,7 @@
 /* foreign key indices */
-CREATE INDEX idx_coins_asset_id ON coins(asset_id);
+
+-- this index plays a dual role as an FK index and helps with the puzzle queue
+CREATE INDEX idx_coins_asset_spent_children ON coins (asset_id, spent_height, is_children_synced);
 CREATE INDEX idx_coins_p2_puzzle_id ON coins(p2_puzzle_id);
 CREATE INDEX idx_coins_created_height ON coins(created_height);
 CREATE INDEX idx_coins_spent_height ON coins(spent_height);

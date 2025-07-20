@@ -150,13 +150,9 @@ CREATE VIEW owned_nfts AS
           AND offers.status <= 1
           LIMIT 1
       ) AS offer_hash,
-      (
-          SELECT timestamp FROM blocks
-          WHERE height = owned_coins.created_height
-      ) AS created_timestamp,
-      (
-          SELECT timestamp FROM blocks
-          WHERE height = owned_coins.spent_height
-      ) AS spent_timestamp
+      created_blocks.timestamp AS created_timestamp,
+      spent_blocks.timestamp AS spent_timestamp
   FROM owned_coins
   INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
+  LEFT JOIN blocks AS created_blocks ON created_blocks.height = owned_coins.created_height
+  LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = owned_coins.spent_height  
