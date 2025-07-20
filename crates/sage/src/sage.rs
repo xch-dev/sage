@@ -395,15 +395,49 @@ impl Sage {
     pub async fn connect_to_database(&self, fingerprint: u32) -> Result<SqlitePool> {
         let path = self.wallet_db_path(fingerprint)?;
 
-        let pool = SqlitePoolOptions::new()
-            .connect_with(
-                SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
-                    .journal_mode(SqliteJournalMode::Wal)
-                    .log_statements(log::LevelFilter::Trace)
-                    .synchronous(SqliteSynchronous::Normal)
-                    .busy_timeout(Duration::from_secs(60)),
-            )
-            .await?;
+        // Mobile-optimized connection pool settings
+        #[cfg(any(target_os = "ios", target_os = "android"))]
+        let pool_options = SqlitePoolOptions::new()
+            .min_connections(3) // Reduce for mobile memory constraints
+            .max_connections(5) // Limit total connections
+            .max_lifetime(Duration::from_secs(3600)) // Recycle connections hourly
+            .idle_timeout(Duration::from_secs(300)) // Shorter idle timeout on mobile
+            .acquire_timeout(Duration::from_secs(30)); // Timeout acquiring connections
+
+        // Desktop optimized connection pool settings
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        let pool_options = SqlitePoolOptions::new()
+            .min_connections(5) // Keep some connections warm
+            .max_lifetime(Duration::from_secs(3600)) // Recycle connections hourly
+            .idle_timeout(Duration::from_secs(600)) // Close idle connections after 10 minutes
+            .acquire_timeout(Duration::from_secs(30)); // Timeout acquiring connections
+
+        // Mobile-optimized SQLite settings
+        #[cfg(any(target_os = "ios", target_os = "android"))]
+        let sqlite_options =
+            SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
+                .journal_mode(SqliteJournalMode::Wal)
+                .log_statements(log::LevelFilter::Trace)
+                .synchronous(SqliteSynchronous::Normal)
+                .busy_timeout(Duration::from_secs(30)) // Shorter timeout for mobile
+                .pragma("cache_size", "-16000") // 16MB cache (conservative for mobile)
+                .pragma("temp_store", "memory") // Use memory for temp tables
+                .pragma("mmap_size", "67108864") // 64MB memory map (conservative)
+                .pragma("journal_size_limit", "67108864"); // Limit WAL growth to 64MB
+
+        // Desktop optimized SQLite settings
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        let sqlite_options =
+            SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
+                .journal_mode(SqliteJournalMode::Wal)
+                .log_statements(log::LevelFilter::Trace)
+                .synchronous(SqliteSynchronous::Normal)
+                .busy_timeout(Duration::from_secs(60))
+                .pragma("cache_size", "-64000") // 64MB cache
+                .pragma("temp_store", "memory") // Use memory for temp tables
+                .pragma("mmap_size", "268435456"); // 256MB memory map
+
+        let pool = pool_options.connect_with(sqlite_options).await?;
 
         if let Err(_error) = sqlx::migrate!("../../migrations").run(&pool).await {
             return Err(Error::DatabaseVersionTooOld);
@@ -488,5 +522,23 @@ impl Sage {
     pub fn save_keychain(&self) -> Result<()> {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
+    }
+
+    #[cfg(any(target_os = "ios", target_os = "android"))]
+    fn get_mobile_sqlite_config(&self) -> (i32, &str) {
+        // Try to detect available memory and adjust settings accordingly
+        // These are conservative defaults that work well on most mobile devices
+
+        // For devices with < 2GB RAM (common on older Android devices)
+        // Use smaller cache and mmap sizes
+        let cache_size = "-8000"; // 8MB cache
+        let mmap_size = "33554432"; // 32MB memory map
+
+        // You could potentially detect actual device memory here and adjust:
+        // - Check /proc/meminfo on Android
+        // - Use system APIs on iOS
+        // For now, we use conservative defaults
+
+        (-8000, mmap_size)
     }
 }
