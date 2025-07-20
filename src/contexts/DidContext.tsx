@@ -1,6 +1,7 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -22,7 +23,7 @@ export function DidProvider({ children }: { children: ReactNode }) {
   const isMountedRef = useRef(false);
   const [dids, setDids] = useState<DidRecord[]>([]);
 
-  const updateDids = async () => {
+  const updateDids = useCallback(async () => {
     try {
       const data = await commands.getDids({});
       if (isMountedRef.current) {
@@ -33,7 +34,7 @@ export function DidProvider({ children }: { children: ReactNode }) {
         addError(error as CustomError);
       }
     }
-  };
+  }, [addError]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -58,7 +59,7 @@ export function DidProvider({ children }: { children: ReactNode }) {
       isMountedRef.current = false;
       unlisten.then((u) => u());
     };
-  }, [addError]);
+  }, [addError, updateDids]);
 
   // Sort DIDs with visible first, then by name, then by coin_id
   const sortedDids = useMemo(() => {
