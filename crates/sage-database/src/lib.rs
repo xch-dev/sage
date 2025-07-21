@@ -1,6 +1,8 @@
+mod maintenance;
 mod tables;
 mod utils;
 
+pub use maintenance::*;
 pub use tables::*;
 
 pub(crate) use utils::*;

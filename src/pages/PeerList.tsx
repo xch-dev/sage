@@ -35,8 +35,11 @@ import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
 import { animated, useSpring } from '@react-spring/web';
 import {
+  Column,
   ColumnDef,
   getCoreRowModel,
+  Row,
+  Table,
   useReactTable,
 } from '@tanstack/react-table';
 import { platform } from '@tauri-apps/plugin-os';
@@ -48,8 +51,101 @@ import {
   Trash2Icon,
   UserIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
+
+const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
+  <Checkbox
+    className='mx-2'
+    checked={
+      table.getIsAllPageRowsSelected() ||
+      (table.getIsSomePageRowsSelected() && 'indeterminate')
+    }
+    onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+    aria-label='Select all'
+  />
+);
+
+const SelectRowCell = ({ row }: { row: Row<PeerRecord> }) => (
+  <Checkbox
+    className='mx-2'
+    checked={row.getIsSelected()}
+    onCheckedChange={(value) => row.toggleSelected(!!value)}
+    aria-label='Select row'
+  />
+);
+
+const TypeHeader = () => (
+  <div className='text-center'>
+    <Trans>Type</Trans>
+  </div>
+);
+
+const TypeCell = ({ row }: { row: Row<PeerRecord> }) => (
+  <div className='text-center'>
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className='inline-flex items-center justify-center w-8 h-8 rounded-sm hover:bg-accent'>
+            {row.original.user_managed ? (
+              <UserIcon className='h-4 w-4 text-muted-foreground' />
+            ) : (
+              <CableIcon className='h-4 w-4 text-muted-foreground' />
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side='top' align='center' sideOffset={5}>
+          {row.original.user_managed
+            ? t`Manually added peer`
+            : t`Auto-discovered peer`}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  </div>
+);
+
+const ActionsHeader = () => (
+  <div className='text-center'>
+    <Trans>Actions</Trans>
+  </div>
+);
+
+const ActionsCell = ({
+  row,
+  onDelete,
+}: {
+  row: Row<PeerRecord>;
+  onDelete: (peer: PeerRecord) => void;
+}) => (
+  <div className='text-center'>
+    <Button size='icon' variant='ghost' onClick={() => onDelete(row.original)}>
+      <BanIcon className='h-4 w-4' />
+    </Button>
+  </div>
+);
+
+const IPAddressHeader = ({
+  column,
+}: {
+  column: Column<PeerRecord, unknown>;
+}) => <DataTableColumnHeader column={column} title={t`IP Address`} />;
+
+const PortHeader = ({ column }: { column: Column<PeerRecord, unknown> }) => (
+  <DataTableColumnHeader column={column} title={t`Port`} />
+);
+
+const HeightHeader = ({ column }: { column: Column<PeerRecord, unknown> }) => (
+  <DataTableColumnHeader column={column} title={t`Height`} />
+);
+
+// Remove the duplicate wrapper and fix the actions cell properly
+const ActionsCellWrapper = ({
+  row,
+  setPeerToDelete,
+}: {
+  row: Row<PeerRecord>;
+  setPeerToDelete: (peers: PeerRecord[]) => void;
+}) => <ActionsCell row={row} onDelete={(peer) => setPeerToDelete([peer])} />;
 
 const MobileRow = ({
   peer,
@@ -184,103 +280,49 @@ export default function PeerList() {
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
-  const columns: ColumnDef<PeerRecord>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          className='mx-2'
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label='Select all'
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          className='mx-2'
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label='Select row'
-        />
-      ),
-      size: 40,
-    },
-    {
-      accessorKey: 'ip_addr',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t`IP Address`} />
-      ),
-      size: 150,
-    },
-    {
-      accessorKey: 'port',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t`Port`} />
-      ),
-      size: 100,
-    },
-    {
-      accessorKey: 'peak_height',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t`Height`} />
-      ),
-      size: 120,
-    },
-    {
-      id: 'type',
-      header: () => (
-        <div className='text-center'>
-          <Trans>Type</Trans>
-        </div>
-      ),
-      size: 75,
-      cell: ({ row }) => (
-        <div className='text-center'>
-          <TooltipProvider delayDuration={200}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className='inline-flex items-center justify-center w-8 h-8 rounded-sm hover:bg-accent'>
-                  {row.original.user_managed ? (
-                    <UserIcon className='h-4 w-4 text-muted-foreground' />
-                  ) : (
-                    <CableIcon className='h-4 w-4 text-muted-foreground' />
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side='top' align='center' sideOffset={5}>
-                {row.original.user_managed
-                  ? t`Manually added peer`
-                  : t`Auto-discovered peer`}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-      ),
-    },
-    {
-      id: 'actions',
-      header: () => (
-        <div className='text-center'>
-          <Trans>Actions</Trans>
-        </div>
-      ),
-      size: 80,
-      cell: ({ row }) => (
-        <div className='text-center'>
-          <Button
-            size='icon'
-            variant='ghost'
-            onClick={() => setPeerToDelete([row.original])}
-          >
-            <BanIcon className='h-4 w-4' />
-          </Button>
-        </div>
-      ),
-    },
-  ];
+  const columns: ColumnDef<PeerRecord>[] = useMemo(() => {
+    const actionsCellWithSetPeerToDelete = (props: {
+      row: Row<PeerRecord>;
+    }) => (
+      <ActionsCellWrapper row={props.row} setPeerToDelete={setPeerToDelete} />
+    );
+
+    return [
+      {
+        id: 'select',
+        header: SelectAllHeader,
+        cell: SelectRowCell,
+        size: 40,
+      },
+      {
+        accessorKey: 'ip_addr',
+        header: IPAddressHeader,
+        size: 150,
+      },
+      {
+        accessorKey: 'port',
+        header: PortHeader,
+        size: 100,
+      },
+      {
+        accessorKey: 'peak_height',
+        header: HeightHeader,
+        size: 120,
+      },
+      {
+        id: 'type',
+        header: TypeHeader,
+        size: 75,
+        cell: TypeCell,
+      },
+      {
+        id: 'actions',
+        header: ActionsHeader,
+        size: 80,
+        cell: actionsCellWithSetPeerToDelete,
+      },
+    ];
+  }, [setPeerToDelete]);
 
   const table = useReactTable({
     data: peers ?? [],

@@ -35,6 +35,39 @@ pub struct GetDerivationsResponse {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct PerformDatabaseMaintenance {
+    pub force_vacuum: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct PerformDatabaseMaintenanceResponse {
+    pub vacuum_duration_ms: u64,
+    pub analyze_duration_ms: u64,
+    pub wal_checkpoint_duration_ms: u64,
+    pub total_duration_ms: u64,
+    pub pages_vacuumed: i64,
+    pub wal_pages_checkpointed: i64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetDatabaseStats {}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetDatabaseStatsResponse {
+    pub total_pages: i64,
+    pub free_pages: i64,
+    pub free_percentage: f64,
+    pub page_size: i64,
+    pub database_size_bytes: i64,
+    pub free_space_bytes: i64,
+    pub wal_pages: i64,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetSyncStatus {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

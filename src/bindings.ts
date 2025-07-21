@@ -110,6 +110,12 @@ async getSyncStatus(req: GetSyncStatus) : Promise<GetSyncStatusResponse> {
 async getVersion(req: GetVersion) : Promise<GetVersionResponse> {
     return await TAURI_INVOKE("get_version", { req });
 },
+async getDatabaseStats(req: GetDatabaseStats) : Promise<GetDatabaseStatsResponse> {
+    return await TAURI_INVOKE("get_database_stats", { req });
+},
+async performDatabaseMaintenance(req: PerformDatabaseMaintenance) : Promise<PerformDatabaseMaintenanceResponse> {
+    return await TAURI_INVOKE("perform_database_maintenance", { req });
+},
 async checkAddress(req: CheckAddress) : Promise<CheckAddressResponse> {
     return await TAURI_INVOKE("check_address", { req });
 },
@@ -402,6 +408,8 @@ export type GetCoins = { asset_id?: string | null; offset: number; limit: number
 export type GetCoinsByIds = { coin_ids: string[] }
 export type GetCoinsByIdsResponse = { coins: CoinRecord[] }
 export type GetCoinsResponse = { coins: CoinRecord[]; total: number }
+export type GetDatabaseStats = Record<string, never>
+export type GetDatabaseStatsResponse = { total_pages: number; free_pages: number; free_percentage: number; page_size: number; database_size_bytes: number; free_space_bytes: number; wal_pages: number }
 export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
 export type GetDerivationsResponse = { derivations: DerivationRecord[]; total: number }
 export type GetDids = Record<string, never>
@@ -484,6 +492,8 @@ export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
+export type PerformDatabaseMaintenance = { force_vacuum: boolean }
+export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; analyze_duration_ms: number; wal_checkpoint_duration_ms: number; total_duration_ms: number; pages_vacuumed: number; wal_pages_checkpointed: number }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
 export type RemovePeer = { ip: string; ban: boolean }

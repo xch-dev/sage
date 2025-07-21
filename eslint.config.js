@@ -22,16 +22,17 @@ export default tseslint.config(
       'react-hooks': reactHooks,
     },
     rules: {
-      // React rules
-      ...react.configs.recommended.rules,
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
+      // React rules
+      ...react.configs.recommended.rules,
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'react/no-unstable-nested-components': 'warn',
       'react/hook-use-state': 'warn',
       'react/button-has-type': 'warn',
       'react/default-props-match-prop-types': 'warn',
-      'react/react-in-jsx-scope': 'off',
-      'react/prop-types': 'off',
       'react/no-did-mount-set-state': 'warn',
       'react/no-did-update-set-state': 'warn',
       'react/no-invalid-html-attribute': 'warn',
@@ -39,7 +40,6 @@ export default tseslint.config(
       'react/no-typos': 'warn',
       'react/no-array-index-key': 'warn',
       'react/no-danger': 'warn',
-      'react/no-unstable-nested-components': 'off',
       'react/require-optimization': 'warn',
       'react/no-access-state-in-setstate': 'warn',
       'react/no-redundant-should-component-update': 'warn',

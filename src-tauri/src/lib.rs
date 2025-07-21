@@ -58,6 +58,8 @@ pub fn run() {
             commands::submit_transaction,
             commands::get_sync_status,
             commands::get_version,
+            commands::get_database_stats,
+            commands::perform_database_maintenance,
             commands::check_address,
             commands::get_derivations,
             commands::get_are_coins_spendable,
