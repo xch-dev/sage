@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useTokenState } from '@/hooks/useTokenState';
+import { getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -105,7 +106,9 @@ export default function Token() {
       <Header
         title={
           <span>
-            {asset ? (asset.name ?? t`Unknown asset`) : ''}{' '}
+            {asset
+              ? getAssetDisplayName(asset.name, asset.ticker, 'token')
+              : ''}{' '}
             {asset?.asset_id !== 'xch' && (
               <>
                 {' '}

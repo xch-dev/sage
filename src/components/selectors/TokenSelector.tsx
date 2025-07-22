@@ -1,11 +1,11 @@
 import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { isValidAssetId, getAssetDisplayName } from '@/lib/utils';
+import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
+import { AssetIcon } from '../AssetIcon';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { AssetIcon } from '../AssetIcon';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -127,7 +127,7 @@ export function TokenSelector({
             </span>
             <span
               className='text-xs text-muted-foreground truncate'
-              aria-label='Asset ID'
+              aria-label={t`Asset ID`}
             >
               {token.asset_id}
             </span>

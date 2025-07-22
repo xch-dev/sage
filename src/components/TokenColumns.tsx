@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { TokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -22,8 +22,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { NumberFormat } from './NumberFormat';
 import { AssetIcon } from './AssetIcon';
+import { NumberFormat } from './NumberFormat';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -53,16 +53,13 @@ export const columns = (
     header: () => <Trans>Name</Trans>,
     minSize: 120,
     cell: ({ row }) => {
-      const record = row.original;
-      const name = record.isXch
-        ? 'Chia'
-        : record.name || <Trans>Unknown CAT</Trans>;
-      const path = record.isXch
-        ? '/wallet/token/xch'
-        : `/wallet/token/${record.asset_id}`;
-      const ariaLabel = record.isXch
-        ? t`View Chia token details`
-        : t`View ${name} token details`;
+      const name = getAssetDisplayName(
+        row.original.name,
+        row.original.ticker,
+        'token',
+      );
+      const path = `/wallet/token/${row.original.asset_id}`;
+      const ariaLabel = t`View ${name} token details`;
 
       return (
         <Link to={path} className='hover:underline' aria-label={ariaLabel}>

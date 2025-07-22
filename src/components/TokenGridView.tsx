@@ -1,26 +1,26 @@
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/NumberFormat';
-import { formatUsdPrice, fromMojos } from '@/lib/utils';
-import { TokenViewProps, TokenRecord } from '@/types/TokenViewProps';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { formatUsdPrice, fromMojos, getAssetDisplayName } from '@/lib/utils';
+import { TokenRecord, TokenViewProps } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { TokenActionHandlers } from './TokenColumns';
 import { AssetIcon } from './AssetIcon';
+import { TokenActionHandlers } from './TokenColumns';
 
 type TokenGridViewProps = TokenViewProps & {
   actionHandlers?: TokenActionHandlers;
@@ -181,11 +181,11 @@ export function TokenGridView({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <CardTitle className='text-md font-medium truncate'>
-                        {cat.name || <Trans>Unknown CAT</Trans>}
+                        {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                       </CardTitle>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {cat.name || <Trans>Unknown CAT</Trans>}
+                      {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                     </TooltipContent>
                   </Tooltip>
 
