@@ -99,7 +99,7 @@ export const columns = (
     },
     cell: ({ row }) => (
       <div>
-        <span className='sr-only'>USD Value: </span>
+        <span className='sr-only'>{t`USD Value: `}</span>
         <NumberFormat
           value={row.original.balanceInUsd}
           style='currency'
@@ -118,7 +118,7 @@ export const columns = (
     },
     cell: ({ row }) => (
       <div>
-        <span className='sr-only'>Price per token: </span>
+        <span className='sr-only'>{t`Price per token: `}</span>
         {formatUsdPrice(row.original.priceInUsd)}
       </div>
     ),
@@ -174,8 +174,7 @@ export const columns = (
                     openUrl(
                       `https://dexie.space/offers/XCH/${record.asset_id}`,
                     ).catch((error) => {
-                      console.error('Failed to open dexie.space:', error);
-                      toast.error(t`Failed to open dexie.space`);
+                      toast.error(t`Failed to open dexie.space: ${error}`);
                     });
                   }}
                 >
