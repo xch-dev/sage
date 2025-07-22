@@ -23,6 +23,7 @@ import {
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { NumberFormat } from './NumberFormat';
+import { AssetIcon } from './AssetIcon';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -44,14 +45,7 @@ export const columns = (
         ? 'https://icons.dexie.space/xch.webp'
         : record.icon_url;
 
-      return iconUrl ? (
-        <img
-          alt={t`Token logo`}
-          aria-hidden='true'
-          className='h-6 w-6 ml-1'
-          src={iconUrl}
-        />
-      ) : null;
+      return <AssetIcon iconUrl={iconUrl} kind='token' size='sm' />;
     },
   },
   {

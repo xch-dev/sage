@@ -1,10 +1,11 @@
 import { CatRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { isValidAssetId } from '@/lib/utils';
+import { isValidAssetId, getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
+import { AssetIcon } from '../AssetIcon';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -118,19 +119,11 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          {token.icon_url && (
-            <img
-              src={token.icon_url}
-              className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? t`Unknown token`}
-              aria-hidden='true'
-              loading='lazy'
-            />
-          )}
+          <AssetIcon iconUrl={token.icon_url} kind='token' size='lg' />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
-              {token.name}
-              {token.ticker && ` (${token.ticker})`}
+              {getAssetDisplayName(token.name, token.ticker, 'token')}
+              {token.ticker && ` (${token.ticker})`}{' '}
             </span>
             <span
               className='text-xs text-muted-foreground truncate'
@@ -143,28 +136,18 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        {selectedToken?.icon_url && (
-          <img
-            src={selectedToken.icon_url}
-            className='w-8 h-8 rounded object-cover'
-            alt={
-              selectedToken?.name
-                ? `Image of ${selectedToken.name}`
-                : 'No token name'
-            }
-            loading='lazy'
-            aria-hidden='true'
-          />
-        )}
-        <div className='flex flex-col truncate text-left'>
-          <span className='truncate'>
-            {selectedToken?.name ?? t`Select Token`}
-            {selectedToken?.ticker && ` (${selectedToken.ticker})`}
-          </span>
-          <span className='text-xs text-muted-foreground truncate'>
-            {selectedToken?.asset_id}
-          </span>
-        </div>
+        <>
+          <AssetIcon iconUrl={selectedToken?.icon_url} kind='token' size='sm' />
+          <div className='flex flex-col truncate text-left'>
+            <span className='truncate'>
+              {selectedToken?.name ?? t`Select Token`}
+              {selectedToken?.ticker && ` (${selectedToken.ticker})`}
+            </span>
+            <span className='text-xs text-muted-foreground truncate'>
+              {selectedToken?.asset_id}
+            </span>
+          </div>
+        </>
       </div>
     </DropdownSelector>
   );

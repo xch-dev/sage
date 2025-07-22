@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
+import { getAssetDisplayName } from '@/lib/utils';
 
 export function TransactionListView({
   transactions,
@@ -26,7 +27,11 @@ export function TransactionListView({
       (coin): FlattenedTransaction => ({
         type: coin.asset.kind,
         address: coin.address,
-        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        displayName: getAssetDisplayName(
+          coin.asset.name,
+          coin.asset.ticker,
+          coin.asset.kind,
+        ),
         itemId: coin.asset.asset_id ?? 'XCH',
         amount: coin.amount.toString(),
         transactionHeight: transaction.height,
@@ -40,7 +45,11 @@ export function TransactionListView({
       (coin): FlattenedTransaction => ({
         type: coin.asset.kind,
         address: coin.address,
-        displayName: coin.asset.name ?? coin.asset.ticker ?? 'Unknown',
+        displayName: getAssetDisplayName(
+          coin.asset.name,
+          coin.asset.ticker,
+          coin.asset.kind,
+        ),
         itemId: coin.asset.asset_id ?? 'XCH',
         amount: BigNumber(coin.amount).negated().toString(),
         transactionHeight: transaction.height,

@@ -3,6 +3,7 @@ import { NumberFormat } from '@/components/NumberFormat';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
+import { AssetIcon } from './AssetIcon';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -67,12 +68,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
       <div>{label}</div>
       {assets.map(({ amount, royalty, asset }) => (
         <div className='flex items-center gap-2' key={asset.asset_id}>
-          <img
-            alt={asset.name ?? asset.ticker ?? t`Unknown`}
-            src={asset.icon_url ?? ''}
-            className='w-8 h-8'
-          />
-
+          <AssetIcon iconUrl={asset.icon_url} kind={asset.kind} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
             {asset.kind !== 'nft' && (
               <NumberFormat

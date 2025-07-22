@@ -37,6 +37,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { CatRecord } from '../bindings';
+import { AssetIcon } from './AssetIcon';
 
 interface TokenCardProps {
   asset: CatRecord | null;
@@ -99,11 +100,7 @@ export function TokenCard({
               {asset?.ticker}
             </div>
             <div className='flex-shrink-0'>
-              <img
-                alt='asset icon'
-                src={asset?.icon_url ?? ''}
-                className='h-8 w-8'
-              />
+              <AssetIcon iconUrl={asset?.icon_url} kind='token' size='md' />
             </div>
           </div>
           <div className='text-sm text-muted-foreground'>

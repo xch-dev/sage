@@ -1,7 +1,9 @@
+import { AssetKind } from '@/bindings';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { t } from '@lingui/core/macro';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -10,6 +12,18 @@ export function cn(...inputs: ClassValue[]) {
 export function dbg<T>(value: T): T {
   console.log(value);
   return value;
+}
+
+export function getAssetDisplayName(
+  name: string | null,
+  ticker: string | null,
+  kind: AssetKind,
+) {
+  return (
+    name ??
+    ticker ??
+    (kind === 'token' ? t`Unknown CAT` : t`Untitled ${kind.toUpperCase()}`)
+  );
 }
 
 export function formatTimestamp(

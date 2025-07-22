@@ -5,12 +5,18 @@ import {
   TransactionCoinRecord,
   TransactionRecord,
 } from '@/bindings';
+import { AssetIcon } from '@/components/AssetIcon';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import { formatAddress, formatTimestamp, fromMojos } from '@/lib/utils';
+import {
+  formatAddress,
+  formatTimestamp,
+  fromMojos,
+  getAssetDisplayName,
+} from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -142,25 +148,33 @@ interface TransactionCoinKindProps {
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
+  const name = getAssetDisplayName(
+    coin.asset.name,
+    coin.asset.ticker,
+    coin.asset.kind,
+  );
+
   return (
     <div className='flex items-center gap-2'>
-      <img
-        alt={coin.asset.name ?? t`Unknown`}
-        src={coin.asset.icon_url ?? ''}
-        className='w-8 h-8'
-        aria-hidden={true}
+      <AssetIcon
+        iconUrl={coin.asset.icon_url}
+        kind={coin.asset.kind}
+        size='md'
       />
 
       <div className='flex flex-col'>
         <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-          <NumberFormat
-            value={fromMojos(coin.amount, coin.asset.precision)}
-            minimumFractionDigits={0}
-            maximumFractionDigits={coin.asset.precision}
-          />{' '}
-          <span className='break-normal'>
-            {coin.asset.ticker ?? coin.asset.name ?? 'CAT'}
-          </span>
+          {coin.asset.kind === 'token' ? (
+            <>
+              <NumberFormat
+                value={fromMojos(coin.amount, coin.asset.precision)}
+                maximumFractionDigits={coin.asset.precision}
+              />{' '}
+              <span className='break-normal'>{name}</span>
+            </>
+          ) : (
+            <span className='break-normal'>{name}</span>
+          )}
         </div>
       </div>
     </div>

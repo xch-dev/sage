@@ -20,6 +20,7 @@ import {
 import { MoreHorizontal } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { TokenActionHandlers } from './TokenColumns';
+import { AssetIcon } from './AssetIcon';
 
 type TokenGridViewProps = TokenViewProps & {
   actionHandlers?: TokenActionHandlers;
@@ -119,13 +120,7 @@ export function TokenGridView({
                 </TooltipTrigger>
                 <TooltipContent>{xchRecord.name}</TooltipContent>
               </Tooltip>
-              <img
-                alt={t`Token logo`}
-                aria-hidden='true'
-                className='h-6 w-6'
-                src={xchRecord.icon_url || ''}
-                loading='lazy'
-              />
+              <AssetIcon iconUrl={xchRecord.icon_url} kind='token' size='sm' />
             </CardHeader>
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
@@ -193,14 +188,8 @@ export function TokenGridView({
                       {cat.name || <Trans>Unknown CAT</Trans>}
                     </TooltipContent>
                   </Tooltip>
-                  {cat.icon_url && (
-                    <img
-                      alt={t`Token logo`}
-                      aria-hidden='true'
-                      className='h-6 w-6'
-                      src={cat.icon_url}
-                    />
-                  )}
+
+                  <AssetIcon iconUrl={cat.icon_url} kind='token' size='sm' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>
