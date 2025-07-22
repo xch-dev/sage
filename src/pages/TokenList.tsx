@@ -45,6 +45,7 @@ export function TokenList() {
       ),
       priceInUsd: getPriceInUsd('xch'),
       decimals: walletState.sync.unit.decimals,
+      visible: true,
       isXch: true,
     }),
     [walletState.sync, getBalanceInUsd, getPriceInUsd],

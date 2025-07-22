@@ -157,8 +157,7 @@ export function TokenCard({
                       openUrl(
                         `https://dexie.space/offers/XCH/${asset.asset_id}`,
                       ).catch((error) => {
-                        console.error('Failed to open dexie.space:', error);
-                        toast.error(t`Failed to open dexie.space`);
+                        toast.error(t`Failed to open dexie.space: ${error}`);
                       });
                     }}
                   >

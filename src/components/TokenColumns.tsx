@@ -41,7 +41,12 @@ export const columns = (
     size: 40,
     cell: ({ row }) => {
       return (
-        <AssetIcon iconUrl={row.original.icon_url} kind='token' size='sm' />
+        <AssetIcon
+          iconUrl={row.original.icon_url}
+          kind='token'
+          size='sm'
+          className='ml-1'
+        />
       );
     },
   },

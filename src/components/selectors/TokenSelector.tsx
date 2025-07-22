@@ -137,7 +137,7 @@ export function TokenSelector({
     >
       <div className='flex items-center gap-2 min-w-0'>
         <>
-          <AssetIcon iconUrl={selectedToken?.icon_url} kind='token' size='sm' />
+          <AssetIcon iconUrl={selectedToken?.icon_url} kind='token' />
           <div className='flex flex-col truncate text-left'>
             <span className='truncate'>
               {selectedToken?.name ?? t`Select Token`}
