@@ -40,12 +40,9 @@ export const columns = (
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
     size: 40,
     cell: ({ row }) => {
-      const record = row.original;
-      const iconUrl = record.isXch
-        ? 'https://icons.dexie.space/xch.webp'
-        : record.icon_url;
-
-      return <AssetIcon iconUrl={iconUrl} kind='token' size='sm' />;
+      return (
+        <AssetIcon iconUrl={row.original.icon_url} kind='token' size='sm' />
+      );
     },
   },
   {
