@@ -22,13 +22,13 @@ export function AssetIcon({
   className = '',
 }: AssetIconProps) {
   const sizeClass = sizeClasses[size];
-  const baseClasses = `${sizeClass} rounded object-cover`;
+  const imgClasses = `${sizeClass} rounded object-cover`;
 
   if (iconUrl) {
     return (
       <img
         src={iconUrl}
-        className={`${baseClasses} ${className}`}
+        className={`${imgClasses} ${className}`}
         alt='Asset icon'
         loading='lazy'
         aria-hidden='true'
@@ -36,20 +36,12 @@ export function AssetIcon({
     );
   }
 
+  const iconClasses = `${sizeClass} rounded stroke-1`;
   return kind === 'token' ? (
-    <Coins
-      className={`${baseClasses} ${className} stroke-1`}
-      aria-hidden='true'
-    />
+    <Coins className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : kind === 'nft' ? (
-    <Image
-      className={`${baseClasses} ${className} stroke-1`}
-      aria-hidden='true'
-    />
+    <Image className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : (
-    <User
-      className={`${baseClasses} ${className} stroke-1`}
-      aria-hidden='true'
-    />
+    <User className={`${iconClasses} ${className}`} aria-hidden='true' />
   );
 }

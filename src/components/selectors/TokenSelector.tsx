@@ -119,7 +119,12 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          <AssetIcon iconUrl={token.icon_url} kind='token' size='lg' />
+          <AssetIcon
+            iconUrl={token.icon_url}
+            kind='token'
+            size='md'
+            className='flex-shrink-0'
+          />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
               {getAssetDisplayName(token.name, token.ticker, 'token')}
@@ -137,7 +142,12 @@ export function TokenSelector({
     >
       <div className='flex items-center gap-2 min-w-0'>
         <>
-          <AssetIcon iconUrl={selectedToken?.icon_url} kind='token' />
+          <AssetIcon
+            iconUrl={selectedToken?.icon_url}
+            kind='token'
+            size='md'
+            className='flex-shrink-0'
+          />
           <div className='flex flex-col truncate text-left'>
             <span className='truncate'>
               {selectedToken?.name ?? t`Select Token`}
