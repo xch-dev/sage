@@ -24,6 +24,7 @@ pub enum CoinSortMode {
     Amount,
     CreatedHeight,
     SpentHeight,
+    ClawbackTimestamp,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -646,6 +647,8 @@ async fn coin_records(
         CoinSortMode::CreatedHeight => query.push("created_height DESC NULLS FIRST"),
         CoinSortMode::SpentHeight if ascending => query.push("spent_height ASC NULLS LAST"),
         CoinSortMode::SpentHeight => query.push("spent_height DESC NULLS FIRST"),
+        CoinSortMode::ClawbackTimestamp if ascending => query.push("clawback_timestamp ASC"),
+        CoinSortMode::ClawbackTimestamp => query.push("clawback_timestamp DESC"),
     };
 
     query.push(" LIMIT ");

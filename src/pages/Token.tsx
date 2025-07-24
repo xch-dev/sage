@@ -1,3 +1,4 @@
+import { ClawbackCoinsCard } from '@/components/ClawbackCoinsCard';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
@@ -10,13 +11,11 @@ import { usePrices } from '@/hooks/usePrices';
 import { getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
-import { RowSelectionState } from '@tanstack/react-table';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   CoinRecord,
-  CoinSortMode,
   commands,
   events,
   TokenRecord,
@@ -49,14 +48,6 @@ export default function Token() {
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
     null,
   );
-  const [coins, setCoins] = useState<CoinRecord[]>([]);
-  const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
-  const [currentPage, setCurrentPage] = useState<number>(0);
-  const [totalCoins, setTotalCoins] = useState<number>(0);
-  const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
-  const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
-  const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
-  const pageSize = 10;
 
   const navigate = useNavigate();
 
@@ -98,45 +89,6 @@ export default function Token() {
     );
   }, [asset, getBalanceInUsd]);
 
-  const updateCoins = useMemo(
-    () =>
-      (page: number = currentPageRef.current) => {
-        const offset = page * pageSize;
-
-        commands
-          .getCoins({
-            asset_id: assetId,
-            offset,
-            limit: pageSize,
-            sort_mode: sortMode,
-            ascending: sortDirection,
-            filter_mode: includeSpentCoins ? 'spent' : 'owned',
-          })
-          .then((res) => {
-            setCoins(res.coins);
-            setTotalCoins(res.total);
-          })
-          .catch(addError);
-      },
-    [assetId, addError, pageSize, sortMode, sortDirection, includeSpentCoins],
-  );
-
-  useEffect(() => {
-    updateCoins();
-
-    const unlisten = events.syncEvent.listen((event) => {
-      const type = event.payload.type;
-
-      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
-        updateCoins();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [updateCoins]);
-
   const redownload = () => {
     if (!assetId) return;
 
@@ -158,20 +110,6 @@ export default function Token() {
     const updatedAsset = { ...asset, visible };
     return updateTokenDetails(updatedAsset);
   };
-
-  // Use ref to track current page to avoid dependency issues
-  const currentPageRef = useRef(currentPage);
-  currentPageRef.current = currentPage;
-
-  // Reset to page 0 when sort parameters change
-  useEffect(() => {
-    setCurrentPage(0);
-  }, [sortMode, sortDirection, includeSpentCoins]);
-
-  // Update coins when page changes
-  useEffect(() => {
-    updateCoins(currentPage);
-  }, [currentPage, updateCoins]);
 
   // Create the appropriate confirmation component based on the response
   const confirmationAdditionalData = useMemo(() => {
@@ -209,29 +147,6 @@ export default function Token() {
     return undefined;
   }, [response?.additionalData?.content]);
 
-  // Get the appropriate handlers based on the asset type
-  const splitHandler = useMemo(
-    () => (!asset?.asset_id ? commands.splitXch : commands.splitCat),
-    [asset?.asset_id],
-  );
-
-  const combineHandler = useMemo(
-    () => (!asset?.asset_id ? commands.combineXch : commands.combineCat),
-    [asset?.asset_id],
-  );
-
-  const autoCombineHandler = useMemo(
-    () =>
-      !asset?.asset_id
-        ? commands.autoCombineXch
-        : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
-            commands.autoCombineCat({
-              ...req,
-              asset_id: asset?.asset_id ?? '',
-            }),
-    [asset?.asset_id],
-  );
-
   return (
     <>
       <Header
@@ -261,40 +176,24 @@ export default function Token() {
         }
       />
       {asset && (
-        <Container>
-          <div className='flex flex-col gap-4 max-w-screen-lg'>
-            <TokenCard
-              asset={asset}
-              balanceInUsd={balanceInUsd}
-              onRedownload={redownload}
-              onVisibilityChange={() => {
-                setVisibility(asset?.visible ?? true);
-                navigate('/wallet');
-              }}
-              onUpdate={updateTokenDetails}
-            />
-            <OwnedCoinsCard
-              coins={coins}
-              asset={asset}
-              splitHandler={splitHandler}
-              combineHandler={combineHandler}
-              autoCombineHandler={autoCombineHandler}
-              setResponse={setResponse}
-              selectedCoins={selectedCoins}
-              setSelectedCoins={setSelectedCoins}
-              currentPage={currentPage}
-              totalCoins={totalCoins}
-              pageSize={pageSize}
-              setCurrentPage={setCurrentPage}
-              sortMode={sortMode}
-              sortDirection={sortDirection}
-              includeSpentCoins={includeSpentCoins}
-              onSortModeChange={setSortMode}
-              onSortDirectionChange={setSortDirection}
-              onIncludeSpentCoinsChange={setIncludeSpentCoins}
-            />
-          </div>
-        </Container>
+        <>
+          <Container>
+            <div className='flex flex-col gap-4 max-w-screen-lg'>
+              <TokenCard
+                asset={asset}
+                balanceInUsd={balanceInUsd}
+                onRedownload={redownload}
+                onVisibilityChange={() => {
+                  setVisibility(asset?.visible ?? true);
+                  navigate('/wallet');
+                }}
+                onUpdate={updateTokenDetails}
+              />
+              <OwnedCoinsCard asset={asset} setResponse={setResponse} />
+              <ClawbackCoinsCard asset={asset} setResponse={setResponse} />
+            </div>
+          </Container>
+        </>
       )}
 
       <ConfirmationDialog

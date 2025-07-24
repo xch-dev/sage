@@ -94,6 +94,8 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
       kind = null;
   }
 
+  console.error(error);
+
   return (
     <Dialog open={error !== null} onOpenChange={() => setError(null)}>
       <DialogContent>

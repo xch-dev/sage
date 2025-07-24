@@ -129,6 +129,7 @@ pub enum CoinSortMode {
     #[default]
     CreatedHeight,
     SpentHeight,
+    ClawbackTimestamp,
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]

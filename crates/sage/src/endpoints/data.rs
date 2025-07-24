@@ -211,6 +211,7 @@ impl Sage {
             ApiCoinSortMode::Amount => CoinSortMode::Amount,
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+            ApiCoinSortMode::ClawbackTimestamp => CoinSortMode::ClawbackTimestamp,
         };
         let filter_mode = match req.filter_mode {
             ApiCoinFilterMode::All => CoinFilterMode::All,

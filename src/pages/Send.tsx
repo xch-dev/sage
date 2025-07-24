@@ -167,7 +167,7 @@ export default function Send() {
       const hours = parseInt(values.clawback.hours) || 0;
       const minutes = parseInt(values.clawback.minutes) || 0;
       clawback =
-        Date.now() / 1000 +
+        Math.ceil(Date.now() / 1000) +
         (days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60);
     }
 
