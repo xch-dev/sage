@@ -221,9 +221,9 @@ export function MakeOffer() {
                     if (value) {
                       setState({
                         expiration: {
-                          days: expiry.days.toString(),
-                          hours: expiry.hours.toString(),
-                          minutes: expiry.minutes.toString(),
+                          days: expiry?.days?.toString() ?? '1',
+                          hours: expiry?.hours?.toString() ?? '0',
+                          minutes: expiry?.minutes?.toString() ?? '0',
                         },
                       });
                     } else {
@@ -238,7 +238,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.days}
+                      value={state.expiration?.days ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
@@ -261,7 +261,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.hours}
+                      value={state.expiration?.hours ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
@@ -284,7 +284,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.minutes}
+                      value={state.expiration?.minutes ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
