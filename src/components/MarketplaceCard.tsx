@@ -135,6 +135,7 @@ export function MarketplaceCard({
     <div className='flex flex-col items-center gap-4 w-auto'>
       <div className='flex items-center gap-2'>
         <button
+          type='button'
           onClick={handleMarketplaceAction}
           className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
           title={marketplace.getMarketplaceLink(
@@ -159,6 +160,7 @@ export function MarketplaceCard({
 
         {isOnMarketplace && isMobile && (
           <button
+            type='button'
             onClick={handleShare}
             className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
             title={t`Share marketplace link`}
@@ -169,6 +171,7 @@ export function MarketplaceCard({
 
         {isOnMarketplace && !isMobile && (
           <button
+            type='button'
             onClick={handleCopy}
             className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
             title={t`Copy marketplace link`}

@@ -1,24 +1,25 @@
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { t } from '@lingui/core/macro';
 import { NumberFormat } from '@/components/NumberFormat';
-import { formatUsdPrice, fromMojos } from '@/lib/utils';
-import { TokenViewProps, TokenRecord } from '@/types/TokenViewProps';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { formatUsdPrice, fromMojos, getAssetDisplayName } from '@/lib/utils';
+import { TokenRecord, TokenViewProps } from '@/types/TokenViewProps';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { MoreHorizontal } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AssetIcon } from './AssetIcon';
 import { TokenActionHandlers } from './TokenColumns';
 
 type TokenGridViewProps = TokenViewProps & {
@@ -119,13 +120,7 @@ export function TokenGridView({
                 </TooltipTrigger>
                 <TooltipContent>{xchRecord.name}</TooltipContent>
               </Tooltip>
-              <img
-                alt={t`Token logo`}
-                aria-hidden='true'
-                className='h-6 w-6'
-                src={xchRecord.icon_url || ''}
-                loading='lazy'
-              />
+              <AssetIcon iconUrl={xchRecord.icon_url} kind='token' size='sm' />
             </CardHeader>
             <CardContent className='flex flex-col gap-1'>
               <div className='text-2xl font-medium truncate'>
@@ -186,21 +181,15 @@ export function TokenGridView({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <CardTitle className='text-md font-medium truncate'>
-                        {cat.name || <Trans>Unknown CAT</Trans>}
+                        {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                       </CardTitle>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {cat.name || <Trans>Unknown CAT</Trans>}
+                      {getAssetDisplayName(cat.name, cat.ticker, 'token')}
                     </TooltipContent>
                   </Tooltip>
-                  {cat.icon_url && (
-                    <img
-                      alt={t`Token logo`}
-                      aria-hidden='true'
-                      className='h-6 w-6'
-                      src={cat.icon_url}
-                    />
-                  )}
+
+                  <AssetIcon iconUrl={cat.icon_url} kind='token' size='sm' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>

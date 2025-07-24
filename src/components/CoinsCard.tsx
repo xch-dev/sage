@@ -192,9 +192,9 @@ export function CoinsCard({
     };
   }, [selectedCoinIds, asset]);
 
-  const [isCombineOpen, setCombineOpen] = useState(false);
-  const [isSplitOpen, setSplitOpen] = useState(false);
-  const [isAutoCombineOpen, setAutoCombineOpen] = useState(false);
+  const [combineOpen, setCombineOpen] = useState(false);
+  const [splitOpen, setSplitOpen] = useState(false);
+  const [autoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.decimals).refine(
@@ -429,7 +429,7 @@ export function CoinsCard({
         )}
       </CardContent>
 
-      <Dialog open={isCombineOpen} onOpenChange={setCombineOpen}>
+      <Dialog open={combineOpen} onOpenChange={setCombineOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -478,7 +478,7 @@ export function CoinsCard({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isSplitOpen} onOpenChange={setSplitOpen}>
+      <Dialog open={splitOpen} onOpenChange={setSplitOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -546,7 +546,7 @@ export function CoinsCard({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isAutoCombineOpen} onOpenChange={setAutoCombineOpen}>
+      <Dialog open={autoCombineOpen} onOpenChange={setAutoCombineOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -554,8 +554,8 @@ export function CoinsCard({
             </DialogTitle>
             <DialogDescription>
               <Trans>
-                This will combine small enough coins automatically, so you don't
-                have to manually select them.
+                This will combine small enough coins automatically, so you
+                don&apos;t have to manually select them.
               </Trans>
             </DialogDescription>
           </DialogHeader>

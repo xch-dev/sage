@@ -188,7 +188,7 @@ export function AssetSelector({
             </div>
           )}
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex h-14 z-20 mb-1'>
+            <div key={nft} className='flex h-14 z-20 mb-1'>
               {offering === true ? (
                 <NftSelector
                   value={nft || null}
@@ -237,7 +237,7 @@ export function AssetSelector({
             <span>Tokens</span>
           </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex h-14 mb-1'>
+            <div key={cat.asset_id} className='flex h-14 mb-1'>
               <TokenSelector
                 value={cat.asset_id}
                 onChange={(assetId) => {

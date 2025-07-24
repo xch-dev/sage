@@ -186,10 +186,10 @@ export default function Login() {
                 strategy={rectSortingStrategy}
               >
                 <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
-                  {keys.map((key, i) => (
+                  {keys.map((key) => (
                     <WalletItem
                       draggable
-                      key={i}
+                      key={key.fingerprint}
                       info={key}
                       keys={keys}
                       setKeys={setKeys}
@@ -227,10 +227,13 @@ export const Item = forwardRef(
   },
 );
 
+Item.displayName = 'Item';
+
 function SkeletonWalletList() {
   return (
     <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3 m-4'>
       {Array.from({ length: 3 }).map((_, i) => (
+        // eslint-disable-next-line react/no-array-index-key
         <div key={i} className='w-full'>
           <Skeleton className='h-[100px] w-full' />
         </div>
@@ -254,13 +257,13 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
   const { dark } = useContext(DarkModeContext);
   const { promptIfEnabled } = useBiometric();
 
-  const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [isDetailsOpen, setDetailsOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [secrets, setSecrets] = useState<SecretKeyInfo | null>(null);
-  const [isRenameOpen, setRenameOpen] = useState(false);
+  const [isRenameOpen, setIsRenameOpen] = useState(false);
   const [newName, setNewName] = useState('');
-  const [isResyncOpen, setResyncOpen] = useState(false);
-  const [isMigrationDialogOpen, setMigrationDialogOpen] = useState(false);
+  const [isResyncOpen, setIsResyncOpen] = useState(false);
+  const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
@@ -272,7 +275,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         .catch(addError);
     }
 
-    setDeleteOpen(false);
+    setIsDeleteOpen(false);
   };
 
   const renameSelf = () => {
@@ -290,7 +293,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         ),
       )
       .catch(addError)
-      .finally(() => setRenameOpen(false));
+      .finally(() => setIsRenameOpen(false));
 
     setNewName('');
   };
@@ -331,7 +334,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         'kind' in error &&
         error.kind === 'database_migration'
       ) {
-        setMigrationDialogOpen(true);
+        setIsMigrationDialogOpen(true);
       } else {
         addError(error as CustomError);
       }
@@ -416,7 +419,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
-                    setDetailsOpen(true);
+                    setIsDetailsOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -428,7 +431,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer'
                   onClick={(e) => {
-                    setRenameOpen(true);
+                    setIsRenameOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -440,7 +443,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
-                    setResyncOpen(true);
+                    setIsResyncOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -452,7 +455,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
-                    setDeleteOpen(true);
+                    setIsDeleteOpen(true);
                     e.stopPropagation();
                   }}
                 >
@@ -489,7 +492,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <ResyncDialog
         open={isResyncOpen}
-        setOpen={setResyncOpen}
+        setOpen={setIsResyncOpen}
         networkId={networkId}
         submit={async (options) => {
           await commands.resync({
@@ -501,7 +504,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isDeleteOpen}
-        onOpenChange={(open) => !open && setDeleteOpen(false)}
+        onOpenChange={(open) => !open && setIsDeleteOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -517,7 +520,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant='outline' onClick={() => setDeleteOpen(false)}>
+            <Button variant='outline' onClick={() => setIsDeleteOpen(false)}>
               <Trans>Cancel</Trans>
             </Button>
             <Button variant='destructive' onClick={deleteSelf} autoFocus>
@@ -529,7 +532,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isRenameOpen}
-        onOpenChange={(open) => !open && setRenameOpen(false)}
+        onOpenChange={(open) => !open && setIsRenameOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -564,7 +567,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='outline'
               onClick={() => {
-                setRenameOpen(false);
+                setIsRenameOpen(false);
                 setNewName('');
               }}
             >
@@ -579,7 +582,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isDetailsOpen}
-        onOpenChange={(open) => !open && setDetailsOpen(false)}
+        onOpenChange={(open) => !open && setIsDetailsOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -632,7 +635,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             )}
           </div>
           <DialogFooter>
-            <Button onClick={() => setDetailsOpen(false)}>
+            <Button onClick={() => setIsDetailsOpen(false)}>
               <Trans>Done</Trans>
             </Button>
           </DialogFooter>
@@ -641,7 +644,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
       <Dialog
         open={isMigrationDialogOpen}
-        onOpenChange={(open) => !open && setMigrationDialogOpen(false)}
+        onOpenChange={(open) => !open && setIsMigrationDialogOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -651,8 +654,8 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <DialogDescription>
               <Trans>
                 This wallet requires a database migration to continue. Would you
-                like to delete the wallet's data or cancel the login? The keys
-                will not be affected.
+                like to delete the wallet&apos;s data or cancel the login? The
+                keys will not be affected.
               </Trans>
             </DialogDescription>
           </DialogHeader>
@@ -660,7 +663,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='outline'
               onClick={async () => {
-                setMigrationDialogOpen(false);
+                setIsMigrationDialogOpen(false);
                 try {
                   await logoutAndUpdateState();
                 } catch (error) {
@@ -673,7 +676,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             <Button
               variant='destructive'
               onClick={async () => {
-                setMigrationDialogOpen(false);
+                setIsMigrationDialogOpen(false);
                 await logoutAndUpdateState();
                 await commands.deleteDatabase({
                   fingerprint: info.fingerprint,
@@ -703,8 +706,8 @@ function Welcome() {
 
       <div className='text-center mt-4'>
         <Trans>
-          There aren't any wallets to log into yet. To get started, create a new
-          wallet or import an existing one.
+          There aren&apos;t any wallets to log into yet. To get started, create
+          a new wallet or import an existing one.
         </Trans>
       </div>
 

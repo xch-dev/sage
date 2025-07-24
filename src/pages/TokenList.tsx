@@ -1,26 +1,25 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { TokenGridView } from '@/components/TokenGridView';
+import { TokenListView } from '@/components/TokenListView';
+import { TokenOptions } from '@/components/TokenOptions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
-import { useTokenParams } from '@/hooks/useTokenParams';
-import { toDecimal, isValidAssetId } from '@/lib/utils';
+import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
+import { exportTokens } from '@/lib/exportTokens';
+import { isValidAssetId, toDecimal } from '@/lib/utils';
+import { TokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { CatRecord, commands, events } from '../bindings';
 import { useWalletState } from '../state';
-import { TokenListView } from '@/components/TokenListView';
-import { TokenGridView } from '@/components/TokenGridView';
-import { TokenOptions } from '@/components/TokenOptions';
-import { TokenSortMode } from '@/hooks/useTokenParams';
-import { TokenRecord } from '@/types/TokenViewProps';
-import { toast } from 'react-toastify';
-import { exportTokens } from '@/lib/exportTokens';
 
 export function TokenList() {
   const navigate = useNavigate();
@@ -46,6 +45,7 @@ export function TokenList() {
       ),
       priceInUsd: getPriceInUsd('xch'),
       decimals: walletState.sync.unit.decimals,
+      visible: true,
       isXch: true,
     }),
     [walletState.sync, getBalanceInUsd, getPriceInUsd],
@@ -64,6 +64,7 @@ export function TokenList() {
           balanceInUsd: usdValue,
           sortValue: usdValue,
           priceInUsd: getPriceInUsd(cat.asset_id),
+          decimals: 3,
         };
       }),
     [cats, getBalanceInUsd, getPriceInUsd],
@@ -202,12 +203,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() =>
-            exportTokens([
-              xchRecord,
-              ...filteredCats.map((cat) => ({ ...cat, decimals: 3 })),
-            ])
-          }
+          onExport={() => exportTokens([xchRecord, ...filteredCats])}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (

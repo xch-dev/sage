@@ -1,7 +1,7 @@
 import { OfferRecord, OfferSummary } from '@/bindings';
 import { Assets } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
-import { ArrowUpIcon, ArrowDownIcon, CircleOff } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, CircleOff } from 'lucide-react';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
@@ -50,6 +50,7 @@ export function CancelOfferConfirmation({
           const hasOfferId = 'offer_id' in offer;
 
           return (
+            // eslint-disable-next-line react/no-array-index-key
             <div key={index} className='space-y-2'>
               {isMultiple && (
                 <div className='text-xs font-medium text-muted-foreground sticky top-0 bg-background py-1'>

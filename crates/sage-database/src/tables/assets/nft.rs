@@ -144,7 +144,7 @@ impl Database {
             SELECT        
                 asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
                 asset_description, asset_is_sensitive_content, 
-                asset_is_visible AND (collections.id IS NOT NULL AND collections.is_visible) as is_visible,
+                asset_is_visible AND (collections.id IS NULL OR collections.is_visible) as is_visible,
                 collections.hash AS collection_hash, collections.name AS collection_name, 
                 owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,                
@@ -158,7 +158,7 @@ impl Database {
         );
 
         if !include_hidden {
-            query.push("AND (asset_is_visible = 1 AND (collections.id IS NULL OR collections.is_visible = 1))");
+            query.push("AND (asset_is_visible = 1 AND (owned_nfts.collection_id IS NULL OR collections.is_visible = 1))");
         }
 
         if let Some(name_search) = name_search {
@@ -203,8 +203,11 @@ impl Database {
             }
         }
 
-        query.push(" LIMIT ? OFFSET ?");
-        let query = query.build().bind(limit).bind(offset);
+        query.push(" LIMIT ");
+        query.push_bind(limit);
+        query.push(" OFFSET ");
+        query.push_bind(offset);
+        let query = query.build();
 
         let rows = query.fetch_all(&self.pool).await?;
         let total_count = rows

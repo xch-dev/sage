@@ -14,15 +14,16 @@ use sage_api::{
     CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats,
     GetAllCatsResponse, GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse,
     GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
-    GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse, GetMinterDidIds,
-    GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse, GetNftCollections,
-    GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon, GetNftIconResponse,
-    GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts, GetNftsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction,
-    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode,
-    PendingTransactionRecord, TransactionCoinRecord, TransactionRecord,
+    GetDatabaseStats, GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids,
+    GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
+    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
+    GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
+    GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
+    GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
+    PerformDatabaseMaintenanceResponse, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
@@ -35,6 +36,48 @@ impl Sage {
         Ok(GetVersionResponse {
             version: env!("CARGO_PKG_VERSION").to_string(),
         })
+    }
+
+    pub async fn perform_database_maintenance(
+        &self,
+        req: PerformDatabaseMaintenance,
+    ) -> Result<PerformDatabaseMaintenanceResponse> {
+        let wallet = self.wallet()?;
+        let stats = wallet
+            .db
+            .perform_sqlite_maintenance(req.force_vacuum)
+            .await?;
+
+        let response = PerformDatabaseMaintenanceResponse {
+            vacuum_duration_ms: stats.vacuum_duration_ms,
+            analyze_duration_ms: stats.analyze_duration_ms,
+            wal_checkpoint_duration_ms: stats.wal_checkpoint_duration_ms,
+            total_duration_ms: stats.total_duration_ms,
+            pages_vacuumed: stats.pages_vacuumed,
+            wal_pages_checkpointed: stats.wal_pages_checkpointed,
+        };
+
+        Ok(response)
+    }
+
+    pub async fn get_database_stats(
+        &self,
+        _req: GetDatabaseStats,
+    ) -> Result<GetDatabaseStatsResponse> {
+        let wallet = self.wallet()?;
+        let stats = wallet.db.get_database_stats().await?;
+
+        let response = GetDatabaseStatsResponse {
+            total_pages: stats.total_pages,
+            free_pages: stats.free_pages,
+            free_percentage: stats.free_percentage,
+            page_size: stats.page_size,
+            database_size_bytes: stats.database_size_bytes,
+            free_space_bytes: stats.free_space_bytes,
+            wal_pages: stats.wal_pages,
+        };
+
+        Ok(response)
     }
 
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {

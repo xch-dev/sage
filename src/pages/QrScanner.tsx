@@ -1,11 +1,11 @@
-import { useLocation, useNavigate } from 'react-router-dom';
-import { scan, Format, cancel } from '@tauri-apps/plugin-barcode-scanner';
-import Layout from '@/components/Layout';
 import Header from '@/components/Header';
-import { useEffect, useCallback } from 'react';
+import Layout from '@/components/Layout';
 import { useNavigationStore } from '@/state';
-import { Trans } from '@lingui/react/macro';
 import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Format, cancel, scan } from '@tauri-apps/plugin-barcode-scanner';
+import { useCallback, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function QRScanner() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function QRScanner() {
     return () => {
       cancel().catch(console.error);
     };
-  }, [navigate, handleScanSuccess]);
+  }, [navigate, handleScanSuccess, returnPath]);
 
   return (
     <Layout transparentBackground={true}>

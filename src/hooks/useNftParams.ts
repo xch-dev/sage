@@ -1,19 +1,12 @@
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
-import { useCallback, useMemo } from 'react';
 
 const NFT_HIDDEN_STORAGE_KEY = 'sage-wallet-nft-hidden';
 const NFT_GROUP_STORAGE_KEY = 'sage-wallet-nft-group';
 const NFT_SORT_STORAGE_KEY = 'sage-wallet-nft-sort';
 const NFT_PAGE_SIZE_STORAGE_KEY = 'sage-wallet-nft-page-size';
 const NFT_CARD_SIZE_STORAGE_KEY = 'sage-wallet-nft-card-size';
-
-export enum NftView {
-  Name = 'name',
-  Recent = 'recent',
-  Collection = 'collection',
-  Did = 'did',
-}
 
 export enum NftSortMode {
   Name = 'name',
@@ -46,7 +39,7 @@ export type SetNftParams = (params: Partial<NftParams>) => void;
 
 export function useNftParams(): [NftParams, SetNftParams] {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [view, setView] = useLocalStorage<NftSortMode>(
+  const [sort, setSort] = useLocalStorage<NftSortMode>(
     NFT_SORT_STORAGE_KEY,
     NftSortMode.Name,
   );
@@ -67,25 +60,35 @@ export function useNftParams(): [NftParams, SetNftParams] {
     CardSize.Large,
   );
 
-  const params = useMemo(
-    () => ({
+  const params = useMemo(() => {
+    // Validate page parameter - ensure it's a positive integer
+    const pageParam = searchParams.get('page');
+    const pageNumber = pageParam ? Number(pageParam) : 1;
+    const validPage =
+      Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+
+    // Validate query parameter - ensure it's not an empty string
+    const queryParam = searchParams.get('query');
+    const validQuery =
+      queryParam && queryParam.trim() !== '' ? queryParam : null;
+
+    return {
       pageSize,
-      page: Number(searchParams.get('page') || 1),
-      sort: view,
+      page: validPage,
+      sort,
       group,
       showHidden,
-      query: searchParams.get('query'),
+      query: validQuery,
       cardSize,
-    }),
-    [searchParams, view, group, showHidden, pageSize, cardSize],
-  );
+    };
+  }, [searchParams, sort, group, showHidden, pageSize, cardSize]);
 
   const setParams = useCallback(
     (newParams: Partial<NftParams>) => {
       const updatedParams = { ...params, ...newParams };
 
       if (newParams.sort !== undefined) {
-        setView(newParams.sort);
+        setSort(newParams.sort);
       }
 
       if (newParams.showHidden !== undefined) {
@@ -117,7 +120,7 @@ export function useNftParams(): [NftParams, SetNftParams] {
     [
       params,
       setSearchParams,
-      setView,
+      setSort,
       setShowHidden,
       setGroup,
       setPageSize,

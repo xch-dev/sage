@@ -12,6 +12,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { DarkModeContext } from './contexts/DarkModeContext';
+import { DidProvider } from './contexts/DidContext';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
   getBrowserLanguage,
@@ -175,13 +176,15 @@ function AppInner() {
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
         <WalletProvider>
-          <PeerProvider>
-            <WalletConnectProvider>
-              <PriceProvider>
-                <RouterProvider router={router} />
-              </PriceProvider>
-            </WalletConnectProvider>
-          </PeerProvider>
+          <DidProvider>
+            <PeerProvider>
+              <WalletConnectProvider>
+                <PriceProvider>
+                  <RouterProvider router={router} />
+                </PriceProvider>
+              </WalletConnectProvider>
+            </PeerProvider>
+          </DidProvider>
         </WalletProvider>
       </I18nProvider>
     )

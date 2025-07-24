@@ -32,6 +32,7 @@ import {
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useTokenState } from '@/hooks/useTokenState';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -57,6 +58,7 @@ export default function Send() {
   const walletState = useWalletState();
   const { addError } = useErrors();
   const { clawback } = useDefaultClawback();
+  const xchToken = useTokenState('xch').asset;
 
   const [asset, setAsset] = useState<(CatRecord & { decimals: number }) | null>(
     null,
@@ -81,16 +83,9 @@ export default function Send() {
 
   useEffect(() => {
     if (isXch) {
-      setAsset({
-        asset_id: 'xch',
-        name: 'Chia',
-        description: 'The native token of the Chia blockchain.',
-        ticker: walletState.sync.unit.ticker,
-        decimals: walletState.sync.unit.decimals,
-        balance: walletState.sync.balance,
-        icon_url: 'https://icons.dexie.space/xch.webp',
-        visible: true,
-      });
+      if (xchToken) {
+        setAsset({ ...xchToken, decimals: walletState.sync.unit.decimals });
+      }
     } else {
       updateCat();
 
@@ -112,6 +107,7 @@ export default function Send() {
   }, [
     updateCat,
     isXch,
+    xchToken,
     walletState.sync.balance,
     walletState.sync.unit.decimals,
     walletState.sync.unit.ticker,

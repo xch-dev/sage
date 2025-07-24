@@ -42,8 +42,8 @@ interface OfferRowCardProps {
 export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
-  const [isDeleteOpen, setDeleteOpen] = useState(false);
-  const [isCancelOpen, setCancelOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
@@ -70,7 +70,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
         setResponse(result);
       })
       .catch(addError)
-      .finally(() => setCancelOpen(false));
+      .finally(() => setIsCancelOpen(false));
   };
 
   return (
@@ -108,7 +108,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
-                      setDeleteOpen(true);
+                      setIsDeleteOpen(true);
                     }}
                   >
                     <TrashIcon className='mr-2 h-4 w-4' />
@@ -121,7 +121,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                     className='cursor-pointer'
                     onClick={(e) => {
                       e.stopPropagation();
-                      setCancelOpen(true);
+                      setIsCancelOpen(true);
                     }}
                     disabled={record.status !== 'active'}
                   >
@@ -152,20 +152,20 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
 
       <DeleteOfferDialog
         open={isDeleteOpen}
-        onOpenChange={setDeleteOpen}
+        onOpenChange={setIsDeleteOpen}
         offerCount={1}
         onDelete={() => {
           commands
             .deleteOffer({ offer_id: record.offer_id })
             .then(() => refresh())
             .catch(addError)
-            .finally(() => setDeleteOpen(false));
+            .finally(() => setIsDeleteOpen(false));
         }}
       />
 
       <CancelOfferDialog
         open={isCancelOpen}
-        onOpenChange={setCancelOpen}
+        onOpenChange={setIsCancelOpen}
         form={cancelForm}
         onSubmit={cancelHandler}
       />

@@ -65,24 +65,28 @@ export async function fetchState() {
   await Promise.all([updateSyncStatus()]);
 }
 
+let updateSyncStatusPromise: Promise<void> | null = null;
+
 export function updateSyncStatus() {
-  commands
+  // Prevent multiple concurrent calls
+  if (updateSyncStatusPromise) {
+    return;
+  }
+
+  updateSyncStatusPromise = commands
     .getSyncStatus({})
     .then((sync) => useWalletState.setState({ sync }))
-    .catch((error) => console.error(error));
+    .catch((error) => console.error(error))
+    .finally(() => {
+      updateSyncStatusPromise = null;
+    });
 }
 
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
-      updateSyncStatus();
-      break;
     case 'derivation':
-      updateSyncStatus();
-      break;
     case 'puzzle_batch_synced':
-      updateSyncStatus();
-      break;
     case 'nft_data':
       updateSyncStatus();
       break;

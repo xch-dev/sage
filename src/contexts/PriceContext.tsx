@@ -38,7 +38,7 @@ export const PriceContext = createContext<PriceContextType | undefined>(
 );
 
 export function PriceProvider({ children }: { children: ReactNode }) {
-  const [xchUsdPrice, setChiaPrice] = useState<number>(0);
+  const [xchUsdPrice, setXchUsdPrice] = useState<number>(0);
   const [catPrices, setCatPrices] = useState<Record<string, CatPriceData>>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isNetworkLoading, setIsNetworkLoading] = useState(true);
@@ -113,10 +113,10 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        setChiaPrice(data.chia?.usd || 0);
+        setXchUsdPrice(data.chia?.usd || 0);
       } catch (error) {
         console.error('Failed to fetch Chia price:', error);
-        setChiaPrice(0);
+        setXchUsdPrice(0);
       }
     };
 
@@ -138,7 +138,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         intervalRef.current = null;
       }
     };
-  }, [network]);
+  }, [network, isNetworkLoading]);
 
   const getPriceInUsd = useCallback(
     (assetId: string) => {

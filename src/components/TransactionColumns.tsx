@@ -15,6 +15,7 @@ import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
+import { AssetIcon } from './AssetIcon';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -79,16 +80,14 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
             role='img'
             aria-label={`${displayName} icon`}
           >
-            {row.original.iconUrl ? (
-              <img
-                src={row.original.iconUrl}
-                aria-hidden='true'
-                loading='lazy'
-              />
-            ) : null}
+            <AssetIcon
+              iconUrl={row.original.iconUrl}
+              kind={row.original.type}
+              size='sm'
+            />
           </div>
 
-          <div className='truncate'>{row.original.displayName}</div>
+          <div className='truncate'>{displayName}</div>
         </div>
       );
     },

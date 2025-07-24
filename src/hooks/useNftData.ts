@@ -1,6 +1,6 @@
 import { CustomError } from '@/contexts/ErrorContext';
 import { queryNfts } from '@/lib/exportNfts';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   commands,
   DidRecord,
@@ -8,6 +8,7 @@ import {
   NftCollectionRecord,
   NftRecord,
 } from '../bindings';
+import { useDids } from './useDids';
 import { useErrors } from './useErrors';
 import { NftGroupMode, NftSortMode } from './useNftParams';
 
@@ -42,6 +43,7 @@ function createDefaultDidRecord(name: string, launcherId: string): DidRecord {
 
 export function useNftData(params: NftDataParams) {
   const { addError } = useErrors();
+  const { dids } = useDids();
 
   const [nfts, setNfts] = useState<NftRecord[]>([]);
   const [collections, setCollections] = useState<NftCollectionRecord[]>([]);
@@ -56,6 +58,9 @@ export function useNftData(params: NftDataParams) {
   const [collectionTotal, setCollectionTotal] = useState(0);
   const [ownerDidsTotal, setOwnerDidsTotal] = useState(0);
   const [minterDidsTotal, setMinterDidsTotal] = useState(0);
+
+  // Use ref to store the latest updateNfts function to avoid circular dependencies
+  const updateNftsRef = useRef<((page: number) => Promise<void>) | null>(null);
 
   const updateNfts = useCallback(
     async (page: number) => {
@@ -78,15 +83,14 @@ export function useNftData(params: NftDataParams) {
             minterDid: params.minterDid,
           };
 
-          const allNfts = await queryNfts(queryParams);
+          const { nfts, total } = await queryNfts(
+            queryParams,
+            params.pageSize,
+            (page - 1) * params.pageSize,
+          );
 
-          // Calculate pagination
-          const start = (page - 1) * params.pageSize;
-          const end = start + params.pageSize;
-          const paginatedNfts = allNfts.slice(start, end);
-
-          setNfts(paginatedNfts);
-          setNftTotal(allNfts.length);
+          setNfts(nfts);
+          setNftTotal(total);
 
           if (params.collectionId) {
             const collectionResponse = await commands.getNftCollection({
@@ -97,13 +101,8 @@ export function useNftData(params: NftDataParams) {
             });
             setCollection(collectionResponse.collection);
           } else if (params.ownerDid) {
-            const didResponse = await commands.getDids({});
-            const foundDid = didResponse.dids.find(
-              (did) => did.launcher_id === params.ownerDid,
-            );
-            setOwner(
-              foundDid || createDefaultDidRecord('Unassigned NFTs', 'No did'),
-            );
+            // Move dids dependency out of this callback - handled in separate useEffect
+            setOwner(createDefaultDidRecord('Loading...', params.ownerDid));
           } else if (params.minterDid) {
             setOwner(
               createDefaultDidRecord(params.minterDid, params.minterDid),
@@ -127,27 +126,9 @@ export function useNftData(params: NftDataParams) {
             addError(error as CustomError);
           }
         } else if (params.group === NftGroupMode.OwnerDid) {
-          try {
-            const response = await commands.getDids({});
-            const ownerDids = response.dids;
-
-            // Add Unassigned NFTs to the end if there's room on the last page
-            if (
-              ownerDids.length < params.pageSize &&
-              page === Math.ceil((ownerDids.length + 1) / params.pageSize)
-            ) {
-              ownerDids.push(
-                createDefaultDidRecord('Unassigned NFTs', 'No did'),
-              );
-            }
-
-            setOwnerDids(ownerDids);
-            setOwnerDidsTotal(response.dids.length + 1); // Add 1 for Unassigned NFTs
-          } catch (error: unknown) {
-            setOwnerDids([]);
-            setOwnerDidsTotal(0);
-            addError(error as CustomError);
-          }
+          // This will be handled by the separate useEffect for dids
+          setOwnerDids([]);
+          setOwnerDidsTotal(0);
         } else if (params.group === NftGroupMode.MinterDid) {
           try {
             const uniqueMinterDids = await commands.getMinterDidIds({
@@ -201,6 +182,9 @@ export function useNftData(params: NftDataParams) {
     ],
   );
 
+  // Store the latest updateNfts function in ref
+  updateNftsRef.current = updateNfts;
+
   // Clear state and fetch new data when params change
   useEffect(() => {
     setNfts([]);
@@ -209,16 +193,24 @@ export function useNftData(params: NftDataParams) {
     setMinterDids([]);
     setCollection(null);
     setOwner(null);
-    updateNfts(params.page);
+    // Use ref to avoid adding updateNfts to deps (would cause infinite loop)
+    if (updateNftsRef.current) {
+      updateNftsRef.current(params.page);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    updateNfts,
     params.collectionId,
     params.ownerDid,
     params.minterDid,
     params.page,
-  ]);
+    params.pageSize,
+    params.showHidden,
+    params.sort,
+    params.group,
+    params.query,
+  ]); // updateNfts not included to prevent infinite loop (stored in ref)
 
-  // Listen for sync events
+  // Listen for sync events - use ref to avoid circular dependency
   useEffect(() => {
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
@@ -227,14 +219,37 @@ export function useNftData(params: NftDataParams) {
         type === 'puzzle_batch_synced' ||
         type === 'nft_data'
       ) {
-        updateNfts(params.page);
+        // Use the ref to get the latest function without causing re-renders
+        if (updateNftsRef.current) {
+          updateNftsRef.current(params.page);
+        }
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateNfts, params.page]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.page]); // Only depend on params.page, not updateNfts (stored in ref to avoid infinite loop)
+
+  // Update when DIDs change if we're showing owner DIDs
+  useEffect(() => {
+    if (params.group === NftGroupMode.OwnerDid) {
+      const ownerDids = [...dids];
+      // Add Unassigned NFTs to the end if there's room on the last page
+      if (
+        ownerDids.length < params.pageSize &&
+        params.page === Math.ceil((ownerDids.length + 1) / params.pageSize)
+      ) {
+        ownerDids.push(createDefaultDidRecord('Unassigned NFTs', 'No did'));
+      }
+      setOwnerDids(ownerDids);
+      setOwnerDidsTotal(dids.length + 1);
+    } else if (params.ownerDid) {
+      const foundDid = dids.find((did) => did.launcher_id === params.ownerDid);
+      setOwner(foundDid || createDefaultDidRecord('Unassigned NFTs', 'No did'));
+    }
+  }, [dids, params.group, params.ownerDid, params.page, params.pageSize]);
 
   // Helper function to get the correct total based on current view
   const getTotal = useCallback(() => {

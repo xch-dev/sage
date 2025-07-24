@@ -401,8 +401,8 @@ function Profile({ did, updateDids }: ProfileProps) {
         onSubmit={onNormalizeSubmit}
       >
         <Trans>
-          This will modify the profile's recovery info to be compatible with the
-          Chia reference wallet.
+          This will modify the profile&apos;s recovery info to be compatible
+          with the Chia reference wallet.
         </Trans>
       </FeeOnlyDialog>
 

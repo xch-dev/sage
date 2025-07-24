@@ -1,7 +1,7 @@
 import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
-import { CardSize, NftGroupMode } from '@/hooks/useNftParams';
 import { NO_COLLECTION_ID } from '@/hooks/useNftData';
+import { CardSize, NftGroupMode } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { ReactNode, useCallback } from 'react';
 import {
@@ -80,9 +80,9 @@ export function NftCardList({
     ) {
       return (
         <>
-          {collections.map((col, i) => (
+          {collections.map((col) => (
             <NftGroupCard
-              key={i}
+              key={col.collection_id}
               type='collection'
               item={col}
               updateNfts={updateNfts}
@@ -112,9 +112,9 @@ export function NftCardList({
     ) {
       return (
         <>
-          {ownerDids.map((did, i) => (
+          {ownerDids.map((did) => (
             <NftGroupCard
-              key={i}
+              key={did.coin_id}
               type='did'
               groupMode={group}
               item={did}
@@ -136,9 +136,9 @@ export function NftCardList({
     ) {
       return (
         <>
-          {minterDids.map((did, i) => (
+          {minterDids.map((did) => (
             <NftGroupCard
-              key={i}
+              key={did.coin_id}
               type='did'
               groupMode={group}
               item={did}

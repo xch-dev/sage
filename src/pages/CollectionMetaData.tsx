@@ -183,9 +183,9 @@ export default function CollectionMetaData() {
 
         return (
           <div className='grid grid-cols-2 gap-2'>
-            {sortedAttributes.map((item, index) => (
+            {sortedAttributes.map((item) => (
               <div
-                key={index}
+                key={item.type}
                 className='px-2 py-1 border-2 rounded-lg'
                 title={item.value}
               >
@@ -209,9 +209,9 @@ export default function CollectionMetaData() {
       // Default array handling for non-attribute arrays
       return (
         <ul className='list-disc pl-4'>
-          {value.map((item, index) => (
+          {value.map((item) => (
             <li
-              key={index}
+              key={item.type}
               className={typeof item === 'string' ? 'break-all' : ''}
             >
               {renderMetadataValue(item)}

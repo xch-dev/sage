@@ -91,24 +91,27 @@ export function ViewOffer() {
         ) : (
           summary && (
             <>
-              <OfferCard summary={summary}>
-                <div className='flex flex-col space-y-1.5'>
-                  <Label htmlFor='fee'>
-                    <Trans>Network Fee</Trans>
-                  </Label>
-                  <FeeAmountInput
-                    id='fee'
-                    className='pr-12'
-                    onValueChange={(values) => setFee(values.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        take();
-                      }
-                    }}
-                  />
-                </div>
-              </OfferCard>
+              <OfferCard
+                summary={summary}
+                content={
+                  <div className='flex flex-col space-y-1.5'>
+                    <Label htmlFor='fee'>
+                      <Trans>Network Fee</Trans>
+                    </Label>
+                    <FeeAmountInput
+                      id='fee'
+                      className='pr-12'
+                      onValueChange={(values) => setFee(values.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          take();
+                        }
+                      }}
+                    />
+                  </div>
+                }
+              />
 
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>

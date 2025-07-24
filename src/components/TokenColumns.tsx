@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatUsdPrice, toDecimal } from '@/lib/utils';
+import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { TokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AssetIcon } from './AssetIcon';
 import { NumberFormat } from './NumberFormat';
 
 // Add new interface for token action handlers
@@ -39,19 +40,14 @@ export const columns = (
     header: () => <span className='sr-only'>{t`Token Icon`}</span>,
     size: 40,
     cell: ({ row }) => {
-      const record = row.original;
-      const iconUrl = record.isXch
-        ? 'https://icons.dexie.space/xch.webp'
-        : record.icon_url;
-
-      return iconUrl ? (
-        <img
-          alt={t`Token logo`}
-          aria-hidden='true'
-          className='h-6 w-6 ml-1'
-          src={iconUrl}
+      return (
+        <AssetIcon
+          iconUrl={row.original.icon_url}
+          kind='token'
+          size='sm'
+          className='ml-1'
         />
-      ) : null;
+      );
     },
   },
   {
@@ -59,16 +55,13 @@ export const columns = (
     header: () => <Trans>Name</Trans>,
     minSize: 120,
     cell: ({ row }) => {
-      const record = row.original;
-      const name = record.isXch
-        ? 'Chia'
-        : record.name || <Trans>Unknown CAT</Trans>;
-      const path = record.isXch
-        ? '/wallet/token/xch'
-        : `/wallet/token/${record.asset_id}`;
-      const ariaLabel = record.isXch
-        ? t`View Chia token details`
-        : t`View ${name} token details`;
+      const name = getAssetDisplayName(
+        row.original.name,
+        row.original.ticker,
+        'token',
+      );
+      const path = `/wallet/token/${row.original.asset_id}`;
+      const ariaLabel = t`View ${name} token details`;
 
       return (
         <Link to={path} className='hover:underline' aria-label={ariaLabel}>
@@ -111,7 +104,7 @@ export const columns = (
     },
     cell: ({ row }) => (
       <div>
-        <span className='sr-only'>USD Value: </span>
+        <span className='sr-only'>{t`USD Value: `}</span>
         <NumberFormat
           value={row.original.balanceInUsd}
           style='currency'
@@ -130,7 +123,7 @@ export const columns = (
     },
     cell: ({ row }) => (
       <div>
-        <span className='sr-only'>Price per token: </span>
+        <span className='sr-only'>{t`Price per token: `}</span>
         {formatUsdPrice(row.original.priceInUsd)}
       </div>
     ),
@@ -186,8 +179,7 @@ export const columns = (
                     openUrl(
                       `https://dexie.space/offers/XCH/${record.asset_id}`,
                     ).catch((error) => {
-                      console.error('Failed to open dexie.space:', error);
-                      toast.error(t`Failed to open dexie.space`);
+                      toast.error(t`Failed to open dexie.space: ${error}`);
                     });
                   }}
                 >

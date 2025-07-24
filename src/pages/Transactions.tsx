@@ -179,8 +179,6 @@ export function Transactions() {
               }
               setParams(newParams);
             }}
-            total={totalTransactions}
-            isLoading={isLoading || isPaginationLoading}
             className='mb-4'
             renderPagination={() => renderPagination(false)}
             onExport={() =>

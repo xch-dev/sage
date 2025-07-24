@@ -149,9 +149,6 @@ export function NftList() {
               setSelected([]);
             }}
             className='mt-4'
-            isLoading={isLoading}
-            total={total}
-            canLoadMore={canLoadMore()}
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
             onExport={() =>
