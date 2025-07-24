@@ -11,14 +11,14 @@ import { usePrices } from '@/hooks/usePrices';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
 import { exportTokens } from '@/lib/exportTokens';
 import { isValidAssetId, toDecimal } from '@/lib/utils';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Coins, InfoIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { CatRecord, commands, events } from '../bindings';
+import { commands, events, TokenRecord } from '../bindings';
 import { useWalletState } from '../state';
 
 export function TokenList() {
@@ -28,96 +28,82 @@ export function TokenList() {
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
-  const [cats, setCats] = useState<CatRecord[]>([]);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
 
-  const xchRecord = useMemo(
-    () => ({
-      asset_id: 'xch',
-      name: 'Chia',
-      ticker: walletState.sync.unit.ticker,
-      icon_url: 'https://icons.dexie.space/xch.webp',
-      balance: walletState.sync.balance.toString(),
-      balanceInUsd: Number(
-        getBalanceInUsd(
-          'xch',
-          toDecimal(walletState.sync.balance, walletState.sync.unit.decimals),
-        ),
-      ),
-      priceInUsd: getPriceInUsd('xch'),
-      decimals: walletState.sync.unit.decimals,
-      visible: true,
-      isXch: true,
-    }),
-    [walletState.sync, getBalanceInUsd, getPriceInUsd],
-  );
-
-  const catsWithBalanceInUsd = useMemo(
+  const pricedTokens = useMemo(
     () =>
-      cats.map((cat) => {
-        const balance = Number(toDecimal(cat.balance, 3));
+      tokens.map((token): PricedTokenRecord & { sortValue: number } => {
+        const balance = Number(toDecimal(token.balance, 3));
         const usdValue = parseFloat(
-          getBalanceInUsd(cat.asset_id, balance.toString()),
+          getBalanceInUsd(token.asset_id, balance.toString()),
         );
 
         return {
-          ...cat,
+          ...token,
           balanceInUsd: usdValue,
           sortValue: usdValue,
-          priceInUsd: getPriceInUsd(cat.asset_id),
-          decimals: 3,
+          priceInUsd: getPriceInUsd(token.asset_id),
         };
       }),
-    [cats, getBalanceInUsd, getPriceInUsd],
-  );
+    [tokens, getBalanceInUsd, getPriceInUsd],
+  )
+    .sort((a, b) => {
+      if (!a.asset_id && b.asset_id) return -1;
+      if (a.asset_id && !b.asset_id) return 1;
 
-  const sortedCats = catsWithBalanceInUsd.sort((a, b) => {
-    if (a.visible && !b.visible) return -1;
-    if (!a.visible && b.visible) return 1;
+      if (a.visible && !b.visible) return -1;
+      if (!a.visible && b.visible) return 1;
 
-    if (sortMode === TokenSortMode.Balance) {
-      if (a.balanceInUsd !== b.balanceInUsd) {
-        return b.balanceInUsd - a.balanceInUsd;
-      }
-      return Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3));
-    }
-
-    const aName = a.name || 'Unknown CAT';
-    const bName = b.name || 'Unknown CAT';
-
-    if (aName === 'Unknown CAT' && bName !== 'Unknown CAT') return 1;
-    if (bName === 'Unknown CAT' && aName !== 'Unknown CAT') return -1;
-
-    return aName.localeCompare(bName);
-  });
-
-  const filteredCats = sortedCats.filter((cat) => {
-    if (!showHiddenCats && !cat.visible) {
-      return false;
-    }
-
-    if (!showZeroBalanceTokens && Number(toDecimal(cat.balance, 3)) === 0) {
-      return false;
-    }
-
-    if (params.search) {
-      if (isValidAssetId(params.search)) {
-        return cat.asset_id.toLowerCase() === params.search.toLowerCase();
+      if (sortMode === TokenSortMode.Balance) {
+        if (a.balanceInUsd !== b.balanceInUsd) {
+          return b.balanceInUsd - a.balanceInUsd;
+        }
+        return (
+          Number(toDecimal(b.balance, 3)) - Number(toDecimal(a.balance, 3))
+        );
       }
 
-      const searchTerm = params.search.toLowerCase();
-      const name = (cat.name || 'Unknown CAT').toLowerCase();
-      const ticker = (cat.ticker || '').toLowerCase();
-      return name.includes(searchTerm) || ticker.includes(searchTerm);
-    }
+      const aName = a.name || 'Unknown CAT';
+      const bName = b.name || 'Unknown CAT';
 
-    return true;
-  });
+      if (aName === 'Unknown CAT' && bName !== 'Unknown CAT') return 1;
+      if (bName === 'Unknown CAT' && aName !== 'Unknown CAT') return -1;
+
+      return aName.localeCompare(bName);
+    })
+    .filter((token) => {
+      if (!token.asset_id) return true;
+
+      if (!showHiddenCats && !token.visible) {
+        return false;
+      }
+
+      if (!showZeroBalanceTokens && Number(toDecimal(token.balance, 3)) === 0) {
+        return false;
+      }
+
+      if (params.search) {
+        if (isValidAssetId(params.search)) {
+          return token.asset_id?.toLowerCase() === params.search.toLowerCase();
+        }
+
+        const searchTerm = params.search.toLowerCase();
+        const name = (token.name || 'Unknown CAT').toLowerCase();
+        const ticker = (token.ticker || '').toLowerCase();
+        return name.includes(searchTerm) || ticker.includes(searchTerm);
+      }
+
+      return true;
+    });
+
+  console.log(pricedTokens);
 
   const updateCats = useCallback(
     () =>
-      commands
-        .getCats({})
-        .then((data) => setCats(data.cats))
+      Promise.all([commands.getToken({ asset_id: null }), commands.getCats({})])
+        .then(([xch, data]) =>
+          setTokens([...(xch.token ? [xch.token] : []), ...data.cats]),
+        )
         .catch(addError),
     [addError],
   );
@@ -144,10 +130,10 @@ export function TokenList() {
 
   const tokenActionHandlers = {
     onEdit: (asset: TokenRecord) => {
-      navigate(`/wallet/token/${asset.asset_id}`);
+      navigate(`/wallet/token/${asset.asset_id ?? 'xch'}`);
     },
-    onRefreshInfo: (assetId: string) => {
-      if (assetId === 'xch') return;
+    onRefreshInfo: (assetId: string | null) => {
+      if (!assetId) return;
       commands
         .resyncCat({ asset_id: assetId })
         .then(() => {
@@ -157,13 +143,15 @@ export function TokenList() {
         .catch(addError);
     },
     onToggleVisibility: (asset: TokenRecord) => {
-      if (asset.asset_id === 'xch') return;
-      const updatedCat = cats.find((cat) => cat.asset_id === asset.asset_id);
-      if (!updatedCat) return;
+      if (!asset.asset_id) return;
+      const updatedToken = tokens.find(
+        (token) => token.asset_id === asset.asset_id,
+      );
+      if (!updatedToken) return;
 
-      updatedCat.visible = !updatedCat.visible;
+      updatedToken.visible = !updatedToken.visible;
       commands
-        .updateCat({ record: updatedCat })
+        .updateCat({ record: updatedToken })
         .then(() => updateCats())
         .catch(addError);
     },
@@ -203,7 +191,7 @@ export function TokenList() {
             setParams({ search: value });
           }}
           className='mb-4'
-          onExport={() => exportTokens([xchRecord, ...filteredCats])}
+          onExport={() => exportTokens(pricedTokens)}
         />
 
         {walletState.sync.synced_coins < walletState.sync.total_coins && (
@@ -223,15 +211,13 @@ export function TokenList() {
 
         {viewMode === 'grid' ? (
           <TokenGridView
-            cats={filteredCats}
-            xchRecord={xchRecord}
+            tokens={pricedTokens}
             actionHandlers={tokenActionHandlers}
           />
         ) : (
           <div className='mt-4'>
             <TokenListView
-              cats={filteredCats}
-              xchRecord={xchRecord}
+              tokens={pricedTokens}
               actionHandlers={tokenActionHandlers}
             />
           </div>

@@ -7,16 +7,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Trans } from '@lingui/react/macro';
-import { useEffect, useState } from 'react';
-import { CatRecord } from '../bindings';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { isValidUrl } from '@/lib/utils';
+import { Trans } from '@lingui/react/macro';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { useEffect, useState } from 'react';
+import { TokenRecord } from '../bindings';
 
 interface QRCodeDialogProps {
   isOpen: boolean;
   onClose: (open: boolean) => void;
-  asset: CatRecord | null;
+  asset: TokenRecord | null;
   qr_code_contents: string;
   title?: string;
   description?: string;

@@ -69,7 +69,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     commands.getCats({}).then((data) => {
       const presence: CatPresence = {};
       data.cats.forEach((cat) => {
-        presence[cat.asset_id] = true;
+        presence[cat.asset_id ?? ''] = true;
       });
       setCatPresence(presence);
     });

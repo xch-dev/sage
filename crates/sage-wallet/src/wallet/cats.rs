@@ -105,9 +105,12 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.xch_balance().await?, 500);
-        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            1
+        );
 
         let coin_spends = test
             .wallet
@@ -126,7 +129,10 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 2);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            2
+        );
 
         let coin_spends = test
             .wallet
@@ -145,9 +151,12 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.xch_balance().await?, 0);
-        assert_eq!(test.wallet.db.spendable_xch_coins().await?.len(), 0);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 0);
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            1
+        );
 
         Ok(())
     }
@@ -182,15 +191,21 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_balance(asset_id).await?, 0);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 0);
+        assert_eq!(test.wallet.db.selectable_cat_balance(asset_id).await?, 0);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            0
+        );
 
         sleep(Duration::from_secs(6)).await;
         test.new_block_with_current_time().await?;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(test.wallet.db.selectable_cat_balance(asset_id).await?, 1000);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            1
+        );
 
         let coin_spends = test
             .wallet
@@ -210,7 +225,10 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            1
+        );
 
         Ok(())
     }
@@ -247,31 +265,31 @@ mod tests {
         alice.wait_for_coins().await;
 
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(alice.wallet.db.spendable_cat_balance(asset_id).await?, 0);
+        assert_eq!(alice.wallet.db.selectable_cat_balance(asset_id).await?, 0);
         assert_eq!(
-            alice.wallet.db.spendable_cat_coins(asset_id).await?.len(),
+            alice.wallet.db.selectable_cat_coins(asset_id).await?.len(),
             0
         );
 
         bob.wait_for_puzzles().await;
 
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(bob.wallet.db.spendable_cat_balance(asset_id).await?, 0);
-        assert_eq!(bob.wallet.db.spendable_cat_coins(asset_id).await?.len(), 0);
+        assert_eq!(bob.wallet.db.selectable_cat_balance(asset_id).await?, 0);
+        assert_eq!(bob.wallet.db.selectable_cat_coins(asset_id).await?.len(), 0);
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
 
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 0);
-        assert_eq!(alice.wallet.db.spendable_cat_balance(asset_id).await?, 0);
+        assert_eq!(alice.wallet.db.selectable_cat_balance(asset_id).await?, 0);
         assert_eq!(
-            alice.wallet.db.spendable_cat_coins(asset_id).await?.len(),
+            alice.wallet.db.selectable_cat_coins(asset_id).await?.len(),
             0
         );
 
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(bob.wallet.db.spendable_cat_balance(asset_id).await?, 1000);
-        assert_eq!(bob.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(bob.wallet.db.selectable_cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.selectable_cat_coins(asset_id).await?.len(), 1);
 
         let coin_spends = bob
             .wallet
@@ -292,15 +310,18 @@ mod tests {
         alice.wait_for_puzzles().await;
 
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(alice.wallet.db.spendable_cat_balance(asset_id).await?, 1000);
         assert_eq!(
-            alice.wallet.db.spendable_cat_coins(asset_id).await?.len(),
+            alice.wallet.db.selectable_cat_balance(asset_id).await?,
+            1000
+        );
+        assert_eq!(
+            alice.wallet.db.selectable_cat_coins(asset_id).await?.len(),
             1
         );
 
         assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 0);
-        assert_eq!(bob.wallet.db.spendable_cat_balance(asset_id).await?, 0);
-        assert_eq!(bob.wallet.db.spendable_cat_coins(asset_id).await?.len(), 0);
+        assert_eq!(bob.wallet.db.selectable_cat_balance(asset_id).await?, 0);
+        assert_eq!(bob.wallet.db.selectable_cat_coins(asset_id).await?.len(), 0);
 
         Ok(())
     }

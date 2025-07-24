@@ -27,19 +27,10 @@ impl Database {
                 owned_coins.created_height, spent_height,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
                 metadata, recovery_list_hash, num_verifications_required,
-                (
-                    SELECT hash FROM offers
-                    INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                    WHERE offer_coins.coin_id = owned_coins.coin_id
-                    AND offers.status <= 1
-                    LIMIT 1
-                ) AS offer_hash,           
-                created_blocks.timestamp AS created_timestamp,
-                spent_blocks.timestamp AS spent_timestamp
+                offer_hash, created_timestamp, spent_timestamp,
+                clawback_expiration_seconds AS clawback_timestamp
             FROM owned_coins
             INNER JOIN dids ON dids.asset_id = owned_coins.asset_id
-			LEFT JOIN blocks AS created_blocks ON created_blocks.height = owned_coins.created_height
-            LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = owned_coins.spent_height   
             ORDER BY asset_name ASC
             "
         )
@@ -74,6 +65,7 @@ impl Database {
                     kind: CoinKind::Did,
                     mempool_item_hash: None,
                     offer_hash: row.offer_hash.convert()?,
+                    clawback_timestamp: row.clawback_timestamp.convert()?,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,

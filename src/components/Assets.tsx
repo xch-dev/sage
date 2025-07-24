@@ -5,6 +5,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { AssetIcon } from './AssetIcon';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
@@ -14,7 +15,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-import { AssetIcon } from './AssetIcon';
 
 // Interface to track CAT presence in wallet
 export type CatPresence = Record<string, boolean>;
@@ -29,7 +29,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
     <div className='flex flex-col gap-3'>
       {assets.map(({ asset, amount, royalty, nft_royalty }) => (
         <div
-          key={asset.asset_id}
+          key={asset.asset_id ?? 'xch'}
           className='flex flex-col gap-2 rounded-lg border p-3'
         >
           <div className='flex items-center gap-2'>

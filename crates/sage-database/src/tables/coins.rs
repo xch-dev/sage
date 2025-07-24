@@ -29,9 +29,10 @@ pub enum CoinSortMode {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinFilterMode {
     All,
+    Selectable,
     Owned,
     Spent,
-    Spendable,
+    Clawback,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -48,10 +49,11 @@ pub struct CoinRow {
     pub kind: CoinKind,
     pub mempool_item_hash: Option<Bytes32>,
     pub offer_hash: Option<Bytes32>,
+    pub clawback_timestamp: Option<u64>,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
-    pub created_timestamp: Option<u32>,
-    pub spent_timestamp: Option<u32>,
+    pub created_timestamp: Option<u64>,
+    pub spent_timestamp: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -95,12 +97,12 @@ impl Database {
         total_coin_count(&self.pool).await
     }
 
-    pub async fn spendable_xch_coin_count(&self) -> Result<u32> {
-        spendable_coin_count(&self.pool, Bytes32::default()).await
+    pub async fn selectable_xch_coin_count(&self) -> Result<u32> {
+        selectable_coin_count(&self.pool, Bytes32::default()).await
     }
 
-    pub async fn spendable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
-        spendable_coin_count(&self.pool, asset_id).await
+    pub async fn selectable_cat_coin_count(&self, asset_id: Bytes32) -> Result<u32> {
+        selectable_coin_count(&self.pool, asset_id).await
     }
 
     pub async fn synced_coin_count(&self) -> Result<u32> {
@@ -140,20 +142,20 @@ impl Database {
         token_balance(&self.pool, asset_id).await
     }
 
-    pub async fn spendable_xch_balance(&self) -> Result<u128> {
-        spendable_token_balance(&self.pool, Bytes32::default()).await
+    pub async fn selectable_xch_balance(&self) -> Result<u128> {
+        selectable_token_balance(&self.pool, Bytes32::default()).await
     }
 
-    pub async fn spendable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
-        spendable_token_balance(&self.pool, asset_id).await
+    pub async fn selectable_cat_balance(&self, asset_id: Bytes32) -> Result<u128> {
+        selectable_token_balance(&self.pool, asset_id).await
     }
 
-    pub async fn spendable_xch_coins(&self) -> Result<Vec<Coin>> {
-        spendable_xch_coins(&self.pool).await
+    pub async fn selectable_xch_coins(&self) -> Result<Vec<Coin>> {
+        selectable_xch_coins(&self.pool).await
     }
 
-    pub async fn spendable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<Cat>> {
-        spendable_cat_coins(&self.pool, asset_id).await
+    pub async fn selectable_cat_coins(&self, asset_id: Bytes32) -> Result<Vec<Cat>> {
+        selectable_cat_coins(&self.pool, asset_id).await
     }
 
     pub async fn coin_kind(&self, coin_id: Bytes32) -> Result<Option<CoinKind>> {
@@ -471,11 +473,11 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         .collect()
 }
 
-async fn spendable_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
+async fn selectable_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
-        "SELECT COUNT(*) AS count FROM spendable_coins WHERE asset_hash = ?",
+        "SELECT COUNT(*) AS count FROM selectable_coins WHERE asset_hash = ?",
         asset_id_ref
     )
     .fetch_one(conn)
@@ -523,11 +525,14 @@ async fn token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Resu
     .sum()
 }
 
-async fn spendable_token_balance(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u128> {
+async fn selectable_token_balance(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+) -> Result<u128> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
-        "SELECT amount FROM spendable_coins WHERE asset_hash = ?",
+        "SELECT amount FROM selectable_coins WHERE asset_hash = ?",
         asset_id_ref
     )
     .fetch_all(conn)
@@ -545,27 +550,9 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         "
        SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzles.hash AS p2_puzzle_hash,
-            (
-                SELECT hash FROM mempool_items
-                INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-                WHERE mempool_coins.coin_id = coins.id
-                AND mempool_coins.is_input = TRUE
-                LIMIT 1
-            ) AS mempool_item_hash,
-            (
-                SELECT hash FROM offers
-                INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                WHERE offer_coins.coin_id = coins.id
-                AND offers.status <= 1
-                LIMIT 1
-            ) AS offer_hash,
-            created_blocks.timestamp AS created_timestamp,
-            spent_blocks.timestamp AS spent_timestamp
-        FROM coins
-            INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
-            LEFT JOIN blocks AS created_blocks ON created_blocks.height = coins.created_height
-            LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = coins.spent_height            
-        WHERE coins.hash IN (",
+            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
+        FROM wallet_coins
+        WHERE coin_hash IN (",
     );
     let mut separated = query.separated(", ");
 
@@ -595,16 +582,11 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,
+                clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
-                created_timestamp: row
-                    .get::<Option<i64>, _>("created_timestamp")
-                    .map(TryInto::try_into)
-                    .transpose()?,
-                spent_timestamp: row
-                    .get::<Option<i64>, _>("spent_timestamp")
-                    .map(TryInto::try_into)
-                    .transpose()?,
+                created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
+                spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -622,10 +604,11 @@ async fn coin_records(
     filter_mode: CoinFilterMode,
 ) -> Result<(Vec<CoinRow>, u32)> {
     let table = match filter_mode {
+        CoinFilterMode::All => "wallet_coins",
+        CoinFilterMode::Selectable => "selectable_coins",
         CoinFilterMode::Owned => "owned_coins",
         CoinFilterMode::Spent => "spent_coins",
-        CoinFilterMode::All => "wallet_coins",
-        CoinFilterMode::Spendable => "spendable_coins",
+        CoinFilterMode::Clawback => "clawback_coins",
     };
 
     let mut query = sqlx::QueryBuilder::new(format!(
@@ -633,26 +616,10 @@ async fn coin_records(
         SELECT
             parent_coin_hash, puzzle_hash, amount,
             spent_height, created_height, p2_puzzle_hash,
-            (
-                SELECT hash FROM mempool_items
-                INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-                WHERE mempool_coins.coin_id = {table}.coin_id
-                AND mempool_coins.is_input = TRUE
-                LIMIT 1
-            ) AS mempool_item_hash,
-            (
-                SELECT hash FROM offers
-                INNER JOIN offer_coins ON offer_coins.offer_id = offers.id
-                WHERE offer_coins.coin_id = {table}.coin_id
-                AND offers.status <= 1
-                LIMIT 1
-            ) AS offer_hash,
-            created_blocks.timestamp AS created_timestamp,
-            spent_blocks.timestamp AS spent_timestamp,
+            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
+            clawback_expiration_seconds AS clawback_timestamp,
             COUNT(*) OVER () AS total_count
         FROM {table}
-            LEFT JOIN blocks AS created_blocks ON created_blocks.height = {table}.created_height
-            LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = {table}.spent_height  
         ",
     ));
 
@@ -671,16 +638,15 @@ async fn coin_records(
 
     query.push(" ORDER BY ");
     match sort_mode {
-        CoinSortMode::CoinId => query.push("coin_hash"),
-        CoinSortMode::Amount => query.push("amount"),
-        CoinSortMode::CreatedHeight => query.push("created_height"),
-        CoinSortMode::SpentHeight => query.push("spent_height"),
+        CoinSortMode::CoinId if ascending => query.push("coin_hash ASC"),
+        CoinSortMode::CoinId => query.push("coin_hash DESC"),
+        CoinSortMode::Amount if ascending => query.push("amount ASC"),
+        CoinSortMode::Amount => query.push("amount DESC"),
+        CoinSortMode::CreatedHeight if ascending => query.push("created_height ASC NULLS LAST"),
+        CoinSortMode::CreatedHeight => query.push("created_height DESC NULLS FIRST"),
+        CoinSortMode::SpentHeight if ascending => query.push("spent_height ASC NULLS LAST"),
+        CoinSortMode::SpentHeight => query.push("spent_height DESC NULLS FIRST"),
     };
-    if ascending {
-        query.push(" ASC");
-    } else {
-        query.push(" DESC");
-    }
 
     query.push(" LIMIT ");
     query.push_bind(limit as i64);
@@ -710,6 +676,7 @@ async fn coin_records(
                     .map(Convert::convert)
                     .transpose()?,
                 kind: CoinKind::Xch,
+                clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row
@@ -727,8 +694,8 @@ async fn coin_records(
     Ok((coins, total_count))
 }
 
-async fn spendable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
-    query!("SELECT parent_coin_hash, puzzle_hash, amount FROM spendable_coins WHERE asset_id = 0")
+async fn selectable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {
+    query!("SELECT parent_coin_hash, puzzle_hash, amount FROM selectable_coins WHERE asset_id = 0")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -742,7 +709,10 @@ async fn spendable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>>
         .collect()
 }
 
-async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<Vec<Cat>> {
+async fn selectable_cat_coins(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+) -> Result<Vec<Cat>> {
     let asset_id_ref = asset_id.as_ref();
 
     query!(
@@ -750,8 +720,8 @@ async fn spendable_cat_coins(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -
         SELECT
             parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount
-        FROM spendable_coins
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
+        FROM selectable_coins
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = selectable_coins.coin_id
         WHERE asset_hash = ?
         ",
         asset_id_ref
@@ -1020,10 +990,10 @@ async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
             parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, recovery_list_hash, num_verifications_required, metadata
-        FROM owned_coins
-        INNER JOIN dids ON dids.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
-        WHERE asset_hash = ?
+        FROM wallet_coins
+        INNER JOIN dids ON dids.asset_id = wallet_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id
+        WHERE asset_hash = ? AND spent_height IS NULL
         ",
         launcher_id_ref
     )
@@ -1110,10 +1080,10 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, metadata, metadata_updater_puzzle_hash,
             owner_hash, royalty_puzzle_hash, royalty_basis_points
-        FROM owned_coins
-        INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
-        WHERE asset_hash = ?
+        FROM wallet_coins
+        INNER JOIN nfts ON nfts.asset_id = wallet_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id
+        WHERE asset_hash = ? AND spent_height IS NULL
         ",
         launcher_id_ref
     )
@@ -1207,10 +1177,10 @@ async fn option(
             parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, underlying_coin_hash, underlying_delegated_puzzle_hash
-        FROM owned_coins
-        INNER JOIN options ON options.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
-        WHERE asset_hash = ?
+        FROM wallet_coins
+        INNER JOIN options ON options.asset_id = wallet_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id
+        WHERE asset_hash = ? AND spent_height IS NULL
         ",
         launcher_id_ref
     )

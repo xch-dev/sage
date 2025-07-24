@@ -46,7 +46,12 @@ impl Sage {
     pub async fn update_cat(&self, req: UpdateCat) -> Result<UpdateCatResponse> {
         let wallet = self.wallet()?;
 
-        let asset_id = parse_asset_id(req.record.asset_id)?;
+        let asset_id = req
+            .record
+            .asset_id
+            .map(parse_asset_id)
+            .transpose()?
+            .unwrap_or_default();
 
         let Some(mut asset) = wallet.db.asset(asset_id).await? else {
             return Err(Error::MissingCat(asset_id));

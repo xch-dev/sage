@@ -32,18 +32,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
-  CatRecord,
   CoinRecord,
   CoinSortMode,
   commands,
+  TokenRecord,
   TransactionResponse,
 } from '../bindings';
 import { FeeAmountInput } from './ui/masked-input';
 
 interface CoinsCardProps {
-  precision: number;
   coins: CoinRecord[];
-  asset: CatRecord | null;
+  asset: TokenRecord;
   splitHandler: typeof commands.splitXch | null;
   combineHandler: typeof commands.combineXch | null;
   autoCombineHandler: typeof commands.autoCombineXch | null;
@@ -64,7 +63,6 @@ interface CoinsCardProps {
 }
 
 export function CoinsCard({
-  precision,
   coins: pageCoins,
   asset,
   splitHandler,
@@ -86,7 +84,6 @@ export function CoinsCard({
   onIncludeSpentCoinsChange,
 }: CoinsCardProps) {
   const walletState = useWalletState();
-  const ticker = asset?.ticker;
 
   const { addError } = useErrors();
 
@@ -165,7 +162,7 @@ export function CoinsCard({
     let isMounted = true;
 
     const checkAutoCombine = async () => {
-      if (selectedCoinIds.length === 0 && asset?.asset_id) {
+      if (selectedCoinIds.length === 0 && asset.asset_id) {
         try {
           const spendable = await commands.getSpendableCoinCount({
             asset_id: asset.asset_id,
@@ -229,8 +226,8 @@ export function CoinsCard({
             content: {
               type: 'combine',
               coins: selectedCoinRecords,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -280,8 +277,8 @@ export function CoinsCard({
               type: 'split',
               coins: selectedCoinRecords,
               outputCount: values.outputCount,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -298,7 +295,7 @@ export function CoinsCard({
       t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
-    maxCoinAmount: amount(precision).optional(),
+    maxCoinAmount: amount(asset.precision).optional(),
   });
 
   const autoCombineForm = useForm<z.infer<typeof autoCombineFormSchema>>({
@@ -317,7 +314,7 @@ export function CoinsCard({
     const fee = toMojos(values.autoCombineFee, walletState.sync.unit.decimals);
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
-      ? toMojos(values.maxCoinAmount, precision)
+      ? toMojos(values.maxCoinAmount, asset.precision)
       : null;
 
     autoCombineHandler({
@@ -338,8 +335,8 @@ export function CoinsCard({
             content: {
               type: 'combine',
               coins: resultCoins.coins,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -358,12 +355,12 @@ export function CoinsCard({
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
         <CardTitle className='text-lg font-medium'>
-          <Trans>Coins</Trans>
+          <Trans>Owned Coins</Trans>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <CoinList
-          precision={precision}
+          precision={asset.precision}
           coins={pageCoins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
@@ -412,7 +409,6 @@ export function CoinsCard({
             </>
           }
         />
-
         {selectedCoinCount > 0 && (
           <div className='flex items-center gap-2'>
             <Button variant='outline' onClick={() => setSelectedCoins({})}>
@@ -433,7 +429,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {ticker}</Trans>
+              <Trans>Combine {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -482,7 +478,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Split {ticker}</Trans>
+              <Trans>Split {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will split all of the selected coins.</Trans>
@@ -550,7 +546,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Auto Combine {ticker}</Trans>
+              <Trans>Auto Combine {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>

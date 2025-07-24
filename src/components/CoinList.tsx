@@ -466,7 +466,7 @@ export default function CoinList(props: CoinListProps) {
         rowLabel={t`coin`}
         rowLabelPlural={t`coins`}
       />
-      <div className='flex-shrink-0 py-4'>
+      <div className='flex-shrink-0 pt-4'>
         <SimplePagination
           currentPage={props.currentPage}
           pageCount={props.totalPages}
