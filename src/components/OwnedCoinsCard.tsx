@@ -62,7 +62,7 @@ interface CoinsCardProps {
   onIncludeSpentCoinsChange: (include: boolean) => void;
 }
 
-export function CoinsCard({
+export function OwnedCoinsCard({
   coins: pageCoins,
   asset,
   splitHandler,

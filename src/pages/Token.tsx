@@ -1,8 +1,8 @@
-import { CoinsCard } from '@/components/CoinsCard';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
+import { OwnedCoinsCard } from '@/components/OwnedCoinsCard';
 import { TokenCard } from '@/components/TokenCard';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import { useErrors } from '@/hooks/useErrors';
@@ -273,7 +273,7 @@ export default function Token() {
               }}
               onUpdate={updateTokenDetails}
             />
-            <CoinsCard
+            <OwnedCoinsCard
               coins={coins}
               asset={asset}
               splitHandler={splitHandler}
