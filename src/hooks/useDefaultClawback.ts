@@ -15,12 +15,21 @@ const validateNumber = (value: string): string => {
 };
 
 const validateClawback = (clawback: DefaultClawback): DefaultClawback => {
-  return {
-    enabled: clawback.enabled,
-    days: validateNumber(clawback.days),
-    hours: validateNumber(clawback.hours),
-    minutes: validateNumber(clawback.minutes),
-  };
+  try {
+    return {
+      enabled: clawback.enabled,
+      days: validateNumber(clawback.days),
+      hours: validateNumber(clawback.hours),
+      minutes: validateNumber(clawback.minutes),
+    };
+  } catch {
+    return {
+      enabled: false,
+      days: '',
+      hours: '1',
+      minutes: '',
+    };
+  }
 };
 
 export function useDefaultClawback() {
