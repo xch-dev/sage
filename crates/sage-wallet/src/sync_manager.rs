@@ -151,10 +151,11 @@ impl SyncManager {
     async fn process_commands(&mut self) {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
-                SyncCommand::SwitchWallet { wallet } => {
+                SyncCommand::SwitchWallet { wallet, delta_sync } => {
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
+                    self.options.delta_sync = delta_sync;
                 }
                 SyncCommand::SwitchNetwork(network) => {
                     if self.network.network_id() != network.network_id()
@@ -327,11 +328,6 @@ impl SyncManager {
 
                     incremental_sync(wallet, message.items, true, &self.event_sender).await?;
 
-                    wallet
-                        .db
-                        .insert_block(message.height, message.peak_hash, None, true)
-                        .await?;
-
                     info!(
                         "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
                         unspent_count, spent_count,
@@ -379,6 +375,7 @@ impl SyncManager {
                             peer,
                             self.state.clone(),
                             self.event_sender.clone(),
+                            self.options.delta_sync,
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
                         self.event_sender.send(SyncEvent::Start(ip)).await.ok();

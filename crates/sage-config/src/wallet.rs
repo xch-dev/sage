@@ -13,6 +13,7 @@ pub struct WalletConfig {
 pub struct WalletDefaults {
     pub change: ChangeMode,
     pub derivation: DerivationMode,
+    pub delta_sync: bool,
 }
 
 impl Default for WalletDefaults {
@@ -22,25 +23,56 @@ impl Default for WalletDefaults {
             derivation: DerivationMode::Auto {
                 derivation_batch_size: 1000,
             },
+            delta_sync: true,
         }
     }
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(default)]
 pub struct Wallet {
-    #[serde(default = "Wallet::default_name")]
     pub name: String,
     pub fingerprint: u32,
-    #[serde(default, skip_serializing_if = "ChangeMode::is_default")]
+    #[serde(skip_serializing_if = "ChangeMode::is_default")]
     pub change: ChangeMode,
-    #[serde(default, skip_serializing_if = "DerivationMode::is_default")]
+    #[serde(skip_serializing_if = "DerivationMode::is_default")]
     pub derivation: DerivationMode,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<String>,
+    pub delta_sync: Option<bool>,
 }
 
 impl Wallet {
-    pub fn default_name() -> String {
-        "Unnamed".to_string()
+    pub fn change(&self, defaults: &WalletDefaults) -> ChangeMode {
+        if matches!(self.change, ChangeMode::Default) {
+            defaults.change
+        } else {
+            self.change
+        }
+    }
+
+    pub fn derivation(&self, defaults: &WalletDefaults) -> DerivationMode {
+        if matches!(self.derivation, DerivationMode::Default) {
+            defaults.derivation
+        } else {
+            self.derivation
+        }
+    }
+
+    pub fn delta_sync(&self, defaults: &WalletDefaults) -> bool {
+        self.delta_sync.unwrap_or(defaults.delta_sync)
+    }
+}
+
+impl Default for Wallet {
+    fn default() -> Self {
+        Self {
+            name: "Unnamed Wallet".to_string(),
+            fingerprint: 0,
+            change: ChangeMode::Default,
+            derivation: DerivationMode::Default,
+            network: None,
+            delta_sync: None,
+        }
     }
 }
 
@@ -99,6 +131,7 @@ mod tests {
             change: ChangeMode::Default,
             derivation: DerivationMode::Default,
             network: None,
+            delta_sync: None,
         }
     }
 
