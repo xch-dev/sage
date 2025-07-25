@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT OR IGNORE INTO dids (\n                asset_id, metadata, recovery_list_hash, num_verifications_required\n            )\n            VALUES ((SELECT id FROM assets WHERE hash = ?), ?, ?, ?)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "ae598e995df3798384fe694f71e74e71d870b29c258bed2653f182f46b26728b"
+}

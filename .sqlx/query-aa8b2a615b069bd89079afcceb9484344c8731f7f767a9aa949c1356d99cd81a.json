@@ -1,0 +1,122 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT \t\n            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,\n            is_created_in_block, is_spent_in_block, asset_hash, asset_description,\n            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,\n            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision\n        FROM transaction_coins \n        WHERE height = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "height",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "timestamp",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "coin_id",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_coin_hash",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_created_in_block",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_spent_in_block",
+        "ordinal": 7,
+        "type_info": "Integer"
+      },
+      {
+        "name": "asset_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_description",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "asset_is_visible",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
+        "name": "asset_is_sensitive_content",
+        "ordinal": 11,
+        "type_info": "Bool"
+      },
+      {
+        "name": "asset_name",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "asset_icon_url",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "asset_kind",
+        "ordinal": 14,
+        "type_info": "Integer"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 15,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_ticker",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "asset_precision",
+        "ordinal": 17,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "aa8b2a615b069bd89079afcceb9484344c8731f7f767a9aa949c1356d99cd81a"
+}

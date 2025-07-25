@@ -1457,10 +1457,8 @@ checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "serde",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -5681,10 +5679,8 @@ dependencies = [
  "chia",
  "chia-puzzles",
  "chia-wallet-sdk",
- "chrono",
  "clvmr",
  "hex",
- "hex-literal",
  "indexmap 2.10.0",
  "itertools 0.13.0",
  "log",
@@ -5711,7 +5707,6 @@ dependencies = [
 name = "sage-api"
 version = "0.10.3"
 dependencies = [
- "indexmap 2.10.0",
  "once_cell",
  "sage-config",
  "serde",

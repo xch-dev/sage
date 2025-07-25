@@ -105,7 +105,7 @@ pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Resu
 #[command]
 #[specta]
 pub async fn default_wallet_config(state: State<'_, AppState>) -> Result<WalletDefaults> {
-    Ok(state.lock().await.wallet_config.defaults.clone())
+    Ok(state.lock().await.wallet_config.defaults)
 }
 
 #[command]

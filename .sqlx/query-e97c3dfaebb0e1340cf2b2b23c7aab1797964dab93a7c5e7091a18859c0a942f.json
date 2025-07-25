@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE assets SET icon_url = ?\n            WHERE assets.id IN (\n                SELECT asset_id FROM nfts\n                WHERE data_hash = ?\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e97c3dfaebb0e1340cf2b2b23c7aab1797964dab93a7c5e7091a18859c0a942f"
+}

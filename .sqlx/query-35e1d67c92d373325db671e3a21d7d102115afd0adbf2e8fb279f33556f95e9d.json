@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            DELETE FROM mempool_items;\n            UPDATE blocks SET is_peak = FALSE WHERE is_peak = TRUE;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "35e1d67c92d373325db671e3a21d7d102115afd0adbf2e8fb279f33556f95e9d"
+}
