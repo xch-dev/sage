@@ -322,7 +322,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
   const loginSelf = async () => {
     try {
-      await loginAndUpdateState(info.fingerprint, addError);
+      await loginAndUpdateState(info.fingerprint);
 
       const data = await commands.getKey({});
       setWallet(data.key);
