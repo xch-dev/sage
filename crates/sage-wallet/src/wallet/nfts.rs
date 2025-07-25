@@ -525,15 +525,18 @@ mod tests {
 
         alice.wait_for_coins().await;
 
-        assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_none());
+        assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_some());
+        assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_none());
 
         bob.wait_for_puzzles().await;
 
+        assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_some());
         assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_none());
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
 
+        assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_none());
         assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_some());
 
         let coin_spends = bob

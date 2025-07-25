@@ -7,7 +7,7 @@ use tokio::{
     sync::{mpsc, Mutex},
     time::{sleep, timeout},
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
@@ -65,7 +65,11 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        debug!("Syncing {} coins", coin_states.len());
+        info!(
+            "Syncing a batch of {} coins from {} peers",
+            coin_states.len(),
+            peers.len()
+        );
 
         let mut futures = FuturesUnordered::new();
         let mut remaining = coin_states.into_iter();
@@ -101,17 +105,22 @@ impl PuzzleQueue {
                     let mut tx = self.db.tx().await?;
 
                     if root.is_children_unsynced {
+                        debug!(
+                            "Children have been synced for coin {}",
+                            root.coin_state.coin.coin_id()
+                        );
                         tx.set_children_synced(root.coin_state.coin.coin_id())
                             .await?;
+                        send_events = true;
                     }
 
                     for item in synced_coins {
                         let coin_id = item.coin_state.coin.coin_id();
+                        let is_root = root.coin_state.coin.coin_id() == coin_id;
 
                         // We want to skip children that we already know about
-                        if root.coin_state.coin.coin_id() != coin_id
-                            && tx.is_known_coin(coin_id).await?
-                        {
+                        if !is_root && tx.is_known_coin(coin_id).await? {
+                            debug!("Skipping child coin {coin_id} because it is already known");
                             continue;
                         }
 
@@ -146,9 +155,24 @@ impl PuzzleQueue {
                         }
 
                         if !is_relevant {
+                            if is_root {
+                                warn!("Deleting unexpected coin {coin_id} because it is not relevant to this wallet");
+                                tx.delete_coin(coin_id).await?;
+                                send_events = true;
+                            } else {
+                                debug!("Skipping coin {coin_id} because it is not relevant to this wallet");
+                            }
                             continue;
                         }
+
+                        if is_root {
+                            debug!("Synced puzzle for coin {coin_id}");
+                        } else {
+                            debug!("Found relevant child coin {coin_id} which wasn't synced");
+                        }
+
                         send_events = true;
+
                         if let Some(height) = item.coin_state.created_height {
                             tx.insert_height(height).await?;
                         }

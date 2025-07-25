@@ -296,6 +296,7 @@ impl ChildKind {
 
     pub fn custody_p2_puzzle_hashes(&self) -> Vec<Bytes32> {
         match self {
+            // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat { info, clawback, .. } => clawback
@@ -304,11 +305,11 @@ impl ChildKind {
                 }),
             Self::Did { info, clawback, .. } => clawback
                 .map_or(vec![info.p2_puzzle_hash], |clawback| {
-                    vec![clawback.receiver_puzzle_hash]
+                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
                 }),
             Self::Nft { info, clawback, .. } => clawback
                 .map_or(vec![info.p2_puzzle_hash], |clawback| {
-                    vec![clawback.receiver_puzzle_hash]
+                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
                 }),
         }
     }
