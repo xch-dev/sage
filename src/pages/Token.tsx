@@ -11,6 +11,7 @@ import { usePrices } from '@/hooks/usePrices';
 import { getAssetDisplayName, toDecimal } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
+import { RowSelectionState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -48,6 +49,10 @@ export default function Token() {
   const [response, setResponse] = useState<EnhancedTransactionResponse | null>(
     null,
   );
+  const [selectedOwnedCoins, setSelectedOwnedCoins] =
+    useState<RowSelectionState>({});
+  const [selectedClawbackCoins, setSelectedClawbackCoins] =
+    useState<RowSelectionState>({});
 
   const navigate = useNavigate();
 
@@ -189,8 +194,18 @@ export default function Token() {
                 }}
                 onUpdate={updateTokenDetails}
               />
-              <OwnedCoinsCard asset={asset} setResponse={setResponse} />
-              <ClawbackCoinsCard asset={asset} setResponse={setResponse} />
+              <OwnedCoinsCard
+                asset={asset}
+                setResponse={setResponse}
+                selectedCoins={selectedOwnedCoins}
+                setSelectedCoins={setSelectedOwnedCoins}
+              />
+              <ClawbackCoinsCard
+                asset={asset}
+                setResponse={setResponse}
+                selectedCoins={selectedClawbackCoins}
+                setSelectedCoins={setSelectedClawbackCoins}
+              />
             </div>
           </Container>
         </>
@@ -200,7 +215,10 @@ export default function Token() {
         response={response}
         showRecipientDetails={false}
         close={() => setResponse(null)}
-        onConfirm={() => setSelectedCoins({})}
+        onConfirm={() => {
+          setSelectedOwnedCoins({});
+          setSelectedClawbackCoins({});
+        }}
         additionalData={confirmationAdditionalData}
       />
     </>

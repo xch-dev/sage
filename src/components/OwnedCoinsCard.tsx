@@ -28,7 +28,14 @@ import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
@@ -44,14 +51,20 @@ import { FeeAmountInput } from './ui/masked-input';
 interface OwnedCoinsCardProps {
   asset: TokenRecord;
   setResponse: (response: TransactionResponse) => void;
+  selectedCoins: RowSelectionState;
+  setSelectedCoins: Dispatch<SetStateAction<RowSelectionState>>;
 }
 
-export function OwnedCoinsCard({ asset, setResponse }: OwnedCoinsCardProps) {
+export function OwnedCoinsCard({
+  asset,
+  setResponse,
+  selectedCoins,
+  setSelectedCoins,
+}: OwnedCoinsCardProps) {
   const walletState = useWalletState();
 
   const { addError } = useErrors();
 
-  const [selectedCoins, setSelectedCoins] = useState<RowSelectionState>({});
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
   );
