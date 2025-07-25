@@ -47,14 +47,14 @@ async sendXch(req: SendXch) : Promise<TransactionResponse> {
 async bulkSendXch(req: BulkSendXch) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("bulk_send_xch", { req });
 },
-async combineXch(req: CombineXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("combine_xch", { req });
+async combine(req: Combine) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("combine", { req });
+},
+async split(req: Split) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("split", { req });
 },
 async autoCombineXch(req: AutoCombineXch) : Promise<AutoCombineXchResponse> {
     return await TAURI_INVOKE("auto_combine_xch", { req });
-},
-async splitXch(req: SplitXch) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("split_xch", { req });
 },
 async sendCat(req: SendCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("send_cat", { req });
@@ -62,14 +62,8 @@ async sendCat(req: SendCat) : Promise<TransactionResponse> {
 async bulkSendCat(req: BulkSendCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("bulk_send_cat", { req });
 },
-async combineCat(req: CombineCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("combine_cat", { req });
-},
 async autoCombineCat(req: AutoCombineCat) : Promise<AutoCombineCatResponse> {
     return await TAURI_INVOKE("auto_combine_cat", { req });
-},
-async splitCat(req: SplitCat) : Promise<TransactionResponse> {
-    return await TAURI_INVOKE("split_cat", { req });
 },
 async issueCat(req: IssueCat) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("issue_cat", { req });
@@ -365,10 +359,9 @@ export type CoinRecord = { coin_id: string; address: string; amount: Amount; tra
 export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
 export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
-export type CombineCat = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
+export type Combine = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CombineOffers = { offers: string[] }
 export type CombineOffersResponse = { offer: string }
-export type CombineXch = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
 export type DeleteDatabase = { fingerprint: number; network: string }
 export type DeleteDatabaseResponse = Record<string, never>
@@ -525,8 +518,7 @@ export type SignMessageWithPublicKeyResponse = { signature: string }
 export type SpendBundle = { coin_spends: CoinSpend[]; aggregated_signature: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
 export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
-export type SplitCat = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
-export type SplitXch = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
+export type Split = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
 export type SubmitTransaction = { spend_bundle: SpendBundleJson }
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }

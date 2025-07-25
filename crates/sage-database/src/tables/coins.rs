@@ -793,7 +793,7 @@ async fn xch_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     let Some(row) = query!(
         "
         SELECT parent_coin_hash, puzzle_hash, amount
-        FROM owned_coins
+        FROM spendable_coins
         WHERE coin_hash = ? AND asset_id = 0
         ",
         coin_id_ref
@@ -819,8 +819,8 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         SELECT
             parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount, asset_hash AS asset_id
-        FROM owned_coins
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
+        FROM spendable_coins
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
         WHERE coin_hash = ?
         ",
         coin_id_ref
@@ -859,9 +859,9 @@ async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, recovery_list_hash, num_verifications_required, metadata
-        FROM owned_coins
-        INNER JOIN dids ON dids.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
+        FROM spendable_coins
+        INNER JOIN dids ON dids.asset_id = spendable_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
         WHERE coin_hash = ?
         ",
         coin_id_ref
@@ -903,9 +903,9 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, metadata, metadata_updater_puzzle_hash,
             owner_hash, royalty_puzzle_hash, royalty_basis_points
-        FROM owned_coins
-        INNER JOIN nfts ON nfts.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
+        FROM spendable_coins
+        INNER JOIN nfts ON nfts.asset_id = spendable_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
         WHERE coin_hash = ?
         ",
         coin_id_ref
@@ -951,9 +951,9 @@ async fn option_coin(
             parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
             parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,
             asset_hash AS launcher_id, underlying_coin_hash, underlying_delegated_puzzle_hash
-        FROM owned_coins
-        INNER JOIN options ON options.asset_id = owned_coins.asset_id
-        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = owned_coins.coin_id
+        FROM spendable_coins
+        INNER JOIN options ON options.asset_id = spendable_coins.asset_id
+        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
         WHERE coin_hash = ?
         ",
         coin_id_ref

@@ -94,7 +94,7 @@ export function ClawbackCoinsCard({
     });
   }, [selectedCoinIds, coins]);
 
-  const [canCombine, setCanCombine] = useState(false);
+  const [canClawBack, setCanClawBack] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +102,7 @@ export function ClawbackCoinsCard({
     const checkSpendable = async () => {
       if (selectedCoinIds.length === 0) {
         if (isMounted) {
-          setCanCombine(false);
+          setCanClawBack(false);
         }
         return;
       }
@@ -113,12 +113,12 @@ export function ClawbackCoinsCard({
         });
 
         if (isMounted) {
-          setCanCombine(selectedCoinIds.length >= 2 && isSpendable.spendable);
+          setCanClawBack(selectedCoinIds.length > 0 && isSpendable.spendable);
         }
       } catch (error) {
         console.error('Error checking if coins are spendable:', error);
         if (isMounted) {
-          setCanCombine(false);
+          setCanClawBack(false);
         }
       }
     };
@@ -179,36 +179,37 @@ export function ClawbackCoinsCard({
     updateCoins(currentPage);
   }, [currentPage, updateCoins]);
 
-  const [combineOpen, setCombineOpen] = useState(false);
+  const [clawBackOpen, setClawBackOpen] = useState(false);
 
-  const combineFormSchema = z.object({
-    combineFee: amount(walletState.sync.unit.decimals).refine(
+  const clawBackFormSchema = z.object({
+    clawBackFee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
 
-  const combineForm = useForm<z.infer<typeof combineFormSchema>>({
-    resolver: zodResolver(combineFormSchema),
+  const clawBackForm = useForm<z.infer<typeof clawBackFormSchema>>({
+    resolver: zodResolver(clawBackFormSchema),
   });
 
-  const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    const fee = toMojos(values.combineFee, walletState.sync.unit.decimals);
+  const onClawBackSubmit = (values: z.infer<typeof clawBackFormSchema>) => {
+    const fee = toMojos(values.clawBackFee, walletState.sync.unit.decimals);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
       (record) => record.coin_id,
     );
 
-    (!asset?.asset_id ? commands.combineXch : commands.combineCat)({
-      coin_ids: coinIdsForRequest,
-      fee,
-    })
+    commands
+      .combine({
+        coin_ids: coinIdsForRequest,
+        fee,
+      })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: t`Combine Details`,
+            title: t`Claw Back Details`,
             content: {
               type: 'combine',
               coins: selectedCoinRecords,
@@ -221,7 +222,7 @@ export function ClawbackCoinsCard({
         setResponse(resultWithDetails);
       })
       .catch(addError)
-      .finally(() => setCombineOpen(false));
+      .finally(() => setClawBackOpen(false));
   };
 
   const pageCount = Math.ceil(totalCoins / pageSize);
@@ -258,9 +259,9 @@ export function ClawbackCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={!canCombine}
+                disabled={!canClawBack}
                 onClick={() => {
-                  if (canCombine) setCombineOpen(true);
+                  if (canClawBack) setClawBackOpen(true);
                 }}
               >
                 <UndoIcon className='mr-2 h-4 w-4' />
@@ -285,26 +286,24 @@ export function ClawbackCoinsCard({
         )}
       </CardContent>
 
-      <Dialog open={combineOpen} onOpenChange={setCombineOpen}>
+      <Dialog open={clawBackOpen} onOpenChange={setClawBackOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {asset.ticker}</Trans>
+              <Trans>Claw Back {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
-              <Trans>
-                This will combine all of the selected coins into one.
-              </Trans>
+              <Trans>This will claw back all of the selected coins.</Trans>
             </DialogDescription>
           </DialogHeader>
-          <Form {...combineForm}>
+          <Form {...clawBackForm}>
             <form
-              onSubmit={combineForm.handleSubmit(onCombineSubmit)}
+              onSubmit={clawBackForm.handleSubmit(onClawBackSubmit)}
               className='space-y-4'
             >
               <FormField
-                control={combineForm.control}
-                name='combineFee'
+                control={clawBackForm.control}
+                name='clawBackFee'
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
@@ -321,12 +320,12 @@ export function ClawbackCoinsCard({
                 <Button
                   type='button'
                   variant='outline'
-                  onClick={() => setCombineOpen(false)}
+                  onClick={() => setClawBackOpen(false)}
                 >
                   <Trans>Cancel</Trans>
                 </Button>
                 <Button type='submit'>
-                  <Trans>Combine</Trans>
+                  <Trans>Claw Back</Trans>
                 </Button>
               </DialogFooter>
             </form>

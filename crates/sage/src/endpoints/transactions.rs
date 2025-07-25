@@ -8,11 +8,10 @@ use chia_wallet_sdk::{driver::MetadataUpdate, utils::Address};
 use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
-    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch,
-    CombineCat, CombineXch, CreateDid, IssueCat, MultiSend, NftUriKind, NormalizeDids, SendCat,
-    SendXch, SignCoinSpends, SignCoinSpendsResponse, SplitCat, SplitXch, SubmitTransaction,
-    SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends,
-    ViewCoinSpendsResponse,
+    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, Combine,
+    CreateDid, IssueCat, MultiSend, NftUriKind, NormalizeDids, SendCat, SendXch, SignCoinSpends,
+    SignCoinSpendsResponse, Split, SubmitTransaction, SubmitTransactionResponse,
+    TransactionResponse, TransferDids, TransferNfts, ViewCoinSpends, ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::{Asset, AssetKind};
@@ -56,7 +55,7 @@ impl Sage {
         self.transact(coin_spends, req.auto_submit).await
     }
 
-    pub async fn combine_xch(&self, req: CombineXch) -> Result<TransactionResponse> {
+    pub async fn combine(&self, req: Combine) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
@@ -102,7 +101,7 @@ impl Sage {
         })
     }
 
-    pub async fn split_xch(&self, req: SplitXch) -> Result<TransactionResponse> {
+    pub async fn split(&self, req: Split) -> Result<TransactionResponse> {
         let wallet = self.wallet()?;
         let fee = parse_amount(req.fee)?;
         let coin_ids = parse_coin_ids(req.coin_ids)?;
@@ -110,15 +109,6 @@ impl Sage {
         let coin_spends = wallet
             .split(coin_ids, req.output_count as usize, fee)
             .await?;
-        self.transact(coin_spends, req.auto_submit).await
-    }
-
-    pub async fn combine_cat(&self, req: CombineCat) -> Result<TransactionResponse> {
-        let wallet = self.wallet()?;
-        let fee = parse_amount(req.fee)?;
-        let coin_ids = parse_coin_ids(req.coin_ids)?;
-
-        let coin_spends = wallet.combine(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 
@@ -158,17 +148,6 @@ impl Sage {
             summary: response.summary,
             coin_spends: response.coin_spends,
         })
-    }
-
-    pub async fn split_cat(&self, req: SplitCat) -> Result<TransactionResponse> {
-        let wallet = self.wallet()?;
-        let fee = parse_amount(req.fee)?;
-        let coin_ids = parse_coin_ids(req.coin_ids)?;
-
-        let coin_spends = wallet
-            .split(coin_ids, req.output_count as usize, fee)
-            .await?;
-        self.transact(coin_spends, req.auto_submit).await
     }
 
     pub async fn issue_cat(&self, req: IssueCat) -> Result<TransactionResponse> {

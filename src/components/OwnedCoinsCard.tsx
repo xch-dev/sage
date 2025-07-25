@@ -243,10 +243,11 @@ export function OwnedCoinsCard({ asset, setResponse }: OwnedCoinsCardProps) {
       (record) => record.coin_id,
     );
 
-    (!asset?.asset_id ? commands.combineXch : commands.combineCat)({
-      coin_ids: coinIdsForRequest,
-      fee,
-    })
+    commands
+      .combine({
+        coin_ids: coinIdsForRequest,
+        fee,
+      })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -290,11 +291,12 @@ export function OwnedCoinsCard({ asset, setResponse }: OwnedCoinsCardProps) {
       (record) => record.coin_id,
     );
 
-    (!asset?.asset_id ? commands.splitXch : commands.splitCat)({
-      coin_ids: coinIdsForRequest,
-      output_count: values.outputCount,
-      fee,
-    })
+    commands
+      .split({
+        coin_ids: coinIdsForRequest,
+        output_count: values.outputCount,
+        fee,
+      })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
