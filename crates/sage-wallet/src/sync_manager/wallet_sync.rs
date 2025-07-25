@@ -6,7 +6,7 @@ use tokio::{
     sync::{mpsc, Mutex},
     time::{sleep, timeout},
 };
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 use crate::{Wallet, WalletError, WalletPeer};
 
@@ -113,7 +113,7 @@ async fn sync_coin_ids(
             sleep(Duration::from_millis(500)).await;
         }
 
-        debug!(
+        info!(
             "Subscribing to {} coins from peer {}",
             coin_ids.len(),
             peer.socket_addr()
@@ -125,7 +125,7 @@ async fn sync_coin_ids(
         )
         .await??;
 
-        debug!("Received {} coin states", coin_states.len());
+        info!("Received {} coin states", coin_states.len());
 
         if coin_states
             .iter()
@@ -154,8 +154,9 @@ async fn sync_puzzle_hashes(
     let mut prev_header_hash = start_header_hash;
 
     loop {
-        debug!(
-            "Subscribing to puzzles at height {:?} and header hash {} from peer {}",
+        info!(
+            "Subscribing to {} puzzle hashes at height {:?} and header hash {} from peer {}",
+            puzzle_hashes.len(),
             prev_height,
             prev_header_hash,
             peer.socket_addr()
@@ -172,7 +173,7 @@ async fn sync_puzzle_hashes(
         )
         .await??;
 
-        debug!("Received {} coin states", data.coin_states.len());
+        info!("Received {} coin states", data.coin_states.len());
 
         if !data.coin_states.is_empty() {
             incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;

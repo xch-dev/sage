@@ -466,12 +466,18 @@ async fn insert_lineage_proof(
 }
 
 async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM coins WHERE asset_id != 0")
-        .fetch_all(conn)
-        .await?
-        .into_iter()
-        .map(|row| row.hash.convert())
-        .collect()
+    query!(
+        "
+        SELECT coin_hash FROM wallet_coins
+        WHERE spent_height IS NULL
+        AND (asset_id != 0 OR p2_puzzle_kind != 0)
+        "
+    )
+    .fetch_all(conn)
+    .await?
+    .into_iter()
+    .map(|row| row.coin_hash.convert())
+    .collect()
 }
 
 async fn selectable_coin_count(conn: impl SqliteExecutor<'_>, asset_id: Bytes32) -> Result<u32> {
