@@ -15,12 +15,21 @@ const validateNumber = (value: string): string => {
 };
 
 const validateExpiry = (expiry: DefaultOfferExpiry): DefaultOfferExpiry => {
-  return {
-    enabled: expiry.enabled,
-    days: validateNumber(expiry.days),
-    hours: validateNumber(expiry.hours),
-    minutes: validateNumber(expiry.minutes),
-  };
+  try {
+    return {
+      enabled: expiry.enabled,
+      days: validateNumber(expiry.days),
+      hours: validateNumber(expiry.hours),
+      minutes: validateNumber(expiry.minutes),
+    };
+  } catch {
+    return {
+      enabled: true,
+      days: '1',
+      hours: '',
+      minutes: '',
+    };
+  }
 };
 
 export function useDefaultOfferExpiry() {

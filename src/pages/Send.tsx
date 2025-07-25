@@ -399,9 +399,9 @@ export default function Send() {
                           form.setValue('clawbackEnabled', checked);
                           if (checked) {
                             form.setValue('clawback', {
-                              days: clawback.days.toString(),
-                              hours: clawback.hours.toString(),
-                              minutes: clawback.minutes.toString(),
+                              days: clawback?.days?.toString() ?? '0',
+                              hours: clawback?.hours?.toString() ?? '0',
+                              minutes: clawback?.minutes?.toString() ?? '0',
                             });
                           } else {
                             form.setValue('clawback', undefined);
