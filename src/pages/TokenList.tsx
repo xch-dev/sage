@@ -33,7 +33,9 @@ export function TokenList() {
   const pricedTokens = useMemo(
     () =>
       tokens.map((token): PricedTokenRecord & { sortValue: number } => {
-        const balance = Number(toDecimal(token.balance, 3));
+        console.log(token.asset_id);
+        const precision = token.asset_id ? 3 : 12;
+        const balance = Number(toDecimal(token.balance, precision));
         const usdValue = parseFloat(
           getBalanceInUsd(token.asset_id, balance.toString()),
         );
