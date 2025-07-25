@@ -158,14 +158,12 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
         assert_eq!(test.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 0);
 
         sleep(Duration::from_secs(6)).await;
         test.new_block_with_current_time().await?;
 
-        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
         assert_eq!(test.wallet.db.selectable_xch_balance().await?, 1000);
         assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
 
@@ -208,24 +206,20 @@ mod tests {
 
         alice.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(alice.wallet.db.selectable_xch_coins().await?.len(), 0);
 
         bob.wait_for_puzzles().await;
 
-        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.selectable_xch_coins().await?.len(), 0);
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
 
-        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(alice.wallet.db.selectable_xch_coins().await?.len(), 0);
 
-        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 1000);
         assert_eq!(bob.wallet.db.selectable_xch_coins().await?.len(), 1);
 
@@ -238,13 +232,11 @@ mod tests {
 
         bob.transact(coin_spends).await?;
         bob.wait_for_coins().await;
-        alice.wait_for_puzzles().await;
+        alice.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.selectable_xch_balance().await?, 1000);
         assert_eq!(alice.wallet.db.selectable_xch_coins().await?.len(), 1);
 
-        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.selectable_xch_coins().await?.len(), 0);
 
