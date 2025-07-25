@@ -17,12 +17,18 @@ pub async fn sync_wallet(
     peer: WalletPeer,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    delta_sync: bool,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
 
     let p2_puzzle_hashes = wallet.db.custody_p2_puzzle_hashes().await?;
 
-    let (start_height, start_header_hash) = wallet.db.latest_peak().await?.map_or_else(
+    let (start_height, start_header_hash) = if delta_sync {
+        wallet.db.latest_peak().await?
+    } else {
+        None
+    }
+    .map_or_else(
         || (None, wallet.genesis_challenge),
         |(peak, header_hash)| (Some(peak), header_hash),
     );
@@ -82,18 +88,20 @@ pub async fn sync_wallet(
         }
     }
 
-    if let Some((height, header_hash)) = state.lock().await.peak_of(peer.socket_addr().ip()) {
-        // TODO: Maybe look into a better way.
-        info!(
-            "Updating peak from peer to {} with header hash {}",
-            height, header_hash
-        );
-        wallet
-            .db
-            .insert_block(height, header_hash, None, true)
-            .await?;
-    } else {
-        warn!("No peak found");
+    if delta_sync {
+        if let Some((height, header_hash)) = state.lock().await.peak_of(peer.socket_addr().ip()) {
+            info!(
+                "Updating peak from peer to {} with header hash {}",
+                height, header_hash
+            );
+
+            wallet
+                .db
+                .insert_block(height, header_hash, None, true)
+                .await?;
+        } else {
+            warn!("No peak found");
+        }
     }
 
     Ok(())

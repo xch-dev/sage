@@ -26,11 +26,17 @@ pub struct LogoutResponse {}
 pub struct Resync {
     pub fingerprint: u32,
     #[serde(default)]
-    pub delete_offer_files: bool,
+    pub delete_coins: bool,
+    #[serde(default)]
+    pub delete_assets: bool,
+    #[serde(default)]
+    pub delete_files: bool,
+    #[serde(default)]
+    pub delete_offers: bool,
     #[serde(default)]
     pub delete_addresses: bool,
     #[serde(default)]
-    pub delete_blockinfo: bool,
+    pub delete_blocks: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

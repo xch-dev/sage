@@ -209,26 +209,35 @@ async cancelOffers(req: CancelOffers) : Promise<TransactionResponse> {
 async networkConfig() : Promise<NetworkConfig> {
     return await TAURI_INVOKE("network_config");
 },
-async setDiscoverPeers(req: SetDiscoverPeers) : Promise<SetDiscoverPeersResponse> {
+async setDiscoverPeers(req: SetDiscoverPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_discover_peers", { req });
 },
-async setTargetPeers(req: SetTargetPeers) : Promise<SetTargetPeersResponse> {
+async setTargetPeers(req: SetTargetPeers) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_target_peers", { req });
 },
-async setNetwork(req: SetNetwork) : Promise<SetNetworkResponse> {
+async setNetwork(req: SetNetwork) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_network", { req });
 },
-async setNetworkOverride(req: SetNetworkOverride) : Promise<SetNetworkOverrideResponse> {
+async setNetworkOverride(req: SetNetworkOverride) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_network_override", { req });
 },
 async walletConfig(fingerprint: number) : Promise<Wallet | null> {
     return await TAURI_INVOKE("wallet_config", { fingerprint });
+},
+async defaultWalletConfig() : Promise<WalletDefaults> {
+    return await TAURI_INVOKE("default_wallet_config");
 },
 async getNetworks(req: GetNetworks) : Promise<NetworkList> {
     return await TAURI_INVOKE("get_networks", { req });
 },
 async getNetwork(req: GetNetwork) : Promise<GetNetworkResponse> {
     return await TAURI_INVOKE("get_network", { req });
+},
+async setDeltaSync(req: SetDeltaSync) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_delta_sync", { req });
+},
+async setDeltaSyncOverride(req: SetDeltaSyncOverride) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_delta_sync_override", { req });
 },
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
@@ -254,10 +263,10 @@ async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDe
 async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
     return await TAURI_INVOKE("get_peers", { req });
 },
-async addPeer(req: AddPeer) : Promise<AddPeerResponse> {
+async addPeer(req: AddPeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("add_peer", { req });
 },
-async removePeer(req: RemovePeer) : Promise<RemovePeerResponse> {
+async removePeer(req: RemovePeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("remove_peer", { req });
 },
 async filterUnlockedCoins(req: FilterUnlockedCoins) : Promise<FilterUnlockedCoinsResponse> {
@@ -318,7 +327,6 @@ syncEvent: "sync-event"
 
 export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUriKind; auto_submit?: boolean }
 export type AddPeer = { ip: string }
-export type AddPeerResponse = Record<string, never>
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; kind: AssetKind }
@@ -381,6 +389,7 @@ export type DerivationMode = { mode: "default" } |
 { mode: "static" }
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
+export type EmptyResponse = Record<string, never>
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 export type FilterUnlockedCoins = { coin_ids: string[] }
@@ -489,10 +498,9 @@ export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; a
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
 export type RemovePeer = { ip: string; ban: boolean }
-export type RemovePeerResponse = Record<string, never>
 export type RenameKey = { fingerprint: number; name: string }
 export type RenameKeyResponse = Record<string, never>
-export type Resync = { fingerprint: number; delete_offer_files?: boolean; delete_addresses?: boolean; delete_blockinfo?: boolean }
+export type Resync = { fingerprint: number; delete_coins?: boolean; delete_assets?: boolean; delete_files?: boolean; delete_offers?: boolean; delete_addresses?: boolean; delete_blocks?: boolean }
 export type ResyncCat = { asset_id: string }
 export type ResyncCatResponse = Record<string, never>
 export type ResyncResponse = Record<string, never>
@@ -501,14 +509,12 @@ export type SendCat = { asset_id: string; address: string; amount: Amount; fee: 
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
 export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
 export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
+export type SetDeltaSync = { delta_sync: boolean }
+export type SetDeltaSyncOverride = { fingerprint: number; delta_sync: boolean | null }
 export type SetDiscoverPeers = { discover_peers: boolean }
-export type SetDiscoverPeersResponse = Record<string, never>
 export type SetNetwork = { name: string }
 export type SetNetworkOverride = { fingerprint: number; name: string | null }
-export type SetNetworkOverrideResponse = Record<string, never>
-export type SetNetworkResponse = Record<string, never>
 export type SetTargetPeers = { target_peers: number }
-export type SetTargetPeersResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SignMessageByAddress = { message: string; address: string }
@@ -546,7 +552,8 @@ export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
-export type Wallet = { name?: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null }
+export type Wallet = { name: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null; delta_sync: boolean | null }
+export type WalletDefaults = { change: ChangeMode; derivation: DerivationMode; delta_sync: boolean }
 
 /** tauri-specta globals **/
 

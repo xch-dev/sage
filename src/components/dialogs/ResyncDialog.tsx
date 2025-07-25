@@ -30,8 +30,9 @@ export function ResyncDialog({
   const { addError } = useErrors();
 
   const [pending, setPending] = useState(false);
-  const [deleteAddresses, setDeleteAddresses] = useState(false);
+  const [deleteCoins, setDeleteCoins] = useState(false);
   const [deleteOffers, setDeleteOffers] = useState(false);
+  const [deleteCache, setDeleteCache] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={(open) => !open && setOpen(false)}>
@@ -50,6 +51,18 @@ export function ResyncDialog({
               re-download data from the network which can take a while depending
               on the size of the wallet.
             </Trans>
+
+            <div className='flex items-center gap-2 my-2'>
+              <label htmlFor='deleteCoins'>
+                <Trans>Delete coin data</Trans>
+              </label>
+              <Switch
+                id='deleteCoins'
+                checked={deleteCoins}
+                onCheckedChange={(value) => setDeleteCoins(value)}
+              />
+            </div>
+
             <div className='flex items-center gap-2 my-2'>
               <label htmlFor='deleteOffers'>
                 <Trans>Delete saved offer files</Trans>
@@ -60,14 +73,15 @@ export function ResyncDialog({
                 onCheckedChange={(value) => setDeleteOffers(value)}
               />
             </div>
+
             <div className='flex items-center gap-2 my-2'>
-              <label htmlFor='deleteAddresses'>
-                <Trans>Delete addresses</Trans>
+              <label htmlFor='deleteCache'>
+                <Trans>Delete all cached data</Trans>
               </label>
               <Switch
-                id='deleteAddresses'
-                checked={deleteAddresses}
-                onCheckedChange={(value) => setDeleteAddresses(value)}
+                id='deleteCache'
+                checked={deleteCache}
+                onCheckedChange={(value) => setDeleteCache(value)}
               />
             </div>
           </DialogDescription>
@@ -81,9 +95,12 @@ export function ResyncDialog({
             onClick={() => {
               setPending(true);
               submit({
-                delete_addresses: deleteAddresses,
-                delete_offer_files: deleteOffers,
-                delete_blockinfo: false,
+                delete_coins: deleteCoins,
+                delete_offers: deleteOffers,
+                delete_addresses: deleteCache,
+                delete_assets: deleteCache,
+                delete_files: deleteCache,
+                delete_blocks: deleteCache,
               })
                 .catch(addError)
                 .finally(() => {

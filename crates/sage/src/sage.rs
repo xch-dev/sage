@@ -220,6 +220,11 @@ impl Sage {
                 max_peer_age_seconds: 3600 * 8,
                 dns_batch_size: 10,
                 connection_batch_size: 30,
+                delta_sync: self
+                    .wallet_config()
+                    .cloned()
+                    .unwrap_or_default()
+                    .delta_sync(&self.wallet_config.defaults),
                 puzzle_batch_size_per_peer: 5,
                 timeouts: Timeouts::default(),
                 testing: false,
@@ -251,7 +256,10 @@ impl Sage {
             self.wallet = None;
 
             self.command_sender
-                .send(SyncCommand::SwitchWallet { wallet: None })
+                .send(SyncCommand::SwitchWallet {
+                    wallet: None,
+                    delta_sync: self.wallet_config.defaults.delta_sync,
+                })
                 .await?;
 
             return Ok(());
@@ -286,6 +294,11 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::SwitchWallet {
                 wallet: Some(wallet),
+                delta_sync: self
+                    .wallet_config()
+                    .cloned()
+                    .unwrap_or_default()
+                    .delta_sync(&self.wallet_config.defaults),
             })
             .await?;
 
@@ -431,20 +444,22 @@ impl Sage {
         Ok(path)
     }
 
-    pub fn network(&self) -> &Network {
-        if let Some(fingerprint) = self.config.global.fingerprint {
-            if let Some(wallet) = self
-                .wallet_config
+    pub fn wallet_config(&self) -> Option<&sage_config::Wallet> {
+        self.config.global.fingerprint.and_then(|fingerprint| {
+            self.wallet_config
                 .wallets
                 .iter()
                 .find(|w| w.fingerprint == fingerprint)
-            {
-                if let Some(network) = &wallet.network {
-                    return self
-                        .network_list
-                        .by_name(network)
-                        .expect("network not found");
-                }
+        })
+    }
+
+    pub fn network(&self) -> &Network {
+        if let Some(wallet) = self.wallet_config() {
+            if let Some(network) = &wallet.network {
+                return self
+                    .network_list
+                    .by_name(network)
+                    .expect("network not found");
             }
         }
 

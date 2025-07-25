@@ -58,7 +58,7 @@ impl BlockTimeQueue {
         for peer in peers {
             for _ in 0..5 {
                 if let Some(height) = heights.next() {
-                    tasks.push(self.fetch_and_process_blockinfo(peer.clone(), height));
+                    tasks.push(self.fetch_block(peer.clone(), height));
                 }
             }
         }
@@ -74,11 +74,7 @@ impl BlockTimeQueue {
         Ok(())
     }
 
-    async fn fetch_and_process_blockinfo(
-        &self,
-        peer: WalletPeer,
-        height: u32,
-    ) -> Result<(), WalletError> {
+    async fn fetch_block(&self, peer: WalletPeer, height: u32) -> Result<(), WalletError> {
         match peer.block_timestamp(height).await {
             Ok((header_hash, timestamp)) => {
                 self.db

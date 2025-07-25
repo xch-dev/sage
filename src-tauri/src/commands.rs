@@ -5,7 +5,7 @@ use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
-use sage_config::{NetworkConfig, Wallet};
+use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
 use specta::specta;
@@ -100,6 +100,12 @@ pub async fn wallet_config(state: State<'_, AppState>, fingerprint: u32) -> Resu
         .iter()
         .find(|wallet| wallet.fingerprint == fingerprint)
         .cloned())
+}
+
+#[command]
+#[specta]
+pub async fn default_wallet_config(state: State<'_, AppState>) -> Result<WalletDefaults> {
+    Ok(state.lock().await.wallet_config.defaults.clone())
 }
 
 #[command]
