@@ -30,8 +30,18 @@ pub struct BulkSendXch {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct CombineXch {
+pub struct Combine {
     pub coin_ids: Vec<String>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct Split {
+    pub coin_ids: Vec<String>,
+    pub output_count: u32,
     pub fee: Amount,
     #[serde(default)]
     pub auto_submit: bool,
@@ -57,25 +67,6 @@ pub struct AutoCombineXchResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SplitXch {
-    pub coin_ids: Vec<String>,
-    pub output_count: u32,
-    pub fee: Amount,
-    #[serde(default)]
-    pub auto_submit: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct CombineCat {
-    pub coin_ids: Vec<String>,
-    pub fee: Amount,
-    #[serde(default)]
-    pub auto_submit: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct AutoCombineCat {
     pub asset_id: String,
     pub max_coins: u32,
@@ -91,16 +82,6 @@ pub struct AutoCombineCatResponse {
     pub coin_ids: Vec<String>,
     pub summary: TransactionSummary,
     pub coin_spends: Vec<CoinSpendJson>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct SplitCat {
-    pub coin_ids: Vec<String>,
-    pub output_count: u32,
-    pub fee: Amount,
-    #[serde(default)]
-    pub auto_submit: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -334,10 +315,8 @@ pub struct TransactionResponse {
 
 pub type SendXchResponse = TransactionResponse;
 pub type BulkSendXchResponse = TransactionResponse;
-pub type CombineXchResponse = TransactionResponse;
-pub type SplitXchResponse = TransactionResponse;
-pub type CombineCatResponse = TransactionResponse;
-pub type SplitCatResponse = TransactionResponse;
+pub type CombineResponse = TransactionResponse;
+pub type SplitResponse = TransactionResponse;
 pub type IssueCatResponse = TransactionResponse;
 pub type SendCatResponse = TransactionResponse;
 pub type BulkSendCatResponse = TransactionResponse;

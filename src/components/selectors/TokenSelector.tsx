@@ -1,4 +1,4 @@
-import { CatRecord, commands } from '@/bindings';
+import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -26,8 +26,8 @@ export function TokenSelector({
 }: TokenSelectorProps) {
   const { addError } = useErrors();
 
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
-  const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [selectedToken, setSelectedToken] = useState<TokenRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -71,7 +71,7 @@ export function TokenSelector({
     if (!searchTerm) return true;
 
     if (isValidAssetId(searchTerm)) {
-      return token.asset_id.toLowerCase() === searchTerm.toLowerCase();
+      return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
     }
 
     // Search by name and ticker
@@ -85,8 +85,11 @@ export function TokenSelector({
     <DropdownSelector
       loadedItems={filteredTokens}
       page={0}
-      isDisabled={(token) => disabled.includes(token.asset_id)}
+      isDisabled={(token) =>
+        token.asset_id !== null && disabled.includes(token.asset_id)
+      }
       onSelect={(token) => {
+        if (!token.asset_id) return;
         onChange(token.asset_id);
         setSelectedToken(token);
         setSearchTerm('');
@@ -111,6 +114,7 @@ export function TokenSelector({
                   ticker: null,
                   description: null,
                   visible: true,
+                  precision: 3,
                 },
               );
             }

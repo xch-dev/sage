@@ -6,7 +6,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { formatUsdPrice, getAssetDisplayName, toDecimal } from '@/lib/utils';
-import { TokenRecord } from '@/types/TokenViewProps';
+import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
@@ -28,12 +28,12 @@ import { NumberFormat } from './NumberFormat';
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
   onRefreshInfo?: (assetId: string) => void;
-  onToggleVisibility?: (asset: TokenRecord) => void;
+  onToggleVisibility?: (asset: PricedTokenRecord) => void;
 }
 
 export const columns = (
   actionHandlers?: TokenActionHandlers,
-): ColumnDef<TokenRecord>[] => [
+): ColumnDef<PricedTokenRecord>[] => [
   {
     id: 'icon',
     enableSorting: false,
@@ -60,7 +60,7 @@ export const columns = (
         row.original.ticker,
         'token',
       );
-      const path = `/wallet/token/${row.original.asset_id}`;
+      const path = `/wallet/token/${row.original.asset_id ?? 'xch'}`;
       const ariaLabel = t`View ${name} token details`;
 
       return (
@@ -89,8 +89,8 @@ export const columns = (
       const record = row.original;
       return (
         <NumberFormat
-          value={toDecimal(record.balance, record.decimals)}
-          maximumFractionDigits={record.decimals}
+          value={toDecimal(record.balance, record.precision)}
+          maximumFractionDigits={record.precision}
         />
       );
     },
@@ -134,7 +134,7 @@ export const columns = (
     size: 44,
     cell: ({ row }) => {
       const record = row.original;
-      const balance = toDecimal(record.balance, record.decimals);
+      const balance = toDecimal(record.balance, record.precision);
 
       return (
         <DropdownMenu>
@@ -149,13 +149,14 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!record.isXch && (
+            {record.asset_id !== null && (
               <>
                 {actionHandlers?.onRefreshInfo && (
                   <DropdownMenuItem
-                    onClick={() =>
-                      actionHandlers.onRefreshInfo?.(record.asset_id)
-                    }
+                    onClick={() => {
+                      if (!record.asset_id) return;
+                      actionHandlers.onRefreshInfo?.(record.asset_id);
+                    }}
                   >
                     <RefreshCw className='mr-2 h-4 w-4' aria-hidden='true' />
                     <Trans>Refresh Info</Trans>
@@ -174,27 +175,32 @@ export const columns = (
                     <Trans>Asset</Trans>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  onClick={() => {
-                    openUrl(
-                      `https://dexie.space/offers/XCH/${record.asset_id}`,
-                    ).catch((error) => {
-                      toast.error(t`Failed to open dexie.space: ${error}`);
-                    });
-                  }}
-                >
-                  <ExternalLink className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <Trans>View on dexie</Trans>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard.writeText(record.asset_id);
-                    toast.success(t`Asset ID copied to clipboard`);
-                  }}
-                >
-                  <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <Trans>Copy Asset ID</Trans>
-                </DropdownMenuItem>
+                {record.asset_id && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      openUrl(
+                        `https://dexie.space/offers/XCH/${record.asset_id}`,
+                      ).catch((error) => {
+                        toast.error(t`Failed to open dexie.space: ${error}`);
+                      });
+                    }}
+                  >
+                    <ExternalLink className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <Trans>View on dexie</Trans>
+                  </DropdownMenuItem>
+                )}
+                {record.asset_id && (
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (!record.asset_id) return;
+                      navigator.clipboard.writeText(record.asset_id);
+                      toast.success(t`Asset ID copied to clipboard`);
+                    }}
+                  >
+                    <Copy className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <Trans>Copy Asset ID</Trans>
+                  </DropdownMenuItem>
+                )}
               </>
             )}
             <DropdownMenuItem

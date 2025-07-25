@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, CatRecord, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
-    NftRecord, PendingTransactionRecord, TransactionRecord, Unit,
+    Amount, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData, NftRecord,
+    PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -129,6 +129,7 @@ pub enum CoinSortMode {
     #[default]
     CreatedHeight,
     SpentHeight,
+    ClawbackTimestamp,
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -137,9 +138,10 @@ pub enum CoinSortMode {
 pub enum CoinFilterMode {
     All,
     #[default]
+    Selectable,
     Owned,
     Spent,
-    Spendable,
+    Clawback,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -183,7 +185,7 @@ pub struct GetAllCats {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetAllCatsResponse {
-    pub cats: Vec<CatRecord>,
+    pub cats: Vec<TokenRecord>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -193,19 +195,19 @@ pub struct GetCats {}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetCatsResponse {
-    pub cats: Vec<CatRecord>,
+    pub cats: Vec<TokenRecord>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetCat {
-    pub asset_id: String,
+pub struct GetToken {
+    pub asset_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetCatResponse {
-    pub cat: Option<CatRecord>,
+pub struct GetTokenResponse {
+    pub token: Option<TokenRecord>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

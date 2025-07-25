@@ -207,6 +207,50 @@ const ConfirmedCell = ({ row }: { row: Row<CoinRecord> }) =>
       ? row.original.created_height.toString()
       : t`Pending...`;
 
+const ClawbackHeader = ({
+  sortMode,
+  sortDirection,
+  onSortModeChange,
+  onSortDirectionChange,
+  setCurrentPage,
+}: {
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  setCurrentPage: (page: number) => void;
+}) => (
+  <Button
+    className='px-0'
+    variant='link'
+    onClick={() => {
+      if (sortMode === 'clawback_timestamp') {
+        onSortDirectionChange(!sortDirection);
+      } else {
+        onSortModeChange('clawback_timestamp');
+        onSortDirectionChange(false);
+      }
+      setCurrentPage(0);
+    }}
+  >
+    <Trans>Clawback Expiration</Trans>
+    {sortMode === 'clawback_timestamp' ? (
+      sortDirection ? (
+        <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+      ) : (
+        <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+      )
+    ) : (
+      <span className='ml-2 w-4 h-4' />
+    )}
+  </Button>
+);
+
+const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
+  row.original.clawback_timestamp
+    ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
+    : t`No expiration`;
+
 const SpentHeader = ({
   sortMode,
   sortDirection,
@@ -330,6 +374,16 @@ const SpentHeaderWrapper = (props: CoinListProps) => (
   />
 );
 
+const ClawbackHeaderWrapper = (props: CoinListProps) => (
+  <ClawbackHeader
+    sortMode={props.sortMode}
+    sortDirection={props.sortDirection}
+    onSortModeChange={props.onSortModeChange}
+    onSortDirectionChange={props.onSortDirectionChange}
+    setCurrentPage={props.setCurrentPage}
+  />
+);
+
 const AmountCellWrapper = ({
   row,
   precision,
@@ -367,12 +421,19 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     size: 140,
     cell: ConfirmedCell,
   },
-  {
-    accessorKey: 'spent_height',
-    header: () => <SpentHeaderWrapper {...props} />,
-    size: 120,
-    cell: SpentCell,
-  },
+  props.clawback
+    ? {
+        accessorKey: 'clawback_timestamp',
+        header: () => <ClawbackHeaderWrapper {...props} />,
+        size: 120,
+        cell: ClawbackCell,
+      }
+    : {
+        accessorKey: 'spent_height',
+        header: () => <SpentHeaderWrapper {...props} />,
+        size: 120,
+        cell: SpentCell,
+      },
 ];
 
 export interface CoinListProps {
@@ -393,6 +454,7 @@ export interface CoinListProps {
   onSortModeChange: (mode: CoinSortMode) => void;
   onSortDirectionChange: (ascending: boolean) => void;
   onIncludeSpentCoinsChange: (include: boolean) => void;
+  clawback: boolean;
 }
 
 export default function CoinList(props: CoinListProps) {
@@ -466,7 +528,7 @@ export default function CoinList(props: CoinListProps) {
         rowLabel={t`coin`}
         rowLabelPlural={t`coins`}
       />
-      <div className='flex-shrink-0 py-4'>
+      <div className='flex-shrink-0 pt-4'>
         <SimplePagination
           currentPage={props.currentPage}
           pageCount={props.totalPages}

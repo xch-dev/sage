@@ -27,8 +27,8 @@ interface DexieResponse {
 }
 
 export interface PriceContextType {
-  getBalanceInUsd: (assetId: string, balance: string) => string;
-  getPriceInUsd: (assetId: string) => number;
+  getBalanceInUsd: (assetId: string | null, balance: string) => string;
+  getPriceInUsd: (assetId: string | null) => number;
   getCatAskPriceInXch: (assetId: string) => number | null;
   isLoading: boolean;
 }
@@ -141,14 +141,10 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   }, [network, isNetworkLoading]);
 
   const getPriceInUsd = useCallback(
-    (assetId: string) => {
-      const normalizedAssetId = assetId.toLowerCase();
+    (assetId: string | null) => {
+      if (!assetId) return xchUsdPrice;
 
-      if (normalizedAssetId === 'xch') {
-        return xchUsdPrice;
-      }
-
-      const priceData = catPrices[normalizedAssetId];
+      const priceData = catPrices[assetId.toLowerCase()];
       const xchPrice = priceData?.lastPrice;
 
       if (xchPrice === null || xchPrice === undefined) {
@@ -161,21 +157,16 @@ export function PriceProvider({ children }: { children: ReactNode }) {
   );
 
   const getBalanceInUsd = useCallback(
-    (assetId: string, balance: string) => {
+    (assetId: string | null, balance: string) => {
       // Validate balance input
       const balanceNum = Number(balance);
       if (isNaN(balanceNum)) {
         return '0.00';
       }
 
-      // Normalize asset ID to lowercase for consistency
-      const normalizedAssetId = assetId.toLowerCase();
+      if (!assetId) return (balanceNum * xchUsdPrice).toFixed(2);
 
-      if (normalizedAssetId === 'xch') {
-        return (balanceNum * xchUsdPrice).toFixed(2);
-      }
-
-      const priceData = catPrices[assetId];
+      const priceData = catPrices[assetId.toLowerCase()];
       const xchPrice = priceData?.lastPrice;
 
       // Handle null values properly

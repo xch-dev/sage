@@ -462,13 +462,11 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert!(test.wallet.db.nft(nft_id).await?.is_some());
-        assert!(test.wallet.db.spendable_nft(nft_id).await?.is_none());
+        assert!(test.wallet.db.spendable_nft(nft_id).await?.is_some());
 
         sleep(Duration::from_secs(6)).await;
         test.new_block_with_current_time().await?;
 
-        assert!(test.wallet.db.nft(nft_id).await?.is_some());
         assert!(test.wallet.db.spendable_nft(nft_id).await?.is_some());
 
         let coin_spends = test
@@ -527,18 +525,15 @@ mod tests {
 
         alice.wait_for_coins().await;
 
-        assert!(alice.wallet.db.nft(nft_id).await?.is_none());
         assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_none());
 
         bob.wait_for_puzzles().await;
 
-        assert!(bob.wallet.db.nft(nft_id).await?.is_some());
         assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_none());
 
         sleep(Duration::from_secs(6)).await;
         bob.new_block_with_current_time().await?;
 
-        assert!(bob.wallet.db.nft(nft_id).await?.is_some());
         assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_some());
 
         let coin_spends = bob
@@ -552,10 +547,7 @@ mod tests {
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
 
-        assert!(alice.wallet.db.nft(nft_id).await?.is_some());
         assert!(alice.wallet.db.spendable_nft(nft_id).await?.is_some());
-
-        assert!(bob.wallet.db.nft(nft_id).await?.is_none());
         assert!(bob.wallet.db.spendable_nft(nft_id).await?.is_none());
 
         Ok(())
