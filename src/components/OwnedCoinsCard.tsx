@@ -25,75 +25,60 @@ import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { OnChangeFn, RowSelectionState } from '@tanstack/react-table';
+import { RowSelectionState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
 import { MergeIcon, SplitIcon, XIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
-  CatRecord,
   CoinRecord,
   CoinSortMode,
   commands,
+  events,
+  TokenRecord,
   TransactionResponse,
 } from '../bindings';
 import { FeeAmountInput } from './ui/masked-input';
 
-interface CoinsCardProps {
-  precision: number;
-  coins: CoinRecord[];
-  asset: CatRecord | null;
-  splitHandler: typeof commands.splitXch | null;
-  combineHandler: typeof commands.combineXch | null;
-  autoCombineHandler: typeof commands.autoCombineXch | null;
+interface OwnedCoinsCardProps {
+  asset: TokenRecord;
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
-  setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;
-  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
-  currentPage: number;
-  totalCoins: number;
-  pageSize: number;
-  setCurrentPage: (page: number) => void;
-  sortMode: CoinSortMode;
-  sortDirection: boolean;
-  includeSpentCoins: boolean;
-  onSortModeChange: (mode: CoinSortMode) => void;
-  onSortDirectionChange: (ascending: boolean) => void;
-  onIncludeSpentCoinsChange: (include: boolean) => void;
+  setSelectedCoins: Dispatch<SetStateAction<RowSelectionState>>;
 }
 
-export function CoinsCard({
-  precision,
-  coins: pageCoins,
+export function OwnedCoinsCard({
   asset,
-  splitHandler,
-  combineHandler,
-  autoCombineHandler,
   setResponse,
   selectedCoins,
   setSelectedCoins,
-  onRowSelectionChange,
-  currentPage,
-  totalCoins,
-  pageSize,
-  setCurrentPage,
-  sortMode,
-  sortDirection,
-  includeSpentCoins,
-  onSortModeChange,
-  onSortDirectionChange,
-  onIncludeSpentCoinsChange,
-}: CoinsCardProps) {
+}: OwnedCoinsCardProps) {
   const walletState = useWalletState();
-  const ticker = asset?.ticker;
 
   const { addError } = useErrors();
 
-  // Store selected CoinRecords instead of just IDs
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
   );
+  const [coins, setCoins] = useState<CoinRecord[]>([]);
+  const [currentPage, setCurrentPage] = useState<number>(0);
+  const [totalCoins, setTotalCoins] = useState<number>(0);
+  const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
+  const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
+  const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
+  const pageSize = 10;
+
+  // Use ref to track current page to avoid dependency issues
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
 
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
@@ -103,7 +88,7 @@ export function CoinsCard({
   useEffect(() => {
     // Find records in current page
     const currentPageRecords = selectedCoinIds
-      .map((id) => pageCoins.find((coin) => coin.coin_id === id))
+      .map((id) => coins.find((coin) => coin.coin_id === id))
       .filter(Boolean) as CoinRecord[];
 
     // Use functional update to avoid dependency on selectedCoinRecords
@@ -118,7 +103,7 @@ export function CoinsCard({
       // Combine records from current page with previously selected records
       return [...currentPageRecords, ...existingSelectedRecords];
     });
-  }, [selectedCoinIds, pageCoins]);
+  }, [selectedCoinIds, coins]);
 
   const [canCombine, setCanCombine] = useState(false);
   const [canSplit, setCanSplit] = useState(false);
@@ -165,7 +150,7 @@ export function CoinsCard({
     let isMounted = true;
 
     const checkAutoCombine = async () => {
-      if (selectedCoinIds.length === 0 && asset?.asset_id) {
+      if (selectedCoinIds.length === 0 && asset.asset_id) {
         try {
           const spendable = await commands.getSpendableCoinCount({
             asset_id: asset.asset_id,
@@ -192,6 +177,62 @@ export function CoinsCard({
     };
   }, [selectedCoinIds, asset]);
 
+  const updateCoins = useMemo(
+    () =>
+      (page: number = currentPageRef.current) => {
+        const offset = page * pageSize;
+
+        commands
+          .getCoins({
+            asset_id: asset.asset_id,
+            offset,
+            limit: pageSize,
+            sort_mode: sortMode,
+            ascending: sortDirection,
+            filter_mode: includeSpentCoins ? 'spent' : 'owned',
+          })
+          .then((res) => {
+            setCoins(res.coins);
+            setTotalCoins(res.total);
+          })
+          .catch(addError);
+      },
+    [
+      asset.asset_id,
+      addError,
+      pageSize,
+      sortMode,
+      sortDirection,
+      includeSpentCoins,
+    ],
+  );
+
+  useEffect(() => {
+    updateCoins();
+
+    const unlisten = events.syncEvent.listen((event) => {
+      const type = event.payload.type;
+
+      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
+        updateCoins();
+      }
+    });
+
+    return () => {
+      unlisten.then((u) => u());
+    };
+  }, [updateCoins]);
+
+  // Reset to page 0 when sort parameters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [sortMode, sortDirection, includeSpentCoins]);
+
+  // Update coins when page changes
+  useEffect(() => {
+    updateCoins(currentPage);
+  }, [currentPage, updateCoins]);
+
   const [combineOpen, setCombineOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [autoCombineOpen, setAutoCombineOpen] = useState(false);
@@ -208,8 +249,6 @@ export function CoinsCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    if (!combineHandler) return;
-
     const fee = toMojos(values.combineFee, walletState.sync.unit.decimals);
 
     // Get IDs from the selected coin records
@@ -217,10 +256,11 @@ export function CoinsCard({
       (record) => record.coin_id,
     );
 
-    combineHandler({
-      coin_ids: coinIdsForRequest,
-      fee,
-    })
+    commands
+      .combine({
+        coin_ids: coinIdsForRequest,
+        fee,
+      })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -229,8 +269,8 @@ export function CoinsCard({
             content: {
               type: 'combine',
               coins: selectedCoinRecords,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -257,8 +297,6 @@ export function CoinsCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    if (!splitHandler) return;
-
     const fee = toMojos(values.splitFee, walletState.sync.unit.decimals);
 
     // Get IDs from the selected coin records
@@ -266,11 +304,12 @@ export function CoinsCard({
       (record) => record.coin_id,
     );
 
-    splitHandler({
-      coin_ids: coinIdsForRequest,
-      output_count: values.outputCount,
-      fee,
-    })
+    commands
+      .split({
+        coin_ids: coinIdsForRequest,
+        output_count: values.outputCount,
+        fee,
+      })
       .then((result) => {
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
@@ -280,8 +319,8 @@ export function CoinsCard({
               type: 'split',
               coins: selectedCoinRecords,
               outputCount: values.outputCount,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -298,7 +337,7 @@ export function CoinsCard({
       t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
-    maxCoinAmount: amount(precision).optional(),
+    maxCoinAmount: amount(asset.precision).optional(),
   });
 
   const autoCombineForm = useForm<z.infer<typeof autoCombineFormSchema>>({
@@ -312,15 +351,19 @@ export function CoinsCard({
   const onAutoCombineSubmit = (
     values: z.infer<typeof autoCombineFormSchema>,
   ) => {
-    if (!autoCombineHandler) return;
-
     const fee = toMojos(values.autoCombineFee, walletState.sync.unit.decimals);
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
-      ? toMojos(values.maxCoinAmount, precision)
+      ? toMojos(values.maxCoinAmount, asset.precision)
       : null;
 
-    autoCombineHandler({
+    (!asset?.asset_id
+      ? commands.autoCombineXch
+      : (...[req]: Parameters<typeof commands.autoCombineXch>) =>
+          commands.autoCombineCat({
+            ...req,
+            asset_id: asset?.asset_id ?? '',
+          }))({
       max_coins: parseInt(toMojos(maxCoins, 0)),
       max_coin_amount: maxCoinAmount,
       fee,
@@ -338,8 +381,8 @@ export function CoinsCard({
             content: {
               type: 'combine',
               coins: resultCoins.coins,
-              ticker: ticker || '',
-              precision,
+              ticker: asset.ticker,
+              precision: asset.precision,
             },
           },
         });
@@ -358,16 +401,16 @@ export function CoinsCard({
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
         <CardTitle className='text-lg font-medium'>
-          <Trans>Coins</Trans>
+          <Trans>Owned Coins</Trans>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <CoinList
-          precision={precision}
-          coins={pageCoins}
+          clawback={false}
+          precision={asset.precision}
+          coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
-          onRowSelectionChange={onRowSelectionChange}
           currentPage={currentPage}
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
@@ -375,46 +418,41 @@ export function CoinsCard({
           sortMode={sortMode}
           sortDirection={sortDirection}
           includeSpentCoins={includeSpentCoins}
-          onSortModeChange={onSortModeChange}
-          onSortDirectionChange={onSortDirectionChange}
-          onIncludeSpentCoinsChange={onIncludeSpentCoinsChange}
+          onSortModeChange={setSortMode}
+          onSortDirectionChange={setSortDirection}
+          onIncludeSpentCoinsChange={setIncludeSpentCoins}
           actions={
             <>
-              {splitHandler && (
-                <Button
-                  variant='outline'
-                  disabled={!canSplit}
-                  onClick={() => setSplitOpen(true)}
-                >
-                  <SplitIcon className='mr-2 h-4 w-4' /> <Trans>Split</Trans>
-                </Button>
-              )}
-              {(combineHandler || autoCombineHandler) && (
-                <Button
-                  variant='outline'
-                  disabled={!(canCombine || canAutoCombine)}
-                  onClick={() => {
-                    if (canCombine) {
-                      setCombineOpen(true);
-                    } else if (canAutoCombine) {
-                      setAutoCombineOpen(true);
-                    }
-                  }}
-                >
-                  <MergeIcon className='mr-2 h-4 w-4' />
-                  {!canCombine && canAutoCombine ? (
-                    <Trans>Sweep</Trans>
-                  ) : (
-                    <Trans>Combine</Trans>
-                  )}
-                </Button>
-              )}
+              <Button
+                variant='outline'
+                disabled={!canSplit}
+                onClick={() => setSplitOpen(true)}
+              >
+                <SplitIcon className='mr-2 h-4 w-4' /> <Trans>Split</Trans>
+              </Button>
+              <Button
+                variant='outline'
+                disabled={!(canCombine || canAutoCombine)}
+                onClick={() => {
+                  if (canCombine) {
+                    setCombineOpen(true);
+                  } else if (canAutoCombine) {
+                    setAutoCombineOpen(true);
+                  }
+                }}
+              >
+                <MergeIcon className='mr-2 h-4 w-4' />
+                {!canCombine && canAutoCombine ? (
+                  <Trans>Sweep</Trans>
+                ) : (
+                  <Trans>Combine</Trans>
+                )}
+              </Button>
             </>
           }
         />
-
         {selectedCoinCount > 0 && (
-          <div className='flex items-center gap-2'>
+          <div className='flex items-center gap-2 mt-2'>
             <Button variant='outline' onClick={() => setSelectedCoins({})}>
               <XIcon className='h-4 w-4 mr-2' />
               <Trans>Clear Selection</Trans>
@@ -433,7 +471,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {ticker}</Trans>
+              <Trans>Combine {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -482,7 +520,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Split {ticker}</Trans>
+              <Trans>Split {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will split all of the selected coins.</Trans>
@@ -550,7 +588,7 @@ export function CoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Auto Combine {ticker}</Trans>
+              <Trans>Auto Combine {asset.ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>

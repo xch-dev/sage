@@ -68,7 +68,7 @@ impl Sage {
                 if include_locked {
                     CoinFilterMode::Owned
                 } else {
-                    CoinFilterMode::Spendable
+                    CoinFilterMode::Selectable
                 },
             )
             .await?;

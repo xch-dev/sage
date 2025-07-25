@@ -73,7 +73,7 @@ impl Database {
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,
                 edition_number, edition_total,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
-                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp
+                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?'
             FROM owned_nfts
             LEFT JOIN collections ON collections.id = owned_nfts.collection_id
             WHERE owned_nfts.asset_hash = ?
@@ -120,6 +120,7 @@ impl Database {
                     kind: CoinKind::Nft,
                     mempool_item_hash: None,
                     offer_hash: row.offer_hash.convert()?,
+                    clawback_timestamp: row.clawback_timestamp.convert()?,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
@@ -150,7 +151,7 @@ impl Database {
                 royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,                
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
                 created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
-                COUNT(*) OVER() as total_count	
+                clawback_expiration_seconds AS clawback_timestamp, COUNT(*) OVER() as total_count
             FROM owned_nfts
             LEFT JOIN collections ON collections.id = owned_nfts.collection_id
             WHERE 1=1
@@ -263,6 +264,9 @@ impl Database {
                         kind: CoinKind::Nft,
                         mempool_item_hash: None,
                         offer_hash: row.get::<Option<Vec<u8>>, _>("offer_hash").convert()?,
+                        clawback_timestamp: row
+                            .get::<Option<i64>, _>("clawback_timestamp")
+                            .convert()?,
                         created_height: row.get::<Option<i64>, _>("created_height").convert()?,
                         spent_height: row.get::<Option<i64>, _>("spent_height").convert()?,
                         created_timestamp: row

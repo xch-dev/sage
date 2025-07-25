@@ -6,7 +6,7 @@ use crate::{Asset, Convert, Database, Result};
 #[derive(Debug, Clone)]
 pub struct Transaction {
     pub height: u32,
-    pub timestamp: Option<u32>,
+    pub timestamp: Option<u64>,
     pub spent: Vec<TransactionCoin>,
     pub created: Vec<TransactionCoin>,
 }
@@ -91,7 +91,7 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
 
     for row in rows {
         if timestamp.is_none() {
-            timestamp = row.timestamp.map(|ts| ts as u32);
+            timestamp = row.timestamp.map(|ts| ts as u64);
         }
 
         let coin = Coin::new(
@@ -223,7 +223,7 @@ fn group_rows_into_transactions(
     #[allow(clippy::type_complexity)]
     let mut transactions_by_height: HashMap<
         u32,
-        (Option<u32>, Vec<TransactionCoin>, Vec<TransactionCoin>),
+        (Option<u64>, Vec<TransactionCoin>, Vec<TransactionCoin>),
     > = HashMap::new();
 
     for row in rows {
@@ -236,7 +236,7 @@ fn group_rows_into_transactions(
 
         let entry = transactions_by_height
             .entry(height)
-            .or_insert_with(|| (timestamp.map(|ts| ts as u32), Vec::new(), Vec::new()));
+            .or_insert_with(|| (timestamp.map(|ts| ts as u64), Vec::new(), Vec::new()));
 
         // these represent whether the coin was spent and/or created in this block
         if is_spent_in_block == 1 {

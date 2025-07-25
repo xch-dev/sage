@@ -5,25 +5,26 @@ use crate::{
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
+    protocol::Bytes32,
     puzzles::nft::NftMetadata,
 };
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
 use clvmr::Allocator;
 use sage_api::{
-    Amount, CatRecord, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode,
-    CoinRecord, CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats,
-    GetAllCatsResponse, GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCat, GetCatResponse,
-    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
-    GetDatabaseStats, GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids,
-    GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
-    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
-    GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
-    GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetPendingTransactions,
-    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
-    GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
+    CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
+    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCats, GetCatsResponse, GetCoins,
+    GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDatabaseStats,
+    GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
+    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
+    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
+    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
+    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
+    GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
     NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
-    PerformDatabaseMaintenanceResponse, TransactionCoinRecord, TransactionRecord,
+    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
@@ -171,11 +172,11 @@ impl Sage {
     ) -> Result<GetSpendableCoinCountResponse> {
         let wallet = self.wallet()?;
         let count = if req.asset_id == "xch" {
-            wallet.db.spendable_xch_coin_count().await?
+            wallet.db.selectable_xch_coin_count().await?
         } else {
             let asset_id = parse_asset_id(req.asset_id)?;
 
-            wallet.db.spendable_cat_coin_count(asset_id).await?
+            wallet.db.selectable_cat_coin_count(asset_id).await?
         };
 
         Ok(GetSpendableCoinCountResponse { count })
@@ -191,10 +192,11 @@ impl Sage {
                 coin_id: hex::encode(row.coin.coin_id()),
                 address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
-                created_height: row.created_height,
-                spent_height: row.spent_height,
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
+                clawback_timestamp: row.clawback_timestamp,
+                created_height: row.created_height,
+                spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
             });
@@ -209,12 +211,14 @@ impl Sage {
             ApiCoinSortMode::Amount => CoinSortMode::Amount,
             ApiCoinSortMode::CreatedHeight => CoinSortMode::CreatedHeight,
             ApiCoinSortMode::SpentHeight => CoinSortMode::SpentHeight,
+            ApiCoinSortMode::ClawbackTimestamp => CoinSortMode::ClawbackTimestamp,
         };
         let filter_mode = match req.filter_mode {
+            ApiCoinFilterMode::All => CoinFilterMode::All,
+            ApiCoinFilterMode::Selectable => CoinFilterMode::Selectable,
             ApiCoinFilterMode::Owned => CoinFilterMode::Owned,
             ApiCoinFilterMode::Spent => CoinFilterMode::Spent,
-            ApiCoinFilterMode::All => CoinFilterMode::All,
-            ApiCoinFilterMode::Spendable => CoinFilterMode::Spendable,
+            ApiCoinFilterMode::Clawback => CoinFilterMode::Clawback,
         };
         let mut coins = Vec::new();
         let (rows, total) = wallet
@@ -239,10 +243,11 @@ impl Sage {
                 coin_id: hex::encode(row.coin.coin_id()),
                 address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
-                created_height: row.created_height,
-                spent_height: row.spent_height,
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
+                clawback_timestamp: row.clawback_timestamp,
+                created_height: row.created_height,
+                spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
             });
@@ -260,10 +265,11 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
-                asset_id: hex::encode(cat.hash),
+            records.push(TokenRecord {
+                asset_id: (cat.hash != Bytes32::default()).then(|| hex::encode(cat.hash)),
                 name: cat.name,
                 ticker: cat.ticker,
+                precision: cat.precision,
                 description: cat.description,
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
@@ -284,10 +290,11 @@ impl Sage {
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
 
-            records.push(CatRecord {
-                asset_id: hex::encode(cat.hash),
+            records.push(TokenRecord {
+                asset_id: (cat.hash != Bytes32::default()).then(|| hex::encode(cat.hash)),
                 name: cat.name,
                 ticker: cat.ticker,
+                precision: cat.precision,
                 description: cat.description,
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
@@ -298,19 +305,25 @@ impl Sage {
         Ok(GetCatsResponse { cats: records })
     }
 
-    pub async fn get_cat(&self, req: GetCat) -> Result<GetCatResponse> {
+    pub async fn get_token(&self, req: GetToken) -> Result<GetTokenResponse> {
         let wallet = self.wallet()?;
 
-        let asset_id = parse_asset_id(req.asset_id)?;
-        let cat = wallet.db.asset(asset_id).await?;
+        let asset_id = req
+            .asset_id
+            .map(parse_asset_id)
+            .transpose()?
+            .unwrap_or_default();
+        let token = wallet.db.asset(asset_id).await?;
+        // TODO: Empty hash is xch even though it says cat. Is this confusing?
         let balance = wallet.db.cat_balance(asset_id).await?;
 
-        let cat = cat
+        let token = token
             .map(|cat| {
-                Result::Ok(CatRecord {
-                    asset_id: cat.hash.to_string(),
+                Result::Ok(TokenRecord {
+                    asset_id: (cat.hash != Bytes32::default()).then(|| hex::encode(cat.hash)),
                     name: cat.name,
                     ticker: cat.ticker,
+                    precision: cat.precision,
                     description: cat.description,
                     icon_url: cat.icon_url,
                     visible: cat.is_visible,
@@ -319,7 +332,7 @@ impl Sage {
             })
             .transpose()?;
 
-        Ok(GetCatResponse { cat })
+        Ok(GetTokenResponse { token })
     }
 
     pub async fn get_dids(&self, _req: GetDids) -> Result<GetDidsResponse> {

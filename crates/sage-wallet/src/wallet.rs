@@ -70,7 +70,7 @@ impl Wallet {
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
     ) -> Result<Vec<Coin>, WalletError> {
-        let mut spendable_coins = self.db.spendable_xch_coins().await?;
+        let mut spendable_coins = self.db.selectable_xch_coins().await?;
         spendable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
         Ok(select_coins(spendable_coins, amount)?)
@@ -82,7 +82,7 @@ impl Wallet {
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
     ) -> Result<Vec<Cat>, WalletError> {
-        let mut cat_coins = self.db.spendable_cat_coins(asset_id).await?;
+        let mut cat_coins = self.db.selectable_cat_coins(asset_id).await?;
         cat_coins.retain(|cat| !selected_coin_ids.contains(&cat.coin.coin_id()));
 
         let mut cats = HashMap::new();

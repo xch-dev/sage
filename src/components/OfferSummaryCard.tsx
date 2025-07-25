@@ -67,7 +67,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
       {assets.map(({ amount, royalty, asset }) => (
-        <div className='flex items-center gap-2' key={asset.asset_id}>
+        <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon iconUrl={asset.icon_url} kind={asset.kind} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
             {asset.kind !== 'nft' && (
