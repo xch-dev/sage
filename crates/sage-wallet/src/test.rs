@@ -268,6 +268,7 @@ pub fn default_test_options() -> SyncOptions {
         dns_batch_size: 0,
         connection_batch_size: 0,
         max_peer_age_seconds: 0,
+        delta_sync: true,
         puzzle_batch_size_per_peer: 5,
         timeouts: Timeouts {
             sync_delay: Duration::from_millis(100),

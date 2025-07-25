@@ -158,6 +158,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             },
             change: ChangeMode::Default,
             network: None,
+            delta_sync: None,
         });
     }
 

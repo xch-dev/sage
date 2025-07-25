@@ -7,6 +7,7 @@ pub struct SyncOptions {
     pub dns_batch_size: usize,
     pub connection_batch_size: usize,
     pub max_peer_age_seconds: u64,
+    pub delta_sync: bool,
     pub puzzle_batch_size_per_peer: usize,
     pub timeouts: Timeouts,
     pub testing: bool,

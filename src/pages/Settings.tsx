@@ -68,6 +68,7 @@ import {
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
+  WalletDefaults,
 } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
 import { isValidU32 } from '../validation';
@@ -248,12 +249,20 @@ function SettingItem({
 }
 
 function GlobalSettings() {
+  const { addError } = useErrors();
   const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
   const { enabled, available, enableIfAvailable, disable } = useBiometric();
   const { setFee } = useDefaultFee();
+
+  const [defaultWalletConfig, setDefaultWalletConfig] =
+    useState<WalletDefaults | null>(null);
+
+  useEffect(() => {
+    commands.defaultWalletConfig().then(setDefaultWalletConfig).catch(addError);
+  }, [addError]);
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -266,124 +275,151 @@ function GlobalSettings() {
   };
 
   return (
-    <SettingsSection title={t`Preferences`}>
-      <SettingItem
-        label={t`Dark Mode`}
-        description={t`Switch between light and dark theme`}
-        control={<Switch checked={dark} onCheckedChange={setDark} />}
-      />
-      {isMobile && (
+    <>
+      <SettingsSection title={t`Preferences`}>
         <SettingItem
-          label={t`Biometric Authentication`}
-          description={t`Require biometrics for sensitive actions`}
+          label={t`Dark Mode`}
+          description={t`Switch between light and dark theme`}
+          control={<Switch checked={dark} onCheckedChange={setDark} />}
+        />
+        {isMobile && (
+          <SettingItem
+            label={t`Biometric Authentication`}
+            description={t`Require biometrics for sensitive actions`}
+            control={
+              <Switch
+                checked={enabled}
+                disabled={!available}
+                onCheckedChange={toggleBiometric}
+              />
+            }
+          />
+        )}
+        <SettingItem
+          label={t`Language`}
+          description={t`Choose your preferred language`}
           control={
-            <Switch
-              checked={enabled}
-              disabled={!available}
-              onCheckedChange={toggleBiometric}
+            <Select value={locale} onValueChange={changeLanguage}>
+              <SelectTrigger className='w-[140px]'>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value='en-US'>English</SelectItem>
+                <SelectItem value='de-DE'>Deutsch</SelectItem>
+                <SelectItem value='zh-CN'>中文</SelectItem>
+                <SelectItem value='es-MX'>Español</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
+      </SettingsSection>
+
+      <SettingsSection title={t`Transaction Defaults`}>
+        <SettingItem
+          label={t`Default Fee`}
+          description={t`The default fee to use for transactions`}
+          control={
+            <FeeAmountInput
+              onValueChange={(values) =>
+                setFee(values.value === '' ? '0' : values.value)
+              }
             />
           }
         />
-      )}
-      <SettingItem
-        label={t`Language`}
-        description={t`Choose your preferred language`}
-        control={
-          <Select value={locale} onValueChange={changeLanguage}>
-            <SelectTrigger className='w-[140px]'>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value='en-US'>English</SelectItem>
-              <SelectItem value='de-DE'>Deutsch</SelectItem>
-              <SelectItem value='zh-CN'>中文</SelectItem>
-              <SelectItem value='es-MX'>Español</SelectItem>
-            </SelectContent>
-          </Select>
-        }
-      />
-      <SettingItem
-        label={t`Default Fee`}
-        description={t`The default fee to use for transactions`}
-        control={
-          <FeeAmountInput
-            onValueChange={(values) =>
-              setFee(values.value === '' ? '0' : values.value)
-            }
-          />
-        }
-      />
-      <SettingItem
-        label={t`Default Clawback`}
-        description={t`Set a default clawback time for transactions`}
-        control={
-          <Switch
-            checked={clawback.enabled}
-            onCheckedChange={(checked) => {
-              setClawback({
-                ...clawback,
-                enabled: checked,
-              });
-            }}
-          />
-        }
-      >
-        {clawback.enabled && (
-          <div className='grid grid-cols-3 gap-4 mt-2'>
-            <TimeInput
-              label={t`Days`}
-              value={clawback.days}
-              onChange={(value) => setClawback({ ...clawback, days: value })}
+        <SettingItem
+          label={t`Default Clawback`}
+          description={t`Set a default clawback time for transactions`}
+          control={
+            <Switch
+              checked={clawback.enabled}
+              onCheckedChange={(checked) => {
+                setClawback({
+                  ...clawback,
+                  enabled: checked,
+                });
+              }}
             />
-            <TimeInput
-              label={t`Hours`}
-              value={clawback.hours}
-              onChange={(value) => setClawback({ ...clawback, hours: value })}
+          }
+        >
+          {clawback.enabled && (
+            <div className='grid grid-cols-3 gap-4 mt-2'>
+              <TimeInput
+                label={t`Days`}
+                value={clawback.days}
+                onChange={(value) => setClawback({ ...clawback, days: value })}
+              />
+              <TimeInput
+                label={t`Hours`}
+                value={clawback.hours}
+                onChange={(value) => setClawback({ ...clawback, hours: value })}
+              />
+              <TimeInput
+                label={t`Minutes`}
+                value={clawback.minutes}
+                onChange={(value) =>
+                  setClawback({ ...clawback, minutes: value })
+                }
+              />
+            </div>
+          )}
+        </SettingItem>
+        <SettingItem
+          label={t`Default Offer Expiry`}
+          description={t`Set a default expiration time for new offers`}
+          control={
+            <Switch
+              checked={expiry.enabled}
+              onCheckedChange={(checked) => {
+                setExpiry({
+                  ...expiry,
+                  enabled: checked,
+                });
+              }}
             />
-            <TimeInput
-              label={t`Minutes`}
-              value={clawback.minutes}
-              onChange={(value) => setClawback({ ...clawback, minutes: value })}
+          }
+        >
+          {expiry.enabled && (
+            <div className='grid grid-cols-3 gap-4 mt-2'>
+              <TimeInput
+                label={t`Days`}
+                value={expiry.days}
+                onChange={(value) => setExpiry({ ...expiry, days: value })}
+              />
+              <TimeInput
+                label={t`Hours`}
+                value={expiry.hours}
+                onChange={(value) => setExpiry({ ...expiry, hours: value })}
+              />
+              <TimeInput
+                label={t`Minutes`}
+                value={expiry.minutes}
+                onChange={(value) => setExpiry({ ...expiry, minutes: value })}
+              />
+            </div>
+          )}
+        </SettingItem>
+      </SettingsSection>
+
+      <SettingsSection title={t`Syncing Defaults`}>
+        <SettingItem
+          label={t`Delta Sync`}
+          description={t`Whether to skip syncing older blocks`}
+          control={
+            <Switch
+              checked={defaultWalletConfig?.delta_sync ?? true}
+              onCheckedChange={(checked) => {
+                if (!defaultWalletConfig) return;
+                setDefaultWalletConfig({
+                  ...defaultWalletConfig,
+                  delta_sync: checked,
+                });
+                commands.setDeltaSync({ delta_sync: checked }).catch(addError);
+              }}
             />
-          </div>
-        )}
-      </SettingItem>
-      <SettingItem
-        label={t`Default Offer Expiry`}
-        description={t`Set a default expiration time for new offers`}
-        control={
-          <Switch
-            checked={expiry.enabled}
-            onCheckedChange={(checked) => {
-              setExpiry({
-                ...expiry,
-                enabled: checked,
-              });
-            }}
-          />
-        }
-      >
-        {expiry.enabled && (
-          <div className='grid grid-cols-3 gap-4 mt-2'>
-            <TimeInput
-              label={t`Days`}
-              value={expiry.days}
-              onChange={(value) => setExpiry({ ...expiry, days: value })}
-            />
-            <TimeInput
-              label={t`Hours`}
-              value={expiry.hours}
-              onChange={(value) => setExpiry({ ...expiry, hours: value })}
-            />
-            <TimeInput
-              label={t`Minutes`}
-              value={expiry.minutes}
-              onChange={(value) => setExpiry({ ...expiry, minutes: value })}
-            />
-          </div>
-        )}
-      </SettingItem>
-    </SettingsSection>
+          }
+        />
+      </SettingsSection>
+    </>
   );
 }
 
@@ -745,7 +781,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     fetchDatabaseStats();
   }, [addError, fingerprint, fetchDatabaseStats]);
 
-  const addOverride = async () => {
+  const addNetworkOverride = async () => {
     if (!wallet) return;
     try {
       const config = await commands.networkConfig();
@@ -759,12 +795,38 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     }
   };
 
-  const setOverride = async (name: string | null) => {
+  const setNetworkOverride = async (name: string | null) => {
     if (!wallet) return;
     clearState();
     try {
       await commands.setNetworkOverride({ fingerprint, name });
       setWallet({ ...wallet, network: name });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+    fetchState();
+  };
+
+  const addDeltaSyncOverride = async () => {
+    if (!wallet) return;
+    try {
+      const config = await commands.defaultWalletConfig();
+      await commands.setDeltaSyncOverride({
+        fingerprint,
+        delta_sync: config.delta_sync,
+      });
+      setWallet({ ...wallet, delta_sync: config.delta_sync });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+  };
+
+  const setDeltaSyncOverride = async (delta_sync: boolean | null) => {
+    if (!wallet) return;
+    clearState();
+    try {
+      await commands.setDeltaSyncOverride({ fingerprint, delta_sync });
+      setWallet({ ...wallet, delta_sync });
     } catch (error) {
       addError(error as CustomError);
     }
@@ -848,9 +910,9 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
               checked={!!wallet?.network}
               onCheckedChange={(checked) => {
                 if (checked) {
-                  addOverride();
+                  addNetworkOverride();
                 } else {
-                  setOverride(null);
+                  setNetworkOverride(null);
                 }
               }}
             />
@@ -861,7 +923,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
               <Select
                 value={wallet?.network}
                 onValueChange={(name) => {
-                  setOverride(name);
+                  setNetworkOverride(name);
                 }}
               >
                 <SelectTrigger
@@ -901,6 +963,35 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
             </div>
           }
         />
+
+        <SettingItem
+          label={t`Override Delta Sync`}
+          description={t`Override the default of whether to sync old blocks`}
+          control={
+            <Switch
+              checked={wallet !== null && wallet.delta_sync !== null}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  addDeltaSyncOverride();
+                } else {
+                  setDeltaSyncOverride(null);
+                }
+              }}
+            />
+          }
+        >
+          {wallet !== null && wallet.delta_sync !== null && (
+            <div className='mt-3 flex items-center gap-2'>
+              <Trans>Enable Delta Sync</Trans>
+              <Switch
+                checked={wallet.delta_sync}
+                onCheckedChange={(checked) => {
+                  setDeltaSyncOverride(checked);
+                }}
+              />
+            </div>
+          )}
+        </SettingItem>
 
         <SettingItem
           label={t`Resync`}
