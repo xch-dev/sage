@@ -16,7 +16,7 @@ import { OfferState } from '@/state';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertTriangle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NumberFormat } from '../NumberFormat';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -57,25 +57,23 @@ function AssetDisplay({
   const [nftDetailsList, setNftDetailsList] = useState<DisplayableNft[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
 
+  // Create a stable reference for NFT IDs to prevent infinite re-renders
+  const nftIds = useMemo(() => {
+    if (!assets.nfts || assets.nfts.length === 0) return [];
+    return assets.nfts.filter((id) => id && typeof id === 'string');
+  }, [assets.nfts]);
+
   useEffect(() => {
     const fetchNftDetails = async () => {
-      if (!assets.nfts || assets.nfts.length === 0) {
+      if (nftIds.length === 0) {
         setNftDetailsList([]);
         return;
       }
       setLoadingNfts(true);
-      const validNftIds = assets.nfts.filter(
-        (id) => id && typeof id === 'string',
-      );
-      if (validNftIds.length === 0) {
-        setNftDetailsList([]);
-        setLoadingNfts(false);
-        return;
-      }
 
       try {
         const displayableNfts: DisplayableNft[] = [];
-        for (const nftId of validNftIds) {
+        for (const nftId of nftIds) {
           try {
             const nftRecordResponse = await commands.getNft({ nft_id: nftId });
             if (nftRecordResponse.nft) {
@@ -138,7 +136,7 @@ function AssetDisplay({
     };
 
     fetchNftDetails();
-  }, [assets.nfts]);
+  }, [nftIds]);
 
   const getDisplayableNftId = (id: string) =>
     `${id.slice(0, 8)}...${id.slice(-4)}`;
