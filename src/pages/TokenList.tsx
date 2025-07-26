@@ -96,8 +96,6 @@ export function TokenList() {
       return true;
     });
 
-  console.log(pricedTokens);
-
   const updateCats = useCallback(
     () =>
       Promise.all([commands.getToken({ asset_id: null }), commands.getCats({})])
