@@ -93,13 +93,6 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
     default:
       kind = null;
   }
-  if (error?.kind === 'unauthorized') {
-    // swallowing these errors for now
-    // TODO: clean up initialization errors
-    error = null;
-  }
-
-  console.error(error);
 
   return (
     <Dialog open={error !== null} onOpenChange={() => setError(null)}>
