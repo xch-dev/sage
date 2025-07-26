@@ -74,13 +74,25 @@ export function updateSyncStatus() {
   }
 
   updateSyncStatusPromise = commands
-    .getSyncStatus({})
-    .then((sync) => useWalletState.setState({ sync }))
+    .getKey({})
+    .then((key) => {
+      // Only call getSyncStatus if key and key.key are not null
+      if (key && key.key) {
+        return commands.getSyncStatus({});
+      }
+      return null;
+    })
+    .then((sync) => {
+      if (sync) {
+        useWalletState.setState({ sync });
+      }
+    })
     .catch((error) => console.error(error))
     .finally(() => {
       updateSyncStatusPromise = null;
     });
 }
+
 
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
