@@ -26,6 +26,10 @@ export const BiometricContext = createContext<BiometricContextType | undefined>(
 );
 
 const isMobile = platform() === 'ios' || platform() === 'android';
+
+// It's unclear why this causes a crash if inside of the BiometricProvider useEffect,
+// but it does - so moving it out here is a workaround for the issue until it's properly
+// investigated.
 const status = isMobile
   ? checkStatus()
   : Promise.resolve({ isAvailable: false, biometryType: BiometryType.None });
