@@ -152,6 +152,9 @@ mod tests {
         check(
             config,
             &expect![[r#"
+                [defaults]
+                delta_sync = true
+
                 [defaults.change]
                 mode = "same"
 
@@ -172,12 +175,14 @@ mod tests {
                     "derivation": {
                       "mode": "auto",
                       "derivation_batch_size": 1000
-                    }
+                    },
+                    "delta_sync": true
                   },
                   "wallets": [
                     {
                       "name": "Main",
-                      "fingerprint": 1000000
+                      "fingerprint": 1000000,
+                      "delta_sync": null
                     }
                   ]
                 }"#]],
@@ -196,6 +201,9 @@ mod tests {
         check(
             config,
             &expect![[r#"
+                [defaults]
+                delta_sync = true
+
                 [defaults.change]
                 mode = "same"
 
@@ -223,7 +231,8 @@ mod tests {
                     "derivation": {
                       "mode": "auto",
                       "derivation_batch_size": 1000
-                    }
+                    },
+                    "delta_sync": true
                   },
                   "wallets": [
                     {
@@ -235,7 +244,8 @@ mod tests {
                       "derivation": {
                         "mode": "auto",
                         "derivation_batch_size": 1000
-                      }
+                      },
+                      "delta_sync": null
                     }
                   ]
                 }"#]],

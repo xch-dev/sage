@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible \n        FROM collections\n        WHERE hash = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "uuid",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "minter_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "banner_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 8,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "cb3a74b912417fef1b29f55002d74edc7c55bb39fc5169c252d92bdc57f5a3af"
+}

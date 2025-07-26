@@ -17,12 +17,32 @@ msgstr ""
 #~ msgid "(connecting...)"
 #~ msgstr ""
 
+#: src/components/dialogs/ViewOfferDialog.tsx:36
+msgid "(Dexie, OfferCo.de, chia-offer.com URLs are supported)"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:326
+msgid "(for each offer)"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:407
+msgid "(Plus any blockchain royalties for offered assets)"
+msgstr ""
+
 #: src/components/confirmations/TokenConfirmation.tsx:146
 msgid "{0} {1} coin{2}"
 msgstr ""
 
-#: src/components/NftCard.tsx:296
+#: src/components/MarketplaceCard.tsx:107
+msgid "{0} link"
+msgstr ""
+
+#: src/components/NftCard.tsx:320
 msgid "{0} of {1}"
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:289
+msgid "{0} offers have been created and imported successfully{1}. You will now be redirected to the offers page where you can view the details of each offer."
 msgstr ""
 
 #: src/pages/DidList.tsx:95
@@ -42,31 +62,32 @@ msgstr ""
 #~ msgid "{peerCount, plural, one {# peer} other {# peers}}"
 #~ msgstr ""
 
-#: src/components/Nav.tsx:127
+#: src/components/Nav.tsx:131
 msgid "{peerCount} peers synced"
 msgstr ""
 
-#: src/pages/PeerList.tsx:518
+#: src/pages/PeerList.tsx:560
 msgid "{peersToDeleteCount, plural, one {Ban peer temporarily} other {Ban peers temporarily}}"
 msgstr "{peersToDeleteCount, plural, one {Peer vorübergehend verbieten} other {Peers vorübergehend verbieten}}"
 
-#: src/pages/PeerList.tsx:566
+#: src/pages/PeerList.tsx:608
 msgid "{peersToDeleteCount, plural, one {Remove Peer} other {Remove Peers}}"
 msgstr "{peersToDeleteCount, plural, one {Peer entfernen} other {Peers entfernen}}"
 
-#: src/pages/PeerList.tsx:509
+#: src/pages/PeerList.tsx:551
 msgid "{peersToDeleteCount, plural, one {This will remove the peer from your connection. If you are currently syncing against this peer, a new one will be used to replace it.} other {This will remove # peers from your connection. If you are currently syncing against these peers, new ones will be used to replace them.}}"
 msgstr "{peersToDeleteCount, plural, one {Dadurch wird der Peer aus Ihrer Verbindung entfernt. Wenn Sie gerade mit diesem Peer synchronisieren, wird er durch einen neuen ersetzt.} other {Dadurch werden # Peers aus Ihrer Verbindung entfernt. Wenn Sie gerade mit diesen Peers synchronisieren, werden sie durch einen neuen ersetzt.}}"
 
-#: src/pages/PeerList.tsx:529
+#: src/pages/PeerList.tsx:571
 msgid "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from being connected to.} other {Will temporarily prevent the peers from being connected to.}}"
 msgstr "{peersToDeleteCount, plural, one {Verhindert vorübergehend die Verbindung zum Peer.} other {Verhindert vorübergehend die Verbindung zu den ausgewählten Peers.}}"
 
-#: src/components/CoinsCard.tsx:424
+#: src/components/OwnedCoinsCard.tsx:462
+#: src/components/ClawbackCoinsCard.tsx:291
 msgid "{selectedCoinCount} {selectedCoinLabel} selected"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:191
+#: src/components/MultiSelectActions.tsx:192
 msgid "{selectedCount} selected"
 msgstr "{selectedCount} ausgewählt"
 
@@ -90,36 +111,45 @@ msgstr "{selectedCount} ausgewählt"
 msgid "1 combined coin"
 msgstr ""
 
-#: src/pages/PeerList.tsx:267
-#: src/components/MultiSelectActions.tsx:199
+#: src/pages/PeerList.tsx:109
+#: src/components/MultiSelectActions.tsx:200
 msgid "Actions"
 msgstr "Aktionen"
 
-#: src/components/MultiSelectActions.tsx:197
+#: src/components/MultiSelectActions.tsx:198
 msgid "Actions for {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/pages/NftList.tsx:199
+#: src/pages/NftList.tsx:196
 msgid "Actions for selected NFTs"
 msgstr ""
 
-#: src/components/NftCard.tsx:455
+#: src/components/NftCard.tsx:479
 msgid "Add {nftName} to offer"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:284
+#: src/components/MultiSelectActions.tsx:285
 msgid "Add {selectedCount} selected NFTs to offer"
+msgstr ""
+
+#: src/components/NftGroupCard.tsx:436
+#: src/components/NftGroupCard.tsx:439
+msgid "Add all NFTs in {cardName} to an offer"
+msgstr ""
+
+#: src/components/NftGroupCard.tsx:440
+msgid "Add All to Offer"
 msgstr ""
 
 #: src/pages/PeerList.tsx:333
 #~ msgid "Add new peer"
 #~ msgstr "Neuen Peer hinzufügen"
 
-#: src/pages/PeerList.tsx:396
+#: src/pages/PeerList.tsx:438
 msgid "Add new peers"
 msgstr ""
 
-#: src/components/NftCard.tsx:546
+#: src/components/NftCard.tsx:570
 msgid "Add NFT URL"
 msgstr "NFT-URL hinzufügen"
 
@@ -127,38 +157,39 @@ msgstr "NFT-URL hinzufügen"
 #~ msgid "Add Peer"
 #~ msgstr "Peer hinzufügen"
 
-#: src/pages/PeerList.tsx:390
+#: src/pages/PeerList.tsx:432
 msgid "Add Peers"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:171
+#: src/pages/MakeOffer.tsx:151
 msgid "Add the assets you are offering."
 msgstr "Fügen Sie die von Ihnen angebotenen Assets hinzu."
 
-#: src/pages/MakeOffer.tsx:192
+#: src/pages/MakeOffer.tsx:175
 msgid "Add the assets you are requesting."
 msgstr "Fügen Sie die angeforderten Assets hinzu."
 
-#: src/components/NftCard.tsx:459
-#: src/components/MultiSelectActions.tsx:288
+#: src/components/NftCard.tsx:483
+#: src/components/MultiSelectActions.tsx:289
 msgid "Add to Offer"
 msgstr ""
 
-#: src/components/NftCard.tsx:409
-#: src/components/NftCard.tsx:637
+#: src/components/NftCard.tsx:433
+#: src/components/NftCard.tsx:661
 #: src/components/confirmations/AddUrlConfirmation.tsx:30
 msgid "Add URL"
 msgstr "URL hinzufügen"
 
-#: src/components/NftCard.tsx:405
+#: src/components/NftCard.tsx:429
 msgid "Add URL to {nftName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:701
+#: src/components/NftCard.tsx:725
 msgid "Add URL to NFT"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:276
+#: src/components/NftGroupCard.tsx:420
+#: src/components/MultiSelectActions.tsx:277
 msgid "Added {addedCount} {nfts} to offer"
 msgstr ""
 
@@ -166,12 +197,12 @@ msgstr ""
 #~ msgid "Added NFT to offer"
 #~ msgstr ""
 
-#: src/pages/Send.tsx:246
-#: src/pages/Nft.tsx:291
-#: src/pages/Nft.tsx:294
+#: src/pages/Send.tsx:261
+#: src/pages/Nft.tsx:296
+#: src/pages/Nft.tsx:299
 #: src/components/TransferDialog.tsx:80
-#: src/components/TransactionColumns.tsx:111
-#: src/components/AddressList.tsx:39
+#: src/components/TransactionColumns.tsx:113
+#: src/components/AddressList.tsx:18
 msgid "Address"
 msgstr "Addresse"
 
@@ -183,13 +214,13 @@ msgstr "Addresse"
 msgid "Address belongs to your wallet"
 msgstr ""
 
-#: src/pages/Nft.tsx:296
-#: src/pages/Login.tsx:324
-#: src/components/TransactionColumns.tsx:156
+#: src/pages/Nft.tsx:301
+#: src/pages/Login.tsx:308
+#: src/components/TransactionColumns.tsx:158
 #: src/components/ReceiveAddress.tsx:74
 #: src/components/ConfirmationDialog.tsx:343
 #: src/components/ConfirmationDialog.tsx:480
-#: src/components/AddressList.tsx:52
+#: src/components/AddressList.tsx:32
 #: src/components/confirmations/NftConfirmation.tsx:85
 #: src/components/confirmations/DidConfirmation.tsx:79
 msgid "Address copied to clipboard"
@@ -219,7 +250,7 @@ msgstr ""
 msgid "Addresses"
 msgstr "Adressen"
 
-#: src/pages/Settings.tsx:130
+#: src/pages/Settings.tsx:147
 msgid "Advanced"
 msgstr "Erweitert"
 
@@ -235,48 +266,51 @@ msgstr ""
 msgid "All Addresses"
 msgstr "Alle Adressen"
 
-#: src/pages/Send.tsx:280
-#: src/pages/MakeOffer.tsx:632
+#: src/pages/Send.tsx:295
 #: src/pages/IssueToken.tsx:109
-#: src/components/TransactionColumns.tsx:100
-#: src/components/CoinList.tsx:145
+#: src/components/TransactionColumns.tsx:98
+#: src/components/CoinList.tsx:134
+#: src/components/selectors/AssetSelector.tsx:259
 #: src/components/confirmations/TokenConfirmation.tsx:126
 msgid "Amount"
 msgstr "Betrag"
 
-#: src/components/TransactionColumns.tsx:147
+#: src/components/TransactionColumns.tsx:149
 msgid "Amount copied to clipboard"
 msgstr ""
 
-#: src/components/OfferCard.tsx:268
-#: src/components/OfferCard.tsx:346
+#: src/components/Assets.tsx:105
 msgid "Amount includes"
 msgstr "Der Betrag enthält"
 
-#: src/pages/Login.tsx:574
+#: src/pages/Settings.tsx:1209
+msgid "Analyze Duration"
+msgstr ""
+
+#: src/pages/Login.tsx:515
 msgid "Are you sure you want to delete this wallet? This cannot be undone, and all funds will be lost unless you have saved your mnemonic phrase."
 msgstr "Sind Sie sicher, dass Sie den Wallet löschen wollen? Dieser Vorgang kann nicht rückgängig gemacht werden, und Ihr gesamtes Guthaben geht verloren, solange Sie die Mnemonics nicht gespeichert haben."
 
-#: src/pages/PeerList.tsx:503
+#: src/pages/PeerList.tsx:545
 msgid "Are you sure you want to remove {peersToDeleteCount} peers?"
 msgstr "Sind Sie sicher, dass Sie {peersToDeleteCount} Peers entfernen wollen?"
 
-#: src/pages/PeerList.tsx:501
+#: src/pages/PeerList.tsx:543
 msgid "Are you sure you want to remove the peer?"
 msgstr "Sind Sie sicher, dass Sie den Peer entfernen wollen?"
 
-#: src/pages/Login.tsx:516
+#: src/components/dialogs/ResyncDialog.tsx:49
 msgid "Are you sure you want to resync this wallet's data? This will re-download data from the network which can take a while depending on the size of the wallet."
 msgstr "Sind Sie sicher, dass Sie die Daten vom Wallet erneut synchronisieren möchten? Dadurch werden die Daten erneut aus dem Netzwerk heruntergeladen, was je nach Größe der Wallet eine Weile dauern kann."
 
-#: src/components/TokenListView.tsx:41
+#: src/components/TokenListView.tsx:18
 msgid "asset"
 msgstr ""
 
 #: src/components/TransactionColumns.tsx:69
-#: src/components/TokenGridView.tsx:71
-#: src/components/TokenColumns.tsx:181
-#: src/components/TokenCard.tsx:156
+#: src/components/TokenGridView.tsx:73
+#: src/components/TokenColumns.tsx:175
+#: src/components/TokenCard.tsx:150
 msgid "Asset"
 msgstr "Asset"
 
@@ -284,35 +318,36 @@ msgstr "Asset"
 #~ msgid "Asset Icon"
 #~ msgstr ""
 
-#: src/pages/Transaction.tsx:228
+#: src/pages/Transaction.tsx:190
+#: src/components/selectors/TokenSelector.tsx:139
 msgid "Asset ID"
 msgstr ""
 
-#: src/pages/Transaction.tsx:229
-#: src/pages/Token.tsx:114
-#: src/components/TokenGridView.tsx:78
-#: src/components/TokenColumns.tsx:200
+#: src/pages/Transaction.tsx:191
+#: src/pages/Token.tsx:175
+#: src/components/TokenGridView.tsx:81
+#: src/components/TokenColumns.tsx:197
 msgid "Asset ID copied to clipboard"
 msgstr ""
 
-#: src/components/TokenListView.tsx:42
+#: src/components/TokenListView.tsx:19
 msgid "assets"
 msgstr ""
 
-#: src/pages/TokenList.tsx:173
+#: src/pages/TokenList.tsx:164
 msgid "Assets"
 msgstr "Assets"
 
-#: src/components/NftCard.tsx:384
+#: src/components/NftCard.tsx:408
 msgid "Assign profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:390
-#: src/components/NftCard.tsx:533
+#: src/components/NftCard.tsx:414
+#: src/components/NftCard.tsx:557
 msgid "Assign Profile"
 msgstr "Profil zuweisen"
 
-#: src/components/NftCard.tsx:537
+#: src/components/NftCard.tsx:561
 msgid "Assign profile for {nftName}"
 msgstr ""
 
@@ -322,20 +357,24 @@ msgstr ""
 #~ msgstr "bei Höchststand {peerMaxHeight}"
 
 #: src/pages/Nft.tsx:160
-#: src/pages/CollectionMetaData.tsx:322
+#: src/pages/CollectionMetaData.tsx:316
 msgid "Attributes"
 msgstr "Attribute"
 
-#: src/components/CoinsCard.tsx:553
-msgid "Auto Combine {ticker}"
+#: src/components/OwnedCoinsCard.tsx:591
+msgid "Auto Combine {0}"
 msgstr ""
 
-#: src/pages/PeerList.tsx:144
-#: src/pages/PeerList.tsx:256
+#: src/components/CoinsCard.tsx:553
+#~ msgid "Auto Combine {ticker}"
+#~ msgstr ""
+
+#: src/pages/PeerList.tsx:100
+#: src/pages/PeerList.tsx:240
 msgid "Auto-discovered peer"
 msgstr ""
 
-#: src/pages/Settings.tsx:505
+#: src/pages/Settings.tsx:592
 msgid "Automatically discover and connect to peers"
 msgstr ""
 
@@ -343,21 +382,21 @@ msgstr ""
 #~ msgid "Automatically generate new addresses as needed"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:623
+#: src/pages/Settings.tsx:710
 msgid "Automatically start the RPC server when the app launches"
 msgstr ""
 
-#: src/components/Header.tsx:56
-#: src/components/Header.tsx:122
+#: src/components/Header.tsx:58
+#: src/components/Header.tsx:124
 msgid "Back"
 msgstr "Zurück"
 
-#: src/components/NftOptions.tsx:195
-#: src/components/NftOptions.tsx:196
+#: src/components/NftOptions.tsx:190
+#: src/components/NftOptions.tsx:191
 msgid "Back to groups"
 msgstr ""
 
-#: src/components/TokenColumns.tsx:93
+#: src/components/TokenColumns.tsx:86
 msgid "Balance"
 msgstr ""
 
@@ -365,17 +404,21 @@ msgstr ""
 #~ msgid "Balance (USD)"
 #~ msgstr ""
 
-#: src/components/TokenGridView.tsx:89
-#: src/components/TokenColumns.tsx:211
+#: src/components/TokenGridView.tsx:92
+#: src/components/TokenColumns.tsx:209
 msgid "Balance copied to clipboard"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:269
+#: src/pages/CollectionMetaData.tsx:263
 msgid "Banner for {collectionName}"
 msgstr ""
 
-#: src/pages/Settings.tsx:260
+#: src/pages/Settings.tsx:287
 msgid "Biometric Authentication"
+msgstr ""
+
+#: src/hooks/useOfferProcessor.ts:64
+msgid "Biometric authentication failed or was cancelled"
 msgstr ""
 
 #: src/components/TransactionColumns.tsx:35
@@ -386,7 +429,7 @@ msgstr ""
 #~ msgid "Block #{transactionHeight}"
 #~ msgstr "Block #{transactionHeight}"
 
-#: src/components/OfferCard.tsx:173
+#: src/components/OfferCard.tsx:222
 msgid "Block:"
 msgstr ""
 
@@ -394,11 +437,11 @@ msgstr ""
 #~ msgid "Bulk Assign Profile"
 #~ msgstr "Profil massenhaft zuweisen"
 
-#: src/components/MultiSelectActions.tsx:322
+#: src/components/MultiSelectActions.tsx:323
 msgid "Bulk Burn NFTs"
 msgstr "Massenverbrennung von NFTs"
 
-#: src/components/MultiSelectActions.tsx:297
+#: src/components/MultiSelectActions.tsx:298
 msgid "Bulk Transfer NFTs"
 msgstr "Massentransfer NFTs"
 
@@ -406,34 +449,34 @@ msgstr "Massentransfer NFTs"
 #~ msgid "Bulk Unassign Profile"
 #~ msgstr "Massenaufhebung der Profilzuordnung"
 
-#: src/pages/DidList.tsx:266
-#: src/pages/DidList.tsx:382
-#: src/components/NftCard.tsx:424
-#: src/components/NftCard.tsx:650
-#: src/components/MultiSelectActions.tsx:243
-#: src/components/MultiSelectActions.tsx:326
+#: src/pages/DidList.tsx:269
+#: src/pages/DidList.tsx:385
+#: src/components/NftCard.tsx:448
+#: src/components/NftCard.tsx:674
+#: src/components/MultiSelectActions.tsx:244
+#: src/components/MultiSelectActions.tsx:327
 msgid "Burn"
 msgstr "Verbrennung"
 
-#: src/components/NftCard.tsx:420
+#: src/components/NftCard.tsx:444
 msgid "Burn {nftName}"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:239
+#: src/components/MultiSelectActions.tsx:240
 msgid "Burn {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/pages/DidList.tsx:430
+#: src/pages/DidList.tsx:433
 msgid "Burn DID"
 msgstr ""
 
-#: src/components/NftCard.tsx:646
-#: src/components/NftCard.tsx:678
-#: src/components/MultiSelectActions.tsx:349
+#: src/components/NftCard.tsx:670
+#: src/components/NftCard.tsx:702
+#: src/components/MultiSelectActions.tsx:350
 msgid "Burn NFT"
 msgstr "NFT verbrennen"
 
-#: src/pages/DidList.tsx:381
+#: src/pages/DidList.tsx:384
 msgid "Burn Profile"
 msgstr "Profil verbrennen"
 
@@ -441,40 +484,57 @@ msgstr "Profil verbrennen"
 msgid "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in dem keine Transaktionen signiert werden können. Die Mnemonik muss an einder andereren Stelle gespeichert werden."
 
-#: src/pages/Settings.tsx:857
-#: src/pages/PeerList.tsx:368
-#: src/pages/PeerList.tsx:424
-#: src/pages/PeerList.tsx:547
-#: src/pages/Offers.tsx:379
-#: src/pages/Offers.tsx:485
-#: src/pages/Offers.tsx:542
-#: src/pages/Login.tsx:555
-#: src/pages/Login.tsx:583
-#: src/pages/Login.tsx:633
-#: src/pages/DidList.tsx:362
+#: src/pages/Settings.tsx:1149
+#: src/pages/PeerList.tsx:410
+#: src/pages/PeerList.tsx:466
+#: src/pages/PeerList.tsx:589
+#: src/pages/Login.tsx:524
+#: src/pages/Login.tsx:574
+#: src/pages/Login.tsx:674
+#: src/pages/DidList.tsx:365
 #: src/pages/CreateWallet.tsx:257
 #: src/components/TransferDialog.tsx:110
-#: src/components/TokenCard.tsx:239
-#: src/components/NftCard.tsx:634
+#: src/components/TokenCard.tsx:232
+#: src/components/OwnedCoinsCard.tsx:508
+#: src/components/OwnedCoinsCard.tsx:576
+#: src/components/OwnedCoinsCard.tsx:659
+#: src/components/OfferRowCard.tsx:129
+#: src/components/NftCard.tsx:658
 #: src/components/FeeOnlyDialog.tsx:92
 #: src/components/ConfirmationDialog.tsx:599
-#: src/components/CoinsCard.tsx:470
-#: src/components/CoinsCard.tsx:538
-#: src/components/CoinsCard.tsx:621
+#: src/components/ClawbackCoinsCard.tsx:335
 #: src/components/AssignNftDialog.tsx:144
+#: src/components/dialogs/ResyncDialog.tsx:91
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:313
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:462
+#: src/components/dialogs/DeleteOfferDialog.tsx:58
+#: src/components/dialogs/CancelOfferDialog.tsx:79
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: src/components/confirmations/OfferConfirmation.tsx:35
+#: src/pages/Offers.tsx:307
+msgid "Cancel All Active"
+msgstr ""
+
+#: src/pages/Offers.tsx:312
+#: src/pages/Offers.tsx:391
+msgid "Cancel All Active Offers"
+msgstr ""
+
+#: src/pages/Offers.tsx:370
+msgid "Cancel all active offers?"
+msgstr ""
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:24
 msgid "Cancel Details"
 msgstr ""
 
-#: src/pages/Offers.tsx:559
-#: src/pages/MakeOffer.tsx:334
+#: src/pages/MakeOffer.tsx:320
+#: src/components/OfferRowCard.tsx:179
 msgid "Cancel Offer"
 msgstr "Offer Abbrechen"
 
-#: src/pages/Offers.tsx:506
+#: src/components/dialogs/CancelOfferDialog.tsx:45
 msgid "Cancel offer?"
 msgstr ""
 
@@ -487,8 +547,8 @@ msgstr ""
 #~ msgstr "CAT"
 
 #: src/components/OfferCard.tsx:333
-msgid "CAT icon"
-msgstr "CAT Symbol"
+#~ msgid "CAT icon"
+#~ msgstr "CAT Symbol"
 
 #: src/components/ConfirmationDialog.tsx:116
 #: src/components/ConfirmationDialog.tsx:337
@@ -509,33 +569,60 @@ msgstr ""
 msgid "Check if an address is owned by this wallet."
 msgstr ""
 
-#: src/pages/Settings.tsx:465
+#: src/pages/Settings.tsx:552
 msgid "Choose the network to connect to"
 msgstr ""
 
-#: src/pages/Settings.tsx:273
+#: src/pages/Settings.tsx:300
 msgid "Choose your preferred language"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:94
-#: src/components/TransactionOptions.tsx:95
-#: src/components/TokenOptions.tsx:108
-#: src/components/TokenOptions.tsx:109
-#: src/components/NftOptions.tsx:162
-#: src/components/NftOptions.tsx:163
+#: src/components/ClawbackCoinsCard.tsx:278
+#: src/components/ClawbackCoinsCard.tsx:338
+msgid "Claw Back"
+msgstr ""
+
+#: src/components/ClawbackCoinsCard.tsx:303
+msgid "Claw Back {0}"
+msgstr ""
+
+#: src/components/ClawbackCoinsCard.tsx:222
+msgid "Claw Back Details"
+msgstr ""
+
+#: src/components/ClawbackCoinsCard.tsx:248
+msgid "Clawback Coins"
+msgstr ""
+
+#: src/components/CoinList.tsx:236
+msgid "Clawback Expiration"
+msgstr ""
+
+#: src/components/TransactionOptions.tsx:88
+#: src/components/TransactionOptions.tsx:89
+#: src/components/TokenOptions.tsx:106
+#: src/components/TokenOptions.tsx:107
+#: src/components/NftOptions.tsx:157
+#: src/components/NftOptions.tsx:158
 msgid "Clear search"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:420
+#: src/components/OwnedCoinsCard.tsx:458
+#: src/components/ClawbackCoinsCard.tsx:287
 msgid "Clear Selection"
 msgstr ""
 
-#: src/components/NftCard.tsx:445
+#: src/components/NftCard.tsx:469
 msgid "Click here to go to offer."
 msgstr ""
 
-#: src/components/CoinsCard.tsx:355
-#: src/components/CoinList.tsx:349
+#: src/pages/Settings.tsx:1244
+msgid "Close"
+msgstr ""
+
+#: src/components/OwnedCoinsCard.tsx:398
+#: src/components/CoinList.tsx:528
+#: src/components/ClawbackCoinsCard.tsx:240
 msgid "coin"
 msgstr ""
 
@@ -543,38 +630,39 @@ msgstr ""
 #~ msgid "Coin"
 #~ msgstr "Coin"
 
-#: src/pages/Nft.tsx:302
-#: src/pages/Nft.tsx:305
+#: src/pages/Nft.tsx:307
+#: src/pages/Nft.tsx:310
 msgid "Coin Id"
 msgstr "Coin Id"
 
-#: src/components/CoinList.tsx:90
+#: src/components/CoinList.tsx:71
 msgid "Coin ID"
 msgstr ""
 
-#: src/pages/Nft.tsx:307
+#: src/pages/Nft.tsx:312
 #: src/components/ConfirmationDialog.tsx:411
 msgid "Coin ID copied to clipboard"
 msgstr ""
 
-#: src/pages/Transaction.tsx:132
+#: src/pages/Transaction.tsx:135
 msgid "Coin with id {coinId}"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:355
-#: src/components/CoinList.tsx:350
+#: src/components/OwnedCoinsCard.tsx:398
+#: src/components/CoinList.tsx:529
+#: src/components/ClawbackCoinsCard.tsx:240
 msgid "coins"
 msgstr ""
 
 #: src/components/CoinsCard.tsx:361
-msgid "Coins"
-msgstr "Coins"
+#~ msgid "Coins"
+#~ msgstr "Coins"
 
 #: src/components/confirmations/TokenConfirmation.tsx:146
 #~ msgid "Coins to {0}"
 #~ msgstr ""
 
-#: src/pages/Login.tsx:498
+#: src/pages/Login.tsx:485
 msgid "Cold"
 msgstr ""
 
@@ -587,17 +675,17 @@ msgstr ""
 msgid "Collapse sidebar"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:161
+#: src/components/NftGroupCard.tsx:172
 msgid "Collection {cardName}"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:338
-#: src/pages/CollectionMetaData.tsx:341
+#: src/pages/CollectionMetaData.tsx:332
+#: src/pages/CollectionMetaData.tsx:335
 msgid "Collection ID"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:344
-#: src/components/NftGroupCard.tsx:324
+#: src/pages/CollectionMetaData.tsx:338
+#: src/components/NftGroupCard.tsx:335
 msgid "Collection ID copied to clipboard"
 msgstr ""
 
@@ -605,7 +693,7 @@ msgstr ""
 msgid "Collection Name"
 msgstr "Name der Kollektion"
 
-#: src/pages/CollectionMetaData.tsx:137
+#: src/pages/CollectionMetaData.tsx:131
 msgid "Collection Not Found"
 msgstr ""
 
@@ -613,37 +701,57 @@ msgstr ""
 msgid "Collections"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:408
-#: src/components/CoinsCard.tsx:473
-#: src/components/CoinsCard.tsx:624
+#: src/components/OwnedCoinsCard.tsx:448
+#: src/components/OwnedCoinsCard.tsx:511
+#: src/components/OwnedCoinsCard.tsx:662
 msgid "Combine"
 msgstr "Zusammenfügen"
 
-#: src/components/CoinsCard.tsx:436
-msgid "Combine {ticker}"
-msgstr "{ticker} zusammenfügen"
+#: src/components/OwnedCoinsCard.tsx:474
+msgid "Combine {0}"
+msgstr ""
 
-#: src/pages/Token.tsx:65
+#: src/components/CoinsCard.tsx:436
+#~ msgid "Combine {ticker}"
+#~ msgstr "{ticker} zusammenfügen"
+
+#: src/pages/Token.tsx:140
 #: src/components/confirmations/TokenConfirmation.tsx:49
 msgid "Combine Coins"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:228
-#: src/components/CoinsCard.tsx:337
+#: src/components/OwnedCoinsCard.tsx:268
+#: src/components/OwnedCoinsCard.tsx:380
 msgid "Combine Details"
 msgstr ""
 
-#: src/components/NftOptions.tsx:294
+#: src/pages/Settings.tsx:1080
+msgid "Compactable Pages"
+msgstr ""
+
+#: src/pages/Settings.tsx:1063
+msgid "Compactable Space"
+msgstr ""
+
+#: src/components/NftOptions.tsx:287
 msgid "Conceal Hidden Items"
 msgstr ""
 
-#: src/components/TokenOptions.tsx:166
+#: src/components/TokenOptions.tsx:162
 msgid "Conceal Hidden Tokens"
 msgstr ""
 
 #: src/pages/CreateWallet.tsx:265
 msgid "Confirm"
 msgstr "Bestätigen"
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:465
+msgid "Confirm & Create"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:276
+msgid "Confirm Offer Creation"
+msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:183
 msgid "Confirm Transaction"
@@ -653,20 +761,20 @@ msgstr ""
 #~ msgid "Confirm transaction?"
 #~ msgstr "Transaktion bestätigen?"
 
-#: src/components/CoinList.tsx:186
+#: src/components/CoinList.tsx:190
 msgid "Confirmed"
 msgstr "Bestätigen"
 
-#: src/pages/Settings.tsx:425
-#: src/pages/PeerList.tsx:449
+#: src/pages/Settings.tsx:512
+#: src/pages/PeerList.tsx:491
 msgid "Connect"
 msgstr "Verbinden"
 
-#: src/pages/Settings.tsx:159
+#: src/pages/Settings.tsx:176
 msgid "Connect a wallet to manage its settings"
 msgstr ""
 
-#: src/pages/Settings.tsx:163
+#: src/pages/Settings.tsx:180
 msgid "Connect Wallet"
 msgstr ""
 
@@ -674,20 +782,20 @@ msgstr ""
 #~ msgid "Connected to {peerCount}"
 #~ msgstr ""
 
-#: src/pages/PeerList.tsx:356
+#: src/pages/PeerList.tsx:398
 msgid "Connected to {totalPeersCount} peers"
 msgstr "Verbunden mit {totalPeersCount} Peers"
 
-#: src/components/Nav.tsx:145
+#: src/components/Nav.tsx:153
 msgid "connecting..."
 msgstr "verbinden..."
 
-#: src/pages/Settings.tsx:423
-#: src/components/Nav.tsx:129
+#: src/pages/Settings.tsx:510
+#: src/components/Nav.tsx:133
 msgid "Connecting..."
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:541
+#: src/components/selectors/AssetSelector.tsx:149
 msgid "Convert to XCH at current asking price"
 msgstr ""
 
@@ -699,12 +807,12 @@ msgstr ""
 msgid "Copied!"
 msgstr ""
 
-#: src/pages/Offers.tsx:353
 #: src/components/QRCodeDialog.tsx:65
+#: src/components/OfferRowCard.tsx:103
 msgid "Copy"
 msgstr "Kopieren"
 
-#: src/components/NftGroupCard.tsx:330
+#: src/components/NftGroupCard.tsx:341
 msgid "Copy {cardName} ID to clipboard"
 msgstr ""
 
@@ -712,8 +820,8 @@ msgstr ""
 #~ msgid "Copy address"
 #~ msgstr ""
 
-#: src/pages/Login.tsx:429
-#: src/components/TransactionColumns.tsx:160
+#: src/pages/Login.tsx:416
+#: src/components/TransactionColumns.tsx:162
 msgid "Copy Address"
 msgstr ""
 
@@ -721,24 +829,24 @@ msgstr ""
 #~ msgid "Copy amount"
 #~ msgstr ""
 
-#: src/components/TransactionColumns.tsx:151
+#: src/components/TransactionColumns.tsx:153
 msgid "Copy Amount"
 msgstr ""
 
-#: src/components/TokenGridView.tsx:81
-#: src/components/TokenColumns.tsx:204
+#: src/components/TokenGridView.tsx:84
+#: src/components/TokenColumns.tsx:201
 msgid "Copy Asset ID"
 msgstr ""
 
-#: src/components/TokenGridView.tsx:92
-#: src/components/TokenColumns.tsx:215
+#: src/components/TokenGridView.tsx:95
+#: src/components/TokenColumns.tsx:213
 msgid "Copy Balance"
 msgstr ""
 
-#: src/pages/Offers.tsx:393
-#: src/pages/DidList.tsx:282
-#: src/components/NftGroupCard.tsx:334
-#: src/components/NftCard.tsx:513
+#: src/pages/DidList.tsx:285
+#: src/components/OfferRowCard.tsx:143
+#: src/components/NftGroupCard.tsx:345
+#: src/components/NftCard.tsx:537
 msgid "Copy ID"
 msgstr "ID Kopieren"
 
@@ -750,15 +858,23 @@ msgstr "ID Kopieren"
 msgid "Copy JSON"
 msgstr ""
 
-#: src/components/NftCard.tsx:509
+#: src/components/MarketplaceCard.tsx:177
+msgid "Copy marketplace link"
+msgstr ""
+
+#: src/components/NftCard.tsx:533
 msgid "Copy NFT ID to clipboard"
 msgstr ""
 
-#: src/pages/Login.tsx:167
+#: src/components/OfferCard.tsx:130
+msgid "Copy offer"
+msgstr ""
+
+#: src/pages/Login.tsx:170
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/pages/Offers.tsx:202
+#: src/pages/Offers.tsx:242
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginnen."
 
@@ -766,12 +882,16 @@ msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginne
 msgid "Create a profile?"
 msgstr "Ein Profil erstellen?"
 
+#: src/components/selectors/AssetSelector.tsx:186
+msgid "Create individual offers for each NFT"
+msgstr ""
+
 #: src/pages/NftList.tsx:136
 msgid "Create new NFT"
 msgstr ""
 
-#: src/pages/Offers.tsx:219
-#: src/pages/MakeOffer.tsx:340
+#: src/pages/Offers.tsx:268
+#: src/pages/MakeOffer.tsx:323
 msgid "Create Offer"
 msgstr "Offer Erstellen"
 
@@ -781,32 +901,44 @@ msgstr "Offer Erstellen"
 msgid "Create Profile"
 msgstr "Profile Erstellen"
 
-#: src/pages/Login.tsx:728
+#: src/pages/Login.tsx:719
 #: src/pages/CreateWallet.tsx:63
 msgid "Create Wallet"
 msgstr "Wallet Erstellen"
 
-#: src/components/OfferCard.tsx:141
+#: src/components/OfferCard.tsx:184
 msgid "Created"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:340
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:255
 msgid "Creating Offer"
 msgstr "Offer wird erstellt"
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:219
+msgid "Creating offer {0} of {totalOffers}..."
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:253
+msgid "Creating Offers"
+msgstr ""
 
 #: src/pages/IssueToken.tsx:94
 msgid "Currency Symbol"
 msgstr "Währungssymbol"
 
+#: src/pages/Settings.tsx:1014
+msgid "Current database statistics and health information"
+msgstr ""
+
 #: src/components/Pagination.tsx:76
 msgid "Current page {page} of {totalPages}"
 msgstr ""
 
-#: src/pages/Settings.tsx:254
+#: src/pages/Settings.tsx:281
 msgid "Dark Mode"
 msgstr "Dunkler Modus"
 
-#: src/components/NftCard.tsx:596
+#: src/components/NftCard.tsx:620
 msgid "Data"
 msgstr "Daten"
 
@@ -814,7 +946,7 @@ msgstr "Daten"
 msgid "Data copied to clipboard"
 msgstr ""
 
-#: src/pages/Nft.tsx:241
+#: src/pages/Nft.tsx:246
 msgid "Data Hash"
 msgstr "Daten Hash"
 
@@ -822,64 +954,123 @@ msgstr "Daten Hash"
 msgid "Data table"
 msgstr ""
 
-#: src/pages/Nft.tsx:190
+#: src/pages/Nft.tsx:195
 msgid "Data URIs"
 msgstr "Daten URIs"
 
-#: src/pages/MintNft.tsx:178
+#: src/pages/MintNft.tsx:177
 msgid "Data URLs"
 msgstr "Daten URLs"
 
-#: src/pages/Settings.tsx:318
-#: src/pages/MakeOffer.tsx:270
+#: src/pages/Settings.tsx:1182
+msgid "Database Maintenance Complete"
+msgstr ""
+
+#: src/pages/Login.tsx:652
+msgid "Database Migration Required"
+msgstr ""
+
+#: src/pages/Settings.tsx:1185
+msgid "Database optimization has completed successfully."
+msgstr ""
+
+#: src/pages/Settings.tsx:1055
+msgid "Database Size"
+msgstr ""
+
+#: src/pages/Settings.tsx:1013
+msgid "Database Stats"
+msgstr ""
+
+#: src/pages/Settings.tsx:347
+#: src/pages/Settings.tsx:384
+#: src/pages/Send.tsx:427
+#: src/pages/MakeOffer.tsx:256
 msgid "Days"
 msgstr "Tage"
 
-#: src/pages/Settings.tsx:289
+#: src/pages/Settings.tsx:330
+msgid "Default Clawback"
+msgstr ""
+
+#: src/pages/Settings.tsx:319
 msgid "Default Fee"
 msgstr ""
 
-#: src/pages/Settings.tsx:464
+#: src/pages/Settings.tsx:551
 msgid "Default Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:300
+#: src/pages/Settings.tsx:367
 msgid "Default Offer Expiry"
 msgstr ""
 
-#: src/pages/Offers.tsx:366
-#: src/pages/Offers.tsx:496
-#: src/pages/Login.tsx:477
-#: src/pages/Login.tsx:586
+#: src/pages/Login.tsx:464
+#: src/pages/Login.tsx:527
+#: src/components/OfferRowCard.tsx:116
+#: src/components/dialogs/DeleteOfferDialog.tsx:61
 msgid "Delete"
 msgstr "Löschen"
 
-#: src/pages/PeerList.tsx:383
+#: src/components/dialogs/DeleteOfferDialog.tsx:33
+msgid "Delete {offerCount} offer records?"
+msgstr ""
+
+#: src/pages/PeerList.tsx:425
 msgid "Delete {selectedPeersCount}"
 msgstr "{selectedPeersCount} Löschen"
 
-#: src/pages/Login.tsx:543
-msgid "Delete hardened addresses"
+#: src/pages/Offers.tsx:329
+#: src/components/dialogs/DeleteOfferDialog.tsx:61
+msgid "Delete All"
 msgstr ""
 
-#: src/pages/Offers.tsx:473
+#: src/components/dialogs/ResyncDialog.tsx:79
+msgid "Delete all cached data"
+msgstr ""
+
+#: src/pages/Offers.tsx:334
+msgid "Delete All Filtered Offers"
+msgstr ""
+
+#: src/pages/Settings.tsx:998
+msgid "Delete and redownload coin data from the network"
+msgstr ""
+
+#: src/components/dialogs/ResyncDialog.tsx:57
+msgid "Delete coin data"
+msgstr ""
+
+#: src/pages/Login.tsx:689
+msgid "Delete Data"
+msgstr ""
+
+#: src/pages/Login.tsx:543
+#~ msgid "Delete hardened addresses"
+#~ msgstr ""
+
+#: src/components/dialogs/DeleteOfferDialog.tsx:35
 msgid "Delete offer record?"
 msgstr ""
 
-#: src/pages/Login.tsx:523
+#: src/components/dialogs/ResyncDialog.tsx:68
 msgid "Delete saved offer files"
 msgstr "Gespeicherte Offer-Dateien löschen"
 
 #: src/pages/Login.tsx:533
-msgid "Delete unhardened addresses"
+#~ msgid "Delete unhardened addresses"
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:405
+msgid "Delta Sync"
 msgstr ""
 
-#: src/pages/Settings.tsx:844
+#: src/pages/Settings.tsx:1136
 msgid "Derivation index"
 msgstr ""
 
-#: src/pages/Settings.tsx:800
-#: src/pages/Settings.tsx:838
+#: src/pages/Settings.tsx:951
+#: src/pages/Settings.tsx:1130
 msgid "Derivation Index"
 msgstr ""
 
@@ -888,41 +1079,41 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/Nft.tsx:140
-#: src/pages/CollectionMetaData.tsx:306
+#: src/pages/CollectionMetaData.tsx:300
 msgid "Description"
 msgstr "Beschreibung"
 
-#: src/components/NftCard.tsx:311
+#: src/components/NftCard.tsx:335
 msgid "Deselect NFT"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:160
+#: src/components/TransactionOptions.tsx:152
 msgid "Detailed View"
 msgstr ""
 
-#: src/pages/Login.tsx:441
+#: src/pages/Login.tsx:428
 #: src/components/ConfirmationDialog.tsx:218
 msgid "Details"
 msgstr "Details"
 
 #: src/pages/Offers.tsx:441
-msgid "Dexie"
-msgstr ""
+#~ msgid "Dexie"
+#~ msgstr ""
 
 #: src/pages/MakeOffer.tsx:380
-msgid "Dexie Link"
-msgstr "Dexie Link"
+#~ msgid "Dexie Link"
+#~ msgstr "Dexie Link"
 
 #: src/pages/Offers.tsx:457
 #: src/pages/Offers.tsx:571
-msgid "Dexie QR Code"
-msgstr ""
+#~ msgid "Dexie QR Code"
+#~ msgstr ""
 
 #: src/components/confirmations/DidConfirmation.tsx:90
 msgid "DID ID"
 msgstr ""
 
-#: src/pages/DidList.tsx:277
+#: src/pages/DidList.tsx:280
 #: src/components/confirmations/DidConfirmation.tsx:92
 msgid "DID ID copied to clipboard"
 msgstr ""
@@ -935,7 +1126,7 @@ msgstr "Haben Sie Ihre Mnemonic gespeichert?"
 #~ msgid "Disconnect"
 #~ msgstr "Verbindung trennen"
 
-#: src/pages/Settings.tsx:504
+#: src/pages/Settings.tsx:591
 msgid "Discover Peers"
 msgstr ""
 
@@ -948,38 +1139,43 @@ msgstr ""
 msgid "Display name"
 msgstr "Display Name"
 
-#: src/pages/Login.tsx:698
+#: src/pages/Login.tsx:639
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:317
 msgid "Done"
 msgstr "Fertig"
 
-#: src/components/TokenCard.tsx:142
+#: src/components/Nav.tsx:137
+msgid "Downloading {checkedFiles} / {totalFiles}"
+msgstr ""
+
+#: src/components/TokenCard.tsx:136
 msgid "Edit"
 msgstr "Bearbeiten"
 
-#: src/components/NftCard.tsx:713
+#: src/components/NftCard.tsx:737
 msgid "Edit Nft Profile"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:368
+#: src/components/MultiSelectActions.tsx:369
 msgid "Edit NFT Profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:384
+#: src/components/NftCard.tsx:408
 msgid "Edit profile"
 msgstr ""
 
-#: src/components/NftCard.tsx:392
-#: src/components/MultiSelectActions.tsx:229
-#: src/components/MultiSelectActions.tsx:311
+#: src/components/NftCard.tsx:416
+#: src/components/MultiSelectActions.tsx:230
+#: src/components/MultiSelectActions.tsx:312
 #: src/components/confirmations/NftConfirmation.tsx:57
 msgid "Edit Profile"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:225
+#: src/components/MultiSelectActions.tsx:226
 msgid "Edit profile for {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/TokenCard.tsx:185
+#: src/components/TokenCard.tsx:178
 msgid "Edit Token Details"
 msgstr "Token Details Bearbeiten"
 
@@ -987,32 +1183,40 @@ msgstr "Token Details Bearbeiten"
 msgid "Edition {0} of {1}"
 msgstr ""
 
-#: src/pages/MintNft.tsx:288
+#: src/pages/MintNft.tsx:294
 msgid "Edition Count"
 msgstr ""
 
-#: src/pages/Send.tsx:262
-#: src/pages/MintNft.tsx:246
+#: src/pages/Send.tsx:393
+msgid "Enable clawback"
+msgstr ""
+
+#: src/pages/Settings.tsx:985
+msgid "Enable Delta Sync"
+msgstr ""
+
+#: src/pages/Send.tsx:277
+#: src/pages/MintNft.tsx:245
 #: src/pages/Addresses.tsx:94
 #: src/components/TransferDialog.tsx:83
 msgid "Enter address"
 msgstr "Addresse eingeben"
 
-#: src/pages/MakeOffer.tsx:509
+#: src/components/selectors/AssetSelector.tsx:117
 msgid "Enter amount"
 msgstr "Summer eingeben"
 
-#: src/pages/MintNft.tsx:183
-#: src/pages/MintNft.tsx:204
-#: src/pages/MintNft.tsx:225
+#: src/pages/MintNft.tsx:182
+#: src/pages/MintNft.tsx:203
+#: src/pages/MintNft.tsx:224
 msgid "Enter comma separated URLs"
 msgstr "Kommagetrennte URLs eingeben"
 
-#: src/pages/MintNft.tsx:293
+#: src/pages/MintNft.tsx:299
 msgid "Enter count"
 msgstr ""
 
-#: src/pages/Settings.tsx:843
+#: src/pages/Settings.tsx:1135
 msgid "Enter derivation index"
 msgstr ""
 
@@ -1020,19 +1224,19 @@ msgstr ""
 #~ msgid "Enter fee amount"
 #~ msgstr "Gebührenbetrag eingeben"
 
-#: src/pages/Send.tsx:364
+#: src/pages/Send.tsx:379
 msgid "Enter memo"
 msgstr ""
 
-#: src/pages/Send.tsx:254
+#: src/pages/Send.tsx:269
 msgid "Enter multiple distinct addresses"
 msgstr ""
 
-#: src/pages/PeerList.tsx:414
+#: src/pages/PeerList.tsx:456
 msgid "Enter multiple IP addresses (one per line or comma-separated)"
 msgstr ""
 
-#: src/components/ui/masked-input.tsx:152
+#: src/components/ui/masked-input.tsx:154
 msgid "Enter network fee"
 msgstr "Netzwerkgebühr eingeben"
 
@@ -1041,10 +1245,14 @@ msgstr "Netzwerkgebühr eingeben"
 #~ msgstr "Offer Text Eingeben"
 
 #: src/pages/Offers.tsx:236
-msgid "Enter Offer String or Dexie URL"
+#~ msgid "Enter Offer String or Dexie URL"
+#~ msgstr ""
+
+#: src/components/dialogs/ViewOfferDialog.tsx:33
+msgid "Enter Offer String or Offer URL"
 msgstr ""
 
-#: src/pages/MintNft.tsx:269
+#: src/pages/MintNft.tsx:268
 msgid "Enter percent"
 msgstr "Prozent eingeben"
 
@@ -1052,23 +1260,23 @@ msgstr "Prozent eingeben"
 #~ msgid "Enter the IP address of the peer you want to connect to."
 #~ msgstr "IP-Adresse des Peers eingeben, mit dem Sie sich verbinden möchten."
 
-#: src/pages/PeerList.tsx:399
+#: src/pages/PeerList.tsx:441
 msgid "Enter the IP addresses of the peers you want to connect to."
 msgstr ""
 
-#: src/components/TokenCard.tsx:188
+#: src/components/TokenCard.tsx:181
 msgid "Enter the new display details for this token"
 msgstr "Display-Details für neues Token eingeben"
 
-#: src/pages/DidList.tsx:332
+#: src/pages/DidList.tsx:335
 msgid "Enter the new display name for this profile."
 msgstr "Geben Sie den neuen Anzeigenamen für dieses Profil ein."
 
-#: src/pages/Login.tsx:602
+#: src/pages/Login.tsx:543
 msgid "Enter the new display name for this wallet."
 msgstr "Geben Sie den neuen Anzeigenamen für den Wallet ein"
 
-#: src/components/NftCard.tsx:570
+#: src/components/NftCard.tsx:594
 msgid "Enter URL"
 msgstr "URL Eingeben"
 
@@ -1089,7 +1297,8 @@ msgstr ""
 msgid "Expand sidebar - {0}"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:99
+#: src/pages/MakeOffer.tsx:49
+#: src/hooks/useOfferProcessor.ts:58
 msgid "Expiration must be at least 1 second in the future"
 msgstr ""
 
@@ -1097,58 +1306,71 @@ msgstr ""
 #~ msgid "Expired"
 #~ msgstr "Abgelaufen"
 
-#: src/components/OfferCard.tsx:164
+#: src/components/OfferCard.tsx:213
 msgid "Expires"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:229
+#: src/pages/MakeOffer.tsx:215
 msgid "Expiring offer"
 msgstr "Auslaufendes Offer"
 
-#: src/components/NftOptions.tsx:206
-#: src/components/NftOptions.tsx:207
+#: src/components/NftOptions.tsx:200
+#: src/components/NftOptions.tsx:201
 msgid "Export NFTs"
 msgstr ""
 
-#: src/components/TokenOptions.tsx:123
-#: src/components/TokenOptions.tsx:124
+#: src/components/TokenOptions.tsx:120
+#: src/components/TokenOptions.tsx:121
 msgid "Export tokens"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:120
-#: src/components/TransactionOptions.tsx:121
+#: src/components/TransactionOptions.tsx:113
+#: src/components/TransactionOptions.tsx:114
 msgid "Export transactions"
 msgstr ""
 
-#: src/pages/Nft.tsx:326
-#: src/pages/CollectionMetaData.tsx:375
+#: src/pages/Nft.tsx:331
+#: src/pages/CollectionMetaData.tsx:369
 msgid "External Links"
 msgstr "Externe Links"
 
-#: src/pages/Login.tsx:329
+#: src/components/NftGroupCard.tsx:432
+msgid "Failed to add NFTs to offer"
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:117
+msgid "Failed to auto-upload offer {0} to {1}. Stopping.: {error}"
+msgstr ""
+
+#: src/pages/Login.tsx:313
 msgid "Failed to copy address to clipboard"
 msgstr ""
 
-#: src/lib/exportNfts.ts:128
+#: src/lib/exportNfts.ts:120
 msgid "Failed to export NFTs: {error}"
 msgstr ""
 
-#: src/lib/exportTokens.ts:61
+#: src/lib/exportTokens.ts:49
 msgid "Failed to export tokens: {error}"
 msgstr ""
 
-#: src/lib/exportTransactions.ts:144
+#: src/lib/exportTransactions.ts:113
 msgid "Failed to export transactions: {error}"
 msgstr ""
 
 #: src/components/TokenColumns.tsx:190
 #: src/components/TokenCard.tsx:164
-msgid "Failed to open dexie.space"
+#~ msgid "Failed to open dexie.space"
+#~ msgstr ""
+
+#: src/components/TokenColumns.tsx:184
+#: src/components/TokenCard.tsx:157
+msgid "Failed to open dexie.space: {error}"
 msgstr ""
 
 #: src/pages/Offers.tsx:424
-msgid "Failed to upload to Dexie"
-msgstr ""
+#~ msgid "Failed to upload to Dexie"
+#~ msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:437
 #: src/components/AdvancedTransactionSummary.tsx:86
@@ -1159,7 +1381,15 @@ msgstr "Gebühr"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
-#: src/lib/exportNfts.ts:48
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:376
+msgid "Fee per offer:"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:371
+msgid "Fees"
+msgstr ""
+
+#: src/lib/exportNfts.ts:51
 msgid "Fetching NFTs..."
 msgstr ""
 
@@ -1167,7 +1397,7 @@ msgstr ""
 msgid "Fetching offer details..."
 msgstr ""
 
-#: src/lib/exportTransactions.ts:32
+#: src/lib/exportTransactions.ts:29
 msgid "Fetching transactions..."
 msgstr ""
 
@@ -1179,11 +1409,11 @@ msgstr "Neue Addresse"
 msgid "Full title: {title}"
 msgstr ""
 
-#: src/pages/Settings.tsx:108
+#: src/pages/Settings.tsx:125
 msgid "General"
 msgstr ""
 
-#: src/pages/Settings.tsx:869
+#: src/pages/Settings.tsx:1161
 msgid "Generate"
 msgstr ""
 
@@ -1195,11 +1425,11 @@ msgstr ""
 #~ msgid "Generate addresses automatically"
 #~ msgstr "Addressen automatisch generieren"
 
-#: src/pages/Settings.tsx:867
+#: src/pages/Settings.tsx:1159
 msgid "Generating"
 msgstr ""
 
-#: src/pages/Settings.tsx:726
+#: src/pages/Settings.tsx:879
 msgid "Give your wallet a memorable name"
 msgstr ""
 
@@ -1219,22 +1449,22 @@ msgstr ""
 msgid "Go to previous page"
 msgstr ""
 
-#: src/components/Header.tsx:95
+#: src/components/Header.tsx:97
 msgid "Go to wallet"
 msgstr "Zum Wallet gehen"
 
-#: src/components/NftOptions.tsx:385
-#: src/components/NftOptions.tsx:389
+#: src/components/NftOptions.tsx:378
+#: src/components/NftOptions.tsx:382
 msgid "Group by Collections"
 msgstr ""
 
-#: src/components/NftOptions.tsx:421
-#: src/components/NftOptions.tsx:425
+#: src/components/NftOptions.tsx:414
+#: src/components/NftOptions.tsx:418
 msgid "Group by Minters"
 msgstr ""
 
-#: src/components/NftOptions.tsx:403
-#: src/components/NftOptions.tsx:407
+#: src/components/NftOptions.tsx:396
+#: src/components/NftOptions.tsx:400
 msgid "Group by Owners"
 msgstr ""
 
@@ -1247,7 +1477,7 @@ msgstr ""
 #~ msgid "Group options"
 #~ msgstr ""
 
-#: src/components/NftOptions.tsx:130
+#: src/components/NftOptions.tsx:125
 msgid "Group options: currently grouped by {groupMode}"
 msgstr ""
 
@@ -1255,28 +1485,28 @@ msgstr ""
 #~ msgid "Hardened addresses"
 #~ msgstr ""
 
-#: src/pages/PeerList.tsx:228
+#: src/pages/PeerList.tsx:138
 msgid "Height"
 msgstr ""
 
-#: src/pages/PeerList.tsx:153
+#: src/pages/PeerList.tsx:249
 msgid "Height:"
 msgstr "Höhe:"
 
-#: src/pages/DidList.tsx:311
-#: src/components/TokenGridView.tsx:70
-#: src/components/TokenColumns.tsx:180
-#: src/components/TokenCard.tsx:156
-#: src/components/NftGroupCard.tsx:302
-#: src/components/NftCard.tsx:498
+#: src/pages/DidList.tsx:314
+#: src/components/TokenGridView.tsx:72
+#: src/components/TokenColumns.tsx:174
+#: src/components/TokenCard.tsx:150
+#: src/components/NftGroupCard.tsx:313
+#: src/components/NftCard.tsx:522
 msgid "Hide"
 msgstr "Verstecken"
 
-#: src/components/NftGroupCard.tsx:295
+#: src/components/NftGroupCard.tsx:306
 msgid "Hide {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:489
+#: src/components/NftCard.tsx:513
 msgid "Hide {nftName}"
 msgstr ""
 
@@ -1284,7 +1514,7 @@ msgstr ""
 #~ msgid "Hide collection"
 #~ msgstr ""
 
-#: src/components/NftOptions.tsx:284
+#: src/components/NftOptions.tsx:277
 msgid "Hide hidden items"
 msgstr ""
 
@@ -1301,11 +1531,11 @@ msgstr ""
 #~ msgid "Hide hidden tokens"
 #~ msgstr ""
 
-#: src/components/CoinList.tsx:256
+#: src/components/CoinList.tsx:312
 msgid "Hide spent coins"
 msgstr ""
 
-#: src/components/TokenOptions.tsx:152
+#: src/components/TokenOptions.tsx:148
 msgid "Hide Zero Balance Tokens"
 msgstr ""
 
@@ -1318,7 +1548,7 @@ msgstr ""
 msgid "High Transaction Fee"
 msgstr "Hohe Transaktionsgebühr"
 
-#: src/pages/Login.tsx:491
+#: src/pages/Login.tsx:478
 msgid "Hot"
 msgstr ""
 
@@ -1326,29 +1556,35 @@ msgstr ""
 #~ msgid "Hot Wallet"
 #~ msgstr "Hot Wallet"
 
-#: src/pages/Settings.tsx:323
-#: src/pages/MakeOffer.tsx:293
+#: src/pages/Settings.tsx:352
+#: src/pages/Settings.tsx:389
+#: src/pages/Send.tsx:444
+#: src/pages/MakeOffer.tsx:279
 msgid "Hours"
 msgstr "Stunden"
 
-#: src/pages/CollectionMetaData.tsx:281
+#: src/pages/CollectionMetaData.tsx:275
 msgid "Icon for {collectionName}"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:179
+#: src/components/NftGroupCard.tsx:190
 msgid "Icon for {name}"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:231
+#: src/components/NftGroupCard.tsx:242
 msgid "ID: {cardId}"
 msgstr ""
 
-#: src/pages/Login.tsx:164
+#: src/pages/Login.tsx:167
 #: src/pages/ImportWallet.tsx:171
 msgid "Import"
 msgstr "Importieren"
 
-#: src/pages/Login.tsx:725
+#: src/pages/ViewOffer.tsx:118
+msgid "Import Offer"
+msgstr ""
+
+#: src/pages/Login.tsx:716
 #: src/pages/ImportWallet.tsx:84
 msgid "Import Wallet"
 msgstr "Wallet Importieren"
@@ -1357,19 +1593,19 @@ msgstr "Wallet Importieren"
 msgid "Importing"
 msgstr ""
 
-#: src/pages/Settings.tsx:810
+#: src/pages/Settings.tsx:961
 msgid "Increase"
 msgstr ""
 
-#: src/pages/Settings.tsx:820
+#: src/pages/Settings.tsx:1112
 msgid "Increase Derivation Index"
 msgstr ""
 
-#: src/pages/Settings.tsx:823
+#: src/pages/Settings.tsx:1115
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr ""
 
-#: src/components/AddressList.tsx:33
+#: src/components/AddressList.tsx:13
 msgid "Index"
 msgstr "Index"
 
@@ -1381,11 +1617,11 @@ msgstr ""
 msgid "Initializing..."
 msgstr ""
 
-#: src/pages/Send.tsx:137
+#: src/pages/Send.tsx:126
 msgid "Invalid address"
 msgstr "Ungültige Adresse"
 
-#: src/pages/Send.tsx:137
+#: src/pages/Send.tsx:126
 msgid "Invalid addresses"
 msgstr ""
 
@@ -1393,19 +1629,19 @@ msgstr ""
 msgid "Invalid number {pastedText}"
 msgstr ""
 
-#: src/pages/PeerList.tsx:214
+#: src/pages/PeerList.tsx:131
 msgid "IP Address"
 msgstr "IP Addresse"
 
-#: src/pages/PeerList.tsx:408
+#: src/pages/PeerList.tsx:450
 msgid "IP Addresses"
 msgstr ""
 
-#: src/pages/TokenList.tsx:181
+#: src/pages/TokenList.tsx:172
 msgid "Issue new token"
 msgstr ""
 
-#: src/pages/TokenList.tsx:185
+#: src/pages/TokenList.tsx:176
 #: src/pages/IssueToken.tsx:63
 #: src/pages/IssueToken.tsx:144
 msgid "Issue Token"
@@ -1423,20 +1659,20 @@ msgstr "JSON"
 msgid "JSON copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:583
+#: src/components/NftCard.tsx:607
 #: src/components/confirmations/AddUrlConfirmation.tsx:68
 msgid "Kind"
 msgstr "Sorte"
 
-#: src/components/NftCard.tsx:191
+#: src/components/NftCard.tsx:215
 msgid "Kind is required"
 msgstr "Sorte ist erforderlich"
 
-#: src/pages/Settings.tsx:272
+#: src/pages/Settings.tsx:299
 msgid "Language"
 msgstr "Sprache"
 
-#: src/components/NftOptions.tsx:268
+#: src/components/NftOptions.tsx:261
 msgid "Large Cards"
 msgstr ""
 
@@ -1446,8 +1682,7 @@ msgstr ""
 msgid "Launcher Id"
 msgstr "Launcher Id"
 
-#: src/pages/Transaction.tsx:233
-#: src/pages/Transaction.tsx:238
+#: src/pages/Transaction.tsx:195
 msgid "Launcher ID"
 msgstr ""
 
@@ -1457,53 +1692,68 @@ msgstr ""
 msgid "Launcher Id copied to clipboard"
 msgstr ""
 
-#: src/pages/Transaction.tsx:234
-#: src/pages/Transaction.tsx:239
+#: src/pages/Transaction.tsx:196
 msgid "Launcher ID copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:602
+#: src/components/NftCard.tsx:626
 msgid "License"
 msgstr "Lizenz"
 
-#: src/pages/Nft.tsx:259
+#: src/pages/Nft.tsx:264
 msgid "License Hash"
 msgstr "Lizenz Hash"
 
-#: src/pages/Nft.tsx:224
+#: src/pages/Nft.tsx:229
 msgid "License URIs"
 msgstr "Lizenz URIs"
 
-#: src/pages/MintNft.tsx:220
+#: src/pages/MintNft.tsx:219
 msgid "License URLs"
 msgstr "Lizenz URLs"
 
-#: src/components/NftGroupCard.tsx:124
+#: src/components/MarketplaceCard.tsx:124
+msgid "Link copied to clipboard"
+msgstr ""
+
+#: src/components/NftGroupCard.tsx:135
 msgid "Loading collection"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:122
+#: src/pages/CollectionMetaData.tsx:116
 msgid "Loading Collection..."
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:124
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
+msgid "Loading NFT details..."
+msgstr ""
+
+#: src/contexts/WalletConnectContext.tsx:492
+msgid "Loading offer details..."
+msgstr ""
+
+#: src/components/NftGroupCard.tsx:135
 msgid "Loading profile"
 msgstr ""
 
-#: src/pages/Transactions.tsx:214
-#: src/components/TransactionListView.tsx:153
+#: src/pages/Transactions.tsx:203
+#: src/components/TransactionListView.tsx:124
 msgid "Loading transactions..."
 msgstr ""
 
-#: src/components/CoinList.tsx:277
+#: src/pages/Settings.tsx:1042
+msgid "Loading..."
+msgstr ""
+
+#: src/components/CoinList.tsx:331
 msgid "Locked in offer"
 msgstr ""
 
-#: src/pages/Login.tsx:417
+#: src/pages/Login.tsx:404
 msgid "Login"
 msgstr "Anmelden"
 
-#: src/components/Nav.tsx:179
+#: src/components/Nav.tsx:187
 msgid "Logout"
 msgstr "Abmelden"
 
@@ -1515,57 +1765,61 @@ msgstr ""
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie können später nicht darauf zugreifen, da sie nicht im Wallet gespeichert wird. Sie können auch keine Transaktionen mit diesem Wallet durchführen."
 
-#: src/components/OfferCard.tsx:149
+#: src/components/OfferCard.tsx:194
 msgid "Maker Fee"
 msgstr ""
 
-#: src/pages/Offers.tsx:196
+#: src/pages/Offers.tsx:236
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
-#: src/pages/PeerList.tsx:143
-#: src/pages/PeerList.tsx:255
+#: src/pages/PeerList.tsx:99
+#: src/pages/PeerList.tsx:239
 msgid "Manually added peer"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:603
+#: src/components/OfferCard.tsx:280
+msgid "Marketplaces"
+msgstr ""
+
+#: src/components/OwnedCoinsCard.tsx:641
 msgid "Maximum Coin Amount"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:588
+#: src/components/OwnedCoinsCard.tsx:626
 msgid "Maximum Number of Coins"
 msgstr ""
 
-#: src/pages/Send.tsx:357
+#: src/pages/Send.tsx:372
 msgid "Memo (optional)"
 msgstr ""
 
-#: src/components/NftCard.tsx:599
+#: src/components/NftCard.tsx:623
 msgid "Metadata"
 msgstr "Metadaten"
 
-#: src/pages/CollectionMetaData.tsx:351
-#: src/pages/CollectionMetaData.tsx:354
+#: src/pages/CollectionMetaData.tsx:345
+#: src/pages/CollectionMetaData.tsx:348
 msgid "Metadata Collection ID"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:357
+#: src/pages/CollectionMetaData.tsx:351
 msgid "Metadata Collection ID copied to clipboard"
 msgstr ""
 
-#: src/pages/Nft.tsx:250
+#: src/pages/Nft.tsx:255
 msgid "Metadata Hash"
 msgstr "Metadaten Hash"
 
-#: src/pages/Nft.tsx:207
+#: src/pages/Nft.tsx:212
 msgid "Metadata URIs"
 msgstr "Metadaten URIs"
 
-#: src/pages/MintNft.tsx:199
+#: src/pages/MintNft.tsx:198
 msgid "Metadata URLs"
 msgstr "Metadaten URLs"
 
-#: src/pages/MintNft.tsx:330
+#: src/pages/MintNft.tsx:336
 msgid "Mint"
 msgstr "Mint"
 
@@ -1574,27 +1828,27 @@ msgstr "Mint"
 #~ msgstr "NFT minten?"
 
 #: src/pages/NftList.tsx:139
-#: src/pages/MintNft.tsx:131
+#: src/pages/MintNft.tsx:130
 msgid "Mint NFT"
 msgstr "NFT Minten"
 
-#: src/components/NftGroupCard.tsx:164
+#: src/components/NftGroupCard.tsx:175
 msgid "Minter {cardName}"
 msgstr ""
 
-#: src/pages/Nft.tsx:269
-#: src/pages/Nft.tsx:272
-#: src/pages/CollectionMetaData.tsx:364
-#: src/pages/CollectionMetaData.tsx:367
+#: src/pages/Nft.tsx:274
+#: src/pages/Nft.tsx:277
+#: src/pages/CollectionMetaData.tsx:358
+#: src/pages/CollectionMetaData.tsx:361
 msgid "Minter DID"
 msgstr "DID des Minters"
 
-#: src/pages/Nft.tsx:274
-#: src/pages/CollectionMetaData.tsx:369
+#: src/pages/Nft.tsx:279
+#: src/pages/CollectionMetaData.tsx:363
 msgid "Minter DID copied to clipboard"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:327
+#: src/components/NftGroupCard.tsx:338
 msgid "Minter ID copied to clipboard"
 msgstr ""
 
@@ -1603,28 +1857,30 @@ msgid "Minters"
 msgstr ""
 
 #: src/pages/MakeOffer.tsx:405
-msgid "MintGarden Link"
-msgstr "MintGarden Link"
+#~ msgid "MintGarden Link"
+#~ msgstr "MintGarden Link"
 
-#: src/pages/MintNft.tsx:330
+#: src/pages/MintNft.tsx:336
 msgid "Minting"
 msgstr "Minting"
 
-#: src/pages/Settings.tsx:328
-#: src/pages/MakeOffer.tsx:316
+#: src/pages/Settings.tsx:357
+#: src/pages/Settings.tsx:394
+#: src/pages/Send.tsx:461
+#: src/pages/MakeOffer.tsx:302
 msgid "Minutes"
 msgstr "Minuten"
 
-#: src/pages/Login.tsx:684
+#: src/pages/Login.tsx:625
 #: src/pages/CreateWallet.tsx:200
 msgid "Mnemonic"
 msgstr "Mnemonic"
 
 #: src/pages/IssueToken.tsx:75
-#: src/pages/DidList.tsx:338
+#: src/pages/DidList.tsx:341
 #: src/pages/CreateProfile.tsx:70
-#: src/components/TokenColumns.tsx:59
-#: src/components/TokenCard.tsx:194
+#: src/components/TokenColumns.tsx:55
+#: src/components/TokenCard.tsx:187
 msgid "Name"
 msgstr "Name"
 
@@ -1633,45 +1889,53 @@ msgstr "Name"
 msgid "Name is required"
 msgstr "Name ist erforderlich"
 
-#: src/components/TokenCard.tsx:198
+#: src/components/TokenCard.tsx:191
 msgid "Name of this token"
 msgstr ""
 
-#: src/pages/Login.tsx:612
+#: src/pages/Login.tsx:553
 msgid "Name of your wallet"
 msgstr "Name Ihres Wallets"
 
-#: src/components/Header.tsx:79
+#: src/components/Header.tsx:81
 msgid "Navigation menu"
 msgstr ""
 
-#: src/pages/Settings.tsx:122
-#: src/pages/Settings.tsx:462
-#: src/pages/Settings.tsx:771
-#: src/pages/Login.tsx:655
+#: src/pages/Settings.tsx:139
+#: src/pages/Settings.tsx:549
+#: src/pages/Login.tsx:596
 msgid "Network"
 msgstr "Netzwerk"
 
-#: src/pages/ViewOffer.tsx:96
-#: src/pages/Send.tsx:339
-#: src/pages/Offers.tsx:527
-#: src/pages/MintNft.tsx:313
-#: src/pages/MakeOffer.tsx:206
+#: src/pages/ViewOffer.tsx:99
+#: src/pages/Send.tsx:354
+#: src/pages/MintNft.tsx:319
+#: src/pages/MakeOffer.tsx:192
 #: src/pages/IssueToken.tsx:130
 #: src/pages/CreateProfile.tsx:87
 #: src/components/TransferDialog.tsx:95
-#: src/components/NftCard.tsx:618
+#: src/components/OwnedCoinsCard.tsx:493
+#: src/components/OwnedCoinsCard.tsx:561
+#: src/components/OwnedCoinsCard.tsx:611
+#: src/components/NftCard.tsx:642
 #: src/components/FeeOnlyDialog.tsx:77
-#: src/components/CoinsCard.tsx:455
-#: src/components/CoinsCard.tsx:523
-#: src/components/CoinsCard.tsx:573
+#: src/components/ClawbackCoinsCard.tsx:320
 #: src/components/AssignNftDialog.tsx:129
+#: src/components/dialogs/CancelOfferDialog.tsx:64
 msgid "Network Fee"
 msgstr "Netzwerkgebühr"
 
-#: src/components/ui/masked-input.tsx:153
+#: src/pages/Offers.tsx:379
+msgid "Network Fee (per offer)"
+msgstr ""
+
+#: src/components/ui/masked-input.tsx:155
 msgid "Network fee amount"
 msgstr "Netzwerkgebührenbetrag"
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:396
+msgid "Network Fee:"
+msgstr ""
 
 #: src/pages/Settings.tsx:450
 #~ msgid "Network ID"
@@ -1682,7 +1946,7 @@ msgstr "Netzwerkgebührenbetrag"
 #~ msgid "Network status"
 #~ msgstr "Netzwerkstatus"
 
-#: src/pages/MakeOffer.tsx:158
+#: src/pages/MakeOffer.tsx:138
 msgid "New Offer"
 msgstr "Neuer Offer"
 
@@ -1690,13 +1954,13 @@ msgstr "Neuer Offer"
 msgid "Next page"
 msgstr "Nächste Seite"
 
-#: src/pages/MakeOffer.tsx:485
-#: src/components/OfferCard.tsx:365
-#: src/components/MultiSelectActions.tsx:273
+#: src/components/NftGroupCard.tsx:417
+#: src/components/MultiSelectActions.tsx:274
+#: src/components/selectors/AssetSelector.tsx:93
 msgid "NFT"
 msgstr "NFT"
 
-#: src/components/NftCard.tsx:281
+#: src/components/NftCard.tsx:305
 #: src/components/confirmations/NftConfirmation.tsx:111
 #: src/components/confirmations/AddUrlConfirmation.tsx:42
 msgid "NFT artwork for {nftName}"
@@ -1706,23 +1970,23 @@ msgstr ""
 #~ msgid "NFT artwork for unnamed NFT"
 #~ msgstr ""
 
-#: src/pages/NftList.tsx:171
+#: src/pages/NftList.tsx:168
 msgid "NFT Collection"
 msgstr ""
 
-#: src/components/NftCard.tsx:318
+#: src/components/NftCard.tsx:342
 msgid "NFT details"
 msgstr ""
 
-#: src/components/NftOptions.tsx:139
+#: src/components/NftOptions.tsx:134
 msgid "NFT filtering and sorting options"
 msgstr ""
 
-#: src/components/NftCardList.tsx:174
+#: src/components/NftCardList.tsx:180
 msgid "NFT Gallery"
 msgstr ""
 
-#: src/components/NftCard.tsx:507
+#: src/components/NftCard.tsx:531
 msgid "NFT ID copied to clipboard"
 msgstr ""
 
@@ -1731,28 +1995,29 @@ msgstr ""
 #~ msgstr "NFT optionen"
 
 #: src/components/OfferCard.tsx:379
-msgid "NFT preview"
-msgstr "NFT Vorschau"
+#~ msgid "NFT preview"
+#~ msgstr "NFT Vorschau"
 
-#: src/components/NftOptions.tsx:188
+#: src/components/NftOptions.tsx:183
 msgid "NFT view options"
 msgstr ""
 
 #: src/components/NftPageTitle.tsx:44
+#: src/components/NftGroupCard.tsx:417
 #: src/components/Nav.tsx:51
-#: src/components/MultiSelectActions.tsx:273
+#: src/components/MultiSelectActions.tsx:274
 msgid "NFTs"
 msgstr "NFTs"
 
-#: src/lib/exportNfts.ts:123
+#: src/lib/exportNfts.ts:115
 msgid "NFTs exported successfully"
 msgstr ""
 
-#: src/pages/Settings.tsx:406
+#: src/pages/Settings.tsx:493
 msgid "No active sessions"
 msgstr "Keine aktiven Sessions"
 
-#: src/pages/Login.tsx:326
+#: src/pages/Login.tsx:310
 msgid "No address found"
 msgstr ""
 
@@ -1764,8 +2029,8 @@ msgstr ""
 msgid "No coins being spent."
 msgstr ""
 
-#: src/components/NftCard.tsx:338
-#: src/components/NftCard.tsx:342
+#: src/components/NftCard.tsx:362
+#: src/components/NftCard.tsx:366
 msgid "No collection"
 msgstr "Keine Kollektion"
 
@@ -1774,55 +2039,67 @@ msgstr "Keine Kollektion"
 msgid "No Collection"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:141
+#: src/pages/CollectionMetaData.tsx:135
 msgid "No Collection Found"
 msgstr ""
 
-#: src/components/NftOptions.tsx:367
-#: src/components/NftOptions.tsx:371
+#: src/components/CoinList.tsx:252
+msgid "No expiration"
+msgstr ""
+
+#: src/components/NftOptions.tsx:360
+#: src/components/NftOptions.tsx:364
 msgid "No Grouping"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:288
+#: src/pages/CollectionMetaData.tsx:282
 msgid "No Icon"
 msgstr ""
 
-#: src/lib/exportNfts.ts:53
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:217
+msgid "No NFTs offered or details unavailable."
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:219
+msgid "No NFTs requested or details unavailable."
+msgstr ""
+
+#: src/lib/exportNfts.ts:56
 msgid "No NFTs to export"
 msgstr ""
 
-#: src/pages/Offers.tsx:198
+#: src/pages/Offers.tsx:238
 msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
-#: src/components/ui/data-table.tsx:133
+#: src/components/ui/data-table.tsx:134
 msgid "No results."
 msgstr "Keine Ergebnisse."
 
-#: src/lib/exportTokens.ts:10
+#: src/lib/exportTokens.ts:9
 msgid "No tokens to export"
 msgstr ""
 
-#: src/pages/Settings.tsx:156
+#: src/pages/Settings.tsx:173
 msgid "No Wallet Connected"
 msgstr ""
 
-#: src/pages/Nft.tsx:273
-#: src/pages/Nft.tsx:284
+#: src/pages/Nft.tsx:278
+#: src/pages/Nft.tsx:289
 #: src/components/AssignNftDialog.tsx:100
 msgid "None"
 msgstr "Nichts"
 
-#: src/pages/DidList.tsx:252
-#: src/pages/DidList.tsx:395
+#: src/pages/DidList.tsx:254
+#: src/pages/DidList.tsx:398
 msgid "Normalize"
 msgstr ""
 
-#: src/pages/DidList.tsx:435
+#: src/pages/DidList.tsx:438
 msgid "Normalize DID"
 msgstr ""
 
-#: src/pages/DidList.tsx:394
+#: src/pages/DidList.tsx:397
 msgid "Normalize Profile"
 msgstr ""
 
@@ -1830,106 +2107,165 @@ msgstr ""
 msgid "Normalize Profiles"
 msgstr ""
 
-#: src/pages/Offers.tsx:299
+#: src/pages/Offers.tsx:75
 #: src/components/TransferDialog.tsx:50
-#: src/components/NftCard.tsx:194
+#: src/components/OwnedCoinsCard.tsx:243
+#: src/components/OwnedCoinsCard.tsx:288
+#: src/components/OwnedCoinsCard.tsx:337
+#: src/components/OfferRowCard.tsx:51
+#: src/components/NftCard.tsx:218
 #: src/components/FeeOnlyDialog.tsx:50
-#: src/components/CoinsCard.tsx:202
-#: src/components/CoinsCard.tsx:248
-#: src/components/CoinsCard.tsx:298
+#: src/components/ClawbackCoinsCard.tsx:197
 #: src/components/AssignNftDialog.tsx:58
 msgid "Not enough funds to cover the fee"
 msgstr "Nicht genügend Guthaben, um die Gebühr zu decken"
 
-#: src/pages/Transactions.tsx:170
+#: src/pages/Transactions.tsx:161
 msgid "Note"
 msgstr "Notiz"
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:231
+msgid "Nothing offered."
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:233
+msgid "Nothing requested."
+msgstr ""
 
 #: src/pages/Settings.tsx:649
 #~ msgid "Number of addresses to generate at once"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:521
+#: src/pages/Settings.tsx:608
 msgid "Number of peers to maintain connections with"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:348
+#: src/components/OfferCard.tsx:49
+msgid "Offer"
+msgstr ""
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:57
+msgid "Offer {0}"
+msgstr ""
+
+#: src/components/OfferCard.tsx:62
+msgid "Offer copied to clipboard"
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:266
 msgid "Offer Created"
 msgstr "Offer Erstellt"
 
-#: src/components/OfferCard.tsx:108
-#: src/components/confirmations/OfferConfirmation.tsx:56
+#: src/components/OfferCard.tsx:121
+#: src/components/confirmations/CancelOfferConfirmation.tsx:62
 msgid "Offer Details"
 msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:60
+#: src/components/confirmations/CancelOfferConfirmation.tsx:66
 msgid "Offer ID"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:166
+#: src/pages/MakeOffer.tsx:113
+msgid "Offer must include at least one offered or requested asset."
+msgstr ""
+
+#: src/pages/MakeOffer.tsx:146
+#: src/components/OfferCard.tsx:254
 msgid "Offered"
 msgstr "Offeriert"
+
+#: src/pages/MakeOffer.tsx:83
+msgid "Offered XCH amount must be a positive number."
+msgstr ""
 
 #: src/components/CoinList.tsx:286
 #~ msgid "Offered..."
 #~ msgstr ""
 
-#: src/pages/Offers.tsx:172
+#: src/components/confirmations/CancelOfferConfirmation.tsx:88
+msgid "Offering"
+msgstr ""
+
+#: src/pages/Offers.tsx:212
 #: src/components/Nav.tsx:65
 msgid "Offers"
 msgstr "Offers"
 
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:264
+msgid "Offers Created"
+msgstr ""
+
 #: src/pages/MakeOffer.tsx:421
-msgid "Ok"
-msgstr "Ok"
+#~ msgid "Ok"
+#~ msgstr "Ok"
 
 #: src/components/confirmations/TokenConfirmation.tsx:204
 msgid "Once issued, this token will appear in your wallet. You can then send it to other addresses or create offers to trade it."
 msgstr ""
 
-#: src/components/TransactionColumns.tsx:137
-#: src/components/TokenGridView.tsx:43
-#: src/components/TokenColumns.tsx:152
+#: src/components/TransactionColumns.tsx:139
+#: src/components/TokenGridView.tsx:44
+#: src/components/TokenColumns.tsx:145
 msgid "Open actions menu"
 msgstr ""
 
-#: src/components/TransactionColumns.tsx:139
-#: src/components/TokenGridView.tsx:46
-#: src/components/TokenColumns.tsx:154
+#: src/components/TransactionColumns.tsx:141
+#: src/components/TokenGridView.tsx:47
+#: src/components/TokenColumns.tsx:147
 msgid "Open menu"
+msgstr ""
+
+#: src/pages/Settings.tsx:1029
+msgid "Optimize"
+msgstr ""
+
+#: src/pages/Settings.tsx:1027
+msgid "Optimizing..."
 msgstr ""
 
 #: src/components/NftGroupCard.tsx:236
 #~ msgid "Options"
 #~ msgstr ""
 
-#: src/components/NftGroupCard.tsx:248
+#: src/components/NftGroupCard.tsx:259
 msgid "Options for {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:353
+#: src/components/NftCard.tsx:377
 msgid "Options for {nftName}"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:502
+#: src/components/OwnedCoinsCard.tsx:540
 #: src/components/confirmations/TokenConfirmation.tsx:184
 msgid "Output Count"
 msgstr "Output Anzahl"
 
-#: src/pages/Settings.tsx:753
+#: src/pages/Settings.tsx:968
+msgid "Override Delta Sync"
+msgstr ""
+
+#: src/pages/Settings.tsx:906
 msgid "Override Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:754
+#: src/pages/Settings.tsx:907
 msgid "Override the default network for this wallet"
 msgstr ""
 
-#: src/pages/Nft.tsx:280
-#: src/pages/Nft.tsx:283
+#: src/pages/Settings.tsx:969
+msgid "Override the default of whether to sync old blocks"
+msgstr ""
+
+#: src/components/OwnedCoinsCard.tsx:404
+msgid "Owned Coins"
+msgstr ""
+
+#: src/pages/Nft.tsx:285
+#: src/pages/Nft.tsx:288
 msgid "Owner DID"
 msgstr "Besitzer DID"
 
-#: src/pages/Nft.tsx:285
+#: src/pages/Nft.tsx:290
 msgid "Owner DID copied to clipboard"
 msgstr ""
 
@@ -1950,6 +2286,14 @@ msgstr ""
 #~ msgid "Page size"
 #~ msgstr ""
 
+#: src/pages/Settings.tsx:1088
+msgid "Page Size"
+msgstr ""
+
+#: src/pages/Settings.tsx:1201
+msgid "Pages Vacuumed"
+msgstr ""
+
 #: src/components/Pagination.tsx:48
 msgid "Pagination"
 msgstr ""
@@ -1963,22 +2307,30 @@ msgstr ""
 #~ msgstr "Offer-Text hier einfügen..."
 
 #: src/pages/Offers.tsx:241
-msgid "Paste your offer string or Dexie URL here..."
+#~ msgid "Paste your offer string or Dexie URL here..."
+#~ msgstr ""
+
+#: src/components/dialogs/ViewOfferDialog.tsx:43
+msgid "Paste your offer string or offer URL here..."
+msgstr ""
+
+#: src/components/confirmations/TakeOfferConfirmation.tsx:33
+msgid "Paying"
 msgstr ""
 
 #: src/pages/PeerList.tsx:211
 #~ msgid "Peak Height"
 #~ msgstr "Höchststand"
 
-#: src/components/Nav.tsx:140
+#: src/components/Nav.tsx:148
 msgid "peer"
 msgstr ""
 
-#: src/pages/PeerList.tsx:345
+#: src/pages/PeerList.tsx:387
 msgid "Peer List"
 msgstr "Peer Liste"
 
-#: src/components/Nav.tsx:140
+#: src/components/Nav.tsx:148
 msgid "peers"
 msgstr ""
 
@@ -1986,8 +2338,8 @@ msgstr ""
 #~ msgid "Pending"
 #~ msgstr "Ausstehend"
 
-#: src/components/CoinList.tsx:205
-#: src/components/CoinList.tsx:275
+#: src/components/CoinList.tsx:208
+#: src/components/CoinList.tsx:329
 msgid "Pending..."
 msgstr "Ausstehend..."
 
@@ -2000,23 +2352,31 @@ msgstr "Ausstehend..."
 msgid "Permanently Burned"
 msgstr "Permanent verbrannt"
 
-#: src/pages/Login.tsx:571
+#: src/pages/Login.tsx:512
 msgid "Permanently Delete"
 msgstr "Permanent löschen"
 
-#: src/pages/Offers.tsx:258
+#: src/components/dialogs/NfcScanDialog.tsx:22
 msgid "Place the NFC tag near your device to scan it."
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:279
+msgid "Please review the details of your offer(s) before proceeding."
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:187
 msgid "Please review the transaction details before submitting."
 msgstr ""
 
-#: src/pages/PeerList.tsx:221
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:273
+msgid "Please wait while {0} being{1}{2}..."
+msgstr ""
+
+#: src/pages/PeerList.tsx:134
 msgid "Port"
 msgstr "Port"
 
-#: src/pages/PeerList.tsx:159
+#: src/pages/PeerList.tsx:255
 msgid "Port:"
 msgstr "Port:"
 
@@ -2024,7 +2384,7 @@ msgstr "Port:"
 msgid "Position the QR code within the frame"
 msgstr ""
 
-#: src/pages/Settings.tsx:252
+#: src/pages/Settings.tsx:279
 msgid "Preferences"
 msgstr ""
 
@@ -2040,7 +2400,7 @@ msgstr ""
 msgid "Previous page"
 msgstr "Vorherige Seite"
 
-#: src/components/TokenColumns.tsx:126
+#: src/components/TokenColumns.tsx:119
 msgid "Price"
 msgstr ""
 
@@ -2048,18 +2408,22 @@ msgstr ""
 #~ msgid "Price (USD)"
 #~ msgstr ""
 
+#: src/components/TokenColumns.tsx:126
+msgid "Price per token: "
+msgstr ""
+
 #: src/pages/ViewOffer.tsx:46
 msgid "Processing offer data..."
 msgstr "Verarbeitet die Offer-Daten..."
 
-#: src/pages/MintNft.tsx:142
+#: src/pages/MintNft.tsx:141
 #: src/components/AssignNftDialog.tsx:88
 #: src/components/AdvancedTransactionSummary.tsx:213
 #: src/components/AdvancedTransactionSummary.tsx:227
 msgid "Profile"
 msgstr "Profil"
 
-#: src/components/NftGroupCard.tsx:163
+#: src/components/NftGroupCard.tsx:174
 msgid "Profile {cardName}"
 msgstr ""
 
@@ -2075,17 +2439,17 @@ msgstr ""
 msgid "Profile ID"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:326
+#: src/components/NftGroupCard.tsx:337
 #: src/components/confirmations/NftConfirmation.tsx:97
 msgid "Profile ID copied to clipboard"
 msgstr ""
 
-#: src/pages/MintNft.tsx:50
+#: src/pages/MintNft.tsx:49
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
 msgstr "Profil ist erforderlich"
 
-#: src/pages/DidList.tsx:342
+#: src/pages/DidList.tsx:345
 msgid "Profile name"
 msgstr "Profilname"
 
@@ -2098,16 +2462,16 @@ msgstr "Profilname"
 msgid "Profiles"
 msgstr "Profile"
 
-#: src/pages/Login.tsx:663
-#: src/components/AddressList.tsx:63
+#: src/pages/Login.tsx:604
+#: src/components/AddressList.tsx:40
 msgid "Public Key"
 msgstr "Public Key"
 
-#: src/components/AddressList.tsx:76
+#: src/components/AddressList.tsx:54
 msgid "Public key copied to clipboard"
 msgstr ""
 
-#: src/components/NftCard.tsx:472
+#: src/components/NftCard.tsx:496
 msgid "Re-downloading NFT data"
 msgstr ""
 
@@ -2115,7 +2479,7 @@ msgstr ""
 #~ msgid "Reassign Profile"
 #~ msgstr "Profil neu zuweisen"
 
-#: src/components/TokenCard.tsx:130
+#: src/components/TokenCard.tsx:124
 msgid "Receive"
 msgstr "Empfangen"
 
@@ -2132,12 +2496,11 @@ msgstr "{ticker} empfangen"
 msgid "Receive Address"
 msgstr "Empfangsadresse"
 
-#: src/pages/Transaction.tsx:93
+#: src/pages/Transaction.tsx:96
 msgid "Received"
 msgstr "Erhalten"
 
-#: src/components/OfferCard.tsx:203
-#: src/components/confirmations/OfferConfirmation.tsx:99
+#: src/components/confirmations/TakeOfferConfirmation.tsx:46
 msgid "Receiving"
 msgstr "Erhaltet"
 
@@ -2150,11 +2513,11 @@ msgstr "Erhaltet"
 msgid "Recipient Address"
 msgstr ""
 
-#: src/components/NftCard.tsx:478
+#: src/components/NftCard.tsx:502
 msgid "Redownload"
 msgstr ""
 
-#: src/components/NftCard.tsx:474
+#: src/components/NftCard.tsx:498
 msgid "Redownload {nftName}"
 msgstr ""
 
@@ -2162,37 +2525,50 @@ msgstr ""
 #~ msgid "Redownloading NFT data"
 #~ msgstr ""
 
-#: src/components/TokenGridView.tsx:60
-#: src/components/TokenColumns.tsx:168
-#: src/components/TokenCard.tsx:146
+#: src/pages/Settings.tsx:1044
+msgid "Refresh"
+msgstr ""
+
+#: src/components/TokenGridView.tsx:62
+#: src/components/TokenColumns.tsx:162
+#: src/components/TokenCard.tsx:140
 msgid "Refresh Info"
 msgstr "Info aktualisieren"
 
-#: src/pages/TokenList.tsx:154
+#: src/pages/TokenList.tsx:143
 msgid "Refreshing token info..."
 msgstr ""
 
-#: src/pages/Login.tsx:453
-#: src/pages/Login.tsx:636
-#: src/pages/DidList.tsx:295
-#: src/pages/DidList.tsx:365
-#: src/components/TokenCard.tsx:242
+#: src/pages/Login.tsx:440
+#: src/pages/Login.tsx:577
+#: src/pages/DidList.tsx:298
+#: src/pages/DidList.tsx:368
+#: src/components/TokenCard.tsx:235
 msgid "Rename"
 msgstr "Umbenennen"
 
-#: src/pages/DidList.tsx:329
+#: src/pages/DidList.tsx:332
 msgid "Rename Profile"
 msgstr "Profil umbenennen"
 
-#: src/pages/Login.tsx:599
+#: src/pages/Login.tsx:540
 msgid "Rename Wallet"
 msgstr "Wallet umbenennen"
 
-#: src/pages/MakeOffer.tsx:187
+#: src/pages/MakeOffer.tsx:170
+#: src/components/OfferCard.tsx:236
 msgid "Requested"
 msgstr "Angefordert"
 
-#: src/pages/Settings.tsx:261
+#: src/pages/MakeOffer.tsx:91
+msgid "Requested XCH amount must be a positive number."
+msgstr ""
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:101
+msgid "Requesting"
+msgstr ""
+
+#: src/pages/Settings.tsx:288
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
@@ -2200,7 +2576,10 @@ msgstr ""
 msgid "Result"
 msgstr ""
 
-#: src/pages/Login.tsx:558
+#: src/pages/Settings.tsx:997
+#: src/pages/Settings.tsx:1005
+#: src/components/dialogs/ResyncDialog.tsx:45
+#: src/components/dialogs/ResyncDialog.tsx:117
 msgid "Resync"
 msgstr "Neu synchronisieren"
 
@@ -2208,7 +2587,7 @@ msgstr "Neu synchronisieren"
 #~ msgid "Resync ({network})"
 #~ msgstr "{network} neu synchronisieren"
 
-#: src/pages/Login.tsx:465
+#: src/pages/Login.tsx:452
 msgid "Resync ({networkId})"
 msgstr ""
 
@@ -2216,53 +2595,56 @@ msgstr ""
 #~ msgid "Resync on {network}"
 #~ msgstr "{network} neu synchronisieren"
 
-#: src/pages/Login.tsx:513
+#: src/components/dialogs/ResyncDialog.tsx:43
 msgid "Resync on {networkId}"
 msgstr ""
 
-#: src/components/NftOptions.tsx:296
+#: src/components/dialogs/ResyncDialog.tsx:117
+msgid "Resyncing"
+msgstr ""
+
+#: src/components/NftOptions.tsx:289
 msgid "Reveal Hidden Items"
 msgstr ""
 
-#: src/components/TokenOptions.tsx:167
+#: src/components/TokenOptions.tsx:163
 msgid "Reveal Hidden Tokens"
 msgstr ""
 
-#: src/pages/Nft.tsx:313
+#: src/pages/Nft.tsx:318
 msgid "Royalties {royaltyPercentage}%"
 msgstr "Lizenzgebühren {royaltyPercentage}%"
 
-#: src/components/OfferCard.tsx:278
-#: src/components/OfferCard.tsx:353
+#: src/components/Assets.tsx:112
 msgid "royalty"
 msgstr "royalty"
 
-#: src/pages/Nft.tsx:316
-#: src/pages/MintNft.tsx:241
+#: src/pages/Nft.tsx:321
+#: src/pages/MintNft.tsx:240
 msgid "Royalty Address"
 msgstr "Royalty Addresse"
 
-#: src/pages/Nft.tsx:319
+#: src/pages/Nft.tsx:324
 msgid "Royalty address copied to clipboard"
 msgstr ""
 
-#: src/pages/MintNft.tsx:263
+#: src/pages/MintNft.tsx:262
 msgid "Royalty Percent"
 msgstr "Royalty Prozent"
 
-#: src/components/OfferCard.tsx:394
+#: src/components/Assets.tsx:123
 msgid "royalty to"
 msgstr "royalty zu"
 
-#: src/pages/Settings.tsx:598
+#: src/pages/Settings.tsx:685
 msgid "RPC Server"
 msgstr ""
 
-#: src/pages/Settings.tsx:622
+#: src/pages/Settings.tsx:709
 msgid "Run on startup"
 msgstr ""
 
-#: src/pages/Settings.tsx:608
+#: src/pages/Settings.tsx:695
 msgid "Running"
 msgstr ""
 
@@ -2271,16 +2653,16 @@ msgid "Save mnemonic"
 msgstr "Mnemonic speichern"
 
 #: src/pages/ViewOffer.tsx:114
-msgid "Save Offer"
-msgstr "Offer speichern"
+#~ msgid "Save Offer"
+#~ msgstr "Offer speichern"
 
 #: src/pages/QrScanner.tsx:63
 msgid "Scan QR Code"
 msgstr ""
 
 #: src/pages/Offers.tsx:572
-msgid "Scan this QR code to view the offer"
-msgstr ""
+#~ msgid "Scan this QR code to view the offer"
+#~ msgstr ""
 
 #: src/components/selectors/NftSelector.tsx:158
 msgid "Search by name or enter NFT ID"
@@ -2302,13 +2684,13 @@ msgstr ""
 #~ msgid "Search NFTs by name..."
 #~ msgstr ""
 
-#: src/components/NftOptions.tsx:149
-#: src/components/NftOptions.tsx:150
-#: src/components/NftOptions.tsx:151
+#: src/components/NftOptions.tsx:144
+#: src/components/NftOptions.tsx:145
+#: src/components/NftOptions.tsx:146
 msgid "Search NFTs..."
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:77
+#: src/components/selectors/TokenSelector.tsx:100
 msgid "Search or enter asset id"
 msgstr ""
 
@@ -2316,45 +2698,45 @@ msgstr ""
 #~ msgid "Search tokens"
 #~ msgstr ""
 
+#: src/components/TokenOptions.tsx:95
+#: src/components/TokenOptions.tsx:96
 #: src/components/TokenOptions.tsx:97
-#: src/components/TokenOptions.tsx:98
-#: src/components/TokenOptions.tsx:99
 msgid "Search tokens..."
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:83
-#: src/components/TransactionOptions.tsx:84
-#: src/components/TransactionOptions.tsx:85
+#: src/components/TransactionOptions.tsx:77
+#: src/components/TransactionOptions.tsx:78
+#: src/components/TransactionOptions.tsx:79
 msgid "Search transactions..."
 msgstr ""
 
-#: src/components/Nav.tsx:118
+#: src/components/Nav.tsx:122
 msgid "Secondary navigation"
 msgstr ""
 
-#: src/pages/Login.tsx:673
+#: src/pages/Login.tsx:614
 msgid "Secret Key"
 msgstr "Secret Key"
 
-#: src/components/CoinList.tsx:56
+#: src/components/CoinList.tsx:30
 msgid "Select all coins"
 msgstr "Alle Coins auswählen"
 
-#: src/components/CoinList.tsx:65
+#: src/components/CoinList.tsx:40
 msgid "Select coin row"
 msgstr "Coin-Reihe auswählen"
 
-#: src/components/NftCard.tsx:591
-#: src/components/NftCard.tsx:592
+#: src/components/NftCard.tsx:615
+#: src/components/NftCard.tsx:616
 msgid "Select kind"
 msgstr "Sorte auswählen"
 
-#: src/pages/Settings.tsx:490
-#: src/pages/Settings.tsx:785
+#: src/pages/Settings.tsx:577
+#: src/pages/Settings.tsx:934
 msgid "Select network"
 msgstr "Netzwerk auswählen"
 
-#: src/components/NftCard.tsx:311
+#: src/components/NftCard.tsx:335
 #: src/components/selectors/NftSelector.tsx:207
 msgid "Select NFT"
 msgstr ""
@@ -2363,26 +2745,27 @@ msgstr ""
 msgid "Select page number"
 msgstr ""
 
-#: src/pages/MintNft.tsx:148
-#: src/pages/MintNft.tsx:150
+#: src/pages/MintNft.tsx:147
+#: src/pages/MintNft.tsx:149
 #: src/components/AssignNftDialog.tsx:94
 #: src/components/AssignNftDialog.tsx:96
 msgid "Select profile"
 msgstr "Profil auswählen"
 
-#: src/components/selectors/TokenSelector.tsx:142
+#: src/components/selectors/TokenSelector.tsx:157
 msgid "Select Token"
 msgstr ""
 
-#: src/pages/PeerList.tsx:352
+#: src/pages/PeerList.tsx:394
 msgid "Selected {selectedPeersCount} of {totalPeersCount} peers"
 msgstr "{selectedPeersCount} von {totalPeersCount} Peers ausgewählt"
 
-#: src/components/MultiSelectActions.tsx:185
+#: src/components/MultiSelectActions.tsx:186
 msgid "Selected NFTs actions"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:277
+#: src/components/NftGroupCard.tsx:421
+#: src/components/MultiSelectActions.tsx:278
 msgid "Selected NFTs are already in the offer"
 msgstr ""
 
@@ -2390,17 +2773,17 @@ msgstr ""
 msgid "Selected Profile"
 msgstr ""
 
-#: src/components/TokenCard.tsx:125
+#: src/components/TokenCard.tsx:119
 msgid "Send"
 msgstr "Senden"
 
-#: src/pages/Send.tsx:210
-#: src/pages/Send.tsx:375
-#: src/pages/Send.tsx:388
+#: src/pages/Send.tsx:225
+#: src/pages/Send.tsx:473
+#: src/pages/Send.tsx:486
 msgid "Send {ticker}"
 msgstr "{ticker} senden"
 
-#: src/pages/Send.tsx:233
+#: src/pages/Send.tsx:248
 msgid "Send in bulk (airdrop)"
 msgstr ""
 
@@ -2408,9 +2791,7 @@ msgstr ""
 msgid "Send Token"
 msgstr ""
 
-#: src/components/OfferCard.tsx:187
 #: src/components/ConfirmationDialog.tsx:279
-#: src/components/confirmations/OfferConfirmation.tsx:82
 msgid "Sending"
 msgstr "wird gesendet"
 
@@ -2419,33 +2800,49 @@ msgstr "wird gesendet"
 msgid "sending_to_recipients"
 msgstr ""
 
-#: src/pages/Transaction.tsx:81
+#: src/pages/Transaction.tsx:84
 msgid "Sent"
 msgstr "Gesendet"
 
-#: src/pages/Settings.tsx:301
+#: src/pages/Settings.tsx:331
+msgid "Set a default clawback time for transactions"
+msgstr ""
+
+#: src/pages/Settings.tsx:368
 msgid "Set a default expiration time for new offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:86
-#: src/components/Nav.tsx:171
+#: src/pages/Settings.tsx:98
+#: src/components/Nav.tsx:179
 msgid "Settings"
 msgstr "Einstellungen"
 
-#: src/pages/DidList.tsx:311
-#: src/components/TokenGridView.tsx:70
-#: src/components/TokenColumns.tsx:180
-#: src/components/TokenCard.tsx:156
-#: src/components/NftGroupCard.tsx:309
-#: src/components/NftCard.tsx:498
+#: src/components/MarketplaceCard.tsx:166
+msgid "Share marketplace link"
+msgstr ""
+
+#: src/components/OfferCard.tsx:140
+msgid "Share offer"
+msgstr ""
+
+#: src/components/OfferCard.tsx:283
+msgid "Share your offer on these marketplaces."
+msgstr ""
+
+#: src/pages/DidList.tsx:314
+#: src/components/TokenGridView.tsx:72
+#: src/components/TokenColumns.tsx:174
+#: src/components/TokenCard.tsx:150
+#: src/components/NftGroupCard.tsx:320
+#: src/components/NftCard.tsx:522
 msgid "Show"
 msgstr "Anzeigen"
 
-#: src/components/NftGroupCard.tsx:295
+#: src/components/NftGroupCard.tsx:306
 msgid "Show {cardName}"
 msgstr ""
 
-#: src/components/NftCard.tsx:489
+#: src/components/NftCard.tsx:513
 msgid "Show {nftName}"
 msgstr ""
 
@@ -2465,7 +2862,7 @@ msgstr ""
 msgid "Show hardened addresses"
 msgstr ""
 
-#: src/components/NftOptions.tsx:284
+#: src/components/NftOptions.tsx:277
 msgid "Show hidden items"
 msgstr ""
 
@@ -2482,7 +2879,7 @@ msgstr ""
 #~ msgid "Show hidden tokens"
 #~ msgstr ""
 
-#: src/components/CoinList.tsx:257
+#: src/components/CoinList.tsx:312
 msgid "Show spent coins"
 msgstr ""
 
@@ -2490,7 +2887,7 @@ msgstr ""
 #~ msgid "Show unspent coins only"
 #~ msgstr "Nur nicht ausgegebene Coins anzeigen"
 
-#: src/components/TokenOptions.tsx:153
+#: src/components/TokenOptions.tsx:149
 msgid "Show Zero Balance Tokens"
 msgstr ""
 
@@ -2499,15 +2896,15 @@ msgstr ""
 #~ msgid "Show zero balances"
 #~ msgstr ""
 
-#: src/components/AddressList.tsx:99
+#: src/components/AddressList.tsx:117
 msgid "Showing {0} of {totalDerivations} addresses"
 msgstr ""
 
-#: src/components/ui/data-table.tsx:77
+#: src/components/ui/data-table.tsx:78
 msgid "Showing {length} {0}"
 msgstr ""
 
-#: src/components/ui/data-table.tsx:76
+#: src/components/ui/data-table.tsx:77
 msgid "Showing {length} of {0} {rowLabelPlural}"
 msgstr ""
 
@@ -2527,7 +2924,7 @@ msgstr "Transaktion signieren"
 msgid "Signed"
 msgstr ""
 
-#: src/components/NftOptions.tsx:266
+#: src/components/NftOptions.tsx:259
 msgid "Small Cards"
 msgstr ""
 
@@ -2535,7 +2932,7 @@ msgstr ""
 #~ msgid "Sort Alphabetically"
 #~ msgstr "Alphabetisch sortieren"
 
-#: src/components/TransactionOptions.tsx:148
+#: src/components/TransactionOptions.tsx:140
 msgid "Sort Ascending"
 msgstr ""
 
@@ -2547,7 +2944,7 @@ msgstr ""
 #~ msgid "Sort by Balance"
 #~ msgstr "Nach Guthaben sortieren"
 
-#: src/components/TokenOptions.tsx:185
+#: src/components/TokenOptions.tsx:181
 msgid "Sort by Balance (USD)"
 msgstr ""
 
@@ -2555,8 +2952,8 @@ msgstr ""
 #~ msgid "Sort by name"
 #~ msgstr ""
 
-#: src/components/TokenOptions.tsx:186
-#: src/components/NftOptions.tsx:327
+#: src/components/TokenOptions.tsx:182
+#: src/components/NftOptions.tsx:320
 msgid "Sort by Name"
 msgstr ""
 
@@ -2564,11 +2961,11 @@ msgstr ""
 #~ msgid "Sort by recent"
 #~ msgstr ""
 
-#: src/components/NftOptions.tsx:325
+#: src/components/NftOptions.tsx:318
 msgid "Sort by Recent"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:148
+#: src/components/TransactionOptions.tsx:140
 msgid "Sort Descending"
 msgstr ""
 
@@ -2584,7 +2981,7 @@ msgstr ""
 #~ msgid "Sort Recent"
 #~ msgstr "Nach Neuestem sortieren"
 
-#: src/components/CoinList.tsx:227
+#: src/components/CoinList.tsx:285
 msgid "Spent"
 msgstr "Ausgegeben"
 
@@ -2593,44 +2990,49 @@ msgstr "Ausgegeben"
 msgid "Spent Coins"
 msgstr "Ausgegebene Coins"
 
-#: src/components/CoinsCard.tsx:389
-#: src/components/CoinsCard.tsx:541
+#: src/components/OwnedCoinsCard.tsx:431
+#: src/components/OwnedCoinsCard.tsx:579
 msgid "Split"
 msgstr "Splitten"
 
-#: src/components/CoinsCard.tsx:485
-msgid "Split {ticker}"
-msgstr "{ticker} splitten"
+#: src/components/OwnedCoinsCard.tsx:523
+msgid "Split {0}"
+msgstr ""
 
-#: src/pages/Token.tsx:52
+#: src/components/CoinsCard.tsx:485
+#~ msgid "Split {ticker}"
+#~ msgstr "{ticker} splitten"
+
+#: src/pages/Token.tsx:127
 #: src/components/confirmations/TokenConfirmation.tsx:38
 msgid "Split Coins"
 msgstr ""
 
-#: src/components/CoinsCard.tsx:278
+#: src/components/OwnedCoinsCard.tsx:317
 msgid "Split Details"
 msgstr ""
 
-#: src/pages/Settings.tsx:616
+#: src/pages/Settings.tsx:703
 msgid "Start"
 msgstr ""
 
-#: src/components/OfferCard.tsx:116
-#: src/components/confirmations/OfferConfirmation.tsx:69
+#: src/pages/Settings.tsx:1011
+#: src/components/OfferCard.tsx:154
+#: src/components/confirmations/CancelOfferConfirmation.tsx:75
 msgid "Status"
 msgstr ""
 
-#: src/pages/Settings.tsx:616
+#: src/pages/Settings.tsx:703
 msgid "Stop"
 msgstr ""
 
-#: src/pages/Settings.tsx:608
+#: src/pages/Settings.tsx:695
 msgid "Stopped"
 msgstr ""
 
-#: src/pages/Offers.tsx:545
 #: src/pages/CreateWallet.tsx:238
 #: src/components/ConfirmationDialog.tsx:652
+#: src/components/dialogs/CancelOfferDialog.tsx:82
 msgid "Submit"
 msgstr "Senden"
 
@@ -2638,19 +3040,20 @@ msgstr "Senden"
 msgid "Submitting"
 msgstr "Wird gesendet"
 
-#: src/components/TransactionOptions.tsx:160
+#: src/components/TransactionOptions.tsx:152
 msgid "Summarized View"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:208
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:288
 msgid "Summary"
 msgstr "Zusammenfassung"
 
-#: src/components/CoinsCard.tsx:406
+#: src/components/OwnedCoinsCard.tsx:446
 msgid "Sweep"
 msgstr ""
 
-#: src/pages/Settings.tsx:255
+#: src/pages/Settings.tsx:282
 msgid "Switch between light and dark theme"
 msgstr ""
 
@@ -2658,7 +3061,7 @@ msgstr ""
 msgid "Switch to grid view"
 msgstr ""
 
-#: src/components/NftOptions.tsx:256
+#: src/components/NftOptions.tsx:249
 #: src/components/CardSizeToggle.tsx:22
 #: src/components/CardSizeToggle.tsx:27
 msgid "Switch to large card size"
@@ -2668,42 +3071,46 @@ msgstr ""
 msgid "Switch to list view"
 msgstr ""
 
-#: src/components/NftOptions.tsx:255
+#: src/components/NftOptions.tsx:248
 #: src/components/CardSizeToggle.tsx:21
 #: src/components/CardSizeToggle.tsx:26
 msgid "Switch to small card size"
 msgstr ""
 
-#: src/components/NftOptions.tsx:315
+#: src/components/NftOptions.tsx:308
 msgid "Switch to sort by name"
 msgstr ""
 
-#: src/components/NftOptions.tsx:314
+#: src/components/NftOptions.tsx:307
 msgid "Switch to sort by recent"
 msgstr ""
 
-#: src/components/TokenColumns.tsx:82
+#: src/components/TokenColumns.tsx:75
 msgid "Symbol"
 msgstr ""
 
-#: src/components/Nav.tsx:143
+#: src/components/Nav.tsx:151
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
-#: src/components/Nav.tsx:124
-#~ msgid "Syncing"
-#~ msgstr ""
+#: src/pages/Settings.tsx:949
+msgid "Syncing"
+msgstr ""
 
-#: src/components/Nav.tsx:133
+#: src/components/Nav.tsx:141
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 
-#: src/pages/TokenList.tsx:217
+#: src/pages/Settings.tsx:403
+msgid "Syncing Defaults"
+msgstr ""
+
+#: src/pages/TokenList.tsx:203
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
-#: src/pages/ViewOffer.tsx:118
-#: src/pages/ViewOffer.tsx:132
+#: src/pages/ViewOffer.tsx:122
+#: src/pages/ViewOffer.tsx:136
 msgid "Take Offer"
 msgstr "Offer nehmen"
 
@@ -2715,43 +3122,51 @@ msgstr "Offer nehmen"
 #~ msgid "Taken"
 #~ msgstr "Genommen"
 
-#: src/components/confirmations/OfferConfirmation.tsx:24
+#: src/components/confirmations/TakeOfferConfirmation.tsx:19
 msgid "Taking Offer"
 msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:27
+#: src/components/confirmations/TakeOfferConfirmation.tsx:22
 msgid "Taking this offer will send the assets you are paying to the recipient."
 msgstr ""
 
-#: src/pages/Settings.tsx:520
+#: src/pages/Settings.tsx:607
 msgid "Target Peers"
 msgstr "Ziel-Peers"
 
-#: src/components/OfferCard.tsx:206
-msgid "The assets being given to you in the offer."
-msgstr "Die Assets, werden Ihnen in ein Offer angeboten."
+#: src/components/OfferCard.tsx:257
+msgid "The assets being given to the taker in the offer."
+msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:106
+#: src/components/OfferCard.tsx:206
+#~ msgid "The assets being given to you in the offer."
+#~ msgstr "Die Assets, werden Ihnen in ein Offer angeboten."
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:105
 msgid "The assets being requested."
 msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:89
+#: src/components/OfferCard.tsx:239
+msgid "The assets the taker will have to pay to fulfill the offer."
+msgstr ""
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:92
 msgid "The assets you are offering."
 msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:87
+#: src/components/confirmations/TakeOfferConfirmation.tsx:37
 msgid "The assets you are paying."
 msgstr ""
 
 #: src/components/OfferCard.tsx:190
-msgid "The assets you have to pay to fulfill the offer."
-msgstr "Die Assets, die Sie bezahlen müssen, um das Offer zu erfüllen."
+#~ msgid "The assets you have to pay to fulfill the offer."
+#~ msgstr "Die Assets, die Sie bezahlen müssen, um das Offer zu erfüllen."
 
-#: src/components/confirmations/OfferConfirmation.tsx:104
+#: src/components/confirmations/TakeOfferConfirmation.tsx:50
 msgid "The assets you will receive."
 msgstr ""
 
-#: src/pages/Settings.tsx:290
+#: src/pages/Settings.tsx:320
 msgid "The default fee to use for transactions"
 msgstr ""
 
@@ -2759,27 +3174,31 @@ msgstr ""
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr ""
 
-#: src/pages/Settings.tsx:772
-msgid "The network which this wallet will use"
+#: src/pages/MintNft.tsx:267
+msgid "The maximum royalty percent is 655.36%"
 msgstr ""
 
-#: src/pages/Settings.tsx:801
+#: src/pages/Settings.tsx:772
+#~ msgid "The network which this wallet will use"
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:952
 msgid "The number of addresses managed by this wallet"
 msgstr ""
 
 #: src/pages/MakeOffer.tsx:351
-msgid "The offer has been created and imported successfully. You can copy the offer file below and send it to the intended recipient or make it public to be accepted by anyone."
-msgstr "Das Offer wurde erfolgreich erstellt und importiert. Sie können die Offer-Datei unten kopieren und an den beabsichtigten Empfänger senden oder öffentlich machen, um von jedem akzeptiert zu werden."
+#~ msgid "The offer has been created and imported successfully. You can copy the offer file below and send it to the intended recipient or make it public to be accepted by anyone."
+#~ msgstr "Das Offer wurde erfolgreich erstellt und importiert. Sie können die Offer-Datei unten kopieren und an den beabsichtigten Empfänger senden oder öffentlich machen, um von jedem akzeptiert zu werden."
 
 #: src/pages/Addresses.tsx:72
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "Die Wallet generiert nach jeder Transaktion eine neue Adresse. Die alten bleiben gültig."
 
-#: src/pages/TokenList.tsx:220
+#: src/pages/TokenList.tsx:206
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "Die Wallet synchronisiert noch. Der Guthaben ist möglicherweise nicht korrekt, bis der Vorgang abgeschlossen ist."
 
-#: src/pages/Login.tsx:717
+#: src/pages/Login.tsx:708
 msgid "There aren't any wallets to log into yet. To get started, create a new wallet or import an existing one."
 msgstr "Es gibt noch keine Wallets, in die Sie sich einloggen können. Um loszulegen, erstellen Sie ein neues Wallet oder importieren Sie ein vorhandenes."
 
@@ -2807,15 +3226,15 @@ msgstr ""
 msgid "These profiles will be transferred to the address below."
 msgstr ""
 
-#: src/components/OfferCard.tsx:315
+#: src/components/Assets.tsx:74
 msgid "This CAT is already in your wallet"
 msgstr ""
 
-#: src/components/OfferCard.tsx:319
+#: src/components/Assets.tsx:78
 msgid "This CAT is not in your wallet yet"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:144
+#: src/pages/CollectionMetaData.tsx:138
 msgid "This collection ID does not exist."
 msgstr ""
 
@@ -2847,23 +3266,27 @@ msgstr ""
 msgid "This profile will be transferred to the address below."
 msgstr ""
 
-#: src/components/NftCard.tsx:549
+#: src/pages/Login.tsx:655
+msgid "This wallet requires a database migration to continue. Would you like to delete the wallet's data or cancel the login? The keys will not be affected."
+msgstr ""
+
+#: src/components/NftCard.tsx:573
 msgid "This will add an additional URL to the NFT. It is not possible to remove URLs later, so be careful with this and try to use permanent URLs if possible."
 msgstr "Dadurch wird eine zusätzliche URL zum NFT hinzugefügt. Es ist nicht möglich, URLs später zu entfernen, seien Sie also vorsichtig und versuchen Sie, permanente URLs zu verwenden, wenn möglich."
 
-#: src/components/NftCard.tsx:539
+#: src/components/NftCard.tsx:563
 msgid "This will assign the NFT to the selected profile."
 msgstr "Dadurch wird das NFT dem ausgewählten Profil zugewiesen."
 
-#: src/components/MultiSelectActions.tsx:318
+#: src/components/MultiSelectActions.tsx:319
 msgid "This will bulk assign the NFTs to the selected profile."
 msgstr "Dadurch werden die NFTs dem ausgewählten Profil in der Masse zugewiesen."
 
-#: src/components/MultiSelectActions.tsx:330
+#: src/components/MultiSelectActions.tsx:331
 msgid "This will bulk burn {selectedCount} NFTs. This cannot be undone. Are you sure you want to proceed?"
 msgstr "Dadurch werden {selectedCount} NFTs verbrannt. Dies kann nicht rückgängig gemacht werden. Sind Sie sicher, dass Sie fortfahren möchten?"
 
-#: src/components/MultiSelectActions.tsx:304
+#: src/components/MultiSelectActions.tsx:305
 msgid "This will bulk transfer {selectedCount} NFTs to another wallet. Are you sure you want to proceed?"
 msgstr "Dadurch werden {selectedCount} NFTs in ein anderes Wallet übertragen. Sind Sie sicher, dass Sie fortfahren möchten?"
 
@@ -2871,31 +3294,47 @@ msgstr "Dadurch werden {selectedCount} NFTs in ein anderes Wallet übertragen. S
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "Dadurch wird die Zuordnung der NFTs zu ihren Profilen aufgehoben."
 
-#: src/pages/Offers.tsx:509
+#: src/pages/Offers.tsx:372
+msgid "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
+msgstr ""
+
+#: src/components/dialogs/CancelOfferDialog.tsx:48
 msgid "This will cancel the offer on-chain with a transaction, preventing it from being taken even if someone has the original offer file."
 msgstr ""
 
-#: src/components/CoinsCard.tsx:439
+#: src/components/ClawbackCoinsCard.tsx:306
+msgid "This will claw back all of the selected coins."
+msgstr ""
+
+#: src/components/OwnedCoinsCard.tsx:477
 msgid "This will combine all of the selected coins into one."
 msgstr "Dadurch werden alle ausgewählten Coins zu einem einzigen kombiniert."
 
-#: src/components/CoinsCard.tsx:556
+#: src/components/OwnedCoinsCard.tsx:594
 msgid "This will combine small enough coins automatically, so you don't have to manually select them."
 msgstr ""
 
-#: src/pages/Offers.tsx:476
+#: src/components/dialogs/DeleteOfferDialog.tsx:40
+msgid "This will delete {offerCount} offers from the wallet, but if they're shared externally they can still be accepted. The only way to truly cancel public offers is by spending one or more of their coins."
+msgstr ""
+
+#: src/components/dialogs/DeleteOfferDialog.tsx:47
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern geteilt wird, kann es immer noch akzeptiert werden. Der einzige Weg, ein öffentliches Angebot wirklich zu stornieren, besteht darin, einen oder mehrere seiner Coins auszugeben."
 
-#: src/pages/DidList.tsx:400
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:447
+msgid "This will make your offer(s) immediately public and takeable on {0}."
+msgstr ""
+
+#: src/pages/DidList.tsx:403
 msgid "This will modify the profile's recovery info to be compatible with the Chia reference wallet."
 msgstr ""
 
-#: src/components/NftCard.tsx:652
+#: src/components/NftCard.tsx:676
 msgid "This will permanently delete the NFT by sending it to the burn address."
 msgstr "Dadurch wird das NFT dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
-#: src/pages/DidList.tsx:387
+#: src/pages/DidList.tsx:390
 msgid "This will permanently delete the profile by sending it to the burn address."
 msgstr "Dadurch wird das Profil dauerhaft gelöscht, indem es an die Burn-Adresse gesendet wird."
 
@@ -2907,15 +3346,15 @@ msgstr ""
 msgid "This will permanently delete this NFT by sending it to the burn address."
 msgstr ""
 
-#: src/components/NftCard.tsx:529
+#: src/components/NftCard.tsx:553
 msgid "This will send the NFT to the provided address."
 msgstr "Dadurch wird das NFT an die angegebene Adresse gesendet."
 
-#: src/pages/DidList.tsx:377
+#: src/pages/DidList.tsx:380
 msgid "This will send the profile to the provided address."
 msgstr "Dadurch wird das Profil an die angegebene Adresse gesendet."
 
-#: src/components/CoinsCard.tsx:488
+#: src/components/OwnedCoinsCard.tsx:526
 msgid "This will split all of the selected coins."
 msgstr "Dadurch werden alle ausgewählten Coins aufgeteilt."
 
@@ -2924,12 +3363,12 @@ msgstr "Dadurch werden alle ausgewählten Coins aufgeteilt."
 #~ msgstr "Dadurch wird das NFT aus seinem Profil entfernt."
 
 #: src/pages/IssueToken.tsx:91
-#: src/components/TokenCard.tsx:213
+#: src/components/TokenCard.tsx:206
 #: src/components/confirmations/TokenConfirmation.tsx:119
 msgid "Ticker"
 msgstr "Ticker"
 
-#: src/components/TokenCard.tsx:217
+#: src/components/TokenCard.tsx:210
 msgid "Ticker for this token"
 msgstr ""
 
@@ -2946,16 +3385,16 @@ msgstr ""
 #~ msgid "Toggle hidden NFTs"
 #~ msgstr "Versteckte NFTs umschalten"
 
-#: src/components/NftOptions.tsx:220
-#: src/components/NftOptions.tsx:221
+#: src/components/NftOptions.tsx:213
+#: src/components/NftOptions.tsx:214
 msgid "Toggle multi-select"
 msgstr "Mehrfachauswahl umschalten"
 
-#: src/components/Header.tsx:66
+#: src/components/Header.tsx:68
 msgid "Toggle navigation menu"
 msgstr "Navigationsmenü umschalten"
 
-#: src/pages/MakeOffer.tsx:497
+#: src/components/selectors/AssetSelector.tsx:105
 msgid "Token"
 msgstr "Token"
 
@@ -2963,15 +3402,15 @@ msgstr "Token"
 msgid "Token Details"
 msgstr ""
 
-#: src/components/TokenOptions.tsx:86
+#: src/components/TokenOptions.tsx:84
 msgid "Token filtering and sorting options"
 msgstr ""
 
-#: src/components/TokenGridView.tsx:107
+#: src/components/TokenGridView.tsx:106
 msgid "Token Grid"
 msgstr ""
 
-#: src/components/TokenColumns.tsx:39
+#: src/components/TokenColumns.tsx:40
 msgid "Token Icon"
 msgstr ""
 
@@ -2979,34 +3418,54 @@ msgstr ""
 msgid "Token Issuance"
 msgstr ""
 
-#: src/components/TokenListView.tsx:40
+#: src/components/TokenListView.tsx:17
 msgid "Token list"
 msgstr ""
 
-#: src/components/TokenListView.tsx:36
+#: src/components/TokenListView.tsx:13
 msgid "Token List"
 msgstr ""
 
 #: src/components/TokenGridView.tsx:123
 #: src/components/TokenGridView.tsx:198
 #: src/components/TokenColumns.tsx:49
-msgid "Token logo"
-msgstr ""
+#~ msgid "Token logo"
+#~ msgstr ""
 
 #: src/pages/TokenList.tsx:165
 #~ msgid "Token search and filters"
 #~ msgstr ""
 
-#: src/lib/exportTokens.ts:56
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:164
+msgid "Tokens"
+msgstr ""
+
+#: src/lib/exportTokens.ts:44
 msgid "Tokens exported successfully"
+msgstr ""
+
+#: src/pages/MakeOffer.tsx:61
+msgid "Tokens must have a positive amount."
 msgstr ""
 
 #: src/components/confirmations/TokenConfirmation.tsx:175
 msgid "Total Amount"
 msgstr ""
 
+#: src/pages/Settings.tsx:1193
+msgid "Total Duration"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:385
+msgid "Total fees for {numberOfOffers} offers:"
+msgstr ""
+
 #: src/components/Pagination.tsx:156
 msgid "Total items: {total}"
+msgstr ""
+
+#: src/pages/Settings.tsx:1072
+msgid "Total Pages"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:293
@@ -3021,19 +3480,31 @@ msgstr ""
 msgid "Transaction"
 msgstr ""
 
-#: src/pages/Transaction.tsx:67
+#: src/pages/Transaction.tsx:70
 msgid "Transaction #{height}"
+msgstr ""
+
+#: src/pages/Settings.tsx:317
+msgid "Transaction Defaults"
+msgstr ""
+
+#: src/hooks/useTransactionFailures.ts:22
+msgid "Transaction failed: {0}..."
+msgstr ""
+
+#: src/hooks/useTransactionFailures.ts:21
+msgid "Transaction failed: {error}"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:578
 msgid "Transaction Fee"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:73
+#: src/components/TransactionOptions.tsx:67
 msgid "Transaction filtering and sorting options"
 msgstr ""
 
-#: src/components/TransactionListView.tsx:146
+#: src/components/TransactionListView.tsx:117
 msgid "Transaction history table"
 msgstr ""
 
@@ -3054,35 +3525,35 @@ msgstr ""
 msgid "Transaction submitted successfully"
 msgstr ""
 
-#: src/pages/Transaction.tsx:71
+#: src/pages/Transaction.tsx:74
 msgid "Transaction Time"
 msgstr ""
 
-#: src/pages/Transactions.tsx:158
+#: src/pages/Transactions.tsx:149
 #: src/components/Nav.tsx:79
 msgid "Transactions"
 msgstr "Transaktionen"
 
-#: src/lib/exportTransactions.ts:139
+#: src/lib/exportTransactions.ts:108
 msgid "Transactions exported successfully"
 msgstr ""
 
-#: src/pages/DidList.tsx:238
+#: src/pages/DidList.tsx:239
 #: src/components/TransferDialog.tsx:113
-#: src/components/NftCard.tsx:372
-#: src/components/MultiSelectActions.tsx:215
+#: src/components/NftCard.tsx:396
+#: src/components/MultiSelectActions.tsx:216
 #: src/components/FeeOnlyDialog.tsx:42
 #: src/components/FeeOnlyDialog.tsx:94
 #: src/components/AssignNftDialog.tsx:147
 msgid "Transfer"
 msgstr "Transferieren"
 
-#: src/components/NftCard.tsx:368
-#: src/components/NftCard.tsx:527
+#: src/components/NftCard.tsx:392
+#: src/components/NftCard.tsx:551
 msgid "Transfer {nftName}"
 msgstr ""
 
-#: src/components/MultiSelectActions.tsx:211
+#: src/components/MultiSelectActions.tsx:212
 msgid "Transfer {selectedCount} selected NFTs"
 msgstr ""
 
@@ -3091,20 +3562,20 @@ msgstr ""
 msgid "Transfer Details"
 msgstr ""
 
-#: src/pages/DidList.tsx:419
+#: src/pages/DidList.tsx:422
 msgid "Transfer DID"
 msgstr ""
 
-#: src/components/NftCard.tsx:689
+#: src/components/NftCard.tsx:713
 msgid "Transfer Nft"
 msgstr ""
 
-#: src/components/NftCard.tsx:523
-#: src/components/MultiSelectActions.tsx:356
+#: src/components/NftCard.tsx:547
+#: src/components/MultiSelectActions.tsx:357
 msgid "Transfer NFT"
 msgstr "NFT transferieren"
 
-#: src/pages/DidList.tsx:372
+#: src/pages/DidList.tsx:375
 msgid "Transfer Profile"
 msgstr "Profil transferieren"
 
@@ -3116,7 +3587,7 @@ msgstr "Profil transferieren"
 #~ msgid "Trusted peer"
 #~ msgstr "Vertauter Peer"
 
-#: src/pages/PeerList.tsx:236
+#: src/pages/PeerList.tsx:80
 msgid "Type"
 msgstr ""
 
@@ -3130,22 +3601,15 @@ msgstr ""
 #~ msgid "Unassigned NFTs"
 #~ msgstr ""
 
-#: src/pages/Transaction.tsx:174
-#: src/pages/Transaction.tsx:199
-#: src/pages/Transaction.tsx:202
-#: src/pages/Transaction.tsx:206
-#: src/components/OfferSummaryCard.tsx:94
-#: src/components/OfferSummaryCard.tsx:105
-#: src/components/OfferSummaryCard.tsx:112
-#: src/components/OfferSummaryCard.tsx:118
-#: src/components/OfferCard.tsx:298
+#: src/components/OfferSummaryCard.tsx:83
+#: src/components/Assets.tsx:55
 #: src/components/AdvancedTransactionSummary.tsx:249
 #: src/components/AdvancedTransactionSummary.tsx:263
 msgid "Unknown"
 msgstr "Unbekannt"
 
-#: src/pages/Settings.tsx:388
-#: src/pages/Settings.tsx:392
+#: src/pages/Settings.tsx:475
+#: src/pages/Settings.tsx:479
 msgid "Unknown App"
 msgstr "Unbekannte App"
 
@@ -3154,21 +3618,23 @@ msgstr "Unbekannte App"
 #~ msgstr "unbekanntes Asset"
 
 #: src/pages/Token.tsx:109
-msgid "Unknown asset"
-msgstr "Unbekanntes Asset"
+#~ msgid "Unknown asset"
+#~ msgstr "Unbekanntes Asset"
 
-#: src/components/TokenGridView.tsx:189
-#: src/components/TokenGridView.tsx:193
-#: src/components/TokenColumns.tsx:65
+#: src/lib/utils.ts:25
 msgid "Unknown CAT"
 msgstr ""
 
-#: src/pages/CollectionMetaData.tsx:262
+#: src/pages/CollectionMetaData.tsx:256
 msgid "Unknown Collection"
 msgstr ""
 
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:165
+msgid "Unknown error"
+msgstr ""
+
 #: src/components/NftPageTitle.tsx:32
-#: src/components/NftGroupCard.tsx:92
+#: src/components/NftGroupCard.tsx:103
 msgid "Unknown Minter"
 msgstr ""
 
@@ -3177,21 +3643,20 @@ msgid "Unknown NFT"
 msgstr "Unbekanntes NFT"
 
 #: src/components/selectors/TokenSelector.tsx:106
-msgid "Unknown token"
-msgstr ""
+#~ msgid "Unknown token"
+#~ msgstr ""
 
-#: src/components/OfferCard.tsx:370
 #: src/components/AdvancedTransactionSummary.tsx:214
 #: src/components/AdvancedTransactionSummary.tsx:228
 msgid "Unnamed"
 msgstr "Unbenannt"
 
-#: src/pages/CollectionMetaData.tsx:258
-#: src/components/NftGroupCard.tsx:87
+#: src/pages/CollectionMetaData.tsx:252
+#: src/components/NftGroupCard.tsx:98
 msgid "Unnamed Collection"
 msgstr ""
 
-#: src/components/NftCard.tsx:241
+#: src/components/NftCard.tsx:265
 #: src/components/confirmations/NftConfirmation.tsx:103
 #: src/components/confirmations/AddUrlConfirmation.tsx:24
 msgid "Unnamed NFT"
@@ -3207,30 +3672,59 @@ msgstr ""
 #~ msgid "Unspent"
 #~ msgstr "Nicht ausgegeben"
 
+#: src/lib/utils.ts:25
+msgid "Untitled {0}"
+msgstr ""
+
 #: src/pages/DidList.tsx:219
 #: src/components/NftPageTitle.tsx:29
-#: src/components/NftGroupCard.tsx:90
+#: src/components/NftGroupCard.tsx:101
 msgid "Untitled Profile"
 msgstr "Unbenanntes Profil"
 
+#: src/components/MarketplaceCard.tsx:155
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:443
+msgid "Upload to {0}"
+msgstr ""
+
 #: src/pages/Offers.tsx:443
 #: src/pages/MakeOffer.tsx:380
-msgid "Upload to Dexie"
-msgstr "Zu Dexie hochladen"
+#~ msgid "Upload to Dexie"
+#~ msgstr "Zu Dexie hochladen"
 
 #: src/pages/MakeOffer.tsx:406
-msgid "Upload to MintGarden"
-msgstr "Zu MintGarden hochladen"
+#~ msgid "Upload to MintGarden"
+#~ msgstr "Zu MintGarden hochladen"
+
+#: src/components/MarketplaceCard.tsx:81
+msgid "Uploaded to {0}!"
+msgstr ""
 
 #: src/pages/Offers.tsx:414
-msgid "Uploaded to Dexie!"
+#~ msgid "Uploaded to Dexie!"
+#~ msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:260
+msgid "Uploading Offer"
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:230
+msgid "Uploading offer {0} of {totalOffers} to {1}..."
+msgstr ""
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:258
+msgid "Uploading Offers"
+msgstr ""
+
+#: src/components/MarketplaceCard.tsx:77
+msgid "Uploading to {0}..."
 msgstr ""
 
 #: src/pages/Offers.tsx:409
-msgid "Uploading to Dexie..."
-msgstr ""
+#~ msgid "Uploading to Dexie..."
+#~ msgstr ""
 
-#: src/components/NftCard.tsx:567
+#: src/components/NftCard.tsx:591
 #: src/components/confirmations/AddUrlConfirmation.tsx:62
 msgid "URL"
 msgstr "URL"
@@ -3243,16 +3737,20 @@ msgstr ""
 msgid "URL Details"
 msgstr ""
 
-#: src/components/NftCard.tsx:190
+#: src/components/NftCard.tsx:214
 msgid "URL is required"
 msgstr "URL ist erforderlich"
+
+#: src/components/TokenColumns.tsx:107
+msgid "USD Value: "
+msgstr ""
 
 #: src/pages/CreateWallet.tsx:148
 msgid "Use 24 words"
 msgstr "Verwenden Sie 24 Wörter"
 
-#: src/pages/Send.tsx:314
-#: src/pages/MakeOffer.tsx:662
+#: src/pages/Send.tsx:329
+#: src/components/selectors/AssetSelector.tsx:294
 msgid "Use maximum balance"
 msgstr ""
 
@@ -3264,11 +3762,15 @@ msgstr ""
 msgid "Use this address to receive {name}"
 msgstr ""
 
-#: src/components/TokenColumns.tsx:107
+#: src/pages/Settings.tsx:1233
+msgid "Vacuum Duration"
+msgstr ""
+
+#: src/components/TokenColumns.tsx:100
 msgid "Value"
 msgstr ""
 
-#: src/pages/Settings.tsx:91
+#: src/pages/Settings.tsx:103
 msgid "Version {version}"
 msgstr ""
 
@@ -3276,28 +3778,28 @@ msgstr ""
 #~ msgid "View {0} token details"
 #~ msgstr ""
 
-#: src/components/NftGroupCard.tsx:265
+#: src/components/NftGroupCard.tsx:276
 msgid "View {cardName} Metadata"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:279
+#: src/components/NftGroupCard.tsx:290
 msgid "View {cardName} on Mintgarden"
 msgstr ""
 
-#: src/components/TokenColumns.tsx:71
+#: src/components/TokenColumns.tsx:64
 msgid "View {name} token details"
 msgstr ""
 
 #: src/components/TokenColumns.tsx:70
-msgid "View Chia token details"
-msgstr ""
+#~ msgid "View Chia token details"
+#~ msgstr ""
 
 #: src/components/CoinList.tsx:127
 #~ msgid "View coin {0} on Spacescan.io"
 #~ msgstr ""
 
-#: src/pages/Transaction.tsx:120
-#: src/components/CoinList.tsx:111
+#: src/pages/Transaction.tsx:123
+#: src/components/CoinList.tsx:93
 msgid "View coin {coinId} on Spacescan.io"
 msgstr ""
 
@@ -3305,29 +3807,33 @@ msgstr ""
 msgid "View hidden"
 msgstr "Versteckte anzeigen"
 
-#: src/components/NftGroupCard.tsx:269
+#: src/components/NftGroupCard.tsx:280
 msgid "View Metadata"
 msgstr ""
 
-#: src/pages/Offers.tsx:214
-#: src/pages/Offers.tsx:247
+#: src/pages/Offers.tsx:255
+#: src/components/dialogs/ViewOfferDialog.tsx:49
 msgid "View Offer"
 msgstr "Offer anzeigen"
 
-#: src/components/TokenColumns.tsx:195
-#: src/components/TokenCard.tsx:169
+#: src/components/MarketplaceCard.tsx:153
+msgid "View on {0}"
+msgstr ""
+
+#: src/components/TokenColumns.tsx:189
+#: src/components/TokenCard.tsx:162
 msgid "View on dexie"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:283
+#: src/components/NftGroupCard.tsx:294
 msgid "View on Mintgarden"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:132
-#: src/components/TransactionOptions.tsx:133
-#: src/components/TokenOptions.tsx:135
-#: src/components/TokenOptions.tsx:136
-#: src/components/NftOptions.tsx:133
+#: src/components/TransactionOptions.tsx:124
+#: src/components/TransactionOptions.tsx:125
+#: src/components/TokenOptions.tsx:131
+#: src/components/TokenOptions.tsx:132
+#: src/components/NftOptions.tsx:128
 msgid "View options"
 msgstr ""
 
@@ -3335,22 +3841,34 @@ msgstr ""
 #~ msgid "View Unknown CAT token details"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:115
-#: src/pages/Settings.tsx:723
-#: src/pages/Login.tsx:713
+#: src/pages/Settings.tsx:1217
+msgid "WAL Checkpoint Duration"
+msgstr ""
+
+#: src/pages/Settings.tsx:1096
+msgid "WAL Pages"
+msgstr ""
+
+#: src/pages/Settings.tsx:1225
+msgid "WAL Pages Checkpointed"
+msgstr ""
+
+#: src/pages/Settings.tsx:132
+#: src/pages/Settings.tsx:876
+#: src/pages/Login.tsx:704
 #: src/components/Nav.tsx:43
 #: src/components/Layout.tsx:53
 #: src/components/Layout.tsx:72
 msgid "Wallet"
 msgstr "Wallet"
 
-#: src/pages/Login.tsx:649
+#: src/pages/Login.tsx:590
 msgid "Wallet Details"
 msgstr "Wallet Details"
 
 #: src/components/Layout.tsx:46
 #: src/components/Layout.tsx:68
-#: src/components/Header.tsx:100
+#: src/components/Header.tsx:102
 msgid "Wallet icon"
 msgstr "Wallet Symbol"
 
@@ -3358,22 +3876,22 @@ msgstr "Wallet Symbol"
 msgid "Wallet Key"
 msgstr "Wallet Key"
 
-#: src/pages/Settings.tsx:725
-#: src/pages/Login.tsx:608
+#: src/pages/Settings.tsx:878
+#: src/pages/Login.tsx:549
 #: src/pages/ImportWallet.tsx:97
 #: src/pages/CreateWallet.tsx:130
 msgid "Wallet Name"
 msgstr "Wallet Name"
 
-#: src/pages/Settings.tsx:378
+#: src/pages/Settings.tsx:465
 msgid "WalletConnect"
 msgstr "WalletConnect"
 
-#: src/pages/Settings.tsx:415
+#: src/pages/Settings.tsx:502
 msgid "WalletConnect URI"
 msgstr ""
 
-#: src/pages/Login.tsx:153
+#: src/pages/Login.tsx:156
 msgid "Wallets"
 msgstr "Wallets"
 
@@ -3382,18 +3900,26 @@ msgstr "Wallets"
 msgid "Warning"
 msgstr "Warnung"
 
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:349
+msgid "Warning: This is a one-sided offer. You are not requesting anything in return."
+msgstr ""
+
+#: src/pages/Settings.tsx:406
+msgid "Whether to skip syncing older blocks"
+msgstr ""
+
 #: src/pages/CreateWallet.tsx:151
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "Obwohl 12-Wort-Mnemonics ausreichend schwer zu knacken sind, können Sie sich entscheiden, stattdessen 24 zu verwenden, um die Sicherheit zu erhöhen."
 
-#: src/components/Nav.tsx:148
+#: src/components/Nav.tsx:156
 msgid "with {syncedCoins} / {totalCoins} coins synced"
 msgstr ""
 
 #: src/pages/Transaction.tsx:153
 #: src/components/OfferSummaryCard.tsx:73
-msgid "XCH"
-msgstr ""
+#~ msgid "XCH"
+#~ msgstr ""
 
 #: src/components/TokenListView.tsx:56
 #~ msgid "XCH logo"
@@ -3410,11 +3936,23 @@ msgstr ""
 msgid "You"
 msgstr "Sie"
 
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:292
+msgid "You are about to create <0>{numberOfOffers}</0> individual offers. Each offer will request the same assets and offer one of the selected NFTs."
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:301
+msgid "You are about to create <0>1</0> offer."
+msgstr ""
+
 #: src/components/confirmations/AddUrlConfirmation.tsx:33
 msgid "You are adding a URL to this NFT. This will be stored on-chain and can be used to link to external content."
 msgstr ""
 
-#: src/components/confirmations/OfferConfirmation.tsx:38
+#: src/components/confirmations/CancelOfferConfirmation.tsx:28
+msgid "You are canceling {offerCount} offers on-chain. This will prevent them from being taken even if someone has the original offer files.{0}"
+msgstr ""
+
+#: src/components/confirmations/CancelOfferConfirmation.tsx:40
 msgid "You are canceling this offer on-chain. This will prevent it from being taken even if someone has the original offer file."
 msgstr ""
 
@@ -3430,11 +3968,19 @@ msgstr ""
 msgid "You are issuing a new token. This will create a CAT (Chia Asset Token) that can be sent to other users and traded on exchanges."
 msgstr ""
 
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:312
+msgid "You Are Offering"
+msgstr ""
+
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:323
+msgid "You Are Requesting"
+msgstr ""
+
 #: src/components/confirmations/TokenConfirmation.tsx:41
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr ""
 
-#: src/pages/Offers.tsx:207
+#: src/pages/Offers.tsx:247
 msgid "You can also paste an offer using"
 msgstr "Sie können auch ein Angebot einfügen mit"
 
@@ -3442,6 +3988,10 @@ msgstr "Sie können auch ein Angebot einfügen mit"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "Sie haben derzeit keine NFTs. Möchten Sie eines minten?"
 
-#: src/pages/Transactions.tsx:173
+#: src/pages/Transactions.tsx:164
 msgid "You have not made any transactions yet."
 msgstr "Sie haben noch keine Transaktionen durchgeführt."
+
+#: src/components/dialogs/OfferCreationProgressDialog.tsx:299
+msgid "Your offer has been created and imported successfully{0}. You will now be redirected to the offers page where you can view its details."
+msgstr ""
