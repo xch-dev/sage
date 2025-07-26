@@ -21,11 +21,11 @@ msgstr ""
 msgid "(Dexie, OfferCo.de, chia-offer.com URLs are supported)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:326
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:324
 msgid "(for each offer)"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:407
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:405
 msgid "(Plus any blockchain royalties for offered assets)"
 msgstr ""
 
@@ -334,7 +334,7 @@ msgstr ""
 msgid "assets"
 msgstr ""
 
-#: src/pages/TokenList.tsx:164
+#: src/pages/TokenList.tsx:160
 msgid "Assets"
 msgstr "Assets"
 
@@ -506,22 +506,22 @@ msgstr "Wenn Sie diese Funktion deaktivieren, erstellen Sie ein Cold Wallet, in 
 #: src/components/AssignNftDialog.tsx:144
 #: src/components/dialogs/ResyncDialog.tsx:91
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:313
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:462
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:460
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
 #: src/components/dialogs/CancelOfferDialog.tsx:79
 msgid "Cancel"
 msgstr "Abbrechen"
 
-#: src/pages/Offers.tsx:307
+#: src/pages/Offers.tsx:306
 msgid "Cancel All Active"
 msgstr ""
 
-#: src/pages/Offers.tsx:312
-#: src/pages/Offers.tsx:391
+#: src/pages/Offers.tsx:311
+#: src/pages/Offers.tsx:390
 msgid "Cancel All Active Offers"
 msgstr ""
 
-#: src/pages/Offers.tsx:370
+#: src/pages/Offers.tsx:369
 msgid "Cancel all active offers?"
 msgstr ""
 
@@ -745,11 +745,11 @@ msgstr ""
 msgid "Confirm"
 msgstr "Bestätigen"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:465
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:463
 msgid "Confirm & Create"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:276
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:274
 msgid "Confirm Offer Creation"
 msgstr ""
 
@@ -874,7 +874,7 @@ msgstr ""
 msgid "Create"
 msgstr "Erstellen"
 
-#: src/pages/Offers.tsx:242
+#: src/pages/Offers.tsx:241
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Erstellen Sie ein neues Offer, um mit dem Peer-to-Peer-Handel zu beginnen."
 
@@ -890,7 +890,7 @@ msgstr ""
 msgid "Create new NFT"
 msgstr ""
 
-#: src/pages/Offers.tsx:268
+#: src/pages/Offers.tsx:267
 #: src/pages/MakeOffer.tsx:323
 msgid "Create Offer"
 msgstr "Offer Erstellen"
@@ -1020,7 +1020,7 @@ msgstr ""
 msgid "Delete {selectedPeersCount}"
 msgstr "{selectedPeersCount} Löschen"
 
-#: src/pages/Offers.tsx:329
+#: src/pages/Offers.tsx:328
 #: src/components/dialogs/DeleteOfferDialog.tsx:61
 msgid "Delete All"
 msgstr ""
@@ -1029,7 +1029,7 @@ msgstr ""
 msgid "Delete all cached data"
 msgstr ""
 
-#: src/pages/Offers.tsx:334
+#: src/pages/Offers.tsx:333
 msgid "Delete All Filtered Offers"
 msgstr ""
 
@@ -1381,11 +1381,11 @@ msgstr "Gebühr"
 msgid "Fee exceeds recommended maximum of 0.001 {ticker}"
 msgstr "Gebühr übersteigt das empfohlene Maximum von 0.001 {ticker}"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:376
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:374
 msgid "Fee per offer:"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:371
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:369
 msgid "Fees"
 msgstr ""
 
@@ -1637,11 +1637,11 @@ msgstr "IP Addresse"
 msgid "IP Addresses"
 msgstr ""
 
-#: src/pages/TokenList.tsx:172
+#: src/pages/TokenList.tsx:168
 msgid "Issue new token"
 msgstr ""
 
-#: src/pages/TokenList.tsx:176
+#: src/pages/TokenList.tsx:172
 #: src/pages/IssueToken.tsx:63
 #: src/pages/IssueToken.tsx:144
 msgid "Issue Token"
@@ -1724,7 +1724,7 @@ msgstr ""
 msgid "Loading Collection..."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:186
 msgid "Loading NFT details..."
 msgstr ""
 
@@ -1769,7 +1769,7 @@ msgstr " Stellen Sie sicher, dass Sie Ihre Mnemonic gespeichert haben. Sie könn
 msgid "Maker Fee"
 msgstr ""
 
-#: src/pages/Offers.tsx:236
+#: src/pages/Offers.tsx:235
 msgid "Manage offers"
 msgstr "Offers verwalten"
 
@@ -1925,7 +1925,7 @@ msgstr "Netzwerk"
 msgid "Network Fee"
 msgstr "Netzwerkgebühr"
 
-#: src/pages/Offers.tsx:379
+#: src/pages/Offers.tsx:378
 msgid "Network Fee (per offer)"
 msgstr ""
 
@@ -1933,7 +1933,7 @@ msgstr ""
 msgid "Network fee amount"
 msgstr "Netzwerkgebührenbetrag"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:396
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:394
 msgid "Network Fee:"
 msgstr ""
 
@@ -2056,11 +2056,11 @@ msgstr ""
 msgid "No Icon"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:217
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:215
 msgid "No NFTs offered or details unavailable."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:219
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:217
 msgid "No NFTs requested or details unavailable."
 msgstr ""
 
@@ -2068,7 +2068,7 @@ msgstr ""
 msgid "No NFTs to export"
 msgstr ""
 
-#: src/pages/Offers.tsx:238
+#: src/pages/Offers.tsx:237
 msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
@@ -2124,11 +2124,11 @@ msgstr "Nicht genügend Guthaben, um die Gebühr zu decken"
 msgid "Note"
 msgstr "Notiz"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:231
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:229
 msgid "Nothing offered."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:233
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:231
 msgid "Nothing requested."
 msgstr ""
 
@@ -2186,7 +2186,7 @@ msgstr ""
 msgid "Offering"
 msgstr ""
 
-#: src/pages/Offers.tsx:212
+#: src/pages/Offers.tsx:211
 #: src/components/Nav.tsx:65
 msgid "Offers"
 msgstr "Offers"
@@ -2360,7 +2360,7 @@ msgstr "Permanent löschen"
 msgid "Place the NFC tag near your device to scan it."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:279
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:277
 msgid "Please review the details of your offer(s) before proceeding."
 msgstr ""
 
@@ -2535,7 +2535,7 @@ msgstr ""
 msgid "Refresh Info"
 msgstr "Info aktualisieren"
 
-#: src/pages/TokenList.tsx:143
+#: src/pages/TokenList.tsx:139
 msgid "Refreshing token info..."
 msgstr ""
 
@@ -3045,7 +3045,7 @@ msgid "Summarized View"
 msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:208
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:288
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:286
 msgid "Summary"
 msgstr "Zusammenfassung"
 
@@ -3105,7 +3105,7 @@ msgstr "{syncedCoins} / {totalCoins} synchronisieren"
 msgid "Syncing Defaults"
 msgstr ""
 
-#: src/pages/TokenList.tsx:203
+#: src/pages/TokenList.tsx:199
 msgid "Syncing in progress..."
 msgstr "Synchronisierung läuft..."
 
@@ -3194,7 +3194,7 @@ msgstr ""
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "Die Wallet generiert nach jeder Transaktion eine neue Adresse. Die alten bleiben gültig."
 
-#: src/pages/TokenList.tsx:206
+#: src/pages/TokenList.tsx:202
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "Die Wallet synchronisiert noch. Der Guthaben ist möglicherweise nicht korrekt, bis der Vorgang abgeschlossen ist."
 
@@ -3294,7 +3294,7 @@ msgstr "Dadurch werden {selectedCount} NFTs in ein anderes Wallet übertragen. S
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "Dadurch wird die Zuordnung der NFTs zu ihren Profilen aufgehoben."
 
-#: src/pages/Offers.tsx:372
+#: src/pages/Offers.tsx:371
 msgid "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 msgstr ""
 
@@ -3322,7 +3322,7 @@ msgstr ""
 msgid "This will delete the offer from the wallet, but if it's shared externally it can still be accepted. The only way to truly cancel a public offer is by spending one or more of its coins."
 msgstr "Dadurch wird das Offer aus dem Wallet gelöscht, aber wenn es extern geteilt wird, kann es immer noch akzeptiert werden. Der einzige Weg, ein öffentliches Angebot wirklich zu stornieren, besteht darin, einen oder mehrere seiner Coins auszugeben."
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:447
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:445
 msgid "This will make your offer(s) immediately public and takeable on {0}."
 msgstr ""
 
@@ -3436,7 +3436,7 @@ msgstr ""
 #~ msgid "Token search and filters"
 #~ msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:164
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:162
 msgid "Tokens"
 msgstr ""
 
@@ -3456,7 +3456,7 @@ msgstr ""
 msgid "Total Duration"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:385
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:383
 msgid "Total fees for {numberOfOffers} offers:"
 msgstr ""
 
@@ -3683,7 +3683,7 @@ msgid "Untitled Profile"
 msgstr "Unbenanntes Profil"
 
 #: src/components/MarketplaceCard.tsx:155
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:443
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:441
 msgid "Upload to {0}"
 msgstr ""
 
@@ -3811,7 +3811,7 @@ msgstr "Versteckte anzeigen"
 msgid "View Metadata"
 msgstr ""
 
-#: src/pages/Offers.tsx:255
+#: src/pages/Offers.tsx:254
 #: src/components/dialogs/ViewOfferDialog.tsx:49
 msgid "View Offer"
 msgstr "Offer anzeigen"
@@ -3900,7 +3900,7 @@ msgstr "Wallets"
 msgid "Warning"
 msgstr "Warnung"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:349
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:347
 msgid "Warning: This is a one-sided offer. You are not requesting anything in return."
 msgstr ""
 
@@ -3936,11 +3936,11 @@ msgstr ""
 msgid "You"
 msgstr "Sie"
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:292
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:290
 msgid "You are about to create <0>{numberOfOffers}</0> individual offers. Each offer will request the same assets and offer one of the selected NFTs."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:301
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:299
 msgid "You are about to create <0>1</0> offer."
 msgstr ""
 
@@ -3968,11 +3968,11 @@ msgstr ""
 msgid "You are issuing a new token. This will create a CAT (Chia Asset Token) that can be sent to other users and traded on exchanges."
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:312
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:310
 msgid "You Are Offering"
 msgstr ""
 
-#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:323
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:321
 msgid "You Are Requesting"
 msgstr ""
 
@@ -3980,7 +3980,7 @@ msgstr ""
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr ""
 
-#: src/pages/Offers.tsx:247
+#: src/pages/Offers.tsx:246
 msgid "You can also paste an offer using"
 msgstr "Sie können auch ein Angebot einfügen mit"
 
