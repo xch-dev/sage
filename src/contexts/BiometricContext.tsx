@@ -25,17 +25,20 @@ export const BiometricContext = createContext<BiometricContextType | undefined>(
   undefined,
 );
 
+const isMobile = platform() === 'ios' || platform() === 'android';
+const status = isMobile
+  ? checkStatus()
+  : Promise.resolve({ isAvailable: false, biometryType: BiometryType.None });
+
 export function BiometricProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabled] = useLocalStorage('biometric', false);
   const [available, setAvailable] = useState(false);
   const [lastPrompt, setLastPrompt] = useState<number | null>(null);
 
   useEffect(() => {
-    const isMobile = platform() === 'ios' || platform() === 'android';
-
     if (!isMobile) return;
 
-    checkStatus().then((status) =>
+    status.then((status) =>
       setAvailable(
         status.isAvailable && status.biometryType !== BiometryType.None,
       ),
