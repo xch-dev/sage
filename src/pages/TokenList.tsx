@@ -33,9 +33,7 @@ export function TokenList() {
   const pricedTokens = useMemo(
     () =>
       tokens.map((token): PricedTokenRecord & { sortValue: number } => {
-        console.log(token.asset_id);
-        const precision = token.asset_id ? 3 : 12;
-        const balance = Number(toDecimal(token.balance, precision));
+        const balance = Number(toDecimal(token.balance, token.precision));
         const usdValue = parseFloat(
           getBalanceInUsd(token.asset_id, balance.toString()),
         );
@@ -97,8 +95,6 @@ export function TokenList() {
 
       return true;
     });
-
-  console.log(pricedTokens);
 
   const updateCats = useCallback(
     () =>
