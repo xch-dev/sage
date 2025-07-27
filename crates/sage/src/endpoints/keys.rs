@@ -88,7 +88,11 @@ impl Sage {
         }
 
         // reclaim disk space after all those deletes
+        query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&pool)
+            .await?;
         query("VACUUM").execute(&pool).await?;
+        query("ANALYZE").execute(&pool).await?;
 
         if login {
             self.config.global.fingerprint = Some(req.fingerprint);
