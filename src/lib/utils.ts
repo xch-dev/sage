@@ -1,9 +1,9 @@
-import { AssetKind } from '@/bindings';
+import { AssetKind, NftRecord } from '@/bindings';
+import { t } from '@lingui/core/macro';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { t } from '@lingui/core/macro';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -14,6 +14,32 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+export function emptyNftRecord(nftId: string): NftRecord {
+  return {
+    launcher_id: nftId,
+    name: `${nftId.slice(0, 8)}...${nftId.slice(-4)}`,
+    icon_url: null,
+    collection_id: null,
+    collection_name: null,
+    minter_did: null,
+    owner_did: null,
+    visible: false,
+    sensitive_content: false,
+    created_height: null,
+    coin_id: '',
+    address: '',
+    royalty_address: '',
+    royalty_ten_thousandths: 0,
+    data_uris: [],
+    data_hash: null,
+    metadata_uris: [],
+    metadata_hash: null,
+    license_uris: [],
+    license_hash: null,
+    edition_number: null,
+    edition_total: null,
+  };
+}
 export function getAssetDisplayName(
   name: string | null,
   ticker: string | null,

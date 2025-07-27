@@ -1,4 +1,10 @@
-import { Assets, CatAmount, commands, TokenRecord } from '@/bindings';
+import {
+  Assets,
+  CatAmount,
+  commands,
+  NftRecord,
+  TokenRecord,
+} from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,8 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
-import { nftUri } from '@/lib/nftUri';
-import { getAssetDisplayName } from '@/lib/utils';
+import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
 import { OfferState } from '@/state';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
@@ -32,15 +37,6 @@ interface MakeOfferConfirmationDialogProps {
   enabledMarketplaces: Record<string, boolean>;
   setEnabledMarketplaces: (marketplaces: Record<string, boolean>) => void;
 }
-
-interface DisplayableNft {
-  launcher_id: string;
-  name: string | null;
-  blob: string | null;
-  mime_type: string | null;
-  isPlaceholder?: boolean;
-}
-
 interface CatWithName extends CatAmount {
   displayName?: string;
   iconUrl?: string | null;
@@ -56,7 +52,7 @@ function AssetDisplay({
 }) {
   const xchAmount = assets.xch || '0';
   const hasXch = new BigNumber(xchAmount).gt(0);
-  const [nftDetailsList, setNftDetailsList] = useState<DisplayableNft[]>([]);
+  const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
   const [catsWithNames, setCatsWithNames] = useState<CatWithName[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
@@ -68,11 +64,6 @@ function AssetDisplay({
     if (!assets.nfts || assets.nfts.length === 0) return [];
     return assets.nfts.filter((id) => id && typeof id === 'string');
   }, [assets.nfts]);
-
-  // Create a stable reference for CAT asset IDs
-  const catAssetIds = useMemo(() => {
-    return assets.cats.map((cat) => cat.asset_id);
-  }, [assets.cats]);
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -160,85 +151,32 @@ function AssetDisplay({
     };
 
     fetchCatNames();
-  }, [catAssetIds, assets.cats]);
+  }, [assets.cats]);
 
   useEffect(() => {
     const fetchNftDetails = async () => {
-      if (nftIds.length === 0) {
-        setNftDetailsList([]);
-        return;
-      }
       setLoadingNfts(true);
 
-      try {
-        const displayableNfts: DisplayableNft[] = [];
-        for (const nftId of nftIds) {
-          try {
-            const nftRecordResponse = await commands.getNft({ nft_id: nftId });
-            if (nftRecordResponse.nft) {
-              const nftRecord = nftRecordResponse.nft;
-              try {
-                const nftDataResponse = await commands.getNftData({
-                  nft_id: nftRecord.launcher_id,
-                });
-                displayableNfts.push({
-                  launcher_id: nftRecord.launcher_id,
-                  name: nftRecord.name,
-                  blob: nftDataResponse.data?.blob || null,
-                  mime_type: nftDataResponse.data?.mime_type || null,
-                });
-              } catch (dataError) {
-                console.error(
-                  `Failed to fetch NFT data for ID: ${nftRecord.launcher_id}:`,
-                  dataError,
-                );
-                displayableNfts.push({
-                  launcher_id: nftRecord.launcher_id,
-                  name: nftRecord.name,
-                  blob: null,
-                  mime_type: null,
-                  isPlaceholder: true,
-                });
-              }
-            } else {
-              console.error(
-                `Failed to fetch NFT record for ID: ${nftId}: No NFT data returned`,
-              );
-              displayableNfts.push({
-                launcher_id: nftId,
-                name: `NFT ${nftId.slice(0, 8)}... (Error)`,
-                blob: null,
-                mime_type: null,
-                isPlaceholder: true,
-              });
-            }
-          } catch (recordError) {
-            console.error(
-              `Failed to fetch NFT record for ID: ${nftId}:`,
-              recordError,
-            );
-            displayableNfts.push({
-              launcher_id: nftId,
-              name: `NFT ${nftId.slice(0, 8)}... (Error)`,
-              blob: null,
-              mime_type: null,
-              isPlaceholder: true,
-            });
+      const displayableNfts: NftRecord[] = [];
+      for (const nftId of nftIds) {
+        try {
+          const nftRecordResponse = await commands.getNft({ nft_id: nftId });
+          if (nftRecordResponse.nft) {
+            displayableNfts.push(nftRecordResponse.nft);
+          } else {
+            displayableNfts.push(emptyNftRecord(nftId));
           }
+        } catch {
+          displayableNfts.push(emptyNftRecord(nftId));
         }
-        setNftDetailsList(displayableNfts);
-      } catch (error) {
-        console.error('Error fetching NFT details:', error);
-        setNftDetailsList([]); // Fallback to empty list on general error
       }
+      setNftDetailsList(displayableNfts);
+
       setLoadingNfts(false);
     };
 
     fetchNftDetails();
   }, [nftIds]);
-
-  const getDisplayableNftId = (id: string) =>
-    `${id.slice(0, 8)}...${id.slice(-4)}`;
 
   return (
     <div className='space-y-2'>
@@ -310,23 +248,18 @@ function AssetDisplay({
             ) : nftDetailsList.length > 0 ? (
               <div className='grid grid-cols-4 gap-x-0 gap-y-1'>
                 {nftDetailsList.map((nft) => {
-                  const displayId = getDisplayableNftId(nft.launcher_id);
-                  const nftName = nft.name || `NFT ${displayId}`;
                   return (
                     <div
                       key={nft.launcher_id}
                       className='flex flex-col items-center text-center'
-                      title={`${nftName}\nID: ${nft.launcher_id}`}
+                      title={`${nft.name}\nID: ${nft.launcher_id}`}
                     >
-                      <img
-                        src={nftUri(nft.mime_type, nft.blob)}
-                        alt={nftName}
-                        className='w-8 h-8 object-cover rounded border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center'
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.src = nftUri(null, null); // Fallback to missing.png
-                        }}
-                      />
+                      <AssetIcon iconUrl={nft.icon_url} kind='nft' size='sm' />
+                      {!nft.icon_url && (
+                        <span className='text-xs truncate w-full'>
+                          {nft.name}
+                        </span>
+                      )}
                     </div>
                   );
                 })}

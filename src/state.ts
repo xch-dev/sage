@@ -93,7 +93,6 @@ export function updateSyncStatus() {
     });
 }
 
-
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
