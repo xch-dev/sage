@@ -16,19 +16,19 @@ const handleInitializationError = async (
   // Check if this is a database migration, which is recoverable
   if (customError.kind === 'database_migration') {
     try {
+      console.log('Logging out and updating state');
       await logoutAndUpdateState();
     } catch (logoutError) {
       console.error('Error during logout:', logoutError);
       // If logout fails, we should still try to continue
-      if (setInitialized) {
-        setInitialized(true);
-      }
+
     }
   } else {
     // Only add non-migration errors to be displayed
     addError(customError);
     console.error('Unrecoverable initialization error', error);
   }
+  console.log('leaving handleInitializationError');
 };
 
 export default function useInitialization() {
@@ -41,17 +41,29 @@ export default function useInitialization() {
 
   const onInitialize = useCallback(async () => {
     try {
+      console.log('initializing');
       await commands.initialize();
-      setInitialized(true);
+      console.log('initialized');
+
       await commands.switchWallet();
+      console.log('switched wallet');
     } catch (error: unknown) {
+      console.log('error in onInitialize', error);
       await handleInitializationError(error, memoizedAddError, setInitialized);
     }
+    finally {
+      console.log('onInitialize finally');
+      setInitialized(true);
+      console.log('set initialized to true');
+    }
+    console.log('leaving onInitialize');
   }, [memoizedAddError]);
 
   useEffect(() => {
     if (!initialized) {
-      onInitialize();
+      onInitialize().then(() => {
+        console.log('onInitialize finished');
+      });
     }
   }, [initialized, onInitialize]);
 
