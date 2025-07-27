@@ -1,4 +1,5 @@
-import { Assets, CatAmount, commands } from '@/bindings';
+import { Assets, CatAmount, commands, TokenRecord } from '@/bindings';
+import { AssetIcon } from '@/components/AssetIcon';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
 import { nftUri } from '@/lib/nftUri';
+import { getAssetDisplayName } from '@/lib/utils';
 import { OfferState } from '@/state';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
@@ -27,8 +29,6 @@ interface MakeOfferConfirmationDialogProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
-  walletUnit: string;
-  walletDecimals: number;
   enabledMarketplaces: Record<string, boolean>;
   setEnabledMarketplaces: (marketplaces: Record<string, boolean>) => void;
 }
@@ -41,27 +41,126 @@ interface DisplayableNft {
   isPlaceholder?: boolean;
 }
 
+interface CatWithName extends CatAmount {
+  displayName?: string;
+  iconUrl?: string | null;
+  precision?: number;
+}
+
 function AssetDisplay({
   assets,
-  walletUnit,
-  walletDecimals,
   type,
 }: {
   assets: Assets;
-  walletUnit: string;
-  walletDecimals: number;
   type: 'offered' | 'requested';
 }) {
   const xchAmount = assets.xch || '0';
   const hasXch = new BigNumber(xchAmount).gt(0);
   const [nftDetailsList, setNftDetailsList] = useState<DisplayableNft[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
+  const [catsWithNames, setCatsWithNames] = useState<CatWithName[]>([]);
+  const [loadingCats, setLoadingCats] = useState(false);
+  const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
+  const [loadingXch, setLoadingXch] = useState(false);
 
   // Create a stable reference for NFT IDs to prevent infinite re-renders
   const nftIds = useMemo(() => {
     if (!assets.nfts || assets.nfts.length === 0) return [];
     return assets.nfts.filter((id) => id && typeof id === 'string');
   }, [assets.nfts]);
+
+  // Create a stable reference for CAT asset IDs
+  const catAssetIds = useMemo(() => {
+    return assets.cats.map((cat) => cat.asset_id);
+  }, [assets.cats]);
+
+  useEffect(() => {
+    const fetchXchToken = async () => {
+      if (!hasXch) {
+        setXchToken(null);
+        return;
+      }
+      setLoadingXch(true);
+
+      try {
+        const tokenResponse = await commands.getToken({ asset_id: null });
+        setXchToken(tokenResponse.token);
+      } catch (error) {
+        console.error('Error fetching XCH token info:', error);
+        setXchToken(null);
+      }
+      setLoadingXch(false);
+    };
+
+    fetchXchToken();
+  }, [hasXch]);
+
+  useEffect(() => {
+    const fetchCatNames = async () => {
+      if (assets.cats.length === 0) {
+        setCatsWithNames([]);
+        return;
+      }
+      setLoadingCats(true);
+
+      try {
+        const catsWithNamesPromises = assets.cats.map(async (cat) => {
+          try {
+            const tokenResponse = await commands.getToken({
+              asset_id: cat.asset_id,
+            });
+            const token = tokenResponse.token;
+            if (token) {
+              return {
+                ...cat,
+                displayName: getAssetDisplayName(
+                  token.name,
+                  token.ticker,
+                  'token',
+                ),
+                iconUrl: token.icon_url,
+                precision: token.precision,
+              };
+            } else {
+              return {
+                ...cat,
+                displayName: getAssetDisplayName(null, null, 'token'),
+                iconUrl: null,
+                precision: 3,
+              };
+            }
+          } catch (error) {
+            console.error(
+              `Failed to fetch token info for ${cat.asset_id}:`,
+              error,
+            );
+            return {
+              ...cat,
+              displayName: getAssetDisplayName(null, null, 'token'),
+              iconUrl: null,
+              precision: 3,
+            };
+          }
+        });
+
+        const catsWithNamesResults = await Promise.all(catsWithNamesPromises);
+        setCatsWithNames(catsWithNamesResults);
+      } catch (error) {
+        console.error('Error fetching CAT names:', error);
+        // Fallback to original cats without names
+        setCatsWithNames(
+          assets.cats.map((cat) => ({
+            ...cat,
+            displayName: getAssetDisplayName(null, null, 'token'),
+            iconUrl: null,
+          })),
+        );
+      }
+      setLoadingCats(false);
+    };
+
+    fetchCatNames();
+  }, [catAssetIds, assets.cats]);
 
   useEffect(() => {
     const fetchNftDetails = async () => {
@@ -146,14 +245,25 @@ function AssetDisplay({
       {hasXch && (
         <div>
           <h4 className='font-semibold'>XCH</h4>
-          <p>
-            <NumberFormat
-              value={xchAmount}
-              minimumFractionDigits={2}
-              maximumFractionDigits={walletDecimals}
-            />{' '}
-            {walletUnit}
-          </p>
+          {loadingXch ? (
+            <p className='text-sm text-muted-foreground'>
+              <Trans>Loading XCH details...</Trans>
+            </p>
+          ) : (
+            <div className='flex items-center gap-2'>
+              <AssetIcon iconUrl={xchToken?.icon_url} kind='token' size='sm' />
+              <span>
+                <NumberFormat
+                  value={xchAmount}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={xchToken?.precision ?? 12}
+                />{' '}
+                {xchToken
+                  ? getAssetDisplayName(xchToken.name, xchToken.ticker, 'token')
+                  : 'XCH'}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {assets.cats.length > 0 && (
@@ -162,18 +272,30 @@ function AssetDisplay({
             <Trans>Tokens</Trans>
           </h4>
           <ScrollArea className='max-h-32'>
-            <ul className='space-y-1'>
-              {assets.cats.map((cat: CatAmount) => (
-                <li key={cat.asset_id} className='text-sm'>
-                  <NumberFormat
-                    value={cat.amount || '0'}
-                    minimumFractionDigits={0}
-                    maximumFractionDigits={3}
-                  />{' '}
-                  {cat.asset_id.slice(0, 8)}...
-                </li>
-              ))}
-            </ul>
+            {loadingCats ? (
+              <p className='text-sm text-muted-foreground'>
+                <Trans>Loading token details...</Trans>
+              </p>
+            ) : (
+              <ul className='space-y-1'>
+                {catsWithNames.map((cat: CatWithName) => (
+                  <li
+                    key={cat.asset_id}
+                    className='text-sm flex items-center gap-2'
+                  >
+                    <AssetIcon iconUrl={cat.iconUrl} kind='token' size='sm' />
+                    <span>
+                      <NumberFormat
+                        value={cat.amount || '0'}
+                        minimumFractionDigits={0}
+                        maximumFractionDigits={cat.precision}
+                      />{' '}
+                      {cat.displayName || `${cat.asset_id.slice(0, 8)}...`}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </ScrollArea>
         </div>
       )}
@@ -243,11 +365,27 @@ export function MakeOfferConfirmationDialog({
   offerState,
   splitNftOffers,
   fee,
-  walletUnit,
-  walletDecimals,
   enabledMarketplaces,
   setEnabledMarketplaces,
 }: MakeOfferConfirmationDialogProps) {
+  const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
+
+  useEffect(() => {
+    const fetchXchToken = async () => {
+      try {
+        const tokenResponse = await commands.getToken({ asset_id: null });
+        setXchToken(tokenResponse.token);
+      } catch (error) {
+        console.error('Error fetching XCH token info:', error);
+        setXchToken(null);
+      }
+    };
+
+    if (open) {
+      fetchXchToken();
+    }
+  }, [open]);
+
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
@@ -309,12 +447,7 @@ export function MakeOfferConfirmationDialog({
               <h3 className='text-md font-semibold mb-2'>
                 <Trans>You Are Offering</Trans>
               </h3>
-              <AssetDisplay
-                assets={offerState.offered}
-                walletUnit={walletUnit}
-                walletDecimals={walletDecimals}
-                type='offered'
-              />
+              <AssetDisplay assets={offerState.offered} type='offered' />
             </div>
             <div>
               <h3 className='text-md font-semibold mb-2'>
@@ -354,12 +487,7 @@ export function MakeOfferConfirmationDialog({
                 }
                 return null;
               })()}
-              <AssetDisplay
-                assets={offerState.requested}
-                walletUnit={walletUnit}
-                walletDecimals={walletDecimals}
-                type='requested'
-              />
+              <AssetDisplay assets={offerState.requested} type='requested' />
             </div>
           </div>
 
@@ -375,18 +503,30 @@ export function MakeOfferConfirmationDialog({
                     <NumberFormat
                       value={feePerOffer}
                       minimumFractionDigits={2}
-                      maximumFractionDigits={walletDecimals}
+                      maximumFractionDigits={xchToken?.precision ?? 12}
                     />{' '}
-                    {walletUnit}
+                    {xchToken
+                      ? getAssetDisplayName(
+                          xchToken.name,
+                          xchToken.ticker,
+                          'token',
+                        )
+                      : 'XCH'}
                   </p>
                   <p className='text-sm'>
                     <Trans>Total fees for {numberOfOffers} offers:</Trans>{' '}
                     <NumberFormat
                       value={totalFee}
                       minimumFractionDigits={2}
-                      maximumFractionDigits={walletDecimals}
+                      maximumFractionDigits={xchToken?.precision ?? 12}
                     />{' '}
-                    {walletUnit}
+                    {xchToken
+                      ? getAssetDisplayName(
+                          xchToken.name,
+                          xchToken.ticker,
+                          'token',
+                        )
+                      : 'XCH'}
                   </p>
                 </>
               ) : (
@@ -395,9 +535,15 @@ export function MakeOfferConfirmationDialog({
                   <NumberFormat
                     value={feePerOffer}
                     minimumFractionDigits={2}
-                    maximumFractionDigits={walletDecimals}
+                    maximumFractionDigits={xchToken?.precision ?? 12}
                   />{' '}
-                  {walletUnit}
+                  {xchToken
+                    ? getAssetDisplayName(
+                        xchToken.name,
+                        xchToken.ticker,
+                        'token',
+                      )
+                    : 'XCH'}
                 </p>
               )}
               {(fee || '0') === '0' && (

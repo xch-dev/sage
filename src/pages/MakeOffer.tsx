@@ -331,8 +331,6 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
-          walletUnit={walletState.sync.unit.ticker}
-          walletDecimals={walletState.sync.unit.decimals}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />
