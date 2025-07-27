@@ -8,7 +8,6 @@ import { useErrors } from './useErrors';
 const handleInitializationError = async (
   error: unknown,
   addError: (error: CustomError) => void,
-  setInitialized?: (value: boolean) => void,
 ) => {
   console.error('Error during initialization:', error);
   const customError = error as CustomError;
@@ -19,10 +18,6 @@ const handleInitializationError = async (
       await logoutAndUpdateState();
     } catch (logoutError) {
       console.error('Error during logout:', logoutError);
-      // If logout fails, we should still try to continue
-      if (setInitialized) {
-        setInitialized(true);
-      }
     }
   } else {
     // Only add non-migration errors to be displayed
@@ -42,10 +37,12 @@ export default function useInitialization() {
   const onInitialize = useCallback(async () => {
     try {
       await commands.initialize();
-      setInitialized(true);
       await commands.switchWallet();
     } catch (error: unknown) {
-      await handleInitializationError(error, memoizedAddError, setInitialized);
+      await handleInitializationError(error, memoizedAddError);
+    }
+    finally {
+      setInitialized(true);
     }
   }, [memoizedAddError]);
 
