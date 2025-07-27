@@ -44,6 +44,7 @@ import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
+import { exportText, ExportType } from '@/lib/exportText';
 import {
   clearState,
   fetchState,
@@ -56,7 +57,12 @@ import { Trans } from '@lingui/react/macro';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
-import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
+import {
+  DownloadIcon,
+  LoaderCircleIcon,
+  TrashIcon,
+  WalletIcon,
+} from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -141,14 +147,12 @@ export default function Settings() {
                     <Trans>Network</Trans>
                   </TabsTrigger>
 
-                  {!isMobile && (
-                    <TabsTrigger
-                      value='advanced'
-                      className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
-                    >
-                      <Trans>Advanced</Trans>
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger
+                    value='advanced'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Advanced</Trans>
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -731,69 +735,69 @@ function LogViewer() {
     }
   };
 
+  const handleExport = () => {
+    if (selectedLog) {
+      exportText(selectedLog.text, selectedLog.name, ExportType.LOG);
+    }
+  };
+
   return (
     <SettingsSection title={t`Log Viewer`}>
       <div className='p-3 space-y-4 max-w-full'>
         <div className='flex flex-col gap-4'>
-          <div className='flex flex-wrap items-start gap-2'>
-            <div className='flex-none'>
-              <Select value={logName} onValueChange={handleLogChange}>
+          <div className='flex flex-col gap-2'>
+            <Select value={logName} onValueChange={handleLogChange}>
+              <SelectTrigger id='log' aria-label='Select file'>
+                <SelectValue placeholder={<Trans>Select log file</Trans>} />
+              </SelectTrigger>
+              <SelectContent>
+                {logs.map((log) => (
+                  <SelectItem key={log.name} value={log.name}>
+                    {log.name.replace('app.log.', '')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className='flex gap-2'>
+              <Input
+                type='text'
+                placeholder={t`Search logs...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
                 <SelectTrigger
-                  id='log'
-                  aria-label='Select file'
-                  className='w-[180px]'
+                  id='level'
+                  aria-label='Select log level'
+                  className='w-[120px]'
                 >
-                  <SelectValue placeholder={<Trans>Select log file</Trans>} />
+                  <SelectValue placeholder={<Trans>Log Level</Trans>} />
                 </SelectTrigger>
+
                 <SelectContent>
-                  {logs.map((log) => (
-                    <SelectItem key={log.name} value={log.name}>
-                      {log.name.replace('app.log.', '')}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value='all'>
+                    <Trans>All Levels</Trans>
+                  </SelectItem>
+                  <SelectItem value='error'>
+                    <span className={getLevelColor('ERROR')}>ERROR</span>
+                  </SelectItem>
+                  <SelectItem value='warn'>
+                    <span className={getLevelColor('WARN')}>WARN</span>
+                  </SelectItem>
+                  <SelectItem value='info'>
+                    <span className={getLevelColor('INFO')}>INFO</span>
+                  </SelectItem>
+                  <SelectItem value='debug'>
+                    <span className={getLevelColor('DEBUG')}>DEBUG</span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
-            </div>
 
-            <div className='flex flex-wrap items-start gap-2 min-w-[200px]'>
-              <div className='w-full sm:w-auto sm:flex-1 min-w-[200px]'>
-                <Input
-                  type='text'
-                  placeholder={t`Search logs...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className='w-full'
-                />
-              </div>
-
-              <div className='flex-none'>
-                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-                  <SelectTrigger
-                    id='level'
-                    aria-label='Select log level'
-                    className='w-[120px]'
-                  >
-                    <SelectValue placeholder={<Trans>Log Level</Trans>} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value='all'>
-                      <Trans>All Levels</Trans>
-                    </SelectItem>
-                    <SelectItem value='error'>
-                      <span className={getLevelColor('ERROR')}>ERROR</span>
-                    </SelectItem>
-                    <SelectItem value='warn'>
-                      <span className={getLevelColor('WARN')}>WARN</span>
-                    </SelectItem>
-                    <SelectItem value='info'>
-                      <span className={getLevelColor('INFO')}>INFO</span>
-                    </SelectItem>
-                    <SelectItem value='debug'>
-                      <span className={getLevelColor('DEBUG')}>DEBUG</span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Button variant='outline' onClick={handleExport}>
+                <DownloadIcon className='h-4 w-4' />
+              </Button>
             </div>
           </div>
 
