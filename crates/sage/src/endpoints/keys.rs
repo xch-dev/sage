@@ -88,6 +88,9 @@ impl Sage {
         }
 
         // reclaim disk space after all those deletes
+        query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&pool)
+            .await?;
         query("VACUUM").execute(&pool).await?;
 
         if login {
