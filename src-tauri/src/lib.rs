@@ -124,6 +124,7 @@ pub fn run() {
             commands::switch_wallet,
             commands::move_key,
             commands::download_cni_offercode,
+            commands::get_logs,
         ])
         .events(collect_events![SyncEvent]);
 

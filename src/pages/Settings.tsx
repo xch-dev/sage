@@ -44,6 +44,7 @@ import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
+import { exportText, ExportType } from '@/lib/exportText';
 import {
   clearState,
   fetchState,
@@ -53,17 +54,24 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
-import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
+import {
+  DownloadIcon,
+  LoaderCircleIcon,
+  TrashIcon,
+  WalletIcon,
+} from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
+  LogFile,
   Network,
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
@@ -139,14 +147,12 @@ export default function Settings() {
                     <Trans>Network</Trans>
                   </TabsTrigger>
 
-                  {!isMobile && (
-                    <TabsTrigger
-                      value='advanced'
-                      className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
-                    >
-                      <Trans>Advanced</Trans>
-                    </TabsTrigger>
-                  )}
+                  <TabsTrigger
+                    value='advanced'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Advanced</Trans>
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -188,13 +194,12 @@ export default function Settings() {
                 <NetworkSettings />
               </TabsContent>
 
-              {!isMobile && (
-                <TabsContent value='advanced'>
-                  <div className='grid gap-6'>
-                    <RpcSettings />
-                  </div>
-                </TabsContent>
-              )}
+              <TabsContent value='advanced'>
+                <div className='grid gap-4'>
+                  {!isMobile && <RpcSettings />}
+                  <LogViewer />
+                </div>
+              </TabsContent>
             </div>
           </Tabs>
         </div>
@@ -210,7 +215,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900'>
+    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -628,6 +633,242 @@ function NetworkSettings() {
           />
         }
       />
+    </SettingsSection>
+  );
+}
+
+function LogViewer() {
+  const { addError } = useErrors();
+
+  const [logs, setLogs] = useState<LogFile[]>([]);
+  const [logName, setLogName] = useState('');
+  const [selectedLog, setSelectedLog] = useState<LogFile | null>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const [filteredLines, setFilteredLines] = useState<string[]>([]);
+
+  useEffect(() => {
+    commands
+      .getLogs()
+      .then((logs) =>
+        setLogs(logs.sort((a, b) => b.name.localeCompare(a.name))),
+      )
+      .catch(addError);
+  }, [addError]);
+
+  useEffect(() => {
+    if (logs.length > 0) {
+      const defaultLog = logs[0];
+      setLogName(defaultLog.name);
+      setSelectedLog(defaultLog);
+    }
+  }, [logs]);
+
+  useEffect(() => {
+    if (selectedLog) {
+      setLogLines(selectedLog.text.split('\n'));
+    } else {
+      setLogLines([]);
+    }
+  }, [selectedLog]);
+
+  // Filter logs based on search query and selected level
+  useEffect(() => {
+    const filtered = logLines.filter((line) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        line.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (selectedLevel === 'all') return true;
+
+      const levelMatch = line.match(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s+(\w+)/,
+      );
+      if (!levelMatch) return false;
+
+      return levelMatch[1].toLowerCase() === selectedLevel.toLowerCase();
+    });
+
+    setFilteredLines(filtered);
+  }, [logLines, searchQuery, selectedLevel]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLines.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 24,
+    overscan: 5,
+  });
+
+  const handleLogChange = (name: string) => {
+    setLogName(name);
+    const log = logs.find((l) => l.name === name);
+    setSelectedLog(log ?? null);
+    setSearchQuery('');
+    setSelectedLevel('all');
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString();
+    } catch {
+      return timestamp;
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level.toUpperCase()) {
+      case 'ERROR':
+        return 'text-red-500 dark:text-red-400';
+      case 'WARN':
+        return 'text-yellow-600 dark:text-yellow-500';
+      case 'INFO':
+        return 'text-blue-600 dark:text-blue-500';
+      case 'DEBUG':
+        return 'text-slate-500 dark:text-slate-400';
+      default:
+        return 'text-muted-foreground';
+    }
+  };
+
+  const handleExport = () => {
+    if (selectedLog) {
+      exportText(selectedLog.text, selectedLog.name, ExportType.LOG);
+    }
+  };
+
+  return (
+    <SettingsSection title={t`Log Viewer`}>
+      <div className='p-3 space-y-4 max-w-full'>
+        <div className='flex flex-col gap-4'>
+          <div className='flex flex-col gap-2'>
+            <Select value={logName} onValueChange={handleLogChange}>
+              <SelectTrigger id='log' aria-label='Select file'>
+                <SelectValue placeholder={<Trans>Select log file</Trans>} />
+              </SelectTrigger>
+              <SelectContent>
+                {logs.map((log) => (
+                  <SelectItem key={log.name} value={log.name}>
+                    {log.name.replace('app.log.', '')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className='flex gap-2'>
+              <Input
+                type='text'
+                placeholder={t`Search logs...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+
+              <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                <SelectTrigger
+                  id='level'
+                  aria-label='Select log level'
+                  className='w-[120px]'
+                >
+                  <SelectValue placeholder={<Trans>Log Level</Trans>} />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value='all'>
+                    <Trans>All Levels</Trans>
+                  </SelectItem>
+                  <SelectItem value='error'>
+                    <span className={getLevelColor('ERROR')}>ERROR</span>
+                  </SelectItem>
+                  <SelectItem value='warn'>
+                    <span className={getLevelColor('WARN')}>WARN</span>
+                  </SelectItem>
+                  <SelectItem value='info'>
+                    <span className={getLevelColor('INFO')}>INFO</span>
+                  </SelectItem>
+                  <SelectItem value='debug'>
+                    <span className={getLevelColor('DEBUG')}>DEBUG</span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button variant='outline' onClick={handleExport}>
+                <DownloadIcon className='h-4 w-4' />
+              </Button>
+            </div>
+          </div>
+
+          {selectedLog && filteredLines.length === 0 && (
+            <div className='text-center py-8 text-muted-foreground'>
+              <Trans>No matching log entries found</Trans>
+            </div>
+          )}
+        </div>
+
+        {selectedLog && filteredLines.length > 0 && (
+          <div
+            ref={parentRef}
+            style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
+            className='border rounded-lg bg-muted/30 overflow-auto'
+          >
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const line = filteredLines[virtualRow.index];
+                const match = line.match(
+                  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/,
+                );
+
+                return (
+                  <div
+                    key={virtualRow.index}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    className={`absolute top-0 left-0 w-full hover:bg-muted/50 transition-colors`}
+                    style={{
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {match ? (
+                      <div className='flex min-w-max px-2 py-0.5'>
+                        <div className='w-[90px] whitespace-nowrap'>
+                          <span className='text-xs text-muted-foreground font-mono'>
+                            {formatTimestamp(match[1])}
+                          </span>
+                        </div>
+                        <div className='w-[50px] whitespace-nowrap'>
+                          <span
+                            className={`text-xs font-medium ${getLevelColor(
+                              match[2],
+                            )}`}
+                          >
+                            {match[2].padEnd(5, ' ')}
+                          </span>
+                        </div>
+                        <div className='flex-1 whitespace-nowrap'>
+                          <span className='text-xs font-mono'>{match[3]}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className='px-2 py-0.5 whitespace-nowrap'>
+                        <span className='text-xs font-mono'>{line}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </SettingsSection>
   );
 }

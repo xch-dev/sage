@@ -307,6 +307,9 @@ async moveKey(fingerprint: number, index: number) : Promise<null> {
 },
 async downloadCniOffercode(code: string) : Promise<string> {
     return await TAURI_INVOKE("download_cni_offercode", { code });
+},
+async getLogs() : Promise<LogFile[]> {
+    return await TAURI_INVOKE("get_logs");
 }
 }
 
@@ -469,6 +472,7 @@ export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amou
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string }
 export type KeyKind = "bls"
 export type LineageProof = { parentName: string | null; innerPuzzleHash: string | null; amount: number | null }
+export type LogFile = { name: string; text: string }
 export type Login = { fingerprint: number }
 export type LoginResponse = Record<string, never>
 export type Logout = Record<string, never>

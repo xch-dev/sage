@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fs, time::Duration};
 
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
@@ -8,7 +8,7 @@ use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
-use specta::specta;
+use specta::{specta, Type};
 use tauri::{command, AppHandle, State};
 use tokio::time::sleep;
 use tracing::error;
@@ -210,4 +210,35 @@ pub async fn download_cni_offercode(code: String) -> Result<String> {
     let response = response.json::<Response>().await?.offer;
 
     Ok(response)
+}
+
+#[derive(Serialize, Type)]
+pub struct LogFile {
+    name: String,
+    text: String,
+}
+
+#[command]
+#[specta]
+pub async fn get_logs(state: State<'_, AppState>) -> Result<Vec<LogFile>> {
+    let state = state.lock().await;
+    let files = fs::read_dir(state.path.join("log"))?;
+
+    let mut log_files = Vec::new();
+
+    for file in files {
+        let file = file?;
+
+        let name = file.file_name().to_string_lossy().to_string();
+
+        if !name.starts_with("app.log") {
+            continue;
+        }
+
+        let text = fs::read_to_string(file.path())?;
+
+        log_files.push(LogFile { name, text });
+    }
+
+    Ok(log_files)
 }
