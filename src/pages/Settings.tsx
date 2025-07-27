@@ -53,11 +53,12 @@ import {
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import { LoaderCircleIcon, TrashIcon, WalletIcon } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -638,6 +639,11 @@ function LogViewer() {
   const [logs, setLogs] = useState<LogFile[]>([]);
   const [logName, setLogName] = useState('');
   const [selectedLog, setSelectedLog] = useState<LogFile | null>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<string>('all');
+  const [filteredLines, setFilteredLines] = useState<string[]>([]);
 
   useEffect(() => {
     commands
@@ -656,10 +662,49 @@ function LogViewer() {
     }
   }, [logs]);
 
+  useEffect(() => {
+    if (selectedLog) {
+      setLogLines(selectedLog.text.split('\n'));
+    } else {
+      setLogLines([]);
+    }
+  }, [selectedLog]);
+
+  // Filter logs based on search query and selected level
+  useEffect(() => {
+    const filtered = logLines.filter((line) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        line.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      if (selectedLevel === 'all') return true;
+
+      const levelMatch = line.match(
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s+(\w+)/,
+      );
+      if (!levelMatch) return false;
+
+      return levelMatch[1].toLowerCase() === selectedLevel.toLowerCase();
+    });
+
+    setFilteredLines(filtered);
+  }, [logLines, searchQuery, selectedLevel]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLines.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 24,
+    overscan: 5,
+  });
+
   const handleLogChange = (name: string) => {
     setLogName(name);
     const log = logs.find((l) => l.name === name);
     setSelectedLog(log ?? null);
+    setSearchQuery('');
+    setSelectedLevel('all');
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -689,89 +734,133 @@ function LogViewer() {
   return (
     <SettingsSection title={t`Log Viewer`}>
       <div className='p-3 space-y-4 max-w-full'>
-        <div className='flex items-center gap-2'>
-          <Select value={logName} onValueChange={handleLogChange}>
-            <SelectTrigger
-              id='log'
-              aria-label='Select file'
-              className='w-[180px]'
-            >
-              <SelectValue placeholder={<Trans>Select log file</Trans>} />
-            </SelectTrigger>
-            <SelectContent>
-              {logs.map((log) => (
-                <SelectItem key={log.name} value={log.name}>
-                  {log.name.replace('app.log.', '')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className='flex flex-col gap-4'>
+          <div className='flex flex-wrap items-start gap-2'>
+            <div className='flex-none'>
+              <Select value={logName} onValueChange={handleLogChange}>
+                <SelectTrigger
+                  id='log'
+                  aria-label='Select file'
+                  className='w-[180px]'
+                >
+                  <SelectValue placeholder={<Trans>Select log file</Trans>} />
+                </SelectTrigger>
+                <SelectContent>
+                  {logs.map((log) => (
+                    <SelectItem key={log.name} value={log.name}>
+                      {log.name.replace('app.log.', '')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className='flex flex-wrap items-start gap-2 min-w-[200px]'>
+              <div className='w-full sm:w-auto sm:flex-1 min-w-[200px]'>
+                <Input
+                  type='text'
+                  placeholder={t`Search logs...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className='w-full'
+                />
+              </div>
+
+              <div className='flex-none'>
+                <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+                  <SelectTrigger
+                    id='level'
+                    aria-label='Select log level'
+                    className='w-[120px]'
+                  >
+                    <SelectValue placeholder={<Trans>Log Level</Trans>} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value='all'>
+                      <Trans>All Levels</Trans>
+                    </SelectItem>
+                    <SelectItem value='error'>
+                      <span className={getLevelColor('ERROR')}>ERROR</span>
+                    </SelectItem>
+                    <SelectItem value='warn'>
+                      <span className={getLevelColor('WARN')}>WARN</span>
+                    </SelectItem>
+                    <SelectItem value='info'>
+                      <span className={getLevelColor('INFO')}>INFO</span>
+                    </SelectItem>
+                    <SelectItem value='debug'>
+                      <span className={getLevelColor('DEBUG')}>DEBUG</span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {selectedLog && filteredLines.length === 0 && (
+            <div className='text-center py-8 text-muted-foreground'>
+              <Trans>No matching log entries found</Trans>
+            </div>
+          )}
         </div>
 
-        {selectedLog && (
+        {selectedLog && filteredLines.length > 0 && (
           <div
+            ref={parentRef}
             style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
-            className='border rounded-lg bg-muted/30'
+            className='border rounded-lg bg-muted/30 overflow-auto'
           >
-            <div className='h-full overflow-y-auto'>
-              <div className='overflow-x-auto' style={{ minWidth: '100%' }}>
-                <table className='w-max table-fixed'>
-                  <colgroup>
-                    <col className='w-[90px]' />
-                    <col className='w-[50px]' />
-                    <col className='min-w-[400px]' />
-                  </colgroup>
-                  <tbody className='divide-y divide-border/10'>
-                    {selectedLog.text.split('\n').map((line, index) => {
-                      const match = line.match(
-                        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/,
-                      );
-                      if (match) {
-                        const [, timestamp, level, message] = match;
-                        return (
-                          <tr
-                            key={index}
-                            className='hover:bg-muted/50 transition-colors'
+            <div
+              style={{
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                const line = filteredLines[virtualRow.index];
+                const match = line.match(
+                  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/,
+                );
+
+                return (
+                  <div
+                    key={virtualRow.index}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    className={`absolute top-0 left-0 w-full hover:bg-muted/50 transition-colors`}
+                    style={{
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {match ? (
+                      <div className='flex min-w-max px-2 py-0.5'>
+                        <div className='w-[90px] whitespace-nowrap'>
+                          <span className='text-xs text-muted-foreground font-mono'>
+                            {formatTimestamp(match[1])}
+                          </span>
+                        </div>
+                        <div className='w-[50px] whitespace-nowrap'>
+                          <span
+                            className={`text-xs font-medium ${getLevelColor(
+                              match[2],
+                            )}`}
                           >
-                            <td className='px-2 py-0.5 whitespace-nowrap'>
-                              <span className='text-xs text-muted-foreground font-mono'>
-                                {formatTimestamp(timestamp)}
-                              </span>
-                            </td>
-                            <td className='px-2 py-0.5 whitespace-nowrap'>
-                              <span
-                                className={`text-xs font-medium ${getLevelColor(
-                                  level,
-                                )}`}
-                              >
-                                {level.padEnd(5, ' ')}
-                              </span>
-                            </td>
-                            <td className='px-2 py-0.5 whitespace-nowrap'>
-                              <span className='text-xs font-mono'>
-                                {message}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      }
-                      return (
-                        <tr
-                          key={index}
-                          className='hover:bg-muted/50 transition-colors'
-                        >
-                          <td
-                            colSpan={3}
-                            className='px-2 py-0.5 whitespace-nowrap'
-                          >
-                            <span className='text-xs font-mono'>{line}</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                            {match[2].padEnd(5, ' ')}
+                          </span>
+                        </div>
+                        <div className='flex-1 whitespace-nowrap'>
+                          <span className='text-xs font-mono'>{match[3]}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className='px-2 py-0.5 whitespace-nowrap'>
+                        <span className='text-xs font-mono'>{line}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

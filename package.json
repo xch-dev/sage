@@ -39,6 +39,7 @@
     "@radix-ui/react-tooltip": "^1.1.6",
     "@react-spring/web": "^9.7.5",
     "@tanstack/react-table": "^8.20.5",
+    "@tanstack/react-virtual": "^3.13.12",
     "@tauri-apps/api": "^2.3.0",
     "@tauri-apps/plugin-barcode-scanner": "^2.2.0",
     "@tauri-apps/plugin-biometric": "^2.2.1",
