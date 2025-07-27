@@ -64,6 +64,7 @@ import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
+  LogFile,
   Network,
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
@@ -188,13 +189,12 @@ export default function Settings() {
                 <NetworkSettings />
               </TabsContent>
 
-              {!isMobile && (
-                <TabsContent value='advanced'>
-                  <div className='grid gap-6'>
-                    <RpcSettings />
-                  </div>
-                </TabsContent>
-              )}
+              <TabsContent value='advanced'>
+                <div className='grid gap-4'>
+                  {!isMobile && <RpcSettings />}
+                  <LogViewer />
+                </div>
+              </TabsContent>
             </div>
           </Tabs>
         </div>
@@ -210,7 +210,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900'>
+    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -628,6 +628,154 @@ function NetworkSettings() {
           />
         }
       />
+    </SettingsSection>
+  );
+}
+
+function LogViewer() {
+  const { addError } = useErrors();
+
+  const [logs, setLogs] = useState<LogFile[]>([]);
+  const [logName, setLogName] = useState('');
+  const [selectedLog, setSelectedLog] = useState<LogFile | null>(null);
+
+  useEffect(() => {
+    commands
+      .getLogs()
+      .then((logs) =>
+        setLogs(logs.sort((a, b) => b.name.localeCompare(a.name))),
+      )
+      .catch(addError);
+  }, [addError]);
+
+  useEffect(() => {
+    if (logs.length > 0) {
+      const defaultLog = logs[0];
+      setLogName(defaultLog.name);
+      setSelectedLog(defaultLog);
+    }
+  }, [logs]);
+
+  const handleLogChange = (name: string) => {
+    setLogName(name);
+    const log = logs.find((l) => l.name === name);
+    setSelectedLog(log ?? null);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString();
+    } catch {
+      return timestamp;
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level.toUpperCase()) {
+      case 'ERROR':
+        return 'text-red-500 dark:text-red-400';
+      case 'WARN':
+        return 'text-yellow-600 dark:text-yellow-500';
+      case 'INFO':
+        return 'text-blue-600 dark:text-blue-500';
+      case 'DEBUG':
+        return 'text-slate-500 dark:text-slate-400';
+      default:
+        return 'text-muted-foreground';
+    }
+  };
+
+  return (
+    <SettingsSection title={t`Log Viewer`}>
+      <div className='p-3 space-y-4 max-w-full'>
+        <div className='flex items-center gap-2'>
+          <Select value={logName} onValueChange={handleLogChange}>
+            <SelectTrigger
+              id='log'
+              aria-label='Select file'
+              className='w-[180px]'
+            >
+              <SelectValue placeholder={<Trans>Select log file</Trans>} />
+            </SelectTrigger>
+            <SelectContent>
+              {logs.map((log) => (
+                <SelectItem key={log.name} value={log.name}>
+                  {log.name.replace('app.log.', '')}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedLog && (
+          <div
+            style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
+            className='border rounded-lg bg-muted/30'
+          >
+            <div className='h-full overflow-y-auto'>
+              <div className='overflow-x-auto' style={{ minWidth: '100%' }}>
+                <table className='w-max table-fixed'>
+                  <colgroup>
+                    <col className='w-[90px]' />
+                    <col className='w-[50px]' />
+                    <col className='min-w-[400px]' />
+                  </colgroup>
+                  <tbody className='divide-y divide-border/10'>
+                    {selectedLog.text.split('\n').map((line, index) => {
+                      const match = line.match(
+                        /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/,
+                      );
+                      if (match) {
+                        const [, timestamp, level, message] = match;
+                        return (
+                          <tr
+                            key={index}
+                            className='hover:bg-muted/50 transition-colors'
+                          >
+                            <td className='px-2 py-0.5 whitespace-nowrap'>
+                              <span className='text-xs text-muted-foreground font-mono'>
+                                {formatTimestamp(timestamp)}
+                              </span>
+                            </td>
+                            <td className='px-2 py-0.5 whitespace-nowrap'>
+                              <span
+                                className={`text-xs font-medium ${getLevelColor(
+                                  level,
+                                )}`}
+                              >
+                                {level.padEnd(5, ' ')}
+                              </span>
+                            </td>
+                            <td className='px-2 py-0.5 whitespace-nowrap'>
+                              <span className='text-xs font-mono'>
+                                {message}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+                      return (
+                        <tr
+                          key={index}
+                          className='hover:bg-muted/50 transition-colors'
+                        >
+                          <td
+                            colSpan={3}
+                            className='px-2 py-0.5 whitespace-nowrap'
+                          >
+                            <span className='text-xs font-mono'>{line}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </SettingsSection>
   );
 }
