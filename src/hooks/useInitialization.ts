@@ -1,7 +1,7 @@
 import { commands } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { logoutAndUpdateState } from '@/state';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useErrors } from './useErrors';
 
 // Shared function to handle initialization errors
@@ -31,19 +31,16 @@ export default function useInitialization() {
 
   const [initialized, setInitialized] = useState(false);
 
-  // Memoize addError to prevent unnecessary re-renders
-  const memoizedAddError = useMemo(() => addError, [addError]);
-
   const onInitialize = useCallback(async () => {
     try {
       await commands.initialize();
       await commands.switchWallet();
     } catch (error: unknown) {
-      await handleInitializationError(error, memoizedAddError);
+      await handleInitializationError(error, addError);
     } finally {
       setInitialized(true);
     }
-  }, [memoizedAddError]);
+  }, [addError]);
 
   useEffect(() => {
     if (!initialized) {

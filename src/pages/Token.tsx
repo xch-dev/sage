@@ -59,7 +59,6 @@ export default function Token() {
         .getToken({ asset_id: assetId ?? null })
         .then((res) => setAsset(res.token))
         .catch((err) => {
-          console.trace('updateToken', err);
           addError(err);
         });
     },
@@ -101,7 +100,6 @@ export default function Token() {
       .resyncCat({ asset_id: assetId })
       .then(() => updateToken())
       .catch((err) => {
-        console.trace('redownload', err);
         addError(err);
       });
   };
@@ -111,7 +109,6 @@ export default function Token() {
       .updateCat({ record: updatedAsset })
       .then(() => updateToken())
       .catch((err) => {
-        console.trace('updateTokenDetails', err);
         addError(err);
       });
   };

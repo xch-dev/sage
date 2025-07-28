@@ -45,7 +45,7 @@ export function useOfferProcessor({
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     isCancelled.current = false;
-    clearProcessedOffers();
+    setCreatedOffers([]); // Direct call instead of using clearProcessedOffers
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -165,10 +165,9 @@ export function useOfferProcessor({
     splitNftOffers,
     walletState.sync.unit.decimals,
     promptIfEnabled,
-    clearProcessedOffers,
     onProcessingEnd,
     onProgress,
-  ]);
+  ]); // Removed clearProcessedOffers from dependency array
 
   return {
     createdOffers,

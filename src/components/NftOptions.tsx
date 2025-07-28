@@ -94,10 +94,6 @@ export function NftOptions({
     }
   }, [debouncedSearch, query, setParams]);
 
-  const handleInputChange = useCallback((value: string) => {
-    setSearchValue(value);
-  }, []);
-
   const handleClearSearch = useCallback(() => {
     setSearchValue('');
   }, []);
@@ -144,7 +140,7 @@ export function NftOptions({
             aria-label={t`Search NFTs...`}
             title={t`Search NFTs...`}
             placeholder={t`Search NFTs...`}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={(e) => setSearchValue(e.target.value)}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}
             aria-disabled={!allowSearch}
