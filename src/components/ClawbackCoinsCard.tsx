@@ -219,9 +219,9 @@ export function ClawbackCoinsCard({
         // Add confirmation data to the response
         const resultWithDetails = Object.assign({}, result, {
           additionalData: {
-            title: t`Claw Back Details`,
+            title: t`Claw back Details`,
             content: {
-              type: 'combine',
+              type: 'clawback',
               coins: selectedCoinRecords,
               ticker: asset.ticker,
               precision: asset.precision,
