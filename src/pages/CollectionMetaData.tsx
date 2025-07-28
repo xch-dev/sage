@@ -11,6 +11,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
 
 interface MetadataContent {
   collection?: {
@@ -394,7 +395,7 @@ export default function CollectionMetaData() {
                 disabled={network === 'unknown'}
               >
                 <img
-                  src='https://spacescan.io/images/spacescan-logo-192.png'
+                  src={spacescanLogo}
                   className='h-4 w-4 mr-2'
                   alt='Spacescan.io logo'
                 />

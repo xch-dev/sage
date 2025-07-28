@@ -40,8 +40,7 @@ export default function useInitialization() {
       await commands.switchWallet();
     } catch (error: unknown) {
       await handleInitializationError(error, memoizedAddError);
-    }
-    finally {
+    } finally {
       setInitialized(true);
     }
   }, [memoizedAddError]);
