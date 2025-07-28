@@ -9,7 +9,6 @@ import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation'
 import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { getAssetDisplayName, toDecimal } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { RowSelectionState } from '@tanstack/react-table';
 import { useEffect, useMemo, useState } from 'react';
@@ -40,8 +39,6 @@ export default function Token() {
   let { asset_id: assetId = null } = useParams();
   if (assetId === 'xch') assetId = null;
 
-  const walletState = useWalletState();
-
   const { addError } = useErrors();
   const { getBalanceInUsd } = usePrices();
 
@@ -61,7 +58,10 @@ export default function Token() {
       commands
         .getToken({ asset_id: assetId ?? null })
         .then((res) => setAsset(res.token))
-        .catch(addError);
+        .catch((err) => {
+          console.trace('updateToken', err);
+          addError(err);
+        });
     },
     [assetId, addError],
   );
@@ -84,7 +84,7 @@ export default function Token() {
     return () => {
       unlisten.then((u) => u());
     };
-  }, [assetId, updateToken, walletState.sync]);
+  }, [assetId, updateToken]);
 
   const balanceInUsd = useMemo(() => {
     if (!asset) return '0';
@@ -100,14 +100,20 @@ export default function Token() {
     commands
       .resyncCat({ asset_id: assetId })
       .then(() => updateToken())
-      .catch(addError);
+      .catch((err) => {
+        console.trace('redownload', err);
+        addError(err);
+      });
   };
 
   const updateTokenDetails = async (updatedAsset: TokenRecord) => {
     return commands
       .updateCat({ record: updatedAsset })
       .then(() => updateToken())
-      .catch(addError);
+      .catch((err) => {
+        console.trace('updateTokenDetails', err);
+        addError(err);
+      });
   };
 
   const setVisibility = (visible: boolean) => {
