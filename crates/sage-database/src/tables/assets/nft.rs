@@ -200,7 +200,7 @@ impl Database {
                 query.push("(created_height IS NULL) DESC, created_height DESC");
             }
             NftSortMode::Name => {
-                query.push("asset_name ASC, edition_number ASC");
+                query.push("(asset_name IS NULL) ASC, asset_name ASC, edition_number ASC");
             }
         }
 
