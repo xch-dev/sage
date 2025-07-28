@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -358,7 +359,7 @@ export default function Nft() {
                 disabled={network === 'unknown'}
               >
                 <img
-                  src='https://spacescan.io/images/spacescan-logo-192.png'
+                  src={spacescanLogo}
                   className='h-4 w-4 mr-2'
                   alt='Spacescan.io logo'
                 />
