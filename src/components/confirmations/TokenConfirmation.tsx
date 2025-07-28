@@ -1,15 +1,15 @@
 import { CoinRecord } from '@/bindings';
+import { CopyButton } from '@/components/CopyButton';
 import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { SplitIcon, MergeIcon, CoinsIcon } from 'lucide-react';
+import { CoinsIcon, MergeIcon, SplitIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { CopyButton } from '@/components/CopyButton';
+import { formatNumber } from '../../i18n';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
-import { formatNumber } from '../../i18n';
 
-type TokenOperationType = 'split' | 'combine' | 'issue' | 'send';
+type TokenOperationType = 'split' | 'combine' | 'issue' | 'send' | 'clawback';
 
 interface TokenConfirmationProps {
   type: TokenOperationType;
@@ -63,6 +63,17 @@ export function TokenConfirmation({
         <Trans>
           You are issuing a new token. This will create a CAT (Chia Asset Token)
           that can be sent to other users and traded on exchanges.
+        </Trans>
+      ),
+    },
+    clawback: {
+      icon: CoinsIcon,
+      title: <Trans>Claw Back</Trans>,
+      variant: 'info' as const,
+      message: (
+        <Trans>
+          You are about to claw back coins. This will return them to your
+          wallet.
         </Trans>
       ),
     },
@@ -139,65 +150,77 @@ export function TokenConfirmation({
         </ConfirmationCard>
       )}
 
-      {(type === 'split' || type === 'combine') && coins && (
-        <>
-          <ConfirmationCard
-            title={
-              <Trans>
-                {type === 'split' ? 'Split' : 'Combine'} {coins.length} coin
-                {coins.length === 1 ? '' : 's'}
-              </Trans>
-            }
-          >
-            <div className='space-y-2 max-h-40 overflow-y-auto'>
-              {coins.map((coin) => (
-                <div
-                  key={coin.coin_id}
-                  className='flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-1 last:border-0 last:pb-0'
-                >
-                  <div className='truncate flex-1 mr-2'>
-                    {coin.coin_id.substring(0, 8)}...
-                    {coin.coin_id.substring(coin.coin_id.length - 8)}
+      {(type === 'split' || type === 'combine' || type === 'clawback') &&
+        coins && (
+          <>
+            <ConfirmationCard
+              title={
+                <Trans>
+                  {type === 'split'
+                    ? 'Split'
+                    : type === 'combine'
+                      ? 'Combine'
+                      : 'Claw back'}{' '}
+                  {coins.length} coin{coins.length === 1 ? '' : 's'}
+                </Trans>
+              }
+            >
+              <div className='space-y-2 max-h-40 overflow-y-auto'>
+                {coins.map((coin) => (
+                  <div
+                    key={coin.coin_id}
+                    className='flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-1 last:border-0 last:pb-0'
+                  >
+                    <div className='truncate flex-1 mr-2'>
+                      {coin.coin_id.substring(0, 8)}...
+                      {coin.coin_id.substring(coin.coin_id.length - 8)}
+                    </div>
+                    <div className='font-medium'>
+                      {String(
+                        fromMojos(coin.amount.toString(), precision ?? 0),
+                      )}{' '}
+                      {ticker}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ConfirmationCard>
+
+            <ConfirmationCard>
+              <div className='grid grid-cols-2 gap-4'>
+                <div>
+                  <div className='text-muted-foreground mb-1'>
+                    <Trans>Total Amount</Trans>
                   </div>
                   <div className='font-medium'>
-                    {String(fromMojos(coin.amount.toString(), precision ?? 0))}{' '}
-                    {ticker}
+                    {formattedTotalAmount} {ticker}
                   </div>
                 </div>
-              ))}
-            </div>
-          </ConfirmationCard>
-
-          <ConfirmationCard>
-            <div className='grid grid-cols-2 gap-4'>
-              <div>
-                <div className='text-muted-foreground mb-1'>
-                  <Trans>Total Amount</Trans>
-                </div>
-                <div className='font-medium'>
-                  {formattedTotalAmount} {ticker}
-                </div>
-              </div>
-              <div>
-                <div className='text-muted-foreground mb-1'>
-                  {type === 'split' ? (
-                    <Trans>Output Count</Trans>
-                  ) : (
-                    <Trans>Result</Trans>
-                  )}
-                </div>
-                <div className='font-medium'>
-                  {type === 'split' ? (
-                    <Trans>{outputCount} coins</Trans>
-                  ) : (
-                    <Trans>1 combined coin</Trans>
-                  )}
+                <div>
+                  <div className='text-muted-foreground mb-1'>
+                    {type === 'split' ? (
+                      <Trans>Output Count</Trans>
+                    ) : (
+                      <Trans>Result</Trans>
+                    )}
+                  </div>
+                  <div className='font-medium'>
+                    {type === 'split' ? (
+                      <Trans>{outputCount} coins</Trans>
+                    ) : type === 'combine' ? (
+                      <Trans>1 combined coin</Trans>
+                    ) : (
+                      <Trans>
+                        {coins.length} clawed back coin {coins.length} coin
+                        {coins.length === 1 ? '' : 's'}
+                      </Trans>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </ConfirmationCard>
-        </>
-      )}
+            </ConfirmationCard>
+          </>
+        )}
 
       {type === 'issue' && (
         <div className='text-muted-foreground'>

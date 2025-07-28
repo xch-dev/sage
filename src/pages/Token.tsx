@@ -147,6 +147,18 @@ export default function Token() {
           />
         ),
       };
+    } else if (content.type === 'clawback') {
+      return {
+        title: t`Claw Back Details`,
+        content: (
+          <TokenConfirmation
+            type='clawback'
+            coins={content.coins}
+            ticker={content.ticker}
+            precision={content.precision}
+          />
+        ),
+      };
     }
 
     return undefined;
