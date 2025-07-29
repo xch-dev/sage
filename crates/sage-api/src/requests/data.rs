@@ -111,7 +111,7 @@ pub struct GetAreCoinsSpendableResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetSpendableCoinCount {
-    pub asset_id: String,
+    pub asset_id: Option<String>,
 }
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]

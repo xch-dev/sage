@@ -150,7 +150,7 @@ export function OwnedCoinsCard({
     let isMounted = true;
 
     const checkAutoCombine = async () => {
-      if (selectedCoinIds.length === 0 && asset.asset_id) {
+      if (selectedCoinIds.length === 0) {
         try {
           const spendable = await commands.getSpendableCoinCount({
             asset_id: asset.asset_id,

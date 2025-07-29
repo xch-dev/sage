@@ -171,12 +171,12 @@ impl Sage {
         req: GetSpendableCoinCount,
     ) -> Result<GetSpendableCoinCountResponse> {
         let wallet = self.wallet()?;
-        let count = if req.asset_id == "xch" {
-            wallet.db.selectable_xch_coin_count().await?
-        } else {
-            let asset_id = parse_asset_id(req.asset_id)?;
-
-            wallet.db.selectable_cat_coin_count(asset_id).await?
+        let count = match req.asset_id {
+            None => wallet.db.selectable_xch_coin_count().await?,
+            Some(asset_id_str) => {
+                let asset_id = parse_asset_id(asset_id_str)?;
+                wallet.db.selectable_cat_coin_count(asset_id).await?
+            }
         };
 
         Ok(GetSpendableCoinCountResponse { count })
