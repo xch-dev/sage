@@ -287,9 +287,9 @@ impl Database {
         offset: u32,
     ) -> Result<(Vec<Bytes32>, u32)> {
         let rows = query!(
-            "SELECT DISTINCT minter_hash, COUNT(*) OVER() AS total_count 
+            "SELECT DISTINCT minter_hash 
             FROM owned_nfts 
-            ORDER BY minter_hash ASC
+            ORDER BY minter_hash ASC    
             LIMIT ? OFFSET ?",
             limit,
             offset
@@ -297,9 +297,16 @@ impl Database {
         .fetch_all(&self.pool)
         .await?;
 
-        let total_count = rows
-            .first()
-            .map_or(Ok(0), |row| row.total_count.try_into())?;
+        let total_count = query!(
+            "SELECT COUNT(DISTINCT minter_hash) AS total_count 
+            FROM owned_nfts 
+            "
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .total_count
+        .try_into()
+        .map_err(crate::DatabaseError::PrecisionLost)?;
 
         let dids = rows
             .into_iter()
