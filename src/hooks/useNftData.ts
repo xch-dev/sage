@@ -33,7 +33,7 @@ function createDefaultDidRecord(name: string, launcherId: string): DidRecord {
     name,
     launcher_id: launcherId,
     visible: true,
-    coin_id: 'No coin',
+    coin_id: 'No coin ' + launcherId, // makes this unique for REACT DOM mgmt
     address: 'No address',
     amount: 0,
     created_height: 0,
@@ -144,18 +144,8 @@ export function useNftData(params: NftDataParams) {
                 ),
             );
 
-            // Add Unknown Minter to the end of the list if we're on the last page
-            if (
-              minterDids.length < params.pageSize &&
-              page === Math.ceil((uniqueMinterDids.total + 1) / params.pageSize)
-            ) {
-              minterDids.push(
-                createDefaultDidRecord('Unknown Minter', 'No did'),
-              );
-            }
-
             setMinterDids(minterDids);
-            setMinterDidsTotal(uniqueMinterDids.total + 1); // Add 1 for Unknown Minter
+            setMinterDidsTotal(uniqueMinterDids.total);
           } catch (error: unknown) {
             setMinterDids([]);
             setMinterDidsTotal(0);
@@ -163,7 +153,6 @@ export function useNftData(params: NftDataParams) {
           }
         }
       } catch (error: unknown) {
-        console.error('Error fetching NFTs:', error);
         addError(error as CustomError);
       } finally {
         setIsLoading(false);
