@@ -166,10 +166,7 @@ export function NftGroupCard({
   // Use profile name for DID cards, fallback to item name or default
   const cardName =
     !isCollection && didProfile
-      ? didProfile.name ||
-        `${didProfile.encoded_id.slice(9, 19)}...${didProfile.encoded_id.slice(
-          -4,
-        )}`
+      ? didProfile.name
       : item.name || getDefaultName();
 
   const cardId = getId();
