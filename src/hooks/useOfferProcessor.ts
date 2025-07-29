@@ -45,7 +45,7 @@ export function useOfferProcessor({
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     isCancelled.current = false;
-    clearProcessedOffers();
+    setCreatedOffers([]);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -165,7 +165,6 @@ export function useOfferProcessor({
     splitNftOffers,
     walletState.sync.unit.decimals,
     promptIfEnabled,
-    clearProcessedOffers,
     onProcessingEnd,
     onProgress,
   ]);

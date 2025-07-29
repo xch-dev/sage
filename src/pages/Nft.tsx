@@ -171,7 +171,9 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Description</Trans>
                 </h6>
-                <div className='break-all text-sm'>{metadata.description}</div>
+                <div className='break-words text-sm'>
+                  {metadata.description}
+                </div>
               </div>
             )}
 
