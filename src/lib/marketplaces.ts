@@ -63,7 +63,7 @@ export async function getMintGardenProfile(did: string) {
   } catch {
     return {
       encoded_id: did,
-      name: `${did.slice(0, 10)}...${did.slice(-4)}`,
+      name: `${did.slice(9, 19)}...${did.slice(-4)}`, // 9 strips off "did:chia:"
       avatar_uri: null,
     };
   }
