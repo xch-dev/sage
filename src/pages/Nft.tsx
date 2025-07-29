@@ -3,6 +3,7 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -12,7 +13,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
-import spacescanLogo from '@/images/spacescan-logo-192.png';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -140,7 +140,9 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Description</Trans>
                 </h6>
-                <div className='break-all text-sm'>{metadata.description}</div>
+                <div className='break-words text-sm'>
+                  {metadata.description}
+                </div>
               </div>
             )}
 
