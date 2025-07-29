@@ -45,7 +45,7 @@ export function useOfferProcessor({
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     isCancelled.current = false;
-    setCreatedOffers([]); // Direct call instead of using clearProcessedOffers
+    setCreatedOffers([]);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -167,7 +167,7 @@ export function useOfferProcessor({
     promptIfEnabled,
     onProcessingEnd,
     onProgress,
-  ]); // Removed clearProcessedOffers from dependency array
+  ]);
 
   return {
     createdOffers,
