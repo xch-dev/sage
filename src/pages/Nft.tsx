@@ -11,12 +11,13 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
+  const navigate = useNavigate();
   const { addError } = useErrors();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
@@ -182,7 +183,13 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Collection Name</Trans>
                 </h6>
-                <div className='break-all text-sm cursor-pointer'>
+                <div
+                  className='break-all text-sm cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    nft?.collection_id &&
+                    navigate(`/nfts/collections/${nft.collection_id}/metadata`)
+                  }
+                >
                   {nft.collection_name}
                 </div>
               </div>
