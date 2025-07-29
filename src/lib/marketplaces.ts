@@ -1,18 +1,18 @@
 import { OfferSummary } from '@/bindings';
-import { OfferState } from '@/state';
+import { MarketplaceConfig } from '@/components/MarketplaceCard';
 import {
   dexieLink,
-  uploadToDexie,
-  uploadToMintGarden,
-  offerIsOnDexie,
-  offerIsOnMintGarden,
-  isMintGardenSupportedForSummary,
-  mintGardenLink,
+  isDexieSupported,
   isDexieSupportedForSummary,
   isMintGardenSupported,
-  isDexieSupported,
+  isMintGardenSupportedForSummary,
+  mintGardenLink,
+  offerIsOnDexie,
+  offerIsOnMintGarden,
+  uploadToDexie,
+  uploadToMintGarden,
 } from '@/lib/offerUpload';
-import { MarketplaceConfig } from '@/components/MarketplaceCard';
+import { OfferState } from '@/state';
 // need to store mintgarden logo locally because of CORS
 import mintGardenLogo from '@/images/mintgarden-logo.svg';
 
@@ -54,3 +54,19 @@ export const marketplaces: MarketplaceConfig[] = [
     getMarketplaceLink: mintGardenLink,
   },
 ];
+
+export async function getMintGardenProfile(did: string) {
+  try {
+    const response = await fetch(`https://api.mintgarden.io/profile/${did}`);
+    const data = await response.json();
+    // always supply a name
+    data.name = data.name || `${did.slice(9, 19)}...${did.slice(-4)}`;
+    return data;
+  } catch {
+    return {
+      encoded_id: did,
+      name: `${did.slice(9, 19)}...${did.slice(-4)}`, // 9 strips off "did:chia:"
+      avatar_uri: null,
+    };
+  }
+}

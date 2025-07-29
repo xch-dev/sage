@@ -5,13 +5,14 @@ import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
+import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import spacescanLogo from '@/images/spacescan-logo-192.png';
 
 interface MetadataContent {
   collection?: {
@@ -34,6 +35,11 @@ export default function CollectionMetaData() {
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [minterProfile, setMinterProfile] = useState<{
+    encoded_id: string;
+    name: string;
+    avatar_uri: string | null;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -84,6 +90,15 @@ export default function CollectionMetaData() {
 
     fetchData();
   }, [collection_id, addError]);
+
+  useEffect(() => {
+    if (!collection?.did_id) {
+      setMinterProfile(null);
+      return;
+    }
+
+    getMintGardenProfile(collection.did_id).then(setMinterProfile);
+  }, [collection?.did_id]);
 
   useEffect(() => {
     commands
@@ -363,6 +378,23 @@ export default function CollectionMetaData() {
                 value={collection.did_id}
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
+              {minterProfile && (
+                <div
+                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    openUrl(`https://mintgarden.io/${collection.did_id}`)
+                  }
+                >
+                  {minterProfile.avatar_uri && (
+                    <img
+                      src={minterProfile.avatar_uri}
+                      alt={`${minterProfile.name} avatar`}
+                      className='w-6 h-6 rounded-full'
+                    />
+                  )}
+                  <div className='text-sm'>{minterProfile.name}</div>
+                </div>
+              )}
             </div>
 
             <div className='flex flex-col gap-1'>

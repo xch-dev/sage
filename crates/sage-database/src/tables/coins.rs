@@ -556,7 +556,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
     let mut query = sqlx::QueryBuilder::new(
         "
        SELECT
-            parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzles.hash AS p2_puzzle_hash,
+            parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
         FROM wallet_coins
         WHERE coin_hash IN (",

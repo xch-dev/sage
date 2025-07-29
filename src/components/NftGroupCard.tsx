@@ -6,6 +6,7 @@ import {
 } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -22,6 +23,7 @@ import {
   ScrollText,
   UserIcon,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Button } from './ui/button';
@@ -68,6 +70,20 @@ export function NftGroupCard({
   const navigate = useNavigate();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const isCollection = type === 'collection';
+
+  // Profile state for DID cards
+  const [didProfile, setDidProfile] = useState<{
+    encoded_id: string;
+    name: string;
+    avatar_uri: string | null;
+  } | null>(null);
+
+  // Fetch profile data for DID cards
+  useEffect(() => {
+    if (!isCollection && isDidRecord(item)) {
+      getMintGardenProfile(item.launcher_id).then(setDidProfile);
+    }
+  }, [isCollection, item]);
   // Type guards to help TypeScript narrow the types
   const isDidRecord = (
     item: NftCollectionRecord | DidRecord,
@@ -97,6 +113,7 @@ export function NftGroupCard({
     if (isCollection) {
       return t`Unnamed Collection`;
     }
+
     return groupMode === NftGroupMode.OwnerDid ? (
       <Trans>Untitled Profile</Trans>
     ) : (
@@ -146,7 +163,12 @@ export function NftGroupCard({
     );
   }
 
-  const cardName = item.name || getDefaultName();
+  // Use profile name for DID cards, fallback to item name or default
+  const cardName =
+    !isCollection && didProfile
+      ? didProfile.name
+      : item.name || getDefaultName();
+
   const cardId = getId();
 
   return (
@@ -205,7 +227,15 @@ export function NftGroupCard({
             className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
             aria-hidden='true'
           >
-            {groupMode === NftGroupMode.OwnerDid ? (
+            {didProfile?.avatar_uri ? (
+              <img
+                src={didProfile.avatar_uri}
+                alt={`${cardName} avatar`}
+                className='object-cover h-full w-full'
+                aria-hidden='true'
+                loading='lazy'
+              />
+            ) : groupMode === NftGroupMode.OwnerDid ? (
               <UserIcon
                 className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
                 aria-hidden='true'
@@ -323,6 +353,22 @@ export function NftGroupCard({
                     )}
                   </DropdownMenuItem>
                 </>
+              )}
+
+              {!isCollection && (
+                <DropdownMenuItem
+                  className='cursor-pointer'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openUrl(`https://mintgarden.io/${cardId}`);
+                  }}
+                  aria-label={t`View ${cardName} on Mintgarden`}
+                >
+                  <ExternalLink className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <span>
+                    <Trans>View on Mintgarden</Trans>
+                  </span>
+                </DropdownMenuItem>
               )}
 
               <DropdownMenuItem
