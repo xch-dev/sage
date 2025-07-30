@@ -4,6 +4,7 @@ import {
   NftRecord,
   commands,
 } from '@/bindings';
+import { MintGardenProfile } from '@/components/Profile';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -72,11 +73,7 @@ export function NftGroupCard({
   const isCollection = type === 'collection';
 
   // Profile state for DID cards
-  const [didProfile, setDidProfile] = useState<{
-    encoded_id: string;
-    name: string;
-    avatar_uri: string | null;
-  } | null>(null);
+  const [didProfile, setDidProfile] = useState<MintGardenProfile | null>(null);
 
   // Fetch profile data for DID cards
   useEffect(() => {

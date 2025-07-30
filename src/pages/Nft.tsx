@@ -1,10 +1,10 @@
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import Profile from '@/components/Profile';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
-import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -76,36 +76,6 @@ export default function Nft() {
       .then((data) => setNetwork(data.kind))
       .catch(addError);
   }, [addError]);
-
-  const [minterProfile, setMinterProfile] = useState<{
-    encoded_id: string;
-    name: string;
-    avatar_uri: string | null;
-  } | null>(null);
-
-  const [ownerProfile, setOwnerProfile] = useState<{
-    encoded_id: string;
-    name: string;
-    avatar_uri: string | null;
-  } | null>(null);
-
-  useEffect(() => {
-    if (!nft?.minter_did) {
-      setMinterProfile(null);
-      return;
-    }
-
-    getMintGardenProfile(nft.minter_did).then(setMinterProfile);
-  }, [nft?.minter_did]);
-
-  useEffect(() => {
-    if (!nft?.owner_did) {
-      setOwnerProfile(null);
-      return;
-    }
-
-    getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
-  }, [nft?.owner_did]);
 
   return (
     <>
@@ -319,21 +289,9 @@ export default function Nft() {
                 value={nft?.minter_did ?? t`None`}
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
-              {minterProfile && (
-                <div
-                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                  onClick={() =>
-                    openUrl(`https://mintgarden.io/${nft?.minter_did}`)
-                  }
-                >
-                  {minterProfile.avatar_uri && (
-                    <img
-                      src={minterProfile.avatar_uri}
-                      alt={`${minterProfile.name} avatar`}
-                      className='w-6 h-6 rounded-full'
-                    />
-                  )}
-                  <div className='text-sm'>{minterProfile.name}</div>
+              {nft?.minter_did && (
+                <div className='mt-1'>
+                  <Profile did={nft.minter_did} variant='compact' />
                 </div>
               )}
             </div>
@@ -347,21 +305,9 @@ export default function Nft() {
                 value={nft?.owner_did ?? t`None`}
                 onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
               />
-              {ownerProfile && (
-                <div
-                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                  onClick={() =>
-                    openUrl(`https://mintgarden.io/${nft?.owner_did}`)
-                  }
-                >
-                  {ownerProfile.avatar_uri && (
-                    <img
-                      src={ownerProfile.avatar_uri}
-                      alt={`${ownerProfile.name} avatar`}
-                      className='w-6 h-6 rounded-full'
-                    />
-                  )}
-                  <div className='text-sm'>{ownerProfile.name}</div>
+              {nft?.owner_did && (
+                <div className='mt-1'>
+                  <Profile did={nft.owner_did} variant='compact' />
                 </div>
               )}
             </div>
