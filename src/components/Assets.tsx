@@ -100,7 +100,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
             )}
           </div>
 
-          {BigNumber(royalty).isGreaterThan(0) && (
+          {!nft_royalty && BigNumber(royalty).isGreaterThan(0) && (
             <div className='text-sm text-muted-foreground'>
               <Trans>Amount includes</Trans>{' '}
               <NumberFormat
