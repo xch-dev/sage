@@ -116,6 +116,7 @@ export function AssetSelector({
               className='rounded-r-none z-10'
               placeholder={t`Enter amount`}
               value={assets.xch}
+              ticker='xch'
               onValueChange={(values) => {
                 setAssets({
                   ...assets,
