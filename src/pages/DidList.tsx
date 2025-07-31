@@ -54,7 +54,7 @@ export function DidList() {
             <AlertDescription>
               <Plural
                 value={didsCount}
-                one='You do not currently have any DID profile. Would you like to create one?'
+                one='You do not currently have a DID profile. Would you like to create one?'
                 other='You do not currently have any DID profiles. Would you like to create one?'
               />
             </AlertDescription>
