@@ -2,8 +2,8 @@ use std::time::Duration;
 
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use sage_assets::fetch_uri;
-use sage_database::{Database, NftData};
+use sage_assets::{base64_data_uri, fetch_uri};
+use sage_database::{Database, NftMetadataInfo, ResizedImageKind};
 use tokio::{
     sync::mpsc,
     time::{sleep, timeout},
@@ -31,7 +31,7 @@ impl NftUriQueue {
     }
 
     async fn process_batch(&self) -> Result<(), WalletError> {
-        let batch = self.db.unchecked_nft_uris(25).await?;
+        let batch = self.db.candidates_for_download(60 * 60 * 24, 3, 25).await?;
 
         if batch.is_empty() {
             return Ok(());
@@ -51,73 +51,73 @@ impl NftUriQueue {
         while let Some((item, result)) = futures.next().await {
             let mut tx = self.db.tx().await?;
 
-            let hash_matches = match result {
+            match result {
                 Ok(Ok(data)) => {
-                    let hash_matches = data.hash == item.hash;
+                    let is_hash_match = data.hash == item.hash;
 
-                    if !hash_matches {
+                    if !is_hash_match {
                         warn!(
                             "Hash mismatch for URI {} (expected {} but found {})",
                             item.uri, item.hash, data.hash
                         );
                     }
 
-                    let existing = tx.fetch_nft_data(item.hash).await?;
+                    let icon_url = data
+                        .thumbnail
+                        .as_ref()
+                        .map(|thumbnail| base64_data_uri(&thumbnail.icon, &data.mime_type));
 
-                    if existing.as_ref().is_none_or(|data| !data.hash_matches) {
-                        tx.insert_nft_data(
-                            item.hash,
-                            NftData {
-                                mime_type: data.mime_type,
-                                blob: data.blob.clone(),
-                                hash_matches,
+                    if let Some(icon_url) = icon_url {
+                        tx.update_nft_data_hash_urls(item.hash, icon_url).await?;
+                    }
+
+                    for nft in tx.nfts_with_metadata_hash(item.hash).await? {
+                        let info = compute_nft_info(nft.minter_hash, &data.blob);
+
+                        let collection_id = info.collection.as_ref().map(|col| col.hash);
+
+                        if let Some(collection) = info.collection {
+                            tx.insert_collection(collection).await?;
+                        }
+
+                        tx.update_nft_metadata(
+                            nft.hash,
+                            NftMetadataInfo {
+                                name: info.name,
+                                description: info.description,
+                                is_sensitive_content: info.sensitive_content,
+                                collection_id: collection_id.unwrap_or_default(),
                             },
                         )
                         .await?;
-
-                        if let Some(thumbnail) = data.thumbnail {
-                            tx.insert_nft_thumbnail(item.hash, thumbnail.icon, thumbnail.thumbnail)
-                                .await?;
-                        }
-
-                        let nfts = tx.nfts_by_metadata_hash(item.hash).await?;
-
-                        for mut nft in nfts {
-                            let info = compute_nft_info(nft.minter_did, Some(&data.blob));
-
-                            nft.sensitive_content = info.sensitive_content;
-                            nft.name = info.name;
-
-                            // TODO: Is this correct?
-                            if hash_matches {
-                                nft.collection_id =
-                                    info.collection.as_ref().map(|col| col.collection_id);
-
-                                if let Some(collection) = info.collection {
-                                    tx.insert_collection(collection).await?;
-                                }
-                            }
-
-                            tx.insert_nft(nft).await?;
-                        }
                     }
 
-                    Some(hash_matches)
+                    tx.update_file(item.hash, data.blob, data.mime_type, is_hash_match)
+                        .await?;
+
+                    if let Some(thumbnail) = data.thumbnail {
+                        tx.insert_resized_image(item.hash, ResizedImageKind::Icon, thumbnail.icon)
+                            .await?;
+
+                        tx.insert_resized_image(
+                            item.hash,
+                            ResizedImageKind::Thumbnail,
+                            thumbnail.thumbnail,
+                        )
+                        .await?;
+                    }
+
+                    tx.update_checked_uri(item.hash, item.uri).await?;
                 }
                 Ok(Err(error)) => {
                     debug!("Error fetching URI {}: {error}", item.uri);
-
-                    None
+                    tx.update_failed_uri(item.hash, item.uri).await?;
                 }
                 Err(_error) => {
                     debug!("Timed out fetching URI {}", item.uri);
-
-                    None
+                    tx.update_failed_uri(item.hash, item.uri).await?;
                 }
-            };
-
-            tx.set_nft_uri_checked(item.uri, item.hash, hash_matches)
-                .await?;
+            }
 
             tx.commit().await?;
         }

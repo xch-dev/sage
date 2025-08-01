@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT hash, aggregated_signature, fee, submitted_timestamp\n        FROM mempool_items\n        ORDER BY submitted_timestamp DESC, hash ASC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "aggregated_signature",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "submitted_timestamp",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "3b5262f9282bc0d5f4e87b77b5be79de3761b5b4f06c315bc2edc54beb3c18ba"
+}

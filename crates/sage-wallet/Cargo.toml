@@ -32,9 +32,9 @@ itertools = { workspace = true }
 futures-util = { workspace = true }
 futures-lite = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["http2", "rustls-tls-webpki-roots", "json"] }
-serde = { workspace = true, features = ["derive"] }
 indexmap = { workspace = true }
 rand = { workspace = true }
+hex = { workspace = true }
 
 [dev-dependencies]
 anyhow = { workspace = true }
@@ -44,4 +44,4 @@ tokio = { workspace = true }
 hex-literal = { workspace = true }
 
 [package.metadata.cargo-machete]
-ignored = ["chia-sha2", "chia-traits"]
+ignored = ["chia-traits"]

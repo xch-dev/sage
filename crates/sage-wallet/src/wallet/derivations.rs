@@ -5,7 +5,7 @@ use chia::{
     protocol::Bytes32,
     puzzles::{standard::StandardArgs, DeriveSynthetic},
 };
-use sage_database::DatabaseTx;
+use sage_database::{DatabaseTx, Derivation};
 
 use crate::WalletError;
 
@@ -28,8 +28,15 @@ impl Wallet {
 
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
-            tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: false,
+                },
+            )
+            .await?;
 
             puzzle_hashes.push(p2_puzzle_hash);
         }
@@ -45,35 +52,25 @@ impl Wallet {
     ) -> Result<Vec<Bytes32>, WalletError> {
         let mut tx = self.db.tx().await?;
 
-        let max_used = tx.max_used_derivation_index(hardened).await?;
+        let unused_index = tx.unused_derivation_index(hardened).await?;
         let next_index = tx.derivation_index(hardened).await?;
 
-        let (mut start, mut end) = if reuse {
-            let start = max_used.unwrap_or(0);
+        let range = if reuse {
+            let start = unused_index.saturating_sub(count);
             let end = next_index.min(start + count);
-            (start, end)
+            start..end
         } else {
-            let start = max_used.map_or(0, |i| i + 1);
-            let end = next_index.min(start + count);
-            (start, end)
+            unused_index..(unused_index + count)
         };
 
-        if end - start < count && reuse {
-            start = start.saturating_sub(count - (end - start));
-        }
-
-        if end - start < count {
-            end = next_index.min(end + count - (end - start));
-        }
-
-        if end - start < count {
+        if range.len() < count as usize {
             return Err(WalletError::InsufficientDerivations);
         }
 
         let mut p2_puzzle_hashes = Vec::new();
 
-        for index in start..end {
-            let p2_puzzle_hash = tx.p2_puzzle_hash(index, hardened).await?;
+        for index in range {
+            let p2_puzzle_hash = tx.custody_p2_puzzle_hash(index, hardened).await?;
             p2_puzzle_hashes.push(p2_puzzle_hash);
         }
 

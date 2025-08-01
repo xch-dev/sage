@@ -1,6 +1,7 @@
 mod aggregate_offer;
 mod cancel_offer;
 mod make_offer;
+mod offer_assets;
 mod take_offer;
 
 pub use aggregate_offer::*;
@@ -8,8 +9,6 @@ pub use make_offer::*;
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
-
     use chia::{
         clvm_traits::{FromClvm, ToClvm},
         protocol::{Bytes32, Program},
@@ -17,12 +16,10 @@ mod tests {
     };
     use clvmr::Allocator;
     use indexmap::indexmap;
+    use sage_database::NftOfferInfo;
     use test_log::test;
 
-    use crate::{
-        default_test_options, Offered, Requested, RequestedNft, SyncOptions, TestWallet, Timeouts,
-        WalletNftMint,
-    };
+    use crate::{Offered, Requested, TestWallet, WalletNftMint};
 
     use super::aggregate_offers;
 
@@ -71,7 +68,7 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
-        assert_eq!(bob.wallet.db.balance().await?, 750);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 750);
 
         Ok(())
     }
@@ -117,7 +114,7 @@ mod tests {
                 },
                 Requested {
                     nfts: indexmap! {
-                        nft.info.launcher_id => RequestedNft {
+                        nft.info.launcher_id => NftOfferInfo {
                             metadata,
                             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
                             royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
@@ -147,11 +144,8 @@ mod tests {
         alice.wait_for_puzzles().await;
 
         // Check balances
-        assert_ne!(
-            alice.wallet.db.spendable_nft(nft.info.launcher_id).await?,
-            None
-        );
-        assert_eq!(bob.wallet.db.balance().await?, 1000);
+        assert_ne!(alice.wallet.db.nft(nft.info.launcher_id).await?, None);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
     }
@@ -216,11 +210,8 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
-        assert_ne!(
-            bob.wallet.db.spendable_nft(nft.info.launcher_id).await?,
-            None
-        );
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())
     }
@@ -297,19 +288,13 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -395,17 +380,11 @@ mod tests {
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -484,19 +463,13 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_first.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
         );
         assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_id_second.info.launcher_id)
-                .await?,
+            bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
 
@@ -595,21 +568,9 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(alice.wallet.db.balance().await?, 1000);
-        assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_first.info.launcher_id)
-                .await?,
-            None
-        );
-        assert_ne!(
-            bob.wallet
-                .db
-                .spendable_nft(nft_second.info.launcher_id)
-                .await?,
-            None
-        );
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_ne!(bob.wallet.db.nft(nft_first.info.launcher_id).await?, None);
+        assert_ne!(bob.wallet.db.nft(nft_second.info.launcher_id).await?, None);
 
         Ok(())
     }
@@ -648,7 +609,7 @@ mod tests {
         bob.wait_for_coins().await;
 
         // Check balances
-        assert_eq!(bob.wallet.db.balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
     }
@@ -698,22 +659,8 @@ mod tests {
 
     #[test(tokio::test)]
     async fn test_offer_nft_single_sided() -> anyhow::Result<()> {
-        let options = default_test_options();
-
         let mut alice = TestWallet::new(2).await?;
-        let mut bob = alice
-            .next_with_options(
-                0,
-                SyncOptions {
-                    puzzle_batch_size_per_peer: 1,
-                    timeouts: Timeouts {
-                        puzzle_delay: Duration::from_secs(1),
-                        ..options.timeouts
-                    },
-                    ..options
-                },
-            )
-            .await?;
+        let mut bob = alice.next(0).await?;
 
         let (coin_spends, did) = alice.wallet.create_did(0).await?;
         alice.transact(coin_spends).await?;
@@ -766,6 +713,24 @@ mod tests {
         // We need to wait for both wallets to sync in this case
         bob.wait_for_coins().await;
 
+        let nft = bob
+            .wallet
+            .db
+            .spendable_nft(nft.info.launcher_id)
+            .await?
+            .expect("NFT should be spendable");
+
+        let is_spent = bob
+            .sim
+            .lock()
+            .await
+            .coin_state(nft.coin.coin_id())
+            .expect("coin should exist")
+            .spent_height
+            .is_some();
+
+        assert!(!is_spent);
+
         // Resync to make sure the NFT is spendable even if it wasn't pending previously
         bob.resync().await?;
         bob.wait_for_puzzles().await;
@@ -778,19 +743,11 @@ mod tests {
             .await?
             .expect("NFT should be spendable");
 
-        let coin_id = bob
-            .wallet
-            .db
-            .nft_row(nft.info.launcher_id)
-            .await?
-            .expect("NFT should exist")
-            .coin_id;
-
         let is_spent = bob
-            .wallet
-            .db
-            .coin_state(coin_id)
-            .await?
+            .sim
+            .lock()
+            .await
+            .coin_state(nft.coin.coin_id())
             .expect("coin should exist")
             .spent_height
             .is_some();

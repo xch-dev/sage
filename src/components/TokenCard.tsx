@@ -1,32 +1,8 @@
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
-import { Link } from 'react-router-dom';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 import { QRCodeDialog } from '@/components/QRCodeDialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Send,
-  HandHelping,
-  MoreHorizontalIcon,
-  Pencil,
-  RefreshCw,
-  Eye,
-  EyeOff,
-  ExternalLink,
-} from 'lucide-react';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { toast } from 'react-toastify';
-import { CatRecord } from '../bindings';
-import { useState } from 'react';
+import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -35,32 +11,54 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { fromMojos } from '@/lib/utils';
+import { useWalletState } from '@/state';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import {
+  ExternalLink,
+  Eye,
+  EyeOff,
+  HandHelping,
+  MoreHorizontalIcon,
+  Pencil,
+  RefreshCw,
+  Send,
+} from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { TokenRecord } from '../bindings';
+import { AssetIcon } from './AssetIcon';
 
 interface TokenCardProps {
-  asset: CatRecord | null;
-  assetId: string | undefined;
-  precision: number;
+  asset: TokenRecord;
   balanceInUsd: string;
   onRedownload: () => void;
   onVisibilityChange: (visible: boolean) => void;
-  onUpdateCat: (updatedAsset: CatRecord) => Promise<void>;
-  receive_address: string;
+  onUpdate: (updatedAsset: TokenRecord) => Promise<void>;
 }
 
 export function TokenCard({
   asset,
-  assetId,
-  precision,
   balanceInUsd,
   onRedownload,
   onVisibilityChange,
-  onUpdateCat,
-  receive_address,
+  onUpdate,
 }: TokenCardProps) {
-  const [isEditOpen, setEditOpen] = useState(false);
-  const [isReceiveOpen, setReceiveOpen] = useState(false);
+  const walletState = useWalletState();
+
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isReceiveOpen, setIsReceiveOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newTicker, setNewTicker] = useState('');
 
@@ -69,7 +67,7 @@ export function TokenCard({
       setNewName(asset.name || '');
       setNewTicker(asset.ticker || '');
     }
-    setEditOpen(true);
+    setIsEditOpen(true);
   };
 
   const handleEdit = () => {
@@ -79,7 +77,7 @@ export function TokenCard({
     updatedAsset.name = newName;
     updatedAsset.ticker = newTicker;
 
-    onUpdateCat(updatedAsset).finally(() => setEditOpen(false));
+    onUpdate(updatedAsset).finally(() => setIsEditOpen(false));
   };
 
   return (
@@ -90,20 +88,16 @@ export function TokenCard({
             <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
               <span className='truncate'>
                 <NumberFormat
-                  value={fromMojos(asset?.balance ?? 0, precision)}
+                  value={fromMojos(asset?.balance ?? 0, asset.precision)}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={precision}
+                  maximumFractionDigits={asset.precision}
                 />
                 &nbsp;
               </span>
               {asset?.ticker}
             </div>
             <div className='flex-shrink-0'>
-              <img
-                alt='asset icon'
-                src={asset?.icon_url ?? ''}
-                className='h-8 w-8'
-              />
+              <AssetIcon iconUrl={asset?.icon_url} kind='token' size='md' />
             </div>
           </div>
           <div className='text-sm text-muted-foreground'>
@@ -120,16 +114,16 @@ export function TokenCard({
           <ReceiveAddress className='mt-2' />
 
           <div className='flex gap-2 mt-2 flex-wrap'>
-            <Link to={`/wallet/send/${assetId}`}>
+            <Link to={`/wallet/send/${asset.asset_id ?? 'xch'}`}>
               <Button>
                 <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
               </Button>
             </Link>
-            <Button variant={'outline'} onClick={() => setReceiveOpen(true)}>
+            <Button variant={'outline'} onClick={() => setIsReceiveOpen(true)}>
               <HandHelping className='mr-2 h-4 w-4' />
               <Trans>Receive</Trans>
             </Button>
-            {asset && assetId !== 'xch' && (
+            {asset.asset_id && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='icon'>
@@ -160,8 +154,7 @@ export function TokenCard({
                       openUrl(
                         `https://dexie.space/offers/XCH/${asset.asset_id}`,
                       ).catch((error) => {
-                        console.error('Failed to open dexie.space:', error);
-                        toast.error(t`Failed to open dexie.space`);
+                        toast.error(t`Failed to open dexie.space: ${error}`);
                       });
                     }}
                   >
@@ -177,7 +170,7 @@ export function TokenCard({
 
       <Dialog
         open={isEditOpen}
-        onOpenChange={(open) => !open && setEditOpen(false)}
+        onOpenChange={(open) => !open && setIsEditOpen(false)}
       >
         <DialogContent>
           <DialogHeader>
@@ -231,7 +224,7 @@ export function TokenCard({
             <Button
               variant='outline'
               onClick={() => {
-                setEditOpen(false);
+                setIsEditOpen(false);
                 setNewName('');
                 setNewTicker('');
               }}
@@ -247,9 +240,9 @@ export function TokenCard({
 
       <QRCodeDialog
         isOpen={isReceiveOpen}
-        onClose={() => setReceiveOpen(false)}
+        onClose={() => setIsReceiveOpen(false)}
         asset={asset}
-        qr_code_contents={receive_address}
+        qr_code_contents={walletState.sync.receive_address}
       />
     </>
   );

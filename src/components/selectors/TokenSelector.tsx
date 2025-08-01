@@ -1,11 +1,11 @@
-import { CatRecord, commands } from '@/bindings';
+import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
 import { useEffect, useState } from 'react';
+import { AssetIcon } from '../AssetIcon';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
-import { t } from '@lingui/core/macro';
-import { isValidAssetId } from '@/lib/utils';
-import { usePrices } from '@/hooks/usePrices';
 
 export interface TokenSelectorProps {
   value: string | null;
@@ -13,7 +13,7 @@ export interface TokenSelectorProps {
   disabled?: string[];
   className?: string;
   hideZeroBalance?: boolean;
-  includeDexieList?: boolean;
+  showAllCats?: boolean;
 }
 
 export function TokenSelector({
@@ -22,55 +22,33 @@ export function TokenSelector({
   disabled = [],
   className,
   hideZeroBalance = false,
-  includeDexieList = false,
+  showAllCats = false,
 }: TokenSelectorProps) {
   const { addError } = useErrors();
-  const { getCatList } = usePrices();
 
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
-  const [selectedToken, setSelectedToken] = useState<CatRecord | null>(null);
+  const [tokens, setTokens] = useState<TokenRecord[]>([]);
+  const [selectedToken, setSelectedToken] = useState<TokenRecord | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     let isMounted = true;
-    commands
-      .getCats({})
+    const command = showAllCats
+      ? commands.getAllCats({})
+      : commands.getCats({});
+
+    command
       .then((data) => {
         if (!isMounted) return;
-        if (tokens.length) return;
 
-        const walletTokens = data.cats;
-        let allTokens = walletTokens;
+        const allTokens = data.cats;
 
-        if (includeDexieList) {
-          // Convert CatListItem[] to CatRecord[]
-          const dexieTokens: CatRecord[] = getCatList().map((cat) => ({
-            asset_id: cat.asset_id,
-            name: cat.name,
-            ticker: cat.ticker,
-            description: null,
-            icon_url: cat.icon_url,
-            visible: true,
-            balance: 0,
-          }));
-
-          // Merge and deduplicate by asset_id
-          const tokenMap = new Map<string, CatRecord>();
-          [...walletTokens, ...dexieTokens].forEach((token) => {
-            if (!tokenMap.has(token.asset_id)) {
-              tokenMap.set(token.asset_id, token);
-            }
-          });
-          allTokens = Array.from(tokenMap.values());
-
-          // Sort by name (nulls last)
-          allTokens.sort((a, b) => {
-            if (!a.name && !b.name) return 0;
-            if (!a.name) return 1;
-            if (!b.name) return -1;
-            return a.name.localeCompare(b.name);
-          });
-        }
+        // Sort by name (nulls last)
+        allTokens.sort((a, b) => {
+          if (!a.name && !b.name) return 0;
+          if (!a.name) return 1;
+          if (!b.name) return -1;
+          return a.name.localeCompare(b.name);
+        });
 
         setTokens(allTokens);
 
@@ -84,14 +62,7 @@ export function TokenSelector({
     return () => {
       isMounted = false;
     };
-  }, [
-    addError,
-    tokens.length,
-    value,
-    selectedToken,
-    includeDexieList,
-    getCatList,
-  ]);
+  }, [addError, tokens.length, value, selectedToken, showAllCats]);
 
   // Filter tokens based on search term or show all if it's a valid asset ID
   const filteredTokens = tokens.filter((token) => {
@@ -100,7 +71,7 @@ export function TokenSelector({
     if (!searchTerm) return true;
 
     if (isValidAssetId(searchTerm)) {
-      return token.asset_id.toLowerCase() === searchTerm.toLowerCase();
+      return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
     }
 
     // Search by name and ticker
@@ -114,8 +85,11 @@ export function TokenSelector({
     <DropdownSelector
       loadedItems={filteredTokens}
       page={0}
-      isDisabled={(token) => disabled.includes(token.asset_id)}
+      isDisabled={(token) =>
+        token.asset_id !== null && disabled.includes(token.asset_id)
+      }
       onSelect={(token) => {
+        if (!token.asset_id) return;
         onChange(token.asset_id);
         setSelectedToken(token);
         setSearchTerm('');
@@ -140,6 +114,7 @@ export function TokenSelector({
                   ticker: null,
                   description: null,
                   visible: true,
+                  precision: 3,
                 },
               );
             }
@@ -148,23 +123,20 @@ export function TokenSelector({
       }
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
-          {token.icon_url && (
-            <img
-              src={token.icon_url}
-              className='w-10 h-10 rounded object-cover'
-              alt={token.name ?? t`Unknown token`}
-              aria-hidden='true'
-              loading='lazy'
-            />
-          )}
+          <AssetIcon
+            iconUrl={token.icon_url}
+            kind='token'
+            size='md'
+            className='flex-shrink-0'
+          />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
-              {token.name}
-              {token.ticker && ` (${token.ticker})`}
+              {getAssetDisplayName(token.name, token.ticker, 'token')}
+              {token.ticker && ` (${token.ticker})`}{' '}
             </span>
             <span
               className='text-xs text-muted-foreground truncate'
-              aria-label='Asset ID'
+              aria-label={t`Asset ID`}
             >
               {token.asset_id}
             </span>
@@ -173,28 +145,23 @@ export function TokenSelector({
       )}
     >
       <div className='flex items-center gap-2 min-w-0'>
-        {selectedToken?.icon_url && (
-          <img
-            src={selectedToken.icon_url}
-            className='w-8 h-8 rounded object-cover'
-            alt={
-              selectedToken?.name
-                ? `Image of ${selectedToken.name}`
-                : 'No token name'
-            }
-            loading='lazy'
-            aria-hidden='true'
+        <>
+          <AssetIcon
+            iconUrl={selectedToken?.icon_url}
+            kind='token'
+            size='md'
+            className='flex-shrink-0'
           />
-        )}
-        <div className='flex flex-col truncate text-left'>
-          <span className='truncate'>
-            {selectedToken?.name ?? t`Select Token`}
-            {selectedToken?.ticker && ` (${selectedToken.ticker})`}
-          </span>
-          <span className='text-xs text-muted-foreground truncate'>
-            {selectedToken?.asset_id}
-          </span>
-        </div>
+          <div className='flex flex-col truncate text-left'>
+            <span className='truncate'>
+              {selectedToken?.name ?? t`Select Token`}
+              {selectedToken?.ticker && ` (${selectedToken.ticker})`}
+            </span>
+            <span className='text-xs text-muted-foreground truncate'>
+              {selectedToken?.asset_id}
+            </span>
+          </div>
+        </>
       </div>
     </DropdownSelector>
   );

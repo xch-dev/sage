@@ -154,7 +154,7 @@ export default function ConfirmationDialog({
               });
               // Keep the original label format but update the total
               acc[key].label = acc[key].originalLabel;
-            } catch (e) {
+            } catch {
               // If parsing fails, keep the original amount
             }
           }
@@ -323,9 +323,9 @@ export default function ConfirmationDialog({
                                   : ''
                               }
                             >
-                              {group.recipients.map((address, i) => (
+                              {group.recipients.map((address) => (
                                 <div
-                                  key={i}
+                                  key={address}
                                   className='flex items-center gap-1.5 min-w-0 w-full pl-2'
                                 >
                                   <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
@@ -387,9 +387,9 @@ export default function ConfirmationDialog({
                       ) : (
                         spent
                           .sort((a, b) => a.sort - b.sort)
-                          .map((item, i) => (
+                          .map((item) => (
                             <div
-                              key={i}
+                              key={item.coinId}
                               className='flex flex-col gap-1.5 rounded-md border p-2'
                             >
                               <div className='flex items-center justify-between'>
@@ -455,9 +455,9 @@ export default function ConfirmationDialog({
                       {/* Created Coins */}
                       {created
                         .sort((a, b) => a.sort - b.sort)
-                        .map((item, i) => (
+                        .map((item) => (
                           <div
-                            key={i}
+                            key={item.label}
                             className='flex flex-col gap-1.5 rounded-md border p-2'
                           >
                             <div className='flex items-center justify-between'>
@@ -614,7 +614,7 @@ export default function ConfirmationDialog({
 
                   const data = await commands
                     .signCoinSpends({
-                      coin_spends: response!.coin_spends,
+                      coin_spends: response.coin_spends,
                     })
                     .catch(addError);
 
@@ -632,7 +632,7 @@ export default function ConfirmationDialog({
                           : 'coin_spends' in response
                             ? response.coin_spends
                             : response.spend_bundle.coin_spends,
-                      aggregated_signature: finalSignature!,
+                      aggregated_signature: finalSignature ?? '',
                     },
                   })
                   .catch(addError);

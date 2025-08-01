@@ -1,8 +1,8 @@
-import { t } from '@lingui/core/macro';
-import { toast } from 'react-toastify';
 import { commands, NftRecord } from '@/bindings';
 import { NftGroupMode, NftSortMode } from '@/hooks/useNftParams';
 import { isValidAddress } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { toast } from 'react-toastify';
 import { exportText } from './exportText';
 
 interface ExportParams {
@@ -16,37 +16,41 @@ interface ExportParams {
 }
 
 // Shared utility function for querying NFTs
-export async function queryNfts(params: ExportParams): Promise<NftRecord[]> {
+export async function queryNfts(
+  params: ExportParams,
+  limit: number,
+  offset: number,
+): Promise<{ nfts: NftRecord[]; total: number }> {
   if (params.query && isValidAddress(params.query, 'nft')) {
     const response = await commands.getNft({ nft_id: params.query });
-    return response.nft ? [response.nft] : [];
+    return {
+      nfts: response.nft ? [response.nft] : [],
+      total: response.nft ? 1 : 0,
+    };
   }
 
   const queryParams = {
     name: params.query || null,
-    collection_id:
-      params.collectionId === 'No collection'
-        ? 'none'
-        : (params.collectionId ?? null),
+    collection_id: params.collectionId ?? null,
     owner_did_id:
       params.ownerDid === 'No did' ? 'none' : (params.ownerDid ?? null),
     minter_did_id:
       params.minterDid === 'No did' ? 'none' : (params.minterDid ?? null),
-    offset: 0,
-    limit: 1000000, // A large number to get all NFTs
+    offset: offset,
+    limit: limit,
     sort_mode: params.sort,
     include_hidden: params.showHidden,
   };
 
   const response = await commands.getNfts(queryParams);
-  return response.nfts;
+  return { nfts: response.nfts, total: response.total };
 }
 
 export async function exportNfts(params: ExportParams) {
   try {
     toast.info(t`Fetching NFTs...`, { autoClose: 30000 });
 
-    const nfts = await queryNfts(params);
+    const { nfts } = await queryNfts(params, 1000000, 0);
 
     if (nfts.length === 0) {
       toast.error(t`No NFTs to export`);

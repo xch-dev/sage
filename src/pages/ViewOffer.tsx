@@ -91,28 +91,31 @@ export function ViewOffer() {
         ) : (
           summary && (
             <>
-              <OfferCard summary={summary}>
-                <div className='flex flex-col space-y-1.5'>
-                  <Label htmlFor='fee'>
-                    <Trans>Network Fee</Trans>
-                  </Label>
-                  <FeeAmountInput
-                    id='fee'
-                    className='pr-12'
-                    onValueChange={(values) => setFee(values.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        take();
-                      }
-                    }}
-                  />
-                </div>
-              </OfferCard>
+              <OfferCard
+                summary={summary}
+                content={
+                  <div className='flex flex-col space-y-1.5'>
+                    <Label htmlFor='fee'>
+                      <Trans>Network Fee</Trans>
+                    </Label>
+                    <FeeAmountInput
+                      id='fee'
+                      className='pr-12'
+                      onValueChange={(values) => setFee(values.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          take();
+                        }
+                      }}
+                    />
+                  </div>
+                }
+              />
 
               <div className='mt-4 flex gap-2'>
                 <Button variant='outline' onClick={importOffer}>
-                  <Trans>Save Offer</Trans>
+                  <Trans>Import Offer</Trans>
                 </Button>
 
                 <Button onClick={take}>
@@ -128,7 +131,7 @@ export function ViewOffer() {
         showRecipientDetails={false}
         response={response}
         close={() => setResponse(null)}
-        onConfirm={() => navigate('/offers')}
+        onConfirm={() => navigate('/')}
         additionalData={{
           title: t`Take Offer`,
           content: response && summary && (

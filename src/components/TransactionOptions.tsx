@@ -1,16 +1,22 @@
+import { useDebounce } from '@/hooks/useDebounce';
+import {
+  SetTransactionParams,
+  TransactionParams,
+} from '@/hooks/useTransactionsParams';
 import { t } from '@lingui/core/macro';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownAz,
   ArrowUpAz,
+  Download,
+  List,
+  ListFilter,
   SearchIcon,
   Settings2,
   XIcon,
-  ListFilter,
-  List,
-  Download,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,13 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import {
-  TransactionParams,
-  SetTransactionParams,
-} from '@/hooks/useTransactionsParams';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useDebounce } from '@/hooks/useDebounce';
-import { useState, useEffect } from 'react';
+import { Input } from './ui/input';
 
 const optionsPaginationVariants = {
   enter: { opacity: 1, y: 0 },
@@ -34,8 +34,6 @@ const optionsPaginationVariants = {
 interface TransactionOptionsProps {
   params: TransactionParams;
   onParamsChange: SetTransactionParams;
-  total: number;
-  isLoading?: boolean;
   className?: string;
   renderPagination: () => React.ReactNode;
   onExport?: () => void;

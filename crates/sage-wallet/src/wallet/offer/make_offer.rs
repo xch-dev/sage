@@ -1,6 +1,6 @@
 use chia::{
     bls::Signature,
-    protocol::{Bytes32, Program, SpendBundle},
+    protocol::{Bytes32, SpendBundle},
     puzzles::{
         offer::{NotarizedPayment, Payment},
         Memos,
@@ -14,6 +14,7 @@ use chia_wallet_sdk::driver::{
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
+use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
@@ -30,15 +31,7 @@ pub struct Offered {
 pub struct Requested {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
-    pub nfts: IndexMap<Bytes32, RequestedNft>,
-}
-
-#[derive(Debug, Clone)]
-pub struct RequestedNft {
-    pub metadata: Program,
-    pub metadata_updater_puzzle_hash: Bytes32,
-    pub royalty_puzzle_hash: Bytes32,
-    pub royalty_basis_points: u16,
+    pub nfts: IndexMap<Bytes32, NftOfferInfo>,
 }
 
 impl Wallet {

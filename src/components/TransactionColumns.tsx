@@ -1,3 +1,4 @@
+import { AssetKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import {
@@ -14,17 +15,18 @@ import { Copy, MoreHorizontal, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
+import { AssetIcon } from './AssetIcon';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
-  type: string;
-  ticker?: string | null;
+  type: AssetKind;
   iconUrl?: string | null;
   amount: string;
   address: string | null;
   itemId: string;
   displayName: string;
   timestamp: number | null;
+  precision: number;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -78,16 +80,14 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
             role='img'
             aria-label={`${displayName} icon`}
           >
-            {row.original.iconUrl ? (
-              <img
-                src={row.original.iconUrl}
-                aria-hidden='true'
-                loading='lazy'
-              />
-            ) : null}
+            <AssetIcon
+              iconUrl={row.original.iconUrl}
+              kind={row.original.type}
+              size='sm'
+            />
           </div>
 
-          <div className='truncate'>{row.original.displayName}</div>
+          <div className='truncate'>{displayName}</div>
         </div>
       );
     },
@@ -100,7 +100,11 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 120,
     cell: ({ row }) => (
-      <AmountCell amount={row.getValue('amount')} type={row.getValue('type')} />
+      <AmountCell
+        amount={row.original.amount}
+        assetKind={row.original.type}
+        precision={row.original.precision}
+      />
     ),
   },
   {

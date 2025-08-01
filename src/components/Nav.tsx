@@ -93,14 +93,14 @@ export function BottomNav({ isCollapsed }: NavProps) {
   const walletState = useWalletState();
   const syncedCoins = walletState.sync.synced_coins;
   const totalCoins = walletState.sync.total_coins;
-  const checkedUris = walletState.sync.checked_uris;
-  const totalUris = walletState.sync.total_uris;
+  const checkedFiles = walletState.sync.checked_files;
+  const totalFiles = walletState.sync.total_files;
 
   const coinsSynced =
     walletState.sync.synced_coins === walletState.sync.total_coins;
-  const urisSynced =
-    walletState.sync.checked_uris === walletState.sync.total_uris;
-  const isSynced = coinsSynced && urisSynced;
+  const filesSynced =
+    walletState.sync.checked_files === walletState.sync.total_files;
+  const isSynced = coinsSynced && filesSynced;
 
   const peerMaxHeight =
     peers?.reduce((max, peer) => {
@@ -135,7 +135,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
             </>
           ) : coinsSynced ? (
             <Trans>
-              Downloading {checkedUris} / {totalUris}
+              Downloading {checkedFiles} / {totalFiles}
             </Trans>
           ) : (
             <Trans>

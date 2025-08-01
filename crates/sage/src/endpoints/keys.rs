@@ -11,13 +11,14 @@ use chia::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteKey, DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey,
-    GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey,
-    ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey,
-    RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
+    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
+    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
+    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
 };
-use sage_config::{ChangeMode, DerivationMode, Wallet};
-use sage_database::Database;
+use sage_config::Wallet;
+use sage_database::{Database, Derivation};
+use sqlx::query;
 
 use crate::{Error, Result, Sage};
 
@@ -46,41 +47,52 @@ impl Sage {
 
         let pool = self.connect_to_database(req.fingerprint).await?;
 
-        sqlx::query!(
+        query!(
             "
-            DELETE FROM `coin_states`;
-            DELETE FROM `transactions`;
-            DELETE FROM `peaks`;
-            DELETE FROM `cats`;
-            DELETE FROM `future_did_names`;
-            DELETE FROM `collections`;
-            DELETE FROM `nft_data`;
-            DELETE FROM `nft_uris`;
+            DELETE FROM mempool_items;
+            UPDATE blocks SET is_peak = FALSE WHERE is_peak = TRUE;
             "
         )
         .execute(&pool)
         .await?;
 
-        if req.delete_offer_files {
-            sqlx::query!("DELETE FROM `offers`").execute(&pool).await?;
+        if req.delete_coins {
+            query!("DELETE FROM coins").execute(&pool).await?;
         }
 
-        if req.delete_unhardened_derivations {
-            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 0")
-                .execute(&pool)
-                .await?;
+        if req.delete_assets {
+            query!(
+                "
+                DELETE FROM assets WHERE id != 0;
+                DELETE FROM collections WHERE id != 0;
+                "
+            )
+            .execute(&pool)
+            .await?;
         }
 
-        if req.delete_hardened_derivations {
-            sqlx::query!("DELETE FROM `derivations` WHERE `hardened` = 1")
-                .execute(&pool)
-                .await?;
+        if req.delete_files {
+            query!("DELETE FROM files").execute(&pool).await?;
         }
-        if req.delete_blockinfo {
-            sqlx::query!("DELETE FROM `blockinfo`")
-                .execute(&pool)
-                .await?;
+
+        if req.delete_offers {
+            query!("DELETE FROM offers").execute(&pool).await?;
         }
+
+        if req.delete_addresses {
+            query!("DELETE FROM p2_puzzles").execute(&pool).await?;
+        }
+
+        if req.delete_blocks {
+            query!("DELETE FROM blocks").execute(&pool).await?;
+        }
+
+        // reclaim disk space after all those deletes
+        query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&pool)
+            .await?;
+        query("VACUUM").execute(&pool).await?;
+        query("ANALYZE").execute(&pool).await?;
 
         if login {
             self.config.global.fingerprint = Some(req.fingerprint);
@@ -147,9 +159,7 @@ impl Sage {
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
-            change: ChangeMode::Default,
-            derivation: DerivationMode::Default,
-            network: None,
+            ..Default::default()
         });
         self.config.global.fingerprint = Some(fingerprint);
 
@@ -168,8 +178,15 @@ impl Sage {
                 .derive_unhardened(index)
                 .derive_synthetic();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_derivation(p2_puzzle_hash, index, false, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: false,
+                },
+            )
+            .await?;
         }
 
         if let Some(master_sk) = master_sk {
@@ -181,8 +198,15 @@ impl Sage {
                     .derive_synthetic()
                     .public_key();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                    .await?;
+                tx.insert_custody_p2_puzzle(
+                    p2_puzzle_hash,
+                    synthetic_key,
+                    Derivation {
+                        derivation_index: index,
+                        is_hardened: true,
+                    },
+                )
+                .await?;
             }
         }
 
@@ -193,6 +217,20 @@ impl Sage {
         }
 
         Ok(ImportKeyResponse { fingerprint })
+    }
+
+    pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {
+        let path = self.path.join("wallets").join(req.fingerprint.to_string());
+
+        if path.try_exists()? {
+            // Delete the specific SQLite file for this network
+            let db_file = path.join(format!("{}.sqlite", req.network));
+            if db_file.try_exists()? {
+                fs::remove_file(&db_file)?;
+            }
+        }
+
+        Ok(DeleteDatabaseResponse {})
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
@@ -240,17 +278,9 @@ impl Sage {
             return Ok(GetKeyResponse { key: None });
         };
 
-        let wallet_config = self
-            .wallet_config
-            .wallets
-            .iter()
-            .find(|wallet| wallet.fingerprint == fingerprint);
+        let wallet_config = self.wallet_config().cloned().unwrap_or_default();
 
-        let name = wallet_config.map_or_else(Wallet::default_name, |wallet| wallet.name.clone());
-
-        let network_id = wallet_config
-            .and_then(|wallet| wallet.network.clone())
-            .unwrap_or_else(|| self.network_id());
+        let network_id = wallet_config.network.unwrap_or_else(|| self.network_id());
 
         let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
             return Ok(GetKeyResponse { key: None });
@@ -258,7 +288,7 @@ impl Sage {
 
         Ok(GetKeyResponse {
             key: Some(KeyInfo {
-                name,
+                name: wallet_config.name,
                 fingerprint,
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT COALESCE(MAX(derivation_index) + 1, 0) AS derivation_index\n        FROM public_keys\n        WHERE is_hardened = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "derivation_index",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "640f343dc11301a349c1568532ef1de2004b9e5a9ab555499c6513579fedae49"
+}

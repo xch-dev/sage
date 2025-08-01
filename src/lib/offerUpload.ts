@@ -17,11 +17,7 @@ export async function getOfferHash(offer: string): Promise<string> {
 export function isOneSideOffer(summary: OfferSummary | OfferState) {
   // Check if it's an OfferSummary
   if ('taker' in summary) {
-    return (
-      (!summary.taker?.xch?.amount || summary.taker.xch.amount === 0) &&
-      Object.keys(summary.taker.cats).length === 0 &&
-      Object.keys(summary.taker.nfts).length === 0
-    );
+    return !summary.taker.length;
   }
 
   // Handle OfferState
@@ -34,9 +30,8 @@ export function isOneSideOffer(summary: OfferSummary | OfferState) {
 
 export function isMintGardenSupportedForSummary(summary: OfferSummary) {
   return (
-    summary.maker?.xch?.amount === 0 &&
-    Object.keys(summary.maker.cats).length === 0 &&
-    Object.keys(summary.maker.nfts).length === 1 &&
+    summary.maker.length === 1 &&
+    summary.maker[0].asset.kind === 'nft' &&
     !isOneSideOffer(summary)
   );
 }
@@ -58,7 +53,7 @@ export function isMintGardenSupported(state: OfferState, isSplitting = false) {
   );
 }
 
-export function isDexieSupported(state: OfferState, _ = false) {
+export function isDexieSupported(state: OfferState) {
   return !isOneSideOffer(state);
 }
 

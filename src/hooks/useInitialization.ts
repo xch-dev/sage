@@ -1,7 +1,30 @@
 import { commands } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
+import { logoutAndUpdateState } from '@/state';
 import { useCallback, useEffect, useState } from 'react';
 import { useErrors } from './useErrors';
-import { logoutAndUpdateState } from '@/state';
+
+// Shared function to handle initialization errors
+const handleInitializationError = async (
+  error: unknown,
+  addError: (error: CustomError) => void,
+) => {
+  console.error('Error during initialization:', error);
+  const customError = error as CustomError;
+
+  // Check if this is a database migration, which is recoverable
+  if (customError.kind === 'database_migration') {
+    try {
+      await logoutAndUpdateState();
+    } catch (logoutError) {
+      console.error('Error during logout:', logoutError);
+    }
+  } else {
+    // Only add non-migration errors to be displayed
+    addError(customError);
+    console.error('Unrecoverable initialization error', error);
+  }
+};
 
 export default function useInitialization() {
   const { addError } = useErrors();
@@ -11,22 +34,11 @@ export default function useInitialization() {
   const onInitialize = useCallback(async () => {
     try {
       await commands.initialize();
-      setInitialized(true);
       await commands.switchWallet();
-    } catch (error: any) {
-      // Always add the error to be displayed
-      addError(error);
-
-      // Check if this is a database migration, which is recoverable
-      if (error.kind === 'database_migration') {
-        try {
-          await logoutAndUpdateState();
-        } catch (logoutError) {
-          console.error('Error during logout:', logoutError);
-        }
-      } else {
-        console.error('Unrecoverable initialization error', error);
-      }
+    } catch (error: unknown) {
+      await handleInitializationError(error, addError);
+    } finally {
+      setInitialized(true);
     }
   }, [addError]);
 

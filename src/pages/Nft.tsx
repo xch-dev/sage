@@ -3,18 +3,21 @@ import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
+import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
+  const navigate = useNavigate();
   const { addError } = useErrors();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
@@ -23,7 +26,7 @@ export default function Nft() {
   const updateNft = useMemo(
     () => () => {
       commands
-        .getNft({ nft_id: launcherId! })
+        .getNft({ nft_id: launcherId ?? '' })
         .then((data) => setNft(data.nft))
         .catch(addError);
     },
@@ -51,7 +54,7 @@ export default function Nft() {
 
   useEffect(() => {
     commands
-      .getNftData({ nft_id: launcherId! })
+      .getNftData({ nft_id: launcherId ?? '' })
       .then((response) => setData(response.data))
       .catch(addError);
   }, [launcherId, addError]);
@@ -73,6 +76,36 @@ export default function Nft() {
       .then((data) => setNetwork(data.kind))
       .catch(addError);
   }, [addError]);
+
+  const [minterProfile, setMinterProfile] = useState<{
+    encoded_id: string;
+    name: string;
+    avatar_uri: string | null;
+  } | null>(null);
+
+  const [ownerProfile, setOwnerProfile] = useState<{
+    encoded_id: string;
+    name: string;
+    avatar_uri: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!nft?.minter_did) {
+      setMinterProfile(null);
+      return;
+    }
+
+    getMintGardenProfile(nft.minter_did).then(setMinterProfile);
+  }, [nft?.minter_did]);
+
+  useEffect(() => {
+    if (!nft?.owner_did) {
+      setOwnerProfile(null);
+      return;
+    }
+
+    getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
+  }, [nft?.owner_did]);
 
   return (
     <>
@@ -139,7 +172,9 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Description</Trans>
                 </h6>
-                <div className='break-all text-sm'>{metadata.description}</div>
+                <div className='break-words text-sm'>
+                  {metadata.description}
+                </div>
               </div>
             )}
 
@@ -148,7 +183,13 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Collection Name</Trans>
                 </h6>
-                <div className='break-all text-sm cursor-pointer'>
+                <div
+                  className='break-all text-sm cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    nft?.collection_id &&
+                    navigate(`/nfts/collections/${nft.collection_id}/metadata`)
+                  }
+                >
                   {nft.collection_name}
                 </div>
               </div>
@@ -160,38 +201,43 @@ export default function Nft() {
                   <Trans>Attributes</Trans>
                 </h6>
                 <div className='grid grid-cols-2 gap-2'>
-                  {metadata.attributes.map((attr: any, i: number) => (
-                    <div key={i} className='px-2 py-1 border-2 rounded-lg'>
-                      <h6
-                        className='text-sm font-semibold truncate'
-                        title={attr.trait_type}
+                  {metadata.attributes.map(
+                    (attr: { trait_type: string; value: string }) => (
+                      <div
+                        key={`${attr?.trait_type}_${attr?.value}`}
+                        className='px-2 py-1 border-2 rounded-lg'
                       >
-                        {attr.trait_type}
-                      </h6>
-                      {isValidUrl(attr.value) ? (
-                        <div
-                          onClick={() => openUrl(attr.value)}
-                          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                        <h6
+                          className='text-sm font-semibold truncate'
+                          title={attr.trait_type}
                         >
-                          {attr.value}
-                        </div>
-                      ) : (
-                        <div className='text-sm break-all'>{attr.value}</div>
-                      )}
-                    </div>
-                  ))}
+                          {attr.trait_type}
+                        </h6>
+                        {isValidUrl(attr.value) ? (
+                          <div
+                            onClick={() => openUrl(attr.value)}
+                            className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          >
+                            {attr.value}
+                          </div>
+                        ) : (
+                          <div className='text-sm break-all'>{attr.value}</div>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
             )}
 
-            {(nft?.data_uris.length || null) && (
+            {!!nft?.data_uris.length && (
               <div>
                 <h6 className='text-md font-bold'>
                   <Trans>Data URIs</Trans>
                 </h6>
-                {nft!.data_uris.map((uri, i) => (
+                {nft.data_uris.map((uri) => (
                   <div
-                    key={i}
+                    key={uri}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
                     onClick={() => openUrl(uri)}
                   >
@@ -206,9 +252,9 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>Metadata URIs</Trans>
                 </h6>
-                {nft!.metadata_uris.map((uri, i) => (
+                {nft?.metadata_uris.map((uri) => (
                   <div
-                    key={i}
+                    key={uri}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
                     onClick={() => openUrl(uri)}
                   >
@@ -223,9 +269,9 @@ export default function Nft() {
                 <h6 className='text-md font-bold'>
                   <Trans>License URIs</Trans>
                 </h6>
-                {nft!.license_uris.map((uri, i) => (
+                {nft?.license_uris.map((uri) => (
                   <div
-                    key={i}
+                    key={uri}
                     className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer'
                     onClick={() => openUrl(uri)}
                   >
@@ -273,6 +319,23 @@ export default function Nft() {
                 value={nft?.minter_did ?? t`None`}
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
+              {minterProfile && (
+                <div
+                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    openUrl(`https://mintgarden.io/${nft?.minter_did}`)
+                  }
+                >
+                  {minterProfile.avatar_uri && (
+                    <img
+                      src={minterProfile.avatar_uri}
+                      alt={`${minterProfile.name} avatar`}
+                      className='w-6 h-6 rounded-full'
+                    />
+                  )}
+                  <div className='text-sm'>{minterProfile.name}</div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -284,6 +347,23 @@ export default function Nft() {
                 value={nft?.owner_did ?? t`None`}
                 onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
               />
+              {ownerProfile && (
+                <div
+                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    openUrl(`https://mintgarden.io/${nft?.owner_did}`)
+                  }
+                >
+                  {ownerProfile.avatar_uri && (
+                    <img
+                      src={ownerProfile.avatar_uri}
+                      alt={`${ownerProfile.name} avatar`}
+                      className='w-6 h-6 rounded-full'
+                    />
+                  )}
+                  <div className='text-sm'>{ownerProfile.name}</div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -353,7 +433,7 @@ export default function Nft() {
                 disabled={network === 'unknown'}
               >
                 <img
-                  src='https://spacescan.io/images/spacescan-logo-192.png'
+                  src={spacescanLogo}
                   className='h-4 w-4 mr-2'
                   alt='Spacescan.io logo'
                 />

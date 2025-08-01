@@ -51,7 +51,11 @@ impl OfferQueue {
             return Ok(());
         }
 
-        let offers = self.db.active_offers().await?;
+        let offers = self.db.offers(Some(OfferStatus::Active)).await?;
+
+        if offers.is_empty() {
+            return Ok(());
+        }
 
         let mut settlement_coin_ids = HashMap::new();
         let mut input_coin_ids = HashMap::new();

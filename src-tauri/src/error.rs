@@ -34,6 +34,15 @@ impl From<reqwest::Error> for Error {
     }
 }
 
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Self {
+            kind: ErrorKind::Internal,
+            reason: error.to_string(),
+        }
+    }
+}
+
 impl std::error::Error for Error {}
 
 pub type Result<T> = std::result::Result<T, Error>;

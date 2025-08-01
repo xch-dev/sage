@@ -1,67 +1,79 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, SystemTime, UNIX_EPOCH},
-};
-
-use base64::{prelude::BASE64_STANDARD, Engine};
+use chia::protocol::Bytes32;
 use chia::puzzles::nft::NftMetadata;
 use chia_wallet_sdk::{
     driver::{decode_offer, encode_offer, DriverError, Offer, SpendContext},
     signer::AggSigConstants,
     utils::Address,
 };
-use chrono::{Local, TimeZone};
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::{
-    Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CatAmount,
-    CombineOffers, CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer,
-    GetOfferResponse, GetOffers, GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer,
-    MakeOfferResponse, OfferAssets, OfferCat, OfferNft, OfferRecord, OfferRecordStatus,
-    OfferSummary, OfferXch, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
+    CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
+    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
+    OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer, TakeOfferResponse,
+    ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{OfferCatRow, OfferNftRow, OfferRow, OfferStatus, OfferXchRow};
+use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
 use sage_wallet::{
-    aggregate_offers, fetch_nft_offer_details, insert_transaction, sort_offer, Offered, Requested,
-    SyncCommand, Transaction, Wallet,
+    aggregate_offers, insert_transaction, sort_offer, Offered, Requested, SyncCommand, Transaction,
+    Wallet, WalletError,
 };
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::timeout;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::{
-    extract_nft_data, json_bundle, lookup_coin_creation, offer_expiration, parse_amount,
-    parse_asset_id, parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData,
-    Result, Sage,
+    encode_asset, extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id,
+    parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
 };
+
+#[derive(Debug, Clone)]
+struct AssetToOffer {
+    offer_id: Bytes32,
+    asset_id: Bytes32,
+    amount: u64,
+    royalty: u64,
+    is_requested: bool,
+}
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
-        let offered_xch = parse_amount(req.offered_assets.xch)?;
+        let offered = Offered {
+            xch: parse_amount(req.offered_assets.xch)?,
+            cats: req
+                .offered_assets
+                .cats
+                .into_iter()
+                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
+                .collect::<Result<_>>()?,
+            nfts: req
+                .offered_assets
+                .nfts
+                .into_iter()
+                .map(parse_nft_id)
+                .collect::<Result<_>>()?,
+            fee: parse_amount(req.fee)?,
+            p2_puzzle_hash: req
+                .receive_address
+                .map(|address| self.parse_address(address))
+                .transpose()?,
+        };
 
-        let mut offered_cats = IndexMap::new();
+        let mut requested = Requested {
+            xch: parse_amount(req.requested_assets.xch)?,
+            cats: req
+                .requested_assets
+                .cats
+                .into_iter()
+                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
+                .collect::<Result<_>>()?,
+            nfts: IndexMap::new(),
+        };
 
-        for CatAmount { asset_id, amount } in req.offered_assets.cats {
-            offered_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
-        }
-
-        let mut offered_nfts = Vec::new();
-
-        for nft_id in req.offered_assets.nfts {
-            offered_nfts.push(parse_nft_id(nft_id)?);
-        }
-
-        let requested_xch = parse_amount(req.requested_assets.xch)?;
-
-        let mut requested_cats = IndexMap::new();
-
-        for CatAmount { asset_id, amount } in req.requested_assets.cats {
-            requested_cats.insert(parse_asset_id(asset_id)?, parse_amount(amount)?);
-        }
-
-        let mut requested_nfts = IndexMap::new();
         let mut peer = None;
 
         for nft_id in req.requested_assets.nfts {
@@ -69,40 +81,18 @@ impl Sage {
                 peer = self.peer_state.lock().await.acquire_peer();
             }
 
-            let peer = peer.as_ref().ok_or(Error::NoPeers)?;
-
             let nft_id = parse_nft_id(nft_id)?;
 
-            let Some(offer_details) = fetch_nft_offer_details(peer, nft_id).await? else {
+            let Some(requested_nft) = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
+            else {
                 return Err(Error::CouldNotFetchNft(nft_id));
             };
 
-            requested_nfts.insert(nft_id, offer_details);
+            requested.nfts.insert(nft_id, requested_nft);
         }
 
-        let fee = parse_amount(req.fee)?;
-
-        let p2_puzzle_hash = req
-            .receive_address
-            .map(|address| self.parse_address(address))
-            .transpose()?;
-
         let unsigned = wallet
-            .make_offer(
-                Offered {
-                    xch: offered_xch,
-                    cats: offered_cats,
-                    nfts: offered_nfts,
-                    fee,
-                    p2_puzzle_hash,
-                },
-                Requested {
-                    xch: requested_xch,
-                    cats: requested_cats,
-                    nfts: requested_nfts,
-                },
-                req.expires_at_second,
-            )
+            .make_offer(offered, requested, req.expires_at_second)
             .await?;
 
         let (_mnemonic, Some(master_sk)) =
@@ -191,10 +181,6 @@ impl Sage {
         let json_bundle = json_bundle(&spend_bundle);
         let transaction_id = hex::encode(spend_bundle.name());
 
-        if req.auto_import {
-            self.import_offer(ImportOffer { offer: req.offer }).await?;
-        }
-
         Ok(TakeOfferResponse {
             summary: self
                 .summarize(spend_bundle.coin_spends, ConfirmationInfo::default())
@@ -215,13 +201,11 @@ impl Sage {
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
 
-        if wallet.db.get_offer(offer_id).await?.is_some() {
+        if wallet.db.offer(offer_id).await?.is_some() {
             return Ok(ImportOfferResponse {
                 offer_id: hex::encode(offer_id),
             });
         }
-
-        let peer = self.peer_state.lock().await.acquire_peer();
 
         let mut ctx = SpendContext::new();
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
@@ -231,15 +215,7 @@ impl Sage {
             .map(|cs| cs.coin.coin_id())
             .collect_vec();
 
-        let status = if let Some(peer) = peer {
-            let coin_creation =
-                lookup_coin_creation(&peer, coin_ids.clone(), self.network().genesis_challenge)
-                    .await?;
-            offer_expiration(&mut ctx, &offer, &coin_creation)?
-        } else {
-            warn!("No peers available to fetch coin creation information, so skipping for now");
-            offer_expiration(&mut ctx, &offer, &HashMap::new())?
-        };
+        let status = offer_expiration(&mut ctx, &offer)?;
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
@@ -250,25 +226,17 @@ impl Sage {
         let mut nft_rows = Vec::new();
 
         for (asset_id, amount) in offered_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
-
-            cat_rows.push(OfferCatRow {
+            cat_rows.push(AssetToOffer {
                 offer_id,
-                requested: false,
+                is_requested: false,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
                 royalty: offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
             });
         }
 
         for nft in offer.offered_coins().nfts.values() {
-            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
+            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -298,32 +266,23 @@ impl Sage {
                 ExtractedNftData::default()
             };
 
-            nft_rows.push(OfferNftRow {
+            nft_rows.push(AssetToOffer {
                 offer_id,
-                requested: false,
-                launcher_id: nft.info.launcher_id,
-                royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.info.royalty_basis_points,
-                name: info.name,
-                thumbnail: info.icon,
-                thumbnail_mime_type: Some("image/png".to_string()),
+                is_requested: false,
+                asset_id: nft.info.launcher_id,
+                amount: nft.coin.amount,
+                royalty: nft.info.royalty_basis_points as u64,
             });
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            let info = wallet.db.cat(asset_id).await?;
-            let name = info.as_ref().and_then(|info| info.name.clone());
-            let ticker = info.as_ref().and_then(|info| info.ticker.clone());
-            let icon = info.as_ref().and_then(|info| info.icon.clone());
+            self.cache_cat(asset_id).await?;
 
-            cat_rows.push(OfferCatRow {
+            cat_rows.push(AssetToOffer {
                 offer_id,
-                requested: true,
+                is_requested: true,
                 asset_id,
                 amount,
-                name: name.clone(),
-                ticker: ticker.clone(),
-                icon: icon.clone(),
                 royalty: requested_royalties
                     .cats
                     .get(&asset_id)
@@ -338,7 +297,15 @@ impl Sage {
                 .nft(launcher_id)
                 .ok_or(DriverError::MissingAssetInfo)?;
 
-            let info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
+            self.cache_nft(
+                &ctx,
+                launcher_id,
+                nft.metadata.ptr(),
+                &mut ConfirmationInfo::default(),
+            )
+            .await?;
+
+            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash {
@@ -368,21 +335,12 @@ impl Sage {
                 ExtractedNftData::default()
             };
 
-            let thumbnail_mime_type = if info.icon.is_some() {
-                Some("image/png".to_string())
-            } else {
-                None
-            };
-
-            nft_rows.push(OfferNftRow {
+            nft_rows.push(AssetToOffer {
                 offer_id,
-                requested: true,
-                launcher_id,
-                royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                royalty_ten_thousandths: nft.royalty_basis_points,
-                name: info.name,
-                thumbnail: info.icon,
-                thumbnail_mime_type,
+                is_requested: true,
+                asset_id: launcher_id,
+                amount: 0, // TODO is this right?
+                royalty: nft.royalty_basis_points as u64,
             });
         }
 
@@ -405,35 +363,55 @@ impl Sage {
         .await?;
 
         for coin_id in coin_ids {
+            if !tx.is_known_coin(coin_id).await? {
+                return Err(Error::Wallet(WalletError::CannotImportOffer));
+            }
+
             tx.insert_offered_coin(offer_id, coin_id).await?;
         }
 
         if offered_amounts.xch > 0 || offered_royalties.xch > 0 {
-            tx.insert_offer_xch(OfferXchRow {
+            tx.insert_offer_asset(
                 offer_id,
-                requested: false,
-                amount: offered_amounts.xch,
-                royalty: offered_royalties.xch,
-            })
+                Bytes32::default(),
+                offered_amounts.xch,
+                offered_royalties.xch,
+                false,
+            )
             .await?;
         }
 
         if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
-            tx.insert_offer_xch(OfferXchRow {
+            tx.insert_offer_asset(
                 offer_id,
-                requested: true,
-                amount: requested_amounts.xch,
-                royalty: requested_royalties.xch,
-            })
+                Bytes32::default(),
+                requested_amounts.xch,
+                requested_royalties.xch,
+                true,
+            )
             .await?;
         }
 
         for row in cat_rows {
-            tx.insert_offer_cat(row).await?;
+            tx.insert_offer_asset(
+                row.offer_id,
+                row.asset_id,
+                row.amount,
+                row.royalty,
+                row.is_requested,
+            )
+            .await?;
         }
 
         for row in nft_rows {
-            tx.insert_offer_nft(row).await?;
+            tx.insert_offer_asset(
+                row.offer_id,
+                row.asset_id,
+                row.amount,
+                row.royalty,
+                row.is_requested,
+            )
+            .await?;
         }
 
         tx.commit().await?;
@@ -457,7 +435,7 @@ impl Sage {
 
     pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {
         let wallet = self.wallet()?;
-        let offers = wallet.db.get_offers().await?;
+        let offers = wallet.db.offers(None).await?;
 
         let mut records = Vec::new();
 
@@ -474,7 +452,7 @@ impl Sage {
         let offer_id = parse_offer_id(req.offer_id)?;
         let offer = wallet
             .db
-            .get_offer(offer_id)
+            .offer(offer_id)
             .await?
             .ok_or_else(|| Error::MissingOffer(offer_id))?;
 
@@ -493,64 +471,48 @@ impl Sage {
     }
 
     async fn offer_record(&self, wallet: &Wallet, offer: OfferRow) -> Result<OfferRecord> {
-        let xch = wallet.db.offer_xch(offer.offer_id).await?;
-        let cats = wallet.db.offer_cats(offer.offer_id).await?;
-        let nfts = wallet.db.offer_nfts(offer.offer_id).await?;
+        let assets = wallet.db.offer_assets(offer.offer_id).await?;
 
-        let mut maker_xch_amount = 0;
-        let mut maker_xch_royalty = 0;
-        let mut taker_xch_amount = 0;
-        let mut taker_xch_royalty = 0;
+        let mut maker = Vec::new();
+        let mut taker = Vec::new();
 
-        for xch in xch {
-            if xch.requested {
-                taker_xch_amount += xch.amount;
-                taker_xch_royalty += xch.royalty;
+        for OfferedAsset {
+            asset,
+            amount,
+            royalty,
+            is_requested,
+            ..
+        } in assets
+        {
+            let nft_royalty = if asset.kind == AssetKind::Nft {
+                let info = wallet.db.offer_nft_info(asset.hash).await?;
+
+                info.map(|info| {
+                    Result::Ok(NftRoyalty {
+                        royalty_address: Address::new(
+                            info.royalty_puzzle_hash,
+                            self.network().prefix(),
+                        )
+                        .encode()?,
+                        royalty_basis_points: info.royalty_basis_points,
+                    })
+                })
+                .transpose()?
             } else {
-                maker_xch_amount += xch.amount;
-                maker_xch_royalty += xch.royalty;
-            }
-        }
-
-        let mut maker_cats = IndexMap::new();
-        let mut taker_cats = IndexMap::new();
-
-        for cat in cats {
-            let asset_id = hex::encode(cat.asset_id);
-
-            let record = OfferCat {
-                amount: Amount::u64(cat.amount),
-                royalty: Amount::u64(cat.royalty),
-                name: cat.name,
-                ticker: cat.ticker,
-                icon_url: cat.icon,
+                None
             };
 
-            if cat.requested {
-                taker_cats.insert(asset_id, record);
-            } else {
-                maker_cats.insert(asset_id, record);
-            }
-        }
-
-        let mut maker_nfts = IndexMap::new();
-        let mut taker_nfts = IndexMap::new();
-
-        for nft in nfts {
-            let nft_id = Address::new(nft.launcher_id, "nft".to_string()).encode()?;
-
-            let record = OfferNft {
-                royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
-                    .encode()?,
-                royalty_ten_thousandths: nft.royalty_ten_thousandths,
-                name: nft.name,
-                icon: nft.thumbnail.map(|data| BASE64_STANDARD.encode(data)),
+            let asset = OfferAsset {
+                amount: Amount::u64(amount),
+                royalty: Amount::u64(royalty),
+                asset: encode_asset(asset)?,
+                nft_royalty,
             };
 
-            if nft.requested {
-                taker_nfts.insert(nft_id, record);
+            if is_requested {
+                taker.push(asset);
             } else {
-                maker_nfts.insert(nft_id, record);
+                maker.push(asset);
             }
         }
 
@@ -558,33 +520,16 @@ impl Sage {
             offer_id: hex::encode(offer.offer_id),
             offer: offer.encoded_offer,
             status: match offer.status {
+                OfferStatus::Pending => OfferRecordStatus::Pending,
                 OfferStatus::Active => OfferRecordStatus::Active,
                 OfferStatus::Completed => OfferRecordStatus::Completed,
                 OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
                 OfferStatus::Expired => OfferRecordStatus::Expired,
             },
-            creation_date: Local
-                .timestamp_opt(offer.inserted_timestamp.try_into()?, 0)
-                .unwrap()
-                .format("%b %d, %Y %r")
-                .to_string(),
+            creation_timestamp: offer.inserted_timestamp,
             summary: OfferSummary {
-                maker: OfferAssets {
-                    xch: OfferXch {
-                        amount: Amount::u64(maker_xch_amount),
-                        royalty: Amount::u64(maker_xch_royalty),
-                    },
-                    cats: maker_cats,
-                    nfts: maker_nfts,
-                },
-                taker: OfferAssets {
-                    xch: OfferXch {
-                        amount: Amount::u64(taker_xch_amount),
-                        royalty: Amount::u64(taker_xch_royalty),
-                    },
-                    cats: taker_cats,
-                    nfts: taker_nfts,
-                },
+                maker,
+                taker,
                 fee: Amount::u64(offer.fee),
                 expiration_height: offer.expiration_height,
                 expiration_timestamp: offer.expiration_timestamp,
@@ -597,7 +542,7 @@ impl Sage {
         let offer_id = parse_offer_id(req.offer_id)?;
         let fee = parse_amount(req.fee)?;
 
-        let Some(row) = wallet.db.get_offer(offer_id).await? else {
+        let Some(row) = wallet.db.offer(offer_id).await? else {
             return Err(Error::MissingOffer(offer_id));
         };
 
@@ -620,7 +565,7 @@ impl Sage {
         let mut coin_spends = Vec::new();
 
         for offer_id in offer_ids {
-            let Some(row) = wallet.db.get_offer(offer_id).await? else {
+            let Some(row) = wallet.db.offer(offer_id).await? else {
                 return Err(Error::MissingOffer(offer_id));
             };
 

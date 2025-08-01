@@ -1,27 +1,28 @@
 use chia::protocol::Bytes32;
+use chia_sha2::Sha256;
 use sage_assets::{Chip0007Metadata, Collection};
-use sage_database::{calculate_collection_id, CollectionRow};
-use tracing::warn;
+use sage_database::CollectionRow;
+use tracing::debug;
 
 #[derive(Debug, Default, Clone)]
 pub struct ComputedNftInfo {
     pub name: Option<String>,
+    pub description: Option<String>,
     pub sensitive_content: bool,
     pub collection: Option<CollectionRow>,
 }
 
-pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> ComputedNftInfo {
-    let Some(json) = blob.and_then(|blob| {
-        Chip0007Metadata::from_bytes(blob)
-            .map_err(|error| {
-                warn!(
-                    "Error parsing offchain metadata: {error}, {}",
-                    String::from_utf8_lossy(blob)
-                );
-                error
-            })
-            .ok()
-    }) else {
+pub fn compute_nft_info(did_id: Option<Bytes32>, blob: &[u8]) -> ComputedNftInfo {
+    let Some(json) = Chip0007Metadata::from_bytes(blob)
+        .map_err(|error| {
+            debug!(
+                "Error parsing offchain metadata: {error}, {}",
+                String::from_utf8_lossy(blob)
+            );
+            error
+        })
+        .ok()
+    else {
         return ComputedNftInfo::default();
     };
 
@@ -36,18 +37,26 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
         }),
     ) = (did_id, json.collection)
     {
+        let attributes = attributes.unwrap_or_default();
         Some(CollectionRow {
-            collection_id: calculate_collection_id(did_id, &metadata_collection_id.to_string()),
-            did_id,
-            metadata_collection_id: metadata_collection_id.to_string(),
+            description: None,
+            hash: calculate_collection_id(did_id, &metadata_collection_id.to_string()),
+            minter_hash: did_id,
+            uuid: metadata_collection_id.to_string(),
             name: Some(name),
-            icon: attributes.unwrap_or_default().into_iter().find_map(|item| {
+            icon_url: attributes.iter().find_map(|item| {
                 match (item.kind.as_str(), item.value.as_str()) {
                     (Some("icon"), Some(icon)) => Some(icon.to_string()),
                     _ => None,
                 }
             }),
-            visible: true,
+            banner_url: attributes.iter().find_map(|item| {
+                match (item.kind.as_str(), item.value.as_str()) {
+                    (Some("banner"), Some(banner)) => Some(banner.to_string()),
+                    _ => None,
+                }
+            }),
+            is_visible: true,
         })
     } else {
         None
@@ -55,9 +64,17 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: Option<&[u8]>) -> Compute
 
     ComputedNftInfo {
         name: Some(json.name.clone()),
+        description: Some(json.description.clone()),
         sensitive_content,
         collection,
     }
+}
+
+fn calculate_collection_id(did_id: Bytes32, json_collection_id: &str) -> Bytes32 {
+    let mut hasher = Sha256::new();
+    hasher.update(hex::encode(did_id));
+    hasher.update(json_collection_id);
+    hasher.finalize().into()
 }
 
 #[cfg(test)]

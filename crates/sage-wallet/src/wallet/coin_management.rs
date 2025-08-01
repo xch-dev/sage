@@ -103,7 +103,7 @@ mod tests {
     async fn test_xch_coin_management() -> anyhow::Result<()> {
         let mut test = TestWallet::new(1000).await?;
 
-        let coins = test.wallet.db.spendable_coins().await?;
+        let coins = test.wallet.db.selectable_xch_coins().await?;
         let coin_spends = test
             .wallet
             .split(coins.iter().map(Coin::coin_id).collect(), 3, 0)
@@ -113,10 +113,10 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 3);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 3);
 
-        let coins = test.wallet.db.spendable_coins().await?;
+        let coins = test.wallet.db.selectable_xch_coins().await?;
         let coin_spends = test
             .wallet
             .combine(coins.iter().map(Coin::coin_id).collect(), 0)
@@ -126,8 +126,8 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        assert_eq!(test.wallet.db.balance().await?, 1000);
-        assert_eq!(test.wallet.db.spendable_coins().await?.len(), 1);
+        assert_eq!(test.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(test.wallet.db.selectable_xch_coins().await?.len(), 1);
 
         Ok(())
     }
@@ -140,21 +140,16 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let mut cats = test.wallet.db.spendable_cat_coins(asset_id).await?;
+        let mut cats = test.wallet.db.selectable_cat_coins(asset_id).await?;
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
         assert_eq!(cats.len(), 1);
 
-        let cat = test
-            .wallet
-            .db
-            .cat_coin(cats.remove(0).coin.coin_id())
-            .await?
-            .expect("missing cat");
+        let cat = cats.remove(0);
         let coin_spends = test.wallet.split(vec![cat.coin.coin_id()], 2, 0).await?;
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let cats = test.wallet.db.spendable_cat_coins(asset_id).await?;
+        let cats = test.wallet.db.selectable_cat_coins(asset_id).await?;
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
         assert_eq!(cats.len(), 2);
 
@@ -166,7 +161,10 @@ mod tests {
         test.wait_for_coins().await;
 
         assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 100);
-        assert_eq!(test.wallet.db.spendable_cat_coins(asset_id).await?.len(), 1);
+        assert_eq!(
+            test.wallet.db.selectable_cat_coins(asset_id).await?.len(),
+            1
+        );
 
         Ok(())
     }

@@ -26,13 +26,17 @@ pub struct LogoutResponse {}
 pub struct Resync {
     pub fingerprint: u32,
     #[serde(default)]
-    pub delete_offer_files: bool,
+    pub delete_coins: bool,
     #[serde(default)]
-    pub delete_unhardened_derivations: bool,
+    pub delete_assets: bool,
     #[serde(default)]
-    pub delete_hardened_derivations: bool,
+    pub delete_files: bool,
     #[serde(default)]
-    pub delete_blockinfo: bool,
+    pub delete_offers: bool,
+    #[serde(default)]
+    pub delete_addresses: bool,
+    #[serde(default)]
+    pub delete_blocks: bool,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -73,6 +77,17 @@ fn yes() -> bool {
 pub struct ImportKeyResponse {
     pub fingerprint: u32,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteDatabase {
+    pub fingerprint: u32,
+    pub network: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteDatabaseResponse {}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]

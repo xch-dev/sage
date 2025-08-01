@@ -5,8 +5,9 @@ use chia_wallet_sdk::driver::{
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
+use sage_database::NftOfferInfo;
 
-use crate::{RequestedNft, Wallet, WalletError};
+use crate::{Wallet, WalletError};
 
 impl Wallet {
     pub async fn take_offer(
@@ -30,7 +31,7 @@ impl Wallet {
 
             requested_nfts.insert(
                 launcher_id,
-                RequestedNft {
+                NftOfferInfo {
                     metadata,
                     metadata_updater_puzzle_hash: nft.metadata_updater_puzzle_hash,
                     royalty_puzzle_hash: nft.royalty_puzzle_hash,

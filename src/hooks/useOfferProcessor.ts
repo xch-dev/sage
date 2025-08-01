@@ -1,9 +1,9 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
 import { commands } from '@/bindings';
-import { OfferState, useWalletState } from '@/state';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
+import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
+import { useCallback, useRef, useState } from 'react';
 
 interface UseOfferProcessorProps {
   offerState: OfferState;
@@ -45,7 +45,7 @@ export function useOfferProcessor({
   const processOffer = useCallback(async () => {
     setIsProcessing(true);
     isCancelled.current = false;
-    clearProcessedOffers();
+    setCreatedOffers([]);
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
@@ -165,17 +165,9 @@ export function useOfferProcessor({
     splitNftOffers,
     walletState.sync.unit.decimals,
     promptIfEnabled,
-    clearProcessedOffers,
     onProcessingEnd,
     onProgress,
   ]);
-
-  useEffect(() => {
-    let isMounted = true;
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   return {
     createdOffers,

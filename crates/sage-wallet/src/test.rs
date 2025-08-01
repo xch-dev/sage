@@ -1,4 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    time::{Duration, SystemTime, UNIX_EPOCH},
+};
 
 use chia::{
     bls::{
@@ -15,7 +18,7 @@ use chia_wallet_sdk::{
     types::TESTNET11_CONSTANTS,
 };
 use sage_config::TESTNET11;
-use sage_database::Database;
+use sage_database::{Database, Derivation};
 use sqlx::{migrate, SqlitePool};
 use tokio::{
     sync::{
@@ -88,7 +91,7 @@ impl TestWallet {
             SqlitePool::connect(&format!("file:testdb{db_index}?mode=memory&cache=shared")).await?;
         migrate!("../../migrations").run(&pool).await?;
         let db = Database::new(pool);
-        db.run_rust_migrations().await?;
+        db.run_rust_migrations("TXCH".to_string()).await?;
 
         let sk = BlsPair::default().sk.derive_unhardened(key_index);
         let pk = sk.public_key();
@@ -106,8 +109,15 @@ impl TestWallet {
                 .derive_synthetic()
                 .public_key();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_derivation(p2_puzzle_hash, index, true, synthetic_key)
-                .await?;
+            tx.insert_custody_p2_puzzle(
+                p2_puzzle_hash,
+                synthetic_key,
+                Derivation {
+                    derivation_index: index,
+                    is_hardened: true,
+                },
+            )
+            .await?;
         }
 
         tx.commit().await?;
@@ -169,7 +179,7 @@ impl TestWallet {
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
-        assert_eq!(test.wallet.db.balance().await?, balance as u128);
+        assert_eq!(test.wallet.db.xch_balance().await?, balance as u128);
 
         Ok(test)
     }
@@ -224,7 +234,7 @@ impl TestWallet {
                 .unwrap_or_else(|_| panic!("timed out listening for event"))
                 .unwrap_or_else(|| panic!("missing next event"));
 
-            debug!("Consuming event: {next:?}");
+            debug!("Consuming event for wallet {}: {next:?}", self.index);
 
             if f(next) {
                 return;
@@ -241,6 +251,14 @@ impl TestWallet {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
     }
+
+    pub async fn new_block_with_current_time(&self) -> anyhow::Result<u64> {
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
+        let mut sim = self.sim.lock().await;
+        sim.set_next_timestamp(timestamp)?;
+        sim.create_block();
+        Ok(timestamp)
+    }
 }
 
 pub fn default_test_options() -> SyncOptions {
@@ -250,6 +268,7 @@ pub fn default_test_options() -> SyncOptions {
         dns_batch_size: 0,
         connection_batch_size: 0,
         max_peer_age_seconds: 0,
+        delta_sync: true,
         puzzle_batch_size_per_peer: 5,
         timeouts: Timeouts {
             sync_delay: Duration::from_millis(100),

@@ -147,16 +147,12 @@ pub fn parse_program(input: String) -> Result<Program> {
     Ok(hex::decode(stripped)?.into())
 }
 
-pub fn parse_memos(input: Option<Vec<String>>) -> Result<Option<Vec<Bytes>>> {
-    if let Some(list) = input {
-        let mut memos = Vec::new();
-        for memo in list {
-            memos.push(Bytes::from(hex::decode(memo)?));
-        }
-        Ok(Some(memos))
-    } else {
-        Ok(None)
+pub fn parse_memos(input: Vec<String>) -> Result<Vec<Bytes>> {
+    let mut memos = Vec::new();
+    for memo in input {
+        memos.push(Bytes::from(hex::decode(memo)?));
     }
+    Ok(memos)
 }
 
 #[cfg(test)]

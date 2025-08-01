@@ -1,17 +1,22 @@
 import {
+  AssetKind,
   commands,
   events,
-  type TransactionCoin,
+  TransactionCoinRecord,
   TransactionRecord,
 } from '@/bindings';
+import { AssetIcon } from '@/components/AssetIcon';
 import Container from '@/components/Container';
 import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import { nftUri } from '@/lib/nftUri';
-import { formatAddress, fromMojos, formatTimestamp } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import {
+  formatAddress,
+  formatTimestamp,
+  fromMojos,
+  getAssetDisplayName,
+} from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -19,6 +24,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
+// TODO: come through here and reduce or eliminate xch vs cat
 export default function Transaction() {
   const { height } = useParams();
 
@@ -28,15 +34,12 @@ export default function Transaction() {
 
   const updateTransaction = useCallback(() => {
     commands
-      .getTransactions({
-        offset: 0,
-        limit: 1,
-        ascending: true,
-        find_value: height ?? '',
+      .getTransaction({
+        height: Number(height),
       })
       .then((data) => {
-        if (data.transactions.length > 0) {
-          setTransaction(data.transactions[0]);
+        if (data.transaction) {
+          setTransaction(data.transaction);
         } else {
           setTransaction(null);
         }
@@ -81,8 +84,8 @@ export default function Transaction() {
                 <Trans>Sent</Trans>
               </div>
               <div className='space-y-4'>
-                {transaction?.spent.map((coin, i) => (
-                  <TransactionCoin key={i} coin={coin} />
+                {transaction?.spent.map((coin) => (
+                  <TransactionCoin key={coin.coin_id} coin={coin} />
                 ))}
               </div>
             </Card>
@@ -93,8 +96,8 @@ export default function Transaction() {
                 <Trans>Received</Trans>
               </div>
               <div className='space-y-4'>
-                {transaction?.created.map((coin, i) => (
-                  <TransactionCoin key={i} coin={coin} />
+                {transaction?.created.map((coin) => (
+                  <TransactionCoin key={coin.coin_id} coin={coin} />
                 ))}
               </div>
             </Card>
@@ -106,7 +109,7 @@ export default function Transaction() {
 }
 
 interface TransactionCoinProps {
-  coin: TransactionCoin;
+  coin: TransactionCoinRecord;
 }
 
 function TransactionCoin({ coin }: TransactionCoinProps) {
@@ -133,108 +136,62 @@ function TransactionCoin({ coin }: TransactionCoinProps) {
           </div>
         </div>
       </div>
-      {coin.type !== 'xch' && <TransactionCoinId coin={coin} />}
+      {coin.asset.asset_id && (
+        <TransactionCoinId kind={coin.asset.kind} id={coin.asset.asset_id} />
+      )}
     </div>
   );
 }
 
 interface TransactionCoinKindProps {
-  coin: TransactionCoin;
+  coin: TransactionCoinRecord;
 }
 
 function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
-  const walletState = useWalletState();
+  const name = getAssetDisplayName(
+    coin.asset.name,
+    coin.asset.ticker,
+    coin.asset.kind,
+  );
 
-  switch (coin.type) {
-    case 'xch': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={t`XCH`}
-            src='https://icons.dexie.space/xch.webp'
-            className='w-8 h-8'
-            aria-hidden={true}
-          />
+  return (
+    <div className='flex items-center gap-2'>
+      <AssetIcon
+        iconUrl={coin.asset.icon_url}
+        kind={coin.asset.kind}
+        size='md'
+      />
 
-          <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-            <NumberFormat
-              value={fromMojos(coin.amount, walletState.sync.unit.decimals)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={walletState.sync.unit.decimals}
-            />{' '}
-            <span className='break-normal'>{walletState.sync.unit.ticker}</span>
-          </div>
-        </div>
-      );
-    }
-    case 'cat': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={coin.name ?? t`Unknown`}
-            src={coin.icon_url!}
-            className='w-8 h-8'
-            aria-hidden={true}
-          />
-
-          <div className='flex flex-col'>
-            <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
+      <div className='flex flex-col'>
+        <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
+          {coin.asset.kind === 'token' ? (
+            <>
               <NumberFormat
-                value={fromMojos(coin.amount, 3)}
-                minimumFractionDigits={0}
-                maximumFractionDigits={3}
+                value={fromMojos(coin.amount, coin.asset.precision)}
+                maximumFractionDigits={coin.asset.precision}
               />{' '}
-              <span className='break-normal'>
-                {coin.ticker ?? coin.name ?? 'CAT'}
-              </span>
-            </div>
-          </div>
+              <span className='break-normal'>{name}</span>
+            </>
+          ) : (
+            <span className='break-normal'>{name}</span>
+          )}
         </div>
-      );
-    }
-    case 'nft': {
-      return (
-        <div className='flex items-center gap-2'>
-          <img
-            alt={coin.name ?? t`Unknown`}
-            src={nftUri(coin.icon ? 'image/png' : null, coin.icon)}
-            className='w-8 h-8'
-            aria-label={coin.name ?? t`Unknown`}
-          />
-
-          <div className='text-md text-neutral-700 dark:text-neutral-300'>
-            {coin.name ?? t`Unknown`}
-          </div>
-        </div>
-      );
-    }
-  }
-
-  return <div className='break-all'>{coin.coin_id}</div>;
+      </div>
+    </div>
+  );
 }
 
-interface TransactionCoinIdProps {
-  coin: TransactionCoin;
-}
-
-function TransactionCoinId({ coin }: TransactionCoinIdProps) {
-  let id = '';
+function TransactionCoinId({ kind, id }: { kind: AssetKind; id: string }) {
   let label = '';
   let toastMessage = '';
 
-  switch (coin.type) {
-    case 'cat':
-      id = coin.asset_id;
+  switch (kind) {
+    case 'token':
       label = t`Asset ID`;
       toastMessage = t`Asset ID copied to clipboard`;
       break;
     case 'nft':
-      id = coin.launcher_id;
-      label = t`Launcher ID`;
-      toastMessage = t`Launcher ID copied to clipboard`;
-      break;
     case 'did':
-      id = coin.launcher_id;
       label = t`Launcher ID`;
       toastMessage = t`Launcher ID copied to clipboard`;
       break;

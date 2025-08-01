@@ -18,7 +18,7 @@ export function NumberFormat({
     });
     if (!formatted && formatted !== '0') return null;
     return <>{formatted}</>;
-  } catch (e) {
+  } catch {
     // Fallback if formatting fails
     if (value instanceof BigNumber) {
       return <>{value.toFixed()}</>;

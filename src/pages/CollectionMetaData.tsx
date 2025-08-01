@@ -1,14 +1,12 @@
-import {
-  commands,
-  NetworkKind,
-  NftCollectionRecord,
-  NftRecord,
-} from '@/bindings';
+import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import spacescanLogo from '@/images/spacescan-logo-192.png';
+import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -16,16 +14,16 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
-type MetadataContent = {
+interface MetadataContent {
   collection?: {
-    [key: string]: any;
+    attributes: AttributeType[];
   };
-};
+}
 
-type AttributeType = {
+interface AttributeType {
   type: string;
   value: string;
-};
+}
 
 export default function CollectionMetaData() {
   const { collection_id } = useParams();
@@ -33,11 +31,15 @@ export default function CollectionMetaData() {
   const [collection, setCollection] = useState<NftCollectionRecord | null>(
     null,
   );
-  const [firstNft, setFirstNft] = useState<NftRecord | null>(null);
   const [metadataContent, setMetadataContent] =
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const [minterProfile, setMinterProfile] = useState<{
+    encoded_id: string;
+    name: string;
+    avatar_uri: string | null;
+  } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -63,7 +65,6 @@ export default function CollectionMetaData() {
 
           if (nftsResponse.nfts.length > 0) {
             const nft = nftsResponse.nfts[0];
-            setFirstNft(nft);
 
             // Find first HTTPS metadata URI
             const httpsUri = nft.metadata_uris.find((uri) =>
@@ -80,8 +81,8 @@ export default function CollectionMetaData() {
             }
           }
         }
-      } catch (error: any) {
-        addError(error);
+      } catch (error: unknown) {
+        addError(error as CustomError);
       } finally {
         setLoading(false);
       }
@@ -89,6 +90,15 @@ export default function CollectionMetaData() {
 
     fetchData();
   }, [collection_id, addError]);
+
+  useEffect(() => {
+    if (!collection?.did_id) {
+      setMinterProfile(null);
+      return;
+    }
+
+    getMintGardenProfile(collection.did_id).then(setMinterProfile);
+  }, [collection?.did_id]);
 
   useEffect(() => {
     commands
@@ -149,7 +159,7 @@ export default function CollectionMetaData() {
     );
   }
 
-  const renderMetadataValue = (value: any): JSX.Element => {
+  const renderMetadataValue = (value: unknown): JSX.Element => {
     // Helper function to render a string that might be a link
     const renderPossibleLink = (str: string, isDescription = false) => {
       if (str.match(/^(https?|ipfs|data):\/\/\S+/i)) {
@@ -189,9 +199,9 @@ export default function CollectionMetaData() {
 
         return (
           <div className='grid grid-cols-2 gap-2'>
-            {sortedAttributes.map((item, index) => (
+            {sortedAttributes.map((item) => (
               <div
-                key={index}
+                key={item.type}
                 className='px-2 py-1 border-2 rounded-lg'
                 title={item.value}
               >
@@ -215,9 +225,9 @@ export default function CollectionMetaData() {
       // Default array handling for non-attribute arrays
       return (
         <ul className='list-disc pl-4'>
-          {value.map((item, index) => (
+          {value.map((item) => (
             <li
-              key={index}
+              key={item.type}
               className={typeof item === 'string' ? 'break-all' : ''}
             >
               {renderMetadataValue(item)}
@@ -265,7 +275,7 @@ export default function CollectionMetaData() {
           {getBannerUrl() && (
             <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
               <img
-                src={getBannerUrl()!}
+                src={getBannerUrl() ?? ''}
                 alt={t`Banner for ${collectionName}`}
                 className='w-full h-full object-cover'
               />
@@ -368,6 +378,23 @@ export default function CollectionMetaData() {
                 value={collection.did_id}
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
+              {minterProfile && (
+                <div
+                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                  onClick={() =>
+                    openUrl(`https://mintgarden.io/${collection.did_id}`)
+                  }
+                >
+                  {minterProfile.avatar_uri && (
+                    <img
+                      src={minterProfile.avatar_uri}
+                      alt={`${minterProfile.name} avatar`}
+                      className='w-6 h-6 rounded-full'
+                    />
+                  )}
+                  <div className='text-sm'>{minterProfile.name}</div>
+                </div>
+              )}
             </div>
 
             <div className='flex flex-col gap-1'>
@@ -400,7 +427,7 @@ export default function CollectionMetaData() {
                 disabled={network === 'unknown'}
               >
                 <img
-                  src='https://spacescan.io/images/spacescan-logo-192.png'
+                  src={spacescanLogo}
                   className='h-4 w-4 mr-2'
                   alt='Spacescan.io logo'
                 />

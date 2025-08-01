@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO file_uris (file_id, uri) VALUES ((SELECT id FROM files WHERE hash = ?), ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "e86f3625c0d3bfdf62bd013edbbd9c105fcb1f044387bed9e5b03a52a84799c4"
+}

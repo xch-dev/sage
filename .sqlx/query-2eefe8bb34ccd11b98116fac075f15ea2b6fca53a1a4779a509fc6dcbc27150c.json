@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n            hash as offer_id,\n            encoded_offer,\n            fee,\n            status,\n            expiration_height,\n            expiration_timestamp,\n            inserted_timestamp\n        FROM offers \n        WHERE status = ? OR ? IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "name": "offer_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "encoded_offer",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "fee",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "status",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expiration_height",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expiration_timestamp",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inserted_timestamp",
+        "ordinal": 6,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "2eefe8bb34ccd11b98116fac075f15ea2b6fca53a1a4779a509fc6dcbc27150c"
+}

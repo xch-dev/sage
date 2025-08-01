@@ -24,6 +24,7 @@ pub struct NftRecord {
     pub license_hash: Option<String>,
     pub edition_number: Option<u32>,
     pub edition_total: Option<u32>,
+    pub icon_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

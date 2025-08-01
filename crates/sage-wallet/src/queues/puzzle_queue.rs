@@ -1,14 +1,13 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, Coin};
+use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
-use sage_database::{CoinKind, Database};
+use sage_database::{Database, UnsyncedCoin};
 use tokio::{
     sync::{mpsc, Mutex},
-    task::spawn_blocking,
     time::{sleep, timeout},
 };
-use tracing::{debug, warn};
+use tracing::{debug, info, warn};
 
 use crate::{
     database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
@@ -58,79 +57,149 @@ impl PuzzleQueue {
             return Ok(());
         }
 
-        let coin_states = self
-            .db
-            .unsynced_coin_states(peers.len() * self.batch_size_per_peer)
-            .await?;
+        let limit = peers.len() * self.batch_size_per_peer;
+
+        let coin_states = self.db.unsynced_coins(limit).await?;
 
         if coin_states.is_empty() {
             return Ok(());
         }
 
-        debug!("Syncing a batch of {} coins", coin_states.len());
+        info!(
+            "Syncing a batch of {} coins from {} peers",
+            coin_states.len(),
+            peers.len()
+        );
 
         let mut futures = FuturesUnordered::new();
-
-        let mut coin_states_iter = coin_states.into_iter();
+        let mut remaining = coin_states.into_iter();
 
         for peer in peers {
             for _ in 0..self.batch_size_per_peer {
-                let Some(coin_state) = coin_states_iter.next() else {
+                let Some(row) = remaining.next() else {
                     break;
                 };
 
-                let db = self.db.clone();
-                let genesis_challenge = self.genesis_challenge;
-                let addr = peer.socket_addr();
                 let peer = peer.clone();
-
-                if db.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await? {
-                    db.sync_coin(coin_state.coin.coin_id(), None, CoinKind::Xch)
-                        .await?;
-                    warn!(
-                        "Coin {} should already be synced, but isn't",
-                        coin_state.coin.coin_id()
-                    );
-                    continue;
-                }
+                let genesis_challenge = self.genesis_challenge;
+                let is_custody_p2_puzzle_hash = self
+                    .db
+                    .is_custody_p2_puzzle_hash(row.coin_state.coin.puzzle_hash)
+                    .await?;
 
                 futures.push(async move {
-                    let result = fetch_puzzle(&peer, genesis_challenge, coin_state.coin).await;
-                    (addr, coin_state, result)
+                    let result =
+                        fetch_puzzles(&peer, genesis_challenge, row, is_custody_p2_puzzle_hash)
+                            .await;
+                    (peer.socket_addr(), row, result)
                 });
             }
         }
 
         let mut subscriptions = Vec::new();
+        let mut send_events = false;
 
-        while let Some((addr, coin_state, result)) = futures.next().await {
-            let coin_id = coin_state.coin.coin_id();
+        while let Some((addr, root, synced_coins)) = futures.next().await {
+            match synced_coins {
+                Ok(synced_coins) => {
+                    let mut tx = self.db.tx().await?;
 
-            match result {
-                Ok((info, minter_did)) => {
-                    let subscribe = info.subscribe();
-
-                    let remove = match info.p2_puzzle_hash() {
-                        Some(p2_puzzle_hash) => !self.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
-                        None => true,
-                    };
-
-                    if remove {
-                        self.db.delete_coin_state(coin_state.coin.coin_id()).await?;
-                    } else {
-                        let mut tx = self.db.tx().await?;
-                        insert_puzzle(&mut tx, coin_state, info, minter_did).await?;
-                        tx.commit().await?;
+                    if root.is_children_unsynced {
+                        debug!(
+                            "Children have been synced for coin {}",
+                            root.coin_state.coin.coin_id()
+                        );
+                        tx.set_children_synced(root.coin_state.coin.coin_id())
+                            .await?;
+                        send_events = true;
                     }
 
-                    if subscribe {
-                        subscriptions.push(coin_id);
+                    for item in synced_coins {
+                        let coin_id = item.coin_state.coin.coin_id();
+                        let is_root = root.coin_state.coin.coin_id() == coin_id;
+
+                        // We want to skip children that we already know about
+                        if !is_root && tx.is_known_coin(coin_id).await? {
+                            debug!("Skipping child coin {coin_id} because it is already known");
+                            continue;
+                        }
+
+                        let is_custody_p2_puzzle_hash =
+                            tx.is_custody_p2_puzzle_hash(coin_id).await?;
+
+                        let Some(kind) = item.kind.filter(|_| !is_custody_p2_puzzle_hash) else {
+                            warn!("Retroactively inserting XCH coin that should have already been synced: {coin_id}");
+
+                            self.db
+                                .update_coin(
+                                    coin_id,
+                                    Bytes32::default(),
+                                    item.coin_state.coin.puzzle_hash,
+                                    None,
+                                )
+                                .await?;
+                            send_events = true;
+                            continue;
+                        };
+
+                        // We don't want to insert child coins that we don't own.
+                        let custody_p2_puzzle_hashes = kind.custody_p2_puzzle_hashes();
+
+                        let mut is_relevant = false;
+
+                        for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
+                            if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+                                is_relevant = true;
+                                break;
+                            }
+                        }
+
+                        if !is_relevant {
+                            if is_root {
+                                warn!("Deleting unexpected coin {coin_id} because it is not relevant to this wallet");
+                                tx.delete_coin(coin_id).await?;
+                                send_events = true;
+                            } else {
+                                debug!("Skipping coin {coin_id} because it is not relevant to this wallet");
+                            }
+                            continue;
+                        }
+
+                        if is_root {
+                            debug!("Synced puzzle for coin {coin_id}");
+                        } else {
+                            debug!("Found relevant child coin {coin_id} which wasn't synced");
+                        }
+
+                        send_events = true;
+
+                        if let Some(height) = item.coin_state.created_height {
+                            tx.insert_height(height).await?;
+                        }
+
+                        if let Some(height) = item.coin_state.spent_height {
+                            tx.insert_height(height).await?;
+                        }
+
+                        tx.insert_coin(item.coin_state).await?;
+
+                        let subscribe = kind.subscribe();
+
+                        if insert_puzzle(&mut tx, item.coin_state, kind, item.minter_hash).await?
+                            && subscribe
+                        {
+                            subscriptions.push(coin_id);
+                        }
                     }
+
+                    tx.commit().await?;
                 }
                 Err(error) => {
                     debug!(
-                        "Failed to lookup puzzle of {} from peer {}: {}",
-                        coin_id, addr, error
+                        "Failed to sync {} from peer {}: {}",
+                        root.coin_state.coin.coin_id(),
+                        addr,
+                        error
                     );
 
                     if matches!(
@@ -149,49 +218,119 @@ impl PuzzleQueue {
             }
         }
 
-        self.command_sender
-            .send(SyncCommand::SubscribeCoins {
-                coin_ids: subscriptions,
-            })
-            .await
-            .ok();
+        if send_events {
+            self.command_sender
+                .send(SyncCommand::SubscribeCoins {
+                    coin_ids: subscriptions,
+                })
+                .await
+                .ok();
 
-        self.sync_sender
-            .send(SyncEvent::PuzzleBatchSynced)
-            .await
-            .ok();
-
+            self.sync_sender
+                .send(SyncEvent::PuzzleBatchSynced)
+                .await
+                .ok();
+        }
         Ok(())
     }
 }
 
-/// Fetches info for a coin's puzzle and inserts it into the database.
-async fn fetch_puzzle(
+#[derive(Debug, Clone)]
+struct SyncedCoin {
+    coin_state: CoinState,
+    kind: Option<ChildKind>,
+    minter_hash: Option<Bytes32>,
+}
+
+async fn fetch_puzzles(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
-    coin: Coin,
-) -> Result<(ChildKind, Option<Bytes32>), WalletError> {
-    let parent_spend = timeout(
-        Duration::from_secs(15),
-        peer.fetch_coin_spend(coin.parent_coin_info, genesis_challenge),
-    )
-    .await??;
+    unsynced_coin: UnsyncedCoin,
+    is_custody_p2_puzzle_hash: bool,
+) -> Result<Vec<SyncedCoin>, WalletError> {
+    let coin = unsynced_coin.coin_state.coin;
 
-    let info = spawn_blocking(move || {
-        ChildKind::from_parent(
-            parent_spend.coin,
-            &parent_spend.puzzle_reveal,
-            &parent_spend.solution,
-            coin,
-        )
-    })
-    .await??;
+    let mut synced_coins = Vec::new();
 
-    let minter_did = if let ChildKind::Nft { info, .. } = &info {
-        fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?
-    } else {
-        None
-    };
+    if unsynced_coin.is_asset_unsynced {
+        let parent_spend = if is_custody_p2_puzzle_hash {
+            None
+        } else {
+            timeout(
+                Duration::from_secs(15),
+                peer.fetch_optional_coin_spend(coin.parent_coin_info, genesis_challenge),
+            )
+            .await??
+        };
 
-    Ok((info, minter_did))
+        if let Some(parent_spend) = parent_spend {
+            let kind = ChildKind::from_parent(
+                parent_spend.coin,
+                &parent_spend.puzzle_reveal,
+                &parent_spend.solution,
+                coin,
+            )?;
+
+            let minter_hash = if let ChildKind::Nft { info, .. } = &kind {
+                fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?
+            } else {
+                None
+            };
+
+            synced_coins.push(SyncedCoin {
+                coin_state: unsynced_coin.coin_state,
+                kind: Some(kind),
+                minter_hash,
+            });
+        } else {
+            synced_coins.push(SyncedCoin {
+                coin_state: unsynced_coin.coin_state,
+                kind: None,
+                minter_hash: None,
+            });
+        }
+    }
+
+    if unsynced_coin.is_children_unsynced {
+        if let Some(spent_height) = unsynced_coin.coin_state.spent_height {
+            let (puzzle_reveal, solution) = timeout(
+                Duration::from_secs(15),
+                peer.fetch_puzzle_solution(coin.coin_id(), spent_height),
+            )
+            .await??;
+
+            let children = ChildKind::parse_children(coin, &puzzle_reveal, &solution)?;
+
+            let coin_states = peer
+                .fetch_coins(
+                    children.iter().map(|(child, _)| child.coin_id()).collect(),
+                    genesis_challenge,
+                )
+                .await?;
+
+            for (child_coin, kind) in children {
+                let Some(&coin_state) = coin_states
+                    .iter()
+                    .find(|coin_state| coin_state.coin.coin_id() == child_coin.coin_id())
+                else {
+                    continue;
+                };
+
+                let minter_hash = if let ChildKind::Nft { info, .. } = &kind {
+                    fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new())
+                        .await?
+                } else {
+                    None
+                };
+
+                synced_coins.push(SyncedCoin {
+                    coin_state,
+                    kind: Some(kind),
+                    minter_hash,
+                });
+            }
+        }
+    }
+
+    Ok(synced_coins)
 }
