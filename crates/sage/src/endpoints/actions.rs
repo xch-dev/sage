@@ -147,15 +147,15 @@ impl Sage {
             }
 
             if let Some(hash) = metadata.data_hash {
-                tx.delete_file(hash).await?;
+                tx.delete_file_data(hash).await?;
             }
 
             if let Some(hash) = metadata.metadata_hash {
-                tx.delete_file(hash).await?;
+                tx.delete_file_data(hash).await?;
             }
 
             if let Some(hash) = metadata.license_hash {
-                tx.delete_file(hash).await?;
+                tx.delete_file_data(hash).await?;
             }
 
             tx.commit().await?;
