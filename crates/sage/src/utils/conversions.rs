@@ -46,7 +46,6 @@ pub fn encode_asset_id(hash: Bytes32, kind: AssetKind) -> Result<Option<String>>
             AssetKind::Token => hex::encode(hash),
             AssetKind::Nft => Address::new(hash, "nft".to_string()).encode()?,
             AssetKind::Did => Address::new(hash, "did:chia:".to_string()).encode()?,
-            AssetKind::Option => Address::new(hash, "option".to_string()).encode()?,
         })
     })
 }
@@ -56,6 +55,5 @@ pub fn encode_asset_kind(kind: AssetKind) -> sage_api::AssetKind {
         AssetKind::Token => sage_api::AssetKind::Token,
         AssetKind::Nft => sage_api::AssetKind::Nft,
         AssetKind::Did => sage_api::AssetKind::Did,
-        AssetKind::Option => sage_api::AssetKind::Option,
     }
 }

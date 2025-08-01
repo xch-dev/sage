@@ -33,7 +33,6 @@ CREATE TABLE collections (
  * Token = 0
  * NFT = 1
  * DID = 2
- * Option = 3
  *
  * The hash represents the asset's unique on-chain identifier (asset id or launcher id).
  * Everything else is for display purposes only
@@ -52,7 +51,8 @@ CREATE TABLE assets (
   icon_url TEXT,
   description TEXT,
   is_sensitive_content BOOLEAN NOT NULL DEFAULT FALSE,
-  is_visible BOOLEAN NOT NULL
+  is_visible BOOLEAN NOT NULL,
+  hidden_puzzle_hash BLOB
 );
 
 CREATE TABLE nfts (
@@ -83,24 +83,6 @@ CREATE TABLE dids (
   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
-CREATE TABLE options (
-  id INTEGER NOT NULL PRIMARY KEY,
-  asset_id INTEGER NOT NULL UNIQUE,
-  creator_puzzle_hash BLOB NOT NULL,
-  expiration_seconds INTEGER NOT NULL,
-  underlying_asset_id INTEGER NOT NULL,
-  underlying_amount BLOB NOT NULL,
-  underlying_coin_hash BLOB NOT NULL,
-  underlying_delegated_puzzle_hash BLOB NOT NULL,
-  strike_asset_id INTEGER NOT NULL,
-  strike_hidden_puzzle_hash BLOB,
-  strike_settlement_puzzle_hash BLOB,
-  strike_amount BLOB NOT NULL,
-  FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE,
-  FOREIGN KEY (underlying_asset_id) REFERENCES assets(id) ON DELETE CASCADE,
-  FOREIGN KEY (strike_asset_id) REFERENCES assets(id) ON DELETE CASCADE
-);
-
 /*
  * This isn't a comprehensive history of the blockchain, but keeps track of blocks that
  * have been synced. It's primarily used for identifying the timestamp in which coins
@@ -120,7 +102,6 @@ CREATE TABLE blocks (
  * A table of all p2 puzzle hashes that belong to the wallet, from kinds such as:
  * Derivation = 0
  * Clawback = 1
- * OptionUnderlying = 2
  *
  * However, outer puzzles such as the CAT or revocation layer are stored elsewhere.
  */
@@ -146,14 +127,6 @@ CREATE TABLE clawbacks (
   receiver_puzzle_hash BLOB NOT NULL,
   expiration_seconds INTEGER NOT NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE
-);
-
-CREATE TABLE p2_options (
-  id INTEGER NOT NULL PRIMARY KEY,
-  p2_puzzle_id INTEGER NOT NULL UNIQUE,
-  option_asset_id INTEGER NULL,
-  FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE,
-  FOREIGN KEY (option_asset_id) REFERENCES assets(id) ON DELETE CASCADE
 );
 
 /*
