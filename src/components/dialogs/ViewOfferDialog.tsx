@@ -30,7 +30,7 @@ export function ViewOfferDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            <Trans>Enter Offer String or Offer URL</Trans>
+            <Trans>Enter Offer String or URL</Trans>
           </DialogTitle>
           <DialogDescription>
             <Trans>
@@ -40,7 +40,7 @@ export function ViewOfferDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className='flex flex-col gap-4'>
           <Textarea
-            placeholder={t`Paste your offer string or offer URL here...`}
+            placeholder={t`Paste your offer string or URL here...`}
             value={offerString}
             onChange={(e) => setOfferString(e.target.value)}
             className='min-h-[200px] font-mono text-xs'

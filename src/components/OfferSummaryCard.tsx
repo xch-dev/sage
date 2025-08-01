@@ -26,7 +26,7 @@ export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
                     : 'Expired'}
             </div>
             <div className='text-muted-foreground text-sm'>
-              {new Date(record.creation_timestamp).toLocaleString()}
+              {new Date(record.creation_timestamp * 1000).toLocaleString()}
             </div>
             {record.summary?.expiration_timestamp && (
               <div className='text-muted-foreground text-sm'>

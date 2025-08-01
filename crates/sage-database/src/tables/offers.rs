@@ -277,7 +277,8 @@ async fn offers(
             expiration_timestamp,
             inserted_timestamp
         FROM offers 
-        WHERE status = ? OR ? IS NULL",
+        WHERE status = ? OR ? IS NULL
+        ORDER BY inserted_timestamp DESC",
         status_value,
         status_value
     )
