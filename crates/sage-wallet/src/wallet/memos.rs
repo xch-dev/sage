@@ -1,31 +1,43 @@
 use chia::protocol::{Bytes, Bytes32};
-use chia_wallet_sdk::{driver::SpendContext, prelude::Memos};
+use chia_wallet_sdk::{
+    driver::{ClawbackV2, SpendContext},
+    prelude::Memos,
+};
 
 use crate::WalletError;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Hint {
+    None,
+    P2PuzzleHash(Bytes32),
+    Clawback(ClawbackV2),
+}
+
 pub fn calculate_memos(
     ctx: &mut SpendContext,
-    p2_puzzle_hash: Bytes32,
-    include_hint: bool,
-    memos: Option<Vec<Bytes>>,
+    hint: Hint,
+    memos: Vec<Bytes>,
 ) -> Result<Memos, WalletError> {
-    let mut result = None;
+    let mut result = Vec::new();
 
-    if include_hint {
-        result = Some(vec![p2_puzzle_hash.into()]);
-    }
-
-    if let Some(memos) = memos {
-        if let Some(result) = result.as_mut() {
-            result.extend(memos);
-        } else {
-            result = Some(memos);
+    match hint {
+        Hint::None => {}
+        Hint::P2PuzzleHash(p2_puzzle_hash) => {
+            result.push(ctx.alloc(&p2_puzzle_hash)?);
+        }
+        Hint::Clawback(clawback) => {
+            result.push(ctx.alloc(&clawback.receiver_puzzle_hash)?);
+            result.push(ctx.alloc(&clawback.memo())?);
         }
     }
 
-    Ok(if let Some(result) = result {
-        ctx.memos(&result)?
-    } else {
+    for memo in memos {
+        result.push(ctx.alloc(&memo)?);
+    }
+
+    Ok(if result.is_empty() {
         Memos::None
+    } else {
+        ctx.memos(&result)?
     })
 }

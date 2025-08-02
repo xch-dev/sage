@@ -1,16 +1,17 @@
 use chia::{
     bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
     clvm_utils::ToTreeHash,
-    protocol::{Coin, CoinSpend, SpendBundle},
-    puzzles::{cat::CatArgs, standard::StandardArgs, DeriveSynthetic, Proof},
+    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
+    puzzles::{DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::driver::{Layer, SpendContext};
+use chia_wallet_sdk::driver::{ClawbackV2, Layer, SpendContext, StandardLayer};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
     SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
     SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
 };
+use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
 use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
 use tracing::{debug, info, warn};
 
@@ -28,11 +29,7 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if !wallet
-                .db
-                .is_coin_locked(parse_coin_id(coin_id.clone())?)
-                .await?
-            {
+            if wallet.db.are_coins_spendable(&[coin_id.clone()]).await? {
                 coin_ids.push(coin_id);
             }
         }
@@ -46,279 +43,105 @@ impl Sage {
 
         let mut items = Vec::new();
 
-        if let Some(kind) = req.kind {
-            match kind {
-                AssetCoinType::Cat => {
-                    let asset_id = parse_asset_id(req.asset_id.ok_or(Error::MissingAssetId)?)?;
-
-                    let rows = wallet
-                        .db
-                        .created_unspent_cat_coin_states(
-                            asset_id,
-                            req.limit.unwrap_or(10),
-                            req.offset.unwrap_or(0),
-                        )
-                        .await?;
-
-                    for row in rows {
-                        let cs = row.coin_state;
-
-                        let in_transaction = wallet
-                            .db
-                            .coin_transaction_id(cs.coin.coin_id())
-                            .await?
-                            .is_some();
-
-                        if !include_locked && in_transaction {
-                            continue;
-                        }
-
-                        let is_offered =
-                            wallet.db.coin_offer_id(cs.coin.coin_id()).await?.is_some();
-
-                        if !include_locked && is_offered {
-                            continue;
-                        }
-
-                        let Some(cat) = wallet.db.cat_coin(cs.coin.coin_id()).await? else {
-                            return Err(Error::MissingCatCoin(cs.coin.coin_id()));
-                        };
-
-                        let synthetic_key =
-                            wallet.db.synthetic_key(cat.info.p2_puzzle_hash).await?;
-
-                        let mut ctx = SpendContext::new();
-                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
-                        let cat_puzzle = ctx.curry(CatArgs::new(cat.info.asset_id, p2_puzzle))?;
-
-                        items.push(SpendableCoin {
-                            coin: wallet_connect::Coin {
-                                parent_coin_info: hex::encode(cs.coin.parent_coin_info),
-                                puzzle_hash: hex::encode(cs.coin.puzzle_hash),
-                                amount: cs.coin.amount,
-                            },
-                            coin_name: hex::encode(cs.coin.coin_id()),
-                            puzzle: hex::encode(ctx.serialize(&cat_puzzle)?),
-                            confirmed_block_index: cs.created_height.expect("not created"),
-                            locked: in_transaction || is_offered,
-                            lineage_proof: cat.lineage_proof.map(|proof| LineageProof {
-                                parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
-                                inner_puzzle_hash: Some(hex::encode(
-                                    proof.parent_inner_puzzle_hash,
-                                )),
-                                amount: Some(proof.parent_amount),
-                            }),
-                        });
+        let (rows, _count) = wallet
+            .db
+            .coin_records(
+                match (req.kind, req.asset_id) {
+                    (None, _) => AssetFilter::Id(Bytes32::default()),
+                    (Some(AssetCoinType::Cat), None) => return Err(Error::MissingAssetId),
+                    (Some(AssetCoinType::Cat), Some(asset_id)) => {
+                        AssetFilter::Id(parse_asset_id(asset_id)?)
                     }
-                }
-                AssetCoinType::Did => {
-                    let asset_id = if let Some(asset_id) = req.asset_id {
-                        Some(if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
-                            asset_id
-                        } else {
-                            parse_did_id(asset_id)?
-                        })
-                    } else {
-                        None
-                    };
-
-                    let rows = if let Some(asset_id) = asset_id {
-                        wallet.db.created_unspent_did_coin_state(asset_id).await?
-                    } else {
-                        wallet
-                            .db
-                            .created_unspent_did_coin_states(
-                                req.limit.unwrap_or(10),
-                                req.offset.unwrap_or(0),
-                            )
-                            .await?
-                    };
-
-                    for row in rows {
-                        let cs = row.coin_state;
-
-                        let in_transaction = wallet
-                            .db
-                            .coin_transaction_id(cs.coin.coin_id())
-                            .await?
-                            .is_some();
-
-                        if !include_locked && in_transaction {
-                            continue;
-                        }
-
-                        let is_offered =
-                            wallet.db.coin_offer_id(cs.coin.coin_id()).await?.is_some();
-
-                        if !include_locked && is_offered {
-                            continue;
-                        }
-
-                        let Some(did) = wallet.db.did_by_coin_id(cs.coin.coin_id()).await? else {
-                            return Err(Error::MissingCoin(cs.coin.coin_id()));
-                        };
-
-                        let synthetic_key =
-                            wallet.db.synthetic_key(did.info.p2_puzzle_hash).await?;
-
-                        let mut ctx = SpendContext::new();
-                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
-                        let did_puzzle =
-                            did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
-
-                        items.push(SpendableCoin {
-                            coin: wallet_connect::Coin {
-                                parent_coin_info: hex::encode(cs.coin.parent_coin_info),
-                                puzzle_hash: hex::encode(cs.coin.puzzle_hash),
-                                amount: cs.coin.amount,
-                            },
-                            coin_name: hex::encode(cs.coin.coin_id()),
-                            puzzle: hex::encode(ctx.serialize(&did_puzzle)?),
-                            confirmed_block_index: cs.created_height.expect("not created"),
-                            locked: in_transaction || is_offered,
-                            lineage_proof: Some(match did.proof {
-                                Proof::Lineage(proof) => LineageProof {
-                                    parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
-                                    inner_puzzle_hash: Some(hex::encode(
-                                        proof.parent_inner_puzzle_hash,
-                                    )),
-                                    amount: Some(proof.parent_amount),
-                                },
-                                Proof::Eve(proof) => LineageProof {
-                                    parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
-                                    inner_puzzle_hash: None,
-                                    amount: Some(proof.parent_amount),
-                                },
-                            }),
-                        });
+                    (Some(AssetCoinType::Did), None) => AssetFilter::Dids,
+                    (Some(AssetCoinType::Did), Some(asset_id)) => {
+                        AssetFilter::Id(parse_did_id(asset_id)?)
                     }
-                }
-                AssetCoinType::Nft => {
-                    let asset_id = if let Some(asset_id) = req.asset_id {
-                        Some(if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
-                            asset_id
-                        } else {
-                            parse_nft_id(asset_id)?
-                        })
-                    } else {
-                        None
-                    };
-
-                    let rows = if let Some(asset_id) = asset_id {
-                        wallet.db.created_unspent_nft_coin_state(asset_id).await?
-                    } else {
-                        wallet
-                            .db
-                            .created_unspent_nft_coin_states(
-                                req.limit.unwrap_or(10),
-                                req.offset.unwrap_or(0),
-                            )
-                            .await?
-                    };
-
-                    for row in rows {
-                        let cs = row.coin_state;
-
-                        let in_transaction = wallet
-                            .db
-                            .coin_transaction_id(cs.coin.coin_id())
-                            .await?
-                            .is_some();
-
-                        if !include_locked && in_transaction {
-                            continue;
-                        }
-
-                        let is_offered =
-                            wallet.db.coin_offer_id(cs.coin.coin_id()).await?.is_some();
-
-                        if !include_locked && is_offered {
-                            continue;
-                        }
-
-                        let Some(nft) = wallet.db.nft_by_coin_id(cs.coin.coin_id()).await? else {
-                            return Err(Error::MissingCoin(cs.coin.coin_id()));
-                        };
-
-                        let synthetic_key =
-                            wallet.db.synthetic_key(nft.info.p2_puzzle_hash).await?;
-
-                        let mut ctx = SpendContext::new();
-                        let p2_puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
-                        let nft_puzzle =
-                            nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
-
-                        items.push(SpendableCoin {
-                            coin: wallet_connect::Coin {
-                                parent_coin_info: hex::encode(cs.coin.parent_coin_info),
-                                puzzle_hash: hex::encode(cs.coin.puzzle_hash),
-                                amount: cs.coin.amount,
-                            },
-                            coin_name: hex::encode(cs.coin.coin_id()),
-                            puzzle: hex::encode(ctx.serialize(&nft_puzzle)?),
-                            confirmed_block_index: cs.created_height.expect("not created"),
-                            locked: in_transaction || is_offered,
-                            lineage_proof: Some(match nft.proof {
-                                Proof::Lineage(proof) => LineageProof {
-                                    parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
-                                    inner_puzzle_hash: Some(hex::encode(
-                                        proof.parent_inner_puzzle_hash,
-                                    )),
-                                    amount: Some(proof.parent_amount),
-                                },
-                                Proof::Eve(proof) => LineageProof {
-                                    parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
-                                    inner_puzzle_hash: None,
-                                    amount: Some(proof.parent_amount),
-                                },
-                            }),
-                        });
+                    (Some(AssetCoinType::Nft), None) => AssetFilter::Nfts,
+                    (Some(AssetCoinType::Nft), Some(asset_id)) => {
+                        AssetFilter::Id(parse_nft_id(asset_id)?)
                     }
+                },
+                req.limit.unwrap_or(10),
+                req.offset.unwrap_or(0),
+                CoinSortMode::CreatedHeight,
+                true,
+                if include_locked {
+                    CoinFilterMode::Owned
+                } else {
+                    CoinFilterMode::Selectable
+                },
+            )
+            .await?;
+
+        for row in rows {
+            let mut ctx = SpendContext::new();
+
+            let p2_puzzle = match wallet.db.p2_puzzle(row.p2_puzzle_hash).await? {
+                P2Puzzle::PublicKey(key) => StandardLayer::new(key).construct_puzzle(&mut ctx)?,
+                P2Puzzle::Clawback(clawback) => {
+                    let clawback = ClawbackV2::new(
+                        clawback.sender_puzzle_hash,
+                        clawback.receiver_puzzle_hash,
+                        clawback.seconds,
+                        row.coin.amount,
+                        true,
+                    );
+                    clawback.into_1_of_n().construct_puzzle(&mut ctx)?
                 }
-            }
-        } else {
-            let rows = wallet
-                .db
-                .created_unspent_p2_coin_states(req.limit.unwrap_or(10), req.offset.unwrap_or(0))
-                .await?;
-
-            for row in rows {
-                let cs = row.coin_state;
-
-                let in_transaction = wallet
-                    .db
-                    .coin_transaction_id(cs.coin.coin_id())
-                    .await?
-                    .is_some();
-
-                if !include_locked && in_transaction {
-                    continue;
+                P2Puzzle::OptionUnderlying(underlying) => {
+                    underlying.option.into_1_of_n().construct_puzzle(&mut ctx)?
                 }
+            };
 
-                let is_offered = wallet.db.coin_offer_id(cs.coin.coin_id()).await?.is_some();
-
-                if !include_locked && is_offered {
-                    continue;
+            let (puzzle, proof) = match req.kind {
+                None => (p2_puzzle, None),
+                Some(AssetCoinType::Cat) => {
+                    let Some(cat) = wallet.db.cat_coin(row.coin.coin_id()).await? else {
+                        return Err(Error::MissingCatCoin(row.coin.coin_id()));
+                    };
+                    let puzzle = cat.info.construct_puzzle(&mut ctx, p2_puzzle)?;
+                    (puzzle, cat.lineage_proof.map(Proof::Lineage))
                 }
+                Some(AssetCoinType::Did) => {
+                    let Some(did) = wallet.db.did_coin(row.coin.coin_id()).await? else {
+                        return Err(Error::MissingDidCoin(row.coin.coin_id()));
+                    };
+                    let puzzle = did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
+                    (puzzle, Some(did.proof))
+                }
+                Some(AssetCoinType::Nft) => {
+                    let Some(nft) = wallet.db.nft_coin(row.coin.coin_id()).await? else {
+                        return Err(Error::MissingNftCoin(row.coin.coin_id()));
+                    };
+                    let puzzle = nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
+                    (puzzle, Some(nft.proof))
+                }
+            };
 
-                let synthetic_key = wallet.db.synthetic_key(cs.coin.puzzle_hash).await?;
-
-                let mut ctx = SpendContext::new();
-                let puzzle = ctx.curry(StandardArgs::new(synthetic_key))?;
-
-                items.push(SpendableCoin {
-                    coin: wallet_connect::Coin {
-                        parent_coin_info: hex::encode(cs.coin.parent_coin_info),
-                        puzzle_hash: hex::encode(cs.coin.puzzle_hash),
-                        amount: cs.coin.amount,
-                    },
-                    coin_name: hex::encode(cs.coin.coin_id()),
-                    puzzle: hex::encode(ctx.serialize(&puzzle)?),
-                    confirmed_block_index: cs.created_height.expect("not created"),
-                    locked: in_transaction || is_offered,
-                    lineage_proof: None,
-                });
-            }
+            items.push(SpendableCoin {
+                coin: wallet_connect::Coin {
+                    parent_coin_info: hex::encode(row.coin.parent_coin_info),
+                    puzzle_hash: hex::encode(row.coin.puzzle_hash),
+                    amount: row.coin.amount,
+                },
+                coin_name: hex::encode(row.coin.coin_id()),
+                puzzle: hex::encode(ctx.serialize(&puzzle)?),
+                confirmed_block_index: row.created_height.unwrap_or(0),
+                locked: row.mempool_item_hash.is_some() || row.offer_hash.is_some(),
+                lineage_proof: match proof {
+                    None => None,
+                    Some(Proof::Eve(proof)) => Some(LineageProof {
+                        parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
+                        inner_puzzle_hash: None,
+                        amount: Some(proof.parent_amount),
+                    }),
+                    Some(Proof::Lineage(proof)) => Some(LineageProof {
+                        parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
+                        inner_puzzle_hash: Some(hex::encode(proof.parent_inner_puzzle_hash)),
+                        amount: Some(proof.parent_amount),
+                    }),
+                },
+            });
         }
 
         Ok(items)
@@ -331,7 +154,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let public_key = parse_public_key(req.public_key)?;
-        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
+        let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
 
@@ -341,10 +164,10 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
-        let secret_key = if info.hardened {
-            master_to_wallet_hardened(&master_sk, info.index)
+        let secret_key = if info.is_hardened {
+            master_to_wallet_hardened(&master_sk, info.derivation_index)
         } else {
-            master_to_wallet_unhardened(&master_sk, info.index)
+            master_to_wallet_unhardened(&master_sk, info.derivation_index)
         }
         .derive_synthetic();
 
@@ -366,9 +189,11 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let p2_puzzle_hash = self.parse_address(req.address)?;
-        let public_key = wallet.db.synthetic_key(p2_puzzle_hash).await?;
+        let Some(public_key) = wallet.db.public_key(p2_puzzle_hash).await? else {
+            return Err(Error::InvalidKey);
+        };
 
-        let Some(info) = wallet.db.synthetic_key_info(public_key).await? else {
+        let Some(info) = wallet.db.derivation(public_key).await? else {
             return Err(Error::InvalidKey);
         };
 
@@ -378,10 +203,10 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
-        let secret_key = if info.hardened {
-            master_to_wallet_hardened(&master_sk, info.index)
+        let secret_key = if info.is_hardened {
+            master_to_wallet_hardened(&master_sk, info.derivation_index)
         } else {
-            master_to_wallet_unhardened(&master_sk, info.index)
+            master_to_wallet_unhardened(&master_sk, info.derivation_index)
         }
         .derive_synthetic();
 
@@ -411,15 +236,7 @@ impl Sage {
 
         let transaction_id = spend_bundle.name();
 
-        match submit_to_peers(&peers, wallet.genesis_challenge, spend_bundle.clone()).await? {
-            Status::Success => {
-                info!("Transaction {transaction_id} has already been confirmed, not submitting again.");
-
-                Ok(SendTransactionImmediatelyResponse {
-                    status: 1,
-                    error: None,
-                })
-            }
+        match submit_to_peers(&peers, spend_bundle.clone()).await? {
             Status::Pending => {
                 let peer = self
                     .peer_state

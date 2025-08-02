@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM assets WHERE id != 0;\n                DELETE FROM collections WHERE id != 0;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "2e39146351acfb22a8949733c22b4549dae27f804285e6b9108dd376d2fbc121"
+}

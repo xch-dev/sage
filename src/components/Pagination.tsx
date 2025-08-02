@@ -11,7 +11,7 @@ import { Trans } from '@lingui/react/macro';
 import { Button } from './ui/button';
 import { ChevronRightIcon, ChevronLeftIcon } from '@radix-ui/react-icons';
 
-type PaginationProps = {
+interface PaginationProps {
   page: number;
   total?: number;
   canLoadMore?: boolean;
@@ -21,7 +21,7 @@ type PaginationProps = {
   onPageSizeChange: (pageSize: number) => void;
   pageSizeOptions?: number[];
   compact?: boolean;
-};
+}
 
 export const Pagination = ({
   page,

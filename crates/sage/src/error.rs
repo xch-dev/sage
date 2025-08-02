@@ -169,6 +169,9 @@ pub enum Error {
     #[error("Missing coin: {0}")]
     MissingCoin(Bytes32),
 
+    #[error("Missing CAT: {0}")]
+    MissingCat(Bytes32),
+
     #[error("Missing DID: {0}")]
     MissingDid(Bytes32),
 
@@ -177,6 +180,12 @@ pub enum Error {
 
     #[error("Missing CAT coin: {0}")]
     MissingCatCoin(Bytes32),
+
+    #[error("Missing DID coin: {0}")]
+    MissingDidCoin(Bytes32),
+
+    #[error("Missing NFT coin: {0}")]
+    MissingNftCoin(Bytes32),
 
     #[error("Missing offer: {0}")]
     MissingOffer(Bytes32),
@@ -199,6 +208,9 @@ pub enum Error {
     #[error("Missing asset id")]
     MissingAssetId,
 
+    #[error("Database version too old")]
+    DatabaseVersionTooOld,
+
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
 }
@@ -217,7 +229,7 @@ impl Error {
                 | KeychainError::Bip39(..)
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
             },
-            Self::SqlxMigration(..) => ErrorKind::DatabaseMigration,
+            Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
             Self::Send(..)
             | Self::Io(..)
             | Self::Client(..)
@@ -241,6 +253,9 @@ impl Error {
             | Self::UnknownNetwork
             | Self::MissingCoin(..)
             | Self::MissingCatCoin(..)
+            | Self::MissingDidCoin(..)
+            | Self::MissingNftCoin(..)
+            | Self::MissingCat(..)
             | Self::MissingDid(..)
             | Self::MissingNft(..)
             | Self::MissingOffer(..) => ErrorKind::NotFound,

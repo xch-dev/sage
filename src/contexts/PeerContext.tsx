@@ -1,6 +1,7 @@
-import { createContext, ReactNode, useEffect, useState } from 'react';
+import { createContext, ReactNode, useEffect, useRef, useState } from 'react';
 import { commands, PeerRecord } from '../bindings';
 import { useErrors } from '../hooks/useErrors';
+import { CustomError } from './ErrorContext';
 
 export interface PeerContextType {
   peers: PeerRecord[] | null;
@@ -13,18 +14,37 @@ export const PeerContext = createContext<PeerContextType | undefined>(
 export function PeerProvider({ children }: { children: ReactNode }) {
   const { addError } = useErrors();
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
-    const updatePeers = () => {
-      commands
-        .getPeers({})
-        .then((data) => setPeers(data.peers))
-        .catch(addError);
+    isMountedRef.current = true;
+    const abortController = new AbortController();
+
+    const updatePeers = async () => {
+      try {
+        const data = await commands.getPeers({});
+        if (isMountedRef.current && !abortController.signal.aborted) {
+          setPeers(data.peers);
+        }
+      } catch (error) {
+        if (isMountedRef.current && !abortController.signal.aborted) {
+          addError(error as CustomError);
+        }
+      }
     };
 
     updatePeers();
-    const interval = setInterval(updatePeers, 5000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => {
+      if (!abortController.signal.aborted) {
+        updatePeers();
+      }
+    }, 5000);
+
+    return () => {
+      isMountedRef.current = false;
+      abortController.abort();
+      clearInterval(interval);
+    };
   }, [addError]);
 
   return (

@@ -1,9 +1,12 @@
 import Container from '@/components/Container';
+import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
+import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
+import { AssetSelector } from '@/components/selectors/AssetSelector';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { IntegerInput, FeeAmountInput } from '@/components/ui/masked-input';
+import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
@@ -13,10 +16,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
-import { AssetSelector } from '@/components/selectors/AssetSelector';
-import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
@@ -30,9 +30,11 @@ export function MakeOffer() {
   );
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
-  const [enabledMarketplaces, setEnabledMarketplaces] = useState<{
-    [key: string]: boolean;
-  }>({});
+  const [enabledMarketplaces, setEnabledMarketplaces] = useState<
+    Record<string, boolean>
+  >({});
+  const [hasOfferedXchAdded, setHasOfferedXchAdded] = useState(false);
+  const [hasRequestedXchAdded, setHasRequestedXchAdded] = useState(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -50,19 +52,58 @@ export function MakeOffer() {
       }
     }
 
-    const hasOfferedXch = state.offered.xch && state.offered.xch !== '0';
+    for (const cat of [...state.offered.cats, ...state.requested.cats]) {
+      const amount = parseFloat(cat.amount?.toString() || '');
+
+      if (isNaN(amount) || amount <= 0) {
+        addError({
+          kind: 'invalid',
+          reason: t`Tokens must have a positive amount.`,
+        });
+        return;
+      }
+    }
+
+    // Check if XCH amounts are valid (positive numbers)
+    const hasOfferedXchValid =
+      hasOfferedXchAdded &&
+      state.offered.xch !== '0' &&
+      !isNaN(parseFloat(String(state.offered.xch))) &&
+      parseFloat(String(state.offered.xch)) > 0;
+    const hasRequestedXchValid =
+      hasRequestedXchAdded &&
+      state.requested.xch !== '0' &&
+      !isNaN(parseFloat(String(state.requested.xch))) &&
+      parseFloat(String(state.requested.xch)) > 0;
+
+    // Validate XCH amounts if they've been added
+    if (hasOfferedXchAdded && !hasOfferedXchValid) {
+      addError({
+        kind: 'invalid',
+        reason: t`Offered XCH amount must be a positive number.`,
+      });
+      return;
+    }
+
+    if (hasRequestedXchAdded && !hasRequestedXchValid) {
+      addError({
+        kind: 'invalid',
+        reason: t`Requested XCH amount must be a positive number.`,
+      });
+      return;
+    }
+
     const hasOfferedCats = state.offered.cats.length > 0;
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
-    const hasRequestedXch = state.requested.xch && state.requested.xch !== '0';
     const hasRequestedCats = state.requested.cats.length > 0;
     const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
 
     if (
       !(
-        hasOfferedXch ||
+        hasOfferedXchValid ||
         hasOfferedCats ||
         hasOfferedNfts ||
-        hasRequestedXch ||
+        hasRequestedXchValid ||
         hasRequestedCats ||
         hasRequestedNfts
       )
@@ -114,9 +155,10 @@ export function MakeOffer() {
                 offering
                 prefix='offer'
                 assets={state.offered}
-                setAssets={(assets: any) => setState({ offered: assets })}
+                setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                onXchStateChange={setHasOfferedXchAdded}
               />
             </CardContent>
           </Card>
@@ -136,9 +178,10 @@ export function MakeOffer() {
               <AssetSelector
                 prefix='requested'
                 assets={state.requested}
-                setAssets={(assets: any) => setState({ requested: assets })}
+                setAssets={(assets) => setState({ requested: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                onXchStateChange={setHasRequestedXchAdded}
               />
             </CardContent>
           </Card>
@@ -178,9 +221,9 @@ export function MakeOffer() {
                     if (value) {
                       setState({
                         expiration: {
-                          days: expiry.days.toString(),
-                          hours: expiry.hours.toString(),
-                          minutes: expiry.minutes.toString(),
+                          days: expiry?.days?.toString() ?? '1',
+                          hours: expiry?.hours?.toString() ?? '0',
+                          minutes: expiry?.minutes?.toString() ?? '0',
                         },
                       });
                     } else {
@@ -195,7 +238,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.days}
+                      value={state.expiration?.days ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
@@ -218,7 +261,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.hours}
+                      value={state.expiration?.hours ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
@@ -241,7 +284,7 @@ export function MakeOffer() {
                   <div className='relative'>
                     <IntegerInput
                       className='pr-12'
-                      value={state.expiration.minutes}
+                      value={state.expiration?.minutes ?? ''}
                       placeholder='0'
                       min={0}
                       onValueChange={(values) => {
@@ -288,8 +331,6 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
-          walletUnit={walletState.sync.unit.ticker}
-          walletDecimals={walletState.sync.unit.decimals}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
         />

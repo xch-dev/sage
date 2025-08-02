@@ -8,6 +8,7 @@ use chia_wallet_sdk::{
     client::ClientError, driver::DriverError, signer::SignerError, utils::CoinSelectionError,
 };
 use clvmr::reduction::EvalErr;
+use sage_assets::UriError;
 use sage_database::DatabaseError;
 use thiserror::Error;
 use tokio::{task::JoinError, time::error::Elapsed};
@@ -32,11 +33,11 @@ pub enum WalletError {
     #[error("Request error: {0}")]
     Request(#[from] reqwest::Error),
 
+    #[error("URI error: {0}")]
+    Uri(#[from] UriError),
+
     #[error("Timeout exceeded")]
     Elapsed(#[from] Elapsed),
-
-    #[error("Missing coin with id {0}")]
-    MissingCoin(Bytes32),
 
     #[error("Missing spend with id {0}")]
     MissingSpend(Bytes32),
@@ -77,32 +78,41 @@ pub enum WalletError {
     #[error("SECP is not supported")]
     SecpNotSupported,
 
+    #[error("Missing XCH coin with id {0}")]
+    MissingXchCoin(Bytes32),
+
+    #[error("Missing CAT coin with id {0}")]
+    MissingCatCoin(Bytes32),
+
+    #[error("Missing DID coin with id {0}")]
+    MissingDidCoin(Bytes32),
+
+    #[error("Missing NFT coin with id {0}")]
+    MissingNftCoin(Bytes32),
+
+    #[error("Missing coin with id {0}")]
+    MissingCoin(Bytes32),
+
+    #[error("Missing option contract coin with id {0}")]
+    MissingOptionCoin(Bytes32),
+
     #[error("Missing DID with id {0}. It may have been spent recently. Please try again later.")]
     MissingDid(Bytes32),
 
-    #[error("Missing NFT with id {0}")]
+    #[error("Missing NFT with id {0}. It may have been spent recently. Please try again later.")]
     MissingNft(Bytes32),
+
+    #[error("Missing option contract with id {0}. It may have been spent recently. Please try again later.")]
+    MissingOptionContract(Bytes32),
+
+    #[error("Missing asset with id {0}")]
+    MissingAsset(Bytes32),
 
     #[error("Uncancellable offer")]
     UncancellableOffer,
 
-    #[error("Invalid trade price")]
-    InvalidTradePrice,
-
-    #[error("Invalid royalty amount")]
-    InvalidRoyaltyAmount,
-
-    #[error("Invalid requested payment")]
-    InvalidRequestedPayment,
-
-    #[error("Unknown requested payment mod hash {0}")]
-    UnknownRequestedPayment(Bytes32),
-
-    #[error("Duplicate NFT requested payment with id {0}")]
-    DuplicateNftRequestedPayment(Bytes32),
-
-    #[error("Empty bulk transfer")]
-    EmptyBulkTransfer,
+    #[error("Cannot import offer that doesn't belong to this wallet")]
+    CannotImportOffer,
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),

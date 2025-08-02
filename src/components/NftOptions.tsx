@@ -1,30 +1,33 @@
+import { useDebounce } from '@/hooks/useDebounce';
 import {
+  CardSize,
   NftGroupMode,
   NftParams,
   NftSortMode,
   SetNftParams,
-  CardSize,
 } from '@/hooks/useNftParams';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowDownAz,
   ArrowLeftIcon,
   Clock2,
   CopyPlus,
+  Download,
   EyeIcon,
   EyeOff,
   LayoutGrid,
   LibraryBigIcon,
-  Paintbrush,
-  SearchIcon,
-  UserIcon,
-  XIcon,
   Maximize2,
   Minimize2,
+  Paintbrush,
+  SearchIcon,
   Settings2,
-  Download,
+  UserIcon,
+  XIcon,
 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
@@ -35,9 +38,6 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Input } from './ui/input';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDebounce } from '@/hooks/useDebounce';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -46,9 +46,6 @@ export interface NftOptionsProps {
   multiSelect: boolean;
   setMultiSelect: (value: boolean) => void;
   className?: string;
-  isLoading?: boolean;
-  canLoadMore: boolean;
-  total: number;
   onExport?: () => void;
   renderPagination: () => React.ReactNode;
 }
@@ -97,10 +94,6 @@ export function NftOptions({
     }
   }, [debouncedSearch, query, setParams]);
 
-  const handleInputChange = useCallback((value: string) => {
-    setSearchValue(value);
-  }, []);
-
   const handleClearSearch = useCallback(() => {
     setSearchValue('');
   }, []);
@@ -147,7 +140,7 @@ export function NftOptions({
             aria-label={t`Search NFTs...`}
             title={t`Search NFTs...`}
             placeholder={t`Search NFTs...`}
-            onChange={(e) => handleInputChange(e.target.value)}
+            onChange={(e) => setSearchValue(e.target.value)}
             className='w-full pl-8 pr-8'
             disabled={!allowSearch}
             aria-disabled={!allowSearch}

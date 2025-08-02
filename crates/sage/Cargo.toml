@@ -39,10 +39,8 @@ itertools = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 bech32 = { workspace = true }
-hex-literal = { workspace = true }
 base64 = { workspace = true }
 clvmr = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 bincode = { workspace = true }
 serde_json = { workspace = true }
-chrono = { workspace = true }

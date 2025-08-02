@@ -1,23 +1,22 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { MultiSelectActions } from '@/components/MultiSelectActions';
-import { NftPageTitle } from '@/components/NftPageTitle';
 import { NftCardList } from '@/components/NftCardList';
 import { NftOptions } from '@/components/NftOptions';
+import { NftPageTitle } from '@/components/NftPageTitle';
+import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
-import { useNftParams, NftGroupMode } from '@/hooks/useNftParams';
+import { useErrors } from '@/hooks/useErrors';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useNftData } from '@/hooks/useNftData';
+import { NftGroupMode, useNftParams } from '@/hooks/useNftParams';
+import { exportNfts } from '@/lib/exportNfts';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ImagePlusIcon } from 'lucide-react';
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useNftData } from '@/hooks/useNftData';
-import { useErrors } from '@/hooks/useErrors';
-import { t } from '@lingui/core/macro';
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { Pagination } from '@/components/Pagination';
-import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { exportNfts } from '@/lib/exportNfts';
 
 export function NftList() {
   const navigate = useNavigate();
@@ -31,8 +30,6 @@ export function NftList() {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
-  const [offerState, setOfferState] = useOfferStateWithDefault();
-  const [splitNftOffers, setSplitNftOffers] = useState(false);
   const {
     nfts,
     collections,
@@ -95,7 +92,7 @@ export function NftList() {
   ]);
 
   const renderPagination = useCallback(
-    (compact: boolean = false) => (
+    (compact = false) => (
       <Pagination
         page={params.page}
         total={total}
@@ -152,9 +149,6 @@ export function NftList() {
               setSelected([]);
             }}
             className='mt-4'
-            isLoading={isLoading}
-            total={total}
-            canLoadMore={canLoadMore()}
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
             onExport={() =>
@@ -188,7 +182,6 @@ export function NftList() {
             setSelected={setSelected}
             addError={addError}
             cardSize={params.cardSize}
-            setSplitNftOffers={setSplitNftOffers}
           />
         </main>
       </Container>

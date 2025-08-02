@@ -4,6 +4,7 @@ use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
     GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
+    SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
     SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
     SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers, SetTargetPeersResponse,
 };
@@ -132,5 +133,28 @@ impl Sage {
                 NetworkKind::Unknown
             },
         })
+    }
+
+    pub fn set_delta_sync(&mut self, req: SetDeltaSync) -> Result<SetDeltaSyncResponse> {
+        self.wallet_config.defaults.delta_sync = req.delta_sync;
+        self.save_config()?;
+        Ok(SetDeltaSyncResponse {})
+    }
+
+    pub fn set_delta_sync_override(
+        &mut self,
+        req: SetDeltaSyncOverride,
+    ) -> Result<SetDeltaSyncOverrideResponse> {
+        let Some(wallet_config) = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == req.fingerprint)
+        else {
+            return Err(Error::UnknownFingerprint);
+        };
+        wallet_config.delta_sync = req.delta_sync;
+        self.save_config()?;
+        Ok(SetDeltaSyncOverrideResponse {})
     }
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE assets SET\n                name = ?,\n                description = ?,\n                is_sensitive_content = ?\n            WHERE hash = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "7f291cc0304d69ebe753b91062bbd11db4ffb5c5d324827eeeb5c44672ca026e"
+}

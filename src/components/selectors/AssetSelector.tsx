@@ -1,4 +1,4 @@
-import { Assets, CatRecord, commands } from '@/bindings';
+import { Assets, TokenRecord, commands } from '@/bindings';
 import { NftSelector } from '@/components/selectors/NftSelector';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ interface AssetSelectorProps {
   setAssets: (value: Assets) => void;
   splitNftOffers?: boolean;
   setSplitNftOffers?: (value: boolean) => void;
+  onXchStateChange?: (hasXchAdded: boolean) => void;
 }
 
 export function AssetSelector({
@@ -41,17 +42,23 @@ export function AssetSelector({
   setAssets,
   splitNftOffers,
   setSplitNftOffers,
+  onXchStateChange,
 }: AssetSelectorProps) {
   const [currentState] = useOfferStateWithDefault();
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
-  const [tokens, setTokens] = useState<CatRecord[]>([]);
+  const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
+
+  // Notify parent of XCH state changes
+  useEffect(() => {
+    onXchStateChange?.(includeAmount);
+  }, [includeAmount, onXchStateChange]);
 
   useEffect(() => {
     if (!offering) return;
     commands
       .getCats({})
-      .then((data) => setTokens(data.cats))
+      .then((data) => setOwnedTokens(data.cats))
       .catch(console.error);
   }, [offering]);
 
@@ -181,7 +188,7 @@ export function AssetSelector({
             </div>
           )}
           {assets.nfts.map((nft, i) => (
-            <div key={i} className='flex h-14 z-20 mb-1'>
+            <div key={nft} className='flex h-14 z-20 mb-1'>
               {offering === true ? (
                 <NftSelector
                   value={nft || null}
@@ -230,7 +237,7 @@ export function AssetSelector({
             <span>Tokens</span>
           </Label>
           {assets.cats.map((cat, i) => (
-            <div key={i} className='flex h-14 mb-1'>
+            <div key={cat.asset_id} className='flex h-14 mb-1'>
               <TokenSelector
                 value={cat.asset_id}
                 onChange={(assetId) => {
@@ -243,7 +250,7 @@ export function AssetSelector({
                   .map((c) => c.asset_id)}
                 className='rounded-r-none'
                 hideZeroBalance={offering === true}
-                includeDexieList={offering !== true}
+                showAllCats={offering !== true}
               />
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
@@ -265,7 +272,7 @@ export function AssetSelector({
                           variant='outline'
                           className='border-l-0 rounded-none h-12 px-2 text-xs'
                           onClick={() => {
-                            const token = tokens.find(
+                            const token = ownedTokens.find(
                               (t) => t.asset_id === cat.asset_id,
                             );
                             if (token) {

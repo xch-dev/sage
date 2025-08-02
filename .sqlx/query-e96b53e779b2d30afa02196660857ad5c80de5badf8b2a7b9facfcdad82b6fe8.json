@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE assets SET ticker = ? WHERE id = 0",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "e96b53e779b2d30afa02196660857ad5c80de5badf8b2a7b9facfcdad82b6fe8"
+}

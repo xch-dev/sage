@@ -1,287 +1,272 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::collections::{HashMap, HashSet};
 
 use chia::{
     bls::Signature,
-    protocol::{Bytes32, CoinState},
+    clvm_utils::ToTreeHash,
+    protocol::{Bytes32, CoinState, Program},
+    puzzles::{nft::NftMetadata, LineageProof},
 };
-use sage_database::{CatRow, CoinKind, Database, DatabaseTx, DidRow, NftRow};
+use chia_wallet_sdk::driver::NftInfo;
+use sage_assets::base64_data_uri;
+use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use tracing::warn;
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct UpsertCounters {
-    pub is_p2: Duration,
-    pub insert_coin_state: Duration,
-    pub update_coin_state: Duration,
-    pub insert_p2_coin: Duration,
-    pub update_created_puzzle: Duration,
-    pub delete_puzzle: Duration,
-}
-
-pub async fn upsert_coin(
-    tx: &mut DatabaseTx<'_>,
-    coin_state: CoinState,
-    transaction_id: Option<Bytes32>,
-    counters: &mut UpsertCounters,
-) -> Result<(), WalletError> {
-    let coin_id = coin_state.coin.coin_id();
-
-    // Check if the coin is plain XCH, rather than an asset that wraps the p2 puzzle hash.
-    let start = Instant::now();
-    let is_p2 = tx.is_p2_puzzle_hash(coin_state.coin.puzzle_hash).await?;
-    counters.is_p2 += start.elapsed();
-
-    // If the coin is XCH, there's no reason to sync the puzzle.
-    let start = Instant::now();
-    tx.insert_coin_state(coin_state, is_p2, transaction_id)
-        .await?;
-    counters.insert_coin_state += start.elapsed();
-
-    // If the coin already existed, instead of replacing it we will just update it.
-    let start = Instant::now();
-    tx.update_coin_state(
-        coin_id,
-        coin_state.created_height,
-        coin_state.spent_height,
-        transaction_id,
-    )
-    .await?;
-    counters.update_coin_state += start.elapsed();
-
-    // This allows querying for XCH coins without joining on the derivations table.
-    if is_p2 {
-        let start = Instant::now();
-        tx.insert_p2_coin(coin_id).await?;
-        counters.insert_p2_coin += start.elapsed();
-    } else {
-        let start = Instant::now();
-        update_created_puzzle(tx, coin_state).await?;
-        counters.update_created_puzzle += start.elapsed();
-    }
-
-    Ok(())
-}
 
 pub async fn insert_puzzle(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     info: ChildKind,
-    minter_did: Option<Bytes32>,
-) -> Result<(), WalletError> {
+    minter_hash: Option<Bytes32>,
+) -> Result<bool, WalletError> {
     let coin_id = coin_state.coin.coin_id();
 
+    let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
+
+    let mut is_relevant = false;
+
+    for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
+        if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+            is_relevant = true;
+            break;
+        }
+    }
+
+    if !is_relevant {
+        warn!(
+            "Deleting coin {} because it isn't relevant to this wallet",
+            coin_id
+        );
+        tx.delete_coin(coin_id).await?;
+        return Ok(false);
+    }
+
     match info {
-        ChildKind::Launcher | ChildKind::Unknown { .. } => {}
-        ChildKind::Cat {
-            asset_id,
-            lineage_proof,
-            p2_puzzle_hash,
-        } => {
-            tx.sync_coin(coin_id, Some(p2_puzzle_hash), CoinKind::Cat)
+        ChildKind::Launcher | ChildKind::Unknown => {
+            warn!("Deleting coin {} because it has an unknown puzzle", coin_id);
+            tx.delete_coin(coin_id).await?;
+            return Ok(false);
+        }
+        ChildKind::Clawback { info } => {
+            tx.insert_clawback_p2_puzzle(info).await?;
+
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
                 .await?;
-            tx.insert_cat(CatRow {
-                asset_id,
+        }
+        ChildKind::Cat {
+            info,
+            lineage_proof,
+            clawback,
+        } => {
+            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
+
+            tx.insert_asset(Asset {
+                hash: info.asset_id,
                 name: None,
                 ticker: None,
+                precision: 3,
+                icon_url: None,
                 description: None,
-                icon: None,
-                visible: true,
-                fetched: false,
+                is_sensitive_content: false,
+                is_visible: true,
+                kind: AssetKind::Token,
             })
             .await?;
-            tx.insert_cat_coin(coin_id, lineage_proof, p2_puzzle_hash, asset_id)
-                .await?;
+
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            tx.update_coin(
+                coin_id,
+                info.asset_id,
+                info.p2_puzzle_hash,
+                info.hidden_puzzle_hash,
+            )
+            .await?;
         }
         ChildKind::Did {
             lineage_proof,
             info,
+            clawback,
         } => {
-            let launcher_id = info.launcher_id;
+            tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
-            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Did)
-                .await?;
-            tx.insert_did_coin(coin_id, lineage_proof, info).await?;
+            let coin_info = DidCoinInfo {
+                metadata: info.metadata,
+                recovery_list_hash: info.recovery_list_hash,
+                num_verifications_required: info.num_verifications_required,
+            };
 
-            let name = tx.get_future_did_name(launcher_id).await?;
+            tx.insert_asset(Asset {
+                hash: info.launcher_id,
+                name: None,
+                ticker: None,
+                precision: 1,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                kind: AssetKind::Did,
+            })
+            .await?;
 
-            if name.is_some() {
-                tx.delete_future_did_name(launcher_id).await?;
-            }
-
-            let mut row = tx.did_row(launcher_id).await?.unwrap_or(DidRow {
-                launcher_id,
-                coin_id,
-                name,
-                is_owned: coin_state.spent_height.is_none(),
-                visible: true,
-                created_height: coin_state.created_height,
-            });
-
-            if coin_state.spent_height.is_some()
-                && (row.created_height.is_none()
-                    || row.created_height > coin_state.created_height
-                    || row.is_owned)
-            {
-                return Ok(());
-            }
+            tx.insert_did(info.launcher_id, &coin_info).await?;
 
             if coin_state.spent_height.is_none() {
-                row.is_owned = true;
+                tx.update_did(info.launcher_id, &coin_info).await?;
             }
 
-            row.coin_id = coin_id;
-            row.created_height = coin_state.created_height;
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
 
-            tx.insert_did(row).await?;
+            tx.update_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
+                .await?;
         }
         ChildKind::Nft {
             lineage_proof,
             info,
             metadata,
+            clawback,
         } => {
-            let data_hash = metadata.as_ref().and_then(|m| m.data_hash);
-            let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
-            let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
-            let launcher_id = info.launcher_id;
-            let owner_did = info.current_owner;
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
 
-            tx.sync_coin(coin_id, Some(info.p2_puzzle_hash), CoinKind::Nft)
-                .await?;
-
-            tx.insert_nft_coin(
-                coin_id,
-                lineage_proof,
+            insert_nft(
+                tx,
+                coin_state,
+                Some(lineage_proof),
                 info,
-                data_hash,
-                metadata_hash,
-                license_hash,
+                metadata,
+                minter_hash,
             )
             .await?;
-
-            let mut row = tx.nft_row(launcher_id).await?.unwrap_or(NftRow {
-                launcher_id,
-                coin_id,
-                collection_id: None,
-                minter_did,
-                owner_did,
-                visible: true,
-                sensitive_content: false,
-                name: None,
-                is_owned: coin_state.spent_height.is_none(),
-                created_height: coin_state.created_height,
-                metadata_hash,
-                edition_number: metadata
-                    .as_ref()
-                    .and_then(|m| m.edition_number.try_into().ok()),
-                edition_total: metadata
-                    .as_ref()
-                    .and_then(|m| m.edition_total.try_into().ok()),
-            });
-
-            if coin_state.spent_height.is_some()
-                && (row.created_height.is_none()
-                    || row.created_height > coin_state.created_height
-                    || row.is_owned)
-            {
-                return Ok(());
-            }
-
-            if coin_state.spent_height.is_none() {
-                row.is_owned = true;
-            }
-
-            let metadata_row = if let Some(metadata_hash) = metadata_hash {
-                tx.fetch_nft_data(metadata_hash).await?
-            } else {
-                None
-            };
-
-            let computed_info = compute_nft_info(
-                minter_did,
-                metadata_row.as_ref().map(|data| data.blob.as_slice()),
-            );
-
-            row.coin_id = coin_id;
-
-            row.sensitive_content |= computed_info.sensitive_content;
-
-            if row.name.is_none() {
-                row.name = computed_info.name;
-            }
-
-            if row.collection_id.is_none() && metadata_row.is_some_and(|data| data.hash_matches) {
-                row.collection_id = computed_info
-                    .collection
-                    .as_ref()
-                    .map(|col| col.collection_id);
-
-                if let Some(collection) = computed_info.collection {
-                    tx.insert_collection(collection).await?;
-                }
-            }
-
-            row.owner_did = owner_did;
-            row.created_height = coin_state.created_height;
-
-            // Update edition information if not already set
-            if row.edition_number.is_none() {
-                row.edition_number = metadata
-                    .as_ref()
-                    .and_then(|m| m.edition_number.try_into().ok());
-            }
-            if row.edition_total.is_none() {
-                row.edition_total = metadata
-                    .as_ref()
-                    .and_then(|m| m.edition_total.try_into().ok());
-            }
-
-            tx.insert_nft(row).await?;
-
-            if let Some(metadata) = metadata {
-                if let Some(hash) = data_hash {
-                    for uri in metadata.data_uris {
-                        tx.insert_nft_uri(uri, hash).await?;
-                    }
-                }
-
-                if let Some(hash) = metadata_hash {
-                    for uri in metadata.metadata_uris {
-                        tx.insert_nft_uri(uri, hash).await?;
-                    }
-                }
-
-                if let Some(hash) = license_hash {
-                    for uri in metadata.license_uris {
-                        tx.insert_nft_uri(uri, hash).await?;
-                    }
-                }
-            }
         }
     }
 
-    Ok(())
+    Ok(true)
 }
 
-pub async fn delete_puzzle(tx: &mut DatabaseTx<'_>, coin_id: Bytes32) -> Result<(), WalletError> {
-    tx.set_did_not_owned(coin_id).await?;
-    tx.set_nft_not_owned(coin_id).await?;
-    Ok(())
-}
-
-pub async fn update_created_puzzle(
+pub async fn insert_nft(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
+    lineage_proof: Option<LineageProof>,
+    info: NftInfo<Program>,
+    metadata: Option<NftMetadata>,
+    minter_hash: Option<Bytes32>,
 ) -> Result<(), WalletError> {
-    let coin_id = coin_state.coin.coin_id();
+    if let Some(lineage_proof) = lineage_proof {
+        tx.insert_lineage_proof(coin_state.coin.coin_id(), lineage_proof)
+            .await?;
+    }
 
-    tx.set_did_created_height(coin_id, coin_state.created_height)
-        .await?;
+    let icon_url =
+        if let Some(data_hash) = metadata.as_ref().and_then(|metadata| metadata.data_hash) {
+            tx.icon(data_hash).await?.map(|icon| {
+                base64_data_uri(
+                    &icon.data,
+                    &icon.mime_type.unwrap_or_else(|| "image/png".to_string()),
+                )
+            })
+        } else {
+            None
+        };
 
-    tx.set_nft_created_height(coin_id, coin_state.created_height)
+    let mut asset = Asset {
+        hash: info.launcher_id,
+        name: None,
+        ticker: None,
+        precision: 1,
+        icon_url,
+        description: None,
+        is_sensitive_content: false,
+        is_visible: true,
+        kind: AssetKind::Nft,
+    };
+
+    let mut coin_info = NftCoinInfo {
+        collection_hash: Bytes32::default(),
+        collection_name: None,
+        minter_hash,
+        owner_hash: info.current_owner,
+        metadata: info.metadata,
+        metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
+        royalty_puzzle_hash: info.royalty_puzzle_hash,
+        royalty_basis_points: info.royalty_basis_points,
+        data_hash: metadata.as_ref().and_then(|m| m.data_hash),
+        metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
+        license_hash: metadata.as_ref().and_then(|m| m.license_hash),
+        edition_number: metadata.as_ref().map(|m| m.edition_number),
+        edition_total: metadata.as_ref().map(|m| m.edition_total),
+    };
+
+    if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
+        if let Some(blob) = tx.file_data(*metadata_hash).await? {
+            let computed = compute_nft_info(minter_hash, &blob);
+            asset.name = computed.name;
+            asset.description = computed.description;
+            asset.is_sensitive_content = computed.sensitive_content;
+
+            if let Some(collection) = computed.collection {
+                coin_info.collection_hash = collection.hash;
+                tx.insert_collection(collection).await?;
+            }
+        }
+    };
+
+    tx.insert_asset(asset).await?;
+
+    tx.insert_nft(info.launcher_id, &coin_info).await?;
+
+    if coin_state.spent_height.is_none() || lineage_proof.is_none() {
+        tx.update_nft(info.launcher_id, &coin_info).await?;
+    }
+
+    if lineage_proof.is_some() {
+        tx.update_coin(
+            coin_state.coin.coin_id(),
+            info.launcher_id,
+            info.p2_puzzle_hash,
+            None,
+        )
         .await?;
+    }
+
+    let (data_uris, metadata_uris, license_uris) = metadata
+        .map(|metadata| {
+            (
+                metadata.data_uris,
+                metadata.metadata_uris,
+                metadata.license_uris,
+            )
+        })
+        .unwrap_or_default();
+
+    if let Some(hash) = coin_info.data_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in data_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
+
+    if let Some(hash) = coin_info.metadata_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in metadata_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
+
+    if let Some(hash) = coin_info.license_hash {
+        tx.insert_file(hash).await?;
+
+        for uri in license_uris {
+            tx.insert_file_uri(hash, uri).await?;
+        }
+    }
 
     Ok(())
 }
@@ -294,12 +279,19 @@ pub async fn insert_transaction(
     transaction: Transaction,
     aggregated_signature: Signature,
 ) -> Result<Vec<Bytes32>, WalletError> {
+    // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
+    let mut output_coin_ids = HashSet::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
+
+        for output in &input.outputs {
+            output_coin_ids.insert(output.coin.coin_id());
+        }
     }
 
+    // Fetch minter DIDs for created NFTs in the transaction from the blockchain.
     let mut minter_dids = HashMap::new();
 
     for input in &transaction.inputs {
@@ -316,88 +308,106 @@ pub async fn insert_transaction(
         }
     }
 
+    // Insert the transaction into the database.
     let mut tx = db.tx().await?;
 
-    tx.insert_pending_transaction(transaction_id, aggregated_signature, transaction.fee)
+    tx.insert_mempool_item(transaction_id, aggregated_signature, transaction.fee)
         .await?;
-
-    for coin_id in transaction
-        .inputs
-        .iter()
-        .map(|input| input.coin_spend.coin.coin_id())
-    {
-        delete_puzzle(&mut tx, coin_id).await?;
-    }
 
     let mut subscriptions = Vec::new();
 
-    for (index, input) in transaction.inputs.into_iter().enumerate() {
-        tx.insert_transaction_spend(transaction_id, input.coin_spend, index)
+    for (index, input) in transaction.inputs.iter().enumerate() {
+        let input_coin_id = input.coin_spend.coin.coin_id();
+
+        // Insert the spend into the database in the proper order so it can be reconstructed later.
+        tx.insert_mempool_spend(transaction_id, input.coin_spend.clone(), index)
             .await?;
 
-        for output in input.outputs {
+        // If the coin isn't ephemeral (exists on-chain) and we already have it in the database,
+        // we can attach it to the transaction as our coin for display purposes.
+        if !output_coin_ids.contains(&input_coin_id) && tx.is_known_coin(input_coin_id).await? {
+            tx.insert_mempool_coin(transaction_id, input_coin_id, true, false)
+                .await?;
+        }
+
+        for output in &input.outputs {
+            // Coins that don't exist on-chain yet don't have a created or spent height.
             let coin_state = CoinState::new(output.coin, None, None);
             let coin_id = output.coin.coin_id();
 
-            if tx.is_p2_puzzle_hash(output.coin.puzzle_hash).await? {
-                tx.insert_coin_state(coin_state, true, Some(transaction_id))
+            // If it's an XCH coin, we can insert it and sync it immediately.
+            // Attach it to the transaction as an output for display purposes.
+            if tx
+                .is_custody_p2_puzzle_hash(output.coin.puzzle_hash)
+                .await?
+            {
+                tx.insert_coin(coin_state).await?;
+
+                tx.update_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
                     .await?;
-                tx.insert_p2_coin(coin_id).await?;
-                continue;
-            }
 
-            let Some(p2_puzzle_hash) = output.kind.p2_puzzle_hash() else {
-                continue;
-            };
-
-            if !tx.is_p2_puzzle_hash(p2_puzzle_hash).await? {
-                continue;
-            }
-
-            tx.insert_coin_state(coin_state, true, Some(transaction_id))
+                tx.insert_mempool_coin(
+                    transaction_id,
+                    coin_id,
+                    coin_spends.contains_key(&coin_id),
+                    true,
+                )
                 .await?;
-            tx.sync_coin(
+
+                continue;
+            }
+
+            // We don't want to insert output coins that we won't own in the future.
+            let custody_p2_puzzle_hashes = output.kind.custody_p2_puzzle_hashes();
+
+            let mut is_relevant = false;
+
+            for custody_p2_puzzle_hash in custody_p2_puzzle_hashes {
+                if tx.is_custody_p2_puzzle_hash(custody_p2_puzzle_hash).await? {
+                    is_relevant = true;
+                    break;
+                }
+            }
+
+            if !is_relevant {
+                continue;
+            }
+
+            // Insert the coin into the database and attach it to the transaction as an output for display purposes.
+            tx.insert_coin(coin_state).await?;
+
+            tx.insert_mempool_coin(
+                transaction_id,
                 coin_id,
-                Some(p2_puzzle_hash),
-                match output.kind {
-                    ChildKind::Unknown { .. } | ChildKind::Launcher => CoinKind::Unknown,
-                    ChildKind::Cat { .. } => CoinKind::Cat,
-                    ChildKind::Did { .. } => CoinKind::Did,
-                    ChildKind::Nft { .. } => CoinKind::Nft,
-                },
+                coin_spends.contains_key(&coin_id),
+                true,
             )
             .await?;
 
+            // We should subscribe to the coin so we know when it's created on-chain.
+            // TODO: Is this necessary? Subscribing to the p2 puzzle hash is probably sufficient for created coins.
             if output.kind.subscribe() {
                 subscriptions.push(coin_id);
             }
 
+            // Do the busy work of inserting the asset information into the database now that the coin exists.
             insert_puzzle(
                 &mut tx,
                 coin_state,
-                output.kind,
+                output.kind.clone(),
                 minter_dids.get(&output.coin.coin_id()).copied(),
             )
             .await?;
         }
     }
 
+    for input in transaction.inputs {
+        // We are inserting the children as part of inserting the transaction, so we don't need to do it again
+        tx.set_children_synced(input.coin_spend.coin.coin_id())
+            .await?;
+    }
+
     tx.commit().await?;
 
     Ok(subscriptions)
-}
-
-pub async fn safely_remove_transaction(
-    tx: &mut DatabaseTx<'_>,
-    transaction_id: Bytes32,
-) -> Result<(), WalletError> {
-    for coin_id in tx.transaction_coin_ids(transaction_id).await? {
-        if tx.is_p2_coin(coin_id).await? == Some(false) {
-            tx.unsync_coin(coin_id).await?;
-        }
-    }
-
-    tx.remove_transaction(transaction_id).await?;
-
-    Ok(())
 }

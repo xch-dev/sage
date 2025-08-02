@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT kind FROM assets WHERE hash = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3bca02de2bd877d0fa2c2e6ba91864012485c473a94ab84ae9066e63ed434db1"
+}

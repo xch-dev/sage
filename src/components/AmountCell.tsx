@@ -1,18 +1,16 @@
-import { Amount, AssetCoinType } from '@/bindings';
+import { Amount, AssetKind } from '@/bindings';
 import { fromMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import BigNumber from 'bignumber.js';
 import { NumberFormat } from './NumberFormat';
 
 interface AmountCellProps {
   amount: Amount;
-  type: AssetCoinType;
+  assetKind: AssetKind;
+  precision: number;
 }
 
-export function AmountCell({ amount, type }: AmountCellProps) {
-  const walletState = useWalletState();
+export function AmountCell({ amount, assetKind, precision }: AmountCellProps) {
   const amountNum = BigNumber(amount);
-  const decimals = type === 'cat' ? 3 : walletState.sync.unit.decimals;
 
   return (
     <div className='whitespace-nowrap'>
@@ -24,9 +22,9 @@ export function AmountCell({ amount, type }: AmountCellProps) {
               ? 'text-green-600'
               : 'text-red-600'
         }
-        aria-label={`${fromMojos(amount, decimals)} ${type.toUpperCase()}`}
+        aria-label={`${fromMojos(amount, precision)} ${assetKind}`}
       >
-        {type === 'nft' || type === 'did' ? (
+        {assetKind === 'nft' || assetKind === 'did' ? (
           amountNum.eq(0) ? (
             'Edited'
           ) : amountNum.gt(0) ? (
@@ -36,9 +34,9 @@ export function AmountCell({ amount, type }: AmountCellProps) {
           )
         ) : (
           <NumberFormat
-            value={fromMojos(amount, decimals)}
+            value={fromMojos(amount, precision)}
             minimumFractionDigits={0}
-            maximumFractionDigits={decimals}
+            maximumFractionDigits={precision}
           />
         )}
       </span>

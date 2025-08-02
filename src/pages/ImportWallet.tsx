@@ -118,8 +118,8 @@ export default function ImportWallet() {
                   <FormDescription>
                     <Trans>
                       Enter your mnemonic, private key, or public key above. If
-                      it's a public key, it will be imported as a read-only cold
-                      wallet.
+                      it&apos;s a public key, it will be imported as a read-only
+                      cold wallet.
                     </Trans>
                   </FormDescription>
                   <FormMessage />

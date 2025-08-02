@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,\n            asset_hash AS launcher_id, metadata, metadata_updater_puzzle_hash,\n            owner_hash, royalty_puzzle_hash, royalty_basis_points\n        FROM spendable_coins\n        INNER JOIN nfts ON nfts.asset_id = spendable_coins.asset_id\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id\n        WHERE asset_hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_parent_coin_hash",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "launcher_id",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "metadata_updater_puzzle_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_puzzle_hash",
+        "ordinal": 11,
+        "type_info": "Blob"
+      },
+      {
+        "name": "royalty_basis_points",
+        "ordinal": 12,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f9151afa46f2b2ec5992cacf048b4844b1ae212a59a29ff33e4399a5556221dc"
+}

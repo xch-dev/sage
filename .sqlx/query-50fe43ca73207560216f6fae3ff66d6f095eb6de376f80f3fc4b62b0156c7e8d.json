@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 1);\n\n        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds)\n        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?);\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "50fe43ca73207560216f6fae3ff66d6f095eb6de376f80f3fc4b62b0156c7e8d"
+}

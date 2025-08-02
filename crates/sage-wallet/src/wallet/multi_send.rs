@@ -1,7 +1,7 @@
 use chia::protocol::{Bytes, Bytes32, CoinSpend};
 use chia_wallet_sdk::driver::{Action, Id, SpendContext};
 
-use crate::WalletError;
+use crate::{wallet::memos::Hint, WalletError};
 
 use super::{memos::calculate_memos, Wallet};
 
@@ -10,7 +10,7 @@ pub struct MultiSendPayment {
     pub asset_id: Option<Bytes32>,
     pub amount: u64,
     pub puzzle_hash: Bytes32,
-    pub memos: Option<Vec<Bytes>>,
+    pub memos: Vec<Bytes>,
 }
 
 impl MultiSendPayment {
@@ -19,7 +19,7 @@ impl MultiSendPayment {
             asset_id: None,
             amount,
             puzzle_hash,
-            memos: None,
+            memos: vec![],
         }
     }
 
@@ -28,7 +28,7 @@ impl MultiSendPayment {
             asset_id: Some(asset_id),
             amount,
             puzzle_hash,
-            memos: None,
+            memos: vec![],
         }
     }
 
@@ -54,8 +54,11 @@ impl Wallet {
         for payment in payments {
             let memos = calculate_memos(
                 &mut ctx,
-                payment.puzzle_hash,
-                payment.asset_id.is_some(),
+                if payment.asset_id.is_some() {
+                    Hint::P2PuzzleHash(payment.puzzle_hash)
+                } else {
+                    Hint::None
+                },
                 payment.memos,
             )?;
             actions.push(Action::send(
@@ -101,7 +104,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.balance().await?, 2000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 2000);
         assert_eq!(alice.wallet.db.cat_balance(bronze).await?, 1000);
         assert_eq!(alice.wallet.db.cat_balance(silver).await?, 1000);
         assert_eq!(alice.wallet.db.cat_balance(gold).await?, 1000);
@@ -123,12 +126,12 @@ mod tests {
         alice.wait_for_coins().await;
         bob.wait_for_puzzles().await;
 
-        assert_eq!(alice.wallet.db.balance().await?, 2000);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 2000);
         assert_eq!(alice.wallet.db.cat_balance(bronze).await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(alice.wallet.db.cat_balance(gold).await?, 900);
 
-        assert_eq!(bob.wallet.db.balance().await?, 0);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.cat_balance(bronze).await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(bob.wallet.db.cat_balance(gold).await?, 100);
@@ -143,12 +146,12 @@ mod tests {
         alice.wait_for_coins().await;
         bob.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.balance().await?, 1250);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1250);
         assert_eq!(alice.wallet.db.cat_balance(bronze).await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(alice.wallet.db.cat_balance(gold).await?, 900);
 
-        assert_eq!(bob.wallet.db.balance().await?, 500);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 500);
         assert_eq!(bob.wallet.db.cat_balance(bronze).await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(bob.wallet.db.cat_balance(gold).await?, 100);
@@ -163,12 +166,12 @@ mod tests {
         alice.wait_for_coins().await;
         bob.wait_for_coins().await;
 
-        assert_eq!(alice.wallet.db.balance().await?, 750);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 750);
         assert_eq!(alice.wallet.db.cat_balance(bronze).await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(alice.wallet.db.cat_balance(gold).await?, 900);
 
-        assert_eq!(bob.wallet.db.balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(bronze).await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(silver).await?, 500);
         assert_eq!(bob.wallet.db.cat_balance(gold).await?, 100);
@@ -190,12 +193,12 @@ mod tests {
         alice.wait_for_coins().await;
         bob.wait_for_puzzles().await;
 
-        assert_eq!(alice.wallet.db.balance().await?, 0);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(bronze).await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(silver).await?, 0);
         assert_eq!(alice.wallet.db.cat_balance(gold).await?, 0);
 
-        assert_eq!(bob.wallet.db.balance().await?, 1350);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 1350);
         assert_eq!(bob.wallet.db.cat_balance(bronze).await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(silver).await?, 1000);
         assert_eq!(bob.wallet.db.cat_balance(gold).await?, 1000);

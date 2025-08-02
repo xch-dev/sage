@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                hash, name, icon_url, description, ticker, precision,\n                is_visible, is_sensitive_content\n            FROM assets\n            WHERE assets.kind = 0 AND assets.id != 0\n            ORDER BY name ASC\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "icon_url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "ticker",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "precision",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "is_visible",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "is_sensitive_content",
+        "ordinal": 7,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "1e8f21fd0c35249917f77752d470d00c658c3951f52ca38d7d3cb68d0143265d"
+}

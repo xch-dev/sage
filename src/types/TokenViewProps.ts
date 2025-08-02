@@ -1,21 +1,11 @@
-import { CatRecord } from '../bindings';
+import { TokenRecord } from '../bindings';
 
 export interface TokenViewProps {
-  cats: Array<
-    CatRecord & { balanceInUsd: number; sortValue: number; priceInUsd: number }
-  >;
-  xchRecord: TokenRecord;
+  tokens: (PricedTokenRecord & { sortValue: number })[];
 }
 
-export interface TokenRecord {
-  asset_id: string;
-  name: string | null;
-  ticker: string | null;
-  icon_url: string | null;
+export interface PricedTokenRecord extends TokenRecord {
   balance: number | string;
   balanceInUsd: number;
   priceInUsd: number;
-  decimals: number;
-  isXch?: boolean;
-  visible?: boolean;
 }

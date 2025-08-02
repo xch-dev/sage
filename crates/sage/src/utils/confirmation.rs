@@ -1,26 +1,26 @@
 use std::collections::HashMap;
 
-use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
+    clvm_traits::ToClvm,
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::utils::Address;
+use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
+use clvmr::Allocator;
 use sage_api::{
-    Amount, AssetKind, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput,
-    TransactionOutput, TransactionSummary,
+    Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
+    TransactionSummary,
 };
-use sage_assets::Data;
-use sage_database::Database;
-use sage_wallet::{compute_nft_info, ChildKind, CoinKind, Transaction};
+use sage_assets::{base64_data_uri, Data};
+use sage_database::{Asset, AssetKind, Database};
+use sage_wallet::{compute_nft_info, CoinKind, Transaction};
 
-use crate::{Error, Result, Sage};
+use crate::{encode_asset, Error, Result, Sage};
 
-use super::{parse_coin_id, parse_hash, parse_program, parse_signature, BURN_PUZZLE_HASH};
+use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
 #[derive(Debug, Default)]
 pub struct ConfirmationInfo {
-    pub did_names: HashMap<Bytes32, String>,
     pub nft_data: HashMap<Bytes32, Data>,
 }
 
@@ -28,7 +28,7 @@ impl Sage {
     pub(crate) async fn summarize(
         &self,
         coin_spends: Vec<CoinSpend>,
-        cache: ConfirmationInfo,
+        mut cache: ConfirmationInfo,
     ) -> Result<TransactionSummary> {
         let wallet = self.wallet()?;
 
@@ -39,54 +39,42 @@ impl Sage {
         for input in transaction.inputs {
             let coin = input.coin_spend.coin;
 
-            let (kind, p2_puzzle_hash) = match input.kind {
+            let mut p2_puzzle_hash = coin.puzzle_hash;
+
+            let asset = match input.kind {
+                CoinKind::Launcher => None,
                 CoinKind::Unknown => {
-                    let kind = if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
-                        AssetKind::Xch
+                    if wallet.db.is_p2_puzzle_hash(coin.puzzle_hash).await? {
+                        wallet.db.asset(Bytes32::default()).await?
                     } else {
-                        AssetKind::Unknown
-                    };
-                    (kind, coin.puzzle_hash)
+                        None
+                    }
                 }
-                CoinKind::Launcher => (AssetKind::Launcher, coin.puzzle_hash),
-                CoinKind::Cat {
-                    asset_id,
-                    p2_puzzle_hash,
-                } => {
-                    let cat = wallet.db.cat(asset_id).await?;
-                    let kind = AssetKind::Cat {
-                        asset_id: hex::encode(asset_id),
-                        name: cat.as_ref().and_then(|cat| cat.name.clone()),
-                        ticker: cat.as_ref().and_then(|cat| cat.ticker.clone()),
-                        icon_url: cat.as_ref().and_then(|cat| cat.icon.clone()),
-                    };
-                    (kind, p2_puzzle_hash)
+                CoinKind::Cat { info } => {
+                    p2_puzzle_hash = info.p2_puzzle_hash;
+                    Some(self.cache_cat(info.asset_id).await?)
                 }
-                CoinKind::Did { info } => {
-                    let name = if let Some(name) = cache.did_names.get(&info.launcher_id).cloned() {
-                        Some(name)
-                    } else {
-                        wallet.db.did_name(info.launcher_id).await?
-                    };
-
-                    let kind = AssetKind::Did {
-                        launcher_id: Address::new(info.launcher_id, "did:chia:".to_string())
-                            .encode()?,
-                        name,
-                    };
-
-                    (kind, info.p2_puzzle_hash)
+                CoinKind::Nft { info, .. } => {
+                    let mut allocator = Allocator::new();
+                    let metadata = info.metadata.to_clvm(&mut allocator)?;
+                    p2_puzzle_hash = info.p2_puzzle_hash;
+                    Some(
+                        self.cache_nft(&allocator, info.launcher_id, metadata, &mut cache)
+                            .await?,
+                    )
                 }
-                CoinKind::Nft { info, metadata } => {
-                    let extracted = extract_nft_data(Some(&wallet.db), metadata, &cache).await?;
-
-                    let kind = AssetKind::Nft {
-                        launcher_id: Address::new(info.launcher_id, "nft".to_string()).encode()?,
-                        icon: extracted.icon.map(|icon| BASE64_STANDARD.encode(icon)),
-                        name: extracted.name,
-                    };
-
-                    (kind, info.p2_puzzle_hash)
+                CoinKind::Did { info, .. } => {
+                    Some(wallet.db.asset(info.launcher_id).await?.unwrap_or(Asset {
+                        hash: info.launcher_id,
+                        name: None,
+                        ticker: None,
+                        precision: 1,
+                        icon_url: None,
+                        description: None,
+                        is_sensitive_content: false,
+                        is_visible: true,
+                        kind: AssetKind::Did,
+                    }))
                 }
             };
 
@@ -95,13 +83,10 @@ impl Sage {
             let mut outputs = Vec::new();
 
             for output in input.outputs {
-                let p2_puzzle_hash = match output.kind {
-                    ChildKind::Unknown { hint } => hint.unwrap_or(output.coin.puzzle_hash),
-                    ChildKind::Launcher => output.coin.puzzle_hash,
-                    ChildKind::Cat { p2_puzzle_hash, .. } => p2_puzzle_hash,
-                    ChildKind::Did { info, .. } => info.p2_puzzle_hash,
-                    ChildKind::Nft { info, .. } => info.p2_puzzle_hash,
-                };
+                let p2_puzzle_hash = output
+                    .kind
+                    .receiver_custody_p2_puzzle_hash()
+                    .unwrap_or(output.coin.puzzle_hash);
 
                 let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;
 
@@ -109,8 +94,8 @@ impl Sage {
                     coin_id: hex::encode(output.coin.coin_id()),
                     amount: Amount::u64(output.coin.amount),
                     address,
-                    receiving: wallet.db.is_p2_puzzle_hash(p2_puzzle_hash).await?,
-                    burning: p2_puzzle_hash.to_bytes() == BURN_PUZZLE_HASH,
+                    receiving: wallet.db.is_custody_p2_puzzle_hash(p2_puzzle_hash).await?,
+                    burning: p2_puzzle_hash == BURN_PUZZLE_HASH,
                 });
             }
 
@@ -118,7 +103,7 @@ impl Sage {
                 coin_id: hex::encode(coin.coin_id()),
                 amount: Amount::u64(coin.amount),
                 address,
-                kind,
+                asset: asset.map(encode_asset).transpose()?,
                 outputs,
             });
         }
@@ -132,8 +117,10 @@ impl Sage {
 
 #[derive(Debug, Default)]
 pub struct ExtractedNftData {
-    pub icon: Option<Vec<u8>>,
     pub name: Option<String>,
+    pub description: Option<String>,
+    pub icon_url: Option<String>,
+    pub is_sensitive_content: bool,
 }
 
 pub async fn extract_nft_data(
@@ -150,24 +137,30 @@ pub async fn extract_nft_data(
     if let Some(data_hash) = onchain_metadata.data_hash {
         if let Some(Data {
             thumbnail: Some(thumbnail),
+            mime_type,
             ..
         }) = cache.nft_data.get(&data_hash)
         {
-            result.icon = Some(thumbnail.icon.clone());
+            result.icon_url = Some(base64_data_uri(&thumbnail.icon, mime_type));
         } else if let Some(db) = &db {
-            if let Some(data) = db.nft_icon(data_hash).await? {
-                result.icon = Some(data);
+            if let Some(icon) = db.icon(data_hash).await? {
+                result.icon_url = Some(base64_data_uri(
+                    &icon.data,
+                    icon.mime_type.as_deref().unwrap_or("image/png"),
+                ));
             }
         }
     }
 
     if let Some(metadata_hash) = onchain_metadata.metadata_hash {
         if let Some(metadata) = cache.nft_data.get(&metadata_hash) {
-            let info = compute_nft_info(None, Some(&metadata.blob));
+            let info = compute_nft_info(None, &metadata.blob);
             result.name = info.name;
+            result.description = info.description;
+            result.is_sensitive_content = info.sensitive_content;
         } else if let Some(db) = &db {
-            if let Some(metadata) = db.fetch_nft_data(metadata_hash).await? {
-                let info = compute_nft_info(None, Some(&metadata.blob));
+            if let Some(metadata) = db.full_file_data(metadata_hash).await? {
+                let info = compute_nft_info(None, &metadata.data);
                 result.name = info.name;
             }
         }

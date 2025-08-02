@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO mempool_coins (mempool_item_id, coin_id, is_input, is_output)\n        VALUES ((SELECT id FROM mempool_items WHERE hash = ?), (SELECT id FROM coins WHERE hash = ?), ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "c1b2ac8d018904a93e9e3c717e1a571fcda87b07c43416e757f5f3387a948c2c"
+}

@@ -7,7 +7,11 @@ export interface DarkModeContext {
 }
 
 export const DarkModeContext = createContext<DarkModeContext>({
-  toggle: () => {},
+  toggle: () => {
+    // Intentionally left blank
+  },
   dark: false,
-  setDark: () => {},
+  setDark: () => {
+    // Intentionally left blank
+  },
 });

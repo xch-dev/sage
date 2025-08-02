@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use chia::protocol::{Bytes32, SpendBundle};
+use chia::protocol::SpendBundle;
 use tokio::time::timeout;
 use tracing::{info, warn};
 
@@ -9,14 +9,12 @@ use crate::{WalletError, WalletPeer};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Status {
     Pending,
-    Success,
     Failed(u8, Option<String>),
     Unknown,
 }
 
 pub async fn submit_to_peers(
     peers: &[WalletPeer],
-    genesis_challenge: Bytes32,
     spend_bundle: SpendBundle,
 ) -> Result<Status, WalletError> {
     let transaction_id = spend_bundle.name();
@@ -24,22 +22,21 @@ pub async fn submit_to_peers(
     info!("Checking transaction id {}", transaction_id);
 
     let mut mempool = false;
+    let mut failed = false;
     let mut status = 0;
     let mut error = None;
 
     for peer in peers {
         let ip = peer.socket_addr().ip();
-        match submit_transaction(peer, spend_bundle.clone(), genesis_challenge).await? {
+        match submit_transaction(peer, spend_bundle.clone()).await? {
             Status::Pending => {
                 mempool = true;
-            }
-            Status::Success => {
-                return Ok(Status::Success);
             }
             Status::Failed(failure_status, failure_error) => {
                 info!("Transaction {transaction_id} failed according to peer {ip}, but will check other peers");
                 status = failure_status;
                 error = failure_error;
+                failed = true;
             }
             Status::Unknown => {}
         }
@@ -47,49 +44,17 @@ pub async fn submit_to_peers(
 
     Ok(if mempool {
         Status::Pending
-    } else {
+    } else if failed {
         Status::Failed(status, error)
+    } else {
+        Status::Unknown
     })
 }
 
 pub async fn submit_transaction(
     peer: &WalletPeer,
     spend_bundle: SpendBundle,
-    genesis_challenge: Bytes32,
 ) -> Result<Status, WalletError> {
-    let coin_ids: Vec<Bytes32> = spend_bundle
-        .coin_spends
-        .iter()
-        .map(|cs| cs.coin.coin_id())
-        .collect();
-
-    let coin_states = match timeout(
-        Duration::from_secs(2),
-        peer.fetch_coins(coin_ids.clone(), genesis_challenge),
-    )
-    .await
-    {
-        Ok(Ok(coin_states)) => coin_states,
-        Err(_timeout) => {
-            warn!("Coin lookup timed out for {}", peer.socket_addr());
-            return Ok(Status::Unknown);
-        }
-        Ok(Err(err)) => {
-            warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
-            return Ok(Status::Unknown);
-        }
-    };
-
-    if coin_states.iter().all(|cs| cs.spent_height.is_some())
-        && coin_ids
-            .into_iter()
-            .all(|coin_id| coin_states.iter().any(|cs| cs.coin.coin_id() == coin_id))
-    {
-        return Ok(Status::Success);
-    } else if coin_states.iter().any(|cs| cs.spent_height.is_some()) {
-        return Ok(Status::Failed(3, None));
-    }
-
     info!("Submitting transaction to {}", peer.socket_addr());
 
     let ack = match timeout(

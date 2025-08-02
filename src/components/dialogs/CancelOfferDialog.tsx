@@ -22,8 +22,8 @@ import { UseFormReturn } from 'react-hook-form';
 interface CancelOfferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  form: UseFormReturn<any>;
-  onSubmit: (values: any) => void;
+  form: UseFormReturn<{ fee: string }>;
+  onSubmit: (values: { fee: string }) => void;
   title?: React.ReactNode;
   description?: React.ReactNode;
   feeLabel?: React.ReactNode;

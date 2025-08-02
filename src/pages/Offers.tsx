@@ -1,14 +1,28 @@
 import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
-import Container from '@/components/Container';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
+import Container from '@/components/Container';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
+import { OfferRowCard } from '@/components/OfferRowCard';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
@@ -20,35 +34,21 @@ import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import BigNumber from 'bignumber.js';
 import {
+  CircleOff,
+  FilterIcon,
   HandCoins,
   NfcIcon,
   ScanIcon,
-  FilterIcon,
   TrashIcon,
-  CircleOff,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { z } from 'zod';
-import { OfferRowCard } from '@/components/OfferRowCard';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { useLocalStorage } from 'usehooks-ts';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { z } from 'zod';
 
 const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
-import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -64,11 +64,11 @@ export function Offers() {
     OFFER_FILTER_STORAGE_KEY,
     'all',
   );
-  const [isCancelAllOpen, setCancelAllOpen] = useState(false);
+  const [isCancelAllOpen, setIsCancelAllOpen] = useState(false);
   const [cancelAllResponse, setCancelAllResponse] =
     useState<TransactionResponse | null>(null);
   const [cancelAllFee, setCancelAllFee] = useState<string>('');
-  const [isDeleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const cancelAllSchema = z.object({
     fee: amount(walletState.sync.unit.decimals).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
@@ -136,7 +136,6 @@ export function Offers() {
 
   const handleViewOffer = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    console.log('handleViewOffer', offerString);
     viewOffer(offerString);
   };
 
@@ -174,7 +173,7 @@ export function Offers() {
         await commands.deleteOffer({ offer_id: offer.offer_id });
       }
       updateOffers();
-      setDeleteAllOpen(false);
+      setIsDeleteAllOpen(false);
     } catch (error) {
       addError({
         kind: 'internal',
@@ -202,7 +201,7 @@ export function Offers() {
       })
       .catch(addError)
       .finally(() => {
-        setCancelAllOpen(false);
+        setIsCancelAllOpen(false);
       });
   };
 
@@ -300,7 +299,7 @@ export function Offers() {
                             variant='outline'
                             size='sm'
                             className='flex items-center gap-1'
-                            onClick={() => setCancelAllOpen(true)}
+                            onClick={() => setIsCancelAllOpen(true)}
                           >
                             <CircleOff className='h-4 w-4' />
                             <span className='hidden sm:inline'>
@@ -322,7 +321,7 @@ export function Offers() {
                             variant='destructive'
                             size='sm'
                             className='flex items-center gap-1'
-                            onClick={() => setDeleteAllOpen(true)}
+                            onClick={() => setIsDeleteAllOpen(true)}
                           >
                             <TrashIcon className='h-4 w-4' />
                             <span className='hidden sm:inline'>
@@ -340,11 +339,11 @@ export function Offers() {
               </div>
 
               <div className='flex flex-col gap-2'>
-                {filteredOffers.map((record, i) => (
+                {filteredOffers.map((record) => (
                   <OfferRowCard
                     record={record}
+                    key={record.offer_id}
                     refresh={updateOffers}
-                    key={i}
                   />
                 ))}
               </div>
@@ -357,14 +356,14 @@ export function Offers() {
 
       <DeleteOfferDialog
         open={isDeleteAllOpen}
-        onOpenChange={setDeleteAllOpen}
+        onOpenChange={setIsDeleteAllOpen}
         onDelete={handleDeleteAll}
         offerCount={filteredOffers.length}
       />
 
       <CancelOfferDialog
         open={isCancelAllOpen}
-        onOpenChange={setCancelAllOpen}
+        onOpenChange={setIsCancelAllOpen}
         form={cancelAllForm}
         onSubmit={cancelAllHandler}
         title={<Trans>Cancel all active offers?</Trans>}

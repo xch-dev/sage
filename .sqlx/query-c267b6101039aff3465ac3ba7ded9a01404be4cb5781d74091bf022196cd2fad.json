@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO collections (\n            hash, uuid, minter_hash, name, icon_url,\n            banner_url, description, is_visible\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "c267b6101039aff3465ac3ba7ded9a01404be4cb5781d74091bf022196cd2fad"
+}

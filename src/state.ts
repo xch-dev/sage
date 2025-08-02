@@ -65,24 +65,39 @@ export async function fetchState() {
   await Promise.all([updateSyncStatus()]);
 }
 
+let updateSyncStatusPromise: Promise<void> | null = null;
+
 export function updateSyncStatus() {
-  commands
-    .getSyncStatus({})
-    .then((sync) => useWalletState.setState({ sync }))
-    .catch((error) => console.error(error));
+  // Prevent multiple concurrent calls
+  if (updateSyncStatusPromise) {
+    return;
+  }
+
+  updateSyncStatusPromise = commands
+    .getKey({})
+    .then((key) => {
+      // Only call getSyncStatus if key and key.key are not null
+      if (key && key.key) {
+        return commands.getSyncStatus({});
+      }
+      return null;
+    })
+    .then((sync) => {
+      if (sync) {
+        useWalletState.setState({ sync });
+      }
+    })
+    .catch((error) => console.error(error))
+    .finally(() => {
+      updateSyncStatusPromise = null;
+    });
 }
 
 events.syncEvent.listen((event) => {
   switch (event.payload.type) {
     case 'coin_state':
-      updateSyncStatus();
-      break;
     case 'derivation':
-      updateSyncStatus();
-      break;
     case 'puzzle_batch_synced':
-      updateSyncStatus();
-      break;
     case 'nft_data':
       updateSyncStatus();
       break;
@@ -137,8 +152,8 @@ export function defaultState(): WalletState {
       synced_coins: 0,
       unhardened_derivation_index: 0,
       hardened_derivation_index: 0,
-      checked_uris: 0,
-      total_uris: 0,
+      checked_files: 0,
+      total_files: 0,
       database_size: 0,
     },
   };

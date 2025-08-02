@@ -1,10 +1,10 @@
+import { useDefaultFee } from '@/hooks/useDefaultFee';
+import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import * as React from 'react';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { Input, InputProps } from './input';
-import { useDefaultFee } from '@/hooks/useDefaultFee';
-import { useWalletState } from '@/state';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -51,7 +51,7 @@ function isLocaleNumber(stringNumber: string, locale?: string): boolean {
     // Check if it's a valid number and not NaN
     const parsedNumber = Number(normalizedNumber);
     return !isNaN(parsedNumber) && isFinite(parsedNumber);
-  } catch (error) {
+  } catch {
     // Return false if there's any error in the parsing process
     return false;
   }
@@ -133,7 +133,9 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
       if (!value && !hasSetInitialValue.current) {
         hasSetInitialValue.current = true;
         if (onChange) {
-          onChange({ target: { value: defaultFee } } as any);
+          onChange({
+            target: { value: defaultFee },
+          } as React.ChangeEvent<HTMLInputElement>);
         }
         if (onValueChange) {
           onValueChange({ floatValue: Number(defaultFee), value: defaultFee });
@@ -165,4 +167,4 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
 
 FeeAmountInput.displayName = 'FeeAmountInput';
 
-export { MaskedInput, TokenAmountInput, IntegerInput, FeeAmountInput };
+export { FeeAmountInput, IntegerInput, MaskedInput, TokenAmountInput };

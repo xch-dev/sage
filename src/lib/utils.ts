@@ -1,3 +1,5 @@
+import { AssetKind, NftRecord } from '@/bindings';
+import { t } from '@lingui/core/macro';
 import { bech32m } from 'bech32';
 import BigNumber from 'bignumber.js';
 import { clsx, type ClassValue } from 'clsx';
@@ -12,9 +14,47 @@ export function dbg<T>(value: T): T {
   return value;
 }
 
+export function emptyNftRecord(nftId: string): NftRecord {
+  return {
+    launcher_id: nftId,
+    name: `${nftId.slice(0, 8)}...${nftId.slice(-4)}`,
+    icon_url: null,
+    collection_id: null,
+    collection_name: null,
+    minter_did: null,
+    owner_did: null,
+    visible: false,
+    sensitive_content: false,
+    created_height: null,
+    coin_id: '',
+    address: '',
+    royalty_address: '',
+    royalty_ten_thousandths: 0,
+    data_uris: [],
+    data_hash: null,
+    metadata_uris: [],
+    metadata_hash: null,
+    license_uris: [],
+    license_hash: null,
+    edition_number: null,
+    edition_total: null,
+  };
+}
+export function getAssetDisplayName(
+  name: string | null,
+  ticker: string | null,
+  kind: AssetKind,
+) {
+  return (
+    name ??
+    ticker ??
+    (kind === 'token' ? t`Unknown CAT` : t`Untitled ${kind.toUpperCase()}`)
+  );
+}
+
 export function formatTimestamp(
   timestamp: number | null,
-  dateStyle: string = 'medium',
+  dateStyle = 'medium',
   timeStyle: string = dateStyle,
 ): string {
   if (!timestamp) return '';
@@ -27,7 +67,7 @@ export function formatTimestamp(
 
 export function formatAddress(
   address: string,
-  chars: number = 8,
+  chars = 8,
   trailingChars: number = chars,
 ): string {
   const cleanAddress = address.startsWith('0x') ? address.slice(2) : address;
@@ -93,7 +133,7 @@ export function isValidAddress(address: string, prefix: string): boolean {
   try {
     const info = addressInfo(address);
     return info.puzzleHash.length === 64 && info.prefix === prefix;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -119,10 +159,6 @@ export function isValidAssetId(assetId: string): boolean {
 
 function sanitizeHex(hex: string): string {
   return hex.replace(/0x/i, '');
-}
-
-function formatHex(hex: string): string {
-  return /^0x/i.test(hex) ? hex : `0x${hex}`;
 }
 
 const HEX_STRINGS = '0123456789abcdef';

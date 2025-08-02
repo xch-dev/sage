@@ -1,15 +1,15 @@
-import { ExternalLink, Share, Copy } from 'lucide-react';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { toast } from 'react-toastify';
-import { openUrl } from '@tauri-apps/plugin-opener';
-import { platform } from '@tauri-apps/plugin-os';
-import StyledQRCode from '@/components/StyledQrCode';
-import { useEffect, useState } from 'react';
-import { getOfferHash } from '@/lib/offerUpload';
 import { OfferSummary } from '@/bindings';
+import StyledQRCode from '@/components/StyledQrCode';
+import { getOfferHash } from '@/lib/offerUpload';
 import { OfferState } from '@/state';
 import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { openUrl } from '@tauri-apps/plugin-opener';
+import { platform } from '@tauri-apps/plugin-os';
+import { Copy, ExternalLink, Share } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
 export interface MarketplaceConfig {
   id: string;
@@ -32,7 +32,7 @@ export interface MarketplaceConfig {
 interface MarketplaceCardProps {
   offer: string;
   offerId: string;
-  offerSummary?: any;
+  offerSummary: OfferSummary | OfferState;
   network: 'mainnet' | 'testnet' | 'unknown';
   marketplace: MarketplaceConfig;
 }
@@ -76,10 +76,7 @@ export function MarketplaceCard({
     } else {
       const toastId = toast.loading(t`Uploading to ${marketplace.name}...`);
       try {
-        const url = await marketplace.uploadToMarketplace(
-          offer,
-          network === 'testnet',
-        );
+        await marketplace.uploadToMarketplace(offer, network === 'testnet');
         toast.update(toastId, {
           render: t`Uploaded to ${marketplace.name}!`,
           type: 'success',
@@ -138,6 +135,7 @@ export function MarketplaceCard({
     <div className='flex flex-col items-center gap-4 w-auto'>
       <div className='flex items-center gap-2'>
         <button
+          type='button'
           onClick={handleMarketplaceAction}
           className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
           title={marketplace.getMarketplaceLink(
@@ -162,6 +160,7 @@ export function MarketplaceCard({
 
         {isOnMarketplace && isMobile && (
           <button
+            type='button'
             onClick={handleShare}
             className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
             title={t`Share marketplace link`}
@@ -172,6 +171,7 @@ export function MarketplaceCard({
 
         {isOnMarketplace && !isMobile && (
           <button
+            type='button'
             onClick={handleCopy}
             className='flex items-center gap-2 px-3 py-1.5 rounded-md border hover:bg-accent w-fit'
             title={t`Copy marketplace link`}

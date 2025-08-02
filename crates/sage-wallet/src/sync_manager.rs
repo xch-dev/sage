@@ -151,10 +151,11 @@ impl SyncManager {
     async fn process_commands(&mut self) {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
-                SyncCommand::SwitchWallet { wallet } => {
+                SyncCommand::SwitchWallet { wallet, delta_sync } => {
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
+                    self.options.delta_sync = delta_sync;
                 }
                 SyncCommand::SwitchNetwork(network) => {
                     if self.network.network_id() != network.network_id()
@@ -327,11 +328,6 @@ impl SyncManager {
 
                     incremental_sync(wallet, message.items, true, &self.event_sender).await?;
 
-                    wallet
-                        .db
-                        .insert_peak(message.height, message.peak_hash)
-                        .await?;
-
                     info!(
                         "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
                         unspent_count, spent_count,
@@ -379,6 +375,7 @@ impl SyncManager {
                             peer,
                             self.state.clone(),
                             self.event_sender.clone(),
+                            self.options.delta_sync,
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
                         self.event_sender.send(SyncEvent::Start(ip)).await.ok();
@@ -443,7 +440,6 @@ impl SyncManager {
                 let task = tokio::spawn(
                     TransactionQueue::new(
                         wallet.db.clone(),
-                        wallet.genesis_challenge,
                         self.state.clone(),
                         self.event_sender.clone(),
                     )
@@ -515,6 +511,23 @@ impl SyncManager {
                         self.event_sender.send(SyncEvent::Stop).await.ok();
                     }
                 }
+            }
+        }
+
+        if let Some(task) = &mut self.puzzle_lookup_task {
+            match poll_once(task).await {
+                Some(Err(error)) => {
+                    warn!("Puzzle lookup queue failed with panic: {error}");
+                    self.puzzle_lookup_task = None;
+                }
+                Some(Ok(Err(error))) => {
+                    warn!("Puzzle lookup queue failed with error: {error}");
+                    self.puzzle_lookup_task = None;
+                }
+                Some(Ok(Ok(()))) => {
+                    self.puzzle_lookup_task = None;
+                }
+                None => {}
             }
         }
 

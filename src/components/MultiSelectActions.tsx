@@ -1,4 +1,5 @@
 import { commands, NftData, NftRecord, TransactionResponse } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { toMojos } from '@/lib/utils';
@@ -13,9 +14,11 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
+import { NftConfirmation } from './confirmations/NftConfirmation';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
@@ -27,8 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { NftConfirmation } from './confirmations/NftConfirmation';
-import { useNavigate } from 'react-router-dom';
 
 export interface MultiSelectActionsProps {
   selected: string[];
@@ -90,8 +91,8 @@ export function MultiSelectActions({
           }
         }
         setFetchedNfts(records);
-      } catch (error: any) {
-        addError(error);
+      } catch (error: unknown) {
+        addError(error as CustomError);
       }
     };
 
@@ -119,8 +120,8 @@ export function MultiSelectActions({
           data[nft.launcher_id] = response.data;
         }
         setFetchedNftData(data);
-      } catch (error: any) {
-        addError(error);
+      } catch (error: unknown) {
+        addError(error as CustomError);
       }
     };
 
@@ -137,9 +138,9 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         setIsTransferring(false);
-        addError(err);
+        addError(err as CustomError);
       })
       .finally(() => setTransferOpen(false));
   };
@@ -154,9 +155,9 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         setIsEditingProfile(false);
-        addError(err);
+        addError(err as CustomError);
       })
       .finally(() => setAssignOpen(false));
   };
@@ -170,9 +171,9 @@ export function MultiSelectActions({
         fee: toMojos(fee, walletState.sync.unit.decimals),
       })
       .then(setResponse)
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         setIsBurning(false);
-        addError(err);
+        addError(err as CustomError);
       })
       .finally(() => setBurnOpen(false));
   };
