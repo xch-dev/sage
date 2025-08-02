@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT \t\n            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,\n            is_created_in_block, is_spent_in_block, asset_hash, asset_description,\n            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,\n            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision\n        FROM transaction_coins \n        WHERE height = ?",
+  "query": "SELECT \t\n            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,\n            is_created_in_block, is_spent_in_block, asset_hash, asset_description,\n            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,\n            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash\n        FROM transaction_coins \n        WHERE height = ?",
   "describe": {
     "columns": [
       {
@@ -92,6 +92,11 @@
         "name": "asset_precision",
         "ordinal": 17,
         "type_info": "Integer"
+      },
+      {
+        "name": "asset_hidden_puzzle_hash",
+        "ordinal": 18,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
@@ -115,8 +120,9 @@
       false,
       true,
       true,
-      false
+      false,
+      true
     ]
   },
-  "hash": "aa8b2a615b069bd89079afcceb9484344c8731f7f767a9aa949c1356d99cd81a"
+  "hash": "e1354916f0346d1eed272947471232e4d15b99bef39202cafa6b034c3fa441e9"
 }

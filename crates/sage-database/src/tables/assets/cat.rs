@@ -8,7 +8,7 @@ impl Database {
             "
             SELECT
                 hash, name, icon_url, description, ticker, precision,
-                is_visible, is_sensitive_content
+                is_visible, is_sensitive_content, hidden_puzzle_hash
             FROM assets
             WHERE assets.kind = 0 AND assets.id != 0
             ORDER BY name ASC
@@ -27,6 +27,7 @@ impl Database {
                 description: row.description,
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
+                hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
                 kind: AssetKind::Token,
             })
         })
@@ -38,7 +39,7 @@ impl Database {
             "
             SELECT
                 hash, name, icon_url, description, ticker, precision,
-                is_visible, is_sensitive_content
+                is_visible, is_sensitive_content, hidden_puzzle_hash
             FROM assets
             WHERE assets.kind = 0 AND assets.id != 0
             AND EXISTS (
@@ -62,6 +63,7 @@ impl Database {
                 description: row.description,
                 is_visible: row.is_visible,
                 is_sensitive_content: row.is_sensitive_content,
+                hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
                 kind: AssetKind::Token,
             })
         })

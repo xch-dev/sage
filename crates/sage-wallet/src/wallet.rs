@@ -159,15 +159,6 @@ impl Wallet {
                     let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
                     spends.add(nft.with_metadata(metadata_ptr));
                 }
-                Some(CoinKind::Option) => {
-                    let option = self
-                        .db
-                        .option_coin(coin_id)
-                        .await?
-                        .ok_or(WalletError::MissingOptionCoin(coin_id))?;
-
-                    spends.add(option);
-                }
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
         }
@@ -257,15 +248,6 @@ impl Wallet {
                         let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
                         spends.add(nft.with_metadata(metadata_ptr));
                     }
-                    Some(AssetKind::Option) => {
-                        let option = self
-                            .db
-                            .option(asset_id)
-                            .await?
-                            .ok_or(WalletError::MissingOptionContract(asset_id))?;
-
-                        spends.add(option);
-                    }
                     None => return Err(WalletError::MissingAsset(asset_id)),
                 },
             }
@@ -335,11 +317,6 @@ impl Wallet {
                             } else {
                                 return Err(DriverError::MissingKey);
                             }
-                        }
-                        P2Puzzle::OptionUnderlying(p2) => {
-                            let custody = StandardLayer::new(p2.public_key);
-                            let spend = custody.spend_with_conditions(ctx, spend.finish())?;
-                            p2.option.clawback_spend(ctx, spend)
                         }
                     }
                 }

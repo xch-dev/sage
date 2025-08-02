@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                hash, name, icon_url, description, ticker, precision,\n                is_visible, is_sensitive_content\n            FROM assets\n            WHERE assets.kind = 0 AND assets.id != 0\n            ORDER BY name ASC\n            ",
+  "query": "\n            SELECT\n                hash, name, icon_url, description, ticker, precision,\n                is_visible, is_sensitive_content, hidden_puzzle_hash\n            FROM assets\n            WHERE assets.kind = 0 AND assets.id != 0\n            ORDER BY name ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -42,6 +42,11 @@
         "name": "is_sensitive_content",
         "ordinal": 7,
         "type_info": "Bool"
+      },
+      {
+        "name": "hidden_puzzle_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
@@ -55,8 +60,9 @@
       true,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "1e8f21fd0c35249917f77752d470d00c658c3951f52ca38d7d3cb68d0143265d"
+  "hash": "d4968090a9ac9a2cd512fa3eabc6c54ab9803103799a49bb19fe46cf0ae24a6d"
 }

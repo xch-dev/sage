@@ -15,7 +15,7 @@ use sage_assets::{base64_data_uri, Data};
 use sage_database::{Asset, AssetKind, Database};
 use sage_wallet::{compute_nft_info, CoinKind, Transaction};
 
-use crate::{encode_asset, Error, Result, Sage};
+use crate::{Error, Result, Sage};
 
 use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 
@@ -52,7 +52,10 @@ impl Sage {
                 }
                 CoinKind::Cat { info } => {
                     p2_puzzle_hash = info.p2_puzzle_hash;
-                    Some(self.cache_cat(info.asset_id).await?)
+                    Some(
+                        self.cache_cat(info.asset_id, info.hidden_puzzle_hash)
+                            .await?,
+                    )
                 }
                 CoinKind::Nft { info, .. } => {
                     let mut allocator = Allocator::new();
@@ -73,6 +76,7 @@ impl Sage {
                         description: None,
                         is_sensitive_content: false,
                         is_visible: true,
+                        hidden_puzzle_hash: None,
                         kind: AssetKind::Did,
                     }))
                 }
@@ -103,7 +107,7 @@ impl Sage {
                 coin_id: hex::encode(coin.coin_id()),
                 amount: Amount::u64(coin.amount),
                 address,
-                asset: asset.map(encode_asset).transpose()?,
+                asset: asset.map(|asset| self.encode_asset(asset)).transpose()?,
                 outputs,
             });
         }

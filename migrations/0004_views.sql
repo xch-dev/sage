@@ -6,7 +6,6 @@ SELECT
   coins.parent_coin_hash,
   coins.puzzle_hash,
   coins.amount,
-  coins.hidden_puzzle_hash,
   coins.p2_puzzle_id,
   coins.spent_height,
   coins.created_height,
@@ -19,6 +18,7 @@ SELECT
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
   assets.is_sensitive_content AS asset_is_sensitive_content,
+  assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash,
   p2_puzzles.hash AS p2_puzzle_hash,
   p2_puzzles.kind AS p2_puzzle_kind,
   clawbacks.sender_puzzle_hash AS clawback_sender_puzzle_hash,
@@ -125,7 +125,8 @@ SELECT
   assets.kind AS asset_kind,
   assets.description AS asset_description,
   assets.is_visible AS asset_is_visible,
-  assets.is_sensitive_content AS asset_is_sensitive_content
+  assets.is_sensitive_content AS asset_is_sensitive_content,
+  assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash
 FROM blocks
 LEFT JOIN coins ON coins.created_height = blocks.height OR coins.spent_height = blocks.height
 INNER JOIN assets ON assets.id = coins.asset_id

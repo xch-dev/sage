@@ -189,7 +189,14 @@ function AssetDisplay({
             </p>
           ) : (
             <div className='flex items-center gap-2'>
-              <AssetIcon iconUrl={xchToken?.icon_url} kind='token' size='sm' />
+              <AssetIcon
+                asset={{
+                  icon_url: xchToken?.icon_url ?? null,
+                  kind: 'token',
+                  revocation_address: xchToken?.revocation_address ?? null,
+                }}
+                size='sm'
+              />
               <span>
                 <NumberFormat
                   value={xchAmount}
@@ -221,7 +228,15 @@ function AssetDisplay({
                     key={cat.asset_id}
                     className='text-sm flex items-center gap-2'
                   >
-                    <AssetIcon iconUrl={cat.iconUrl} kind='token' size='sm' />
+                    <AssetIcon
+                      asset={{
+                        icon_url: cat.iconUrl ?? null,
+                        kind: 'token',
+                        revocation_address: null,
+                        // TODO: Use Asset here and use the actual revocation address
+                      }}
+                      size='sm'
+                    />
                     <span>
                       <NumberFormat
                         value={cat.amount || '0'}
@@ -254,7 +269,15 @@ function AssetDisplay({
                       className='flex flex-col items-center text-center'
                       title={`${nft.name}\nID: ${nft.launcher_id}`}
                     >
-                      <AssetIcon iconUrl={nft.icon_url} kind='nft' size='sm' />
+                      <AssetIcon
+                        asset={{
+                          icon_url: nft.icon_url ?? null,
+                          kind: 'nft',
+                          revocation_address: null,
+                          // TODO: Use Asset here and use the actual revocation address
+                        }}
+                        size='sm'
+                      />
                       {!nft.icon_url && (
                         <span className='text-xs truncate w-full'>
                           {nft.name}

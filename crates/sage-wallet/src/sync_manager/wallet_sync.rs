@@ -226,7 +226,6 @@ pub async fn incremental_sync(
                 coin_state.coin.coin_id(),
                 Bytes32::default(),
                 coin_state.coin.puzzle_hash,
-                None,
             )
             .await?;
         }
