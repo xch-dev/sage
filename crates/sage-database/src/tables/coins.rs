@@ -116,16 +116,8 @@ impl Database {
         coin_id: Bytes32,
         asset_hash: Bytes32,
         p2_puzzle_hash: Bytes32,
-        hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
-        update_coin(
-            &self.pool,
-            coin_id,
-            asset_hash,
-            p2_puzzle_hash,
-            hidden_puzzle_hash,
-        )
-        .await
+        update_coin(&self.pool, coin_id, asset_hash, p2_puzzle_hash).await
     }
 
     pub async fn subscription_coin_ids(&self) -> Result<Vec<Bytes32>> {
@@ -207,16 +199,8 @@ impl DatabaseTx<'_> {
         coin_id: Bytes32,
         asset_hash: Bytes32,
         p2_puzzle_hash: Bytes32,
-        hidden_puzzle_hash: Option<Bytes32>,
     ) -> Result<()> {
-        update_coin(
-            &mut *self.tx,
-            coin_id,
-            asset_hash,
-            p2_puzzle_hash,
-            hidden_puzzle_hash,
-        )
-        .await
+        update_coin(&mut *self.tx, coin_id, asset_hash, p2_puzzle_hash).await
     }
 
     pub async fn set_children_synced(&mut self, coin_id: Bytes32) -> Result<()> {
@@ -362,24 +346,20 @@ async fn update_coin(
     coin_id: Bytes32,
     asset_hash: Bytes32,
     p2_puzzle_hash: Bytes32,
-    hidden_puzzle_hash: Option<Bytes32>,
 ) -> Result<()> {
     let coin_id = coin_id.as_ref();
     let asset_hash = asset_hash.as_ref();
     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
-    let hidden_puzzle_hash = hidden_puzzle_hash.as_deref();
 
     query!(
         "
         UPDATE coins SET
             asset_id = (SELECT id FROM assets WHERE hash = ?),
-            p2_puzzle_id = (SELECT id FROM p2_puzzles WHERE hash = ?),
-            hidden_puzzle_hash = ?
+            p2_puzzle_id = (SELECT id FROM p2_puzzles WHERE hash = ?)
         WHERE hash = ?
         ",
         asset_hash,
         p2_puzzle_hash,
-        hidden_puzzle_hash,
         coin_id,
     )
     .execute(conn)
@@ -712,8 +692,9 @@ async fn selectable_cat_coins(
     query!(
         "
         SELECT
-            parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzle_hash,
-            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount
+            parent_coin_hash, puzzle_hash, amount, asset_hidden_puzzle_hash,
+            p2_puzzle_hash, parent_parent_coin_hash, parent_inner_puzzle_hash,
+            parent_amount
         FROM selectable_coins
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = selectable_coins.coin_id
         WHERE asset_hash = ?
@@ -737,7 +718,7 @@ async fn selectable_cat_coins(
             }),
             CatInfo::new(
                 asset_id,
-                row.hidden_puzzle_hash.convert()?,
+                row.asset_hidden_puzzle_hash.convert()?,
                 row.p2_puzzle_hash.convert()?,
             ),
         ))
@@ -807,8 +788,9 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     let Some(row) = query!(
         "
         SELECT
-            parent_coin_hash, puzzle_hash, amount, hidden_puzzle_hash, p2_puzzle_hash,
-            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount, asset_hash AS asset_id
+            parent_coin_hash, puzzle_hash, amount, asset_hidden_puzzle_hash,
+            p2_puzzle_hash, parent_parent_coin_hash, parent_inner_puzzle_hash,
+            parent_amount, asset_hash AS asset_id
         FROM spendable_coins
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id
         WHERE coin_hash = ?
@@ -834,7 +816,7 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         }),
         CatInfo::new(
             row.asset_id.convert()?,
-            row.hidden_puzzle_hash.convert()?,
+            row.asset_hidden_puzzle_hash.convert()?,
             row.p2_puzzle_hash.convert()?,
         ),
     )))

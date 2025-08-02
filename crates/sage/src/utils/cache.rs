@@ -31,10 +31,22 @@ impl Sage {
                 description: asset.description,
                 is_sensitive_content: false,
                 is_visible: true,
+                hidden_puzzle_hash: None,
                 kind: AssetKind::Token,
             }
         } else {
-            Asset::default_cat(asset_id)
+            Asset {
+                hash: asset_id,
+                name: None,
+                ticker: None,
+                precision: 3,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                hidden_puzzle_hash: None,
+                kind: AssetKind::Token,
+            }
         };
 
         wallet.db.insert_asset(asset.clone()).await?;
@@ -96,6 +108,7 @@ impl Sage {
             description: info.description,
             is_sensitive_content: info.is_sensitive_content,
             is_visible: true,
+            hidden_puzzle_hash: None,
             kind: AssetKind::Nft,
         };
 

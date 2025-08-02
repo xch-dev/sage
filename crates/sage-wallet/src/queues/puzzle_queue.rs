@@ -135,7 +135,6 @@ impl PuzzleQueue {
                                     coin_id,
                                     Bytes32::default(),
                                     item.coin_state.coin.puzzle_hash,
-                                    None,
                                 )
                                 .await?;
                             send_events = true;

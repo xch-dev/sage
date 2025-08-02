@@ -56,6 +56,9 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
             .map(Convert::convert)
             .transpose()?
             .unwrap_or(crate::AssetKind::Token),
+        hidden_puzzle_hash: row
+            .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
+            .convert()?,
     };
 
     let p2_puzzle_hash = row.get::<Option<Vec<u8>>, _>("p2_puzzle_hash").convert()?;
@@ -73,7 +76,7 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision
+            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash
         FROM transaction_coins 
         WHERE height = ?",
         height
@@ -110,6 +113,7 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             is_sensitive_content: row.asset_is_sensitive_content,
             is_visible: row.asset_is_visible,
             kind: row.asset_kind.convert()?,
+            hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
         };
 
         let transaction_coin = TransactionCoin {

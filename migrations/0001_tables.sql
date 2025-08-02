@@ -144,7 +144,6 @@ CREATE TABLE coins (
   parent_coin_hash BLOB NOT NULL,
   puzzle_hash BLOB NOT NULL,
   amount BLOB NOT NULL,
-  hidden_puzzle_hash BLOB,
   p2_puzzle_id INTEGER,
   created_height INTEGER,
   spent_height INTEGER,

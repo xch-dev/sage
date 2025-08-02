@@ -104,7 +104,8 @@ async fn offer_assets(
             amount, royalty, is_requested, 
             assets.description, assets.is_sensitive_content,
             assets.is_visible, assets.icon_url, assets.name,
-            assets.ticker, assets.precision, assets.kind
+            assets.ticker, assets.precision, assets.kind,
+            assets.hidden_puzzle_hash
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
@@ -129,6 +130,7 @@ async fn offer_assets(
                     name: row.name,
                     ticker: row.ticker,
                     precision: row.precision.convert()?,
+                    hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
                 },
                 amount: row.amount.convert()?,
                 royalty: row.royalty.convert()?,

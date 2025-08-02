@@ -22,9 +22,9 @@ impl Database {
         query!(
             "
             SELECT
-                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url, asset_description,
-                asset_is_visible, asset_is_sensitive_content,
-                owned_coins.created_height, spent_height,
+                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
+                asset_description, asset_is_visible, asset_is_sensitive_content,
+                asset_hidden_puzzle_hash, owned_coins.created_height, spent_height,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,
                 metadata, recovery_list_hash, num_verifications_required,
                 offer_hash, created_timestamp, spent_timestamp,
@@ -48,6 +48,7 @@ impl Database {
                     description: row.asset_description,
                     is_visible: row.asset_is_visible,
                     is_sensitive_content: row.asset_is_sensitive_content,
+                    hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
                     kind: AssetKind::Did,
                 },
                 did_info: DidCoinInfo {

@@ -31,23 +31,8 @@ pub struct Asset {
     pub description: Option<String>,
     pub is_sensitive_content: bool,
     pub is_visible: bool,
+    pub hidden_puzzle_hash: Option<Bytes32>,
     pub kind: AssetKind,
-}
-
-impl Asset {
-    pub fn default_cat(hash: Bytes32) -> Self {
-        Self {
-            hash,
-            name: None,
-            ticker: None,
-            precision: 3,
-            icon_url: None,
-            description: None,
-            is_sensitive_content: false,
-            is_visible: true,
-            kind: AssetKind::Token,
-        }
-    }
 }
 
 impl Database {
@@ -107,7 +92,7 @@ impl Database {
             "
             SELECT
                 hash, kind, name, ticker, precision, icon_url, description,
-                is_sensitive_content, is_visible
+                is_sensitive_content, is_visible, hidden_puzzle_hash
             FROM assets
             WHERE hash = ?
             ",
@@ -126,6 +111,7 @@ impl Database {
                 description: row.description,
                 is_sensitive_content: row.is_sensitive_content,
                 is_visible: row.is_visible,
+                hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
             })
         })
         .transpose()
@@ -138,19 +124,73 @@ impl DatabaseTx<'_> {
 
         Ok(())
     }
+
+    pub async fn update_hidden_puzzle_hash(
+        &mut self,
+        asset_hash: Bytes32,
+        hidden_puzzle_hash: Option<Bytes32>,
+    ) -> Result<()> {
+        let asset_hash = asset_hash.as_ref();
+        let hidden_puzzle_hash = hidden_puzzle_hash.as_deref();
+
+        query!(
+            "
+            UPDATE assets SET hidden_puzzle_hash = ? WHERE hash = ?
+            ",
+            hidden_puzzle_hash,
+            asset_hash
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
+    }
+
+    pub async fn existing_hidden_puzzle_hash(
+        &mut self,
+        asset_hash: Bytes32,
+    ) -> Result<Option<Option<Bytes32>>> {
+        let asset_hash = asset_hash.as_ref();
+
+        query!(
+            "
+            SELECT hidden_puzzle_hash FROM assets WHERE hash = ?
+            AND EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)
+            ",
+            asset_hash
+        )
+        .fetch_optional(&mut *self.tx)
+        .await?
+        .map(|row| row.hidden_puzzle_hash.convert())
+        .transpose()
+    }
+
+    pub async fn delete_asset_coins(&mut self, asset_hash: Bytes32) -> Result<()> {
+        let asset_hash = asset_hash.as_ref();
+
+        query!(
+            "DELETE FROM coins WHERE asset_id = (SELECT id FROM assets WHERE hash = ?)",
+            asset_hash
+        )
+        .execute(&mut *self.tx)
+        .await?;
+
+        Ok(())
+    }
 }
 
 async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()> {
     let hash = asset.hash.as_ref();
     let kind = asset.kind as i64;
+    let hidden_puzzle_hash = asset.hidden_puzzle_hash.as_deref();
 
     query!(
         "
         INSERT INTO assets (
             hash, kind, name, ticker, precision, icon_url, description,
-            is_sensitive_content, is_visible
+            is_sensitive_content, is_visible, hidden_puzzle_hash
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(name, excluded.name),
             ticker = COALESCE(ticker, excluded.ticker),
@@ -167,6 +207,7 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
         asset.description,
         asset.is_sensitive_content,
         asset.is_visible,
+        hidden_puzzle_hash,
     )
     .execute(conn)
     .await?;

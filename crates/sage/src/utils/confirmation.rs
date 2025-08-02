@@ -73,6 +73,7 @@ impl Sage {
                         description: None,
                         is_sensitive_content: false,
                         is_visible: true,
+                        hidden_puzzle_hash: None,
                         kind: AssetKind::Did,
                     }))
                 }

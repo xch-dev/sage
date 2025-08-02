@@ -9,7 +9,7 @@ use chia::{
 use chia_wallet_sdk::driver::NftInfo;
 use sage_assets::base64_data_uri;
 use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
-use tracing::warn;
+use tracing::{error, warn};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
 
@@ -50,7 +50,7 @@ pub async fn insert_puzzle(
         ChildKind::Clawback { info } => {
             tx.insert_clawback_p2_puzzle(info).await?;
 
-            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into(), None)
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
                 .await?;
         }
         ChildKind::Cat {
@@ -59,6 +59,41 @@ pub async fn insert_puzzle(
             clawback,
         } => {
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
+
+            if let Some(hidden_puzzle_hash) = tx.existing_hidden_puzzle_hash(info.asset_id).await? {
+                match (hidden_puzzle_hash, info.hidden_puzzle_hash) {
+                    (None, Some(hidden_puzzle_hash)) => {
+                        warn!(
+                            "Received a CAT coin with hidden puzzle hash {hidden_puzzle_hash}, \
+                            but we already have an asset with no hidden puzzle hash. This is a \
+                            security risk, so the coin has been deleted."
+                        );
+                        tx.delete_coin(coin_id).await?;
+                        return Ok(false);
+                    }
+                    (Some(hidden_puzzle_hash), None) => {
+                        error!(
+                            "Received a CAT coin without a hidden puzzle hash, but we already \
+                            synced one or more coins with hidden puzzle hash {hidden_puzzle_hash}. \
+                            The existing coins have been immediately deleted as they will pollute \
+                            legitimate CAT coins with the same asset id."
+                        );
+                        tx.delete_asset_coins(info.asset_id).await?;
+                    }
+                    (None, None) => {}
+                    (Some(old), Some(new)) => {
+                        if old != new {
+                            warn!(
+                                "Received a CAT coin with a different hidden puzzle hash than \
+                                the one we already have. The new coin has been deleted as it \
+                                will pollute legitimate CAT coins with the same asset id."
+                            );
+                            tx.delete_coin(coin_id).await?;
+                            return Ok(false);
+                        }
+                    }
+                }
+            }
 
             tx.insert_asset(Asset {
                 hash: info.asset_id,
@@ -69,21 +104,20 @@ pub async fn insert_puzzle(
                 description: None,
                 is_sensitive_content: false,
                 is_visible: true,
+                hidden_puzzle_hash: info.hidden_puzzle_hash,
                 kind: AssetKind::Token,
             })
             .await?;
+
+            tx.update_hidden_puzzle_hash(info.asset_id, info.hidden_puzzle_hash)
+                .await?;
 
             if let Some(clawback) = clawback {
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            tx.update_coin(
-                coin_id,
-                info.asset_id,
-                info.p2_puzzle_hash,
-                info.hidden_puzzle_hash,
-            )
-            .await?;
+            tx.update_coin(coin_id, info.asset_id, info.p2_puzzle_hash)
+                .await?;
         }
         ChildKind::Did {
             lineage_proof,
@@ -107,6 +141,7 @@ pub async fn insert_puzzle(
                 description: None,
                 is_sensitive_content: false,
                 is_visible: true,
+                hidden_puzzle_hash: None,
                 kind: AssetKind::Did,
             })
             .await?;
@@ -121,7 +156,7 @@ pub async fn insert_puzzle(
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            tx.update_coin(coin_id, info.launcher_id, info.p2_puzzle_hash, None)
+            tx.update_coin(coin_id, info.launcher_id, info.p2_puzzle_hash)
                 .await?;
         }
         ChildKind::Nft {
@@ -183,6 +218,7 @@ pub async fn insert_nft(
         description: None,
         is_sensitive_content: false,
         is_visible: true,
+        hidden_puzzle_hash: None,
         kind: AssetKind::Nft,
     };
 
@@ -229,7 +265,6 @@ pub async fn insert_nft(
             coin_state.coin.coin_id(),
             info.launcher_id,
             info.p2_puzzle_hash,
-            None,
         )
         .await?;
     }
@@ -343,7 +378,7 @@ pub async fn insert_transaction(
             {
                 tx.insert_coin(coin_state).await?;
 
-                tx.update_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash, None)
+                tx.update_coin(coin_id, Bytes32::default(), output.coin.puzzle_hash)
                     .await?;
 
                 tx.insert_mempool_coin(
