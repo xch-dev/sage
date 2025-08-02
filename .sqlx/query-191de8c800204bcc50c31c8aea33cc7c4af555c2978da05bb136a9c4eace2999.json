@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n            hash as offer_id,\n            encoded_offer,\n            fee,\n            status,\n            expiration_height,\n            expiration_timestamp,\n            inserted_timestamp\n        FROM offers \n        WHERE status = ? OR ? IS NULL",
+  "query": "SELECT\n            hash as offer_id,\n            encoded_offer,\n            fee,\n            status,\n            expiration_height,\n            expiration_timestamp,\n            inserted_timestamp\n        FROM offers \n        WHERE status = ? OR ? IS NULL\n        ORDER BY inserted_timestamp DESC",
   "describe": {
     "columns": [
       {
@@ -52,5 +52,5 @@
       false
     ]
   },
-  "hash": "2eefe8bb34ccd11b98116fac075f15ea2b6fca53a1a4779a509fc6dcbc27150c"
+  "hash": "191de8c800204bcc50c31c8aea33cc7c4af555c2978da05bb136a9c4eace2999"
 }

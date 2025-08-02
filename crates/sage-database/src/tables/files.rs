@@ -116,8 +116,8 @@ impl DatabaseTx<'_> {
         nfts_with_metadata_hash(&mut *self.tx, hash).await
     }
 
-    pub async fn delete_file(&mut self, hash: Bytes32) -> Result<()> {
-        delete_file(&mut *self.tx, hash).await
+    pub async fn delete_file_data(&mut self, hash: Bytes32) -> Result<()> {
+        delete_file_data(&mut *self.tx, hash).await
     }
 
     pub async fn set_uri_unchecked(&mut self, uri: String) -> Result<()> {
@@ -351,10 +351,10 @@ async fn resized_image(
     }))
 }
 
-async fn delete_file(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
+async fn delete_file_data(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<()> {
     let hash = hash.as_ref();
 
-    query!("DELETE FROM files WHERE hash = ?", hash)
+    query!("UPDATE files SET data = NULL WHERE hash = ?", hash)
         .execute(conn)
         .await?;
 
