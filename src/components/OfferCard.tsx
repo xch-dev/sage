@@ -184,7 +184,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                   <Trans>Created</Trans>
                 </div>
                 <div>
-                  {new Date(record.creation_timestamp).toLocaleString()}
+                  {new Date(record.creation_timestamp * 1000).toLocaleString()}
                 </div>
               </div>
             )}
