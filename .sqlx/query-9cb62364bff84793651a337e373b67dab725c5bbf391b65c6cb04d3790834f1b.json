@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            UPDATE assets SET hidden_puzzle_hash = ? WHERE hash = ?\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "9cb62364bff84793651a337e373b67dab725c5bbf391b65c6cb04d3790834f1b"
+}
