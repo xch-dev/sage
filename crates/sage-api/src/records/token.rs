@@ -13,4 +13,5 @@ pub struct TokenRecord {
     pub icon_url: Option<String>,
     pub visible: bool,
     pub balance: Amount,
+    pub revocation_address: Option<String>,
 }

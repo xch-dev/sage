@@ -25,7 +25,9 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
+  AlertTriangleIcon,
   ExternalLink,
+  ExternalLinkIcon,
   Eye,
   EyeOff,
   HandHelping,
@@ -39,6 +41,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { TokenRecord } from '../bindings';
 import { AssetIcon } from './AssetIcon';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 interface TokenCardProps {
   asset: TokenRecord;
@@ -94,10 +97,10 @@ export function TokenCard({
                 />
                 &nbsp;
               </span>
-              {asset?.ticker}
+              {asset?.ticker ?? 'CAT'}
             </div>
             <div className='flex-shrink-0'>
-              <AssetIcon iconUrl={asset?.icon_url} kind='token' size='md' />
+              <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>
           <div className='text-sm text-muted-foreground'>
@@ -165,6 +168,29 @@ export function TokenCard({
               </DropdownMenu>
             )}
           </div>
+
+          {asset.revocation_address && (
+            <>
+              <Alert variant='warning' className='mt-2'>
+                <AlertTriangleIcon className='h-4 w-4' />
+                <AlertTitle>
+                  <Trans>Revocable CAT</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>This asset can be revoked by its issuer.</Trans>{' '}
+                  <a
+                    href='https://github.com/Chia-Network/chips/blob/3a8460141f0935f8be103500171805439d7063fd/CHIPs/chip-0038.md'
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='text-blue-500 hover:underline inline-flex items-center gap-1'
+                  >
+                    <Trans>Learn more</Trans>{' '}
+                    <ExternalLinkIcon className='h-4 w-4' />
+                  </a>
+                </AlertDescription>
+              </Alert>
+            </>
+          )}
         </CardContent>
       </Card>
 

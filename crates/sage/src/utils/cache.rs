@@ -10,7 +10,11 @@ use tokio::time::timeout;
 use crate::{extract_nft_data, ConfirmationInfo, ExtractedNftData, Result, Sage};
 
 impl Sage {
-    pub async fn cache_cat(&self, asset_id: Bytes32) -> Result<Asset> {
+    pub async fn cache_cat(
+        &self,
+        asset_id: Bytes32,
+        hidden_puzzle_hash: Option<Bytes32>,
+    ) -> Result<Asset> {
         let wallet = self.wallet()?;
 
         if let Some(asset) = wallet.db.asset(asset_id).await? {
@@ -31,7 +35,7 @@ impl Sage {
                 description: asset.description,
                 is_sensitive_content: false,
                 is_visible: true,
-                hidden_puzzle_hash: None,
+                hidden_puzzle_hash,
                 kind: AssetKind::Token,
             }
         } else {
@@ -44,12 +48,21 @@ impl Sage {
                 description: None,
                 is_sensitive_content: false,
                 is_visible: true,
-                hidden_puzzle_hash: None,
+                hidden_puzzle_hash,
                 kind: AssetKind::Token,
             }
         };
 
         wallet.db.insert_asset(asset.clone()).await?;
+
+        let mut tx = wallet.db.tx().await?;
+
+        if tx.existing_hidden_puzzle_hash(asset_id).await?.is_none() {
+            tx.update_hidden_puzzle_hash(asset_id, hidden_puzzle_hash)
+                .await?;
+        }
+
+        tx.commit().await?;
 
         Ok(asset)
     }
