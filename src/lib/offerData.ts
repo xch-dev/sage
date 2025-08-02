@@ -3,6 +3,28 @@ import { CustomError } from '@/contexts/ErrorContext';
 
 const CNI_NFC_PREFIX = 'DT001';
 
+export interface DexieAsset {
+  id: string;
+  name: string;
+  amount: number;
+  code: string;
+}
+
+export interface DexieOffer {
+  id: string;
+  offer: string;
+  requested: DexieAsset[];
+  offered: DexieAsset[];
+}
+
+interface DexieOfferResponse {
+  success: boolean;
+  count: number;
+  page: number;
+  page_size: number;
+  offers: DexieOffer[];
+}
+
 export async function resolveOfferData(text: string): Promise<string> {
   try {
     if (isValidHostname(text, 'dexie.space')) {
@@ -92,18 +114,28 @@ async function fetchChiaOfferComOffer(id: string): Promise<string> {
   } as CustomError;
 }
 
-export async function fetchOfferedDexieOffersFromNftId(id: string): Promise<any[]> {
+export async function fetchOfferedDexieOffersFromNftId(
+  id: string,
+): Promise<DexieOffer[]> {
   return await fetchDexieOffersFromNftId(id, 'offered', 'price'); // lowest price first
 }
 
-export async function fetchRequestedDexieOffersFromNftId(id: string): Promise<any[]> {
+export async function fetchRequestedDexieOffersFromNftId(
+  id: string,
+): Promise<DexieOffer[]> {
   return await fetchDexieOffersFromNftId(id, 'requested', 'price_desc'); // highest price first
 }
 
-async function fetchDexieOffersFromNftId(id: string, type: string, sort: string): Promise<any[]> {
+async function fetchDexieOffersFromNftId(
+  id: string,
+  type: string,
+  sort: string,
+): Promise<DexieOffer[]> {
   // this will only get a single page of offers (20 by default) which is fine
-  const response = await fetch(`https://api.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`);
-  const data = await response.json();
+  const response = await fetch(
+    `https://api.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`,
+  );
+  const data = (await response.json()) as DexieOfferResponse;
   if (!data) {
     throw {
       kind: 'api',

@@ -6,19 +6,21 @@ import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
+import {
+  DexieAsset,
+  DexieOffer,
+  fetchOfferedDexieOffersFromNftId,
+  fetchRequestedDexieOffersFromNftId,
+} from '@/lib/offerData';
 import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { HandCoins } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
-import {
-  fetchOfferedDexieOffersFromNftId,
-  fetchRequestedDexieOffersFromNftId,
-} from '@/lib/offerData';
-import { HandCoins } from 'lucide-react';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -28,8 +30,8 @@ export default function Nft() {
   const [data, setData] = useState<NftData | null>(null);
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
 
-  const [requestedOffers, setRequestedOffers] = useState<any[]>([]);
-  const [offeredOffers, setOfferedOffers] = useState<any[]>([]);
+  const [requestedOffers, setRequestedOffers] = useState<DexieOffer[]>([]);
+  const [offeredOffers, setOfferedOffers] = useState<DexieOffer[]>([]);
 
   // Check for Dexie offers when NFT loads
   useEffect(() => {
@@ -481,7 +483,7 @@ export default function Nft() {
                   </div>
                 ) : (
                   <div className='grid gap-2'>
-                    {requestedOffers.map((offer: any) => (
+                    {requestedOffers.map((offer: DexieOffer) => (
                       <div key={offer.id} className='border rounded-lg p-3'>
                         <div className='grid grid-cols-2 gap-4'>
                           <div>
@@ -489,13 +491,11 @@ export default function Nft() {
                               <Trans>Offered in exchange:</Trans>
                             </div>
                             <div className='space-y-1'>
-                              {offer.offered?.map(
-                                (item: any, index: number) => (
-                                  <div key={index} className='text-sm'>
-                                    {item.amount} {item.name} ({item.code})
-                                  </div>
-                                ),
-                              )}
+                              {offer.offered?.map((item: DexieAsset) => (
+                                <div key={item.id} className='text-sm'>
+                                  {item.amount} {item.name} ({item.code})
+                                </div>
+                              ))}
                             </div>
                           </div>
                           <div className='flex flex-col gap-1 justify-start'>
@@ -547,7 +547,7 @@ export default function Nft() {
                   </div>
                 ) : (
                   <div className='grid gap-2'>
-                    {offeredOffers.map((offer: any) => (
+                    {offeredOffers.map((offer: DexieOffer) => (
                       <div key={offer.id} className='border rounded-lg p-3'>
                         <div className='grid grid-cols-2 gap-4'>
                           <div>
@@ -555,13 +555,11 @@ export default function Nft() {
                               <Trans>Requesting in exchange:</Trans>
                             </div>
                             <div className='space-y-1'>
-                              {offer.requested?.map(
-                                (item: any, index: number) => (
-                                  <div key={index} className='text-sm'>
-                                    {item.amount} {item.name} ({item.code})
-                                  </div>
-                                ),
-                              )}
+                              {offer.requested?.map((item: DexieAsset) => (
+                                <div key={item.id} className='text-sm'>
+                                  {item.amount} {item.name} ({item.code})
+                                </div>
+                              ))}
                             </div>
                           </div>
                           <div className='flex flex-col gap-1 justify-start'>
