@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            offers.hash as offer_id, assets.hash as asset_id,\n            amount, royalty, is_requested, \n            assets.description, assets.is_sensitive_content,\n            assets.is_visible, assets.icon_url, assets.name,\n            assets.ticker, assets.precision, assets.kind\n        FROM offer_assets \n        INNER JOIN assets ON offer_assets.asset_id = assets.id\n        INNER JOIN offers ON offer_assets.offer_id = offers.id\n        WHERE offers.hash = ?\n        ",
+  "query": "\n        SELECT\n            offers.hash as offer_id, assets.hash as asset_id,\n            amount, royalty, is_requested, \n            assets.description, assets.is_sensitive_content,\n            assets.is_visible, assets.icon_url, assets.name,\n            assets.ticker, assets.precision, assets.kind,\n            assets.hidden_puzzle_hash\n        FROM offer_assets \n        INNER JOIN assets ON offer_assets.asset_id = assets.id\n        INNER JOIN offers ON offer_assets.offer_id = offers.id\n        WHERE offers.hash = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,11 @@
         "name": "kind",
         "ordinal": 12,
         "type_info": "Integer"
+      },
+      {
+        "name": "hidden_puzzle_hash",
+        "ordinal": 13,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
@@ -85,8 +90,9 @@
       true,
       true,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "0a9370ba52b140ceae15af6d25c3778baa8e5c4ce10fff5d90fa538895e1f2c0"
+  "hash": "e53f79f0f7e0241ab03448dbf1423c05f8077e69ae1e73513d9576af6d06ecf0"
 }

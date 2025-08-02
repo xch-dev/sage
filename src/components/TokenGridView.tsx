@@ -128,7 +128,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     </TooltipContent>
                   </Tooltip>
 
-                  <AssetIcon iconUrl={token.icon_url} kind='token' size='sm' />
+                  <AssetIcon asset={{ ...token, kind: 'token' }} size='sm' />
                 </CardHeader>
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>

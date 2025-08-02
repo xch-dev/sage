@@ -88,9 +88,6 @@ impl Sage {
                     );
                     clawback.into_1_of_n().construct_puzzle(&mut ctx)?
                 }
-                P2Puzzle::OptionUnderlying(underlying) => {
-                    underlying.option.into_1_of_n().construct_puzzle(&mut ctx)?
-                }
             };
 
             let (puzzle, proof) = match req.kind {

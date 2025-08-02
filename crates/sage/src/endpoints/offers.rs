@@ -25,8 +25,8 @@ use tokio::time::timeout;
 use tracing::debug;
 
 use crate::{
-    encode_asset, extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id,
-    parse_nft_id, parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
+    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_nft_id,
+    parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
 };
 
 #[derive(Debug, Clone)]
@@ -276,7 +276,12 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            self.cache_cat(asset_id).await?;
+            let hidden_puzzle_hash = offer
+                .asset_info()
+                .cat(asset_id)
+                .and_then(|cat| cat.hidden_puzzle_hash);
+
+            self.cache_cat(asset_id, hidden_puzzle_hash).await?;
 
             cat_rows.push(AssetToOffer {
                 offer_id,
@@ -505,7 +510,7 @@ impl Sage {
             let asset = OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(royalty),
-                asset: encode_asset(asset)?,
+                asset: self.encode_asset(asset)?,
                 nft_royalty,
             };
 

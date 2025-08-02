@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, encode_asset, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
-    Error, Result, Sage,
+    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result,
+    Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -274,6 +274,10 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                revocation_address: cat
+                    .hidden_puzzle_hash
+                    .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
+                    .transpose()?,
             });
         }
 
@@ -299,6 +303,10 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                revocation_address: cat
+                    .hidden_puzzle_hash
+                    .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
+                    .transpose()?,
             });
         }
 
@@ -328,6 +336,12 @@ impl Sage {
                     icon_url: cat.icon_url,
                     visible: cat.is_visible,
                     balance: Amount::u128(balance),
+                    revocation_address: cat
+                        .hidden_puzzle_hash
+                        .map(|puzzle_hash| {
+                            Address::new(puzzle_hash, self.network().prefix()).encode()
+                        })
+                        .transpose()?,
                 })
             })
             .transpose()?;
@@ -754,7 +768,7 @@ impl Sage {
                 .transpose()?,
             address_kind: address_kind(transaction_coin.p2_puzzle_hash),
             amount: Amount::u64(transaction_coin.coin.amount),
-            asset: encode_asset(transaction_coin.asset)?,
+            asset: self.encode_asset(transaction_coin.asset)?,
         })
     }
 

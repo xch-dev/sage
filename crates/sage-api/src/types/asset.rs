@@ -11,6 +11,7 @@ pub struct Asset {
     pub description: Option<String>,
     pub is_sensitive_content: bool,
     pub is_visible: bool,
+    pub revocation_address: Option<String>,
     pub kind: AssetKind,
 }
 
@@ -21,5 +22,4 @@ pub enum AssetKind {
     Token,
     Nft,
     Did,
-    Option,
 }

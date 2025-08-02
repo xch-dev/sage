@@ -156,11 +156,7 @@ function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
 
   return (
     <div className='flex items-center gap-2'>
-      <AssetIcon
-        iconUrl={coin.asset.icon_url}
-        kind={coin.asset.kind}
-        size='md'
-      />
+      <AssetIcon asset={coin.asset} size='md' />
 
       <div className='flex flex-col'>
         <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
