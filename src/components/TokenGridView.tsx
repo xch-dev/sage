@@ -135,7 +135,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     <NumberFormat
                       value={fromMojos(token.balance, token.precision)}
                       minimumFractionDigits={0}
-                      maximumFractionDigits={3}
+                      maximumFractionDigits={token.precision}
                     />{' '}
                     {token.ticker ?? ''}
                   </div>
