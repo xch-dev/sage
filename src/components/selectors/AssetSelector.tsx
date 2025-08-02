@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { usePrices } from '@/hooks/usePrices';
+import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
@@ -48,6 +49,7 @@ export function AssetSelector({
   const [includeAmount, setIncludeAmount] = useState(!!assets.xch);
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
   const { getCatAskPriceInXch } = usePrices();
+  const walletState = useWalletState();
 
   // Notify parent of XCH state changes
   useEffect(() => {
@@ -78,7 +80,7 @@ export function AssetSelector({
           onClick={() => setIncludeAmount(true)}
         >
           <PlusIcon className='mr-0.5 h-3 w-3' />
-          XCH
+          {walletState.sync.unit.ticker}
         </Button>
         <Button
           variant='outline'
@@ -108,7 +110,9 @@ export function AssetSelector({
 
       {includeAmount && (
         <div className='mt-4 flex flex-col space-y-1.5'>
-          <Label htmlFor={`${prefix}-amount`}>XCH</Label>
+          <Label htmlFor={`${prefix}-amount`}>
+            {walletState.sync.unit.ticker}
+          </Label>
           <div className='flex'>
             <TokenAmountInput
               id={`${prefix}-amount`}
@@ -147,7 +151,10 @@ export function AssetSelector({
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <Trans>Convert to XCH at current asking price</Trans>
+                      <Trans>
+                        Convert to {walletState.sync.unit.ticker} at current
+                        asking price
+                      </Trans>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
