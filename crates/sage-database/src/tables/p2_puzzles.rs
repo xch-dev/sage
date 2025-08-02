@@ -1,5 +1,5 @@
 use chia::{bls::PublicKey, clvm_utils::ToTreeHash, protocol::Bytes32};
-use chia_wallet_sdk::driver::{ClawbackV2, OptionType, OptionUnderlying};
+use chia_wallet_sdk::driver::ClawbackV2;
 use sqlx::{query, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -8,14 +8,12 @@ use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 pub enum P2PuzzleKind {
     PublicKey,
     Clawback,
-    OptionUnderlying,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum P2Puzzle {
     PublicKey(PublicKey),
     Clawback(Clawback),
-    OptionUnderlying(OptionUnderlyingWithKey),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -24,12 +22,6 @@ pub struct Clawback {
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct OptionUnderlyingWithKey {
-    pub public_key: PublicKey,
-    pub option: OptionUnderlying,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -74,9 +66,6 @@ impl Database {
             P2PuzzleKind::Clawback => {
                 Ok(P2Puzzle::Clawback(clawback(&self.pool, puzzle_hash).await?))
             }
-            P2PuzzleKind::OptionUnderlying => Ok(P2Puzzle::OptionUnderlying(
-                option_underlying(&self.pool, puzzle_hash).await?,
-            )),
         }
     }
 
@@ -357,7 +346,6 @@ async fn p2_puzzle_kind(
     Ok(match row.kind {
         0 => P2PuzzleKind::PublicKey,
         1 => P2PuzzleKind::Clawback,
-        2 => P2PuzzleKind::OptionUnderlying,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }
@@ -409,74 +397,6 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
         sender_puzzle_hash: row.sender_puzzle_hash.convert()?,
         receiver_puzzle_hash: row.receiver_puzzle_hash.convert()?,
         seconds: row.expiration_seconds.convert()?,
-    })
-}
-
-async fn option_underlying(
-    conn: impl SqliteExecutor<'_>,
-    p2_puzzle_hash: Bytes32,
-) -> Result<OptionUnderlyingWithKey> {
-    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
-
-    let row = query!(
-        "
-        SELECT
-            key, expiration_seconds, creator_puzzle_hash,
-            option_asset.hash AS launcher_id,
-            strike_asset.hash AS strike_asset_hash,
-            strike_asset.id AS strike_asset_id,
-            strike_hidden_puzzle_hash, strike_settlement_puzzle_hash,
-            coins.amount AS underlying_amount, strike_amount
-        FROM p2_puzzles
-        INNER JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
-        INNER JOIN assets AS option_asset ON option_asset.id = p2_options.option_asset_id
-        INNER JOIN options ON options.asset_id = option_asset.id
-        INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
-        INNER JOIN public_keys ON public_keys.p2_puzzle_id IN (
-            SELECT id FROM p2_puzzles
-            WHERE hash = options.creator_puzzle_hash
-            AND unixepoch() >= options.expiration_seconds
-        )
-        INNER JOIN coins ON coins.hash = options.underlying_coin_hash
-        WHERE p2_puzzles.hash = ?
-        ",
-        p2_puzzle_hash
-    )
-    .fetch_one(conn)
-    .await?;
-
-    Ok(OptionUnderlyingWithKey {
-        public_key: row.key.convert()?,
-        option: OptionUnderlying {
-            launcher_id: row.launcher_id.convert()?,
-            creator_puzzle_hash: row.creator_puzzle_hash.convert()?,
-            seconds: row.expiration_seconds.convert()?,
-            amount: row.underlying_amount.convert()?,
-            strike_type: if row.strike_asset_id == 0 {
-                OptionType::Xch {
-                    amount: row.strike_amount.convert()?,
-                }
-            } else if let Some(settlement_puzzle_hash) =
-                row.strike_settlement_puzzle_hash.convert()?
-            {
-                OptionType::Nft {
-                    launcher_id: row.strike_asset_hash.convert()?,
-                    settlement_puzzle_hash,
-                    amount: row.strike_amount.convert()?,
-                }
-            } else if let Some(hidden_puzzle_hash) = row.strike_hidden_puzzle_hash.convert()? {
-                OptionType::RevocableCat {
-                    asset_id: row.strike_asset_hash.convert()?,
-                    hidden_puzzle_hash,
-                    amount: row.strike_amount.convert()?,
-                }
-            } else {
-                OptionType::Cat {
-                    asset_id: row.strike_asset_hash.convert()?,
-                    amount: row.strike_amount.convert()?,
-                }
-            },
-        },
     })
 }
 

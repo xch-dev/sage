@@ -4,7 +4,7 @@ import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { AlertCircleIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
 import { AssetIcon } from './AssetIcon';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
@@ -55,15 +55,22 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 {asset.name ?? asset.ticker ?? t`Unknown`}
               </span>
             </div>
-            {catPresence &&
-              asset.kind === 'token' &&
-              asset.asset_id &&
-              asset.asset_id in catPresence && (
+
+            {catPresence && asset.kind === 'token' && asset.asset_id && (
+              <div className='flex items-center gap-1'>
+                {asset.revocation_address && (
+                  <p className='text-sm text-amber-500'>
+                    <Trans>Revocable</Trans>
+                  </p>
+                )}
+
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
                       {catPresence[asset.asset_id] ? (
                         <CheckCircleIcon className='h-5 w-5 text-green-500' />
+                      ) : asset.revocation_address ? (
+                        <AlertCircleIcon className='h-5 w-5 text-amber-500' />
                       ) : (
                         <XCircleIcon className='h-5 w-5 text-amber-500' />
                       )}
@@ -73,6 +80,10 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                         <p>
                           <Trans>This CAT is already in your wallet</Trans>
                         </p>
+                      ) : asset.revocation_address ? (
+                        <p>
+                          <Trans>This CAT can be revoked by the issuer</Trans>
+                        </p>
                       ) : (
                         <p>
                           <Trans>This CAT is not in your wallet yet</Trans>
@@ -81,11 +92,12 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
-              )}
+              </div>
+            )}
           </div>
 
           <div className='flex items-center gap-2'>
-            <AssetIcon iconUrl={asset.icon_url} kind={asset.kind} size='sm' />
+            <AssetIcon asset={asset} size='sm' />
 
             {asset.asset_id && (
               <>

@@ -17,9 +17,6 @@ CREATE INDEX idx_offer_assets_offer_id ON offer_assets(offer_id);
 CREATE INDEX idx_offer_assets_asset_id ON offer_assets(asset_id);
 CREATE INDEX idx_offer_coins_offer_id ON offer_coins(offer_id);
 CREATE INDEX idx_offer_coins_coin_id ON offer_coins(coin_id);
-CREATE INDEX idx_options_underlying_asset_id ON options(underlying_asset_id);
-CREATE INDEX idx_options_strike_asset_id ON options(strike_asset_id);
-CREATE INDEX idx_p2_options_option_asset_id ON p2_options(option_asset_id);
 CREATE INDEX idx_resized_images_file_id ON resized_images(file_id);
 CREATE INDEX idx_peaks ON blocks(is_peak DESC, height DESC);
 
@@ -32,7 +29,6 @@ CREATE INDEX idx_clawbacks_expiration_seconds ON clawbacks(expiration_seconds);
 CREATE INDEX idx_nfts_minter_hash ON nfts(minter_hash);
 CREATE INDEX idx_nfts_owner_hash ON nfts(owner_hash);
 CREATE INDEX idx_nfts_edition_number ON nfts(edition_number ASC);
-CREATE INDEX idx_options_underlying_coin_hash ON options(underlying_coin_hash);
 CREATE INDEX idx_public_keys_key ON public_keys(key);
 CREATE INDEX idx_public_keys_derivation_index_hardened ON public_keys(derivation_index, is_hardened);
 

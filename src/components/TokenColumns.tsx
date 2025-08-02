@@ -12,7 +12,8 @@ import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
-  Coins,
+  CircleAlertIcon,
+  CoinsIcon,
   Copy,
   ExternalLink,
   Eye,
@@ -24,6 +25,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AssetIcon } from './AssetIcon';
 import { NumberFormat } from './NumberFormat';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 // Add new interface for token action handlers
 export interface TokenActionHandlers {
@@ -42,8 +44,7 @@ export const columns = (
     cell: ({ row }) => {
       return (
         <AssetIcon
-          iconUrl={row.original.icon_url}
-          kind='token'
+          asset={{ ...row.original, kind: 'token' }}
           size='sm'
           className='ml-1'
         />
@@ -64,9 +65,26 @@ export const columns = (
       const ariaLabel = t`View ${name} token details`;
 
       return (
-        <Link to={path} className='hover:underline' aria-label={ariaLabel}>
-          {name}
-        </Link>
+        <div className='inline-flex items-center gap-1'>
+          <Link
+            to={path}
+            className={`hover:underline ${row.original.revocation_address ? 'text-yellow-600 dark:text-yellow-200' : ''}`}
+            aria-label={ariaLabel}
+          >
+            {name}
+          </Link>
+
+          {row.original.revocation_address && (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger>
+                <CircleAlertIcon className='h-4 w-4 text-yellow-600 dark:text-yellow-200' />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Asset can be revoked by the issuer</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+        </div>
       );
     },
   },
@@ -209,7 +227,7 @@ export const columns = (
                 toast.success(t`Balance copied to clipboard`);
               }}
             >
-              <Coins className='mr-2 h-4 w-4' aria-hidden='true' />
+              <CoinsIcon className='mr-2 h-4 w-4' aria-hidden='true' />
               <Trans>Copy Balance</Trans>
             </DropdownMenuItem>
           </DropdownMenuContent>

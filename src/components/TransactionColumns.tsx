@@ -81,8 +81,12 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
             aria-label={`${displayName} icon`}
           >
             <AssetIcon
-              iconUrl={row.original.iconUrl}
-              kind={row.original.type}
+              asset={{
+                icon_url: row.original.iconUrl ?? null,
+                kind: row.original.type,
+                revocation_address: null,
+                // TODO: Use Asset here and use the actual revocation address
+              }}
               size='sm'
             />
           </div>

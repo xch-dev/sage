@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?'\n            FROM owned_nfts\n            LEFT JOIN collections ON collections.id = owned_nfts.collection_id\n            WHERE owned_nfts.asset_hash = ?\n            ",
+  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?',\n                asset_hidden_puzzle_hash\n            FROM owned_nfts\n            LEFT JOIN collections ON collections.id = owned_nfts.collection_id\n            WHERE owned_nfts.asset_hash = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -157,6 +157,11 @@
         "name": "clawback_timestamp?",
         "ordinal": 30,
         "type_info": "Integer"
+      },
+      {
+        "name": "asset_hidden_puzzle_hash",
+        "ordinal": 31,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
@@ -193,8 +198,9 @@
       false,
       true,
       true,
-      false
+      false,
+      true
     ]
   },
-  "hash": "159bba47079ec5a783aa08e73118c1f06a35e7bec0a1836ea2136ca999ac33d7"
+  "hash": "a3dfcdff9eebd5430e5dffaeba46ed529a8f92bdff540f1665b03874e0035915"
 }

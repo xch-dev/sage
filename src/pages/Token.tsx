@@ -176,9 +176,9 @@ export default function Token() {
               ? getAssetDisplayName(asset.name, asset.ticker, 'token')
               : ''}{' '}
             {asset?.asset_id && (
-              <>
+              <div className='inline-flex items-center gap-1.5'>
                 {' '}
-                <span className='text-sm text-muted-foreground font-mono font-normal'>
+                <span className='text-base text-muted-foreground font-mono font-normal'>
                   {asset?.asset_id?.slice(0, 6) +
                     '...' +
                     asset?.asset_id?.slice(-4)}
@@ -190,7 +190,7 @@ export default function Token() {
                     toast.success(t`Asset ID copied to clipboard`);
                   }}
                 />
-              </>
+              </div>
             )}
           </span>
         }
