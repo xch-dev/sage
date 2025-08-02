@@ -2,6 +2,7 @@ import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import Profile, { MintGardenProfile } from '@/components/Profile';
 import { Button } from '@/components/ui/button';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
@@ -35,11 +36,9 @@ export default function CollectionMetaData() {
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [minterProfile, setMinterProfile] = useState<{
-    encoded_id: string;
-    name: string;
-    avatar_uri: string | null;
-  } | null>(null);
+  const [minterProfile, setMinterProfile] = useState<MintGardenProfile | null>(
+    null,
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -379,20 +378,8 @@ export default function CollectionMetaData() {
                 onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
               />
               {minterProfile && (
-                <div
-                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                  onClick={() =>
-                    openUrl(`https://mintgarden.io/${collection.did_id}`)
-                  }
-                >
-                  {minterProfile.avatar_uri && (
-                    <img
-                      src={minterProfile.avatar_uri}
-                      alt={`${minterProfile.name} avatar`}
-                      className='w-6 h-6 rounded-full'
-                    />
-                  )}
-                  <div className='text-sm'>{minterProfile.name}</div>
+                <div className='mt-1'>
+                  <Profile did={collection.did_id} variant='compact' />
                 </div>
               )}
             </div>
