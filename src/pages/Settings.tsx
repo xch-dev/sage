@@ -408,7 +408,7 @@ function GlobalSettings() {
       <SettingsSection title={t`Syncing Defaults`}>
         <SettingItem
           label={t`Delta Sync`}
-          description={t`Whether to skip syncing older blocks`}
+          description={t`A more lightweight sync that only checks unseen blocks`}
           control={
             <Switch
               checked={defaultWalletConfig?.delta_sync ?? true}
@@ -1048,32 +1048,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     fetchState();
   };
 
-  const addDeltaSyncOverride = async () => {
-    if (!wallet) return;
-    try {
-      const config = await commands.defaultWalletConfig();
-      await commands.setDeltaSyncOverride({
-        fingerprint,
-        delta_sync: config.delta_sync,
-      });
-      setWallet({ ...wallet, delta_sync: config.delta_sync });
-    } catch (error) {
-      addError(error as CustomError);
-    }
-  };
-
-  const setDeltaSyncOverride = async (delta_sync: boolean | null) => {
-    if (!wallet) return;
-    clearState();
-    try {
-      await commands.setDeltaSyncOverride({ fingerprint, delta_sync });
-      setWallet({ ...wallet, delta_sync });
-    } catch (error) {
-      addError(error as CustomError);
-    }
-    fetchState();
-  };
-
   const derivationIndex = walletState.sync.unhardened_derivation_index;
 
   const schema = z.object({
@@ -1204,35 +1178,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
             </div>
           }
         />
-
-        <SettingItem
-          label={t`Override Delta Sync`}
-          description={t`Override the default of whether to sync old blocks`}
-          control={
-            <Switch
-              checked={wallet !== null && wallet.delta_sync !== null}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  addDeltaSyncOverride();
-                } else {
-                  setDeltaSyncOverride(null);
-                }
-              }}
-            />
-          }
-        >
-          {wallet !== null && wallet.delta_sync !== null && (
-            <div className='mt-3 flex items-center gap-2'>
-              <Trans>Enable Delta Sync</Trans>
-              <Switch
-                checked={wallet.delta_sync}
-                onCheckedChange={(checked) => {
-                  setDeltaSyncOverride(checked);
-                }}
-              />
-            </div>
-          )}
-        </SettingItem>
 
         <SettingItem
           label={t`Resync`}
