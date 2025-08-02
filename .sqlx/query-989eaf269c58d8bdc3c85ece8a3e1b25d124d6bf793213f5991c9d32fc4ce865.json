@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url, asset_description,\n                asset_is_visible, asset_is_sensitive_content,\n                owned_coins.created_height, spent_height,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n                metadata, recovery_list_hash, num_verifications_required,\n                offer_hash, created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS clawback_timestamp\n            FROM owned_coins\n            INNER JOIN dids ON dids.asset_id = owned_coins.asset_id\n            ORDER BY asset_name ASC\n            ",
+  "query": "\n            SELECT\n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_visible, asset_is_sensitive_content,\n                asset_hidden_puzzle_hash, owned_coins.created_height, spent_height,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n                metadata, recovery_list_hash, num_verifications_required,\n                offer_hash, created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS clawback_timestamp\n            FROM owned_coins\n            INNER JOIN dids ON dids.asset_id = owned_coins.asset_id\n            ORDER BY asset_name ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -44,68 +44,73 @@
         "type_info": "Bool"
       },
       {
-        "name": "created_height",
+        "name": "asset_hidden_puzzle_hash",
         "ordinal": 8,
-        "type_info": "Integer"
+        "type_info": "Blob"
       },
       {
-        "name": "spent_height",
+        "name": "created_height",
         "ordinal": 9,
         "type_info": "Integer"
       },
       {
-        "name": "parent_coin_hash",
+        "name": "spent_height",
         "ordinal": 10,
-        "type_info": "Blob"
+        "type_info": "Integer"
       },
       {
-        "name": "puzzle_hash",
+        "name": "parent_coin_hash",
         "ordinal": 11,
         "type_info": "Blob"
       },
       {
-        "name": "amount",
+        "name": "puzzle_hash",
         "ordinal": 12,
         "type_info": "Blob"
       },
       {
-        "name": "p2_puzzle_hash",
+        "name": "amount",
         "ordinal": 13,
         "type_info": "Blob"
       },
       {
-        "name": "metadata",
+        "name": "p2_puzzle_hash",
         "ordinal": 14,
         "type_info": "Blob"
       },
       {
-        "name": "recovery_list_hash",
+        "name": "metadata",
         "ordinal": 15,
         "type_info": "Blob"
       },
       {
-        "name": "num_verifications_required",
+        "name": "recovery_list_hash",
         "ordinal": 16,
+        "type_info": "Blob"
+      },
+      {
+        "name": "num_verifications_required",
+        "ordinal": 17,
         "type_info": "Integer"
       },
       {
         "name": "offer_hash",
-        "ordinal": 17,
+        "ordinal": 18,
         "type_info": "Blob"
       },
       {
         "name": "created_timestamp",
-        "ordinal": 18,
-        "type_info": "Integer"
-      },
-      {
-        "name": "spent_timestamp",
         "ordinal": 19,
         "type_info": "Integer"
       },
       {
-        "name": "clawback_timestamp",
+        "name": "spent_timestamp",
         "ordinal": 20,
+        "type_info": "Integer"
+      },
+      {
+        "name": "clawback_timestamp",
+        "ordinal": 21,
         "type_info": "Integer"
       }
     ],
@@ -123,6 +128,7 @@
       false,
       true,
       true,
+      true,
       false,
       false,
       false,
@@ -136,5 +142,5 @@
       true
     ]
   },
-  "hash": "e843f99da6d06b1fe07877738eb675eadcec252bcba9b251bd027d59f2e68d32"
+  "hash": "989eaf269c58d8bdc3c85ece8a3e1b25d124d6bf793213f5991c9d32fc4ce865"
 }

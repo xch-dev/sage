@@ -115,6 +115,7 @@ export function TokenSelector({
                   description: null,
                   visible: true,
                   precision: 3,
+                  revocation_address: null,
                 },
               );
             }
@@ -124,8 +125,12 @@ export function TokenSelector({
       renderItem={(token) => (
         <div className='flex items-center gap-2 w-full'>
           <AssetIcon
-            iconUrl={token.icon_url}
-            kind='token'
+            asset={{
+              icon_url: token.icon_url ?? null,
+              kind: 'token',
+              revocation_address: null,
+              // TODO: Use Asset here and use the actual revocation address
+            }}
             size='md'
             className='flex-shrink-0'
           />
@@ -147,8 +152,12 @@ export function TokenSelector({
       <div className='flex items-center gap-2 min-w-0'>
         <>
           <AssetIcon
-            iconUrl={selectedToken?.icon_url}
-            kind='token'
+            asset={{
+              icon_url: selectedToken?.icon_url ?? null,
+              kind: 'token',
+              revocation_address: null,
+              // TODO: Use Asset here and use the actual revocation address
+            }}
             size='md'
             className='flex-shrink-0'
           />

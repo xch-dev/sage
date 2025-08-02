@@ -1,10 +1,12 @@
 import { AssetKind } from '@/bindings';
-import { Coins, Image, User } from 'lucide-react';
+import { Coins, Image, UndoDot, User } from 'lucide-react';
 
 export interface AssetIconProps {
-  iconUrl?: string | null;
-  name?: string | null;
-  kind: AssetKind;
+  asset: {
+    icon_url: string | null;
+    kind: AssetKind;
+    revocation_address: string | null;
+  };
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
@@ -16,18 +18,17 @@ const sizeClasses = {
 };
 
 export function AssetIcon({
-  iconUrl,
-  kind,
+  asset,
   size = 'sm',
   className = '',
 }: AssetIconProps) {
   const sizeClass = sizeClasses[size];
   const imgClasses = `${sizeClass} rounded object-cover`;
 
-  if (iconUrl) {
+  if (asset.icon_url) {
     return (
       <img
-        src={iconUrl}
+        src={asset.icon_url}
         className={`${imgClasses} ${className}`}
         alt='Asset icon'
         loading='lazy'
@@ -37,9 +38,13 @@ export function AssetIcon({
   }
 
   const iconClasses = `${sizeClass} rounded stroke-1`;
-  return kind === 'token' ? (
-    <Coins className={`${iconClasses} ${className}`} aria-hidden='true' />
-  ) : kind === 'nft' ? (
+  return asset.kind === 'token' ? (
+    asset.revocation_address ? (
+      <UndoDot className={`${iconClasses} ${className}`} aria-hidden='true' />
+    ) : (
+      <Coins className={`${iconClasses} ${className}`} aria-hidden='true' />
+    )
+  ) : asset.kind === 'nft' ? (
     <Image className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : (
     <User className={`${iconClasses} ${className}`} aria-hidden='true' />

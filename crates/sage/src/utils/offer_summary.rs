@@ -7,7 +7,7 @@ use sage_wallet::WalletError;
 
 use crate::utils::offer_status::offer_expiration;
 use crate::ConfirmationInfo;
-use crate::{encode_asset, Error, Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub(crate) async fn summarize_offer(&self, spend_bundle: SpendBundle) -> Result<OfferSummary> {
@@ -35,16 +35,21 @@ impl Sage {
             maker.push(OfferAsset {
                 amount: Amount::u64(offered_amounts.xch),
                 royalty: Amount::u64(offered_royalties.xch),
-                asset: encode_asset(asset)?,
+                asset: self.encode_asset(asset)?,
                 nft_royalty: None,
             });
         }
 
         for (asset_id, amount) in offered_amounts.cats {
+            let hidden_puzzle_hash = offer
+                .asset_info()
+                .cat(asset_id)
+                .and_then(|cat| cat.hidden_puzzle_hash);
+
             maker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
-                asset: encode_asset(self.cache_cat(asset_id).await?)?,
+                asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
             });
         }
@@ -62,7 +67,7 @@ impl Sage {
             maker.push(OfferAsset {
                 amount: Amount::u64(nft.coin.amount),
                 royalty: Amount::u64(0),
-                asset: encode_asset(asset)?,
+                asset: self.encode_asset(asset)?,
                 nft_royalty: Some(NftRoyalty {
                     royalty_address: Address::new(
                         nft.info.royalty_puzzle_hash,
@@ -84,16 +89,21 @@ impl Sage {
             taker.push(OfferAsset {
                 amount: Amount::u64(requested_amounts.xch),
                 royalty: Amount::u64(requested_royalties.xch),
-                asset: encode_asset(asset)?,
+                asset: self.encode_asset(asset)?,
                 nft_royalty: None,
             });
         }
 
         for (asset_id, amount) in requested_amounts.cats {
+            let hidden_puzzle_hash = offer
+                .asset_info()
+                .cat(asset_id)
+                .and_then(|cat| cat.hidden_puzzle_hash);
+
             taker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
-                asset: encode_asset(self.cache_cat(asset_id).await?)?,
+                asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
             });
         }
@@ -121,7 +131,7 @@ impl Sage {
             taker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(0),
-                asset: encode_asset(asset)?,
+                asset: self.encode_asset(asset)?,
                 nft_royalty: Some(NftRoyalty {
                     royalty_address: Address::new(nft.royalty_puzzle_hash, self.network().prefix())
                         .encode()?,
