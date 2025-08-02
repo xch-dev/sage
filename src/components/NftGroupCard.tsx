@@ -6,7 +6,7 @@ import {
 } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { getMintGardenProfile } from '@/lib/marketplaces';
+//import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
@@ -81,7 +81,12 @@ export function NftGroupCard({
   // Fetch profile data for DID cards
   useEffect(() => {
     if (!isCollection && isDidRecord(item)) {
-      getMintGardenProfile(item.launcher_id).then(setDidProfile);
+      setDidProfile({
+        encoded_id: item.launcher_id,
+        name: item.name || item.launcher_id.slice(0, 8),
+        avatar_uri: null,
+      });
+      //getMintGardenProfile(item.launcher_id).then(setDidProfile);
     }
   }, [isCollection, item]);
   // Type guards to help TypeScript narrow the types
