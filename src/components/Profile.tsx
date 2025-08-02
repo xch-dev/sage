@@ -45,7 +45,12 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
-import { commands, DidRecord, TransactionResponse } from '../bindings';
+import {
+  AssetKind,
+  commands,
+  DidRecord,
+  TransactionResponse,
+} from '../bindings';
 import { CustomError } from '../contexts/ErrorContext';
 
 export interface MintGardenProfile {
@@ -227,12 +232,20 @@ function ProfileContent({
   };
 
   // Display logic
-  const displayName = !mintGardenProfile.is_unknown
-    ? mintGardenProfile.name
-    : didRecord?.name || mintGardenProfile?.name || t`Untitled Profile`;
-
-  const displayDid = mintGardenProfile.encoded_id || '';
-
+  const didAsset = {
+    icon_url: mintGardenProfile.avatar_uri,
+    kind: 'did' as AssetKind,
+    revocation_address: null,
+    name: !mintGardenProfile.is_unknown
+      ? mintGardenProfile.name
+      : didRecord?.name || mintGardenProfile?.name || t`Untitled Profile`,
+    ticker: '',
+    precision: 0,
+    asset_id: mintGardenProfile.encoded_id || '',
+    balance: '0',
+    balanceInUsd: '0',
+    priceInUsd: '0',
+  };
   // Loading state
   if (isMintGardenLoading) {
     return (
@@ -249,15 +262,11 @@ function ProfileContent({
   if (variant === 'compact') {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <AssetIcon
-          iconUrl={mintGardenProfile.avatar_uri}
-          size='sm'
-          kind='did'
-        />
-        <span className='text-sm font-medium truncate'>{displayName}</span>
+        <AssetIcon asset={didAsset} size='sm' />
+        <span className='text-sm font-medium truncate'>{didAsset.name}</span>
         {showDid && (
           <span className='text-xs text-gray-500 font-mono truncate'>
-            {displayDid}
+            {didAsset.asset_id}
           </span>
         )}
         {!mintGardenProfile.is_unknown && (
@@ -266,7 +275,7 @@ function ProfileContent({
             size='sm'
             onClick={handleMintGardenClick}
             className='p-1 h-auto'
-            title={`View ${displayName} on MintGarden`}
+            title={`View ${didAsset.name} on MintGarden`}
           >
             <ExternalLinkIcon className='w-3 h-3' />
           </Button>
@@ -289,13 +298,8 @@ function ProfileContent({
         >
           <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
             <CardTitle className='text-md font-medium truncate flex items-center'>
-              <AssetIcon
-                iconUrl={mintGardenProfile.avatar_uri}
-                size='md'
-                kind='did'
-                className='mr-2'
-              />
-              {displayName}
+              <AssetIcon asset={didAsset} size='md' className='mr-2' />
+              {didAsset.name}
             </CardTitle>
             {didRecord ? (
               <DropdownMenu>
@@ -405,7 +409,9 @@ function ProfileContent({
             ) : null}
           </CardHeader>
           <CardContent>
-            <div className='text-sm font-small truncate mb-2'>{displayDid}</div>
+            <div className='text-sm font-small truncate mb-2'>
+              {didAsset.asset_id}
+            </div>
           </CardContent>
         </Card>
 
@@ -545,12 +551,12 @@ function ProfileContent({
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <AssetIcon iconUrl={mintGardenProfile.avatar_uri} size='md' kind='did' />
+      <AssetIcon asset={didAsset} size='md' />
       <div className='flex-1 min-w-0'>
-        <div className='font-medium truncate'>{displayName}</div>
+        <div className='font-medium truncate'>{didAsset.name}</div>
         {showDid && (
           <div className='text-xs text-gray-500 font-mono truncate'>
-            {displayDid}
+            {didAsset.asset_id}
           </div>
         )}
       </div>
@@ -569,7 +575,6 @@ function ProfileContent({
   );
 }
 
-// Enhanced Unified Profile Component
 export function Profile({
   did,
   didRecord,
