@@ -60,22 +60,36 @@ function isLocaleNumber(stringNumber: string, locale?: string): boolean {
 MaskedInput.displayName = 'MaskedInput';
 
 // Extended Masked Input for XCH inputs
-interface XchInputProps extends MaskedInputProps {
+interface TokenInputProps extends MaskedInputProps {
   decimals?: number;
+  ticker?: string | null;
 }
 
-const TokenAmountInput = React.forwardRef<HTMLInputElement, XchInputProps>(
-  ({ decimals = 24, ...props }, ref) => (
-    <MaskedInput
-      placeholder='0.00'
-      {...props}
-      type='text'
-      inputRef={ref}
-      decimalScale={decimals}
-      allowLeadingZeros={true}
-      allowNegative={false}
-    />
-  ),
+const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
+  ({ decimals = 24, ticker = null, ...props }, ref) => {
+    const walletState = useWalletState();
+
+    return (
+      <div className='relative'>
+        <MaskedInput
+          placeholder='0.00'
+          {...props}
+          type='text'
+          inputRef={ref}
+          decimalScale={decimals}
+          allowLeadingZeros={true}
+          allowNegative={false}
+        />
+        {ticker && (
+          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+            <span className='text-gray-500 text-sm'>
+              {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  },
 );
 
 TokenAmountInput.displayName = 'TokenAmountInput';
@@ -112,7 +126,7 @@ const IntegerInput = React.forwardRef<HTMLInputElement, IntegerInputProps>(
 IntegerInput.displayName = 'IntegerInput';
 
 // Fee input that uses the default fee value as initial value
-interface FeeAmountInputProps extends Omit<XchInputProps, 'value'> {
+interface FeeAmountInputProps extends Omit<TokenInputProps, 'value'> {
   value?: string;
   className?: string;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -125,7 +139,6 @@ interface FeeAmountInputProps extends Omit<XchInputProps, 'value'> {
 const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
   ({ value, className, onChange, onValueChange, ...props }, ref) => {
     const { fee: defaultFee } = useDefaultFee();
-    const walletState = useWalletState();
     const hasSetInitialValue = React.useRef(false);
 
     // Set initial value when component mounts
@@ -154,12 +167,8 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
           placeholder={t`Enter network fee`}
           aria-label={t`Network fee amount`}
           className={`pr-12 ${className || ''}`}
+          ticker='xch'
         />
-        <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-          <span className='text-gray-500 text-sm' id='price-currency'>
-            {walletState.sync.unit.ticker}
-          </span>
-        </div>
       </div>
     );
   },
