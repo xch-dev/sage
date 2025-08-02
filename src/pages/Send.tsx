@@ -4,6 +4,7 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { PasteInput } from '@/components/PasteInput';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -39,7 +40,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { ArrowUpToLine } from 'lucide-react';
+import { AlertCircleIcon, ArrowUpToLine } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -411,57 +412,73 @@ export default function Send() {
                     </div>
 
                     {form.watch('clawbackEnabled') && (
-                      <div className='flex gap-2'>
-                        <div className='relative'>
-                          <IntegerInput
-                            className='pr-12'
-                            value={form.watch('clawback.days')}
-                            placeholder='0'
-                            min={0}
-                            onValueChange={(values: { value: string }) => {
-                              form.setValue('clawback.days', values.value);
-                            }}
-                          />
-                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                            <span className='text-gray-500 text-sm'>
-                              <Trans>Days</Trans>
-                            </span>
+                      <div className='flex flex-col gap-4'>
+                        <div className='flex gap-2'>
+                          <div className='relative'>
+                            <IntegerInput
+                              className='pr-12'
+                              value={form.watch('clawback.days')}
+                              placeholder='0'
+                              min={0}
+                              onValueChange={(values: { value: string }) => {
+                                form.setValue('clawback.days', values.value);
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                              <span className='text-gray-500 text-sm'>
+                                <Trans>Days</Trans>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className='relative'>
+                            <IntegerInput
+                              className='pr-12'
+                              value={form.watch('clawback.hours')}
+                              placeholder='0'
+                              min={0}
+                              onValueChange={(values: { value: string }) => {
+                                form.setValue('clawback.hours', values.value);
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                              <span className='text-gray-500 text-sm'>
+                                <Trans>Hours</Trans>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className='relative'>
+                            <IntegerInput
+                              className='pr-12'
+                              value={form.watch('clawback.minutes')}
+                              placeholder='0'
+                              min={0}
+                              onValueChange={(values: { value: string }) => {
+                                form.setValue('clawback.minutes', values.value);
+                              }}
+                            />
+                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                              <span className='text-gray-500 text-sm'>
+                                <Trans>Minutes</Trans>
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className='relative'>
-                          <IntegerInput
-                            className='pr-12'
-                            value={form.watch('clawback.hours')}
-                            placeholder='0'
-                            min={0}
-                            onValueChange={(values: { value: string }) => {
-                              form.setValue('clawback.hours', values.value);
-                            }}
-                          />
-                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                            <span className='text-gray-500 text-sm'>
-                              <Trans>Hours</Trans>
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className='relative'>
-                          <IntegerInput
-                            className='pr-12'
-                            value={form.watch('clawback.minutes')}
-                            placeholder='0'
-                            min={0}
-                            onValueChange={(values: { value: string }) => {
-                              form.setValue('clawback.minutes', values.value);
-                            }}
-                          />
-                          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                            <span className='text-gray-500 text-sm'>
-                              <Trans>Minutes</Trans>
-                            </span>
-                          </div>
-                        </div>
+                        <Alert variant='warning'>
+                          <AlertCircleIcon className='h-4 w-4' />
+                          <AlertTitle>
+                            <Trans>Experimental Feature</Trans>
+                          </AlertTitle>
+                          <AlertDescription>
+                            <Trans>
+                              Support for Clawback v2 is limited at this time.
+                              Please make sure the recipient supports it before
+                              submitting this transaction.
+                            </Trans>
+                          </AlertDescription>
+                        </Alert>
                       </div>
                     )}
                   </div>
