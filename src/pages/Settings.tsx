@@ -649,8 +649,49 @@ function LogViewer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [filteredLines, setFilteredLines] = useState<string[]>([]);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLines.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 24,
+    overscan: 5,
+  });
+
+  const scrollToBottom = useCallback(() => {
+    if (!parentRef.current || !rowVirtualizer) return;
+    const scrollHeight = rowVirtualizer.getTotalSize();
+    parentRef.current.scrollTop = scrollHeight;
+  }, [rowVirtualizer]);
+
+  const checkIfAtBottom = useCallback(() => {
+    if (!parentRef.current || !rowVirtualizer) return false;
+    const { scrollTop, clientHeight } = parentRef.current;
+    const scrollHeight = rowVirtualizer.getTotalSize();
+    // Consider "at bottom" if within 10px of the bottom
+    return scrollHeight - scrollTop - clientHeight < 10;
+  }, [rowVirtualizer]);
+
+  const handleScroll = useCallback(() => {
+    setIsAtBottom(checkIfAtBottom());
+  }, [checkIfAtBottom]);
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
+  // Handle scrolling when log changes or new lines are added
   useEffect(() => {
+    const items = virtualItems;
+    // Always scroll on initial load of a log, or when at bottom and content changes
+    if (
+      items.length > 0 &&
+      selectedLog &&
+      (isAtBottom || parentRef.current?.scrollTop === undefined)
+    ) {
+      scrollToBottom();
+    }
+  }, [virtualItems, selectedLog, isAtBottom, scrollToBottom]);
+
+  const updateLogs = useCallback(() => {
     commands
       .getLogs()
       .then((logs) =>
@@ -658,6 +699,16 @@ function LogViewer() {
       )
       .catch(addError);
   }, [addError]);
+
+  useEffect(() => {
+    updateLogs();
+
+    const interval = setInterval(() => {
+      updateLogs();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [updateLogs]);
 
   useEffect(() => {
     if (logs.length > 0) {
@@ -669,7 +720,7 @@ function LogViewer() {
 
   useEffect(() => {
     if (selectedLog) {
-      setLogLines(selectedLog.text.split('\n'));
+      setLogLines(selectedLog.text.trim().split('\n'));
     } else {
       setLogLines([]);
     }
@@ -697,19 +748,13 @@ function LogViewer() {
     setFilteredLines(filtered);
   }, [logLines, searchQuery, selectedLevel]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: filteredLines.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 24,
-    overscan: 5,
-  });
-
   const handleLogChange = (name: string) => {
     setLogName(name);
     const log = logs.find((l) => l.name === name);
     setSelectedLog(log ?? null);
     setSearchQuery('');
     setSelectedLevel('all');
+    setIsAtBottom(true); // Reset isAtBottom when changing logs
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -814,6 +859,7 @@ function LogViewer() {
             ref={parentRef}
             style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
             className='border rounded-lg bg-muted/30 overflow-auto'
+            onScroll={handleScroll}
           >
             <div
               style={{
