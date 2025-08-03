@@ -249,6 +249,7 @@ export function AssetSelector({
               <TokenSelector
                 value={cat.asset_id}
                 onChange={(assetId) => {
+                  if (!assetId) return;
                   const newCats = [...assets.cats];
                   newCats[i] = { ...newCats[i], asset_id: assetId };
                   setAssets({ ...assets, cats: newCats });

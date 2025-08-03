@@ -118,6 +118,13 @@ impl Database {
         })
         .transpose()
     }
+
+    pub async fn existing_hidden_puzzle_hash(
+        &self,
+        asset_hash: Bytes32,
+    ) -> Result<Option<Option<Bytes32>>> {
+        existing_hidden_puzzle_hash(&self.pool, asset_hash).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -152,19 +159,7 @@ impl DatabaseTx<'_> {
         &mut self,
         asset_hash: Bytes32,
     ) -> Result<Option<Option<Bytes32>>> {
-        let asset_hash = asset_hash.as_ref();
-
-        query!(
-            "
-            SELECT hidden_puzzle_hash FROM assets WHERE hash = ?
-            AND EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)
-            ",
-            asset_hash
-        )
-        .fetch_optional(&mut *self.tx)
-        .await?
-        .map(|row| row.hidden_puzzle_hash.convert())
-        .transpose()
+        existing_hidden_puzzle_hash(&mut *self.tx, asset_hash).await
     }
 
     pub async fn delete_asset_coins(&mut self, asset_hash: Bytes32) -> Result<()> {
@@ -215,4 +210,23 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
     .await?;
 
     Ok(())
+}
+
+async fn existing_hidden_puzzle_hash(
+    conn: impl SqliteExecutor<'_>,
+    asset_hash: Bytes32,
+) -> Result<Option<Option<Bytes32>>> {
+    let asset_hash = asset_hash.as_ref();
+
+    query!(
+        "
+        SELECT hidden_puzzle_hash FROM assets WHERE hash = ?
+        AND EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)
+        ",
+        asset_hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| row.hidden_puzzle_hash.convert())
+    .transpose()
 }

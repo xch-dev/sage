@@ -245,7 +245,9 @@ impl WalletPeer {
     }
 
     pub async fn request_peers(&self) -> Result<RespondPeers, WalletError> {
-        Ok(timeout(Duration::from_secs(15), self.peer.request_peers()).await??)
+        Ok(timeout(Duration::from_secs(15), self.peer.request_peers())
+            .await
+            .unwrap_or_else(|_| Ok(RespondPeers::new(Vec::new())))?)
     }
 
     pub async fn subscribe_coins(

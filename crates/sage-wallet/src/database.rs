@@ -60,6 +60,7 @@ pub async fn insert_puzzle(
         if coin_state.coin.puzzle_hash == underlying_p2_puzzle_hash {
             tx.update_coin(coin_id, Bytes32::default(), underlying_p2_puzzle_hash)
                 .await?;
+            return Ok(true);
         }
     }
 

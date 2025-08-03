@@ -142,6 +142,9 @@ pub enum Error {
     #[error("Invalid NFT id: {0}")]
     InvalidNftId(String),
 
+    #[error("Invalid option contract id: {0}")]
+    InvalidOptionId(String),
+
     #[error("Invalid collection id: {0}")]
     InvalidCollectionId(String),
 
@@ -271,6 +274,7 @@ impl Error {
             | Self::Address(..)
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)
+            | Self::InvalidOptionId(..)
             | Self::InvalidCollectionId(..)
             | Self::InvalidCoinId(..)
             | Self::InvalidHash(..)

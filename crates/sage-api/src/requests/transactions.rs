@@ -270,6 +270,44 @@ pub struct NormalizeDids {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct OptionAsset {
+    pub asset_id: Option<String>,
+    pub amount: Amount,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct MintOption {
+    pub expiration_seconds: u64,
+    pub underlying: OptionAsset,
+    pub strike: OptionAsset,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct MintOptionResponse {
+    pub option_id: String,
+    pub summary: TransactionSummary,
+    pub coin_spends: Vec<CoinSpendJson>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct TransferOptions {
+    pub option_ids: Vec<String>,
+    pub address: String,
+    pub fee: Amount,
+    #[serde(default)]
+    pub clawback: Option<u64>,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct SignCoinSpends {
     pub coin_spends: Vec<CoinSpendJson>,
     #[serde(default)]
@@ -327,3 +365,4 @@ pub type AddNftUriResponse = TransactionResponse;
 pub type AssignNftsToDidResponse = TransactionResponse;
 pub type TransferDidsResponse = TransactionResponse;
 pub type NormalizeDidsResponse = TransactionResponse;
+pub type TransferOptionsResponse = TransactionResponse;
