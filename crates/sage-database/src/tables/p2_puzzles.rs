@@ -82,7 +82,7 @@ impl Database {
         derivations(&self.pool, is_hardened, limit, offset).await
     }
 
-    pub async fn max_derivation_index(&self, is_hardened: bool) -> Result<u32> {
+    pub async fn max_derivation_index(&self, is_hardened: bool) -> Result<Option<u32>> {
         max_derivation_index(&self.pool, is_hardened).await
     }
 }
@@ -199,7 +199,10 @@ async fn derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> R
     .convert()
 }
 
-async fn max_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) -> Result<u32> {
+async fn max_derivation_index(
+    conn: impl SqliteExecutor<'_>,
+    is_hardened: bool,
+) -> Result<Option<u32>> {
     let row = query!(
         "
         SELECT MAX(derivation_index) AS derivation_index 
@@ -211,9 +214,7 @@ async fn max_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: bool) 
     .fetch_one(conn)
     .await?;
 
-    Ok(row
-        .derivation_index
-        .map_or(0, |idx| idx.try_into().unwrap_or(0)))
+    row.derivation_index.convert()
 }
 
 async fn derivations(

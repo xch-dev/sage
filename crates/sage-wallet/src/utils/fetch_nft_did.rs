@@ -70,9 +70,11 @@ pub async fn fetch_nft_did(
         } else {
             let child = timeout(Duration::from_secs(5), peer.fetch_child(launcher_id)).await??;
             let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
-            let (puzzle_reveal, solution) = peer
-                .fetch_puzzle_solution(child.coin.coin_id(), spent_height)
-                .await?;
+            let (puzzle_reveal, solution) = timeout(
+                Duration::from_secs(15),
+                peer.fetch_puzzle_solution(child.coin.coin_id(), spent_height),
+            )
+            .await??;
             CoinSpend::new(child.coin, puzzle_reveal, solution)
         };
 

@@ -71,6 +71,7 @@ import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
+  KeyInfo,
   LogFile,
   Network,
   NetworkConfig,
@@ -962,6 +963,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
+  const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -1003,6 +1005,13 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       setPerformingMaintenance(false);
     }
   }, [addError, fetchDatabaseStats]);
+
+  useEffect(() => {
+    commands
+      .getKey({ fingerprint })
+      .then((data) => setKey(data.key))
+      .catch(addError);
+  }, [addError, fingerprint]);
 
   useEffect(() => {
     commands
@@ -1077,7 +1086,10 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     setPending(true);
 
     commands
-      .increaseDerivationIndex({ index: parseInt(values.index) })
+      .increaseDerivationIndex({
+        index: parseInt(values.index),
+        hardened: key?.has_secrets,
+      })
       .then(() => {
         setDeriveOpen(false);
         updateSyncStatus();

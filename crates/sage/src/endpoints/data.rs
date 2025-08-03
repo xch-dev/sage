@@ -111,8 +111,16 @@ impl Sage {
             synced_coins,
             receive_address: receive_address.unwrap_or_default(),
             burn_address: Address::new(BURN_PUZZLE_HASH, self.network().prefix()).encode()?,
-            unhardened_derivation_index: wallet.db.max_derivation_index(false).await?,
-            hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
+            unhardened_derivation_index: wallet
+                .db
+                .max_derivation_index(false)
+                .await?
+                .map_or(0, |idx| idx + 1),
+            hardened_derivation_index: wallet
+                .db
+                .max_derivation_index(true)
+                .await?
+                .map_or(0, |idx| idx + 1),
             checked_files: wallet.db.checked_files().await?.try_into().unwrap_or(0),
             total_files: wallet.db.total_files().await?.try_into().unwrap_or(0),
             database_size,
