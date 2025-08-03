@@ -1,4 +1,4 @@
-import { MintGardenProfile } from '@/components/Profile';
+import { MintGardenProfile } from '@/components/ProfileCard';
 import { Store, load } from '@tauri-apps/plugin-store';
 
 interface CacheEntry {
@@ -319,3 +319,4 @@ export async function getMintGardenProfile(
 // Export the service class and configuration interface for advanced usage
 export { MintGardenService };
 export type { MintGardenServiceConfig };
+

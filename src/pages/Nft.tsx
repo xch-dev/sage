@@ -1,7 +1,7 @@
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
-import Profile from '@/components/Profile';
+import ProfileCard from '@/components/ProfileCard';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
@@ -291,7 +291,7 @@ export default function Nft() {
               />
               {nft?.minter_did && (
                 <div className='mt-1'>
-                  <Profile did={nft.minter_did} variant='compact' />
+                  <ProfileCard did={nft.minter_did} variant='compact' />
                 </div>
               )}
             </div>
@@ -307,7 +307,7 @@ export default function Nft() {
               />
               {nft?.owner_did && (
                 <div className='mt-1'>
-                  <Profile did={nft.owner_did} variant='compact' />
+                  <ProfileCard did={nft.owner_did} variant='compact' />
                 </div>
               )}
             </div>

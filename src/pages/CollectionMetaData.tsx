@@ -2,7 +2,7 @@ import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
-import Profile, { MintGardenProfile } from '@/components/Profile';
+import ProfileCard, { MintGardenProfile } from '@/components/ProfileCard';
 import { Button } from '@/components/ui/button';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
@@ -379,7 +379,7 @@ export default function CollectionMetaData() {
               />
               {minterProfile && (
                 <div className='mt-1'>
-                  <Profile did={collection.did_id} variant='compact' />
+                  <ProfileCard did={collection.did_id} variant='compact' />
                 </div>
               )}
             </div>

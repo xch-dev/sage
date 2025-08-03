@@ -60,7 +60,7 @@ export interface MintGardenProfile {
   is_unknown: boolean;
 }
 
-export interface ProfileProps {
+export interface ProfileCardProps {
   // For MintGarden profiles (DID string only)
   did: DidRecord | string;
   variant?: 'default' | 'compact' | 'card';
@@ -69,13 +69,13 @@ export interface ProfileProps {
   allowMintGardenProfile?: boolean;
 }
 
-export function Profile({
+export function ProfileCard({
   did,
   variant = 'default',
   className = '',
   allowMintGardenProfile: allowMintGardenProfile = true,
   updateDids,
-}: ProfileProps) {
+}: ProfileCardProps) {
   const { addError } = useErrors();
   const walletState = useWalletState();
 
@@ -591,4 +591,4 @@ export function Profile({
   );
 }
 
-export default Profile;
+export default ProfileCard;

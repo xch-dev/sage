@@ -1,6 +1,6 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
-import { Profile } from '@/components/Profile';
+import { ProfileCard } from '@/components/ProfileCard';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -63,7 +63,7 @@ export function DidList() {
 
         <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {visibleDids.map((did) => (
-            <Profile
+            <ProfileCard
               key={did.launcher_id}
               did={did}
               variant='card'
