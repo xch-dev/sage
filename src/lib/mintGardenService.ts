@@ -26,13 +26,13 @@ class MintGardenService {
       maxConcurrentRequests: 3, // Allow 3 concurrent requests
       ...config,
     };
-    
+
     this.initializeStore();
   }
 
   private async initializeStore(): Promise<void> {
     if (this.isInitialized) return;
-    
+
     try {
       this.store = await load('.mintgarden-cache.dat');
       this.isInitialized = true;
@@ -64,33 +64,38 @@ class MintGardenService {
     return now - entry.timestamp < this.config.cacheDuration;
   }
 
-  private async getCachedProfile(did: string): Promise<MintGardenProfile | null> {
+  private async getCachedProfile(
+    did: string,
+  ): Promise<MintGardenProfile | null> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return null;
     }
-    
+
     try {
       const cached = await this.store.get<CacheEntry>(`profile:${did}`);
-      
+
       if (cached && this.isCacheValid(cached)) {
         return cached.profile;
       }
     } catch (error) {
       console.warn('Failed to read from cache:', error);
     }
-    
+
     return null;
   }
 
-  private async setCachedProfile(did: string, profile: MintGardenProfile): Promise<void> {
+  private async setCachedProfile(
+    did: string,
+    profile: MintGardenProfile,
+  ): Promise<void> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return;
     }
-    
+
     try {
       const entry: CacheEntry = {
         profile,
@@ -153,17 +158,19 @@ class MintGardenService {
       // Recursive call to try again
       return this.getProfile(did);
     }
-    
+
     // Create new request
-    const requestPromise = this.fetchProfileFromAPI(did).then(async (profile) => {
-      // Cache the result
-      await this.setCachedProfile(did, profile);
+    const requestPromise = this.fetchProfileFromAPI(did).then(
+      async (profile) => {
+        // Cache the result
+        await this.setCachedProfile(did, profile);
 
-      // Remove from pending requests
-      this.pendingRequests.delete(did);
+        // Remove from pending requests
+        this.pendingRequests.delete(did);
 
-      return profile;
-    });
+        return profile;
+      },
+    );
 
     // Add to pending requests
     this.pendingRequests.set(did, requestPromise);
@@ -174,22 +181,22 @@ class MintGardenService {
   // Clear cache entries that have expired
   async clearExpiredCache(): Promise<void> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return;
     }
-    
+
     try {
       const keys = await this.store.keys();
-      const profileKeys = keys.filter(key => key.startsWith('profile:'));
-      
+      const profileKeys = keys.filter((key) => key.startsWith('profile:'));
+
       for (const key of profileKeys) {
         const entry = await this.store.get<CacheEntry>(key);
         if (entry && !this.isCacheValid(entry)) {
           await this.store.delete(key);
         }
       }
-      
+
       await this.store.save();
     } catch (error) {
       console.warn('Failed to clear expired cache:', error);
@@ -199,19 +206,19 @@ class MintGardenService {
   // Clear all cache
   async clearCache(): Promise<void> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return;
     }
-    
+
     try {
       const keys = await this.store.keys();
-      const profileKeys = keys.filter(key => key.startsWith('profile:'));
-      
+      const profileKeys = keys.filter((key) => key.startsWith('profile:'));
+
       for (const key of profileKeys) {
         await this.store.delete(key);
       }
-      
+
       await this.store.save();
     } catch (error) {
       console.warn('Failed to clear cache:', error);
@@ -219,20 +226,24 @@ class MintGardenService {
   }
 
   // Get cache statistics
-  async getCacheStats(): Promise<{ total: number; valid: number; expired: number }> {
+  async getCacheStats(): Promise<{
+    total: number;
+    valid: number;
+    expired: number;
+  }> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return { total: 0, valid: 0, expired: 0 };
     }
-    
+
     try {
       const keys = await this.store.keys();
-      const profileKeys = keys.filter(key => key.startsWith('profile:'));
-      
+      const profileKeys = keys.filter((key) => key.startsWith('profile:'));
+
       let valid = 0;
       let expired = 0;
-      
+
       for (const key of profileKeys) {
         const entry = await this.store.get<CacheEntry>(key);
         if (entry) {
@@ -243,7 +254,7 @@ class MintGardenService {
           }
         }
       }
-      
+
       return {
         total: profileKeys.length,
         valid,
@@ -262,13 +273,15 @@ class MintGardenService {
   }
 
   // Debug method to get cache details for a specific DID
-  async getCacheDetails(did: string): Promise<{ cached: boolean; entry?: CacheEntry; valid: boolean }> {
+  async getCacheDetails(
+    did: string,
+  ): Promise<{ cached: boolean; entry?: CacheEntry; valid: boolean }> {
     await this.initializeStore();
-    
+
     if (!this.store) {
       return { cached: false, valid: false };
     }
-    
+
     try {
       const entry = await this.store.get<CacheEntry>(`profile:${did}`);
       if (entry) {

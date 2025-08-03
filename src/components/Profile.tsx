@@ -26,7 +26,7 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useErrors } from '@/hooks/useErrors';
 import { getMintGardenProfile } from '@/lib/marketplaces';
-import { toMojos } from '@/lib/utils';
+import { getAssetDisplayName, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -43,7 +43,7 @@ import {
   PenIcon,
   SendIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import {
   AssetKind,
@@ -62,87 +62,118 @@ export interface MintGardenProfile {
 
 export interface ProfileProps {
   // For MintGarden profiles (DID string only)
-  did?: string;
-  // For local DID records (with enhanced MintGarden data)
-  didRecord?: DidRecord;
-  // Common props
+  did: DidRecord | string;
   variant?: 'default' | 'compact' | 'card';
-  showDid?: boolean;
   className?: string;
-  onProfileLoad?: (profile: MintGardenProfile) => void;
-  // Local DID specific
   updateDids?: () => void;
-  showMintGardenProfile?: boolean;
+  allowMintGardenProfile?: boolean;
 }
 
-// ProfileContent component to handle the actual rendering
-interface ProfileContentProps {
-  didRecord?: DidRecord;
-  mintGardenProfile: MintGardenProfile;
-  isMintGardenLoading: boolean;
-  variant: 'default' | 'compact' | 'card';
-  showDid: boolean;
-  className: string;
-  showMintGardenProfile: boolean;
-  name: string;
-  setName: (name: string) => void;
-  response: TransactionResponse | null;
-  renameOpen: boolean;
-  setRenameOpen: (open: boolean) => void;
-  transferOpen: boolean;
-  setTransferOpen: (open: boolean) => void;
-  burnOpen: boolean;
-  setBurnOpen: (open: boolean) => void;
-  normalizeOpen: boolean;
-  setNormalizeOpen: (open: boolean) => void;
-  isTransferring: boolean;
-  isBurning: boolean;
-  isNormalizing: boolean;
-  transferAddress: string;
-  updateDids?: () => void;
-  addError: (error: CustomError) => void;
-  walletState: { sync: { unit: { decimals: number }; burn_address: string } };
-  setResponse: (response: TransactionResponse | null) => void;
-  setIsTransferring: (transferring: boolean) => void;
-  setIsBurning: (burning: boolean) => void;
-  setIsNormalizing: (normalizing: boolean) => void;
-  setTransferAddress: (address: string) => void;
-}
-
-function ProfileContent({
-  didRecord,
-  mintGardenProfile,
-  isMintGardenLoading,
-  variant,
-  showDid,
-  className,
-  name,
-  setName,
-  response,
-  renameOpen,
-  setRenameOpen,
-  transferOpen,
-  setTransferOpen,
-  burnOpen,
-  setBurnOpen,
-  normalizeOpen,
-  setNormalizeOpen,
-  isTransferring,
-  isBurning,
-  isNormalizing,
-  transferAddress,
+export function Profile({
+  did,
+  variant = 'default',
+  className = '',
+  allowMintGardenProfile: allowMintGardenProfile = true,
   updateDids,
-  addError,
-  walletState,
-  setResponse,
-  setIsTransferring,
-  setIsBurning,
-  setIsNormalizing,
-  setTransferAddress,
-}: ProfileContentProps) {
-  // Local DID action handlers
+}: ProfileProps) {
+  const { addError } = useErrors();
+  const walletState = useWalletState();
+
+  // this component can be used to display a DID record or a DID string
+  // if it is a DID DidRecord, it will be treated as a local DID and will have
+  // additional actions available
+  const isOwned = typeof did !== 'string';
+  const didRecord: DidRecord =
+    typeof did === 'string'
+      ? {
+          launcher_id: did,
+          name: `${did.slice(9, 19)}...${did.slice(-4)}`,
+          visible: true,
+          created_height: null,
+          recovery_hash: null,
+          coin_id: '0',
+          address: '',
+          amount: 0,
+        }
+      : did;
+
+  const [mintGardenProfile, setMintGardenProfile] = useState<MintGardenProfile>(
+    {
+      encoded_id: didRecord.launcher_id,
+      name: didRecord.name ?? '',
+      avatar_uri: null,
+      is_unknown: true,
+    },
+  );
+
+  const didAsset = {
+    icon_url: mintGardenProfile.avatar_uri,
+    kind: 'did' as AssetKind,
+    revocation_address: null,
+    name: !mintGardenProfile.is_unknown
+      ? mintGardenProfile.name
+      : getAssetDisplayName(
+          didRecord?.name || mintGardenProfile?.name,
+          null,
+          'did',
+        ),
+    ticker: '',
+    precision: 0,
+    asset_id: didRecord.launcher_id,
+    balance: '0',
+    balanceInUsd: '0',
+    priceInUsd: '0',
+  };
+
+  const [isMintGardenLoading, setIsMintGardenLoading] = useState(false);
+
+  // State for local DID actions (only when did is owned)
+  const [name, setName] = useState('');
+  const [response, setResponse] = useState<TransactionResponse | null>(null);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [burnOpen, setBurnOpen] = useState(false);
+  const [normalizeOpen, setNormalizeOpen] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
+  const [isBurning, setIsBurning] = useState(false);
+  const [isNormalizing, setIsNormalizing] = useState(false);
+  const [transferAddress, setTransferAddress] = useState('');
+
+  // Fetch MintGarden profile data
+  useEffect(() => {
+    if (!didRecord.launcher_id) return;
+
+    if (allowMintGardenProfile) {
+      setIsMintGardenLoading(true);
+      getMintGardenProfile(didRecord.launcher_id)
+        .then((profileData) => {
+          setMintGardenProfile(profileData);
+        })
+        .catch(() => {
+          // Create fallback profile for failed lookups
+          setMintGardenProfile({
+            encoded_id: didRecord.launcher_id,
+            name: didRecord.name ?? '',
+            avatar_uri: null,
+            is_unknown: true,
+          });
+        })
+        .finally(() => {
+          setIsMintGardenLoading(false);
+        });
+    } else {
+      setMintGardenProfile({
+        encoded_id: didRecord.launcher_id,
+        name: didRecord.name ?? '',
+        avatar_uri: null,
+        is_unknown: true,
+      });
+    }
+  }, [didRecord.launcher_id, didRecord.name, allowMintGardenProfile]);
+
+  // Owned DID action handlers
   const rename = () => {
-    if (!name || !didRecord) return;
+    if (!name || !isOwned) return;
 
     commands
       .updateDid({
@@ -159,7 +190,7 @@ function ProfileContent({
   };
 
   const toggleVisibility = () => {
-    if (!didRecord) return;
+    if (!isOwned) return;
 
     commands
       .updateDid({
@@ -172,7 +203,7 @@ function ProfileContent({
   };
 
   const onTransferSubmit = (address: string, fee: string) => {
-    if (!didRecord) return;
+    if (!isOwned) return;
 
     setIsTransferring(true);
     setTransferAddress(address);
@@ -191,7 +222,7 @@ function ProfileContent({
   };
 
   const onBurnSubmit = (fee: string) => {
-    if (!didRecord) return;
+    if (!isOwned) return;
 
     setIsBurning(true);
     commands
@@ -209,7 +240,7 @@ function ProfileContent({
   };
 
   const onNormalizeSubmit = (fee: string) => {
-    if (!didRecord) return;
+    if (!isOwned) return;
 
     setIsNormalizing(true);
     commands
@@ -231,21 +262,6 @@ function ProfileContent({
     }
   };
 
-  // Display logic
-  const didAsset = {
-    icon_url: mintGardenProfile.avatar_uri,
-    kind: 'did' as AssetKind,
-    revocation_address: null,
-    name: !mintGardenProfile.is_unknown
-      ? mintGardenProfile.name
-      : didRecord?.name || mintGardenProfile?.name || t`Untitled Profile`,
-    ticker: '',
-    precision: 0,
-    asset_id: mintGardenProfile.encoded_id || '',
-    balance: '0',
-    balanceInUsd: '0',
-    priceInUsd: '0',
-  };
   // Loading state
   if (isMintGardenLoading) {
     return (
@@ -253,7 +269,6 @@ function ProfileContent({
         <Skeleton className='w-8 h-8 rounded-full' />
         <div className='space-y-1'>
           <Skeleton className='h-4 w-24' />
-          {showDid && <Skeleton className='h-3 w-32' />}
         </div>
       </div>
     );
@@ -264,11 +279,7 @@ function ProfileContent({
       <div className={`flex items-center gap-2 ${className}`}>
         <AssetIcon asset={didAsset} size='sm' />
         <span className='text-sm font-medium truncate'>{didAsset.name}</span>
-        {showDid && (
-          <span className='text-xs text-gray-500 font-mono truncate'>
-            {didAsset.asset_id}
-          </span>
-        )}
+
         {!mintGardenProfile.is_unknown && (
           <Button
             variant='ghost'
@@ -289,9 +300,9 @@ function ProfileContent({
       <>
         <Card
           className={`${className} ${
-            didRecord && !didRecord.visible
+            isOwned && !didRecord.visible
               ? 'opacity-50 grayscale'
-              : didRecord && didRecord.created_height === null
+              : isOwned && didRecord.created_height === null
                 ? 'pulsate-opacity'
                 : ''
           }`}
@@ -299,9 +310,19 @@ function ProfileContent({
           <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
             <CardTitle className='text-md font-medium truncate flex items-center'>
               <AssetIcon asset={didAsset} size='md' className='mr-2' />
-              {didAsset.name}
+              {mintGardenProfile.is_unknown
+                ? didAsset.name
+                : mintGardenProfile.name}{' '}
+              {isOwned &&
+                !mintGardenProfile.is_unknown &&
+                didRecord.name !== mintGardenProfile.name && (
+                  <span className='ml-2 text-sm text-gray-500 font-mono truncate'>
+                    {`(${didRecord.name})`}
+                  </span>
+                )}
             </CardTitle>
-            {didRecord ? (
+
+            {isOwned ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='ghost' size='icon'>
@@ -415,7 +436,7 @@ function ProfileContent({
           </CardContent>
         </Card>
 
-        {didRecord && (
+        {isOwned && (
           <>
             <Dialog
               open={renameOpen}
@@ -554,11 +575,6 @@ function ProfileContent({
       <AssetIcon asset={didAsset} size='md' />
       <div className='flex-1 min-w-0'>
         <div className='font-medium truncate'>{didAsset.name}</div>
-        {showDid && (
-          <div className='text-xs text-gray-500 font-mono truncate'>
-            {didAsset.asset_id}
-          </div>
-        )}
       </div>
       {!mintGardenProfile.is_unknown && (
         <Button
@@ -571,187 +587,6 @@ function ProfileContent({
           <ExternalLinkIcon className='w-3 h-3 ml-1' />
         </Button>
       )}
-    </div>
-  );
-}
-
-export function Profile({
-  did,
-  didRecord,
-  variant = 'default',
-  showDid = false,
-  className = '',
-  showMintGardenProfile = true,
-  onProfileLoad,
-  updateDids,
-}: ProfileProps) {
-  const { addError } = useErrors();
-  const walletState = useWalletState();
-
-  // Determine the DID to use for MintGarden lookup
-  const didToLookup = didRecord?.launcher_id || did;
-
-  // State for MintGarden profile data
-  const [mintGardenProfile, setMintGardenProfile] = useState<MintGardenProfile>(
-    {
-      encoded_id: didToLookup || '',
-      name:
-        didRecord?.name ||
-        `${(didToLookup || '').slice(9, 19)}...${(didToLookup || '').slice(-4)}`,
-      avatar_uri: null,
-      is_unknown: true,
-    },
-  );
-  const [isMintGardenLoading, setIsMintGardenLoading] = useState(false);
-
-  // State for local DID actions (only when didRecord is provided)
-  const [name, setName] = useState('');
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
-  const [renameOpen, setRenameOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [burnOpen, setBurnOpen] = useState(false);
-  const [normalizeOpen, setNormalizeOpen] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [isBurning, setIsBurning] = useState(false);
-  const [isNormalizing, setIsNormalizing] = useState(false);
-  const [transferAddress, setTransferAddress] = useState('');
-
-  // Fetch MintGarden profile data
-  useEffect(() => {
-    if (!didToLookup) return;
-
-    if (showMintGardenProfile) {
-      setIsMintGardenLoading(true);
-      getMintGardenProfile(didToLookup)
-        .then((profileData) => {
-          setMintGardenProfile(profileData);
-          onProfileLoad?.(profileData);
-        })
-        .catch(() => {
-          // Create fallback profile for failed lookups
-          setMintGardenProfile({
-            encoded_id: didToLookup,
-            name:
-              didRecord?.name ||
-              `${didToLookup.slice(9, 19)}...${didToLookup.slice(-4)}`,
-            avatar_uri: null,
-            is_unknown: true,
-          });
-        })
-        .finally(() => {
-          setIsMintGardenLoading(false);
-        });
-    } else {
-      setMintGardenProfile({
-        encoded_id: didToLookup,
-        name:
-          didRecord?.name ||
-          `${didToLookup.slice(9, 19)}...${didToLookup.slice(-4)}`,
-        avatar_uri: null,
-        is_unknown: true,
-      });
-    }
-  }, [didToLookup, didRecord?.name, onProfileLoad, showMintGardenProfile]);
-
-  return (
-    <ProfileContent
-      didRecord={didRecord}
-      mintGardenProfile={mintGardenProfile}
-      isMintGardenLoading={isMintGardenLoading}
-      variant={variant}
-      showDid={showDid}
-      className={className}
-      showMintGardenProfile={showMintGardenProfile}
-      name={name}
-      setName={setName}
-      response={response}
-      renameOpen={renameOpen}
-      setRenameOpen={setRenameOpen}
-      transferOpen={transferOpen}
-      setTransferOpen={setTransferOpen}
-      burnOpen={burnOpen}
-      setBurnOpen={setBurnOpen}
-      normalizeOpen={normalizeOpen}
-      setNormalizeOpen={setNormalizeOpen}
-      isTransferring={isTransferring}
-      isBurning={isBurning}
-      isNormalizing={isNormalizing}
-      transferAddress={transferAddress}
-      updateDids={updateDids}
-      addError={addError}
-      walletState={walletState}
-      setResponse={setResponse}
-      setIsTransferring={setIsTransferring}
-      setIsBurning={setIsBurning}
-      setIsNormalizing={setIsNormalizing}
-      setTransferAddress={setTransferAddress}
-    />
-  );
-}
-
-// Hook for managing MintGarden profile state
-export function useMintGardenProfile(did: string | undefined) {
-  const defaultProfile = useMemo(
-    () => ({
-      encoded_id: did ?? '',
-      name: `${did?.slice(9, 19)}...${did?.slice(-4)}`,
-      avatar_uri: null,
-      is_unknown: true,
-    }),
-    [did],
-  );
-
-  const [profile, setProfile] = useState<MintGardenProfile>(defaultProfile);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!did) {
-      setProfile(defaultProfile);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    getMintGardenProfile(did)
-      .then((profileData) => {
-        setProfile(profileData);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
-  }, [did, defaultProfile]);
-
-  return { profile, isLoading, error };
-}
-
-// Clickable profile component that opens MintGarden on click
-export interface ClickableProfileProps extends ProfileProps {
-  onClick?: (profile: MintGardenProfile) => void;
-}
-
-export function ClickableProfile({ onClick, ...props }: ClickableProfileProps) {
-  const handleProfileLoad = (profile: MintGardenProfile) => {
-    props.onProfileLoad?.(profile);
-  };
-
-  const handleClick = () => {
-    const didToUse = props.didRecord?.launcher_id || props.did;
-    if (onClick && didToUse) {
-      getMintGardenProfile(didToUse).then(onClick);
-    } else if (didToUse) {
-      openUrl(`https://mintgarden.io/${didToUse}`);
-    }
-  };
-
-  return (
-    <div
-      className='cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded p-1 transition-colors'
-      onClick={handleClick}
-    >
-      <Profile {...props} onProfileLoad={handleProfileLoad} />
     </div>
   );
 }

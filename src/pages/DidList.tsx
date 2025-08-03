@@ -65,10 +65,10 @@ export function DidList() {
           {visibleDids.map((did) => (
             <Profile
               key={did.launcher_id}
-              didRecord={did}
+              did={did}
               variant='card'
               updateDids={updateDids}
-              showMintGardenProfile={true}
+              allowMintGardenProfile={true}
             />
           ))}
         </div>
