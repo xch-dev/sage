@@ -5,9 +5,9 @@ use chia::{
     protocol::{Bytes32, CoinState, Program},
     puzzles::nft::NftMetadata,
 };
-use chia_wallet_sdk::driver::{HashedPtr, Nft, Puzzle};
+use chia_wallet_sdk::driver::{Nft, Puzzle};
 use clvmr::Allocator;
-use sage_database::NftOfferInfo;
+use sage_database::{NftOfferInfo, SerializePrimitive};
 use tokio::time::{sleep, timeout};
 
 use crate::{fetch_nft_did, insert_nft, Wallet, WalletError, WalletPeer};
@@ -62,14 +62,10 @@ impl Wallet {
             let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle);
             let parent_solution = parent_solution.to_clvm(&mut allocator)?;
 
-            if let Some(nft) = Nft::<HashedPtr>::parse_child(
-                &mut allocator,
-                parent.coin,
-                parent_puzzle,
-                parent_solution,
-            )
-            .ok()
-            .flatten()
+            if let Some(nft) =
+                Nft::parse_child(&mut allocator, parent.coin, parent_puzzle, parent_solution)
+                    .ok()
+                    .flatten()
             {
                 break nft;
             }
@@ -86,7 +82,7 @@ impl Wallet {
             &mut tx,
             CoinState::new(nft.coin, None, None),
             None,
-            nft.info.with_metadata(metadata.clone()),
+            nft.serialize(&allocator)?.info,
             parsed_metadata,
             minter_did,
         )

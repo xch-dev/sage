@@ -3,12 +3,13 @@ use std::collections::{HashMap, HashSet};
 use chia::{
     bls::Signature,
     clvm_utils::ToTreeHash,
-    protocol::{Bytes32, CoinState, Program},
+    protocol::{Bytes32, CoinState},
     puzzles::{nft::NftMetadata, LineageProof},
 };
-use chia_wallet_sdk::driver::NftInfo;
 use sage_assets::base64_data_uri;
-use sage_database::{Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo};
+use sage_database::{
+    Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, SerializedNftInfo,
+};
 use tracing::{error, warn};
 
 use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
@@ -188,7 +189,7 @@ pub async fn insert_nft(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     lineage_proof: Option<LineageProof>,
-    info: NftInfo<Program>,
+    info: SerializedNftInfo,
     metadata: Option<NftMetadata>,
     minter_hash: Option<Bytes32>,
 ) -> Result<(), WalletError> {

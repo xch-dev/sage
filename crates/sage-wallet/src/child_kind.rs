@@ -6,11 +6,12 @@ use chia::{
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{Cat, CatInfo, ClawbackV2, Did, DidInfo, HashedPtr, Nft, NftInfo, Puzzle},
+    driver::{Cat, CatInfo, ClawbackV2, Did, DidInfo, Nft, Puzzle, SingletonInfo},
     prelude::CreateCoin,
     types::{run_puzzle, Condition},
 };
 use clvmr::{Allocator, NodePtr};
+use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -29,12 +30,12 @@ pub enum ChildKind {
         clawback: Option<ClawbackV2>,
     },
     Did {
-        info: DidInfo<Program>,
+        info: SerializedDidInfo,
         lineage_proof: LineageProof,
         clawback: Option<ClawbackV2>,
     },
     Nft {
-        info: NftInfo<Program>,
+        info: SerializedNftInfo,
         lineage_proof: LineageProof,
         metadata: Option<NftMetadata>,
         clawback: Option<ClawbackV2>,
@@ -180,12 +181,7 @@ impl ChildKind {
         }
 
         if coin.amount % 2 == 1 {
-            match Nft::<HashedPtr>::parse_child(
-                allocator,
-                parent_coin,
-                parent_puzzle,
-                parent_solution,
-            ) {
+            match Nft::parse_child(allocator, parent_coin, parent_puzzle, parent_solution) {
                 // If there was an error parsing the NFT, we can exit early.
                 Err(error) => {
                     warn!("Invalid NFT: {}", error);
@@ -207,7 +203,6 @@ impl ChildKind {
                         return Ok(Self::Unknown);
                     };
 
-                    let metadata_program = Program::from_clvm(allocator, nft.info.metadata.ptr())?;
                     let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
@@ -215,7 +210,7 @@ impl ChildKind {
 
                     return Ok(Self::Nft {
                         lineage_proof,
-                        info: nft.info.with_metadata(metadata_program),
+                        info: nft.serialize(allocator)?.info,
                         metadata,
                         clawback,
                     });
@@ -225,13 +220,7 @@ impl ChildKind {
                 Ok(None) => {}
             }
 
-            match Did::<HashedPtr>::parse_child(
-                allocator,
-                parent_coin,
-                parent_puzzle,
-                parent_solution,
-                coin,
-            ) {
+            match Did::parse_child(allocator, parent_coin, parent_puzzle, parent_solution, coin) {
                 // If there was an error parsing the DID, we can exit early.
                 Err(error) => {
                     warn!("Invalid DID: {}", error);
@@ -244,8 +233,6 @@ impl ChildKind {
                     let Proof::Lineage(lineage_proof) = did.proof else {
                         return Ok(Self::Unknown);
                     };
-
-                    let metadata = Program::from_clvm(allocator, did.info.metadata.ptr())?;
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true);
 
@@ -275,7 +262,7 @@ impl ChildKind {
 
                     return Ok(Self::Did {
                         lineage_proof,
-                        info: did.info.with_metadata(metadata),
+                        info: did.serialize(allocator)?.info,
                         clawback,
                     });
                 }

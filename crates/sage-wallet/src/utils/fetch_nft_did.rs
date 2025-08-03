@@ -10,7 +10,7 @@ use chia::{
     },
 };
 use chia_wallet_sdk::{
-    driver::{DidInfo, HashedPtr, NftInfo, Puzzle},
+    driver::{DidInfo, NftInfo, Puzzle},
     types::{run_puzzle, Condition, Conditions},
 };
 use clvmr::{Allocator, NodePtr};
@@ -48,10 +48,7 @@ pub async fn fetch_nft_did(
         let puzzle_reveal = parent_spend.puzzle_reveal.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
-        if let Some((did, _)) = DidInfo::<HashedPtr>::parse(&allocator, puzzle)
-            .ok()
-            .flatten()
-        {
+        if let Some((did, _)) = DidInfo::parse(&allocator, puzzle).ok().flatten() {
             did_id = Some(did.launcher_id);
             break;
         }
@@ -85,10 +82,7 @@ pub async fn fetch_nft_did(
         let solution = coin_spend.solution.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
-        if let Some((_nft_info, p2_puzzle)) = NftInfo::<HashedPtr>::parse(&allocator, puzzle)
-            .ok()
-            .flatten()
-        {
+        if let Some((_nft_info, p2_puzzle)) = NftInfo::parse(&allocator, puzzle).ok().flatten() {
             if let Ok(solution) = SingletonSolution::<
                 NftStateLayerSolution<NftOwnershipLayerSolution<NodePtr>>,
             >::from_clvm(&allocator, solution)

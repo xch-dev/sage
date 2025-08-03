@@ -11,7 +11,7 @@ use sage_api::wallet_connect::{
     SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
     SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
 };
-use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
+use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
 use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
 use tracing::{debug, info, warn};
 
@@ -103,6 +103,7 @@ impl Sage {
                     let Some(did) = wallet.db.did_coin(row.coin.coin_id()).await? else {
                         return Err(Error::MissingDidCoin(row.coin.coin_id()));
                     };
+                    let did = did.deserialize(&mut ctx)?;
                     let puzzle = did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
                     (puzzle, Some(did.proof))
                 }
@@ -110,6 +111,7 @@ impl Sage {
                     let Some(nft) = wallet.db.nft_coin(row.coin.coin_id()).await? else {
                         return Err(Error::MissingNftCoin(row.coin.coin_id()));
                     };
+                    let nft = nft.deserialize(&mut ctx)?;
                     let puzzle = nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
                     (puzzle, Some(nft.proof))
                 }
