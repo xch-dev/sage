@@ -75,9 +75,6 @@ pub enum WalletError {
     #[error("Missing secret key")]
     UnknownPublicKey,
 
-    #[error("SECP is not supported")]
-    SecpNotSupported,
-
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),
 

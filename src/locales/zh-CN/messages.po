@@ -140,12 +140,12 @@ msgstr ""
 msgid "Add {selectedCount} selected NFTs to offer"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:482
-#: src/components/NftGroupCard.tsx:485
+#: src/components/NftGroupCard.tsx:487
+#: src/components/NftGroupCard.tsx:490
 msgid "Add all NFTs in {cardName} to an offer"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:486
+#: src/components/NftGroupCard.tsx:491
 msgid "Add All to Offer"
 msgstr ""
 
@@ -196,7 +196,7 @@ msgstr ""
 msgid "Add URL to NFT"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:466
+#: src/components/NftGroupCard.tsx:471
 #: src/components/MultiSelectActions.tsx:277
 msgid "Added {addedCount} {nfts} to offer"
 msgstr ""
@@ -282,7 +282,7 @@ msgstr ""
 #: src/pages/IssueToken.tsx:109
 #: src/components/TransactionColumns.tsx:102
 #: src/components/CoinList.tsx:134
-#: src/components/selectors/AssetSelector.tsx:259
+#: src/components/selectors/AssetSelector.tsx:267
 #: src/components/confirmations/TokenConfirmation.tsx:137
 msgid "Amount"
 msgstr "金额"
@@ -691,7 +691,7 @@ msgstr ""
 msgid "Collapse sidebar"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:194
+#: src/components/NftGroupCard.tsx:199
 msgid "Collection {cardName}"
 msgstr ""
 
@@ -701,7 +701,7 @@ msgid "Collection ID"
 msgstr ""
 
 #: src/pages/CollectionMetaData.tsx:354
-#: src/components/NftGroupCard.tsx:381
+#: src/components/NftGroupCard.tsx:386
 msgid "Collection ID copied to clipboard"
 msgstr ""
 
@@ -811,9 +811,13 @@ msgstr "连接中..."
 msgid "Connecting..."
 msgstr ""
 
-#: src/components/selectors/AssetSelector.tsx:149
-msgid "Convert to XCH at current asking price"
+#: src/components/selectors/AssetSelector.tsx:154
+msgid "Convert to {0} at current asking price"
 msgstr ""
+
+#: src/components/selectors/AssetSelector.tsx:149
+#~ msgid "Convert to XCH at current asking price"
+#~ msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:556
 msgid "Copied"
@@ -828,7 +832,7 @@ msgstr ""
 msgid "Copy"
 msgstr "复制"
 
-#: src/components/NftGroupCard.tsx:387
+#: src/components/NftGroupCard.tsx:392
 msgid "Copy {cardName} ID to clipboard"
 msgstr ""
 
@@ -861,7 +865,7 @@ msgstr ""
 
 #: src/pages/DidList.tsx:285
 #: src/components/OfferRowCard.tsx:143
-#: src/components/NftGroupCard.tsx:391
+#: src/components/NftGroupCard.tsx:396
 #: src/components/NftCard.tsx:537
 msgid "Copy ID"
 msgstr "复制ID"
@@ -898,7 +902,7 @@ msgstr "创建一个新报价以开始点对点交易."
 msgid "Create a profile?"
 msgstr "创建个人资料?"
 
-#: src/components/selectors/AssetSelector.tsx:186
+#: src/components/selectors/AssetSelector.tsx:194
 msgid "Create individual offers for each NFT"
 msgstr ""
 
@@ -1000,7 +1004,7 @@ msgstr ""
 
 #: src/pages/Settings.tsx:353
 #: src/pages/Settings.tsx:390
-#: src/pages/Send.tsx:429
+#: src/pages/Send.tsx:422
 #: src/pages/MakeOffer.tsx:256
 msgid "Days"
 msgstr "天"
@@ -1203,7 +1207,7 @@ msgstr ""
 msgid "Edition Count"
 msgstr ""
 
-#: src/pages/Send.tsx:394
+#: src/pages/Send.tsx:387
 msgid "Enable clawback"
 msgstr ""
 
@@ -1218,7 +1222,7 @@ msgstr ""
 msgid "Enter address"
 msgstr "输入地址"
 
-#: src/components/selectors/AssetSelector.tsx:117
+#: src/components/selectors/AssetSelector.tsx:121
 msgid "Enter amount"
 msgstr "输入金额"
 
@@ -1240,7 +1244,7 @@ msgstr ""
 #~ msgid "Enter fee amount"
 #~ msgstr "输入手续费金额"
 
-#: src/pages/Send.tsx:380
+#: src/pages/Send.tsx:373
 msgid "Enter memo"
 msgstr ""
 
@@ -1252,7 +1256,7 @@ msgstr ""
 msgid "Enter multiple IP addresses (one per line or comma-separated)"
 msgstr ""
 
-#: src/components/ui/masked-input.tsx:154
+#: src/components/ui/masked-input.tsx:167
 msgid "Enter network fee"
 msgstr "输入网络手续费"
 
@@ -1317,7 +1321,7 @@ msgstr ""
 msgid "Expand sidebar - {0}"
 msgstr ""
 
-#: src/pages/Send.tsx:472
+#: src/pages/Send.tsx:465
 msgid "Experimental Feature"
 msgstr ""
 
@@ -1357,7 +1361,7 @@ msgstr ""
 msgid "External Links"
 msgstr "外部链接"
 
-#: src/components/NftGroupCard.tsx:478
+#: src/components/NftGroupCard.tsx:483
 msgid "Failed to add NFTs to offer"
 msgstr ""
 
@@ -1520,12 +1524,12 @@ msgstr "高度:"
 #: src/components/TokenGridView.tsx:72
 #: src/components/TokenColumns.tsx:192
 #: src/components/TokenCard.tsx:153
-#: src/components/NftGroupCard.tsx:343
+#: src/components/NftGroupCard.tsx:348
 #: src/components/NftCard.tsx:522
 msgid "Hide"
 msgstr "隐藏"
 
-#: src/components/NftGroupCard.tsx:336
+#: src/components/NftGroupCard.tsx:341
 msgid "Hide {cardName}"
 msgstr ""
 
@@ -1581,7 +1585,7 @@ msgstr ""
 
 #: src/pages/Settings.tsx:358
 #: src/pages/Settings.tsx:395
-#: src/pages/Send.tsx:446
+#: src/pages/Send.tsx:439
 #: src/pages/MakeOffer.tsx:279
 msgid "Hours"
 msgstr "小时"
@@ -1590,11 +1594,11 @@ msgstr "小时"
 msgid "Icon for {collectionName}"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:212
+#: src/components/NftGroupCard.tsx:217
 msgid "Icon for {name}"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:272
+#: src/components/NftGroupCard.tsx:277
 msgid "ID: {cardId}"
 msgstr ""
 
@@ -1743,7 +1747,11 @@ msgstr "许可证网址"
 msgid "Link copied to clipboard"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:152
+#: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
+msgid "Loading {0} details..."
+msgstr ""
+
+#: src/components/NftGroupCard.tsx:157
 msgid "Loading collection"
 msgstr ""
 
@@ -1759,7 +1767,7 @@ msgstr ""
 msgid "Loading offer details..."
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:152
+#: src/components/NftGroupCard.tsx:157
 msgid "Loading profile"
 msgstr ""
 
@@ -1773,8 +1781,8 @@ msgid "Loading transactions..."
 msgstr ""
 
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
-msgid "Loading XCH details..."
-msgstr ""
+#~ msgid "Loading XCH details..."
+#~ msgstr ""
 
 #: src/pages/Settings.tsx:1240
 msgid "Loading..."
@@ -1833,7 +1841,7 @@ msgstr ""
 msgid "Maximum Number of Coins"
 msgstr ""
 
-#: src/pages/Send.tsx:373
+#: src/pages/Send.tsx:366
 msgid "Memo (optional)"
 msgstr ""
 
@@ -1875,7 +1883,7 @@ msgstr "铸造"
 msgid "Mint NFT"
 msgstr "铸造NFT"
 
-#: src/components/NftGroupCard.tsx:197
+#: src/components/NftGroupCard.tsx:202
 msgid "Minter {cardName}"
 msgstr ""
 
@@ -1891,7 +1899,7 @@ msgstr "铸造者DID"
 msgid "Minter DID copied to clipboard"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:384
+#: src/components/NftGroupCard.tsx:389
 msgid "Minter ID copied to clipboard"
 msgstr ""
 
@@ -1909,7 +1917,7 @@ msgstr "正在铸造"
 
 #: src/pages/Settings.tsx:363
 #: src/pages/Settings.tsx:400
-#: src/pages/Send.tsx:463
+#: src/pages/Send.tsx:456
 #: src/pages/MakeOffer.tsx:302
 msgid "Minutes"
 msgstr "分钟"
@@ -1951,7 +1959,7 @@ msgid "Network"
 msgstr "网络"
 
 #: src/pages/ViewOffer.tsx:99
-#: src/pages/Send.tsx:355
+#: src/pages/Send.tsx:348
 #: src/pages/MintNft.tsx:319
 #: src/pages/MakeOffer.tsx:192
 #: src/pages/IssueToken.tsx:130
@@ -1972,7 +1980,7 @@ msgstr "网络手续费"
 msgid "Network Fee (per offer)"
 msgstr ""
 
-#: src/components/ui/masked-input.tsx:155
+#: src/components/ui/masked-input.tsx:168
 msgid "Network fee amount"
 msgstr "网络手续费金额"
 
@@ -1997,9 +2005,9 @@ msgstr "新报价"
 msgid "Next page"
 msgstr "下一页"
 
-#: src/components/NftGroupCard.tsx:463
+#: src/components/NftGroupCard.tsx:468
 #: src/components/MultiSelectActions.tsx:274
-#: src/components/selectors/AssetSelector.tsx:93
+#: src/components/selectors/AssetSelector.tsx:95
 msgid "NFT"
 msgstr "NFT"
 
@@ -2046,7 +2054,7 @@ msgid "NFT view options"
 msgstr ""
 
 #: src/components/NftPageTitle.tsx:44
-#: src/components/NftGroupCard.tsx:463
+#: src/components/NftGroupCard.tsx:468
 #: src/components/Nav.tsx:51
 #: src/components/MultiSelectActions.tsx:274
 msgid "NFTs"
@@ -2222,8 +2230,12 @@ msgid "Offered"
 msgstr "提供"
 
 #: src/pages/MakeOffer.tsx:83
-msgid "Offered XCH amount must be a positive number."
+msgid "Offered {0} amount must be a positive number."
 msgstr ""
+
+#: src/pages/MakeOffer.tsx:83
+#~ msgid "Offered XCH amount must be a positive number."
+#~ msgstr ""
 
 #: src/components/CoinList.tsx:286
 #~ msgid "Offered..."
@@ -2274,7 +2286,7 @@ msgstr ""
 #~ msgid "Options"
 #~ msgstr ""
 
-#: src/components/NftGroupCard.tsx:289
+#: src/components/NftGroupCard.tsx:294
 msgid "Options for {cardName}"
 msgstr ""
 
@@ -2473,7 +2485,7 @@ msgstr "正在处理报价数据..."
 msgid "Profile"
 msgstr "个人资料"
 
-#: src/components/NftGroupCard.tsx:196
+#: src/components/NftGroupCard.tsx:201
 msgid "Profile {cardName}"
 msgstr ""
 
@@ -2489,7 +2501,7 @@ msgstr ""
 msgid "Profile ID"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:383
+#: src/components/NftGroupCard.tsx:388
 #: src/components/confirmations/NftConfirmation.tsx:97
 msgid "Profile ID copied to clipboard"
 msgstr ""
@@ -2611,8 +2623,12 @@ msgid "Requested"
 msgstr "请求"
 
 #: src/pages/MakeOffer.tsx:91
-msgid "Requested XCH amount must be a positive number."
+msgid "Requested {0} amount must be a positive number."
 msgstr ""
+
+#: src/pages/MakeOffer.tsx:91
+#~ msgid "Requested XCH amount must be a positive number."
+#~ msgstr ""
 
 #: src/components/confirmations/CancelOfferConfirmation.tsx:101
 msgid "Requesting"
@@ -2830,7 +2846,7 @@ msgstr "已选择 {selectedPeersCount} / {totalPeersCount} 个节点"
 msgid "Selected NFTs actions"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:467
+#: src/components/NftGroupCard.tsx:472
 #: src/components/MultiSelectActions.tsx:278
 msgid "Selected NFTs are already in the offer"
 msgstr ""
@@ -2844,8 +2860,8 @@ msgid "Send"
 msgstr "发送"
 
 #: src/pages/Send.tsx:226
-#: src/pages/Send.tsx:490
-#: src/pages/Send.tsx:503
+#: src/pages/Send.tsx:483
+#: src/pages/Send.tsx:496
 msgid "Send {ticker}"
 msgstr "发送 {ticker}"
 
@@ -2899,12 +2915,12 @@ msgstr ""
 #: src/components/TokenGridView.tsx:72
 #: src/components/TokenColumns.tsx:192
 #: src/components/TokenCard.tsx:153
-#: src/components/NftGroupCard.tsx:350
+#: src/components/NftGroupCard.tsx:355
 #: src/components/NftCard.tsx:522
 msgid "Show"
 msgstr "显示"
 
-#: src/components/NftGroupCard.tsx:336
+#: src/components/NftGroupCard.tsx:341
 msgid "Show {cardName}"
 msgstr ""
 
@@ -3115,7 +3131,7 @@ msgstr ""
 msgid "Summary"
 msgstr "摘要"
 
-#: src/pages/Send.tsx:475
+#: src/pages/Send.tsx:468
 msgid "Support for Clawback v2 is limited at this time. Please make sure the recipient supports it before submitting this transaction."
 msgstr ""
 
@@ -3470,7 +3486,7 @@ msgstr "切换多重选择"
 msgid "Toggle navigation menu"
 msgstr "切换导航菜单"
 
-#: src/components/selectors/AssetSelector.tsx:105
+#: src/components/selectors/AssetSelector.tsx:107
 msgid "Token"
 msgstr "代币"
 
@@ -3709,7 +3725,7 @@ msgid "Unknown error"
 msgstr ""
 
 #: src/components/NftPageTitle.tsx:32
-#: src/components/NftGroupCard.tsx:120
+#: src/components/NftGroupCard.tsx:125
 msgid "Unknown Minter"
 msgstr ""
 
@@ -3727,7 +3743,7 @@ msgid "Unnamed"
 msgstr "未命名"
 
 #: src/pages/CollectionMetaData.tsx:268
-#: src/components/NftGroupCard.tsx:114
+#: src/components/NftGroupCard.tsx:119
 msgid "Unnamed Collection"
 msgstr ""
 
@@ -3753,7 +3769,7 @@ msgstr ""
 
 #: src/pages/DidList.tsx:219
 #: src/components/NftPageTitle.tsx:29
-#: src/components/NftGroupCard.tsx:118
+#: src/components/NftGroupCard.tsx:123
 msgid "Untitled Profile"
 msgstr "未命名个人资料"
 
@@ -3824,8 +3840,8 @@ msgstr ""
 msgid "Use 24 words"
 msgstr "使用24词"
 
-#: src/pages/Send.tsx:330
-#: src/components/selectors/AssetSelector.tsx:294
+#: src/pages/Send.tsx:331
+#: src/components/selectors/AssetSelector.tsx:302
 msgid "Use maximum balance"
 msgstr ""
 
@@ -3853,12 +3869,12 @@ msgstr ""
 #~ msgid "View {0} token details"
 #~ msgstr ""
 
-#: src/components/NftGroupCard.tsx:306
+#: src/components/NftGroupCard.tsx:311
 msgid "View {cardName} Metadata"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:320
-#: src/components/NftGroupCard.tsx:365
+#: src/components/NftGroupCard.tsx:325
+#: src/components/NftGroupCard.tsx:370
 msgid "View {cardName} on Mintgarden"
 msgstr ""
 
@@ -3883,7 +3899,7 @@ msgstr ""
 msgid "View hidden"
 msgstr "查看已隐藏的"
 
-#: src/components/NftGroupCard.tsx:310
+#: src/components/NftGroupCard.tsx:315
 msgid "View Metadata"
 msgstr ""
 
@@ -3901,8 +3917,8 @@ msgstr ""
 msgid "View on dexie"
 msgstr ""
 
-#: src/components/NftGroupCard.tsx:324
-#: src/components/NftGroupCard.tsx:369
+#: src/components/NftGroupCard.tsx:329
+#: src/components/NftGroupCard.tsx:374
 msgid "View on Mintgarden"
 msgstr ""
 
