@@ -172,7 +172,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
-        let unhardened = req.hardened.is_none_or(|hardened| !hardened);
+        let unhardened = req.unhardened.is_none_or(|unhardened| unhardened);
 
         let mut derivations = Vec::new();
 

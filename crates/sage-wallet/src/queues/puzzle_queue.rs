@@ -300,12 +300,14 @@ async fn fetch_puzzles(
 
             let children = ChildKind::parse_children(coin, &puzzle_reveal, &solution)?;
 
-            let coin_states = peer
-                .fetch_coins(
+            let coin_states = timeout(
+                Duration::from_secs(10),
+                peer.fetch_coins(
                     children.iter().map(|(child, _)| child.coin_id()).collect(),
                     genesis_challenge,
-                )
-                .await?;
+                ),
+            )
+            .await??;
 
             for (child_coin, kind) in children {
                 let Some(&coin_state) = coin_states

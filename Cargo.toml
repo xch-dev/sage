@@ -90,7 +90,7 @@ chia-traits = "0.26.0"
 chia-sha2 = "0.26.0"
 chia-puzzles = "0.20.1"
 clvmr = "0.14.0"
-chia-wallet-sdk = { version = "0.27.2", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia-wallet-sdk = { git = "https://github.com/xch-dev/chia-wallet-sdk", rev = "c022b3d262ca13038958ccf3211925f87c3c1a83", features = ["rustls", "offer-compression", "peer-simulator"] }
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
@@ -103,7 +103,7 @@ tokio = "1.39.2"
 futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
-reqwest = { version = "0.12.7", default-features = false }
+reqwest = { version = "0.12.22", default-features = false }
 
 # Utilities
 indexmap = "2.3.0"

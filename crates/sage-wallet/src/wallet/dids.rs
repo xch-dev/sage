@@ -1,8 +1,9 @@
 use chia::{
     clvm_utils::{tree_hash_atom, ToTreeHash},
-    protocol::{Bytes32, CoinSpend, Program},
+    protocol::{Bytes32, CoinSpend},
 };
-use chia_wallet_sdk::driver::{Action, ClawbackV2, Did, Id, SpendContext};
+use chia_wallet_sdk::driver::{Action, ClawbackV2, Id, SpendContext};
+use sage_database::{SerializePrimitive, SerializedDid};
 
 use crate::{
     wallet::memos::{calculate_memos, Hint},
@@ -15,7 +16,7 @@ impl Wallet {
     pub async fn create_did(
         &self,
         fee: u64,
-    ) -> Result<(Vec<CoinSpend>, Did<Program>), WalletError> {
+    ) -> Result<(Vec<CoinSpend>, SerializedDid), WalletError> {
         let mut ctx = SpendContext::new();
 
         let outputs = self
@@ -26,10 +27,9 @@ impl Wallet {
             )
             .await?;
 
-        let did = outputs.dids[&Id::New(1)];
-        let metadata = ctx.serialize(&did.info.metadata)?;
+        let did = outputs.dids[&Id::New(1)].serialize(&ctx)?;
 
-        Ok((ctx.take(), did.with_metadata(metadata)))
+        Ok((ctx.take(), did))
     }
 
     pub async fn transfer_dids(

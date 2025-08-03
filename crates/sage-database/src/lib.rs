@@ -1,8 +1,10 @@
 mod maintenance;
+mod serialized_primitives;
 mod tables;
 mod utils;
 
 pub use maintenance::*;
+pub use serialized_primitives::*;
 pub use tables::*;
 
 pub(crate) use utils::*;

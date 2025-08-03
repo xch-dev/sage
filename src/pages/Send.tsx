@@ -299,6 +299,7 @@ export default function Send() {
                       <div className='relative flex'>
                         <TokenAmountInput
                           {...field}
+                          ticker={asset?.ticker}
                           className='pr-12 rounded-r-none z-10'
                         />
                         <TooltipProvider>
@@ -331,14 +332,6 @@ export default function Send() {
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                        <div className='pointer-events-none absolute inset-y-0 right-12 flex items-center pr-3'>
-                          <span
-                            className='text-gray-500 text-sm'
-                            id='price-currency'
-                          >
-                            {asset?.ticker}
-                          </span>
-                        </div>
                       </div>
                     </FormControl>
                     <FormMessage />
