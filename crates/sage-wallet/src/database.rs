@@ -601,26 +601,31 @@ pub async fn insert_transaction(
             )
             .await?;
 
-            // We should subscribe to the coin so we know when it's created on-chain.
-            // TODO: Is this necessary? Subscribing to the p2 puzzle hash is probably sufficient for created coins.
-            if output.kind.subscribe() {
-                subscriptions.push(coin_id);
-            }
-
             // Do the busy work of inserting the asset information into the database now that the coin exists.
-            validate_wallet_coin(&mut tx, coin_id, &output.kind).await?;
 
-            insert_puzzle(
-                &mut tx,
-                coin_state,
-                output.kind.clone(),
-                puzzle_contexts
-                    .get(&output.coin.coin_id())
-                    .cloned()
-                    .unwrap_or_default(),
-                None,
-            )
-            .await?;
+            let is_inserted = validate_wallet_coin(&mut tx, coin_id, &output.kind).await?
+                && insert_puzzle(
+                    &mut tx,
+                    coin_state,
+                    output.kind.clone(),
+                    puzzle_contexts
+                        .get(&output.coin.coin_id())
+                        .cloned()
+                        .unwrap_or_default(),
+                    None,
+                )
+                .await?;
+
+            if is_inserted {
+                // We should subscribe to the coin so we know when it's created on-chain.
+                if output.kind.subscribe() {
+                    subscriptions.push(coin_id);
+                }
+
+                if let Some(PuzzleContext::Option(context)) = puzzle_contexts.get(&coin_id) {
+                    subscriptions.push(context.underlying.coin.coin_id());
+                }
+            }
         }
     }
 

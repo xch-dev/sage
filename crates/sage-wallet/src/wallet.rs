@@ -12,9 +12,9 @@ use chia::{
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{
-        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, Outputs, Relation,
-        SettlementLayer, SpendContext, SpendKind, SpendWithConditions, SpendableAsset, Spends,
-        StandardLayer,
+        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
+        Relation, SettlementLayer, SpendContext, SpendKind, SpendWithConditions, SpendableAsset,
+        Spends, StandardLayer,
     },
     signer::AggSigConstants,
     utils::select_coins,
@@ -333,6 +333,24 @@ impl Wallet {
                             } else {
                                 return Err(DriverError::MissingKey);
                             }
+                        }
+                        P2Puzzle::Option(underlying) => {
+                            let custody = StandardLayer::new(underlying.public_key);
+                            let spend = custody.spend_with_conditions(ctx, spend.finish())?;
+
+                            let underlying = OptionUnderlying::new(
+                                underlying.launcher_id,
+                                custody.tree_hash().into(),
+                                underlying.seconds,
+                                underlying.amount,
+                                underlying.strike_type,
+                            );
+
+                            if asset.p2_puzzle_hash() != underlying.tree_hash().into() {
+                                return Err(DriverError::MissingKey);
+                            }
+
+                            underlying.clawback_spend(ctx, spend)
                         }
                     }
                 }

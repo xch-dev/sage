@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use clvmr::reduction::EvalErr;
 use sage_assets::UriError;
-use sage_database::DatabaseError;
+use sage_database::{CoinKind, DatabaseError};
 use thiserror::Error;
 use tokio::{task::JoinError, time::error::Elapsed};
 
@@ -113,6 +113,9 @@ pub enum WalletError {
 
     #[error("NFT option contracts are not supported")]
     NftOptionNotSupported,
+
+    #[error("Unsupported underlying coin kind: {0:?}")]
+    UnsupportedUnderlyingCoinKind(CoinKind),
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),

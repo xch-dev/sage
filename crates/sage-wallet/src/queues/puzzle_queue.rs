@@ -182,14 +182,24 @@ impl PuzzleQueue {
 
                         tx.insert_coin(item.coin_state).await?;
 
-                        let subscribe = kind.subscribe();
+                        let is_inserted = validate_wallet_coin(&mut tx, coin_id, &kind).await?
+                            && insert_puzzle(
+                                &mut tx,
+                                item.coin_state,
+                                kind.clone(),
+                                item.context.clone(),
+                                None,
+                            )
+                            .await?;
 
-                        if validate_wallet_coin(&mut tx, coin_id, &kind).await?
-                            && insert_puzzle(&mut tx, item.coin_state, kind, item.context, None)
-                                .await?
-                            && subscribe
-                        {
-                            subscriptions.push(coin_id);
+                        if is_inserted {
+                            if kind.subscribe() {
+                                subscriptions.push(coin_id);
+                            }
+
+                            if let PuzzleContext::Option(context) = item.context {
+                                subscriptions.push(context.underlying.coin.coin_id());
+                            }
                         }
                     }
 

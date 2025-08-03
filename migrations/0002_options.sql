@@ -33,6 +33,11 @@ CREATE INDEX idx_p2_options_p2_puzzle_id ON p2_options(p2_puzzle_id);
 CREATE INDEX idx_p2_options_option_asset_id ON p2_options(option_asset_id);
 
 DROP VIEW wallet_coins;
+DROP VIEW selectable_coins;
+DROP VIEW owned_coins;
+DROP VIEW spent_coins;
+DROP VIEW clawback_coins;
+DROP VIEW spendable_coins;
 
 CREATE VIEW wallet_coins AS
 SELECT
@@ -65,6 +70,7 @@ SELECT
   p2_options.expiration_seconds AS option_expiration_seconds,
   sender_p2_puzzle.id AS clawback_sender_p2_puzzle_id,
   receiver_p2_puzzle.id AS clawback_receiver_p2_puzzle_id,
+  option_creator_p2_puzzle.id AS option_creator_p2_puzzle_id,
   created_blocks.timestamp AS created_timestamp,
   spent_blocks.timestamp AS spent_timestamp,
   (
@@ -88,5 +94,73 @@ FROM coins
   LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
   LEFT JOIN p2_puzzles AS sender_p2_puzzle ON sender_p2_puzzle.hash = clawbacks.sender_puzzle_hash
   LEFT JOIN p2_puzzles AS receiver_p2_puzzle ON receiver_p2_puzzle.hash = clawbacks.receiver_puzzle_hash
+  LEFT JOIN p2_puzzles AS option_creator_p2_puzzle ON option_creator_p2_puzzle.hash = p2_options.creator_puzzle_hash
   LEFT JOIN blocks AS created_blocks ON created_blocks.height = coins.created_height
   LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = coins.spent_height;
+
+CREATE VIEW selectable_coins AS
+SELECT *
+FROM wallet_coins
+WHERE 1=1
+  AND created_height IS NOT NULL
+  AND spent_height IS NULL
+  AND mempool_item_hash IS NULL
+  AND offer_hash IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM mempool_coins
+    WHERE mempool_coins.coin_id = wallet_coins.coin_id
+  )
+  AND (
+    clawback_expiration_seconds IS NULL
+    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
+  );
+
+CREATE VIEW owned_coins AS
+SELECT *
+FROM wallet_coins
+WHERE 1=1
+  AND spent_height IS NULL
+  AND mempool_item_hash IS NULL
+  AND (
+    clawback_expiration_seconds IS NULL
+    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
+  );
+
+CREATE VIEW spent_coins AS
+SELECT *
+FROM wallet_coins
+WHERE spent_height IS NOT NULL OR mempool_item_hash IS NOT NULL;
+
+CREATE VIEW clawback_coins AS
+SELECT *
+FROM wallet_coins
+WHERE 1=1
+  AND spent_height IS NULL
+  AND unixepoch() < clawback_expiration_seconds;
+
+CREATE VIEW spendable_coins AS
+SELECT *
+FROM wallet_coins
+WHERE 1=1
+  AND spent_height IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM mempool_coins
+    WHERE mempool_coins.coin_id = wallet_coins.coin_id
+  )
+  AND (
+    clawback_expiration_seconds IS NULL
+    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+    OR (clawback_sender_p2_puzzle_id IS NOT NULL AND unixepoch() < clawback_expiration_seconds)
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
+  );
