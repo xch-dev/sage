@@ -182,10 +182,10 @@ function AssetDisplay({
     <div className='space-y-2'>
       {hasXch && (
         <div>
-          <h4 className='font-semibold'>XCH</h4>
+          <h4 className='font-semibold'>{xchToken?.ticker ?? 'XCH'}</h4>
           {loadingXch ? (
             <p className='text-sm text-muted-foreground'>
-              <Trans>Loading XCH details...</Trans>
+              <Trans>Loading {xchToken?.ticker ?? 'XCH'} details...</Trans>
             </p>
           ) : (
             <div className='flex items-center gap-2'>

@@ -80,7 +80,7 @@ export function MakeOffer() {
     if (hasOfferedXchAdded && !hasOfferedXchValid) {
       addError({
         kind: 'invalid',
-        reason: t`Offered XCH amount must be a positive number.`,
+        reason: t`Offered ${walletState.sync.unit.ticker} amount must be a positive number.`,
       });
       return;
     }
@@ -88,7 +88,7 @@ export function MakeOffer() {
     if (hasRequestedXchAdded && !hasRequestedXchValid) {
       addError({
         kind: 'invalid',
-        reason: t`Requested XCH amount must be a positive number.`,
+        reason: t`Requested ${walletState.sync.unit.ticker} amount must be a positive number.`,
       });
       return;
     }
