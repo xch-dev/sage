@@ -7,7 +7,7 @@ export const MINTGARDEN_CONFIG = {
   DELAY_BETWEEN_REQUESTS: 1000, // 1 second
 
   // How long to cache profile data in milliseconds
-  // 5 minutes = 15 * 60 * 1000
+  // 15 minutes = 15 * 60 * 1000
   CACHE_DURATION: 15 * 60 * 1000,
 
   // Maximum number of concurrent requests

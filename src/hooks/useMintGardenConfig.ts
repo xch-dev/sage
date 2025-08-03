@@ -14,12 +14,12 @@ export function useMintGardenConfig() {
     [],
   );
 
-  const clearCache = useCallback(() => {
-    mintGardenService.clearCache();
+  const clearCache = useCallback(async () => {
+    await mintGardenService.clearCache();
   }, []);
 
-  const clearExpiredCache = useCallback(() => {
-    mintGardenService.clearExpiredCache();
+  const clearExpiredCache = useCallback(async () => {
+    await mintGardenService.clearExpiredCache();
   }, []);
 
   return {
