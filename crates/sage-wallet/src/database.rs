@@ -483,20 +483,27 @@ pub async fn insert_transaction(
     // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
     let mut output_coin_ids = HashSet::new();
+    let mut cached_coin_states = HashMap::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
 
         for output in &input.outputs {
             output_coin_ids.insert(output.coin.coin_id());
+            cached_coin_states.insert(
+                output.coin.coin_id(),
+                CoinState::new(output.coin, None, None),
+            );
         }
     }
+
+    let peer = peer.with_pending(cached_coin_states, coin_spends.clone());
 
     let mut puzzle_contexts = HashMap::new();
 
     for input in &transaction.inputs {
         for output in &input.outputs {
-            let context = PuzzleContext::fetch(peer, genesis_challenge, &output.kind).await?;
+            let context = PuzzleContext::fetch(&peer, genesis_challenge, &output.kind).await?;
             puzzle_contexts.insert(output.coin.coin_id(), context);
         }
     }

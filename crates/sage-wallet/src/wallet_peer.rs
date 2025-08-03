@@ -27,17 +27,15 @@ impl WalletPeer {
     }
 
     #[must_use]
-    pub fn with_pending(&self, coin_states: Vec<CoinState>, coin_spends: Vec<CoinSpend>) -> Self {
+    pub fn with_pending(
+        &self,
+        pending_coin_states: HashMap<Bytes32, CoinState>,
+        pending_coin_spends: HashMap<Bytes32, CoinSpend>,
+    ) -> Self {
         Self {
             peer: self.peer.clone(),
-            pending_coin_states: coin_states
-                .into_iter()
-                .map(|state| (state.coin.coin_id(), state))
-                .collect(),
-            pending_coin_spends: coin_spends
-                .into_iter()
-                .map(|spend| (spend.coin.coin_id(), spend))
-                .collect(),
+            pending_coin_states,
+            pending_coin_spends,
         }
     }
 
