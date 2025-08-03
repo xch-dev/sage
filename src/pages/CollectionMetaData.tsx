@@ -2,12 +2,11 @@ import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
-import ProfileCard, { MintGardenProfile } from '@/components/ProfileCard';
+import { DidInfo } from '@/components/DidInfo';
 import { Button } from '@/components/ui/button';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
-import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -36,9 +35,6 @@ export default function CollectionMetaData() {
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [minterProfile, setMinterProfile] = useState<MintGardenProfile | null>(
-    null,
-  );
 
   useEffect(() => {
     async function fetchData() {
@@ -89,15 +85,6 @@ export default function CollectionMetaData() {
 
     fetchData();
   }, [collection_id, addError]);
-
-  useEffect(() => {
-    if (!collection?.did_id) {
-      setMinterProfile(null);
-      return;
-    }
-
-    getMintGardenProfile(collection.did_id).then(setMinterProfile);
-  }, [collection?.did_id]);
 
   useEffect(() => {
     commands
@@ -368,21 +355,7 @@ export default function CollectionMetaData() {
               />
             </div>
 
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Minter DID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Minter DID`}
-                value={collection.did_id}
-                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
-              />
-              {minterProfile && (
-                <div className='mt-1'>
-                  <ProfileCard did={collection.did_id} variant='compact' />
-                </div>
-              )}
-            </div>
+            <DidInfo did={collection.did_id} title='Minter DID' />
 
             <div className='flex flex-col gap-1'>
               <h6 className='text-md font-bold'>

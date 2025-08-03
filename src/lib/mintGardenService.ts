@@ -319,4 +319,3 @@ export async function getMintGardenProfile(
 // Export the service class and configuration interface for advanced usage
 export { MintGardenService };
 export type { MintGardenServiceConfig };
-

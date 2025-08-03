@@ -44,6 +44,7 @@ import {
   SendIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import {
   AssetKind,
@@ -78,6 +79,7 @@ export function ProfileCard({
 }: ProfileCardProps) {
   const { addError } = useErrors();
   const walletState = useWalletState();
+  const navigate = useNavigate();
 
   // this component can be used to display a DID record or a DID string
   // if it is a DID DidRecord, it will be treated as a local DID and will have
@@ -262,6 +264,10 @@ export function ProfileCard({
     }
   };
 
+  const handleDidClick = () => {
+    navigate(`/dids/${didRecord.launcher_id}`);
+  };
+
   // Loading state
   if (isMintGardenLoading) {
     return (
@@ -431,7 +437,13 @@ export function ProfileCard({
             ) : null}
           </CardHeader>
           <CardContent>
-            <div className='text-sm font-small truncate mb-2'>
+            <div 
+              className={`text-sm font-small truncate mb-2 ${
+                isOwned ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''
+              }`}
+              onClick={isOwned ? handleDidClick : undefined}
+              title={isOwned ? "Click to view profile" : undefined}
+            >
               {didAsset.asset_id}
             </div>
           </CardContent>

@@ -52,6 +52,7 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
+import Profile from './pages/Profile';
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -77,10 +78,11 @@ const router = createHashRouter(
         <Route path='owners/:owner_did' element={<NftList />} />
         <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
-      </Route>
+      </Route>  
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
         <Route path='create' element={<CreateProfile />} />
+        <Route path=':launcher_id' element={<Profile />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />

@@ -1,7 +1,7 @@
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
-import ProfileCard from '@/components/ProfileCard';
+import { DidInfo } from '@/components/DidInfo';
 import { Button } from '@/components/ui/button';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
@@ -280,37 +280,8 @@ export default function Nft() {
           </div>
 
           <div className='flex flex-col gap-3'>
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Minter DID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Minter DID`}
-                value={nft?.minter_did ?? t`None`}
-                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
-              />
-              {nft?.minter_did && (
-                <div className='mt-1'>
-                  <ProfileCard did={nft.minter_did} variant='compact' />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Owner DID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Owner DID`}
-                value={nft?.owner_did ?? t`None`}
-                onCopy={() => toast.success(t`Owner DID copied to clipboard`)}
-              />
-              {nft?.owner_did && (
-                <div className='mt-1'>
-                  <ProfileCard did={nft.owner_did} variant='compact' />
-                </div>
-              )}
-            </div>
+            <DidInfo did={nft?.minter_did} title='Minter DID' />
+            <DidInfo did={nft?.owner_did} title='Owner DID' />
 
             <div>
               <h6 className='text-md font-bold'>
