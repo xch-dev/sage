@@ -71,6 +71,8 @@ pub struct RedownloadNftResponse {}
 pub struct IncreaseDerivationIndex {
     #[serde(default)]
     pub hardened: Option<bool>,
+    #[serde(default)]
+    pub unhardened: Option<bool>,
     pub index: u32,
 }
 

@@ -20,7 +20,7 @@ use chia_wallet_sdk::{
     utils::select_coins,
 };
 use indexmap::IndexMap;
-use sage_database::{AssetKind, CoinKind, Database, P2Puzzle};
+use sage_database::{AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle};
 
 mod cats;
 mod coin_management;
@@ -146,8 +146,7 @@ impl Wallet {
                         .await?
                         .ok_or(WalletError::MissingDidCoin(coin_id))?;
 
-                    let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
-                    spends.add(did.with_metadata(metadata_ptr));
+                    spends.add(did.deserialize(ctx)?);
                 }
                 Some(CoinKind::Nft) => {
                     let nft = self
@@ -156,8 +155,7 @@ impl Wallet {
                         .await?
                         .ok_or(WalletError::MissingNftCoin(coin_id))?;
 
-                    let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
-                    spends.add(nft.with_metadata(metadata_ptr));
+                    spends.add(nft.deserialize(ctx)?);
                 }
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
@@ -235,8 +233,7 @@ impl Wallet {
                             .await?
                             .ok_or(WalletError::MissingDid(asset_id))?;
 
-                        let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
-                        spends.add(did.with_metadata(metadata_ptr));
+                        spends.add(did.deserialize(ctx)?);
                     }
                     Some(AssetKind::Nft) => {
                         let nft = self
@@ -245,8 +242,7 @@ impl Wallet {
                             .await?
                             .ok_or(WalletError::MissingNft(asset_id))?;
 
-                        let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
-                        spends.add(nft.with_metadata(metadata_ptr));
+                        spends.add(nft.deserialize(ctx)?);
                     }
                     None => return Err(WalletError::MissingAsset(asset_id)),
                 },

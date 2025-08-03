@@ -1,11 +1,14 @@
 use chia::{
-    protocol::{Bytes32, Coin, CoinState, Program},
+    protocol::{Bytes32, Coin, CoinState},
     puzzles::{LineageProof, Proof},
 };
-use chia_wallet_sdk::driver::{Cat, CatInfo, Did, DidInfo, Nft, NftInfo};
+use chia_wallet_sdk::driver::{Cat, CatInfo};
 use sqlx::{query, Row, SqliteExecutor};
 
-use crate::{AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result};
+use crate::{
+    AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result, SerializedDid,
+    SerializedDidInfo, SerializedNft, SerializedNftInfo,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CoinKind {
@@ -160,27 +163,27 @@ impl Database {
         cat_coin(&self.pool, coin_id).await
     }
 
-    pub async fn did_coin(&self, coin_id: Bytes32) -> Result<Option<Did<Program>>> {
+    pub async fn did_coin(&self, coin_id: Bytes32) -> Result<Option<SerializedDid>> {
         did_coin(&self.pool, coin_id).await
     }
 
-    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
+    pub async fn nft_coin(&self, coin_id: Bytes32) -> Result<Option<SerializedNft>> {
         nft_coin(&self.pool, coin_id).await
     }
 
-    pub async fn did(&self, launcher_id: Bytes32) -> Result<Option<Did<Program>>> {
+    pub async fn did(&self, launcher_id: Bytes32) -> Result<Option<SerializedDid>> {
         did(&self.pool, launcher_id).await
     }
 
-    pub async fn spendable_did(&self, launcher_id: Bytes32) -> Result<Option<Did<Program>>> {
+    pub async fn spendable_did(&self, launcher_id: Bytes32) -> Result<Option<SerializedDid>> {
         spendable_did(&self.pool, launcher_id).await
     }
 
-    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+    pub async fn nft(&self, launcher_id: Bytes32) -> Result<Option<SerializedNft>> {
         nft(&self.pool, launcher_id).await
     }
 
-    pub async fn spendable_nft(&self, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+    pub async fn spendable_nft(&self, launcher_id: Bytes32) -> Result<Option<SerializedNft>> {
         spendable_nft(&self.pool, launcher_id).await
     }
 }
@@ -822,7 +825,10 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     )))
 }
 
-async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Did<Program>>> {
+async fn did_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<SerializedDid>> {
     let coin_id_ref = coin_id.as_ref();
 
     let Some(row) = query!(
@@ -844,28 +850,31 @@ async fn did_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         return Ok(None);
     };
 
-    Ok(Some(Did::new(
-        Coin::new(
+    Ok(Some(SerializedDid {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        DidInfo::new(
-            row.launcher_id.convert()?,
-            row.recovery_list_hash.convert()?,
-            row.num_verifications_required.convert()?,
-            row.metadata.into(),
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedDidInfo {
+            launcher_id: row.launcher_id.convert()?,
+            recovery_list_hash: row.recovery_list_hash.convert()?,
+            num_verifications_required: row.num_verifications_required.convert()?,
+            metadata: row.metadata.into(),
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
 
-async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Option<Nft<Program>>> {
+async fn nft_coin(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+) -> Result<Option<SerializedNft>> {
     let coin_id_ref = coin_id.as_ref();
 
     let Some(row) = query!(
@@ -888,30 +897,30 @@ async fn nft_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         return Ok(None);
     };
 
-    Ok(Some(Nft::new(
-        Coin::new(
+    Ok(Some(SerializedNft {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        NftInfo::new(
-            row.launcher_id.convert()?,
-            row.metadata.into(),
-            row.metadata_updater_puzzle_hash.convert()?,
-            row.owner_hash.convert()?,
-            row.royalty_puzzle_hash.convert()?,
-            row.royalty_basis_points.convert()?,
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedNftInfo {
+            launcher_id: row.launcher_id.convert()?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
+            current_owner: row.owner_hash.convert()?,
+            royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
+            royalty_basis_points: row.royalty_basis_points.convert()?,
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
 
-async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Did<Program>>> {
+async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<SerializedDid>> {
     let launcher_id_ref = launcher_id.as_ref();
 
     let Some(row) = query!(
@@ -933,31 +942,31 @@ async fn did(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
         return Ok(None);
     };
 
-    Ok(Some(Did::new(
-        Coin::new(
+    Ok(Some(SerializedDid {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        DidInfo::new(
-            row.launcher_id.convert()?,
-            row.recovery_list_hash.convert()?,
-            row.num_verifications_required.convert()?,
-            row.metadata.into(),
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedDidInfo {
+            launcher_id: row.launcher_id.convert()?,
+            recovery_list_hash: row.recovery_list_hash.convert()?,
+            num_verifications_required: row.num_verifications_required.convert()?,
+            metadata: row.metadata.into(),
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
 
 async fn spendable_did(
     conn: impl SqliteExecutor<'_>,
     launcher_id: Bytes32,
-) -> Result<Option<Did<Program>>> {
+) -> Result<Option<SerializedDid>> {
     let launcher_id_ref = launcher_id.as_ref();
 
     let Some(row) = query!(
@@ -979,28 +988,28 @@ async fn spendable_did(
         return Ok(None);
     };
 
-    Ok(Some(Did::new(
-        Coin::new(
+    Ok(Some(SerializedDid {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        DidInfo::new(
-            row.launcher_id.convert()?,
-            row.recovery_list_hash.convert()?,
-            row.num_verifications_required.convert()?,
-            row.metadata.into(),
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedDidInfo {
+            launcher_id: row.launcher_id.convert()?,
+            recovery_list_hash: row.recovery_list_hash.convert()?,
+            num_verifications_required: row.num_verifications_required.convert()?,
+            metadata: row.metadata.into(),
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
 
-async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<Nft<Program>>> {
+async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Option<SerializedNft>> {
     let launcher_id_ref = launcher_id.as_ref();
 
     let Some(row) = query!(
@@ -1023,33 +1032,33 @@ async fn nft(conn: impl SqliteExecutor<'_>, launcher_id: Bytes32) -> Result<Opti
         return Ok(None);
     };
 
-    Ok(Some(Nft::new(
-        Coin::new(
+    Ok(Some(SerializedNft {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        NftInfo::new(
-            row.launcher_id.convert()?,
-            row.metadata.into(),
-            row.metadata_updater_puzzle_hash.convert()?,
-            row.owner_hash.convert()?,
-            row.royalty_puzzle_hash.convert()?,
-            row.royalty_basis_points.convert()?,
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedNftInfo {
+            launcher_id: row.launcher_id.convert()?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
+            current_owner: row.owner_hash.convert()?,
+            royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
+            royalty_basis_points: row.royalty_basis_points.convert()?,
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
 
 async fn spendable_nft(
     conn: impl SqliteExecutor<'_>,
     launcher_id: Bytes32,
-) -> Result<Option<Nft<Program>>> {
+) -> Result<Option<SerializedNft>> {
     let launcher_id_ref = launcher_id.as_ref();
 
     let Some(row) = query!(
@@ -1072,25 +1081,25 @@ async fn spendable_nft(
         return Ok(None);
     };
 
-    Ok(Some(Nft::new(
-        Coin::new(
+    Ok(Some(SerializedNft {
+        coin: Coin::new(
             row.parent_coin_hash.convert()?,
             row.puzzle_hash.convert()?,
             row.amount.convert()?,
         ),
-        Proof::Lineage(LineageProof {
+        proof: Proof::Lineage(LineageProof {
             parent_parent_coin_info: row.parent_parent_coin_hash.convert()?,
             parent_inner_puzzle_hash: row.parent_inner_puzzle_hash.convert()?,
             parent_amount: row.parent_amount.convert()?,
         }),
-        NftInfo::new(
-            row.launcher_id.convert()?,
-            row.metadata.into(),
-            row.metadata_updater_puzzle_hash.convert()?,
-            row.owner_hash.convert()?,
-            row.royalty_puzzle_hash.convert()?,
-            row.royalty_basis_points.convert()?,
-            row.p2_puzzle_hash.convert()?,
-        ),
-    )))
+        info: SerializedNftInfo {
+            launcher_id: row.launcher_id.convert()?,
+            metadata: row.metadata.into(),
+            metadata_updater_puzzle_hash: row.metadata_updater_puzzle_hash.convert()?,
+            current_owner: row.owner_hash.convert()?,
+            royalty_puzzle_hash: row.royalty_puzzle_hash.convert()?,
+            royalty_basis_points: row.royalty_basis_points.convert()?,
+            p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
+        },
+    }))
 }
