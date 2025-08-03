@@ -111,6 +111,9 @@ pub enum WalletError {
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
 
+    #[error("NFT option contracts are not supported")]
+    NftOptionNotSupported,
+
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
 }

@@ -30,12 +30,14 @@ mod memos;
 mod multi_send;
 mod nfts;
 mod offer;
+mod options;
 mod signing;
 mod xch;
 
 pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
+pub use options::*;
 
 use crate::WalletError;
 

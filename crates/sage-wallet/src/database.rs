@@ -403,7 +403,23 @@ async fn insert_option(
         OptionType::Cat { asset_id, amount }
         | OptionType::RevocableCat {
             asset_id, amount, ..
-        } => (asset_id, amount),
+        } => {
+            tx.insert_asset(Asset {
+                hash: asset_id,
+                name: None,
+                ticker: None,
+                precision: 3,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                hidden_puzzle_hash: None,
+                kind: AssetKind::Token,
+            })
+            .await?;
+
+            (asset_id, amount)
+        }
         OptionType::Nft { .. } => {
             warn!("Received an option contract coin with an unsupported strike type, deleting it");
             tx.delete_coin(coin_id).await?;
@@ -428,6 +444,17 @@ async fn insert_option(
 
     tx.insert_asset(asset).await?;
 
+    // We need to insert the underlying coin first so we can insert the option row
+    if let Some(height) = context.underlying.created_height {
+        tx.insert_height(height).await?;
+    }
+
+    if let Some(height) = context.underlying.spent_height {
+        tx.insert_height(height).await?;
+    }
+
+    tx.insert_coin(context.underlying).await?;
+
     // We will never update the option contract row since it's static
     tx.insert_option(info.launcher_id, &coin_info).await?;
 
@@ -440,17 +467,7 @@ async fn insert_option(
         .await?;
     }
 
-    // Now we can insert the option underlying coin, p2 puzzle, and asset
-    if let Some(height) = context.underlying.created_height {
-        tx.insert_height(height).await?;
-    }
-
-    if let Some(height) = context.underlying.spent_height {
-        tx.insert_height(height).await?;
-    }
-
-    tx.insert_coin(context.underlying).await?;
-
+    // Now we can insert the option underlying p2 puzzle and asset
     tx.insert_option_p2_puzzle(underlying).await?;
 
     // TODO: Is it okay to recursively call insert here? We don't allow nested options, so I think so for now.
