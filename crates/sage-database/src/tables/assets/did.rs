@@ -19,7 +19,7 @@ pub struct DidRow {
 
 impl Database {
     pub async fn owned_did(&self, launcher_id: String) -> Result<Option<DidRow>> {
-        let hash = launcher_id.as_ref();
+        let hash: &str = launcher_id.as_ref();
 
         query!(
             "
@@ -76,7 +76,7 @@ impl Database {
                 },
             })
         })
-        .transpose()?
+        .transpose()
     }
 
     pub async fn owned_dids(&self) -> Result<Vec<DidRow>> {

@@ -68,6 +68,7 @@ pub fn run() {
             commands::get_all_cats,
             commands::get_token,
             commands::get_dids,
+            commands::get_profile,
             commands::get_minter_did_ids,
             commands::get_nft_collections,
             commands::get_nft_collection,

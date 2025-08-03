@@ -21,10 +21,10 @@ export default function Profile() {
   const { addError } = useErrors();
   const [did, setDid] = useState<DidRecord | null>(null);
 
-  const updateNft = useMemo(
+  const updateDid = useMemo(
     () => () => {
       commands
-        .getProfile({ did: launcherId ?? '' })
+        .getProfile({ launcher_id: launcherId ?? '' })
         .then((data) => setDid(data.did))
         .catch(addError);
     },
@@ -32,39 +32,23 @@ export default function Profile() {
   );
 
   useEffect(() => {
-    updateNft();
+    updateDid();
 
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
       if (
         type === 'coin_state' ||
         type === 'puzzle_batch_synced' ||
-        type === 'nft_data'
+        type === 'did_info'
       ) {
-        updateNft();
+        updateDid();
       }
     });
 
     return () => {
       unlisten.then((u) => u());
     };
-  }, [updateNft]);
-
-  useEffect(() => {
-    commands
-      .getNftData({ nft_id: launcherId ?? '' })
-      .then((response) => setData(response.data))
-      .catch(addError);
-  }, [launcherId, addError]);
-
-  const metadata = useMemo(() => {
-    if (!nft || !data?.metadata_json) return {};
-    try {
-      return JSON.parse(data.metadata_json) ?? {};
-    } catch {
-      return {};
-    }
-  }, [data?.metadata_json, nft]);
+  }, [updateDid]);
 
   const [network, setNetwork] = useState<NetworkKind | null>(null);
 
@@ -77,7 +61,7 @@ export default function Profile() {
 
   return (
     <>
-      <Header title={nft?.name ?? t`Unknown NFT`} />
+      <Header title={did?.name ?? t`Unknown DID`} />
       <Container>
         <div className='flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[400px]'>
           {isImage(data?.mime_type ?? null) ? (

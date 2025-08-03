@@ -315,6 +315,7 @@ export function ProfileCard({
                 : mintGardenProfile.name}{' '}
               {isOwned &&
                 !mintGardenProfile.is_unknown &&
+                didRecord.name &&
                 didRecord.name !== mintGardenProfile.name && (
                   <span className='ml-2 text-sm text-gray-500 font-mono truncate'>
                     {`(${didRecord.name})`}
