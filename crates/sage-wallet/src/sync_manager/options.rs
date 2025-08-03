@@ -24,8 +24,6 @@ pub struct Timeouts {
     pub blocktime_delay: Duration,
     pub connection: Duration,
     pub initial_peak: Duration,
-    pub remove_subscription: Duration,
-    pub request_peers: Duration,
     pub dns: Duration,
     pub introducer: Duration,
 }
@@ -42,8 +40,6 @@ impl Default for Timeouts {
             blocktime_delay: Duration::from_secs(1),
             connection: Duration::from_secs(3),
             initial_peak: Duration::from_secs(2),
-            remove_subscription: Duration::from_secs(3),
-            request_peers: Duration::from_secs(3),
             dns: Duration::from_secs(3),
             introducer: Duration::from_secs(10),
         }

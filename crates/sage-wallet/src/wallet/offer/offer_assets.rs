@@ -1,4 +1,4 @@
-use std::{collections::HashMap, time::Duration};
+use std::time::Duration;
 
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
@@ -8,9 +8,9 @@ use chia::{
 use chia_wallet_sdk::driver::{Nft, Puzzle};
 use clvmr::Allocator;
 use sage_database::{NftOfferInfo, SerializePrimitive};
-use tokio::time::{sleep, timeout};
+use tokio::time::sleep;
 
-use crate::{fetch_nft_did, insert_nft, Wallet, WalletError, WalletPeer};
+use crate::{fetch_minter_hash, insert_nft, PuzzleContext, Wallet, WalletError, WalletPeer};
 
 impl Wallet {
     pub async fn fetch_offer_nft_info(
@@ -26,17 +26,14 @@ impl Wallet {
             return Ok(None);
         };
 
-        let minter_did =
-            fetch_nft_did(peer, self.genesis_challenge, launcher_id, &HashMap::new()).await?;
+        let minter_hash = fetch_minter_hash(peer, self.genesis_challenge, launcher_id).await?;
 
         let mut allocator = Allocator::new();
         let mut current_id = launcher_id;
         let mut parent = None;
 
         let nft = loop {
-            let Some(child) =
-                timeout(Duration::from_secs(5), peer.try_fetch_child(current_id)).await??
-            else {
+            let Some(child) = peer.try_fetch_singleton_child(current_id).await? else {
                 return Ok(None);
             };
 
@@ -49,14 +46,12 @@ impl Wallet {
 
             let parent = parent.expect("parent not found");
 
-            let (parent_puzzle_reveal, parent_solution) = timeout(
-                Duration::from_secs(15),
-                peer.fetch_puzzle_solution(
+            let (parent_puzzle_reveal, parent_solution) = peer
+                .fetch_puzzle_solution(
                     parent.coin.coin_id(),
                     parent.spent_height.ok_or(WalletError::PeerMisbehaved)?,
-                ),
-            )
-            .await??;
+                )
+                .await?;
 
             let parent_puzzle = parent_puzzle_reveal.to_clvm(&mut allocator)?;
             let parent_puzzle = Puzzle::parse(&allocator, parent_puzzle);
@@ -84,7 +79,7 @@ impl Wallet {
             None,
             nft.serialize(&allocator)?.info,
             parsed_metadata,
-            minter_did,
+            PuzzleContext::Nft { minter_hash },
         )
         .await?;
 

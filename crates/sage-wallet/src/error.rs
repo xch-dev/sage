@@ -100,7 +100,7 @@ pub enum WalletError {
     MissingNft(Bytes32),
 
     #[error("Missing option contract with id {0}. It may have been spent recently. Please try again later.")]
-    MissingOptionContract(Bytes32),
+    MissingOption(Bytes32),
 
     #[error("Missing asset with id {0}")]
     MissingAsset(Bytes32),

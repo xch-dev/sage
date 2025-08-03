@@ -10,7 +10,7 @@ use clvmr::Allocator;
 use sage_database::{Database, OfferStatus};
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{sleep, timeout},
+    time::sleep,
 };
 use tracing::warn;
 
@@ -85,35 +85,24 @@ impl OfferQueue {
             return Ok(());
         };
 
-        let coin_states = match timeout(
-            Duration::from_secs(10),
-            peer.fetch_coins(
+        let coin_states = match peer
+            .fetch_coins(
                 settlement_coin_ids
                     .keys()
                     .copied()
                     .chain(input_coin_ids.keys().copied())
                     .collect(),
                 self.genesis_challenge,
-            ),
-        )
-        .await
+            )
+            .await
         {
-            Ok(Ok(coin_states)) => coin_states,
-            Ok(Err(err)) => {
+            Ok(coin_states) => coin_states,
+            Err(err) => {
                 warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
                 self.state.lock().await.ban(
                     peer.socket_addr().ip(),
                     Duration::from_secs(300),
                     "coin lookup failed",
-                );
-                return Ok(());
-            }
-            Err(_) => {
-                warn!("Coin lookup timed out for {}", peer.socket_addr());
-                self.state.lock().await.ban(
-                    peer.socket_addr().ip(),
-                    Duration::from_secs(300),
-                    "coin lookup timeout",
                 );
                 return Ok(());
             }

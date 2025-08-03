@@ -8,6 +8,7 @@ pub enum AssetKind {
     Token,
     Nft,
     Did,
+    Option,
 }
 
 impl Convert<AssetKind> for i64 {
@@ -16,6 +17,7 @@ impl Convert<AssetKind> for i64 {
             0 => AssetKind::Token,
             1 => AssetKind::Nft,
             2 => AssetKind::Did,
+            3 => AssetKind::Option,
             _ => return Err(DatabaseError::InvalidEnumVariant),
         })
     }

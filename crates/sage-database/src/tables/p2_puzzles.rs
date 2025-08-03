@@ -1,5 +1,5 @@
 use chia::{bls::PublicKey, clvm_utils::ToTreeHash, protocol::Bytes32};
-use chia_wallet_sdk::driver::ClawbackV2;
+use chia_wallet_sdk::driver::{ClawbackV2, OptionUnderlying};
 use sqlx::{query, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -123,6 +123,10 @@ impl DatabaseTx<'_> {
 
     pub async fn insert_clawback_p2_puzzle(&mut self, clawback: ClawbackV2) -> Result<()> {
         insert_clawback_p2_puzzle(&mut *self.tx, clawback).await
+    }
+
+    pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
+        insert_option_p2_puzzle(&mut *self.tx, underlying).await
     }
 }
 
@@ -326,6 +330,39 @@ async fn insert_clawback_p2_puzzle(
         p2_puzzle_hash,
         sender_puzzle_hash,
         receiver_puzzle_hash,
+        seconds,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_option_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    underlying: OptionUnderlying,
+) -> Result<()> {
+    let asset_hash = underlying.launcher_id.as_ref();
+    let p2_puzzle_hash = underlying.tree_hash().to_vec();
+    let creator_puzzle_hash = underlying.creator_puzzle_hash.as_ref();
+    let seconds: i64 = underlying.seconds.try_into()?;
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 2);
+
+        INSERT OR IGNORE INTO p2_options (p2_puzzle_id, option_asset_id, creator_puzzle_hash, expiration_seconds)
+        VALUES (
+            (SELECT id FROM p2_puzzles WHERE hash = ?),
+            (SELECT id FROM assets WHERE hash = ?),
+            ?,
+            ?
+        );
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        asset_hash,
+        creator_puzzle_hash,
         seconds,
     )
     .execute(conn)

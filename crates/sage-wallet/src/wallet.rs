@@ -157,6 +157,15 @@ impl Wallet {
 
                     spends.add(nft.deserialize(ctx)?);
                 }
+                Some(CoinKind::Option) => {
+                    let option = self
+                        .db
+                        .option_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingOptionCoin(coin_id))?;
+
+                    spends.add(option);
+                }
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
         }
@@ -243,6 +252,15 @@ impl Wallet {
                             .ok_or(WalletError::MissingNft(asset_id))?;
 
                         spends.add(nft.deserialize(ctx)?);
+                    }
+                    Some(AssetKind::Option) => {
+                        let option = self
+                            .db
+                            .option(asset_id)
+                            .await?
+                            .ok_or(WalletError::MissingOption(asset_id))?;
+
+                        spends.add(option);
                     }
                     None => return Err(WalletError::MissingAsset(asset_id)),
                 },
