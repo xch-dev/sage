@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,\n            asset_hash AS launcher_id,\n            (SELECT hash FROM coins WHERE id = underlying_coin_id) AS underlying_coin_hash,\n            underlying_delegated_puzzle_hash\n        FROM spendable_coins\n        INNER JOIN options ON options.asset_id = spendable_coins.asset_id\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id\n        WHERE coin_hash = ?\n        ",
+  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,\n            asset_hash AS launcher_id,\n            (SELECT hash FROM coins WHERE id = underlying_coin_id) AS underlying_coin_hash,\n            underlying_delegated_puzzle_hash\n        FROM wallet_coins\n        INNER JOIN options ON options.asset_id = wallet_coins.asset_id\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id\n        WHERE coin_hash = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "c2fbb2bc6ead9803e1e8e8fbf8f6287639abe58d4fb01968519ce07142432e9b"
+  "hash": "7c4551a95321ea1222c429c15a280971b29254fe4ca35378c8ced4f24f058bc1"
 }
