@@ -68,7 +68,6 @@ export function DidList() {
               did={did}
               variant='card'
               updateDids={updateDids}
-              allowMintGardenProfile={true}
             />
           ))}
         </div>

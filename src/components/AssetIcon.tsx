@@ -7,7 +7,7 @@ export interface AssetIconProps {
     kind: AssetKind;
     revocation_address: string | null;
   };
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   className?: string;
 }
 
@@ -15,6 +15,8 @@ const sizeClasses = {
   sm: 'w-6 h-6',
   md: 'w-8 h-8',
   lg: 'w-10 h-10',
+  xl: 'w-16 h-16',
+  xxl: 'w-24 h-24',
 };
 
 export function AssetIcon({

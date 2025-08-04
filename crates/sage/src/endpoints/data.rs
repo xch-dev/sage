@@ -360,7 +360,7 @@ impl Sage {
 
     pub async fn get_profile(&self, req: GetProfile) -> Result<GetProfileResponse> {
         let wallet = self.wallet()?;
-        
+
         let launcher_id = parse_did_id(req.launcher_id.clone())?;
         let Some(row) = wallet.db.owned_did(launcher_id).await? else {
             return Ok(GetProfileResponse { did: None });

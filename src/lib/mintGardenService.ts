@@ -1,4 +1,4 @@
-import { MintGardenProfile } from '@/components/ProfileCard';
+import { MintGardenProfile } from '@/hooks/useDidData';
 import { Store, load } from '@tauri-apps/plugin-store';
 
 interface CacheEntry {

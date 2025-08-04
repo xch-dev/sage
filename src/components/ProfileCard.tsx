@@ -24,9 +24,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDidData } from '@/hooks/useDidData';
 import { useErrors } from '@/hooks/useErrors';
-import { getMintGardenProfile } from '@/lib/marketplaces';
-import { getAssetDisplayName, toMojos } from '@/lib/utils';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -43,23 +43,11 @@ import {
   PenIcon,
   SendIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import {
-  AssetKind,
-  commands,
-  DidRecord,
-  TransactionResponse,
-} from '../bindings';
+import { commands, DidRecord, TransactionResponse } from '../bindings';
 import { CustomError } from '../contexts/ErrorContext';
-
-export interface MintGardenProfile {
-  encoded_id: string;
-  name: string;
-  avatar_uri: string | null;
-  is_unknown: boolean;
-}
 
 export interface ProfileCardProps {
   // For MintGarden profiles (DID string only)
@@ -67,67 +55,26 @@ export interface ProfileCardProps {
   variant?: 'default' | 'compact' | 'card';
   className?: string;
   updateDids?: () => void;
-  allowMintGardenProfile?: boolean;
 }
 
 export function ProfileCard({
   did,
   variant = 'default',
   className = '',
-  allowMintGardenProfile: allowMintGardenProfile = true,
   updateDids,
 }: ProfileCardProps) {
   const { addError } = useErrors();
   const walletState = useWalletState();
   const navigate = useNavigate();
 
-  // this component can be used to display a DID record or a DID string
-  // if it is a DID DidRecord, it will be treated as a local DID and will have
-  // additional actions available
-  const isOwned = typeof did !== 'string';
-  const didRecord: DidRecord =
-    typeof did === 'string'
-      ? {
-          launcher_id: did,
-          name: `${did.slice(9, 19)}...${did.slice(-4)}`,
-          visible: true,
-          created_height: null,
-          recovery_hash: null,
-          coin_id: '0',
-          address: '',
-          amount: 0,
-        }
-      : did;
-
-  const [mintGardenProfile, setMintGardenProfile] = useState<MintGardenProfile>(
-    {
-      encoded_id: didRecord.launcher_id,
-      name: didRecord.name ?? '',
-      avatar_uri: null,
-      is_unknown: true,
-    },
-  );
-
-  const didAsset = {
-    icon_url: mintGardenProfile.avatar_uri,
-    kind: 'did' as AssetKind,
-    revocation_address: null,
-    name: !mintGardenProfile.is_unknown
-      ? mintGardenProfile.name
-      : getAssetDisplayName(
-          didRecord?.name || mintGardenProfile?.name,
-          null,
-          'did',
-        ),
-    ticker: '',
-    precision: 0,
-    asset_id: didRecord.launcher_id,
-    balance: '0',
-    balanceInUsd: '0',
-    priceInUsd: '0',
-  };
-
-  const [isMintGardenLoading, setIsMintGardenLoading] = useState(false);
+  // Use the useDidData hook to get DID information and asset object
+  const {
+    did: didRecord,
+    didAsset,
+    mintGardenProfile,
+    isMintGardenLoading,
+    isOwned,
+  } = useDidData({ did });
 
   // State for local DID actions (only when did is owned)
   const [name, setName] = useState('');
@@ -140,38 +87,6 @@ export function ProfileCard({
   const [isBurning, setIsBurning] = useState(false);
   const [isNormalizing, setIsNormalizing] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
-
-  // Fetch MintGarden profile data
-  useEffect(() => {
-    if (!didRecord.launcher_id) return;
-
-    if (allowMintGardenProfile) {
-      setIsMintGardenLoading(true);
-      getMintGardenProfile(didRecord.launcher_id)
-        .then((profileData) => {
-          setMintGardenProfile(profileData);
-        })
-        .catch(() => {
-          // Create fallback profile for failed lookups
-          setMintGardenProfile({
-            encoded_id: didRecord.launcher_id,
-            name: didRecord.name ?? '',
-            avatar_uri: null,
-            is_unknown: true,
-          });
-        })
-        .finally(() => {
-          setIsMintGardenLoading(false);
-        });
-    } else {
-      setMintGardenProfile({
-        encoded_id: didRecord.launcher_id,
-        name: didRecord.name ?? '',
-        avatar_uri: null,
-        is_unknown: true,
-      });
-    }
-  }, [didRecord.launcher_id, didRecord.name, allowMintGardenProfile]);
 
   // Owned DID action handlers
   const rename = () => {
@@ -259,7 +174,7 @@ export function ProfileCard({
   };
 
   const handleMintGardenClick = () => {
-    if (!mintGardenProfile.is_unknown) {
+    if (mintGardenProfile && !mintGardenProfile.is_unknown) {
       openUrl(`https://mintgarden.io/${mintGardenProfile.encoded_id}`);
     }
   };
@@ -269,7 +184,7 @@ export function ProfileCard({
   };
 
   // Loading state
-  if (isMintGardenLoading) {
+  if (isMintGardenLoading || !didAsset || !mintGardenProfile) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <Skeleton className='w-8 h-8 rounded-full' />
@@ -316,19 +231,28 @@ export function ProfileCard({
           <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
             <CardTitle className='text-md font-medium truncate flex items-center'>
               <AssetIcon asset={didAsset} size='md' className='mr-2' />
-              {mintGardenProfile.is_unknown
-                ? didAsset.name
-                : mintGardenProfile.name}{' '}
-              {isOwned &&
-                !mintGardenProfile.is_unknown &&
-                didRecord.name &&
-                didRecord.name !== mintGardenProfile.name && (
-                  <span className='ml-2 text-sm text-gray-500 font-mono truncate'>
-                    {`(${didRecord.name})`}
-                  </span>
-                )}
+              <div
+                className={`text-sm font-small truncate mb-2 ${
+                  isOwned
+                    ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
+                    : ''
+                }`}
+                onClick={isOwned ? handleDidClick : undefined}
+                title={isOwned ? 'Click to view profile' : undefined}
+              >
+                {mintGardenProfile.is_unknown
+                  ? didAsset.name
+                  : mintGardenProfile.name}{' '}
+                {isOwned &&
+                  !mintGardenProfile.is_unknown &&
+                  didRecord.name &&
+                  didRecord.name !== mintGardenProfile.name && (
+                    <span className='`ml-2 text-sm text-gray-500 font-mono truncate`'>
+                      {`(${didRecord.name})`}
+                    </span>
+                  )}
+              </div>
             </CardTitle>
-
             {isOwned ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

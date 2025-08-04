@@ -4,7 +4,7 @@ import {
   NftRecord,
   commands,
 } from '@/bindings';
-import { MintGardenProfile } from '@/components/ProfileCard';
+import { MintGardenProfile } from '@/hooks/useDidData';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { getMintGardenProfile } from '@/lib/marketplaces';
