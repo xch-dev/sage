@@ -205,6 +205,9 @@ pub enum Error {
     #[error("Could not fetch NFT with id: {0}")]
     CouldNotFetchNft(Bytes32),
 
+    #[error("Could not fetch option with id: {0}")]
+    CouldNotFetchOption(Bytes32),
+
     #[error("CLVM eval error: {0}")]
     Eval(#[from] EvalErr),
 
@@ -288,6 +291,7 @@ impl Error {
             | Self::IpAddrParse(..)
             | Self::NoPeers
             | Self::CouldNotFetchNft(..)
+            | Self::CouldNotFetchOption(..)
             | Self::MissingAssetId
             | Self::InvalidGroup => ErrorKind::Api,
         }

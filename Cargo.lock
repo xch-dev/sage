@@ -1173,7 +1173,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-client"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -1194,7 +1193,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-coinset"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -1207,7 +1205,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-derive"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "convert_case 0.8.0",
  "quote",
@@ -1217,7 +1214,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-driver"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "bech32",
  "bigdecimal",
@@ -1251,7 +1247,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-signer"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -1268,7 +1263,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-test"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1305,7 +1299,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-types"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -1327,7 +1320,6 @@ dependencies = [
 [[package]]
 name = "chia-sdk-utils"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -1415,7 +1407,6 @@ dependencies = [
 [[package]]
 name = "chia-wallet-sdk"
 version = "0.27.2"
-source = "git+https://github.com/xch-dev/chia-wallet-sdk?rev=c022b3d262ca13038958ccf3211925f87c3c1a83#c022b3d262ca13038958ccf3211925f87c3c1a83"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-protocol",

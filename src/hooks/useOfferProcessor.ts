@@ -1,4 +1,4 @@
-import { commands } from '@/bindings';
+import { commands, OfferAmount } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
@@ -79,29 +79,30 @@ export function useOfferProcessor({
 
           onProgress?.(index);
 
+          const offeredAssets: OfferAmount[] = [
+            ...offerState.offered.tokens,
+            { asset_id: nft, amount: 1 },
+            ...offerState.offered.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
+          const requestedAssets: OfferAmount[] = [
+            ...offerState.requested.tokens,
+            ...offerState.requested.nfts.map((nft) => ({
+              asset_id: nft,
+              amount: 1,
+            })),
+            ...offerState.requested.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
           const data = await commands.makeOffer({
-            offered_assets: {
-              xch: toMojos(
-                (offerState.offered.xch || '0').toString(),
-                walletState.sync.unit.decimals,
-              ),
-              cats: offerState.offered.cats.map((cat) => ({
-                asset_id: cat.asset_id,
-                amount: toMojos((cat.amount || '0').toString(), 3),
-              })),
-              nfts: [nft],
-            },
-            requested_assets: {
-              xch: toMojos(
-                (offerState.requested.xch || '0').toString(),
-                walletState.sync.unit.decimals,
-              ),
-              cats: offerState.requested.cats.map((cat) => ({
-                asset_id: cat.asset_id,
-                amount: toMojos((cat.amount || '0').toString(), 3),
-              })),
-              nfts: offerState.requested.nfts.filter((n) => n),
-            },
+            offered_assets: offeredAssets,
+            requested_assets: requestedAssets,
             fee: toMojos(
               (offerState.fee || '0').toString(),
               walletState.sync.unit.decimals,
@@ -117,29 +118,34 @@ export function useOfferProcessor({
         }
       } else {
         onProgress?.(0);
+
+        const offeredAssets: OfferAmount[] = [
+          ...offerState.offered.tokens,
+          ...offerState.offered.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.offered.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
+        const requestedAssets: OfferAmount[] = [
+          ...offerState.requested.tokens,
+          ...offerState.requested.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.requested.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
         const data = await commands.makeOffer({
-          offered_assets: {
-            xch: toMojos(
-              (offerState.offered.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: offerState.offered.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: offerState.offered.nfts.filter((n) => n),
-          },
-          requested_assets: {
-            xch: toMojos(
-              (offerState.requested.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: offerState.requested.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: offerState.requested.nfts.filter((n) => n),
-          },
+          offered_assets: offeredAssets,
+          requested_assets: requestedAssets,
           fee: toMojos(
             (offerState.fee || '0').toString(),
             walletState.sync.unit.decimals,

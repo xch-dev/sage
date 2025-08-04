@@ -11,7 +11,7 @@ import { DropdownSelector } from './DropdownSelector';
 export interface TokenSelectorProps {
   value: string | null | undefined;
   onChange: (value: string | null) => void;
-  disabled?: string[];
+  disabled?: (string | null)[];
   className?: string;
   hideZeroBalance?: boolean;
   showAllCats?: boolean;
@@ -56,7 +56,7 @@ export function TokenSelector({
 
       setTokens(allTokens);
 
-      if (value && !selectedToken) {
+      if (value !== undefined && !selectedToken) {
         setSelectedToken(
           allTokens.find((token) => token.asset_id === value) ?? null,
         );
@@ -91,9 +91,7 @@ export function TokenSelector({
     <DropdownSelector
       loadedItems={filteredTokens}
       page={0}
-      isDisabled={(token) =>
-        token.asset_id !== null && disabled.includes(token.asset_id)
-      }
+      isDisabled={(token) => disabled.includes(token.asset_id)}
       onSelect={(token) => {
         onChange(token.asset_id);
         setSelectedToken(token);

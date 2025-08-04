@@ -135,7 +135,7 @@ pub struct OptionContext {
     pub creator_puzzle_hash: Bytes32,
 }
 
-async fn fetch_option(
+pub async fn fetch_option(
     peer: &WalletPeer,
     genesis_challenge: Bytes32,
     info: &OptionInfo,

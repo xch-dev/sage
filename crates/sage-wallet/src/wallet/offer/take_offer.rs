@@ -22,7 +22,7 @@ impl Wallet {
 
         let mut requested_nfts = IndexMap::new();
 
-        for launcher_id in arbitrage.requested_nfts {
+        for launcher_id in arbitrage.requested.nfts {
             let Some(nft) = offer.asset_info().nft(launcher_id) else {
                 return Err(WalletError::MissingNft(launcher_id));
             };

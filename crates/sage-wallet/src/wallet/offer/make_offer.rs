@@ -9,12 +9,12 @@ use chia::{
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::driver::{
     calculate_royalty_payments, calculate_trade_price_amounts, calculate_trade_prices, Action,
-    AssetInfo, Id, NftAssetInfo, Offer, OfferAmounts, RequestedPayments, RoyaltyInfo, SpendContext,
-    Spends, TransferNftById,
+    AssetInfo, Id, NftAssetInfo, Offer, OfferAmounts, OptionAssetInfo, RequestedPayments,
+    RoyaltyInfo, SpendContext, Spends, TransferNftById,
 };
 use indexmap::IndexMap;
 use itertools::Itertools;
-use sage_database::NftOfferInfo;
+use sage_database::{NftOfferInfo, OptionOfferInfo};
 
 use crate::{Wallet, WalletError};
 
@@ -23,6 +23,7 @@ pub struct Offered {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: Vec<Bytes32>,
+    pub options: Vec<Bytes32>,
     pub fee: u64,
     pub p2_puzzle_hash: Option<Bytes32>,
 }
@@ -32,6 +33,7 @@ pub struct Requested {
     pub xch: u64,
     pub cats: IndexMap<Bytes32, u64>,
     pub nfts: IndexMap<Bytes32, NftOfferInfo>,
+    pub options: IndexMap<Bytes32, OptionOfferInfo>,
 }
 
 impl Wallet {
@@ -101,6 +103,15 @@ impl Wallet {
             ));
         }
 
+        for launcher_id in offered.options {
+            actions.push(Action::send(
+                Id::Existing(launcher_id),
+                SETTLEMENT_PAYMENT_HASH.into(),
+                1,
+                Memos::None,
+            ));
+        }
+
         // Pay royalties
         let royalty_payments =
             calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
@@ -157,6 +168,25 @@ impl Wallet {
                     nft.metadata_updater_puzzle_hash,
                     nft.royalty_puzzle_hash,
                     nft.royalty_basis_points,
+                ),
+            )?;
+        }
+
+        for (launcher_id, option) in requested.options {
+            requested_payments
+                .options
+                .entry(launcher_id)
+                .or_default()
+                .push(NotarizedPayment::new(
+                    nonce,
+                    vec![Payment::new(p2_puzzle_hash, 1, hint)],
+                ));
+
+            asset_info.insert_option(
+                launcher_id,
+                OptionAssetInfo::new(
+                    option.underlying_coin_hash,
+                    option.underlying_delegated_puzzle_hash,
                 ),
             )?;
         }

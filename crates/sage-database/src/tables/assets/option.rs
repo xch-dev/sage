@@ -23,6 +23,12 @@ pub struct OptionRow {
     pub coin_row: CoinRow,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct OptionOfferInfo {
+    pub underlying_coin_hash: Bytes32,
+    pub underlying_delegated_puzzle_hash: Bytes32,
+}
+
 impl Database {
     pub async fn owned_options(&self) -> Result<Vec<OptionRow>> {
         query!(
@@ -275,6 +281,31 @@ impl Database {
                 }
             },
         )))
+    }
+
+    pub async fn offer_option_info(&self, hash: Bytes32) -> Result<Option<OptionOfferInfo>> {
+        let hash = hash.as_ref();
+
+        query!(
+            "
+            SELECT
+                (SELECT hash FROM coins WHERE coins.id = underlying_coin_id) AS underlying_coin_hash,
+                underlying_delegated_puzzle_hash
+            FROM options
+            INNER JOIN assets ON assets.id = options.asset_id
+            WHERE hash = ?
+            ",
+            hash
+        )
+        .fetch_optional(&self.pool)
+        .await?
+        .map(|row| {
+            Ok(OptionOfferInfo {
+                underlying_coin_hash: row.underlying_coin_hash.convert()?,
+                underlying_delegated_puzzle_hash: row.underlying_delegated_puzzle_hash.convert()?,
+            })
+        })
+        .transpose()
     }
 }
 

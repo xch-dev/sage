@@ -204,7 +204,7 @@ export function NftSelector({
         />
         <div className='flex flex-col truncate text-left'>
           <span className='truncate' role='text'>
-            {selectedNft?.name ?? t`Select NFT`}
+            {selectedNft ? (selectedNft.name ?? t`Unknown NFT`) : t`Select NFT`}
           </span>
           <span
             className='text-xs text-muted-foreground truncate'

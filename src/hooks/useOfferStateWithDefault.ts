@@ -12,14 +12,14 @@ export default function useOfferStateWithDefault() {
       offerState ?? {
         fee: '',
         offered: {
-          xch: '',
-          cats: [],
+          tokens: [],
           nfts: [],
+          options: [],
         },
         requested: {
-          xch: '',
-          cats: [],
+          tokens: [],
           nfts: [],
+          options: [],
         },
         expiration: expiry.enabled ? expiry : null,
       },

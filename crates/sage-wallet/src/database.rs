@@ -373,7 +373,7 @@ pub async fn insert_nft(
     Ok(())
 }
 
-async fn insert_option(
+pub async fn insert_option(
     tx: &mut DatabaseTx<'_>,
     coin_state: CoinState,
     lineage_proof: Option<LineageProof>,
