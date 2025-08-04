@@ -12,6 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -151,9 +152,10 @@ export function AssetSelector({
                               const newTokens = [...assets.tokens];
                               newTokens[i] = {
                                 ...newTokens[i],
-                                amount: (
-                                  Number(token.balance) / 1000
-                                ).toString(),
+                                amount: toDecimal(
+                                  token.balance,
+                                  token.precision,
+                                ),
                               };
                               setAssets({ ...assets, tokens: newTokens });
                             }

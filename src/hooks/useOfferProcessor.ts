@@ -64,6 +64,16 @@ export function useOfferProcessor({
       throw new Error(t`Biometric authentication failed or was cancelled`);
     }
 
+    const offeredTokens = offerState.offered.tokens.map((token) => ({
+      asset_id: token.asset_id,
+      amount: toMojos(token.amount.toString(), token.asset_id ? 3 : 12),
+    }));
+
+    const requestedTokens = offerState.requested.tokens.map((token) => ({
+      asset_id: token.asset_id,
+      amount: toMojos(token.amount.toString(), token.asset_id ? 3 : 12),
+    }));
+
     try {
       if (
         splitNftOffers &&
@@ -80,7 +90,7 @@ export function useOfferProcessor({
           onProgress?.(index);
 
           const offeredAssets: OfferAmount[] = [
-            ...offerState.offered.tokens,
+            ...offeredTokens,
             { asset_id: nft, amount: 1 },
             ...offerState.offered.options.map((option) => ({
               asset_id: option,
@@ -89,7 +99,7 @@ export function useOfferProcessor({
           ];
 
           const requestedAssets: OfferAmount[] = [
-            ...offerState.requested.tokens,
+            ...requestedTokens,
             ...offerState.requested.nfts.map((nft) => ({
               asset_id: nft,
               amount: 1,
@@ -120,7 +130,7 @@ export function useOfferProcessor({
         onProgress?.(0);
 
         const offeredAssets: OfferAmount[] = [
-          ...offerState.offered.tokens,
+          ...offeredTokens,
           ...offerState.offered.nfts.map((nft) => ({
             asset_id: nft,
             amount: 1,
@@ -132,7 +142,7 @@ export function useOfferProcessor({
         ];
 
         const requestedAssets: OfferAmount[] = [
-          ...offerState.requested.tokens,
+          ...requestedTokens,
           ...offerState.requested.nfts.map((nft) => ({
             asset_id: nft,
             amount: 1,
