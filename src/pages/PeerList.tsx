@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
+import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
 import { animated, useSpring } from '@react-spring/web';
@@ -264,6 +265,7 @@ const MobileRow = ({
 
 export default function PeerList() {
   const { addError } = useErrors();
+  const walletState = useWalletState();
 
   const [peers, setPeers] = useState<PeerRecord[] | null>(null);
   const [rowSelection, setRowSelection] = useState({});
@@ -533,6 +535,73 @@ export default function PeerList() {
             )}
           </CardContent>
         </Card>
+
+        {/* Sync Status Section */}
+        <Card className='rounded-md border mt-4'>
+          <CardHeader>
+            <CardTitle>
+              <Trans>Sync Status</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='space-y-4'>
+              {/* Coin Sync Progress */}
+              <div className='space-y-2'>
+                <div className='flex justify-between items-center text-sm'>
+                  <span className='text-muted-foreground'>
+                    <Trans>Coins Synced</Trans>
+                  </span>
+                  <span className='font-medium'>
+                    {walletState.sync.synced_coins.toLocaleString()} /{' '}
+                    {walletState.sync.total_coins.toLocaleString()}
+                  </span>
+                </div>
+                <div className='w-full bg-secondary rounded-full h-2'>
+                  <div
+                    className='bg-primary h-2 rounded-full transition-all duration-300'
+                    style={{
+                      width: `${walletState.sync.total_coins > 0 ? (walletState.sync.synced_coins / walletState.sync.total_coins) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className='text-xs text-muted-foreground text-center'>
+                  {walletState.sync.total_coins > 0
+                    ? `${Math.round((walletState.sync.synced_coins / walletState.sync.total_coins) * 100)}%`
+                    : '0%'}{' '}
+                  complete
+                </div>
+              </div>
+
+              {/* File Sync Progress */}
+              <div className='space-y-2'>
+                <div className='flex justify-between items-center text-sm'>
+                  <span className='text-muted-foreground'>
+                    <Trans>Files Processed</Trans>
+                  </span>
+                  <span className='font-medium'>
+                    {walletState.sync.checked_files.toLocaleString()} /{' '}
+                    {walletState.sync.total_files.toLocaleString()}
+                  </span>
+                </div>
+                <div className='w-full bg-secondary rounded-full h-2'>
+                  <div
+                    className='bg-primary h-2 rounded-full transition-all duration-300'
+                    style={{
+                      width: `${walletState.sync.total_files > 0 ? (walletState.sync.checked_files / walletState.sync.total_files) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+                <div className='text-xs text-muted-foreground text-center'>
+                  {walletState.sync.total_files > 0
+                    ? `${Math.round((walletState.sync.checked_files / walletState.sync.total_files) * 100)}%`
+                    : '0%'}{' '}
+                  complete
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Dialog
           open={!!peerToDelete}
           onOpenChange={(open) => !open && setPeerToDelete(null)}
