@@ -1,5 +1,6 @@
 import { commands, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
@@ -260,6 +261,17 @@ export function MintOption() {
           close={() => setResponse(null)}
           onConfirm={() => navigate('/options')}
           showRecipientDetails={false}
+        />
+
+        <ConfirmationDialog
+          response={response}
+          close={() => setResponse(null)}
+          onConfirm={() => navigate('/options')}
+          showRecipientDetails={false}
+          additionalData={{
+            title: t`Option Details`,
+            content: <MintOptionConfirmation />,
+          }}
         />
       </Container>
     </>

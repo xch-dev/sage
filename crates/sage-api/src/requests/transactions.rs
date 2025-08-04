@@ -296,6 +296,15 @@ pub struct MintOptionResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct ExerciseOptions {
+    pub option_ids: Vec<String>,
+    pub fee: Amount,
+    #[serde(default)]
+    pub auto_submit: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct TransferOptions {
     pub option_ids: Vec<String>,
     pub address: String,
@@ -366,3 +375,4 @@ pub type AssignNftsToDidResponse = TransactionResponse;
 pub type TransferDidsResponse = TransactionResponse;
 pub type NormalizeDidsResponse = TransactionResponse;
 pub type TransferOptionsResponse = TransactionResponse;
+pub type ExerciseOptionsResponse = TransactionResponse;

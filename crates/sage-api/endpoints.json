@@ -56,6 +56,7 @@
   "normalize_dids": true,
   "mint_option": true,
   "transfer_options": true,
+  "exercise_options": true,
   "sign_coin_spends": true,
   "view_coin_spends": true,
   "submit_transaction": true,

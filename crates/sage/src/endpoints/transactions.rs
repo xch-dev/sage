@@ -12,8 +12,8 @@ use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
     AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, Combine,
-    CreateDid, IssueCat, MintOption, MintOptionResponse, MultiSend, NftUriKind, NormalizeDids,
-    OptionAsset, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, Split,
+    CreateDid, ExerciseOptions, IssueCat, MintOption, MintOptionResponse, MultiSend, NftUriKind,
+    NormalizeDids, OptionAsset, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, Split,
     SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
     TransferOptions, ViewCoinSpends, ViewCoinSpendsResponse,
 };
@@ -534,6 +534,19 @@ impl Sage {
         let coin_spends = wallet
             .transfer_options(option_ids, puzzle_hash, fee, req.clawback)
             .await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn exercise_options(&self, req: ExerciseOptions) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let option_ids = req
+            .option_ids
+            .into_iter()
+            .map(parse_option_id)
+            .collect::<Result<Vec<_>>>()?;
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.exercise_options(option_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

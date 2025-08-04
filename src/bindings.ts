@@ -89,6 +89,9 @@ async mintOption(req: MintOption) : Promise<MintOptionResponse> {
 async transferOptions(req: TransferOptions) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("transfer_options", { req });
 },
+async exerciseOptions(req: ExerciseOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("exercise_options", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -407,6 +410,7 @@ export type DidRecord = { launcher_id: string; name: string | null; visible: boo
 export type EmptyResponse = Record<string, never>
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type ExerciseOptions = { option_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
