@@ -12,7 +12,9 @@ pub struct OptionRecord {
     pub address: String,
     pub amount: Amount,
     pub underlying_asset: Asset,
+    pub underlying_amount: Amount,
     pub strike_asset: Asset,
+    pub strike_amount: Amount,
     pub expiration_seconds: u64,
     pub created_height: Option<u32>,
 }

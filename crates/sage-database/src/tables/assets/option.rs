@@ -16,7 +16,9 @@ pub struct OptionCoinInfo {
 pub struct OptionRow {
     pub asset: Asset,
     pub underlying_asset: Asset,
+    pub underlying_amount: u64,
     pub strike_asset: Asset,
+    pub strike_amount: u64,
     pub expiration_seconds: u64,
     pub coin_row: CoinRow,
 }
@@ -44,7 +46,9 @@ impl Database {
                 underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
                 underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
-                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind
+                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+
+                strike_amount, underlying_coin.amount AS underlying_amount
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
             INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
@@ -70,6 +74,7 @@ impl Database {
                     hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
                     kind: AssetKind::Option,
                 },
+                underlying_amount: row.underlying_amount.convert()?,
                 underlying_asset: Asset {
                     hash: row.underlying_asset_hash.convert()?,
                     name: row.underlying_asset_name,
@@ -82,6 +87,7 @@ impl Database {
                     hidden_puzzle_hash: row.underlying_asset_hidden_puzzle_hash.convert()?,
                     kind: row.underlying_asset_kind.convert()?,
                 },
+                strike_amount: row.strike_amount.convert()?,
                 strike_asset: Asset {
                     hash: row.strike_asset_hash.convert()?,
                     name: row.strike_asset_name,
@@ -140,7 +146,9 @@ impl Database {
                 underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
                 underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
-                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind
+                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+                
+                strike_amount, underlying_coin.amount AS underlying_amount
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
             INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
@@ -178,6 +186,7 @@ impl Database {
                     hidden_puzzle_hash: row.underlying_asset_hidden_puzzle_hash.convert()?,
                     kind: row.underlying_asset_kind.convert()?,
                 },
+                underlying_amount: row.underlying_amount.convert()?,
                 strike_asset: Asset {
                     hash: row.strike_asset_hash.convert()?,
                     name: row.strike_asset_name,
@@ -190,6 +199,7 @@ impl Database {
                     hidden_puzzle_hash: row.strike_asset_hidden_puzzle_hash.convert()?,
                     kind: row.strike_asset_kind.convert()?,
                 },
+                strike_amount: row.strike_amount.convert()?,
                 expiration_seconds: row.option_expiration_seconds.convert()?,
                 coin_row: CoinRow {
                     coin: Coin::new(

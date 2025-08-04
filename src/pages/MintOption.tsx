@@ -60,11 +60,17 @@ export function MintOption() {
         fee: toMojos(fee, walletState.sync.unit.decimals),
         underlying: {
           asset_id: underlyingAssetId,
-          amount: toMojos(underlyingAmount, walletState.sync.unit.decimals),
+          amount: toMojos(
+            underlyingAmount,
+            underlyingAssetId === null ? walletState.sync.unit.decimals : 3,
+          ),
         },
         strike: {
           asset_id: strikeAssetId,
-          amount: toMojos(strikeAmount, walletState.sync.unit.decimals),
+          amount: toMojos(
+            strikeAmount,
+            strikeAssetId === null ? walletState.sync.unit.decimals : 3,
+          ),
         },
         expiration_seconds: expiration,
       })
