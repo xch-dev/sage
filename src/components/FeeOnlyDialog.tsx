@@ -1,12 +1,12 @@
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -45,7 +45,7 @@ export function FeeOnlyDialog({
   const walletState = useWalletState();
 
   const schema = z.object({
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
