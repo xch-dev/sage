@@ -78,7 +78,7 @@ const router = createHashRouter(
         <Route path='owners/:owner_did' element={<NftList />} />
         <Route path='minters/:minter_did' element={<NftList />} />
         <Route path='mint' element={<MintNft />} />
-      </Route>  
+      </Route>
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
         <Route path='create' element={<CreateProfile />} />

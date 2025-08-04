@@ -437,12 +437,14 @@ export function ProfileCard({
             ) : null}
           </CardHeader>
           <CardContent>
-            <div 
+            <div
               className={`text-sm font-small truncate mb-2 ${
-                isOwned ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400' : ''
+                isOwned
+                  ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400'
+                  : ''
               }`}
               onClick={isOwned ? handleDidClick : undefined}
-              title={isOwned ? "Click to view profile" : undefined}
+              title={isOwned ? 'Click to view profile' : undefined}
             >
               {didAsset.asset_id}
             </div>

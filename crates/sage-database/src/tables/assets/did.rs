@@ -18,8 +18,8 @@ pub struct DidRow {
 }
 
 impl Database {
-    pub async fn owned_did(&self, launcher_id: String) -> Result<Option<DidRow>> {
-        let hash: &str = launcher_id.as_ref();
+    pub async fn owned_did(&self, hash: Bytes32) -> Result<Option<DidRow>> {
+        let hash = hash.as_ref();
 
         query!(
             "
