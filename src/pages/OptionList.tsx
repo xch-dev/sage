@@ -167,7 +167,7 @@ function Option({ option, updateOptions }: OptionProps) {
     commands
       .exerciseOptions({
         option_ids: [option.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -184,7 +184,7 @@ function Option({ option, updateOptions }: OptionProps) {
       .transferOptions({
         option_ids: [option.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -200,7 +200,7 @@ function Option({ option, updateOptions }: OptionProps) {
       .transferOptions({
         option_ids: [option.launcher_id],
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {

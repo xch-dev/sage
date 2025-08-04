@@ -183,7 +183,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       .transferNfts({
         nft_ids: [nft.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -200,7 +200,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       .assignNftsToDid({
         nft_ids: [nft.launcher_id],
         did_id: profile,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -213,7 +213,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const addUrlFormSchema = z.object({
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -236,7 +236,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         nft_id: nft.launcher_id,
         uri: values.url,
         kind: values.kind as NftUriKind,
-        fee: toMojos(values.fee, walletState.sync.unit.decimals),
+        fee: toMojos(values.fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -252,7 +252,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       .transferNfts({
         nft_ids: [nft.launcher_id],
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {

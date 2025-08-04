@@ -115,7 +115,7 @@ export function useOfferProcessor({
             requested_assets: requestedAssets,
             fee: toMojos(
               (offerState.fee || '0').toString(),
-              walletState.sync.unit.decimals,
+              walletState.sync.unit.precision,
             ),
             expires_at_second: expiresAtSecond,
           });
@@ -158,7 +158,7 @@ export function useOfferProcessor({
           requested_assets: requestedAssets,
           fee: toMojos(
             (offerState.fee || '0').toString(),
-            walletState.sync.unit.decimals,
+            walletState.sync.unit.precision,
           ),
           expires_at_second: expiresAtSecond,
         });
@@ -179,7 +179,7 @@ export function useOfferProcessor({
   }, [
     offerState,
     splitNftOffers,
-    walletState.sync.unit.decimals,
+    walletState.sync.unit.precision,
     promptIfEnabled,
     onProcessingEnd,
     onProgress,

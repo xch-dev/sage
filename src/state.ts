@@ -157,7 +157,7 @@ export function defaultState(): WalletState {
       balance: '0',
       unit: {
         ticker: 'XCH',
-        decimals: 12,
+        precision: 12,
       },
       total_coins: 0,
       synced_coins: 0,

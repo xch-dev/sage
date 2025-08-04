@@ -5,29 +5,29 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct Unit {
     pub ticker: String,
-    pub decimals: u8,
+    pub precision: u8,
 }
 
 impl Unit {
     pub fn cat(ticker: String) -> Self {
         Self {
             ticker,
-            decimals: 3,
+            precision: 3,
         }
     }
 }
 
 pub static XCH: Lazy<Unit> = Lazy::new(|| Unit {
     ticker: "XCH".to_string(),
-    decimals: 12,
+    precision: 12,
 });
 
 pub static TXCH: Lazy<Unit> = Lazy::new(|| Unit {
     ticker: "TXCH".to_string(),
-    decimals: 12,
+    precision: 12,
 });
 
 pub static MOJOS: Lazy<Unit> = Lazy::new(|| Unit {
     ticker: "Mojos".to_string(),
-    decimals: 0,
+    precision: 0,
 });

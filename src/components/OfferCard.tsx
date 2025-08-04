@@ -197,10 +197,10 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 <NumberFormat
                   value={fromMojos(
                     offerSummary.fee,
-                    walletState.sync.unit.decimals,
+                    walletState.sync.unit.precision,
                   )}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={walletState.sync.unit.decimals}
+                  maximumFractionDigits={walletState.sync.unit.precision}
                 />{' '}
                 {walletState.sync.unit.ticker}
               </div>

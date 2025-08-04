@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { CreateProfileConfirmation } from '@/components/confirmations/CreateProfileConfirmation';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,10 +11,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { FeeAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -21,10 +25,6 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { FeeAmountInput } from '@/components/ui/masked-input';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { CreateProfileConfirmation } from '@/components/confirmations/CreateProfileConfirmation';
 
 export default function CreateProfile() {
   const { addError } = useErrors();
@@ -34,7 +34,7 @@ export default function CreateProfile() {
 
   const formSchema = z.object({
     name: z.string().min(1, t`Name is required`),
-    fee: amount(walletState.sync.unit.decimals).optional(),
+    fee: amount(walletState.sync.unit.precision).optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -47,7 +47,7 @@ export default function CreateProfile() {
         name: values.name,
         fee: toMojos(
           values.fee?.toString() || '0',
-          walletState.sync.unit.decimals,
+          walletState.sync.unit.precision,
         ),
       })
       .then((data) => setResponse(data))

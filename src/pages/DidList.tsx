@@ -166,7 +166,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -182,7 +182,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -197,7 +197,7 @@ function Profile({ did, updateDids }: ProfileProps) {
     commands
       .normalizeDids({
         did_ids: [did.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
