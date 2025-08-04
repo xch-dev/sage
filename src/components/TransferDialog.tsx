@@ -1,6 +1,8 @@
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
@@ -24,8 +26,6 @@ import {
 } from './ui/form';
 import { Input } from './ui/input';
 import { FeeAmountInput } from './ui/masked-input';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
 
 export interface TransferDialogProps {
   title: string;
@@ -45,7 +45,7 @@ export function TransferDialog({
 
   const schema = z.object({
     address: z.string().min(1, t`Address is required`),
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),

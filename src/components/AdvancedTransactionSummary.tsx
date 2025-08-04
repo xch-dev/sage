@@ -86,7 +86,7 @@ export function AdvancedTransactionSummary({
                   <Trans>Fee</Trans>
                 </Badge>
                 <span>
-                  {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
+                  {toDecimal(summary.fee, walletState.sync.unit.precision)}{' '}
                   {walletState.sync.unit.ticker}
                 </span>
               </div>
@@ -136,9 +136,9 @@ export function calculateTransaction(
       spent.push({
         badge: 'Chia',
         label: `${formatNumber({
-          value: fromMojos(input.amount, xch.decimals),
+          value: fromMojos(input.amount, xch.precision),
           minimumFractionDigits: 0,
-          maximumFractionDigits: xch.decimals,
+          maximumFractionDigits: xch.precision,
         })} ${xch.ticker}`,
         coinId: input.coin_id,
         sort: 1,
@@ -152,9 +152,9 @@ export function calculateTransaction(
         created.push({
           badge: 'Chia',
           label: `${formatNumber({
-            value: fromMojos(output.amount, xch.decimals),
+            value: fromMojos(output.amount, xch.precision),
             minimumFractionDigits: 0,
-            maximumFractionDigits: xch.decimals,
+            maximumFractionDigits: xch.precision,
           })} ${xch.ticker}`,
           address: output.burning
             ? t`Permanently Burned`

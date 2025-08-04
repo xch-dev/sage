@@ -83,7 +83,7 @@ export function useOfferProcessor({
             offered_assets: {
               xch: toMojos(
                 (offerState.offered.xch || '0').toString(),
-                walletState.sync.unit.decimals,
+                walletState.sync.unit.precision,
               ),
               cats: offerState.offered.cats.map((cat) => ({
                 asset_id: cat.asset_id,
@@ -94,7 +94,7 @@ export function useOfferProcessor({
             requested_assets: {
               xch: toMojos(
                 (offerState.requested.xch || '0').toString(),
-                walletState.sync.unit.decimals,
+                walletState.sync.unit.precision,
               ),
               cats: offerState.requested.cats.map((cat) => ({
                 asset_id: cat.asset_id,
@@ -104,7 +104,7 @@ export function useOfferProcessor({
             },
             fee: toMojos(
               (offerState.fee || '0').toString(),
-              walletState.sync.unit.decimals,
+              walletState.sync.unit.precision,
             ),
             expires_at_second: expiresAtSecond,
           });
@@ -121,7 +121,7 @@ export function useOfferProcessor({
           offered_assets: {
             xch: toMojos(
               (offerState.offered.xch || '0').toString(),
-              walletState.sync.unit.decimals,
+              walletState.sync.unit.precision,
             ),
             cats: offerState.offered.cats.map((cat) => ({
               asset_id: cat.asset_id,
@@ -132,7 +132,7 @@ export function useOfferProcessor({
           requested_assets: {
             xch: toMojos(
               (offerState.requested.xch || '0').toString(),
-              walletState.sync.unit.decimals,
+              walletState.sync.unit.precision,
             ),
             cats: offerState.requested.cats.map((cat) => ({
               asset_id: cat.asset_id,
@@ -142,7 +142,7 @@ export function useOfferProcessor({
           },
           fee: toMojos(
             (offerState.fee || '0').toString(),
-            walletState.sync.unit.decimals,
+            walletState.sync.unit.precision,
           ),
           expires_at_second: expiresAtSecond,
         });
@@ -163,7 +163,7 @@ export function useOfferProcessor({
   }, [
     offerState,
     splitNftOffers,
-    walletState.sync.unit.decimals,
+    walletState.sync.unit.precision,
     promptIfEnabled,
     onProcessingEnd,
     onProgress,

@@ -73,7 +73,7 @@ export function ViewOffer() {
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
-        fee: toMojos(fee || '0', walletState.sync.unit.decimals),
+        fee: toMojos(fee || '0', walletState.sync.unit.precision),
       });
       setResponse(result);
     } catch (error) {
