@@ -21,24 +21,31 @@ class MintGardenService {
 
   constructor(config: Partial<MintGardenServiceConfig> = {}) {
     this.config = {
-      delayBetweenRequests: 1000, // 1 second default
+      delayBetweenRequests: 750, // 3/4 second default
       cacheDuration: 15 * 60 * 1000, // 15 minutes default
       maxConcurrentRequests: 3, // Allow 3 concurrent requests
       ...config,
     };
 
-    this.initializeStore();
+    try {
+      this.initializeStore().then(() => {
+        this.clearExpiredCache();
+      });
+    } catch (error) {
+      console.warn('Failed to initialize MintGardenService:', error);
+    }
   }
 
   private async initializeStore(): Promise<void> {
     if (this.isInitialized) return;
 
     try {
-      this.store = await load('.mintgarden-cache.dat');
-      this.isInitialized = true;
+      this.store = await load('.mintgarden-profile-cache.dat');
     } catch (error) {
       console.warn('Failed to load MintGarden cache store:', error);
-      this.isInitialized = true; // Continue anyway
+    }
+    finally {
+      this.isInitialized = true;
     }
   }
 
@@ -273,77 +280,6 @@ class MintGardenService {
       console.warn('Failed to clear cache:', error);
     }
   }
-
-  // Get cache statistics
-  async getCacheStats(): Promise<{
-    total: number;
-    valid: number;
-    expired: number;
-  }> {
-    await this.initializeStore();
-
-    if (!this.store) {
-      return { total: 0, valid: 0, expired: 0 };
-    }
-
-    try {
-      const keys = await this.store.keys();
-      const profileKeys = keys.filter((key) => key.startsWith('profile:'));
-
-      let valid = 0;
-      let expired = 0;
-
-      for (const key of profileKeys) {
-        const entry = await this.store.get<CacheEntry>(key);
-        if (entry) {
-          if (this.isCacheValid(entry)) {
-            valid++;
-          } else {
-            expired++;
-          }
-        }
-      }
-
-      return {
-        total: profileKeys.length,
-        valid,
-        expired,
-      };
-    } catch (error) {
-      console.warn('Failed to get cache stats:', error);
-      return { total: 0, valid: 0, expired: 0 };
-    }
-  }
-
-  // Debug method to check if a specific DID is cached
-  async isCached(did: string): Promise<boolean> {
-    const cached = await this.getCachedProfile(did);
-    return cached !== null;
-  }
-
-  // Debug method to get cache details for a specific DID
-  async getCacheDetails(
-    did: string,
-  ): Promise<{ cached: boolean; entry?: CacheEntry; valid: boolean }> {
-    await this.initializeStore();
-
-    if (!this.store) {
-      return { cached: false, valid: false };
-    }
-
-    try {
-      const entry = await this.store.get<CacheEntry>(`profile:${did}`);
-      if (entry) {
-        const valid = this.isCacheValid(entry);
-        return { cached: true, entry, valid };
-      }
-      return { cached: false, valid: false };
-    } catch (error) {
-      console.warn('Failed to get cache details:', error);
-      return { cached: false, valid: false };
-    }
-  }
-
   // Update configuration
   updateConfig(newConfig: Partial<MintGardenServiceConfig>): void {
     this.config = { ...this.config, ...newConfig };
@@ -369,3 +305,4 @@ export async function getMintGardenProfile(
 // Export the service class and configuration interface for advanced usage
 export { MintGardenService };
 export type { MintGardenServiceConfig };
+
