@@ -78,7 +78,7 @@ export function NftGroupCard({
   // Fetch profile data for DID cards
   useEffect(() => {
     if (!isCollection && isDidRecord(item)) {
-      getMintGardenProfile(item.launcher_id).then(setDidProfile);
+      getMintGardenProfile(item.launcher_id, true).then(setDidProfile);
     }
   }, [isCollection, item]);
   // Type guards to help TypeScript narrow the types

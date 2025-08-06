@@ -138,11 +138,56 @@ class MintGardenService {
     }
   }
 
-  async getProfile(did: string): Promise<MintGardenProfile> {
+  async loadProfiles(dids: string[]): Promise<void> {
+    if (dids.length === 0) {
+      return;
+    }
+
+    const response = await fetch('https://api.mintgarden.io/profiles_by_id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(dids),
+    });
+    const data = await response.json();
+    const profiles = data.map((profile: MintGardenProfile) => ({
+      encoded_id: profile.encoded_id,
+      name: profile.name,
+      avatar_uri: profile.avatar_uri,
+      is_unknown: false,
+    }));
+
+    // this bit goes through and fills in the profiles for the dids that are not in the response
+    for (const did of dids) {
+      const profile = profiles.find(
+        (p: MintGardenProfile) => p.encoded_id === did,
+      ) ?? {
+        encoded_id: did,
+        name: `${did.slice(9, 19)}...${did.slice(-4)}`,
+        avatar_uri: null,
+        is_unknown: true,
+      };
+
+      await this.setCachedProfile(did, profile);
+    }
+  }
+
+  async getProfile(did: string, cacheOnly = false): Promise<MintGardenProfile> {
     // Check cache first
     const cached = await this.getCachedProfile(did);
     if (cached) {
       return cached;
+    }
+
+    // the cache only flag is used to avoid making a request if the profile is not in the cache
+    if (cacheOnly) {
+      return {
+        encoded_id: did,
+        name: `${did.slice(9, 19)}...${did.slice(-4)}`,
+        avatar_uri: null,
+        is_unknown: true,
+      };
     }
 
     // Check if there's already a pending request for this DID
@@ -312,8 +357,9 @@ export const mintGardenService = new MintGardenService();
 // Export the function that maintains backward compatibility
 export async function getMintGardenProfile(
   did: string,
+  cacheOnly = false,
 ): Promise<MintGardenProfile> {
-  return mintGardenService.getProfile(did);
+  return mintGardenService.getProfile(did, cacheOnly);
 }
 
 // Export the service class and configuration interface for advanced usage
