@@ -24,7 +24,9 @@ export function AmountCell({ amount, assetKind, precision }: AmountCellProps) {
         }
         aria-label={`${fromMojos(amount, precision)} ${assetKind}`}
       >
-        {assetKind === 'nft' || assetKind === 'did' ? (
+        {assetKind === 'nft' ||
+        assetKind === 'did' ||
+        assetKind === 'option' ? (
           amountNum.eq(0) ? (
             'Edited'
           ) : amountNum.gt(0) ? (

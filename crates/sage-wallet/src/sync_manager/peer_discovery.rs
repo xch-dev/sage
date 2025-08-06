@@ -53,17 +53,10 @@ impl SyncManager {
             let ip = peer.socket_addr().ip();
 
             let puzzle_peer = peer.clone();
-            let duration = self.options.timeouts.remove_subscription;
 
             futures.push(async move {
-                match timeout(duration, puzzle_peer.unsubscribe()).await {
-                    Ok(Ok(..)) => {}
-                    Ok(Err(error)) => {
-                        debug!("Failed to clear subscriptions from {ip}: {error}");
-                    }
-                    Err(_timeout) => {
-                        debug!("Timeout clearing subscriptions from {ip}");
-                    }
+                if let Err(error) = puzzle_peer.unsubscribe().await {
+                    debug!("Failed to clear subscriptions from {ip}: {error}");
                 }
             });
         }
@@ -200,11 +193,8 @@ impl SyncManager {
 
         for peer in peers {
             let ip = peer.socket_addr().ip();
-            let duration = self.options.timeouts.request_peers;
             futures.push(async move {
-                let result = timeout(duration, peer.request_peers())
-                    .await
-                    .map(|result| result.map(|result| result.peer_list));
+                let result = peer.request_peers().await.map(|result| result.peer_list);
                 (ip, result)
             });
         }
@@ -217,7 +207,7 @@ impl SyncManager {
 
         while let Some((ip, result)) = futures.next().await {
             match result {
-                Ok(Ok(peer_list)) => {
+                Ok(peer_list) => {
                     if self
                         .handle_peer_list(Some(timestamp), peer_list, ip, true)
                         .await
@@ -225,7 +215,7 @@ impl SyncManager {
                         return true;
                     }
                 }
-                Ok(Err(error)) => {
+                Err(error) => {
                     debug!("Failed to request peers from {}: {}", ip, error);
                     self.state.lock().await.ban(
                         ip,
@@ -233,7 +223,6 @@ impl SyncManager {
                         "failed to request peers",
                     );
                 }
-                Err(_timeout) => {}
             }
         }
 

@@ -11,6 +11,7 @@ import {
   ArrowLeftRight,
   BookUser,
   Cog,
+  FilePenLine,
   Images,
   LogOut,
   MonitorCheck,
@@ -37,6 +38,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       aria-label={t`Main navigation`}
     >
       <Separator className='mb-3' role='presentation' />
+
       <NavLink
         url={'/wallet'}
         isCollapsed={isCollapsed}
@@ -45,6 +47,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <WalletIcon className={className} aria-hidden='true' />
       </NavLink>
+
       <NavLink
         url={'/nfts'}
         isCollapsed={isCollapsed}
@@ -52,6 +55,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <Images className={className} />
       </NavLink>
+
       <NavLink
         url={'/dids'}
         isCollapsed={isCollapsed}
@@ -59,6 +63,15 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <SquareUserRound className={className} />
       </NavLink>
+
+      <NavLink
+        url={'/options'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Options</Trans>}
+      >
+        <FilePenLine className={className} />
+      </NavLink>
+
       <NavLink
         url={'/offers'}
         isCollapsed={isCollapsed}
@@ -66,6 +79,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <ShoppingCart className={className} />
       </NavLink>
+
       <NavLink
         url={'/wallet/addresses'}
         isCollapsed={isCollapsed}
@@ -73,6 +87,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <BookUser className={className} />
       </NavLink>
+
       <NavLink
         url={'/transactions'}
         isCollapsed={isCollapsed}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT assets.hash AS launcher_id\n        FROM p2_puzzles\n        INNER JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id\n        INNER JOIN options ON options.asset_id = p2_options.option_asset_id\n        INNER JOIN assets ON assets.id = options.asset_id\n        WHERE p2_puzzles.hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "launcher_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "986330072e485bfb7577cc8c6e6820cb1e620691e54d5bfacf195767da650c32"
+}

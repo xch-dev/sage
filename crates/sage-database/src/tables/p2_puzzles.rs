@@ -1,5 +1,5 @@
 use chia::{bls::PublicKey, clvm_utils::ToTreeHash, protocol::Bytes32};
-use chia_wallet_sdk::driver::ClawbackV2;
+use chia_wallet_sdk::driver::{ClawbackV2, OptionType, OptionUnderlying};
 use sqlx::{query, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -8,12 +8,14 @@ use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 pub enum P2PuzzleKind {
     PublicKey,
     Clawback,
+    Option,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum P2Puzzle {
     PublicKey(PublicKey),
     Clawback(Clawback),
+    Option(Underlying),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -22,6 +24,16 @@ pub struct Clawback {
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Underlying {
+    pub public_key: PublicKey,
+    pub launcher_id: Bytes32,
+    pub creator_puzzle_hash: Bytes32,
+    pub seconds: u64,
+    pub amount: u64,
+    pub strike_type: OptionType,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -59,12 +71,34 @@ impl Database {
         match p2_puzzle_kind(&self.pool, puzzle_hash).await? {
             P2PuzzleKind::PublicKey => {
                 let Some(key) = public_key(&self.pool, puzzle_hash).await? else {
-                    return Err(DatabaseError::InvalidEnumVariant);
+                    return Err(DatabaseError::PublicKeyNotFound);
                 };
+
                 Ok(P2Puzzle::PublicKey(key))
             }
             P2PuzzleKind::Clawback => {
                 Ok(P2Puzzle::Clawback(clawback(&self.pool, puzzle_hash).await?))
+            }
+            P2PuzzleKind::Option => {
+                let launcher_id = underlying_launcher_id(&self.pool, puzzle_hash).await?;
+                let underlying = self
+                    .option_underlying(launcher_id)
+                    .await?
+                    .ok_or(DatabaseError::OptionUnderlyingNotFound)?;
+
+                let Some(key) = public_key(&self.pool, underlying.creator_puzzle_hash).await?
+                else {
+                    return Err(DatabaseError::PublicKeyNotFound);
+                };
+
+                Ok(P2Puzzle::Option(Underlying {
+                    public_key: key,
+                    launcher_id,
+                    creator_puzzle_hash: underlying.creator_puzzle_hash,
+                    seconds: underlying.seconds,
+                    amount: underlying.amount,
+                    strike_type: underlying.strike_type,
+                }))
             }
         }
     }
@@ -123,6 +157,10 @@ impl DatabaseTx<'_> {
 
     pub async fn insert_clawback_p2_puzzle(&mut self, clawback: ClawbackV2) -> Result<()> {
         insert_clawback_p2_puzzle(&mut *self.tx, clawback).await
+    }
+
+    pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
+        insert_option_p2_puzzle(&mut *self.tx, underlying).await
     }
 }
 
@@ -334,6 +372,39 @@ async fn insert_clawback_p2_puzzle(
     Ok(())
 }
 
+async fn insert_option_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    underlying: OptionUnderlying,
+) -> Result<()> {
+    let asset_hash = underlying.launcher_id.as_ref();
+    let p2_puzzle_hash = underlying.tree_hash().to_vec();
+    let creator_puzzle_hash = underlying.creator_puzzle_hash.as_ref();
+    let seconds: i64 = underlying.seconds.try_into()?;
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 2);
+
+        INSERT OR IGNORE INTO p2_options (p2_puzzle_id, option_asset_id, creator_puzzle_hash, expiration_seconds)
+        VALUES (
+            (SELECT id FROM p2_puzzles WHERE hash = ?),
+            (SELECT id FROM assets WHERE hash = ?),
+            ?,
+            ?
+        );
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        asset_hash,
+        creator_puzzle_hash,
+        seconds,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn p2_puzzle_kind(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
@@ -347,6 +418,7 @@ async fn p2_puzzle_kind(
     Ok(match row.kind {
         0 => P2PuzzleKind::PublicKey,
         1 => P2PuzzleKind::Clawback,
+        2 => P2PuzzleKind::Option,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }
@@ -399,6 +471,29 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
         receiver_puzzle_hash: row.receiver_puzzle_hash.convert()?,
         seconds: row.expiration_seconds.convert()?,
     })
+}
+
+async fn underlying_launcher_id(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Bytes32> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        SELECT assets.hash AS launcher_id
+        FROM p2_puzzles
+        INNER JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
+        INNER JOIN options ON options.asset_id = p2_options.option_asset_id
+        INNER JOIN assets ON assets.id = options.asset_id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?
+    .launcher_id
+    .convert()
 }
 
 async fn derivation(

@@ -22,9 +22,9 @@ export function isOneSideOffer(summary: OfferSummary | OfferState) {
 
   // Handle OfferState
   return (
-    (!summary.requested.xch || summary.requested.xch === '0') &&
-    summary.requested.cats.filter((c) => c).length === 0 &&
-    summary.requested.nfts.filter((n) => n).length === 0
+    summary.requested.tokens.filter(
+      (t) => !!t.amount && (t.asset_id === null || !!t.asset_id),
+    ).length === 0 && summary.requested.nfts.filter((n) => n).length === 0
   );
 }
 
@@ -39,15 +39,17 @@ export function isMintGardenSupportedForSummary(summary: OfferSummary) {
 export function isMintGardenSupported(state: OfferState, isSplitting = false) {
   if (isSplitting) {
     return (
-      (state.offered.xch === '0' || !state.offered.xch) &&
-      state.offered.cats.filter((c) => c).length === 0 &&
+      state.offered.tokens.filter(
+        (t) => !!t.amount && (t.asset_id === null || !!t.asset_id),
+      ).length === 0 &&
       state.offered.nfts.filter((n) => n).length > 0 &&
       !isOneSideOffer(state)
     );
   }
   return (
-    (state.offered.xch === '0' || !state.offered.xch) &&
-    state.offered.cats.filter((c) => c).length === 0 &&
+    state.offered.tokens.filter(
+      (t) => !!t.amount && (t.asset_id === null || !!t.asset_id),
+    ).length === 0 &&
     state.offered.nfts.filter((n) => n).length === 1 &&
     !isOneSideOffer(state)
   );

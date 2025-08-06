@@ -48,7 +48,11 @@ export function getAssetDisplayName(
   return (
     name ??
     ticker ??
-    (kind === 'token' ? t`Unknown CAT` : t`Untitled ${kind.toUpperCase()}`)
+    (kind === 'token'
+      ? t`Unknown CAT`
+      : kind === 'option'
+        ? 'Untitled Option'
+        : t`Untitled ${kind.toUpperCase()}`)
   );
 }
 

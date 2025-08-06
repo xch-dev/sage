@@ -79,6 +79,17 @@ impl Sage {
             });
         }
 
+        for (&launcher_id, option) in &offer.offered_coins().options {
+            let asset = self.cache_option(launcher_id).await?;
+
+            maker.push(OfferAsset {
+                amount: Amount::u64(option.coin.amount),
+                royalty: Amount::u64(0),
+                asset: self.encode_asset(asset)?,
+                nft_royalty: None,
+            });
+        }
+
         let mut taker = Vec::new();
 
         if requested_amounts.xch > 0 || requested_royalties.xch > 0 {
@@ -137,6 +148,22 @@ impl Sage {
                         .encode()?,
                     royalty_basis_points: nft.royalty_basis_points,
                 }),
+            });
+        }
+
+        for (&launcher_id, payments) in &offer.requested_payments().options {
+            let amount = payments
+                .iter()
+                .map(|p| p.payments.iter().map(|p| p.amount).sum::<u64>())
+                .sum::<u64>();
+
+            let asset = self.cache_option(launcher_id).await?;
+
+            taker.push(OfferAsset {
+                amount: Amount::u64(amount),
+                royalty: Amount::u64(0),
+                asset: self.encode_asset(asset)?,
+                nft_royalty: None,
             });
         }
 

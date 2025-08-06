@@ -4,7 +4,7 @@ use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{sleep, timeout},
+    time::sleep,
 };
 use tracing::{info, warn};
 
@@ -133,11 +133,9 @@ async fn sync_coin_ids(
             peer.socket_addr()
         );
 
-        let coin_states = timeout(
-            Duration::from_secs(10),
-            peer.subscribe_coins(coin_ids.to_vec(), start_height, start_header_hash),
-        )
-        .await??;
+        let coin_states = peer
+            .subscribe_coins(coin_ids.to_vec(), start_height, start_header_hash)
+            .await?;
 
         info!("Received {} coin states", coin_states.len());
 
@@ -177,16 +175,14 @@ async fn sync_puzzle_hashes(
             peer.socket_addr()
         );
 
-        let data = timeout(
-            Duration::from_secs(45),
-            peer.subscribe_puzzles(
+        let data = peer
+            .subscribe_puzzles(
                 puzzle_hashes.to_vec(),
                 prev_height,
                 prev_header_hash,
                 CoinStateFilters::new(true, true, true, 0),
-            ),
-        )
-        .await??;
+            )
+            .await?;
 
         info!("Received {} coin states", data.coin_states.len());
 

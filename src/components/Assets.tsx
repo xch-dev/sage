@@ -41,7 +41,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
             </Badge>
 
             <div className='font-medium'>
-              {asset.kind !== 'nft' && (
+              {asset.kind !== 'nft' && asset.kind !== 'option' && (
                 <NumberFormat
                   value={fromMojos(
                     BigNumber(amount).plus(royalty),

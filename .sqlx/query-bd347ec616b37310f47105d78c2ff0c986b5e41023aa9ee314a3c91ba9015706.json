@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                creator_puzzle_hash, expiration_seconds,\n                (\n                    SELECT amount FROM coins\n                    WHERE coins.p2_puzzle_id = p2_options.p2_puzzle_id LIMIT 1\n                ) AS underlying_amount,\n                (SELECT hash FROM assets WHERE id = strike_asset_id) AS strike_asset_hash,\n                strike_amount, strike_assets.hidden_puzzle_hash AS strike_hidden_puzzle_hash\n            FROM p2_options\n            INNER JOIN options ON options.asset_id = p2_options.option_asset_id\n            INNER JOIN assets AS strike_assets ON strike_assets.id = options.strike_asset_id\n            WHERE option_asset_id = (SELECT id FROM assets WHERE hash = ?)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "creator_puzzle_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "expiration_seconds",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "underlying_amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_asset_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_amount",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_hidden_puzzle_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "bd347ec616b37310f47105d78c2ff0c986b5e41023aa9ee314a3c91ba9015706"
+}

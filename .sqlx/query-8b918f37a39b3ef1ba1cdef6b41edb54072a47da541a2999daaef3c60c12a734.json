@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT OR IGNORE INTO options (\n                asset_id, underlying_coin_id, underlying_delegated_puzzle_hash, strike_asset_id, strike_amount\n            )\n            VALUES (\n                (SELECT id FROM assets WHERE hash = ?),\n                (SELECT id FROM coins WHERE hash = ?),\n                ?,\n                (SELECT id FROM assets WHERE hash = ?),\n                ?\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "8b918f37a39b3ef1ba1cdef6b41edb54072a47da541a2999daaef3c60c12a734"
+}

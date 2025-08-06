@@ -1,7 +1,4 @@
-use std::time::Duration;
-
 use chia::protocol::SpendBundle;
-use tokio::time::timeout;
 use tracing::{info, warn};
 
 use crate::{WalletError, WalletPeer};
@@ -57,18 +54,9 @@ pub async fn submit_transaction(
 ) -> Result<Status, WalletError> {
     info!("Submitting transaction to {}", peer.socket_addr());
 
-    let ack = match timeout(
-        Duration::from_secs(3),
-        peer.send_transaction(spend_bundle.clone()),
-    )
-    .await
-    {
-        Ok(Ok(ack)) => ack,
-        Err(_timeout) => {
-            warn!("Send transaction timed out for {}", peer.socket_addr());
-            return Ok(Status::Unknown);
-        }
-        Ok(Err(err)) => {
+    let ack = match peer.send_transaction(spend_bundle.clone()).await {
+        Ok(ack) => ack,
+        Err(err) => {
             warn!(
                 "Send transaction failed for {}: {}",
                 peer.socket_addr(),

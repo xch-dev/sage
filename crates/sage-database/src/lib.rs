@@ -106,6 +106,12 @@ pub enum DatabaseError {
 
     #[error("Invalid address")]
     InvalidAddress,
+
+    #[error("Option underlying not found")]
+    OptionUnderlyingNotFound,
+
+    #[error("Public key not found for puzzle hash")]
+    PublicKeyNotFound,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

@@ -258,16 +258,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <Assets
-              assets={
-                offerSummary.maker ?? {
-                  xch: { amount: '0', royalty: '0' },
-                  cats: {},
-                  nfts: {},
-                }
-              }
-              catPresence={catPresence}
-            />
+            <Assets assets={offerSummary.maker} catPresence={catPresence} />
           </CardContent>
         </Card>
       </div>

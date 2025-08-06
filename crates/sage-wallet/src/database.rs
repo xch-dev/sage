@@ -6,22 +6,23 @@ use chia::{
     protocol::{Bytes32, CoinState},
     puzzles::{nft::NftMetadata, LineageProof},
 };
+use chia_wallet_sdk::driver::{OptionInfo, OptionType, OptionUnderlying};
 use sage_assets::base64_data_uri;
 use sage_database::{
-    Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, SerializedNftInfo,
+    Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, OptionCoinInfo,
+    SerializedNftInfo,
 };
 use tracing::{error, warn};
 
-use crate::{compute_nft_info, fetch_nft_did, ChildKind, Transaction, WalletError, WalletPeer};
+use crate::{
+    compute_nft_info, ChildKind, OptionContext, PuzzleContext, Transaction, WalletError, WalletPeer,
+};
 
-pub async fn insert_puzzle(
+pub async fn validate_wallet_coin(
     tx: &mut DatabaseTx<'_>,
-    coin_state: CoinState,
-    info: ChildKind,
-    minter_hash: Option<Bytes32>,
+    coin_id: Bytes32,
+    info: &ChildKind,
 ) -> Result<bool, WalletError> {
-    let coin_id = coin_state.coin.coin_id();
-
     let custody_p2_puzzle_hashes = info.custody_p2_puzzle_hashes();
 
     let mut is_relevant = false;
@@ -42,13 +43,40 @@ pub async fn insert_puzzle(
         return Ok(false);
     }
 
+    Ok(true)
+}
+
+pub async fn insert_puzzle(
+    tx: &mut DatabaseTx<'_>,
+    coin_state: CoinState,
+    info: ChildKind,
+    context: PuzzleContext,
+    underlying_p2_puzzle_hash: Option<Bytes32>,
+) -> Result<bool, WalletError> {
+    let coin_id = coin_state.coin.coin_id();
+
+    // It's an XCH coin, so we don't care about the child kind
+    if let Some(underlying_p2_puzzle_hash) = underlying_p2_puzzle_hash {
+        if coin_state.coin.puzzle_hash == underlying_p2_puzzle_hash {
+            tx.update_coin(coin_id, Bytes32::default(), underlying_p2_puzzle_hash)
+                .await?;
+            return Ok(true);
+        }
+    }
+
     match info {
         ChildKind::Launcher | ChildKind::Unknown => {
-            warn!("Deleting coin {} because it has an unknown puzzle", coin_id);
+            warn!("Deleting coin {coin_id} because it has an unknown puzzle");
             tx.delete_coin(coin_id).await?;
             return Ok(false);
         }
         ChildKind::Clawback { info } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because clawbacks are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
             tx.insert_clawback_p2_puzzle(info).await?;
 
             tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
@@ -59,6 +87,12 @@ pub async fn insert_puzzle(
             lineage_proof,
             clawback,
         } => {
+            if underlying_p2_puzzle_hash.is_some() && clawback.is_some() {
+                warn!("Deleting underlying coin {coin_id} because clawbacks are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             if let Some(hidden_puzzle_hash) = tx.existing_hidden_puzzle_hash(info.asset_id).await? {
@@ -125,6 +159,12 @@ pub async fn insert_puzzle(
             info,
             clawback,
         } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because DIDs are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
             tx.insert_lineage_proof(coin_id, lineage_proof).await?;
 
             let coin_info = DidCoinInfo {
@@ -166,19 +206,42 @@ pub async fn insert_puzzle(
             metadata,
             clawback,
         } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because NFTs are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
             if let Some(clawback) = clawback {
                 tx.insert_clawback_p2_puzzle(clawback).await?;
             }
 
-            insert_nft(
-                tx,
-                coin_state,
-                Some(lineage_proof),
-                info,
-                metadata,
-                minter_hash,
-            )
-            .await?;
+            insert_nft(tx, coin_state, Some(lineage_proof), info, metadata, context).await?;
+        }
+        ChildKind::Option {
+            lineage_proof,
+            info,
+            clawback,
+        } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because recursive option contracts are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
+            let PuzzleContext::Option(context) = context else {
+                warn!("Received an invalid option contract coin (either the metadata or underlying coin were invalid)");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            };
+
+            if let Some(clawback) = clawback {
+                tx.insert_clawback_p2_puzzle(clawback).await?;
+            }
+
+            if !insert_option(tx, coin_state, Some(lineage_proof), info, context).await? {
+                return Ok(false);
+            }
         }
     }
 
@@ -191,7 +254,7 @@ pub async fn insert_nft(
     lineage_proof: Option<LineageProof>,
     info: SerializedNftInfo,
     metadata: Option<NftMetadata>,
-    minter_hash: Option<Bytes32>,
+    context: PuzzleContext,
 ) -> Result<(), WalletError> {
     if let Some(lineage_proof) = lineage_proof {
         tx.insert_lineage_proof(coin_state.coin.coin_id(), lineage_proof)
@@ -226,7 +289,10 @@ pub async fn insert_nft(
     let mut coin_info = NftCoinInfo {
         collection_hash: Bytes32::default(),
         collection_name: None,
-        minter_hash,
+        minter_hash: match context {
+            PuzzleContext::Nft { minter_hash } => minter_hash,
+            _ => None,
+        },
         owner_hash: info.current_owner,
         metadata: info.metadata,
         metadata_updater_puzzle_hash: info.metadata_updater_puzzle_hash,
@@ -241,7 +307,7 @@ pub async fn insert_nft(
 
     if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
         if let Some(blob) = tx.file_data(*metadata_hash).await? {
-            let computed = compute_nft_info(minter_hash, &blob);
+            let computed = compute_nft_info(coin_info.minter_hash, &blob);
             asset.name = computed.name;
             asset.description = computed.description;
             asset.is_sensitive_content = computed.sensitive_content;
@@ -307,6 +373,144 @@ pub async fn insert_nft(
     Ok(())
 }
 
+pub async fn insert_option(
+    tx: &mut DatabaseTx<'_>,
+    coin_state: CoinState,
+    lineage_proof: Option<LineageProof>,
+    info: OptionInfo,
+    context: OptionContext,
+) -> Result<bool, WalletError> {
+    let coin_id = coin_state.coin.coin_id();
+
+    if let Some(lineage_proof) = lineage_proof {
+        tx.insert_lineage_proof(coin_id, lineage_proof).await?;
+    }
+
+    let (strike_asset_hash, strike_amount) = match context.metadata.strike_type {
+        OptionType::Xch { amount } => (Bytes32::default(), amount),
+        OptionType::Cat { asset_id, amount }
+        | OptionType::RevocableCat {
+            asset_id, amount, ..
+        } => {
+            tx.insert_asset(Asset {
+                hash: asset_id,
+                name: None,
+                ticker: None,
+                precision: 3,
+                icon_url: None,
+                description: None,
+                is_sensitive_content: false,
+                is_visible: true,
+                hidden_puzzle_hash: None,
+                kind: AssetKind::Token,
+            })
+            .await?;
+
+            (asset_id, amount)
+        }
+        OptionType::Nft { .. } => {
+            warn!("Received an option contract coin with an unsupported strike type, deleting it");
+            tx.delete_coin(coin_id).await?;
+            return Ok(false);
+        }
+    };
+
+    let underlying = OptionUnderlying::new(
+        info.launcher_id,
+        context.creator_puzzle_hash,
+        context.metadata.expiration_seconds,
+        context.underlying.coin.amount,
+        context.metadata.strike_type,
+    );
+
+    let coin_info = OptionCoinInfo {
+        underlying_coin_hash: info.underlying_coin_id,
+        underlying_delegated_puzzle_hash: underlying.delegated_puzzle().tree_hash().into(),
+        strike_asset_hash,
+        strike_amount,
+    };
+
+    let mut asset = Asset {
+        hash: info.launcher_id,
+        name: None,
+        ticker: None,
+        precision: 1,
+        icon_url: None,
+        description: None,
+        is_sensitive_content: false,
+        is_visible: true,
+        hidden_puzzle_hash: None,
+        kind: AssetKind::Option,
+    };
+
+    tx.insert_asset(asset.clone()).await?;
+
+    // We need to insert the underlying coin first so we can insert the option row
+    if let Some(height) = context.underlying.created_height {
+        tx.insert_height(height).await?;
+    }
+
+    if let Some(height) = context.underlying.spent_height {
+        tx.insert_height(height).await?;
+    }
+
+    tx.insert_coin(context.underlying).await?;
+
+    // We will never update the option contract row since it's static
+    tx.insert_option(info.launcher_id, &coin_info).await?;
+
+    if lineage_proof.is_some() {
+        tx.update_coin(
+            coin_state.coin.coin_id(),
+            info.launcher_id,
+            info.p2_puzzle_hash,
+        )
+        .await?;
+    }
+
+    // Now we can insert the option underlying p2 puzzle and asset
+    tx.insert_option_p2_puzzle(underlying).await?;
+
+    // TODO: Is it okay to recursively call insert here? We don't allow nested options, so I think so for now.
+    let is_underlying_inserted = Box::pin(insert_puzzle(
+        tx,
+        context.underlying,
+        context.underlying_kind.clone(),
+        PuzzleContext::None,
+        Some(underlying.tree_hash().into()),
+    ))
+    .await?;
+
+    if !is_underlying_inserted {
+        warn!("Failed to insert underlying coin {coin_id}, deleting the option contract coin");
+        tx.delete_coin(coin_id).await?;
+        return Ok(false);
+    }
+
+    let underlying_asset_hash = match &context.underlying_kind {
+        ChildKind::Cat { info, .. } => info.asset_id,
+        ChildKind::Unknown => Bytes32::default(),
+        _ => return Ok(true),
+    };
+
+    let underlying_asset = tx.asset(underlying_asset_hash).await?;
+    let strike_asset = tx.asset(strike_asset_hash).await?;
+
+    let underlying_ticker = underlying_asset
+        .and_then(|asset| asset.ticker)
+        .unwrap_or("Unknown".to_string());
+
+    let strike_ticker = strike_asset
+        .and_then(|asset| asset.ticker)
+        .unwrap_or("Unknown".to_string());
+
+    asset.name = Some(format!("{underlying_ticker} / {strike_ticker}"));
+
+    tx.insert_asset(asset).await?;
+
+    Ok(true)
+}
+
 pub async fn insert_transaction(
     db: &Database,
     peer: &WalletPeer,
@@ -318,29 +522,28 @@ pub async fn insert_transaction(
     // Make lookups faster for inputs and outputs, and prepare pending coin spends.
     let mut coin_spends = HashMap::new();
     let mut output_coin_ids = HashSet::new();
+    let mut cached_coin_states = HashMap::new();
 
     for input in &transaction.inputs {
         coin_spends.insert(input.coin_spend.coin.coin_id(), input.coin_spend.clone());
 
         for output in &input.outputs {
             output_coin_ids.insert(output.coin.coin_id());
+            cached_coin_states.insert(
+                output.coin.coin_id(),
+                CoinState::new(output.coin, None, None),
+            );
         }
     }
 
-    // Fetch minter DIDs for created NFTs in the transaction from the blockchain.
-    let mut minter_dids = HashMap::new();
+    let peer = peer.with_pending(cached_coin_states, coin_spends.clone());
+
+    let mut puzzle_contexts = HashMap::new();
 
     for input in &transaction.inputs {
         for output in &input.outputs {
-            let ChildKind::Nft { info, .. } = &output.kind else {
-                continue;
-            };
-
-            if let Some(did_id) =
-                fetch_nft_did(peer, genesis_challenge, info.launcher_id, &coin_spends).await?
-            {
-                minter_dids.insert(output.coin.coin_id(), did_id);
-            }
+            let context = PuzzleContext::fetch(&peer, genesis_challenge, &output.kind).await?;
+            puzzle_contexts.insert(output.coin.coin_id(), context);
         }
     }
 
@@ -420,20 +623,31 @@ pub async fn insert_transaction(
             )
             .await?;
 
-            // We should subscribe to the coin so we know when it's created on-chain.
-            // TODO: Is this necessary? Subscribing to the p2 puzzle hash is probably sufficient for created coins.
-            if output.kind.subscribe() {
-                subscriptions.push(coin_id);
-            }
-
             // Do the busy work of inserting the asset information into the database now that the coin exists.
-            insert_puzzle(
-                &mut tx,
-                coin_state,
-                output.kind.clone(),
-                minter_dids.get(&output.coin.coin_id()).copied(),
-            )
-            .await?;
+
+            let is_inserted = validate_wallet_coin(&mut tx, coin_id, &output.kind).await?
+                && insert_puzzle(
+                    &mut tx,
+                    coin_state,
+                    output.kind.clone(),
+                    puzzle_contexts
+                        .get(&output.coin.coin_id())
+                        .cloned()
+                        .unwrap_or_default(),
+                    None,
+                )
+                .await?;
+
+            if is_inserted {
+                // We should subscribe to the coin so we know when it's created on-chain.
+                if output.kind.subscribe() {
+                    subscriptions.push(coin_id);
+                }
+
+                if let Some(PuzzleContext::Option(context)) = puzzle_contexts.get(&coin_id) {
+                    subscriptions.push(context.underlying.coin.coin_id());
+                }
+            }
         }
     }
 

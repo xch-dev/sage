@@ -43,8 +43,7 @@ impl Wallet {
         let mut actions = vec![Action::fee(fee)];
 
         let total = if let Some(asset_id) = asset_id {
-            self.select_spends(&mut ctx, &mut spends, selected_coin_ids.clone(), &actions)
-                .await?;
+            self.select_spends(&mut ctx, &mut spends, &actions).await?;
             spends.cats[&Id::Existing(asset_id)].selected_amount()
         } else {
             let total = spends.xch.selected_amount();

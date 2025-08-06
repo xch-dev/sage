@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,\n            asset_hash AS launcher_id, metadata, metadata_updater_puzzle_hash,\n            owner_hash, royalty_puzzle_hash, royalty_basis_points\n        FROM spendable_coins\n        INNER JOIN nfts ON nfts.asset_id = spendable_coins.asset_id\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = spendable_coins.coin_id\n        WHERE coin_hash = ?\n        ",
+  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash,\n            parent_parent_coin_hash, parent_inner_puzzle_hash, parent_amount,\n            asset_hash AS launcher_id,\n            (SELECT hash FROM coins WHERE id = underlying_coin_id) AS underlying_coin_hash,\n            underlying_delegated_puzzle_hash\n        FROM wallet_coins\n        INNER JOIN options ON options.asset_id = wallet_coins.asset_id\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id\n        WHERE coin_hash = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -44,29 +44,14 @@
         "type_info": "Blob"
       },
       {
-        "name": "metadata",
+        "name": "underlying_coin_hash",
         "ordinal": 8,
         "type_info": "Blob"
       },
       {
-        "name": "metadata_updater_puzzle_hash",
+        "name": "underlying_delegated_puzzle_hash",
         "ordinal": 9,
         "type_info": "Blob"
-      },
-      {
-        "name": "owner_hash",
-        "ordinal": 10,
-        "type_info": "Blob"
-      },
-      {
-        "name": "royalty_puzzle_hash",
-        "ordinal": 11,
-        "type_info": "Blob"
-      },
-      {
-        "name": "royalty_basis_points",
-        "ordinal": 12,
-        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -82,11 +67,8 @@
       false,
       false,
       false,
-      false,
-      true,
-      false,
       false
     ]
   },
-  "hash": "2fe66f59631c17cb77d35843bc7e866e1be06c7e4b6245eb7df8c47a7a13d6ed"
+  "hash": "7c4551a95321ea1222c429c15a280971b29254fe4ca35378c8ced4f24f058bc1"
 }

@@ -7,7 +7,7 @@ use sage_assets::{fetch_uris_with_hash, DexieCat};
 use sage_database::{Asset, AssetKind};
 use tokio::time::timeout;
 
-use crate::{extract_nft_data, ConfirmationInfo, ExtractedNftData, Result, Sage};
+use crate::{extract_nft_data, ConfirmationInfo, Error, ExtractedNftData, Result, Sage};
 
 impl Sage {
     pub async fn cache_cat(
@@ -126,6 +126,22 @@ impl Sage {
         };
 
         wallet.db.insert_asset(asset.clone()).await?;
+
+        Ok(asset)
+    }
+
+    pub async fn cache_option(&self, launcher_id: Bytes32) -> Result<Asset> {
+        let wallet = self.wallet()?;
+
+        let peer = self.peer_state.lock().await.acquire_peer();
+
+        wallet
+            .fetch_offer_option_info(peer.as_ref(), launcher_id)
+            .await?;
+
+        let Some(asset) = wallet.db.asset(launcher_id).await? else {
+            return Err(Error::MissingOption(launcher_id));
+        };
 
         Ok(asset)
     }
