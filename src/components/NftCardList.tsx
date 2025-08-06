@@ -141,7 +141,7 @@ export function NftCardList({
         group === NftGroupMode.MinterDid
       ) {
         await mintGardenService.loadProfiles(
-          minterDids.map((did) => did.coin_id),
+          minterDids.map((did) => did.launcher_id),
         );
         setContent(
           <>

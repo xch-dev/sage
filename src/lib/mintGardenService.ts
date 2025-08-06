@@ -143,33 +143,37 @@ class MintGardenService {
       return;
     }
 
-    const response = await fetch('https://api.mintgarden.io/profiles_by_id', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(dids),
-    });
-    const data = await response.json();
-    const profiles = data.map((profile: MintGardenProfile) => ({
-      encoded_id: profile.encoded_id,
-      name: profile.name,
-      avatar_uri: profile.avatar_uri,
-      is_unknown: false,
-    }));
+    try {
+      const response = await fetch('https://api.mintgarden.io/profiles_by_id', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dids),
+      });
+      const data = await response.json();
+      const profiles = data.map((profile: MintGardenProfile) => ({
+        encoded_id: profile.encoded_id,
+        name: profile.name,
+        avatar_uri: profile.avatar_uri,
+        is_unknown: false,
+      }));
 
-    // this bit goes through and fills in the profiles for the dids that are not in the response
-    for (const did of dids) {
-      const profile = profiles.find(
-        (p: MintGardenProfile) => p.encoded_id === did,
-      ) ?? {
-        encoded_id: did,
-        name: `${did.slice(9, 19)}...${did.slice(-4)}`,
-        avatar_uri: null,
-        is_unknown: true,
-      };
+      // this bit goes through and fills in the profiles for the dids that are not in the response
+      for (const did of dids) {
+        const profile = profiles.find(
+          (p: MintGardenProfile) => p.encoded_id === did,
+        ) ?? {
+          encoded_id: did,
+          name: `${did.slice(9, 19)}...${did.slice(-4)}`,
+          avatar_uri: null,
+          is_unknown: true,
+        };
 
-      await this.setCachedProfile(did, profile);
+        await this.setCachedProfile(did, profile);
+      }
+    } catch (error) {
+      console.warn('Failed to load profiles:', error);
     }
   }
 
