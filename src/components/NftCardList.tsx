@@ -2,8 +2,9 @@ import { NftCard } from '@/components/NftCard';
 import { NftGroupCard } from '@/components/NftGroupCard';
 import { NO_COLLECTION_ID } from '@/hooks/useNftData';
 import { CardSize, NftGroupMode } from '@/hooks/useNftParams';
+import { mintGardenService } from '@/lib/mintGardenService';
 import { t } from '@lingui/core/macro';
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useEffect, useState } from 'react';
 import {
   commands,
   DidRecord,
@@ -71,103 +72,133 @@ export function NftCardList({
     [multiSelect, setSelected],
   );
 
-  const renderContent = () => {
-    if (
-      !collectionId &&
-      !ownerDid &&
-      !minterDid &&
-      group === NftGroupMode.Collection
-    ) {
-      return (
-        <>
-          {collections.map((col) => (
-            <NftGroupCard
-              key={col.collection_id}
-              type='collection'
-              item={col}
-              updateNfts={updateNfts}
-              page={page}
-              isPlaceHolder={col.collection_id === NO_COLLECTION_ID}
-              onToggleVisibility={() => {
-                commands
-                  .updateNftCollection({
-                    collection_id: col.collection_id,
-                    visible: !col.visible,
-                  })
-                  .then(() => updateNfts(page))
-                  .catch(addError);
-              }}
-              setSplitNftOffers={setSplitNftOffers}
-            />
-          ))}
-        </>
-      );
-    }
+  const [content, setContent] = useState<ReactNode>(null);
 
-    if (
-      !collectionId &&
-      !ownerDid &&
-      !minterDid &&
-      group === NftGroupMode.OwnerDid
-    ) {
-      return (
-        <>
-          {ownerDids.map((did) => (
-            <NftGroupCard
-              key={did.coin_id}
-              type='did'
-              groupMode={group}
-              item={did}
-              updateNfts={updateNfts}
-              page={page}
-              isPlaceHolder={false}
-              setSplitNftOffers={setSplitNftOffers}
-            />
-          ))}
-        </>
-      );
-    }
+  useEffect(() => {
+    const loadContent = async () => {
+      if (
+        !collectionId &&
+        !ownerDid &&
+        !minterDid &&
+        group === NftGroupMode.Collection
+      ) {
+        setContent(
+          <>
+            {collections.map((col) => (
+              <NftGroupCard
+                key={col.collection_id}
+                type='collection'
+                item={col}
+                updateNfts={updateNfts}
+                page={page}
+                isPlaceHolder={col.collection_id === NO_COLLECTION_ID}
+                onToggleVisibility={() => {
+                  commands
+                    .updateNftCollection({
+                      collection_id: col.collection_id,
+                      visible: !col.visible,
+                    })
+                    .then(() => updateNfts(page))
+                    .catch(addError);
+                }}
+                setSplitNftOffers={setSplitNftOffers}
+              />
+            ))}
+          </>,
+        );
+        return;
+      }
 
-    if (
-      !collectionId &&
-      !ownerDid &&
-      !minterDid &&
-      group === NftGroupMode.MinterDid
-    ) {
-      return (
-        <>
-          {minterDids.map((did) => (
-            <NftGroupCard
-              key={did.coin_id}
-              type='did'
-              groupMode={group}
-              item={did}
-              updateNfts={updateNfts}
-              page={page}
-              isPlaceHolder={false}
-              setSplitNftOffers={setSplitNftOffers}
-            />
-          ))}
-        </>
-      );
-    }
+      if (
+        !collectionId &&
+        !ownerDid &&
+        !minterDid &&
+        group === NftGroupMode.OwnerDid
+      ) {
+        setContent(
+          <>
+            {ownerDids.map((did) => (
+              <NftGroupCard
+                key={did.coin_id}
+                type='did'
+                groupMode={group}
+                item={did}
+                updateNfts={updateNfts}
+                page={page}
+                isPlaceHolder={false}
+                setSplitNftOffers={setSplitNftOffers}
+              />
+            ))}
+          </>,
+        );
+        return;
+      }
 
-    return nfts.map((nft) => (
-      <NftCard
-        nft={nft}
-        key={nft.coin_id}
-        updateNfts={() => updateNfts(page)}
-        selectionState={
-          multiSelect
-            ? [
-                selected.includes(nft.launcher_id),
-                () => handleSelection(nft.launcher_id),
-              ]
-            : null
-        }
-      />
-    ));
-  };
+      if (
+        !collectionId &&
+        !ownerDid &&
+        !minterDid &&
+        group === NftGroupMode.MinterDid
+      ) {
+        await mintGardenService.loadProfiles(
+          minterDids.map((did) => did.launcher_id),
+        );
+        setContent(
+          <>
+            {minterDids.map((did) => (
+              <NftGroupCard
+                key={did.coin_id}
+                type='did'
+                groupMode={group}
+                item={did}
+                updateNfts={updateNfts}
+                page={page}
+                isPlaceHolder={false}
+                setSplitNftOffers={setSplitNftOffers}
+              />
+            ))}
+          </>,
+        );
+        return;
+      }
+
+      setContent(
+        nfts.map((nft) => (
+          <NftCard
+            nft={nft}
+            key={nft.coin_id}
+            updateNfts={() => updateNfts(page)}
+            selectionState={
+              multiSelect
+                ? [
+                    selected.includes(nft.launcher_id),
+                    () => handleSelection(nft.launcher_id),
+                  ]
+                : null
+            }
+          />
+        )),
+      );
+    };
+
+    loadContent();
+  }, [
+    collectionId,
+    ownerDid,
+    minterDid,
+    group,
+    collections,
+    ownerDids,
+    minterDids,
+    nfts,
+    updateNfts,
+    page,
+    multiSelect,
+    selected,
+    handleSelection,
+    addError,
+    setSplitNftOffers,
+  ]);
 
   return (
     <div
@@ -179,7 +210,7 @@ export function NftCardList({
       role='grid'
       aria-label={t`NFT Gallery`}
     >
-      {renderContent()}
+      {content}
       {children}
     </div>
   );

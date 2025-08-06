@@ -55,18 +55,5 @@ export const marketplaces: MarketplaceConfig[] = [
   },
 ];
 
-export async function getMintGardenProfile(did: string) {
-  try {
-    const response = await fetch(`https://api.mintgarden.io/profile/${did}`);
-    const data = await response.json();
-    // always supply a name
-    data.name = data.name || `${did.slice(9, 19)}...${did.slice(-4)}`;
-    return data;
-  } catch {
-    return {
-      encoded_id: did,
-      name: `${did.slice(9, 19)}...${did.slice(-4)}`, // 9 strips off "did:chia:"
-      avatar_uri: null,
-    };
-  }
-}
+// Re-export the rate-limited and cached version
+export { getMintGardenProfile } from './mintGardenService';

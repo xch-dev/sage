@@ -68,6 +68,7 @@ pub fn run() {
             commands::get_all_cats,
             commands::get_token,
             commands::get_dids,
+            commands::get_profile,
             commands::get_minter_did_ids,
             commands::get_nft_collections,
             commands::get_nft_collection,
@@ -140,7 +141,8 @@ pub fn run() {
     let mut tauri_builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_os::init());
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_store::Builder::new().build());
 
     #[cfg(not(mobile))]
     {

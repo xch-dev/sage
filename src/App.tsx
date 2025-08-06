@@ -26,6 +26,7 @@ import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
 import { useTransactionFailures } from './hooks/useTransactionFailures';
+import { initializeMintGardenService } from './lib/mintGardenConfig';
 import { loadCatalog } from './i18n';
 import Addresses from './pages/Addresses';
 import CollectionMetaData from './pages/CollectionMetaData';
@@ -51,6 +52,7 @@ import { Transactions } from './pages/Transactions';
 import { ViewOffer } from './pages/ViewOffer';
 import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
+import Profile from './pages/Profile';
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -80,6 +82,7 @@ const router = createHashRouter(
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
         <Route path='create' element={<CreateProfile />} />
+        <Route path=':launcher_id' element={<Profile />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />
@@ -161,6 +164,11 @@ function AppInner() {
 
   // Enable global transaction failure handling
   useTransactionFailures();
+
+  // Initialize MintGarden service with rate limiting configuration
+  useEffect(() => {
+    initializeMintGardenService();
+  }, []);
 
   useEffect(() => {
     const initLocale = async () => {
