@@ -46,7 +46,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   const cancelSchema = z.object({
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -59,7 +59,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
   const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
-    const fee = toMojos(values.fee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.fee, walletState.sync.unit.precision);
 
     commands
       .cancelOffer({

@@ -440,11 +440,11 @@ export default function ConfirmationDialog({
                               {formatNumber({
                                 value: fromMojos(
                                   fee,
-                                  walletState.sync.unit.decimals,
+                                  walletState.sync.unit.precision,
                                 ),
                                 minimumFractionDigits: 0,
                                 maximumFractionDigits:
-                                  walletState.sync.unit.decimals,
+                                  walletState.sync.unit.precision,
                               })}{' '}
                               {ticker}
                             </span>
@@ -583,9 +583,9 @@ export default function ConfirmationDialog({
               ) : (
                 <>
                   {formatNumber({
-                    value: fromMojos(fee, walletState.sync.unit.decimals),
+                    value: fromMojos(fee, walletState.sync.unit.precision),
                     minimumFractionDigits: 0,
-                    maximumFractionDigits: walletState.sync.unit.decimals,
+                    maximumFractionDigits: walletState.sync.unit.precision,
                   })}{' '}
                   {ticker}
                 </>

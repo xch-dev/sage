@@ -133,7 +133,7 @@ export default function Send() {
           : true,
       'Amount exceeds balance',
     ),
-    fee: amount(walletState.sync.unit.decimals).optional(),
+    fee: amount(walletState.sync.unit.precision).optional(),
     memo: z.string().optional(),
     clawbackEnabled: z.boolean().optional(),
     clawback: z
@@ -177,7 +177,7 @@ export default function Send() {
     const amount = toMojos(values.amount.toString(), asset?.precision || 12);
     const fee = toMojos(
       values.fee?.toString() || '0',
-      walletState.sync.unit.decimals,
+      walletState.sync.unit.precision,
     );
 
     if (!assetId) {

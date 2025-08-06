@@ -238,7 +238,7 @@ export function OwnedCoinsCard({
   const [autoCombineOpen, setAutoCombineOpen] = useState(false);
 
   const combineFormSchema = z.object({
-    combineFee: amount(walletState.sync.unit.decimals).refine(
+    combineFee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -249,7 +249,7 @@ export function OwnedCoinsCard({
   });
 
   const onCombineSubmit = (values: z.infer<typeof combineFormSchema>) => {
-    const fee = toMojos(values.combineFee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.combineFee, walletState.sync.unit.precision);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
@@ -283,7 +283,7 @@ export function OwnedCoinsCard({
 
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
-    splitFee: amount(walletState.sync.unit.decimals).refine(
+    splitFee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -297,7 +297,7 @@ export function OwnedCoinsCard({
   });
 
   const onSplitSubmit = (values: z.infer<typeof splitFormSchema>) => {
-    const fee = toMojos(values.splitFee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.splitFee, walletState.sync.unit.precision);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
@@ -332,7 +332,7 @@ export function OwnedCoinsCard({
   };
 
   const autoCombineFormSchema = z.object({
-    autoCombineFee: amount(walletState.sync.unit.decimals).refine(
+    autoCombineFee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -351,7 +351,7 @@ export function OwnedCoinsCard({
   const onAutoCombineSubmit = (
     values: z.infer<typeof autoCombineFormSchema>,
   ) => {
-    const fee = toMojos(values.autoCombineFee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.autoCombineFee, walletState.sync.unit.precision);
     const maxCoins = values.maxCoins;
     const maxCoinAmount = values.maxCoinAmount
       ? toMojos(values.maxCoinAmount, asset.precision)

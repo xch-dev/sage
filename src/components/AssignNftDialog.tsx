@@ -53,7 +53,7 @@ export function AssignNftDialog({
 
   const schema = z.object({
     profile: z.string().min(1, t`Profile is required`),
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),

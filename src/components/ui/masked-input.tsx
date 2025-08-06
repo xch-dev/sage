@@ -61,12 +61,12 @@ MaskedInput.displayName = 'MaskedInput';
 
 // Extended Masked Input for XCH inputs
 interface TokenInputProps extends MaskedInputProps {
-  decimals?: number;
+  precision?: number;
   ticker?: string | null;
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
-  ({ decimals = 24, ticker = null, ...props }, ref) => {
+  ({ precision = 24, ticker = null, ...props }, ref) => {
     const walletState = useWalletState();
 
     return (
@@ -76,7 +76,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
           {...props}
           type='text'
           inputRef={ref}
-          decimalScale={decimals}
+          decimalScale={precision}
           allowLeadingZeros={true}
           allowNegative={false}
         />

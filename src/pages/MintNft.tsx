@@ -12,6 +12,11 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
+  FeeAmountInput,
+  IntegerInput,
+  MaskedInput,
+} from '@/components/ui/masked-input';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -34,8 +39,6 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { FeeAmountInput, MaskedInput } from '@/components/ui/masked-input';
-import { IntegerInput } from '@/components/ui/masked-input';
 
 export default function MintNft() {
   const navigate = useNavigate();
@@ -47,7 +50,7 @@ export default function MintNft() {
 
   const formSchema = z.object({
     profile: z.string().min(1, t`Profile is required`),
-    fee: amount(walletState.sync.unit.decimals).optional(),
+    fee: amount(walletState.sync.unit.precision).optional(),
     royaltyAddress: z.string().optional(),
     royaltyPercent: amount(2),
     dataUris: z.string(),
@@ -115,7 +118,7 @@ export default function MintNft() {
       .bulkMintNfts({
         fee: toMojos(
           values.fee?.toString() || '0',
-          walletState.sync.unit.decimals,
+          walletState.sync.unit.precision,
         ),
         did_id: values.profile,
         mints,

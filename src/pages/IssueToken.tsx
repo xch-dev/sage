@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,10 +11,13 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -21,10 +25,6 @@ import * as z from 'zod';
 import { commands, TransactionResponse } from '../bindings';
 import Container from '../components/Container';
 import { useWalletState } from '../state';
-import { TokenAmountInput, FeeAmountInput } from '@/components/ui/masked-input';
-import { Trans } from '@lingui/react/macro';
-import { t } from '@lingui/core/macro';
-import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 
 export default function IssueToken() {
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export default function IssueToken() {
     name: z.string().min(1, t`Name is required`),
     ticker: z.string().min(1, t`Ticker is required`),
     amount: positiveAmount(3),
-    fee: amount(walletState.sync.unit.decimals).optional(),
+    fee: amount(walletState.sync.unit.precision).optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -51,7 +51,7 @@ export default function IssueToken() {
         amount: toMojos(values.amount.toString(), 3),
         fee: toMojos(
           values.fee?.toString() || '0',
-          walletState.sync.unit.decimals,
+          walletState.sync.unit.precision,
         ),
       })
       .then(setResponse)
