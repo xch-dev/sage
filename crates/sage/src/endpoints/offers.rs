@@ -266,6 +266,7 @@ impl Sage {
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
+        let mut option_rows = Vec::new();
 
         for (asset_id, amount) in offered_amounts.cats {
             cat_rows.push(AssetToOffer {
@@ -314,6 +315,16 @@ impl Sage {
                 asset_id: nft.info.launcher_id,
                 amount: nft.coin.amount,
                 royalty: nft.info.royalty_basis_points as u64,
+            });
+        }
+
+        for option in offer.offered_coins().options.values() {
+            option_rows.push(AssetToOffer {
+                offer_id,
+                is_requested: false,
+                asset_id: option.info.launcher_id,
+                amount: option.coin.amount,
+                royalty: 0,
             });
         }
 
@@ -386,8 +397,20 @@ impl Sage {
                 offer_id,
                 is_requested: true,
                 asset_id: launcher_id,
-                amount: 0, // TODO is this right?
+                amount: 0,
                 royalty: nft.royalty_basis_points as u64,
+            });
+        }
+
+        for &launcher_id in offer.requested_payments().options.keys() {
+            self.cache_option(launcher_id).await?;
+
+            nft_rows.push(AssetToOffer {
+                offer_id,
+                is_requested: true,
+                asset_id: launcher_id,
+                amount: 0,
+                royalty: 0,
             });
         }
 
@@ -451,6 +474,17 @@ impl Sage {
         }
 
         for row in nft_rows {
+            tx.insert_offer_asset(
+                row.offer_id,
+                row.asset_id,
+                row.amount,
+                row.royalty,
+                row.is_requested,
+            )
+            .await?;
+        }
+
+        for row in option_rows {
             tx.insert_offer_asset(
                 row.offer_id,
                 row.asset_id,

@@ -10,6 +10,7 @@ import { AssetIcon } from '@/components/AssetIcon';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { OptionConfirmation } from '@/components/confirmations/OptionConfirmation';
 import Container from '@/components/Container';
+import { CopyBox } from '@/components/CopyBox';
 import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
@@ -26,15 +27,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
-import { fromMojos, toMojos } from '@/lib/utils';
+import { formatTimestamp, fromMojos, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import {
+  AlertCircle,
   Copy,
   EyeIcon,
   EyeOff,
@@ -219,8 +223,7 @@ function Option({ option, updateOptions }: OptionProps) {
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
             <FilePenLine className='mr-2 h-4 w-4' />
-            {option.underlying_asset.ticker ?? 'CAT'} /{' '}
-            {option.strike_asset.ticker ?? 'CAT'}
+            {option.name}
           </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -307,18 +310,56 @@ function Option({ option, updateOptions }: OptionProps) {
           </DropdownMenu>
         </CardHeader>
         <CardContent>
-          <div className='text-sm font-medium truncate mb-2'>
-            {option.launcher_id}
-          </div>
+          <div className='flex flex-col gap-2'>
+            <div className='flex flex-col gap-1'>
+              <div className='text-sm font-medium text-muted-foreground'>
+                Option ID
+              </div>
+              <CopyBox value={option.launcher_id} title={t`Option ID`} />
+            </div>
 
-          <OptionAssetPreview
-            asset={option.underlying_asset}
-            amount={option.underlying_amount}
-          />
-          <OptionAssetPreview
-            asset={option.strike_asset}
-            amount={option.strike_amount}
-          />
+            <div className='flex flex-col gap-1'>
+              <div className='text-sm font-medium text-muted-foreground'>
+                Expiration
+              </div>
+              <div className='text-sm font-medium'>
+                {formatTimestamp(option.expiration_seconds)}
+              </div>
+            </div>
+
+            {option.expiration_seconds * 1000 < Date.now() ? (
+              <div className='flex items-center gap-1.5 text-sm font-medium text-red-500'>
+                <AlertCircle className='h-4 w-4' />
+                <Trans>Expired</Trans>
+              </div>
+            ) : option.expiration_seconds * 1000 <
+              Date.now() + 24 * 60 * 60 * 1000 ? (
+              <div className='flex items-center gap-1.5 text-sm font-medium text-yellow-500'>
+                <AlertCircle className='h-4 w-4' />
+                <Trans>Expiring soon</Trans>
+              </div>
+            ) : (
+              <div className='flex items-center gap-1.5 text-sm font-medium text-blue-400'>
+                <InfoCircledIcon className='h-4 w-4' />
+                <Trans>Active</Trans>
+              </div>
+            )}
+
+            <Separator className='my-1' />
+
+            <div className='flex flex-col gap-2'>
+              <OptionAssetPreview
+                asset={option.underlying_asset}
+                amount={option.underlying_amount}
+                option={option}
+              />
+              <OptionAssetPreview
+                asset={option.strike_asset}
+                amount={option.strike_amount}
+                option={option}
+              />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -402,21 +443,33 @@ function Option({ option, updateOptions }: OptionProps) {
 interface OptionAssetPreviewProps {
   asset: Asset;
   amount: Amount;
+  option: OptionRecord;
 }
 
-function OptionAssetPreview({ asset, amount }: OptionAssetPreviewProps) {
+function OptionAssetPreview({
+  asset,
+  amount,
+  option,
+}: OptionAssetPreviewProps) {
   return (
-    <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
-      <AssetIcon asset={asset} size='md' />
-      <div className='text-sm text-muted-foreground truncate'>
-        {asset.kind === 'token' && (
-          <NumberFormat
-            value={fromMojos(amount, asset.precision)}
-            minimumFractionDigits={0}
-            maximumFractionDigits={asset.precision}
-          />
-        )}{' '}
-        {asset.name ?? asset.ticker ?? t`Unknown`}
+    <div className='flex flex-col gap-1'>
+      <div className='text-sm font-medium text-muted-foreground'>
+        {asset === option.underlying_asset
+          ? 'Underlying Asset'
+          : 'Strike Price'}
+      </div>
+      <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
+        <AssetIcon asset={asset} size='md' />
+        <div className='text-sm text-muted-foreground truncate'>
+          {asset.kind === 'token' && (
+            <NumberFormat
+              value={fromMojos(amount, asset.precision)}
+              minimumFractionDigits={0}
+              maximumFractionDigits={asset.precision}
+            />
+          )}{' '}
+          {asset.name ?? asset.ticker ?? t`Unknown`}
+        </div>
       </div>
     </div>
   );

@@ -34,8 +34,6 @@ interface AssetSelectorProps {
   setAssets: (value: Assets) => void;
   splitNftOffers?: boolean;
   setSplitNftOffers?: (value: boolean) => void;
-  splitOptionOffers?: boolean;
-  setSplitOptionOffers?: (value: boolean) => void;
 }
 
 export function AssetSelector({
@@ -45,8 +43,6 @@ export function AssetSelector({
   setAssets,
   splitNftOffers,
   setSplitNftOffers,
-  splitOptionOffers,
-  setSplitOptionOffers,
 }: AssetSelectorProps) {
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
 
@@ -254,18 +250,6 @@ export function AssetSelector({
             <FilePenLine className='h-4 w-4' />
             <span>Options</span>
           </Label>
-          {offering && assets.options.filter((o) => o).length > 1 && (
-            <div className='flex items-center gap-2 mt-1 mb-3'>
-              <Switch
-                id='split-offers'
-                checked={splitOptionOffers}
-                onCheckedChange={setSplitOptionOffers}
-              />
-              <Label htmlFor='split-offers' className='text-sm'>
-                <Trans>Create individual offers for each option</Trans>
-              </Label>
-            </div>
-          )}
           {assets.options.map((option, i) => (
             <div key={option} className='flex h-14 z-20 mb-1'>
               {offering === true ? (

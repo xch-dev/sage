@@ -70,7 +70,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
         <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon asset={asset} size='md' />
           <div className='text-sm text-muted-foreground truncate'>
-            {asset.kind !== 'nft' && (
+            {asset.kind !== 'nft' && asset.kind !== 'option' && (
               <NumberFormat
                 value={fromMojos(
                   BigNumber(amount).plus(royalty),

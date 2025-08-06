@@ -386,19 +386,6 @@ pub async fn insert_option(
         tx.insert_lineage_proof(coin_id, lineage_proof).await?;
     }
 
-    let asset = Asset {
-        hash: info.launcher_id,
-        name: None,
-        ticker: None,
-        precision: 1,
-        icon_url: None,
-        description: None,
-        is_sensitive_content: false,
-        is_visible: true,
-        hidden_puzzle_hash: None,
-        kind: AssetKind::Option,
-    };
-
     let (strike_asset_hash, strike_amount) = match context.metadata.strike_type {
         OptionType::Xch { amount } => (Bytes32::default(), amount),
         OptionType::Cat { asset_id, amount }
@@ -443,7 +430,20 @@ pub async fn insert_option(
         strike_amount,
     };
 
-    tx.insert_asset(asset).await?;
+    let mut asset = Asset {
+        hash: info.launcher_id,
+        name: None,
+        ticker: None,
+        precision: 1,
+        icon_url: None,
+        description: None,
+        is_sensitive_content: false,
+        is_visible: true,
+        hidden_puzzle_hash: None,
+        kind: AssetKind::Option,
+    };
+
+    tx.insert_asset(asset.clone()).await?;
 
     // We need to insert the underlying coin first so we can insert the option row
     if let Some(height) = context.underlying.created_height {
@@ -475,7 +475,7 @@ pub async fn insert_option(
     let is_underlying_inserted = Box::pin(insert_puzzle(
         tx,
         context.underlying,
-        context.underlying_kind,
+        context.underlying_kind.clone(),
         PuzzleContext::None,
         Some(underlying.tree_hash().into()),
     ))
@@ -486,6 +486,27 @@ pub async fn insert_option(
         tx.delete_coin(coin_id).await?;
         return Ok(false);
     }
+
+    let underlying_asset_hash = match &context.underlying_kind {
+        ChildKind::Cat { info, .. } => info.asset_id,
+        ChildKind::Unknown => Bytes32::default(),
+        _ => return Ok(true),
+    };
+
+    let underlying_asset = tx.asset(underlying_asset_hash).await?;
+    let strike_asset = tx.asset(strike_asset_hash).await?;
+
+    let underlying_ticker = underlying_asset
+        .and_then(|asset| asset.ticker)
+        .unwrap_or("Unknown".to_string());
+
+    let strike_ticker = strike_asset
+        .and_then(|asset| asset.ticker)
+        .unwrap_or("Unknown".to_string());
+
+    asset.name = Some(format!("{underlying_ticker} / {strike_ticker}"));
+
+    tx.insert_asset(asset).await?;
 
     Ok(true)
 }

@@ -40,7 +40,7 @@ impl Database {
                 owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
                 offer_hash, created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS clawback_timestamp,
-                option_expiration_seconds AS 'option_expiration_seconds!',
+                p2_options.expiration_seconds AS option_expiration_seconds,
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
                 strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
@@ -57,6 +57,7 @@ impl Database {
                 strike_amount, underlying_coin.amount AS underlying_amount
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
+            INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
             INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
             INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
             INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id
@@ -140,7 +141,7 @@ impl Database {
                 owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS 'clawback_timestamp?',
-                option_expiration_seconds AS 'option_expiration_seconds!',
+                p2_options.expiration_seconds AS option_expiration_seconds,
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
                 strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
@@ -157,6 +158,7 @@ impl Database {
                 strike_amount, underlying_coin.amount AS underlying_amount
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
+            INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
             INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
             INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
             INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id

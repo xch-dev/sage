@@ -88,35 +88,7 @@ impl Database {
     }
 
     pub async fn asset(&self, hash: Bytes32) -> Result<Option<Asset>> {
-        let hash = hash.as_ref();
-
-        query!(
-            "
-            SELECT
-                hash, kind, name, ticker, precision, icon_url, description,
-                is_sensitive_content, is_visible, hidden_puzzle_hash
-            FROM assets
-            WHERE hash = ?
-            ",
-            hash
-        )
-        .fetch_optional(&self.pool)
-        .await?
-        .map(|row| {
-            Ok(Asset {
-                hash: row.hash.convert()?,
-                kind: row.kind.convert()?,
-                name: row.name,
-                ticker: row.ticker,
-                precision: row.precision.convert()?,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_sensitive_content: row.is_sensitive_content,
-                is_visible: row.is_visible,
-                hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
-            })
-        })
-        .transpose()
+        asset(&self.pool, hash).await
     }
 
     pub async fn existing_hidden_puzzle_hash(
@@ -128,6 +100,10 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn asset(&mut self, hash: Bytes32) -> Result<Option<Asset>> {
+        asset(&mut *self.tx, hash).await
+    }
+
     pub async fn insert_asset(&mut self, asset: Asset) -> Result<()> {
         insert_asset(&mut *self.tx, asset).await?;
 
@@ -228,5 +204,37 @@ async fn existing_hidden_puzzle_hash(
     .fetch_optional(conn)
     .await?
     .map(|row| row.hidden_puzzle_hash.convert())
+    .transpose()
+}
+
+async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Asset>> {
+    let hash = hash.as_ref();
+
+    query!(
+        "
+        SELECT
+            hash, kind, name, ticker, precision, icon_url, description,
+            is_sensitive_content, is_visible, hidden_puzzle_hash
+        FROM assets
+        WHERE hash = ?
+        ",
+        hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(Asset {
+            hash: row.hash.convert()?,
+            kind: row.kind.convert()?,
+            name: row.name,
+            ticker: row.ticker,
+            precision: row.precision.convert()?,
+            icon_url: row.icon_url,
+            description: row.description,
+            is_sensitive_content: row.is_sensitive_content,
+            is_visible: row.is_visible,
+            hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
+        })
+    })
     .transpose()
 }

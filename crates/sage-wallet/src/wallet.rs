@@ -185,8 +185,7 @@ impl Wallet {
             .prepare_spends_for_selection(ctx, &selected_coin_ids)
             .await?;
 
-        self.select_spends(ctx, &mut spends, selected_coin_ids, actions)
-            .await?;
+        self.select_spends(ctx, &mut spends, actions).await?;
 
         Ok(spends)
     }
@@ -195,7 +194,6 @@ impl Wallet {
         &self,
         ctx: &mut SpendContext,
         spends: &mut Spends,
-        selected_coin_ids: Vec<Bytes32>,
         actions: &[Action],
     ) -> Result<(), WalletError> {
         let mut deltas = Deltas::from_actions(actions);
@@ -206,7 +204,8 @@ impl Wallet {
             deltas.update(id).input += cat.selected_amount();
         }
 
-        let selected_coin_ids: HashSet<Bytes32> = selected_coin_ids.into_iter().collect();
+        let selected_coin_ids: HashSet<Bytes32> =
+            spends.non_settlement_coin_ids().into_iter().collect();
 
         for &id in deltas.ids() {
             let delta = deltas.get(&id).copied().unwrap_or_default();

@@ -1162,9 +1162,9 @@ dependencies = [
 
 [[package]]
 name = "chia-puzzles"
-version = "0.20.1"
+version = "0.20.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec7108a1597c78873f6c116b434db0bc7bfaf16f30828c35ce648a6ca49710c8"
+checksum = "2a14a89cf37b36585609bfb0a9cc45e4d4bdd32181ccc8f7c730591f20c73d66"
 dependencies = [
  "hex",
  "hex-literal",
@@ -1172,7 +1172,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-client"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-coinset"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -1204,7 +1204,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-derive"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "convert_case 0.8.0",
  "quote",
@@ -1213,7 +1213,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-driver"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "bech32",
  "bigdecimal",
@@ -1246,7 +1246,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-signer"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -1262,7 +1262,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-test"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "anyhow",
  "bip39",
@@ -1298,7 +1298,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-types"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-consensus",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "chia-sdk-utils"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -1406,7 +1406,7 @@ dependencies = [
 
 [[package]]
 name = "chia-wallet-sdk"
-version = "0.27.2"
+version = "0.28.0"
 dependencies = [
  "chia-bls 0.26.0",
  "chia-protocol",

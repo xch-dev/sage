@@ -123,8 +123,7 @@ impl Wallet {
 
         // Add requested payments
         let mut spends = Spends::new(change_puzzle_hash);
-        self.select_spends(&mut ctx, &mut spends, vec![], &actions)
-            .await?;
+        self.select_spends(&mut ctx, &mut spends, &actions).await?;
 
         let nonce = Offer::nonce(spends.non_settlement_coin_ids());
 

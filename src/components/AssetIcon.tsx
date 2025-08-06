@@ -12,9 +12,9 @@ export interface AssetIconProps {
 }
 
 const sizeClasses = {
-  sm: 'w-6 h-6',
-  md: 'w-8 h-8',
-  lg: 'w-10 h-10',
+  sm: 'max-w-6 max-h-6',
+  md: 'max-w-8 max-h-8',
+  lg: 'max-w-10 max-h-10',
 };
 
 export function AssetIcon({

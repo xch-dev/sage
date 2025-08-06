@@ -81,8 +81,7 @@ impl Wallet {
         actions.extend(offer.requested_payments().actions());
 
         // Add requested payments
-        self.select_spends(&mut ctx, &mut spends, vec![], &actions)
-            .await?;
+        self.select_spends(&mut ctx, &mut spends, &actions).await?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;
