@@ -26,13 +26,7 @@ import {
 import { toast } from 'react-toastify';
 import { NumberFormat } from './NumberFormat';
 
-// Add interface for option action handlers
-export interface OptionActionHandlers {
-  onExercise?: (option: OptionRecord) => void;
-  onTransfer?: (option: OptionRecord) => void;
-  onBurn?: (option: OptionRecord) => void;
-  onToggleVisibility?: (option: OptionRecord) => void;
-}
+import { OptionActionHandlers } from '@/hooks/useOptionActions';
 
 export const columns = (
   actionHandlers?: OptionActionHandlers,
