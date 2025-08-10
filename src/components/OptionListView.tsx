@@ -1,21 +1,35 @@
 import { OptionRecord } from '@/bindings';
+import { DataTable } from '@/components/ui/data-table';
+import { cn } from '@/lib/utils';
+import { t } from '@lingui/core/macro';
+import { columns, OptionActionHandlers } from './OptionColumns';
 
-interface OptionGridViewProps {
+interface OptionListViewProps {
   options: OptionRecord[];
   updateOptions: () => void;
   showHidden: boolean;
+  actionHandlers?: OptionActionHandlers;
 }
 
-export function OptionGridView({ options, showHidden }: OptionGridViewProps) {
-  const visibleOptions = showHidden
-    ? options
-    : options.filter((option) => option.visible);
-
+export function OptionListView({
+  options,
+  actionHandlers,
+}: OptionListViewProps) {
   return (
-    <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-      {visibleOptions.map((option) => (
-        <div key={option.launcher_id}>{option.name}</div>
-      ))}
+    <div role='region' aria-label={t`Option List`}>
+      <DataTable
+        columns={columns(actionHandlers)}
+        data={options}
+        aria-label={t`Option list`}
+        rowLabel={t`option`}
+        rowLabelPlural={t`options`}
+        getRowStyles={(row) => ({
+          className: cn(
+            !row.original.visible && 'opacity-50',
+            row.original.created_height === null && 'pulsate-opacity',
+          ),
+        })}
+      />
     </div>
   );
 }
