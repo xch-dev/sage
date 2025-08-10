@@ -18,7 +18,6 @@ import {
   Copy,
   EyeIcon,
   EyeOff,
-  FilePenLine,
   Flame,
   HandCoins,
   MoreHorizontal,
@@ -30,20 +29,6 @@ import { NumberFormat } from './NumberFormat';
 export const columns = (
   actionHandlers?: OptionActionHandlers,
 ): ColumnDef<OptionRecord>[] => [
-  {
-    id: 'icon',
-    enableSorting: false,
-    header: () => <span className='sr-only'>{t`Option Icon`}</span>,
-    size: 40,
-    cell: () => {
-      return (
-        <FilePenLine
-          className='h-5 w-5 text-muted-foreground ml-1'
-          aria-hidden='true'
-        />
-      );
-    },
-  },
   {
     accessorKey: 'name',
     header: () => <Trans>Name</Trans>,
