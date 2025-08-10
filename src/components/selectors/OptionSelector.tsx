@@ -36,7 +36,12 @@ export function OptionSelector({
 
   useEffect(() => {
     commands
-      .getOptions({})
+      .getOptions({
+        offset: 0,
+        limit: 1000, // Large limit to get all options for selector
+        find_value: null,
+        include_hidden: true,
+      })
       .then((data) => setOptions(data.options))
       .catch(addError);
   }, [addError]);

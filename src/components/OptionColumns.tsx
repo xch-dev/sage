@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { OptionActionHandlers } from '@/hooks/useOptionActions';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -25,8 +26,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { NumberFormat } from './NumberFormat';
-
-import { OptionActionHandlers } from '@/hooks/useOptionActions';
 
 export const columns = (
   actionHandlers?: OptionActionHandlers,

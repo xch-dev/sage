@@ -1,8 +1,9 @@
 import { OptionRecord } from '@/bindings';
 import { DataTable } from '@/components/ui/data-table';
+import { OptionActionHandlers } from '@/hooks/useOptionActions';
 import { cn } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { columns, OptionActionHandlers } from './OptionColumns';
+import { columns } from './OptionColumns';
 
 interface OptionListViewProps {
   options: OptionRecord[];
