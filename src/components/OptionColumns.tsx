@@ -7,7 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatTimestamp } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
@@ -24,6 +24,7 @@ import {
   SendIcon,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { NumberFormat } from './NumberFormat';
 
 // Add interface for option action handlers
 export interface OptionActionHandlers {
@@ -72,10 +73,20 @@ export const columns = (
       const asset = row.original.underlying_asset;
       return (
         <div className='flex items-center gap-2'>
-          <AssetIcon asset={asset} size='sm' />
-          <span className='text-sm'>
+          <AssetIcon asset={asset} size='md' />
+          <div className='text-sm text-muted-foreground truncate'>
+            {asset.kind === 'token' && (
+              <NumberFormat
+                value={fromMojos(
+                  row.original.underlying_amount,
+                  asset.precision,
+                )}
+                minimumFractionDigits={0}
+                maximumFractionDigits={asset.precision}
+              />
+            )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
-          </span>
+          </div>
         </div>
       );
     },
@@ -91,10 +102,17 @@ export const columns = (
       const asset = row.original.strike_asset;
       return (
         <div className='flex items-center gap-2'>
-          <AssetIcon asset={asset} size='sm' />
-          <span className='text-sm'>
+          <AssetIcon asset={asset} size='md' />
+          <div className='text-sm text-muted-foreground truncate'>
+            {asset.kind === 'token' && (
+              <NumberFormat
+                value={fromMojos(row.original.strike_amount, asset.precision)}
+                minimumFractionDigits={0}
+                maximumFractionDigits={asset.precision}
+              />
+            )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
-          </span>
+          </div>
         </div>
       );
     },
