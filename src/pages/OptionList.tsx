@@ -11,6 +11,7 @@ import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useOptionActions } from '@/hooks/useOptionActions';
 import { useOptionParams } from '@/hooks/useOptionParams';
+import { exportOptions } from '@/lib/exportOptions';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
 import { FilePenLine } from 'lucide-react';
@@ -109,9 +110,7 @@ export function OptionList() {
             setParams({ search: value, page: 1 });
           }}
           className='mb-4'
-          onExport={() => {
-            // TODO: Implement option export functionality
-          }}
+          onExport={() => exportOptions(options)}
         />
 
         {options.length === 0 && (
