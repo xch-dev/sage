@@ -438,6 +438,7 @@ impl Sage {
                 strike_amount: Amount::u64(row.strike_amount),
                 expiration_seconds: row.expiration_seconds,
                 created_height: row.coin_row.created_height,
+                created_timestamp: row.coin_row.created_timestamp,
             });
         }
 
@@ -468,6 +469,7 @@ impl Sage {
             strike_amount: Amount::u64(row.strike_amount),
             expiration_seconds: row.expiration_seconds,
             created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
         };
 
         Ok(GetOptionResponse {

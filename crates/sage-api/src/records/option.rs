@@ -17,4 +17,5 @@ pub struct OptionRecord {
     pub strike_amount: Amount,
     pub expiration_seconds: u64,
     pub created_height: Option<u32>,
+    pub created_timestamp: Option<u64>,
 }
