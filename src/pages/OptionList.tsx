@@ -2,6 +2,7 @@ import { commands, events, OptionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { OptionGridView } from '@/components/OptionGridView';
+import { OptionOptions } from '@/components/OptionOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -53,13 +54,25 @@ export function OptionList() {
   return (
     <>
       <Header title={t`Option Contracts`}>
-        <ReceiveAddress />
+        <div className='flex items-center gap-2'>
+          <ReceiveAddress />
+        </div>
       </Header>
       <Container>
-        <Button onClick={() => navigate('/options/mint')}>
+        <Button
+          aria-label={t`Mint new option`}
+          className='mb-4'
+          onClick={() => navigate('/options/mint')}
+        >
           <FilePenLine className='h-4 w-4 mr-2' />
           <Trans>Mint Option</Trans>
         </Button>
+
+        <OptionOptions
+          className='mb-4'
+          showHiddenOptions={showHidden}
+          setShowHiddenOptions={setShowHidden}
+        />
 
         {hasHiddenOptions && (
           <div className='flex items-center gap-2 my-4'>
