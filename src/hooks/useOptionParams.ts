@@ -1,3 +1,4 @@
+import { OptionSortMode } from '@/bindings';
 import { ViewMode } from '@/components/ViewToggle';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
@@ -5,27 +6,28 @@ import { useLocalStorage } from 'usehooks-ts';
 const OPTION_SORT_STORAGE_KEY = 'sage-wallet-option-sort';
 const OPTION_VIEW_MODE_STORAGE_KEY = 'sage-wallet-option-view-mode';
 const HIDDEN_OPTIONS_STORAGE_KEY = 'sage-wallet-show-hidden-options';
+const OPTION_ASCENDING_STORAGE_KEY = 'sage-wallet-option-ascending';
 
 export interface OptionParams {
   viewMode: ViewMode;
   sortMode: OptionSortMode;
+  ascending: boolean;
   showHiddenOptions: boolean;
   search: string;
+  page: number;
+  limit: number;
 }
 
-export enum OptionSortMode {
-  Name = 'name',
-  Balance = 'balance',
-}
-
-export function parseSortMode(view: string): OptionSortMode {
-  switch (view) {
+export function parseSortMode(mode: string): OptionSortMode {
+  switch (mode) {
     case 'name':
-      return OptionSortMode.Name;
-    case 'balance':
-      return OptionSortMode.Balance;
+      return 'name';
+    case 'created_height':
+      return 'created_height';
+    case 'expiration_seconds':
+      return 'expiration_seconds';
     default:
-      return OptionSortMode.Name;
+      return 'name';
   }
 }
 
@@ -34,9 +36,9 @@ export type SetOptionParams = (params: Partial<OptionParams>) => void;
 export function useOptionParams(): [OptionParams, SetOptionParams] {
   const [params, setParams] = useSearchParams();
 
-  const [storedTokenView, setStoredTokenView] = useLocalStorage<OptionSortMode>(
+  const [storedSortMode, setStoredSortMode] = useLocalStorage<OptionSortMode>(
     OPTION_SORT_STORAGE_KEY,
-    OptionSortMode.Name,
+    'name',
   );
 
   const [storedViewMode, setStoredViewMode] = useLocalStorage<ViewMode>(
@@ -47,19 +49,31 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
   const [storedShowHiddenOptions, setStoredShowHiddenOptions] =
     useLocalStorage<boolean>(HIDDEN_OPTIONS_STORAGE_KEY, false);
 
-  const sortMode = parseSortMode(params.get('sortMode') ?? storedTokenView);
+  const [storedAscending, setStoredAscending] = useLocalStorage<boolean>(
+    OPTION_ASCENDING_STORAGE_KEY,
+    true,
+  );
+
+  const sortMode = parseSortMode(params.get('sortMode') ?? storedSortMode);
+  const ascending =
+    (params.get('ascending') ?? storedAscending.toString()) === 'true';
   const showHiddenOptions =
-    (params.get('showHiddenOptions') ??
-      storedShowHiddenOptions.toString()) === 'true';
+    (params.get('showHiddenOptions') ?? storedShowHiddenOptions.toString()) ===
+    'true';
   const search = params.get('search') ?? '';
+  const page = parseInt(params.get('page') ?? '1', 10);
+  const limit = parseInt(params.get('limit') ?? '20', 10);
 
   const viewMode = (params.get('viewMode') as ViewMode) ?? storedViewMode;
 
   const updateParams = ({
     sortMode,
+    ascending,
     showHiddenOptions,
     search,
     viewMode,
+    page,
+    limit,
   }: Partial<OptionParams>) => {
     setParams(
       (prev) => {
@@ -67,7 +81,12 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
 
         if (sortMode !== undefined) {
           next.set('sortMode', sortMode);
-          setStoredTokenView(sortMode);
+          setStoredSortMode(sortMode);
+        }
+
+        if (ascending !== undefined) {
+          next.set('ascending', ascending.toString());
+          setStoredAscending(ascending);
         }
 
         if (showHiddenOptions !== undefined) {
@@ -88,6 +107,14 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
           setStoredViewMode(viewMode);
         }
 
+        if (page !== undefined) {
+          next.set('page', page.toString());
+        }
+
+        if (limit !== undefined) {
+          next.set('limit', limit.toString());
+        }
+
         return next;
       },
       { replace: true },
@@ -98,8 +125,11 @@ export function useOptionParams(): [OptionParams, SetOptionParams] {
     {
       viewMode,
       sortMode,
+      ascending,
       showHiddenOptions,
       search,
+      page,
+      limit,
     },
     updateParams,
   ];

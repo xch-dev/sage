@@ -93,6 +93,13 @@ function OptionCard({ option, updateOptions }: OptionCardProps) {
   const [isBurning, setIsBurning] = useState(false);
   const [transferAddress, setTransferAddress] = useState('');
 
+  const toggleVisibility = () => {
+    commands
+      .updateOption({ option_id: option.launcher_id, visible: !option.visible })
+      .then(updateOptions)
+      .catch(addError);
+  };
+
   const onExerciseSubmit = (fee: string) => {
     setIsExercising(true);
     commands
@@ -222,8 +229,13 @@ function OptionCard({ option, updateOptions }: OptionCardProps) {
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    // toggleVisibility();
+                    toggleVisibility();
                   }}
+                  aria-label={
+                    option.visible
+                      ? t`Hide ${option.name || 'Unknown Option'}`
+                      : t`Show ${option.name || 'Unknown Option'}`
+                  }
                 >
                   {option.visible ? (
                     <EyeOff className='mr-2 h-4 w-4' />
@@ -382,8 +394,8 @@ function OptionAssetPreview({
     <div className='flex flex-col gap-1'>
       <div className='text-sm font-medium text-muted-foreground'>
         {asset === option.underlying_asset
-          ? 'Underlying Asset'
-          : 'Strike Price'}
+          ? t`Underlying Asset`
+          : t`Strike Price`}
       </div>
       <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
         <AssetIcon asset={asset} size='md' />

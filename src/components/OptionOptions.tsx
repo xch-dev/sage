@@ -1,9 +1,9 @@
+import { OptionSortMode } from '@/bindings';
 import { useDebounce } from '@/hooks/useDebounce';
-import { OptionSortMode } from '@/hooks/useOptionParams';
 import { t } from '@lingui/core/macro';
 import {
-  ArrowDownAz,
-  ArrowUpAz,
+  ArrowDown,
+  ArrowUp,
   Download,
   Eye,
   EyeOff,
@@ -22,16 +22,18 @@ import {
 import { Input } from './ui/input';
 import { ViewMode, ViewToggle } from './ViewToggle';
 
-interface TokenOptionsProps {
+interface OptionOptionsProps {
   query: string;
   setQuery: (query: string) => void;
   viewMode: ViewMode;
   setViewMode: (view: ViewMode) => void;
   sortMode: OptionSortMode;
   setSortMode: (mode: OptionSortMode) => void;
+  ascending: boolean;
+  setAscending: (ascending: boolean) => void;
   showHiddenOptions: boolean;
-  handleSearch: (value: string) => void;
   setShowHiddenOptions: (show: boolean) => void;
+  handleSearch: (value: string) => void;
   className?: string;
   onExport?: () => void;
 }
@@ -43,12 +45,14 @@ export function OptionOptions({
   setViewMode,
   sortMode,
   setSortMode,
+  ascending,
+  setAscending,
   showHiddenOptions,
   setShowHiddenOptions,
   handleSearch,
   className,
   onExport,
-}: TokenOptionsProps) {
+}: OptionOptionsProps) {
   const [searchValue, setSearchValue] = useState(query);
   const debouncedSearch = useDebounce(searchValue);
 
@@ -144,22 +148,35 @@ export function OptionOptions({
               </DropdownMenuItem>
               <DropdownMenuItem
                 className='cursor-pointer'
-                onClick={() =>
-                  setSortMode(
-                    sortMode === OptionSortMode.Name
-                      ? OptionSortMode.Balance
-                      : OptionSortMode.Name,
-                  )
-                }
+                onClick={() => setSortMode('name')}
               >
-                {sortMode === OptionSortMode.Name ? (
-                  <ArrowDownAz className='mr-2 h-4 w-4' aria-hidden='true' />
+                {sortMode === 'name' ? '✓ ' : '  '}
+                {t`Sort by Name`}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() => setSortMode('created_height')}
+              >
+                {sortMode === 'created_height' ? '✓ ' : '  '}
+                {t`Sort by Recent`}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() => setSortMode('expiration_seconds')}
+              >
+                {sortMode === 'expiration_seconds' ? '✓ ' : '  '}
+                {t`Sort by Expiration`}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() => setAscending(!ascending)}
+              >
+                {ascending ? (
+                  <ArrowUp className='mr-2 h-4 w-4' aria-hidden='true' />
                 ) : (
-                  <ArrowUpAz className='mr-2 h-4 w-4' aria-hidden='true' />
+                  <ArrowDown className='mr-2 h-4 w-4' aria-hidden='true' />
                 )}
-                {sortMode === OptionSortMode.Name
-                  ? t`Sort by Balance (USD)`
-                  : t`Sort by Name`}
+                {ascending ? t`Ascending` : t`Descending`}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

@@ -263,6 +263,9 @@ async resyncCat(req: ResyncCat) : Promise<ResyncCatResponse> {
 async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
     return await TAURI_INVOKE("update_did", { req });
 },
+async updateOption(req: UpdateOption) : Promise<UpdateOptionResponse> {
+    return await TAURI_INVOKE("update_option", { req });
+},
 async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
     return await TAURI_INVOKE("update_nft", { req });
 },
@@ -459,8 +462,8 @@ export type GetOffers = Record<string, never>
 export type GetOffersResponse = { offers: OfferRecord[] }
 export type GetOption = { option_id: string }
 export type GetOptionResponse = { option: OptionRecord | null }
-export type GetOptions = Record<string, never>
-export type GetOptionsResponse = { options: OptionRecord[] }
+export type GetOptions = { offset: number; limit: number; sort_mode?: OptionSortMode; ascending?: boolean; find_value: string | null; include_hidden?: boolean }
+export type GetOptionsResponse = { options: OptionRecord[]; total: number }
 export type GetPeers = Record<string, never>
 export type GetPeersResponse = { peers: PeerRecord[] }
 export type GetPendingTransactions = Record<string, never>
@@ -518,6 +521,7 @@ export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 export type OptionAsset = { asset_id: string | null; amount: Amount }
 export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null }
+export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type PerformDatabaseMaintenance = { force_vacuum: boolean }
@@ -576,6 +580,8 @@ export type UpdateNft = { nft_id: string; visible: boolean }
 export type UpdateNftCollection = { collection_id: string; visible: boolean }
 export type UpdateNftCollectionResponse = Record<string, never>
 export type UpdateNftResponse = Record<string, never>
+export type UpdateOption = { option_id: string; visible: boolean }
+export type UpdateOptionResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
