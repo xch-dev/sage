@@ -5,7 +5,6 @@ import { NumberFormat } from '@/components/NumberFormat';
 import { formatAddress, fromMojos, getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-
 import { toast } from 'react-toastify';
 
 interface AssetCoinProps {

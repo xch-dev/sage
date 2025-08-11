@@ -1,7 +1,7 @@
 import { commands, events, OptionRecord } from '@/bindings';
+import { AddressItem } from '@/components/AddressItem';
 import { AssetCoin } from '@/components/AssetCoin';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,6 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { AlertCircle, Calendar, Clock, FilePenLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
 export default function Option() {
   const { option_id: optionId } = useParams();
@@ -221,40 +220,12 @@ export default function Option() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div>
-                  <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
-                    <Trans>Option ID</Trans>
-                  </h6>
-
-                  <CopyBox
-                    title={t`Option ID`}
-                    value={option.launcher_id}
-                    onCopy={() =>
-                      toast.success(t`Option ID copied to clipboard`)
-                    }
-                  />
-                </div>
-                <div>
-                  <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
-                    <Trans>Coin ID</Trans>
-                  </h6>
-                  <CopyBox
-                    title={t`Coin ID`}
-                    value={option.coin_id}
-                    onCopy={() => toast.success(t`Coin ID copied to clipboard`)}
-                  />
-                </div>
-
-                <div>
-                  <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
-                    <Trans>Address</Trans>
-                  </h6>
-                  <CopyBox
-                    title={t`Address`}
-                    value={option.address}
-                    onCopy={() => toast.success(t`Address copied to clipboard`)}
-                  />
-                </div>
+                <AddressItem
+                  label={t`Option ID`}
+                  address={option.launcher_id}
+                />
+                <AddressItem label={t`Coin ID`} address={option.coin_id} />
+                <AddressItem label={t`Address`} address={option.address} />
               </CardContent>
             </Card>
 
