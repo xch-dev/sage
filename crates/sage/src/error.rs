@@ -142,6 +142,9 @@ pub enum Error {
     #[error("Invalid NFT id: {0}")]
     InvalidNftId(String),
 
+    #[error("Invalid option contract id: {0}")]
+    InvalidOptionId(String),
+
     #[error("Invalid collection id: {0}")]
     InvalidCollectionId(String),
 
@@ -178,6 +181,9 @@ pub enum Error {
     #[error("Missing NFT: {0}")]
     MissingNft(Bytes32),
 
+    #[error("Missing option: {0}")]
+    MissingOption(Bytes32),
+
     #[error("Missing CAT coin: {0}")]
     MissingCatCoin(Bytes32),
 
@@ -201,6 +207,9 @@ pub enum Error {
 
     #[error("Could not fetch NFT with id: {0}")]
     CouldNotFetchNft(Bytes32),
+
+    #[error("Could not fetch option with id: {0}")]
+    CouldNotFetchOption(Bytes32),
 
     #[error("CLVM eval error: {0}")]
     Eval(#[from] EvalErr),
@@ -258,6 +267,7 @@ impl Error {
             | Self::MissingCat(..)
             | Self::MissingDid(..)
             | Self::MissingNft(..)
+            | Self::MissingOption(..)
             | Self::MissingOffer(..) => ErrorKind::NotFound,
             Self::Bls(..)
             | Self::Hex(..)
@@ -271,6 +281,7 @@ impl Error {
             | Self::Address(..)
             | Self::InvalidDidId(..)
             | Self::InvalidNftId(..)
+            | Self::InvalidOptionId(..)
             | Self::InvalidCollectionId(..)
             | Self::InvalidCoinId(..)
             | Self::InvalidHash(..)
@@ -284,6 +295,7 @@ impl Error {
             | Self::IpAddrParse(..)
             | Self::NoPeers
             | Self::CouldNotFetchNft(..)
+            | Self::CouldNotFetchOption(..)
             | Self::MissingAssetId
             | Self::InvalidGroup => ErrorKind::Api,
         }

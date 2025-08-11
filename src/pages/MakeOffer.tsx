@@ -33,8 +33,6 @@ export function MakeOffer() {
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
-  const [hasOfferedXchAdded, setHasOfferedXchAdded] = useState(false);
-  const [hasRequestedXchAdded, setHasRequestedXchAdded] = useState(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -52,7 +50,7 @@ export function MakeOffer() {
       }
     }
 
-    for (const cat of [...state.offered.cats, ...state.requested.cats]) {
+    for (const cat of [...state.offered.tokens, ...state.requested.tokens]) {
       const amount = parseFloat(cat.amount?.toString() || '');
 
       if (isNaN(amount) || amount <= 0) {
@@ -64,47 +62,16 @@ export function MakeOffer() {
       }
     }
 
-    // Check if XCH amounts are valid (positive numbers)
-    const hasOfferedXchValid =
-      hasOfferedXchAdded &&
-      state.offered.xch !== '0' &&
-      !isNaN(parseFloat(String(state.offered.xch))) &&
-      parseFloat(String(state.offered.xch)) > 0;
-    const hasRequestedXchValid =
-      hasRequestedXchAdded &&
-      state.requested.xch !== '0' &&
-      !isNaN(parseFloat(String(state.requested.xch))) &&
-      parseFloat(String(state.requested.xch)) > 0;
-
-    // Validate XCH amounts if they've been added
-    if (hasOfferedXchAdded && !hasOfferedXchValid) {
-      addError({
-        kind: 'invalid',
-        reason: t`Offered ${walletState.sync.unit.ticker} amount must be a positive number.`,
-      });
-      return;
-    }
-
-    if (hasRequestedXchAdded && !hasRequestedXchValid) {
-      addError({
-        kind: 'invalid',
-        reason: t`Requested ${walletState.sync.unit.ticker} amount must be a positive number.`,
-      });
-      return;
-    }
-
-    const hasOfferedCats = state.offered.cats.length > 0;
+    const hasOfferedTokens = state.offered.tokens.length > 0;
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
-    const hasRequestedCats = state.requested.cats.length > 0;
+    const hasRequestedTokens = state.requested.tokens.length > 0;
     const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
 
     if (
       !(
-        hasOfferedXchValid ||
-        hasOfferedCats ||
+        hasOfferedTokens ||
         hasOfferedNfts ||
-        hasRequestedXchValid ||
-        hasRequestedCats ||
+        hasRequestedTokens ||
         hasRequestedNfts
       )
     ) {
@@ -158,7 +125,6 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
-                onXchStateChange={setHasOfferedXchAdded}
               />
             </CardContent>
           </Card>
@@ -181,7 +147,6 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ requested: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
-                onXchStateChange={setHasRequestedXchAdded}
               />
             </CardContent>
           </Card>

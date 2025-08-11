@@ -128,7 +128,7 @@ export function ProfileCard({
       .transferDids({
         did_ids: [didRecord.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -146,7 +146,7 @@ export function ProfileCard({
       .transferDids({
         did_ids: [didRecord.launcher_id],
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -163,7 +163,7 @@ export function ProfileCard({
     commands
       .normalizeDids({
         did_ids: [didRecord.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {

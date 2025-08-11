@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                underlying_assets.kind, underlying_assets.id\n            FROM coins\n            INNER JOIN p2_options ON p2_options.p2_puzzle_id = coins.p2_puzzle_id\n            INNER JOIN assets AS option_assets ON option_assets.id = p2_options.option_asset_id\n            INNER JOIN assets AS underlying_assets ON underlying_assets.id = coins.asset_id\n            WHERE option_assets.hash = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "kind",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "id",
+        "ordinal": 1,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "703c7ec04cb4cbde5c42af745acdf6ea511fe10041fda1246d71ca359b2ac4a7"
+}

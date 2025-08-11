@@ -5,14 +5,13 @@ use chia_wallet_sdk::{
     signer::AggSigConstants,
     utils::Address,
 };
-use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
     GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
-    OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer,
+    TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
@@ -26,7 +25,7 @@ use tracing::debug;
 
 use crate::{
     extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_nft_id,
-    parse_offer_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
+    parse_offer_id, parse_option_id, ConfirmationInfo, Error, ExtractedNftData, Result, Sage,
 };
 
 #[derive(Debug, Clone)]
@@ -42,53 +41,96 @@ impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
-        let offered = Offered {
-            xch: parse_amount(req.offered_assets.xch)?,
-            cats: req
-                .offered_assets
-                .cats
-                .into_iter()
-                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
-                .collect::<Result<_>>()?,
-            nfts: req
-                .offered_assets
-                .nfts
-                .into_iter()
-                .map(parse_nft_id)
-                .collect::<Result<_>>()?,
+        let mut offered = Offered {
             fee: parse_amount(req.fee)?,
             p2_puzzle_hash: req
                 .receive_address
                 .map(|address| self.parse_address(address))
                 .transpose()?,
+            ..Default::default()
         };
 
-        let mut requested = Requested {
-            xch: parse_amount(req.requested_assets.xch)?,
-            cats: req
-                .requested_assets
-                .cats
-                .into_iter()
-                .map(|cat| Ok((parse_asset_id(cat.asset_id)?, parse_amount(cat.amount)?)))
-                .collect::<Result<_>>()?,
-            nfts: IndexMap::new(),
-        };
+        for OfferAmount {
+            asset_id,
+            amount: raw_amount,
+        } in req.offered_assets
+        {
+            let amount = parse_amount(raw_amount.clone())?;
 
+            if let Some(asset_id) = asset_id {
+                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
+                    *offered.cats.entry(asset_id).or_insert(0) += amount;
+                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    offered.nfts.push(nft_id);
+                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    offered.options.push(option_id);
+                } else {
+                    return Err(Error::InvalidAssetId(asset_id));
+                }
+            } else {
+                offered.xch += amount;
+            }
+        }
+
+        let mut requested = Requested::default();
         let mut peer = None;
 
-        for nft_id in req.requested_assets.nfts {
-            if peer.is_none() {
-                peer = self.peer_state.lock().await.acquire_peer();
+        for OfferAmount {
+            asset_id,
+            amount: raw_amount,
+        } in req.requested_assets
+        {
+            let amount = parse_amount(raw_amount.clone())?;
+
+            if let Some(asset_id) = asset_id {
+                if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
+                    *requested.cats.entry(asset_id).or_insert(0) += amount;
+                } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+
+                    if peer.is_none() {
+                        peer = self.peer_state.lock().await.acquire_peer();
+                    }
+
+                    let Some(requested_nft) =
+                        wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
+                    else {
+                        return Err(Error::CouldNotFetchNft(nft_id));
+                    };
+
+                    requested.nfts.insert(nft_id, requested_nft);
+                } else if let Ok(option_id) = parse_option_id(asset_id.clone()) {
+                    if amount != 1 {
+                        return Err(Error::InvalidAmount(raw_amount.to_string()));
+                    }
+                    if peer.is_none() {
+                        peer = self.peer_state.lock().await.acquire_peer();
+                    }
+
+                    let Some(requested_option) = wallet
+                        .fetch_offer_option_info(peer.as_ref(), option_id)
+                        .await?
+                    else {
+                        return Err(Error::CouldNotFetchOption(option_id));
+                    };
+
+                    requested.options.insert(option_id, requested_option);
+                } else {
+                    return Err(Error::InvalidAssetId(asset_id));
+                }
+            } else {
+                requested.xch += amount;
             }
-
-            let nft_id = parse_nft_id(nft_id)?;
-
-            let Some(requested_nft) = wallet.fetch_offer_nft_info(peer.as_ref(), nft_id).await?
-            else {
-                return Err(Error::CouldNotFetchNft(nft_id));
-            };
-
-            requested.nfts.insert(nft_id, requested_nft);
         }
 
         let unsigned = wallet
@@ -224,6 +266,7 @@ impl Sage {
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
+        let mut option_rows = Vec::new();
 
         for (asset_id, amount) in offered_amounts.cats {
             cat_rows.push(AssetToOffer {
@@ -272,6 +315,16 @@ impl Sage {
                 asset_id: nft.info.launcher_id,
                 amount: nft.coin.amount,
                 royalty: nft.info.royalty_basis_points as u64,
+            });
+        }
+
+        for option in offer.offered_coins().options.values() {
+            option_rows.push(AssetToOffer {
+                offer_id,
+                is_requested: false,
+                asset_id: option.info.launcher_id,
+                amount: option.coin.amount,
+                royalty: 0,
             });
         }
 
@@ -344,8 +397,20 @@ impl Sage {
                 offer_id,
                 is_requested: true,
                 asset_id: launcher_id,
-                amount: 0, // TODO is this right?
+                amount: 0,
                 royalty: nft.royalty_basis_points as u64,
+            });
+        }
+
+        for &launcher_id in offer.requested_payments().options.keys() {
+            self.cache_option(launcher_id).await?;
+
+            nft_rows.push(AssetToOffer {
+                offer_id,
+                is_requested: true,
+                asset_id: launcher_id,
+                amount: 0,
+                royalty: 0,
             });
         }
 
@@ -409,6 +474,17 @@ impl Sage {
         }
 
         for row in nft_rows {
+            tx.insert_offer_asset(
+                row.offer_id,
+                row.asset_id,
+                row.amount,
+                row.royalty,
+                row.is_requested,
+            )
+            .await?;
+        }
+
+        for row in option_rows {
             tx.insert_offer_asset(
                 row.offer_id,
                 row.asset_id,

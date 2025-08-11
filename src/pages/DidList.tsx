@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 export function DidList() {
   const navigate = useNavigate();
   const { dids, updateDids } = useDids();
-  const didsCount = dids.length;
+
   const [showHidden, setShowHidden] = useState(false);
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
@@ -45,7 +45,7 @@ export function DidList() {
           </div>
         )}
 
-        {didsCount === 0 && (
+        {dids.length === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>
@@ -53,8 +53,8 @@ export function DidList() {
             </AlertTitle>
             <AlertDescription>
               <Plural
-                value={didsCount}
-                one='You do not currently have a DID profile. Would you like to create one?'
+                value={dids.length}
+                one='You do not currently have any DID profile. Would you like to create one?'
                 other='You do not currently have any DID profiles. Would you like to create one?'
               />
             </AlertDescription>

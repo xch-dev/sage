@@ -271,6 +271,41 @@ export function calculateTransaction(
         }
       }
     }
+
+    if (input.asset?.kind === 'option') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'Option',
+          label: input.asset.name ?? t`Untitled`,
+          coinId: input.coin_id,
+          sort: 5,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
+          created.push({
+            badge: 'Option',
+            label: input.asset.name ?? t`Untitled`,
+            address: output.burning
+              ? t`Permanently Burned`
+              : output.receiving
+                ? t`You`
+                : output.address,
+            sort: 5,
+          });
+        }
+      }
+    }
   }
   return { spent, created };
 }

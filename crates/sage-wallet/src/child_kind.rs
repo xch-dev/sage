@@ -6,7 +6,10 @@ use chia::{
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{Cat, CatInfo, ClawbackV2, Did, DidInfo, Nft, Puzzle, SingletonInfo},
+    driver::{
+        Cat, CatInfo, ClawbackV2, Did, DidInfo, Nft, OptionContract, OptionInfo, Puzzle,
+        SingletonInfo,
+    },
     prelude::CreateCoin,
     types::{run_puzzle, Condition},
 };
@@ -38,6 +41,11 @@ pub enum ChildKind {
         info: SerializedNftInfo,
         lineage_proof: LineageProof,
         metadata: Option<NftMetadata>,
+        clawback: Option<ClawbackV2>,
+    },
+    Option {
+        info: OptionInfo,
+        lineage_proof: LineageProof,
         clawback: Option<ClawbackV2>,
     },
 }
@@ -270,6 +278,48 @@ impl ChildKind {
                 // If the coin is not a DID coin, continue parsing.
                 Ok(None) => {}
             }
+
+            match OptionContract::parse_child(
+                allocator,
+                parent_coin,
+                parent_puzzle,
+                parent_solution,
+            ) {
+                // If there was an error parsing the option contract, we can exit early.
+                Err(error) => {
+                    warn!("Invalid option contract: {}", error);
+                    return Ok(Self::Unknown);
+                }
+
+                // If the coin is an option contract, return the relevant information.
+                Ok(Some(option)) => {
+                    if option.coin != coin {
+                        warn!(
+                            "Option contract coin {:?} does not match expected coin {:?}",
+                            option.coin, coin
+                        );
+                        return Ok(Self::Unknown);
+                    }
+
+                    // We don't support parsing eve option contracts during syncing.
+                    let Proof::Lineage(lineage_proof) = option.proof else {
+                        return Ok(Self::Unknown);
+                    };
+
+                    let clawback = parse_clawback_unchecked(allocator, &create_coin, true).filter(
+                        |clawback| clawback.tree_hash() == option.info.p2_puzzle_hash.into(),
+                    );
+
+                    return Ok(Self::Option {
+                        lineage_proof,
+                        info: option.info,
+                        clawback,
+                    });
+                }
+
+                // If the coin is not an option contract, continue parsing.
+                Ok(None) => {}
+            }
         }
 
         if let Some(clawback) = parse_clawback_unchecked(allocator, &create_coin, false)
@@ -286,18 +336,28 @@ impl ChildKind {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
-            Self::Cat { info, clawback, .. } => clawback
-                .map_or(vec![info.p2_puzzle_hash], |clawback| {
-                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
-                }),
-            Self::Did { info, clawback, .. } => clawback
-                .map_or(vec![info.p2_puzzle_hash], |clawback| {
-                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
-                }),
-            Self::Nft { info, clawback, .. } => clawback
-                .map_or(vec![info.p2_puzzle_hash], |clawback| {
-                    vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
-                }),
+            Self::Cat {
+                info: CatInfo { p2_puzzle_hash, .. },
+                clawback,
+                ..
+            }
+            | Self::Did {
+                info: SerializedDidInfo { p2_puzzle_hash, .. },
+                clawback,
+                ..
+            }
+            | Self::Nft {
+                info: SerializedNftInfo { p2_puzzle_hash, .. },
+                clawback,
+                ..
+            }
+            | Self::Option {
+                info: OptionInfo { p2_puzzle_hash, .. },
+                clawback,
+                ..
+            } => clawback.map_or(vec![*p2_puzzle_hash], |clawback| {
+                vec![clawback.sender_puzzle_hash, clawback.receiver_puzzle_hash]
+            }),
         }
     }
 
@@ -317,13 +377,21 @@ impl ChildKind {
                 .map_or(Some(info.p2_puzzle_hash), |clawback| {
                     Some(clawback.receiver_puzzle_hash)
                 }),
+            Self::Option { info, clawback, .. } => clawback
+                .map_or(Some(info.p2_puzzle_hash), |clawback| {
+                    Some(clawback.receiver_puzzle_hash)
+                }),
         }
     }
 
     pub fn subscribe(&self) -> bool {
         matches!(
             self,
-            Self::Clawback { .. } | Self::Cat { .. } | Self::Did { .. } | Self::Nft { .. }
+            Self::Clawback { .. }
+                | Self::Cat { .. }
+                | Self::Did { .. }
+                | Self::Nft { .. }
+                | Self::Option { .. }
         )
     }
 }

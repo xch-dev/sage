@@ -8,6 +8,7 @@ pub enum AssetKind {
     Token,
     Nft,
     Did,
+    Option,
 }
 
 impl Convert<AssetKind> for i64 {
@@ -16,6 +17,7 @@ impl Convert<AssetKind> for i64 {
             0 => AssetKind::Token,
             1 => AssetKind::Nft,
             2 => AssetKind::Did,
+            3 => AssetKind::Option,
             _ => return Err(DatabaseError::InvalidEnumVariant),
         })
     }
@@ -86,39 +88,22 @@ impl Database {
     }
 
     pub async fn asset(&self, hash: Bytes32) -> Result<Option<Asset>> {
-        let hash = hash.as_ref();
+        asset(&self.pool, hash).await
+    }
 
-        query!(
-            "
-            SELECT
-                hash, kind, name, ticker, precision, icon_url, description,
-                is_sensitive_content, is_visible, hidden_puzzle_hash
-            FROM assets
-            WHERE hash = ?
-            ",
-            hash
-        )
-        .fetch_optional(&self.pool)
-        .await?
-        .map(|row| {
-            Ok(Asset {
-                hash: row.hash.convert()?,
-                kind: row.kind.convert()?,
-                name: row.name,
-                ticker: row.ticker,
-                precision: row.precision.convert()?,
-                icon_url: row.icon_url,
-                description: row.description,
-                is_sensitive_content: row.is_sensitive_content,
-                is_visible: row.is_visible,
-                hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
-            })
-        })
-        .transpose()
+    pub async fn existing_hidden_puzzle_hash(
+        &self,
+        asset_hash: Bytes32,
+    ) -> Result<Option<Option<Bytes32>>> {
+        existing_hidden_puzzle_hash(&self.pool, asset_hash).await
     }
 }
 
 impl DatabaseTx<'_> {
+    pub async fn asset(&mut self, hash: Bytes32) -> Result<Option<Asset>> {
+        asset(&mut *self.tx, hash).await
+    }
+
     pub async fn insert_asset(&mut self, asset: Asset) -> Result<()> {
         insert_asset(&mut *self.tx, asset).await?;
 
@@ -150,19 +135,7 @@ impl DatabaseTx<'_> {
         &mut self,
         asset_hash: Bytes32,
     ) -> Result<Option<Option<Bytes32>>> {
-        let asset_hash = asset_hash.as_ref();
-
-        query!(
-            "
-            SELECT hidden_puzzle_hash FROM assets WHERE hash = ?
-            AND EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)
-            ",
-            asset_hash
-        )
-        .fetch_optional(&mut *self.tx)
-        .await?
-        .map(|row| row.hidden_puzzle_hash.convert())
-        .transpose()
+        existing_hidden_puzzle_hash(&mut *self.tx, asset_hash).await
     }
 
     pub async fn delete_asset_coins(&mut self, asset_hash: Bytes32) -> Result<()> {
@@ -213,4 +186,55 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
     .await?;
 
     Ok(())
+}
+
+async fn existing_hidden_puzzle_hash(
+    conn: impl SqliteExecutor<'_>,
+    asset_hash: Bytes32,
+) -> Result<Option<Option<Bytes32>>> {
+    let asset_hash = asset_hash.as_ref();
+
+    query!(
+        "
+        SELECT hidden_puzzle_hash FROM assets WHERE hash = ?
+        AND EXISTS (SELECT 1 FROM coins WHERE coins.asset_id = assets.id)
+        ",
+        asset_hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| row.hidden_puzzle_hash.convert())
+    .transpose()
+}
+
+async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Asset>> {
+    let hash = hash.as_ref();
+
+    query!(
+        "
+        SELECT
+            hash, kind, name, ticker, precision, icon_url, description,
+            is_sensitive_content, is_visible, hidden_puzzle_hash
+        FROM assets
+        WHERE hash = ?
+        ",
+        hash
+    )
+    .fetch_optional(conn)
+    .await?
+    .map(|row| {
+        Ok(Asset {
+            hash: row.hash.convert()?,
+            kind: row.kind.convert()?,
+            name: row.name,
+            ticker: row.ticker,
+            precision: row.precision.convert()?,
+            icon_url: row.icon_url,
+            description: row.description,
+            is_sensitive_content: row.is_sensitive_content,
+            is_visible: row.is_visible,
+            hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
+        })
+    })
+    .transpose()
 }

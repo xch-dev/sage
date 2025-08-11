@@ -22,4 +22,5 @@ pub enum AssetKind {
     Token,
     Nft,
     Did,
+    Option,
 }

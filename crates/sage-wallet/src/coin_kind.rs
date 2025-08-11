@@ -4,7 +4,7 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{CatInfo, DidInfo, NftInfo, Puzzle};
+use chia_wallet_sdk::driver::{CatInfo, DidInfo, NftInfo, OptionInfo, Puzzle};
 use clvmr::Allocator;
 use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
 use tracing::{debug_span, warn};
@@ -25,6 +25,9 @@ pub enum CoinKind {
     Nft {
         info: SerializedNftInfo,
         metadata: Option<NftMetadata>,
+    },
+    Option {
+        info: OptionInfo,
     },
 }
 
@@ -98,6 +101,22 @@ impl CoinKind {
             }
 
             // If the coin is not a DID coin, continue parsing.
+            Ok(None) => {}
+        }
+
+        match OptionInfo::parse(allocator, puzzle) {
+            // If there was an error parsing the option contract, we can exit early.
+            Err(error) => {
+                warn!("Invalid option contract: {}", error);
+                return Ok(Self::Unknown);
+            }
+
+            // If the coin is an option contract coin, return the relevant information.
+            Ok(Some((option, _inner_puzzle))) => {
+                return Ok(Self::Option { info: option });
+            }
+
+            // If the coin is not an option contract coin, continue parsing.
             Ok(None) => {}
         }
 

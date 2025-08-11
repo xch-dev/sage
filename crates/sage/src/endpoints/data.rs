@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result,
-    Sage,
+    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
+    Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -19,11 +19,12 @@ use sage_api::{
     GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
     GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetProfile,
-    GetProfileResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetToken, GetTokenResponse, GetTransaction, GetTransactionResponse,
-    GetTransactions, GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord,
-    NftData, NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord,
+    GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetProfile, GetProfileResponse,
+    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetToken, GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, PendingTransactionRecord,
     PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
     TransactionCoinRecord, TransactionRecord,
 };
@@ -419,6 +420,63 @@ impl Sage {
             .collect();
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
+    }
+
+    pub async fn get_options(&self, _req: GetOptions) -> Result<GetOptionsResponse> {
+        let wallet = self.wallet()?;
+
+        let mut options = Vec::new();
+
+        for row in wallet.db.owned_options().await? {
+            options.push(OptionRecord {
+                launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
+                name: row.asset.name,
+                visible: row.asset.is_visible,
+                coin_id: hex::encode(row.coin_row.coin.coin_id()),
+                address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix())
+                    .encode()?,
+                amount: Amount::u64(row.coin_row.coin.amount),
+                underlying_asset: self.encode_asset(row.underlying_asset)?,
+                underlying_amount: Amount::u64(row.underlying_amount),
+                strike_asset: self.encode_asset(row.strike_asset)?,
+                strike_amount: Amount::u64(row.strike_amount),
+                expiration_seconds: row.expiration_seconds,
+                created_height: row.coin_row.created_height,
+            });
+        }
+
+        Ok(GetOptionsResponse { options })
+    }
+
+    pub async fn get_option(&self, req: GetOption) -> Result<GetOptionResponse> {
+        let wallet = self.wallet()?;
+
+        let Some(row) = wallet
+            .db
+            .owned_option(parse_option_id(req.option_id)?)
+            .await?
+        else {
+            return Ok(GetOptionResponse { option: None });
+        };
+
+        let option = OptionRecord {
+            launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
+            name: row.asset.name,
+            visible: row.asset.is_visible,
+            coin_id: hex::encode(row.coin_row.coin.coin_id()),
+            address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix()).encode()?,
+            amount: Amount::u64(row.coin_row.coin.amount),
+            underlying_asset: self.encode_asset(row.underlying_asset)?,
+            underlying_amount: Amount::u64(row.underlying_amount),
+            strike_asset: self.encode_asset(row.strike_asset)?,
+            strike_amount: Amount::u64(row.strike_amount),
+            expiration_seconds: row.expiration_seconds,
+            created_height: row.coin_row.created_height,
+        };
+
+        Ok(GetOptionResponse {
+            option: Some(option),
+        })
     }
 
     pub async fn get_pending_transactions(

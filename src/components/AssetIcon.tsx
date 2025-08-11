@@ -1,5 +1,5 @@
 import { AssetKind } from '@/bindings';
-import { Coins, Image, UndoDot, User } from 'lucide-react';
+import { Coins, FilePenLine, Image, UndoDot, User } from 'lucide-react';
 
 export interface AssetIconProps {
   asset: {
@@ -48,6 +48,8 @@ export function AssetIcon({
     )
   ) : asset.kind === 'nft' ? (
     <Image className={`${iconClasses} ${className}`} aria-hidden='true' />
+  ) : asset.kind === 'option' ? (
+    <FilePenLine className={`${iconClasses} ${className}`} aria-hidden='true' />
   ) : (
     <User className={`${iconClasses} ${className}`} aria-hidden='true' />
   );

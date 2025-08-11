@@ -53,6 +53,16 @@ pub fn parse_nft_id(input: String) -> Result<Bytes32> {
     Ok(address.puzzle_hash)
 }
 
+pub fn parse_option_id(input: String) -> Result<Bytes32> {
+    let address = Address::decode(&input)?;
+
+    if address.prefix != "option" {
+        return Err(Error::InvalidOptionId(input));
+    }
+
+    Ok(address.puzzle_hash)
+}
+
 pub fn parse_collection_id(input: String) -> Result<Bytes32> {
     let address = Address::decode(&input)?;
 

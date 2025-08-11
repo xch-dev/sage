@@ -7,8 +7,8 @@ use super::TransactionResponse;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct MakeOffer {
-    pub requested_assets: Assets,
-    pub offered_assets: Assets,
+    pub requested_assets: Vec<OfferAmount>,
+    pub offered_assets: Vec<OfferAmount>,
     pub fee: Amount,
     #[serde(default)]
     pub receive_address: Option<String>,
@@ -20,10 +20,9 @@ pub struct MakeOffer {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct Assets {
-    pub xch: Amount,
-    pub cats: Vec<CatAmount>,
-    pub nfts: Vec<String>,
+pub struct OfferAmount {
+    pub asset_id: Option<String>,
+    pub amount: Amount,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

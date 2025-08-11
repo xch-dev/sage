@@ -83,6 +83,15 @@ async transferDids(req: TransferDids) : Promise<TransactionResponse> {
 async normalizeDids(req: NormalizeDids) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("normalize_dids", { req });
 },
+async mintOption(req: MintOption) : Promise<MintOptionResponse> {
+    return await TAURI_INVOKE("mint_option", { req });
+},
+async transferOptions(req: TransferOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("transfer_options", { req });
+},
+async exerciseOptions(req: ExerciseOptions) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("exercise_options", { req });
+},
 async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("add_nft_uri", { req });
 },
@@ -145,6 +154,12 @@ async getProfile(req: GetProfile) : Promise<GetProfileResponse> {
 },
 async getMinterDidIds(req: GetMinterDidIds) : Promise<GetMinterDidIdsResponse> {
     return await TAURI_INVOKE("get_minter_did_ids", { req });
+},
+async getOptions(req: GetOptions) : Promise<GetOptionsResponse> {
+    return await TAURI_INVOKE("get_options", { req });
+},
+async getOption(req: GetOption) : Promise<GetOptionResponse> {
+    return await TAURI_INVOKE("get_option", { req });
 },
 async getNftCollections(req: GetNftCollections) : Promise<GetNftCollectionsResponse> {
     return await TAURI_INVOKE("get_nft_collections", { req });
@@ -337,8 +352,7 @@ export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "
 export type Amount = string | number
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
 export type AssetCoinType = "cat" | "did" | "nft"
-export type AssetKind = "token" | "nft" | "did"
-export type Assets = { xch: Amount; cats: CatAmount[]; nfts: string[] }
+export type AssetKind = "token" | "nft" | "did" | "option"
 export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
 export type AutoCombineCat = { asset_id: string; max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
 export type AutoCombineCatResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
@@ -350,7 +364,6 @@ export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amoun
 export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CancelOffers = { offer_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type CatAmount = { asset_id: string; amount: Amount }
 export type ChangeMode = { mode: "default" } | 
 /**
  * Reuse the first address of coins involved in the transaction
@@ -398,6 +411,7 @@ export type DidRecord = { launcher_id: string; name: string | null; visible: boo
 export type EmptyResponse = Record<string, never>
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type ExerciseOptions = { option_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type FilterUnlockedCoins = { coin_ids: string[] }
 export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
 export type GenerateMnemonic = { use_24_words: boolean }
@@ -446,6 +460,10 @@ export type GetOffer = { offer_id: string }
 export type GetOfferResponse = { offer: OfferRecord }
 export type GetOffers = Record<string, never>
 export type GetOffersResponse = { offers: OfferRecord[] }
+export type GetOption = { option_id: string }
+export type GetOptionResponse = { option: OptionRecord | null }
+export type GetOptions = Record<string, never>
+export type GetOptionsResponse = { options: OptionRecord[] }
 export type GetPeers = Record<string, never>
 export type GetPeersResponse = { peers: PeerRecord[] }
 export type GetPendingTransactions = Record<string, never>
@@ -482,8 +500,10 @@ export type Login = { fingerprint: number }
 export type LoginResponse = Record<string, never>
 export type Logout = Record<string, never>
 export type LogoutResponse = Record<string, never>
-export type MakeOffer = { requested_assets: Assets; offered_assets: Assets; fee: Amount; receive_address?: string | null; expires_at_second?: number | null; auto_import?: boolean }
+export type MakeOffer = { requested_assets: OfferAmount[]; offered_assets: OfferAmount[]; fee: Amount; receive_address?: string | null; expires_at_second?: number | null; auto_import?: boolean }
 export type MakeOfferResponse = { offer: string; offer_id: string }
+export type MintOption = { expiration_seconds: number; underlying: OptionAsset; strike: OptionAsset; fee: Amount; auto_submit?: boolean }
+export type MintOptionResponse = { option_id: string; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
 export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
@@ -496,10 +516,13 @@ export type NftRoyalty = { royalty_address: string; royalty_basis_points: number
 export type NftSortMode = "name" | "recent"
 export type NftUriKind = "data" | "metadata" | "license"
 export type NormalizeDids = { did_ids: string[]; fee: Amount; auto_submit?: boolean }
+export type OfferAmount = { asset_id: string | null; amount: Amount }
 export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null }
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
+export type OptionAsset = { asset_id: string | null; amount: Amount }
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null }
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type PerformDatabaseMaintenance = { force_vacuum: boolean }
@@ -548,6 +571,7 @@ export type TransactionResponse = { summary: TransactionSummary; coin_spends: Co
 export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
 export type TransferDids = { did_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type TransferNfts = { nft_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
+export type TransferOptions = { option_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type Unit = { ticker: string; precision: number }
 export type UpdateCat = { record: TokenRecord }
 export type UpdateCatResponse = Record<string, never>

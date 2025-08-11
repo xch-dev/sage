@@ -316,13 +316,7 @@ impl SyncManager {
                         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
                             if let Some(info) = self.state.lock().await.peer(ip) {
                                 // TODO: Handle cases
-                                timeout(
-                                    Duration::from_secs(3),
-                                    info.peer.unsubscribe_coins(spent_coin_ids),
-                                )
-                                .await
-                                .map(Result::ok)
-                                .ok();
+                                info.peer.unsubscribe_coins(spent_coin_ids).await.ok();
                             }
                         }
                     }
