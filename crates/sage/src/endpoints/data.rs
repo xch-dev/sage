@@ -842,6 +842,7 @@ impl Sage {
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
             created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
             icon_url: row.asset.icon_url,
         })
     }

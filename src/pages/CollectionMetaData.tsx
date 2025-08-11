@@ -3,6 +3,7 @@ import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
@@ -10,6 +11,7 @@ import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { ExternalLink, FileImage, Info, Tag, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -271,51 +273,59 @@ export default function CollectionMetaData() {
     <>
       <Header title={collection?.name ?? t`Unknown Collection`} />
       <Container>
-        <div className='relative'>
-          {getBannerUrl() && (
-            <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
-              <img
-                src={getBannerUrl() ?? ''}
-                alt={t`Banner for ${collectionName}`}
-                className='w-full h-full object-cover'
-              />
-            </div>
-          )}
-          <div
-            className={`flex flex-col gap-2 mx-auto sm:w-full md:w-[50%] max-w-[200px] ${getBannerUrl() ? '-mt-24 relative z-10' : ''}`}
-          >
-            {collection.icon ? (
-              <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
-                <img
-                  src={collection.icon}
-                  alt={t`Icon for ${collectionName}`}
-                  className='w-full aspect-square object-contain'
-                />
+        {/* Collection Preview */}
+        <Card className='mb-6'>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <FileImage className='h-5 w-5' />
+              <Trans>Collection Preview</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='flex flex-col md:flex-row gap-6 items-start'>
+              <div className='flex-shrink-0 w-full md:w-auto md:max-w-[300px]'>
+                <div className='relative'>
+                  {getBannerUrl() && (
+                    <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
+                      <img
+                        src={getBannerUrl() ?? ''}
+                        alt={t`Banner for ${collectionName}`}
+                        className='w-full h-full object-cover'
+                      />
+                    </div>
+                  )}
+                  <div
+                    className={`mx-auto max-w-[200px] ${getBannerUrl() ? '-mt-24 relative z-10' : ''}`}
+                  >
+                    {collection.icon ? (
+                      <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
+                        <img
+                          src={collection.icon}
+                          alt={t`Icon for ${collectionName}`}
+                          className='w-full aspect-square object-contain'
+                        />
+                      </div>
+                    ) : (
+                      <div className='w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center shadow-lg'>
+                        <span className='text-neutral-400 dark:text-neutral-600'>
+                          <Trans>No Icon</Trans>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            ) : (
-              <div className='w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center shadow-lg'>
-                <span className='text-neutral-400 dark:text-neutral-600'>
-                  <Trans>No Icon</Trans>
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className='my-4 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-10'>
-          <div className='flex flex-col gap-3'>
-            {metadataContent?.collection?.attributes && (
-              <>
-                {/* Find and display description first */}
-                {metadataContent.collection.attributes.find(
+              <div className='flex-1 min-w-0 space-y-4'>
+                {/* Description */}
+                {metadataContent?.collection?.attributes?.find(
                   (attr: AttributeType) =>
                     attr.type.toLowerCase() === 'description',
                 ) && (
                   <div>
-                    <h6 className='text-md font-bold'>
+                    <div className='text-sm font-medium text-muted-foreground'>
                       <Trans>Description</Trans>
-                    </h6>
-                    <div className='break-all text-sm'>
+                    </div>
+                    <div className='break-words text-sm'>
                       {
                         metadataContent.collection.attributes.find(
                           (attr: AttributeType) =>
@@ -326,124 +336,178 @@ export default function CollectionMetaData() {
                   </div>
                 )}
 
-                {/* Display remaining attributes */}
-                <div>
-                  <h6 className='text-md font-bold mb-3'>
+                {/* Additional metadata fields */}
+                {metadataContent?.collection &&
+                  Object.entries(metadataContent.collection)
+                    .filter(
+                      ([key]) => !['name', 'id', 'attributes'].includes(key),
+                    )
+                    .map(([key, value]) => (
+                      <div key={key}>
+                        <div className='text-sm font-medium text-muted-foreground capitalize'>
+                          {key}
+                        </div>
+                        <div className='text-sm'>
+                          {renderMetadataValue(value)}
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+          {/* Left Column */}
+          <div className='space-y-6'>
+            {/* Attributes */}
+            {metadataContent?.collection?.attributes && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className='flex items-center gap-2'>
+                    <Tag className='h-5 w-5' />
                     <Trans>Attributes</Trans>
-                  </h6>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   {renderMetadataValue(
                     metadataContent.collection.attributes.filter(
                       (attr: AttributeType) =>
                         attr.type.toLowerCase() !== 'description',
                     ),
                   )}
-                </div>
-              </>
+                </CardContent>
+              </Card>
             )}
           </div>
 
-          <div className='flex flex-col gap-3'>
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Collection ID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Collection ID`}
-                value={collection.collection_id}
-                onCopy={() =>
-                  toast.success(t`Collection ID copied to clipboard`)
-                }
-              />
-            </div>
-
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Metadata Collection ID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Metadata Collection ID`}
-                value={collection.metadata_collection_id}
-                onCopy={() =>
-                  toast.success(t`Metadata Collection ID copied to clipboard`)
-                }
-              />
-            </div>
-
-            <div>
-              <h6 className='text-md font-bold'>
-                <Trans>Minter DID</Trans>
-              </h6>
-              <CopyBox
-                title={t`Minter DID`}
-                value={collection.did_id}
-                onCopy={() => toast.success(t`Minter DID copied to clipboard`)}
-              />
-              {minterProfile && (
-                <div
-                  className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                  onClick={() =>
-                    openUrl(`https://mintgarden.io/${collection.did_id}`)
-                  }
-                >
-                  {minterProfile.avatar_uri && (
-                    <img
-                      src={minterProfile.avatar_uri}
-                      alt={`${minterProfile.name} avatar`}
-                      className='w-6 h-6 rounded-full'
-                    />
-                  )}
-                  <div className='text-sm'>{minterProfile.name}</div>
-                </div>
-              )}
-            </div>
-
-            <div className='flex flex-col gap-1'>
-              <h6 className='text-md font-bold'>
-                <Trans>External Links</Trans>
-              </h6>
-              <Button
-                variant='outline'
-                onClick={() =>
-                  openUrl(
-                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
-                  )
-                }
-                disabled={network === 'unknown'}
-              >
-                <img
-                  src='https://mintgarden.io/mint-logo.svg'
-                  className='h-4 w-4 mr-2'
-                  alt='MintGarden logo'
-                />
-                MintGarden
-              </Button>
-              <Button
-                variant='outline'
-                onClick={() =>
-                  openUrl(
-                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
-                  )
-                }
-                disabled={network === 'unknown'}
-              >
-                <img
-                  src={spacescanLogo}
-                  className='h-4 w-4 mr-2'
-                  alt='Spacescan.io logo'
-                />
-                Spacescan.io
-              </Button>
-            </div>
-
-            {metadataContent?.collection &&
-              Object.entries(metadataContent.collection)
-                .filter(([key]) => !['name', 'id', 'attributes'].includes(key))
-                .map(([key, value]) => (
-                  <div key={key}>
-                    <h6 className='text-md font-bold capitalize mb-1'>{key}</h6>
-                    <div>{renderMetadataValue(value)}</div>
+          {/* Right Column */}
+          <div className='space-y-6'>
+            {/* Collection Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Info className='h-5 w-5' />
+                  <Trans>Collection Information</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                <div>
+                  <div className='text-sm font-medium text-muted-foreground mb-2'>
+                    <Trans>Collection ID</Trans>
                   </div>
-                ))}
+                  <CopyBox
+                    title={t`Collection ID`}
+                    value={collection.collection_id}
+                    onCopy={() =>
+                      toast.success(t`Collection ID copied to clipboard`)
+                    }
+                  />
+                </div>
+
+                <div>
+                  <div className='text-sm font-medium text-muted-foreground mb-2'>
+                    <Trans>Metadata Collection ID</Trans>
+                  </div>
+                  <CopyBox
+                    title={t`Metadata Collection ID`}
+                    value={collection.metadata_collection_id}
+                    onCopy={() =>
+                      toast.success(
+                        t`Metadata Collection ID copied to clipboard`,
+                      )
+                    }
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Minter Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Users className='h-5 w-5' />
+                  <Trans>Minter Information</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                <div>
+                  <div className='text-sm font-medium text-muted-foreground mb-2'>
+                    <Trans>Minter DID</Trans>
+                  </div>
+                  <CopyBox
+                    title={t`Minter DID`}
+                    value={collection.did_id}
+                    onCopy={() =>
+                      toast.success(t`Minter DID copied to clipboard`)
+                    }
+                  />
+                  {minterProfile && (
+                    <div
+                      className='flex items-center gap-2 mt-2 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                      onClick={() =>
+                        openUrl(`https://mintgarden.io/${collection.did_id}`)
+                      }
+                    >
+                      {minterProfile.avatar_uri && (
+                        <img
+                          src={minterProfile.avatar_uri}
+                          alt={`${minterProfile.name} avatar`}
+                          className='w-6 h-6 rounded-full'
+                        />
+                      )}
+                      <div className='text-sm'>{minterProfile.name}</div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* External Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <ExternalLink className='h-5 w-5' />
+                  <Trans>External Links</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-3'>
+                <Button
+                  variant='outline'
+                  className='w-full justify-start'
+                  onClick={() =>
+                    openUrl(
+                      `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
+                    )
+                  }
+                  disabled={network === 'unknown'}
+                >
+                  <img
+                    src='https://mintgarden.io/mint-logo.svg'
+                    className='h-4 w-4 mr-2'
+                    alt='MintGarden logo'
+                  />
+                  View on MintGarden
+                </Button>
+                <Button
+                  variant='outline'
+                  className='w-full justify-start'
+                  onClick={() =>
+                    openUrl(
+                      `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
+                    )
+                  }
+                  disabled={network === 'unknown'}
+                >
+                  <img
+                    src={spacescanLogo}
+                    className='h-4 w-4 mr-2'
+                    alt='Spacescan.io logo'
+                  />
+                  View on Spacescan.io
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </Container>
