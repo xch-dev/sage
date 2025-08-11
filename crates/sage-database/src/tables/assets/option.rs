@@ -28,6 +28,7 @@ pub struct OptionRow {
     pub strike_amount: u64,
     pub expiration_seconds: u64,
     pub coin_row: CoinRow,
+    pub underlying_coin_id: Bytes32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -84,7 +85,9 @@ impl Database {
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
                 underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
                 
-                strike_amount, underlying_coin.amount AS underlying_amount
+                strike_amount, 
+                underlying_coin.amount AS underlying_amount,
+                underlying_coin.hash AS underlying_coin_id
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
             INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
@@ -137,6 +140,7 @@ impl Database {
                     kind: row.strike_asset_kind.convert()?,
                 },
                 strike_amount: row.strike_amount.convert()?,
+                underlying_coin_id: row.underlying_coin_id.convert()?,
                 expiration_seconds: row.option_expiration_seconds.convert()?,
                 coin_row: CoinRow {
                     coin: Coin::new(
@@ -305,7 +309,8 @@ async fn owned_options(
             underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
             underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
 
-            strike_amount, underlying_coin.amount AS underlying_amount,
+            strike_amount, underlying_coin.amount AS underlying_amount, underlying_coin.hash AS underlying_coin_id,
+
             COUNT(*) OVER() as total_count
         FROM owned_coins
         INNER JOIN options ON options.asset_id = owned_coins.asset_id
@@ -394,6 +399,7 @@ async fn owned_options(
                     kind: AssetKind::Option,
                 },
                 underlying_amount: row.get::<Vec<u8>, _>("underlying_amount").convert()?,
+                underlying_coin_id: row.get::<Vec<u8>, _>("underlying_coin_id").convert()?,
                 underlying_asset: Asset {
                     hash: row.get::<Vec<u8>, _>("underlying_asset_hash").convert()?,
                     name: row.get::<Option<String>, _>("underlying_asset_name"),

@@ -33,6 +33,7 @@ import {
   MoreVerticalIcon,
   SendIcon,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 interface OptionGridViewProps {
@@ -83,7 +84,12 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
             <FilePenLine className='mr-2 h-4 w-4' />
-            {option.name}
+            <Link
+              to={`/options/${option.launcher_id}`}
+              className='hover:underline truncate'
+            >
+              {option.name}
+            </Link>
           </CardTitle>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

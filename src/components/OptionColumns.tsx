@@ -23,6 +23,7 @@ import {
   MoreHorizontal,
   SendIcon,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { NumberFormat } from './NumberFormat';
 
@@ -36,8 +37,13 @@ export const columns = (
     cell: ({ row }) => {
       const option = row.original;
       const name = option.name || t`Unnamed Option`;
+      const path = `/options/${option.launcher_id}`;
 
-      return <div className='font-medium'>{name}</div>;
+      return (
+        <Link to={path} className='font-medium hover:underline'>
+          {name}
+        </Link>
+      );
     },
   },
   {

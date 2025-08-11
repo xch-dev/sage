@@ -41,6 +41,7 @@ import { MintOption } from './pages/MintOption';
 import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
 import { Offers } from './pages/Offers';
+import Option from './pages/Option';
 import { OptionList } from './pages/OptionList';
 import PeerList from './pages/PeerList';
 import QRScanner from './pages/QrScanner';
@@ -86,6 +87,7 @@ const router = createHashRouter(
       <Route path='/options' element={<Wallet />}>
         <Route path='' element={<OptionList />} />
         <Route path='mint' element={<MintOption />} />
+        <Route path=':option_id' element={<Option />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />
