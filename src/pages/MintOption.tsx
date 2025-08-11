@@ -1,9 +1,10 @@
-import { commands, TransactionResponse } from '@/bindings';
+import { commands, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -17,8 +18,8 @@ import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { HandCoins, Handshake } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function MintOption() {
@@ -28,7 +29,7 @@ export function MintOption() {
   const { addError } = useErrors();
 
   const [fee, setFee] = useState('');
-  const [days, setDays] = useState('30');
+  const [days, setDays] = useState('');
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
 
@@ -43,6 +44,35 @@ export function MintOption() {
   const [strikeAmount, setStrikeAmount] = useState('');
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+
+  // State for token details
+  const [underlyingAsset, setUnderlyingAsset] = useState<TokenRecord | null>(
+    null,
+  );
+  const [strikeAsset, setStrikeAsset] = useState<TokenRecord | null>(null);
+
+  // Fetch token details when asset IDs change
+  useEffect(() => {
+    if (underlyingAssetId !== undefined) {
+      commands
+        .getToken({ asset_id: underlyingAssetId })
+        .then((res) => setUnderlyingAsset(res.token))
+        .catch(() => setUnderlyingAsset(null));
+    } else {
+      setUnderlyingAsset(null);
+    }
+  }, [underlyingAssetId]);
+
+  useEffect(() => {
+    if (strikeAssetId !== undefined) {
+      commands
+        .getToken({ asset_id: strikeAssetId })
+        .then((res) => setStrikeAsset(res.token))
+        .catch(() => setStrikeAsset(null));
+    } else {
+      setStrikeAsset(null);
+    }
+  }, [strikeAssetId]);
 
   const mint = useCallback(() => {
     if (underlyingAssetId === undefined || strikeAssetId === undefined) {
@@ -90,11 +120,36 @@ export function MintOption() {
     minutes,
   ]);
 
+  // Calculate expiration time for display
+  const expirationSeconds = useMemo(() => {
+    const daysInt = parseInt(days) || 0;
+    const hoursInt = parseInt(hours) || 0;
+    const minutesInt = parseInt(minutes) || 0;
+    return (
+      Math.ceil(Date.now() / 1000) +
+      (daysInt * 24 * 60 * 60 + hoursInt * 60 * 60 + minutesInt * 60)
+    );
+  }, [days, hours, minutes]);
+
   return (
     <>
       <Header title={t`Mint Option`} />
 
       <Container>
+        <Alert variant='warning' className='mb-3'>
+          <AlertCircleIcon className='h-4 w-4' />
+          <AlertTitle>
+            <Trans>Experimental Feature</Trans>
+          </AlertTitle>
+          <AlertDescription>
+            <Trans>
+              Option Contracts are an experimental feature that will lock up
+              your underlying assets until expiration or exercise. Support in
+              other apps is limited at this time.
+            </Trans>
+          </AlertDescription>
+        </Alert>
+
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-4 max-w-screen-lg'>
           <Card>
             <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
@@ -248,7 +303,8 @@ export function MintOption() {
               strikeAssetId === undefined ||
               underlyingAssetId === undefined ||
               !strikeAmount ||
-              !underlyingAmount
+              !underlyingAmount ||
+              (!days && !hours && !minutes)
             }
             onClick={mint}
           >
@@ -261,16 +317,17 @@ export function MintOption() {
           close={() => setResponse(null)}
           onConfirm={() => navigate('/options')}
           showRecipientDetails={false}
-        />
-
-        <ConfirmationDialog
-          response={response}
-          close={() => setResponse(null)}
-          onConfirm={() => navigate('/options')}
-          showRecipientDetails={false}
           additionalData={{
             title: t`Option Details`,
-            content: <MintOptionConfirmation />,
+            content: (
+              <MintOptionConfirmation
+                underlyingAsset={underlyingAsset}
+                underlyingAmount={underlyingAmount}
+                strikeAsset={strikeAsset}
+                strikeAmount={strikeAmount}
+                expirationSeconds={expirationSeconds}
+              />
+            ),
           }}
         />
       </Container>

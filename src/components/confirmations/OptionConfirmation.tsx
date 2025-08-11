@@ -27,12 +27,14 @@ export function OptionConfirmation({
         options.length > 1 ? (
           <Trans>
             These options will be permanently deleted by sending them to the
-            burn address.
+            burn address. The underlying asset will still be returned to the
+            minter, but only after the option expires.
           </Trans>
         ) : (
           <Trans>
             This option will be permanently deleted by sending it to the burn
-            address.
+            address. The underlying asset will still be returned to the minter,
+            but only after the option expires.
           </Trans>
         ),
     },
@@ -42,9 +44,15 @@ export function OptionConfirmation({
       variant: 'warning' as const,
       message:
         options.length > 1 ? (
-          <Trans>These options will be transferred to the address below.</Trans>
+          <Trans>
+            These options will be transferred to the address below. Please note
+            that only Sage supports option contracts at this time.
+          </Trans>
         ) : (
-          <Trans>This option will be transferred to the address below.</Trans>
+          <Trans>
+            This option will be transferred to the address below. Please note
+            that only Sage supports option contracts at this time.
+          </Trans>
         ),
     },
     exercise: {
