@@ -150,6 +150,9 @@ class MintGardenService {
       return;
     }
 
+    await this.clearExpiredCache();
+    await this.ensureRateLimit();
+
     try {
       const response = await fetch('https://api.mintgarden.io/profiles_by_id', {
         method: 'POST',
