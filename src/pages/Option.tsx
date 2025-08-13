@@ -3,6 +3,7 @@ import { AddressItem } from '@/components/AddressItem';
 import { AssetCoin } from '@/components/AssetCoin';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
@@ -88,12 +89,11 @@ export default function Option() {
     <>
       <Header title={option.name || t`Unnamed Option`} />
       <Container>
-        {/* Status Card */}
         <Card className='mb-6'>
-          <CardHeader>
+          <CardHeader className='pb-2'>
             <CardTitle className='flex items-center gap-2'>
               <FilePenLine className='h-5 w-5' />
-              <Trans>Option Contract Status</Trans>
+              <Trans>Option Contract Details</Trans>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -128,55 +128,42 @@ export default function Option() {
             <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
               <div className='flex items-center gap-2'>
                 <Calendar className='h-4 w-4 text-muted-foreground' />
-                <div>
-                  <div className='text-sm text-muted-foreground'>
-                    <Trans>Created</Trans>
-                  </div>
-                  <div className='text-sm font-medium'>
-                    {option.created_timestamp ? (
-                      formatTimestamp(
-                        option.created_timestamp,
-                        'short',
-                        'short',
-                      )
-                    ) : (
-                      <Trans>Pending confirmation</Trans>
-                    )}
-                  </div>
-                </div>
+                <LabeledItem
+                  label={t`Created`}
+                  content={
+                    option.created_timestamp
+                      ? formatTimestamp(
+                          option.created_timestamp,
+                          'short',
+                          'short',
+                        )
+                      : t`Pending confirmation`
+                  }
+                />
               </div>
 
               <div className='flex items-center gap-2'>
                 <Clock className='h-4 w-4 text-muted-foreground' />
-                <div>
-                  <div className='text-sm text-muted-foreground'>
-                    <Trans>Expires</Trans>
-                  </div>
-                  <div className='text-sm font-medium'>
-                    {formatTimestamp(
-                      option.expiration_seconds,
-                      'short',
-                      'short',
-                    )}
-                  </div>
-                </div>
+                <LabeledItem
+                  label={t`Expires`}
+                  content={formatTimestamp(
+                    option.expiration_seconds,
+                    'short',
+                    'short',
+                  )}
+                />
               </div>
-
-              {option.created_height && (
-                <div>
-                  <div className='text-sm text-muted-foreground'>
-                    <Trans>Block Height</Trans>
-                  </div>
-                  <div className='text-sm font-medium'>
-                    {option.created_height.toLocaleString()}
-                  </div>
-                </div>
-              )}
+              <div className='flex items-center gap-2'>
+                <LabeledItem
+                  label={t`Block Height`}
+                  content={option.created_height?.toString() ?? null}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
           {/* Contract Details */}
           <div className='space-y-6'>
             <Card>
@@ -186,27 +173,21 @@ export default function Option() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div>
-                  <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
-                    <Trans>Underlying Asset</Trans>
-                  </h6>
+                <LabeledItem label={t`Underlying Asset`} content={null}>
                   <AssetCoin
                     asset={option.underlying_asset}
                     amount={option.underlying_amount}
                     coinId={option.coin_id}
                   />
-                </div>
+                </LabeledItem>
 
-                <div>
-                  <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
-                    <Trans>Strike Price</Trans>
-                  </h6>
+                <LabeledItem label={t`Strike Price`} content={null}>
                   <AssetCoin
                     asset={option.strike_asset}
                     amount={option.strike_amount}
                     coinId={null}
                   />
-                </div>
+                </LabeledItem>
               </CardContent>
             </Card>
           </div>

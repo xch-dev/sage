@@ -1,7 +1,8 @@
 import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
+import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
+import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomError } from '@/contexts/ErrorContext';
@@ -14,7 +15,6 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { ExternalLink, FileImage, Info, Tag, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
 interface MetadataContent {
   collection?: {
@@ -207,18 +207,23 @@ export default function CollectionMetaData() {
                 className='px-2 py-1 border-2 rounded-lg'
                 title={item.value}
               >
-                <h6 className='text-sm font-semibold truncate'>{item.type}</h6>
-                {typeof item.value === 'string' &&
-                item.value.match(/^(https?|ipfs|data):\/\/\S+/i) ? (
-                  <div
-                    onClick={() => openUrl(item.value)}
-                    className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
-                  >
-                    {item.value}
-                  </div>
-                ) : (
-                  <div className='text-sm break-all'>{item.value}</div>
-                )}
+                <LabeledItem
+                  label={item.type}
+                  className='truncate'
+                  content={null}
+                >
+                  {typeof item.value === 'string' &&
+                  item.value.match(/^(https?|ipfs|data):\/\/\S+/i) ? (
+                    <div
+                      onClick={() => openUrl(item.value)}
+                      className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
+                    >
+                      {item.value}
+                    </div>
+                  ) : (
+                    <div className='text-sm break-all'>{item.value}</div>
+                  )}
+                </LabeledItem>
               </div>
             ))}
           </div>
@@ -321,10 +326,7 @@ export default function CollectionMetaData() {
                   (attr: AttributeType) =>
                     attr.type.toLowerCase() === 'description',
                 ) && (
-                  <div>
-                    <div className='text-sm font-medium text-muted-foreground'>
-                      <Trans>Description</Trans>
-                    </div>
+                  <LabeledItem label={t`Description`} content={null}>
                     <div className='break-words text-sm'>
                       {
                         metadataContent.collection.attributes.find(
@@ -333,7 +335,7 @@ export default function CollectionMetaData() {
                         )?.value
                       }
                     </div>
-                  </div>
+                  </LabeledItem>
                 )}
 
                 {/* Additional metadata fields */}
@@ -343,14 +345,16 @@ export default function CollectionMetaData() {
                       ([key]) => !['name', 'id', 'attributes'].includes(key),
                     )
                     .map(([key, value]) => (
-                      <div key={key}>
-                        <div className='text-sm font-medium text-muted-foreground capitalize'>
-                          {key}
-                        </div>
+                      <LabeledItem
+                        key={key}
+                        label={key}
+                        className='capitalize'
+                        content={null}
+                      >
                         <div className='text-sm'>
                           {renderMetadataValue(value)}
                         </div>
-                      </div>
+                      </LabeledItem>
                     ))}
               </div>
             </div>
@@ -392,33 +396,15 @@ export default function CollectionMetaData() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div>
-                  <div className='text-sm font-medium text-muted-foreground mb-2'>
-                    <Trans>Collection ID</Trans>
-                  </div>
-                  <CopyBox
-                    title={t`Collection ID`}
-                    value={collection.collection_id}
-                    onCopy={() =>
-                      toast.success(t`Collection ID copied to clipboard`)
-                    }
-                  />
-                </div>
+                <AddressItem
+                  label={t`Collection ID`}
+                  address={collection.collection_id}
+                />
 
-                <div>
-                  <div className='text-sm font-medium text-muted-foreground mb-2'>
-                    <Trans>Metadata Collection ID</Trans>
-                  </div>
-                  <CopyBox
-                    title={t`Metadata Collection ID`}
-                    value={collection.metadata_collection_id}
-                    onCopy={() =>
-                      toast.success(
-                        t`Metadata Collection ID copied to clipboard`,
-                      )
-                    }
-                  />
-                </div>
+                <AddressItem
+                  label={t`Metadata Collection ID`}
+                  address={collection.metadata_collection_id}
+                />
               </CardContent>
             </Card>
 
@@ -431,35 +417,27 @@ export default function CollectionMetaData() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div>
-                  <div className='text-sm font-medium text-muted-foreground mb-2'>
-                    <Trans>Minter DID</Trans>
-                  </div>
-                  <CopyBox
-                    title={t`Minter DID`}
-                    value={collection.did_id}
-                    onCopy={() =>
-                      toast.success(t`Minter DID copied to clipboard`)
+                <AddressItem
+                  label={t`Minter DID`}
+                  address={collection.did_id}
+                />
+                {minterProfile && (
+                  <div
+                    className='flex items-center gap-2 mt-2 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                    onClick={() =>
+                      openUrl(`https://mintgarden.io/${collection.did_id}`)
                     }
-                  />
-                  {minterProfile && (
-                    <div
-                      className='flex items-center gap-2 mt-2 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                      onClick={() =>
-                        openUrl(`https://mintgarden.io/${collection.did_id}`)
-                      }
-                    >
-                      {minterProfile.avatar_uri && (
-                        <img
-                          src={minterProfile.avatar_uri}
-                          alt={`${minterProfile.name} avatar`}
-                          className='w-6 h-6 rounded-full'
-                        />
-                      )}
-                      <div className='text-sm'>{minterProfile.name}</div>
-                    </div>
-                  )}
-                </div>
+                  >
+                    {minterProfile.avatar_uri && (
+                      <img
+                        src={minterProfile.avatar_uri}
+                        alt={`${minterProfile.name} avatar`}
+                        className='w-6 h-6 rounded-full'
+                      />
+                    )}
+                    <div className='text-sm'>{minterProfile.name}</div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -487,7 +465,7 @@ export default function CollectionMetaData() {
                     className='h-4 w-4 mr-2'
                     alt='MintGarden logo'
                   />
-                  View on MintGarden
+                  <Trans>View on MintGarden</Trans>
                 </Button>
                 <Button
                   variant='outline'
@@ -504,7 +482,7 @@ export default function CollectionMetaData() {
                     className='h-4 w-4 mr-2'
                     alt='Spacescan.io logo'
                   />
-                  View on Spacescan.io
+                  <Trans>View on Spacescan.io</Trans>
                 </Button>
               </CardContent>
             </Card>
