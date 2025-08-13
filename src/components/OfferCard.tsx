@@ -121,25 +121,27 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         </CardHeader>
         <CardContent>
           <div className='flex items-center gap-4 mb-4'>
-            <div
-              className={`px-3 py-1 rounded-full text-sm font-medium ${
-                record?.status === 'active'
-                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+            {record?.status && (
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  record?.status === 'active'
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                    : record?.status === 'completed'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                      : record?.status === 'cancelled'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                }`}
+              >
+                {record?.status === 'active'
+                  ? t`Pending`
                   : record?.status === 'completed'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                    ? t`Taken`
                     : record?.status === 'cancelled'
-                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
-                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-              }`}
-            >
-              {record?.status === 'active'
-                ? t`Pending`
-                : record?.status === 'completed'
-                  ? t`Taken`
-                  : record?.status === 'cancelled'
-                    ? t`Cancelled`
-                    : t`Expired`}
-            </div>
+                      ? t`Cancelled`
+                      : t`Expired`}
+              </div>
+            )}
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
