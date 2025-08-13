@@ -24,13 +24,13 @@ use sage_api::{
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
     GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, PendingTransactionRecord,
-    PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
-    TransactionCoinRecord, TransactionRecord,
+    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, OptionSortMode as ApiOptionSortMode,
+    PendingTransactionRecord, PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse,
+    TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
-    AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
-    TransactionCoin,
+    AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
+    Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -400,12 +400,30 @@ impl Sage {
         Ok(GetMinterDidIdsResponse { did_ids, total })
     }
 
-    pub async fn get_options(&self, _req: GetOptions) -> Result<GetOptionsResponse> {
+    pub async fn get_options(&self, req: GetOptions) -> Result<GetOptionsResponse> {
         let wallet = self.wallet()?;
+
+        let sort_mode = match req.sort_mode {
+            ApiOptionSortMode::Name => OptionSortMode::Name,
+            ApiOptionSortMode::CreatedHeight => OptionSortMode::CreatedHeight,
+            ApiOptionSortMode::ExpirationSeconds => OptionSortMode::ExpirationSeconds,
+        };
 
         let mut options = Vec::new();
 
-        for row in wallet.db.owned_options().await? {
+        let (rows, total) = wallet
+            .db
+            .owned_options(
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.find_value,
+                req.include_hidden,
+            )
+            .await?;
+
+        for row in rows {
             options.push(OptionRecord {
                 launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
                 name: row.asset.name,
@@ -416,14 +434,16 @@ impl Sage {
                 amount: Amount::u64(row.coin_row.coin.amount),
                 underlying_asset: self.encode_asset(row.underlying_asset)?,
                 underlying_amount: Amount::u64(row.underlying_amount),
+                underlying_coin_id: hex::encode(row.underlying_coin_id),
                 strike_asset: self.encode_asset(row.strike_asset)?,
                 strike_amount: Amount::u64(row.strike_amount),
                 expiration_seconds: row.expiration_seconds,
                 created_height: row.coin_row.created_height,
+                created_timestamp: row.coin_row.created_timestamp,
             });
         }
 
-        Ok(GetOptionsResponse { options })
+        Ok(GetOptionsResponse { options, total })
     }
 
     pub async fn get_option(&self, req: GetOption) -> Result<GetOptionResponse> {
@@ -446,10 +466,12 @@ impl Sage {
             amount: Amount::u64(row.coin_row.coin.amount),
             underlying_asset: self.encode_asset(row.underlying_asset)?,
             underlying_amount: Amount::u64(row.underlying_amount),
+            underlying_coin_id: hex::encode(row.underlying_coin_id),
             strike_asset: self.encode_asset(row.strike_asset)?,
             strike_amount: Amount::u64(row.strike_amount),
             expiration_seconds: row.expiration_seconds,
             created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
         };
 
         Ok(GetOptionResponse {
@@ -820,6 +842,7 @@ impl Sage {
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
             created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
             icon_url: row.asset.icon_url,
         })
     }

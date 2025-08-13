@@ -194,7 +194,6 @@ async fn candidates_for_download(
         WHERE data IS NULL
         AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)
         AND failed_attempts < ?
-        ORDER BY last_checked_timestamp ASC
         LIMIT ?
         ",
         check_every_seconds,

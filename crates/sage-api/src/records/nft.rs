@@ -25,6 +25,7 @@ pub struct NftRecord {
     pub edition_number: Option<u32>,
     pub edition_total: Option<u32>,
     pub icon_url: Option<String>,
+    pub created_timestamp: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
