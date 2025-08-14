@@ -2,13 +2,12 @@ import { isValidUrl } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { useId } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 export interface LabeledItemProps {
   label: string;
   className?: string;
   content: string | null | undefined;
-  navigateTarget?: string;
+  onClick?: () => void;
   children?: React.ReactNode;
 }
 
@@ -16,10 +15,9 @@ export function LabeledItem({
   label,
   className = '',
   content,
-  navigateTarget,
+  onClick,
   children,
 }: LabeledItemProps) {
-  const navigate = useNavigate();
   const labelId = useId();
   const contentId = useId();
 
@@ -62,12 +60,12 @@ export function LabeledItem({
         >
           {content}
         </button>
-      ) : navigateTarget ? (
+      ) : onClick ? (
         <button
           type='button'
           id={contentId}
-          onClick={() => navigate(navigateTarget)}
-          onKeyDown={(e) => handleKeyDown(e, () => navigate(navigateTarget))}
+          onClick={onClick}
+          onKeyDown={(e) => handleKeyDown(e, onClick)}
           className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left w-full p-0 border-0 bg-transparent'
           title={t`Navigate to: ${content}`}
           aria-label={t`${label}: ${content} (navigate within app)`}

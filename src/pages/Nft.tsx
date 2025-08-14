@@ -21,10 +21,11 @@ import {
   Users,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
+  const navigate = useNavigate();
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
   const [nft, setNft] = useState<NftRecord | null>(null);
@@ -188,11 +189,13 @@ export default function Nft() {
                 <LabeledItem
                   label={t`Collection`}
                   content={nft?.collection_name}
-                  navigateTarget={
-                    nft?.collection_id
-                      ? `/nfts/collections/${nft.collection_id}/metadata`
-                      : undefined
-                  }
+                  onClick={() => {
+                    if (nft?.collection_id) {
+                      navigate(
+                        `/nfts/collections/${nft.collection_id}/metadata`,
+                      );
+                    }
+                  }}
                 />
 
                 {nft?.created_timestamp && (
