@@ -66,7 +66,7 @@ import {
 import prettyBytes from 'pretty-bytes';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -80,6 +80,8 @@ import {
   WalletDefaults,
 } from '../bindings';
 import { DarkModeContext } from '../contexts/DarkModeContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { ThemeSelector } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -257,6 +259,7 @@ function SettingItem({
 function GlobalSettings() {
   const { addError } = useErrors();
   const { dark, setDark } = useContext(DarkModeContext);
+  const { currentTheme } = useTheme();
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
@@ -288,6 +291,24 @@ function GlobalSettings() {
           description={t`Switch between light and dark theme`}
           control={<Switch checked={dark} onCheckedChange={setDark} />}
         />
+        <SettingItem
+          label={t`Theme`}
+          description={t`Choose your preferred color theme`}
+          control={<div className="w-full">{/* Theme selector will be added below */}</div>}
+        />
+        <div className="mt-4">
+          <ThemeSelector />
+          <div className="mt-4">
+            <Link to="/theme-demo">
+              <Button 
+                variant="outline" 
+                size="sm"
+              >
+                View Theme Demo
+              </Button>
+            </Link>
+          </div>
+        </div>
         {isMobile && (
           <SettingItem
             label={t`Biometric Authentication`}

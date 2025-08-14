@@ -13,6 +13,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { DarkModeContext } from './contexts/DarkModeContext';
 import { ErrorProvider } from './contexts/ErrorContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import {
   getBrowserLanguage,
   LanguageProvider,
@@ -49,6 +50,7 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
+import ThemeDemo from './pages/ThemeDemo';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
@@ -102,6 +104,7 @@ const router = createHashRouter(
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
+      <Route path='/theme-demo' element={<ThemeDemo />} />
     </>,
   ),
 );
@@ -128,36 +131,52 @@ export default function App() {
     root.classList.add(dark ? 'dark' : 'light');
   }, [dark]);
 
+  // Listen for theme changes
+  useEffect(() => {
+    const handleThemeChange = (event: CustomEvent) => {
+      const { theme } = event.detail;
+      const isDarkTheme = theme === 'dark';
+      setDark(isDarkTheme);
+    };
+
+    window.addEventListener('themeChanged', handleThemeChange as EventListener);
+    return () => {
+      window.removeEventListener('themeChanged', handleThemeChange as EventListener);
+    };
+  }, [setDark]);
+
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
-      <DarkModeContext.Provider value={darkMode}>
-        <SafeAreaProvider>
-          <ErrorProvider>
-            <BiometricProvider>
-              <AppInner />
-            </BiometricProvider>
-          </ErrorProvider>
-        </SafeAreaProvider>
-      </DarkModeContext.Provider>
-      <ToastContainer
-        position='bottom-right'
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={dark ? 'dark' : 'light'}
-        transition={Slide}
-        style={
-          {
-            '--toastify-toast-transition-timing': 'ease',
-            '--toastify-toast-transition-duration': '750ms',
-          } as React.CSSProperties
-        }
-      />
+      <ThemeProvider>
+        <DarkModeContext.Provider value={darkMode}>
+          <SafeAreaProvider>
+            <ErrorProvider>
+              <BiometricProvider>
+                <AppInner />
+              </BiometricProvider>
+            </ErrorProvider>
+          </SafeAreaProvider>
+        </DarkModeContext.Provider>
+        <ToastContainer
+          position='bottom-right'
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme={dark ? 'dark' : 'light'}
+          transition={Slide}
+          style={
+            {
+              '--toastify-toast-transition-timing': 'ease',
+              '--toastify-toast-transition-duration': '750ms',
+            } as React.CSSProperties
+          }
+        />
+      </ThemeProvider>
     </LanguageProvider>
   );
 }
