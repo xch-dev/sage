@@ -1,6 +1,7 @@
 import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import Container from '@/components/Container';
 import { CopyBox } from '@/components/CopyBox';
+import { DidInfo } from '@/components/DidInfo';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -416,18 +417,7 @@ export default function CollectionMetaData() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div>
-                  <div className='text-sm font-medium text-muted-foreground mb-2'>
-                    <Trans>Minter DID</Trans>
-                  </div>
-                  <CopyBox
-                    title={t`Minter DID`}
-                    value={collection.did_id}
-                    onCopy={() =>
-                      toast.success(t`Minter DID copied to clipboard`)
-                    }
-                  />
-                </div>
+                <DidInfo did={collection.did_id} title={t`Minter DID`} />
               </CardContent>
             </Card>
 

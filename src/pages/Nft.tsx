@@ -1,5 +1,6 @@
 import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
+import { DidInfo } from '@/components/DidInfo';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -366,19 +367,8 @@ export default function Nft() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <div className='space-y-2'>
-                  <AddressItem
-                    label={t`Minter DID`}
-                    address={nft?.minter_did ?? ''}
-                  />
-                </div>
-
-                <div className='space-y-2'>
-                  <AddressItem
-                    label={t`Owner DID`}
-                    address={nft?.owner_did ?? ''}
-                  />
-                </div>
+                <DidInfo did={nft?.minter_did} title={t`Minter DID`} />
+                <DidInfo did={nft?.owner_did} title={t`Owner DID`} />
 
                 <AddressItem
                   label={t`Royalties ${royaltyPercentage}%`}

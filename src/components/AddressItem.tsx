@@ -5,11 +5,16 @@ import { toast } from 'react-toastify';
 export interface AddressItemProps {
   label: string | null;
   address: string;
+  className?: string;
 }
 
-export function AddressItem({ label, address }: AddressItemProps) {
+export function AddressItem({
+  label,
+  address,
+  className = '',
+}: AddressItemProps) {
   return (
-    <div>
+    <div className={className}>
       <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
         {label}
       </h6>
