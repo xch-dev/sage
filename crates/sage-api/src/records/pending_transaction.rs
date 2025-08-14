@@ -7,5 +7,5 @@ use crate::Amount;
 pub struct PendingTransactionRecord {
     pub transaction_id: String,
     pub fee: Amount,
-    pub submitted_at: Option<String>,
+    pub submitted_at: Option<u64>,
 }
