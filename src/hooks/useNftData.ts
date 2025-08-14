@@ -101,8 +101,7 @@ export function useNftData(params: NftDataParams) {
             });
             setCollection(collectionResponse.collection);
           } else if (params.ownerDid) {
-            // Move dids dependency out of this callback - handled in separate useEffect
-            setOwner(createDefaultDidRecord('Loading...', params.ownerDid));
+            setOwner(createDefaultDidRecord(params.ownerDid, params.ownerDid));
           } else if (params.minterDid) {
             setOwner(
               createDefaultDidRecord(params.minterDid, params.minterDid),

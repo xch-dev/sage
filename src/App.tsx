@@ -41,18 +41,19 @@ import MintNft from './pages/MintNft';
 import { MintOption } from './pages/MintOption';
 import Nft from './pages/Nft';
 import { NftList } from './pages/NftList';
+import { Offer } from './pages/Offer';
 import { Offers } from './pages/Offers';
+import Option from './pages/Option';
 import { OptionList } from './pages/OptionList';
 import PeerList from './pages/PeerList';
 import QRScanner from './pages/QrScanner';
+import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
-import { ViewOffer } from './pages/ViewOffer';
-import { ViewSavedOffer } from './pages/ViewSavedOffer';
 import Wallet from './pages/Wallet';
 import Profile from './pages/Profile';
 
@@ -89,6 +90,7 @@ const router = createHashRouter(
       <Route path='/options' element={<Wallet />}>
         <Route path='' element={<OptionList />} />
         <Route path='mint' element={<MintOption />} />
+        <Route path=':option_id' element={<Option />} />
       </Route>
       <Route path='/transactions' element={<Wallet />}>
         <Route path='' element={<Transactions />} />
@@ -97,8 +99,8 @@ const router = createHashRouter(
       <Route path='/offers' element={<Wallet />}>
         <Route path='' element={<Offers />} />
         <Route path='make' element={<MakeOffer />} />
-        <Route path='view/:offer' element={<ViewOffer />} />
-        <Route path='view_saved/:offer_id' element={<ViewSavedOffer />} />
+        <Route path='view/:offer' element={<Offer />} />
+        <Route path='view_saved/:offer_id' element={<SavedOffer />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />

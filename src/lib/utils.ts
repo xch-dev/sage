@@ -38,6 +38,7 @@ export function emptyNftRecord(nftId: string): NftRecord {
     license_hash: null,
     edition_number: null,
     edition_total: null,
+    created_timestamp: null,
   };
 }
 export function getAssetDisplayName(

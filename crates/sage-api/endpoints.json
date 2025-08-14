@@ -85,6 +85,7 @@
   "resync_cat": true,
   "update_cat": true,
   "update_did": true,
+  "update_option": true,
   "update_nft": true,
   "update_nft_collection": true,
   "redownload_nft": true,

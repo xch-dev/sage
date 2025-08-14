@@ -246,14 +246,35 @@ pub struct GetMinterDidIdsResponse {
     pub total: u32,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct GetOptions {}
+#[serde(rename_all = "snake_case")]
+pub enum OptionSortMode {
+    #[default]
+    Name,
+    CreatedHeight,
+    ExpirationSeconds,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptions {
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: OptionSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    pub find_value: Option<String>,
+    #[serde(default)]
+    pub include_hidden: bool,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetOptionsResponse {
     pub options: Vec<OptionRecord>,
+    pub total: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

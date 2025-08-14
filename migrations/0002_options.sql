@@ -162,3 +162,5 @@ WHERE 1=1
     option_expiration_seconds IS NULL
     OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
   );
+
+CREATE INDEX idx_file_uris_timestamp_failed ON file_uris(last_checked_timestamp, failed_attempts);

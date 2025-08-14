@@ -1,8 +1,15 @@
 use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::driver::{OptionType, OptionUnderlying};
-use sqlx::query;
+use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OptionSortMode {
+    Name,
+    CreatedHeight,
+    ExpirationSeconds,
+}
 
 #[derive(Debug, Clone, Copy)]
 pub struct OptionCoinInfo {
@@ -21,6 +28,7 @@ pub struct OptionRow {
     pub strike_amount: u64,
     pub expiration_seconds: u64,
     pub coin_row: CoinRow,
+    pub underlying_coin_id: Bytes32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -30,103 +38,25 @@ pub struct OptionOfferInfo {
 }
 
 impl Database {
-    pub async fn owned_options(&self) -> Result<Vec<OptionRow>> {
-        query!(
-            "
-            SELECT
-                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
-                asset_description, asset_is_visible, asset_is_sensitive_content,
-                asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,
-                owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
-                offer_hash, created_timestamp, spent_timestamp,
-                clawback_expiration_seconds AS clawback_timestamp,
-                p2_options.expiration_seconds AS option_expiration_seconds,
-
-                strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
-                strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
-                strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,
-                strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,
-                strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,
-
-                underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,
-                underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
-                underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
-                underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
-                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
-
-                strike_amount, underlying_coin.amount AS underlying_amount
-            FROM owned_coins
-            INNER JOIN options ON options.asset_id = owned_coins.asset_id
-            INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
-            INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
-            INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
-            INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id
-            ORDER BY asset_name ASC
-            "
+    pub async fn owned_options(
+        &self,
+        limit: u32,
+        offset: u32,
+        sort_mode: OptionSortMode,
+        ascending: bool,
+        find_value: Option<String>,
+        include_hidden: bool,
+    ) -> Result<(Vec<OptionRow>, u32)> {
+        owned_options(
+            &self.pool,
+            limit,
+            offset,
+            sort_mode,
+            ascending,
+            find_value,
+            include_hidden,
         )
-        .fetch_all(&self.pool)
-        .await?
-        .into_iter()
-        .map(|row| {
-            Ok(OptionRow {
-                asset: Asset {
-                    hash: row.asset_hash.convert()?,
-                    name: row.asset_name,
-                    ticker: row.asset_ticker,
-                    precision: row.asset_precision.convert()?,
-                    icon_url: row.asset_icon_url,
-                    description: row.asset_description,
-                    is_visible: row.asset_is_visible,
-                    is_sensitive_content: row.asset_is_sensitive_content,
-                    hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
-                    kind: AssetKind::Option,
-                },
-                underlying_amount: row.underlying_amount.convert()?,
-                underlying_asset: Asset {
-                    hash: row.underlying_asset_hash.convert()?,
-                    name: row.underlying_asset_name,
-                    ticker: row.underlying_asset_ticker,
-                    precision: row.underlying_asset_precision.convert()?,
-                    icon_url: row.underlying_asset_icon_url,
-                    description: row.underlying_asset_description,
-                    is_visible: row.underlying_asset_is_visible,
-                    is_sensitive_content: row.underlying_asset_is_sensitive_content,
-                    hidden_puzzle_hash: row.underlying_asset_hidden_puzzle_hash.convert()?,
-                    kind: row.underlying_asset_kind.convert()?,
-                },
-                strike_amount: row.strike_amount.convert()?,
-                strike_asset: Asset {
-                    hash: row.strike_asset_hash.convert()?,
-                    name: row.strike_asset_name,
-                    ticker: row.strike_asset_ticker,
-                    precision: row.strike_asset_precision.convert()?,
-                    icon_url: row.strike_asset_icon_url,
-                    description: row.strike_asset_description,
-                    is_visible: row.strike_asset_is_visible,
-                    is_sensitive_content: row.strike_asset_is_sensitive_content,
-                    hidden_puzzle_hash: row.strike_asset_hidden_puzzle_hash.convert()?,
-                    kind: row.strike_asset_kind.convert()?,
-                },
-                expiration_seconds: row.option_expiration_seconds.convert()?,
-                coin_row: CoinRow {
-                    coin: Coin::new(
-                        row.parent_coin_hash.convert()?,
-                        row.puzzle_hash.convert()?,
-                        row.amount.convert()?,
-                    ),
-                    p2_puzzle_hash: row.p2_puzzle_hash.convert()?,
-                    kind: CoinKind::Option,
-                    mempool_item_hash: None,
-                    offer_hash: row.offer_hash.convert()?,
-                    clawback_timestamp: row.clawback_timestamp.convert()?,
-                    created_height: row.created_height.convert()?,
-                    spent_height: row.spent_height.convert()?,
-                    created_timestamp: row.created_timestamp.convert()?,
-                    spent_timestamp: row.spent_timestamp.convert()?,
-                },
-            })
-        })
-        .collect()
+        .await
     }
 
     pub async fn owned_option(&self, launcher_id: Bytes32) -> Result<Option<OptionRow>> {
@@ -155,7 +85,9 @@ impl Database {
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
                 underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
                 
-                strike_amount, underlying_coin.amount AS underlying_amount
+                strike_amount, 
+                underlying_coin.amount AS underlying_amount,
+                underlying_coin.hash AS underlying_coin_id
             FROM owned_coins
             INNER JOIN options ON options.asset_id = owned_coins.asset_id
             INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
@@ -208,6 +140,7 @@ impl Database {
                     kind: row.strike_asset_kind.convert()?,
                 },
                 strike_amount: row.strike_amount.convert()?,
+                underlying_coin_id: row.underlying_coin_id.convert()?,
                 expiration_seconds: row.option_expiration_seconds.convert()?,
                 coin_row: CoinRow {
                     coin: Coin::new(
@@ -343,4 +276,190 @@ impl DatabaseTx<'_> {
 
         Ok(())
     }
+}
+
+async fn owned_options(
+    conn: impl SqliteExecutor<'_>,
+    limit: u32,
+    offset: u32,
+    sort_mode: OptionSortMode,
+    ascending: bool,
+    find_value: Option<String>,
+    include_hidden: bool,
+) -> Result<(Vec<OptionRow>, u32)> {
+    let mut query = sqlx::QueryBuilder::new(
+        "SELECT
+            asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
+            asset_description, asset_is_visible, asset_is_sensitive_content,
+            asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,
+            owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
+            offer_hash, created_timestamp, spent_timestamp,
+            clawback_expiration_seconds AS clawback_timestamp,
+            p2_options.expiration_seconds AS option_expiration_seconds,
+
+            strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
+            strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,
+            strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,
+            strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,
+            strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,
+
+            underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,
+            underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
+            underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
+            underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
+            underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+
+            strike_amount, underlying_coin.amount AS underlying_amount, underlying_coin.hash AS underlying_coin_id,
+
+            COUNT(*) OVER() as total_count
+        FROM owned_coins
+        INNER JOIN options ON options.asset_id = owned_coins.asset_id
+        INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
+        INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
+        INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id
+        INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id
+        WHERE 1=1",
+    );
+
+    if !include_hidden {
+        query.push(" AND asset_is_visible = 1");
+    }
+
+    if let Some(find_value) = find_value {
+        query.push(" AND (asset_name LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR asset_ticker LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR underlying_asset.name LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR underlying_asset.ticker LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR strike_asset.name LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+        query.push(" OR strike_asset.ticker LIKE ");
+        query.push_bind(format!("%{find_value}%"));
+
+        // If find_value looks like a valid asset ID (64 hex chars), search by asset hash
+        if find_value.len() == 64 && find_value.chars().all(|c| c.is_ascii_hexdigit()) {
+            query.push(" OR asset_hash = X'");
+            query.push(find_value.clone());
+            query.push("' OR underlying_asset.hash = X'");
+            query.push(find_value.clone());
+            query.push("' OR strike_asset.hash = X'");
+            query.push(find_value);
+            query.push("'");
+        }
+
+        query.push(")");
+    }
+
+    // Add ORDER BY clause based on sort_mode and ascending
+    query.push(" ORDER BY ");
+    let order_column = match sort_mode {
+        OptionSortMode::Name => "asset_name",
+        OptionSortMode::CreatedHeight => "owned_coins.created_height",
+        OptionSortMode::ExpirationSeconds => "p2_options.expiration_seconds",
+    };
+    query.push(order_column);
+
+    if ascending {
+        query.push(" ASC");
+    } else {
+        query.push(" DESC");
+    }
+
+    query.push(" LIMIT ");
+    query.push_bind(limit);
+    query.push(" OFFSET ");
+    query.push_bind(offset);
+
+    let built_query = query.build();
+    let rows = built_query.fetch_all(conn).await?;
+
+    let total_count: u32 = rows
+        .first()
+        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+
+    let options = rows
+        .into_iter()
+        .map(|row| {
+            Ok(OptionRow {
+                asset: Asset {
+                    hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
+                    name: row.get::<Option<String>, _>("asset_name"),
+                    ticker: row.get::<Option<String>, _>("asset_ticker"),
+                    precision: row.get::<i64, _>("asset_precision").convert()?,
+                    icon_url: row.get::<Option<String>, _>("asset_icon_url"),
+                    description: row.get::<Option<String>, _>("asset_description"),
+                    is_visible: row.get::<bool, _>("asset_is_visible"),
+                    is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
+                    hidden_puzzle_hash: row
+                        .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
+                        .convert()?,
+                    kind: AssetKind::Option,
+                },
+                underlying_amount: row.get::<Vec<u8>, _>("underlying_amount").convert()?,
+                underlying_coin_id: row.get::<Vec<u8>, _>("underlying_coin_id").convert()?,
+                underlying_asset: Asset {
+                    hash: row.get::<Vec<u8>, _>("underlying_asset_hash").convert()?,
+                    name: row.get::<Option<String>, _>("underlying_asset_name"),
+                    ticker: row.get::<Option<String>, _>("underlying_asset_ticker"),
+                    precision: row.get::<i64, _>("underlying_asset_precision").convert()?,
+                    icon_url: row.get::<Option<String>, _>("underlying_asset_icon_url"),
+                    description: row.get::<Option<String>, _>("underlying_asset_description"),
+                    is_visible: row.get::<bool, _>("underlying_asset_is_visible"),
+                    is_sensitive_content: row
+                        .get::<bool, _>("underlying_asset_is_sensitive_content"),
+                    hidden_puzzle_hash: row
+                        .get::<Option<Vec<u8>>, _>("underlying_asset_hidden_puzzle_hash")
+                        .convert()?,
+                    kind: row
+                        .get::<Option<i64>, _>("underlying_asset_kind")
+                        .map(Convert::convert)
+                        .transpose()?
+                        .unwrap_or(AssetKind::Token),
+                },
+                strike_amount: row.get::<Vec<u8>, _>("strike_amount").convert()?,
+                strike_asset: Asset {
+                    hash: row.get::<Vec<u8>, _>("strike_asset_hash").convert()?,
+                    name: row.get::<Option<String>, _>("strike_asset_name"),
+                    ticker: row.get::<Option<String>, _>("strike_asset_ticker"),
+                    precision: row.get::<i64, _>("strike_asset_precision").convert()?,
+                    icon_url: row.get::<Option<String>, _>("strike_asset_icon_url"),
+                    description: row.get::<Option<String>, _>("strike_asset_description"),
+                    is_visible: row.get::<bool, _>("strike_asset_is_visible"),
+                    is_sensitive_content: row.get::<bool, _>("strike_asset_is_sensitive_content"),
+                    hidden_puzzle_hash: row
+                        .get::<Option<Vec<u8>>, _>("strike_asset_hidden_puzzle_hash")
+                        .convert()?,
+                    kind: row
+                        .get::<Option<i64>, _>("strike_asset_kind")
+                        .map(Convert::convert)
+                        .transpose()?
+                        .unwrap_or(AssetKind::Token),
+                },
+                expiration_seconds: row.get::<i64, _>("option_expiration_seconds").convert()?,
+                coin_row: CoinRow {
+                    coin: Coin::new(
+                        row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
+                        row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
+                        row.get::<Vec<u8>, _>("amount").convert()?,
+                    ),
+                    p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
+                    kind: CoinKind::Option,
+                    mempool_item_hash: None,
+                    offer_hash: row.get::<Option<Vec<u8>>, _>("offer_hash").convert()?,
+                    clawback_timestamp: row
+                        .get::<Option<i64>, _>("clawback_timestamp")
+                        .convert()?,
+                    created_height: row.get::<Option<i64>, _>("created_height").convert()?,
+                    spent_height: row.get::<Option<i64>, _>("spent_height").convert()?,
+                    created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
+                    spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
+                },
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok((options, total_count))
 }

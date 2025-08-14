@@ -653,9 +653,10 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
             </DialogTitle>
             <DialogDescription>
               <Trans>
-                This wallet requires a database migration to continue. Would you
-                like to delete the wallet&apos;s data or cancel the login? The
-                keys will not be affected.
+                In order to proceed with the update, the wallet will be fully
+                resynced. This means any imported offer files or custom asset
+                names will be removed, but you can manually add them again after
+                if needed.
               </Trans>
             </DialogDescription>
           </DialogHeader>
@@ -674,7 +675,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
               <Trans>Cancel</Trans>
             </Button>
             <Button
-              variant='destructive'
+              variant='default'
               onClick={async () => {
                 setIsMigrationDialogOpen(false);
                 await logoutAndUpdateState();
@@ -686,7 +687,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
               }}
               autoFocus
             >
-              <Trans>Delete Data</Trans>
+              <Trans>OK</Trans>
             </Button>
           </DialogFooter>
         </DialogContent>

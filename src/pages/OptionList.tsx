@@ -1,72 +1,61 @@
-import {
-  Amount,
-  Asset,
-  commands,
-  events,
-  OptionRecord,
-  TransactionResponse,
-} from '@/bindings';
-import { AssetIcon } from '@/components/AssetIcon';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { OptionConfirmation } from '@/components/confirmations/OptionConfirmation';
+import { commands, events, OptionRecord } from '@/bindings';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
-import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import Header from '@/components/Header';
-import { NumberFormat } from '@/components/NumberFormat';
+import { OptionGridView } from '@/components/OptionGridView';
+import { OptionListView } from '@/components/OptionListView';
+import { OptionOptions } from '@/components/OptionOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { TransferDialog } from '@/components/TransferDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
-import { formatTimestamp, fromMojos, toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
+import { useOptionActions } from '@/hooks/useOptionActions';
+import { useOptionParams } from '@/hooks/useOptionParams';
+import { exportOptions } from '@/lib/exportOptions';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import {
-  AlertCircle,
-  Copy,
-  EyeIcon,
-  EyeOff,
-  FilePenLine,
-  Flame,
-  HandCoins,
-  MoreVerticalIcon,
-  SendIcon,
-} from 'lucide-react';
+import { FilePenLine } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
 export function OptionList() {
   const navigate = useNavigate();
-
   const { addError } = useErrors();
-
+  const [params, setParams] = useOptionParams();
+  const {
+    viewMode,
+    sortMode,
+    ascending,
+    showHiddenOptions,
+    search,
+    page,
+    limit,
+  } = params;
   const [options, setOptions] = useState<OptionRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const updateOptions = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await commands.getOptions({});
+      const offset = (page - 1) * limit;
+      const data = await commands.getOptions({
+        offset,
+        limit,
+        sort_mode: sortMode,
+        ascending,
+        find_value: search || null,
+        include_hidden: showHiddenOptions,
+      });
+
       setOptions(data.options);
+      setTotal(data.total);
     } catch (error) {
       addError(error as CustomError);
+    } finally {
+      setLoading(false);
     }
-  }, [addError]);
+  }, [addError, page, limit, sortMode, ascending, search, showHiddenOptions]);
 
   useEffect(() => {
     updateOptions();
@@ -84,36 +73,45 @@ export function OptionList() {
     };
   }, [updateOptions]);
 
-  const [showHidden, setShowHidden] = useState(false);
-
-  const visibleOptions = showHidden
-    ? options
-    : options.filter((option) => option.visible);
-  const hasHiddenOptions = options.findIndex((option) => !option.visible) > -1;
+  // Shared action handlers and dialogs
+  const { actionHandlers, dialogs } = useOptionActions(updateOptions);
 
   return (
     <>
       <Header title={t`Option Contracts`}>
-        <ReceiveAddress />
+        <div className='flex items-center gap-2'>
+          <ReceiveAddress />
+        </div>
       </Header>
       <Container>
-        <Button onClick={() => navigate('/options/mint')}>
+        <Button
+          aria-label={t`Mint new option`}
+          className='mb-4'
+          onClick={() => navigate('/options/mint')}
+        >
           <FilePenLine className='h-4 w-4 mr-2' />
           <Trans>Mint Option</Trans>
         </Button>
 
-        {hasHiddenOptions && (
-          <div className='flex items-center gap-2 my-4'>
-            <label htmlFor='viewHidden'>
-              <Trans>View hidden</Trans>
-            </label>
-            <Switch
-              id='viewHidden'
-              checked={showHidden}
-              onCheckedChange={(value) => setShowHidden(value)}
-            />
-          </div>
-        )}
+        <OptionOptions
+          query={search}
+          setQuery={(value) => setParams({ search: value, page: 1 })}
+          viewMode={viewMode}
+          setViewMode={(value) => setParams({ viewMode: value })}
+          sortMode={sortMode}
+          setSortMode={(value) => setParams({ sortMode: value, page: 1 })}
+          ascending={ascending}
+          setAscending={(value) => setParams({ ascending: value, page: 1 })}
+          showHiddenOptions={showHiddenOptions}
+          setShowHiddenOptions={(value) =>
+            setParams({ showHiddenOptions: value, page: 1 })
+          }
+          handleSearch={(value) => {
+            setParams({ search: value, page: 1 });
+          }}
+          className='mb-4'
+          onExport={() => exportOptions(options)}
+        />
 
         {options.length === 0 && (
           <Alert className='mt-4'>
@@ -131,346 +129,56 @@ export function OptionList() {
           </Alert>
         )}
 
-        <div className='mt-4 grid gap-4 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
-          {visibleOptions.map((option) => (
-            <Option
-              key={option.launcher_id}
-              option={option}
+        {loading ? (
+          <div className='text-center text-muted-foreground py-8'>
+            <Trans>Loading options...</Trans>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <OptionGridView
+            options={options}
+            updateOptions={updateOptions}
+            showHidden={showHiddenOptions}
+          />
+        ) : (
+          <div className='mt-4'>
+            <OptionListView
+              options={options}
               updateOptions={updateOptions}
+              showHidden={showHiddenOptions}
+              actionHandlers={actionHandlers}
             />
-          ))}
-        </div>
-      </Container>
-    </>
-  );
-}
+          </div>
+        )}
 
-interface OptionProps {
-  option: OptionRecord;
-  updateOptions: () => void;
-}
-
-function Option({ option, updateOptions }: OptionProps) {
-  const { addError } = useErrors();
-
-  const walletState = useWalletState();
-
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
-
-  const [exerciseOpen, setExerciseOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [burnOpen, setBurnOpen] = useState(false);
-
-  const [isExercising, setIsExercising] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [isBurning, setIsBurning] = useState(false);
-  const [transferAddress, setTransferAddress] = useState('');
-
-  const onExerciseSubmit = (fee: string) => {
-    setIsExercising(true);
-    commands
-      .exerciseOptions({
-        option_ids: [option.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
-      .then(setResponse)
-      .catch((err) => {
-        setIsExercising(false);
-        addError(err);
-      })
-      .finally(() => setExerciseOpen(false));
-  };
-
-  const onTransferSubmit = (address: string, fee: string) => {
-    setIsTransferring(true);
-    setTransferAddress(address);
-    commands
-      .transferOptions({
-        option_ids: [option.launcher_id],
-        address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
-      .then(setResponse)
-      .catch((err) => {
-        setIsTransferring(false);
-        addError(err);
-      })
-      .finally(() => setTransferOpen(false));
-  };
-
-  const onBurnSubmit = (fee: string) => {
-    setIsBurning(true);
-    commands
-      .transferOptions({
-        option_ids: [option.launcher_id],
-        address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.precision),
-      })
-      .then(setResponse)
-      .catch((err) => {
-        setIsBurning(false);
-        addError(err);
-      })
-      .finally(() => setBurnOpen(false));
-  };
-
-  return (
-    <>
-      <Card
-        key={option.launcher_id}
-        className={`${!option.visible ? 'opacity-50 grayscale' : option.created_height === null ? 'pulsate-opacity' : ''}`}
-      >
-        <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
-          <CardTitle className='text-md font-medium truncate flex items-center'>
-            <FilePenLine className='mr-2 h-4 w-4' />
-            {option.name}
-          </CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant='ghost' size='icon'>
-                <MoreVerticalIcon className='h-5 w-5' />
+        {total > limit && (
+          <div className='flex justify-center mt-6'>
+            <div className='flex items-center gap-2'>
+              <Button
+                variant='outline'
+                size='sm'
+                disabled={page === 1}
+                onClick={() => setParams({ page: page - 1 })}
+              >
+                <Trans>Previous</Trans>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align='end'>
-              <DropdownMenuGroup>
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExerciseOpen(true);
-                  }}
-                  disabled={option.created_height === null}
-                >
-                  <HandCoins className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Exercise</Trans>
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTransferOpen(true);
-                  }}
-                  disabled={option.created_height === null}
-                >
-                  <SendIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Transfer</Trans>
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setBurnOpen(true);
-                  }}
-                  disabled={option.created_height === null}
-                >
-                  <Flame className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Burn</Trans>
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    writeText(option.launcher_id);
-                    toast.success(t`Option ID copied to clipboard`);
-                  }}
-                >
-                  <Copy className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Copy ID</Trans>
-                  </span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // toggleVisibility();
-                  }}
-                >
-                  {option.visible ? (
-                    <EyeOff className='mr-2 h-4 w-4' />
-                  ) : (
-                    <EyeIcon className='mr-2 h-4 w-4' />
-                  )}
-                  <span>{option.visible ? t`Hide` : t`Show`}</span>
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent>
-          <div className='flex flex-col gap-2'>
-            <div className='flex flex-col gap-1'>
-              <div className='text-sm font-medium text-muted-foreground'>
-                Option ID
-              </div>
-              <CopyBox value={option.launcher_id} title={t`Option ID`} />
-            </div>
-
-            <div className='flex flex-col gap-1'>
-              <div className='text-sm font-medium text-muted-foreground'>
-                Expiration
-              </div>
-              <div className='text-sm font-medium'>
-                {formatTimestamp(option.expiration_seconds)}
-              </div>
-            </div>
-
-            {option.expiration_seconds * 1000 < Date.now() ? (
-              <div className='flex items-center gap-1.5 text-sm font-medium text-red-500'>
-                <AlertCircle className='h-4 w-4' />
-                <Trans>Expired</Trans>
-              </div>
-            ) : option.expiration_seconds * 1000 <
-              Date.now() + 24 * 60 * 60 * 1000 ? (
-              <div className='flex items-center gap-1.5 text-sm font-medium text-yellow-500'>
-                <AlertCircle className='h-4 w-4' />
-                <Trans>Expiring soon</Trans>
-              </div>
-            ) : (
-              <div className='flex items-center gap-1.5 text-sm font-medium text-blue-400'>
-                <InfoCircledIcon className='h-4 w-4' />
-                <Trans>Active</Trans>
-              </div>
-            )}
-
-            <Separator className='my-1' />
-
-            <div className='flex flex-col gap-2'>
-              <OptionAssetPreview
-                asset={option.underlying_asset}
-                amount={option.underlying_amount}
-                option={option}
-              />
-              <OptionAssetPreview
-                asset={option.strike_asset}
-                amount={option.strike_amount}
-                option={option}
-              />
+              <span className='text-sm text-muted-foreground'>
+                {t`Page ${page} of ${Math.ceil(total / limit)}`}
+              </span>
+              <Button
+                variant='outline'
+                size='sm'
+                disabled={page >= Math.ceil(total / limit)}
+                onClick={() => setParams({ page: page + 1 })}
+              >
+                <Trans>Next</Trans>
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </Container>
 
-      <FeeOnlyDialog
-        title={t`Exercise Option`}
-        submitButtonLabel={t`Exercise`}
-        open={exerciseOpen}
-        setOpen={setExerciseOpen}
-        onSubmit={onExerciseSubmit}
-      >
-        <Trans>
-          This will exercise the option contract by paying its strike price and
-          unlocking the underlying asset.
-        </Trans>
-      </FeeOnlyDialog>
-
-      <TransferDialog
-        title={t`Transfer Option`}
-        open={transferOpen}
-        setOpen={setTransferOpen}
-        onSubmit={onTransferSubmit}
-      >
-        <Trans>This will send the option to the provided address.</Trans>
-      </TransferDialog>
-
-      <FeeOnlyDialog
-        title={t`Burn Option`}
-        submitButtonLabel={t`Burn`}
-        open={burnOpen}
-        setOpen={setBurnOpen}
-        onSubmit={onBurnSubmit}
-      >
-        <Trans>
-          This will permanently delete the option by sending it to the burn
-          address.
-        </Trans>
-      </FeeOnlyDialog>
-
-      <ConfirmationDialog
-        response={response}
-        showRecipientDetails={false}
-        close={() => {
-          setResponse(null);
-          setIsTransferring(false);
-          setIsBurning(false);
-        }}
-        onConfirm={() => updateOptions()}
-        additionalData={
-          isTransferring && response
-            ? {
-                title: t`Transfer Option`,
-                content: (
-                  <OptionConfirmation
-                    options={[option]}
-                    address={transferAddress}
-                    type='transfer'
-                  />
-                ),
-              }
-            : isBurning && response
-              ? {
-                  title: t`Burn Option`,
-                  content: (
-                    <OptionConfirmation options={[option]} type='burn' />
-                  ),
-                }
-              : isExercising && response
-                ? {
-                    title: t`Exercise Option`,
-                    content: (
-                      <OptionConfirmation options={[option]} type='exercise' />
-                    ),
-                  }
-                : undefined
-        }
-      />
+      {/* Shared dialogs */}
+      {dialogs}
     </>
-  );
-}
-
-interface OptionAssetPreviewProps {
-  asset: Asset;
-  amount: Amount;
-  option: OptionRecord;
-}
-
-function OptionAssetPreview({
-  asset,
-  amount,
-  option,
-}: OptionAssetPreviewProps) {
-  return (
-    <div className='flex flex-col gap-1'>
-      <div className='text-sm font-medium text-muted-foreground'>
-        {asset === option.underlying_asset
-          ? 'Underlying Asset'
-          : 'Strike Price'}
-      </div>
-      <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
-        <AssetIcon asset={asset} size='md' />
-        <div className='text-sm text-muted-foreground truncate'>
-          {asset.kind === 'token' && (
-            <NumberFormat
-              value={fromMojos(amount, asset.precision)}
-              minimumFractionDigits={0}
-              maximumFractionDigits={asset.precision}
-            />
-          )}{' '}
-          {asset.name ?? asset.ticker ?? t`Unknown`}
-        </div>
-      </div>
-    </div>
   );
 }

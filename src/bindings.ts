@@ -266,6 +266,9 @@ async resyncCat(req: ResyncCat) : Promise<ResyncCatResponse> {
 async updateDid(req: UpdateDid) : Promise<UpdateDidResponse> {
     return await TAURI_INVOKE("update_did", { req });
 },
+async updateOption(req: UpdateOption) : Promise<UpdateOptionResponse> {
+    return await TAURI_INVOKE("update_option", { req });
+},
 async updateNft(req: UpdateNft) : Promise<UpdateNftResponse> {
     return await TAURI_INVOKE("update_nft", { req });
 },
@@ -462,8 +465,8 @@ export type GetOffers = Record<string, never>
 export type GetOffersResponse = { offers: OfferRecord[] }
 export type GetOption = { option_id: string }
 export type GetOptionResponse = { option: OptionRecord | null }
-export type GetOptions = Record<string, never>
-export type GetOptionsResponse = { options: OptionRecord[] }
+export type GetOptions = { offset: number; limit: number; sort_mode?: OptionSortMode; ascending?: boolean; find_value: string | null; include_hidden?: boolean }
+export type GetOptionsResponse = { options: OptionRecord[]; total: number }
 export type GetPeers = Record<string, never>
 export type GetPeersResponse = { peers: PeerRecord[] }
 export type GetPendingTransactions = Record<string, never>
@@ -511,7 +514,7 @@ export type NetworkList = { networks: Network[] }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
 export type NftMint = { address?: string | null; edition_number?: number | null; edition_total?: number | null; data_hash?: string | null; data_uris?: string[]; metadata_hash?: string | null; metadata_uris?: string[]; license_hash?: string | null; license_uris?: string[]; royalty_address?: string | null; royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftUriKind = "data" | "metadata" | "license"
@@ -522,7 +525,8 @@ export type OfferRecord = { offer_id: string; offer: string; status: OfferRecord
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 export type OptionAsset = { asset_id: string | null; amount: Amount }
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null }
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
+export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: string | null }
 export type PerformDatabaseMaintenance = { force_vacuum: boolean }
@@ -581,6 +585,8 @@ export type UpdateNft = { nft_id: string; visible: boolean }
 export type UpdateNftCollection = { collection_id: string; visible: boolean }
 export type UpdateNftCollectionResponse = Record<string, never>
 export type UpdateNftResponse = Record<string, never>
+export type UpdateOption = { option_id: string; visible: boolean }
+export type UpdateOptionResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
