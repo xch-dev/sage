@@ -80,8 +80,7 @@ import {
   WalletDefaults,
 } from '../bindings';
 
-import { ThemeSelector } from '../components/ThemeSelector';
-import { useTheme } from '../contexts/ThemeContext';
+import { ThemeSelectorSimple } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -258,7 +257,6 @@ function SettingItem({
 
 function GlobalSettings() {
   const { addError } = useErrors();
-  const { currentTheme } = useTheme();
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
@@ -287,19 +285,19 @@ function GlobalSettings() {
       <SettingsSection title={t`Preferences`}>
         <SettingItem
           label={t`Theme`}
-          description={t`Choose your preferred color theme`}
+          description={t`Choose your preferred theme`}
           control={
             <div className='w-full'>
               {/* Theme selector will be added below */}
             </div>
           }
         />
-        <div className='mt-4'>
-          <ThemeSelector />
-          <div className='mt-4'>
+        <div>
+          <ThemeSelectorSimple />
+          <div className='m-4'>
             <Link to='/theme-demo'>
               <Button variant='outline' size='sm'>
-                View Theme Demo
+                More Themes...
               </Button>
             </Link>
           </div>

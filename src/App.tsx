@@ -11,7 +11,6 @@ import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
-
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
   getBrowserLanguage,
@@ -50,7 +49,7 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
-import ThemeDemo from './pages/ThemeDemo';
+import ThemeDemo from './pages/Themes';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';

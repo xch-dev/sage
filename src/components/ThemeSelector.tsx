@@ -130,3 +130,88 @@ export function ThemeSelectorCompact() {
     </div>
   );
 }
+
+export function ThemeSelectorSimple() {
+  const { currentTheme, setTheme, availableThemes } = useTheme();
+
+  // Get the core themes: light, dark, and current theme
+  const lightTheme = availableThemes.find((theme) => theme.name === 'light');
+  const darkTheme = availableThemes.find((theme) => theme.name === 'dark');
+
+  const coreThemes = [lightTheme, darkTheme].filter(
+    (theme): theme is NonNullable<typeof theme> => theme !== undefined,
+  );
+
+  // Add current theme if it's not light or dark
+  if (currentTheme.name !== 'light' && currentTheme.name !== 'dark') {
+    coreThemes.push(currentTheme);
+  }
+
+  return (
+    <div className='space-y-3 p-4'>
+      <div className='grid grid-cols-3 gap-3'>
+        {coreThemes.map((theme) => (
+          <div
+            key={theme.name}
+            className={`cursor-pointer transition-all hover:opacity-90 ${
+              currentTheme.name === theme.name ? 'ring-2' : 'hover:ring-1'
+            }`}
+            style={{
+              backgroundColor: `hsl(${theme.colors.card})`,
+              color: `hsl(${theme.colors.cardForeground})`,
+              border: `1px solid hsl(${theme.colors.border})`,
+              borderRadius: theme.corners.lg,
+              boxShadow: theme.shadows.card,
+              fontFamily: theme.fonts.body,
+              outline:
+                currentTheme.name === theme.name
+                  ? `2px solid hsl(${currentTheme.colors.primary})`
+                  : 'none',
+            }}
+            onClick={() => setTheme(theme.name)}
+          >
+            <div className='p-3'>
+              <div className='flex items-center justify-between mb-2'>
+                <h4
+                  className='font-medium text-xs'
+                  style={{ fontFamily: theme.fonts.heading }}
+                >
+                  {theme.displayName}
+                </h4>
+                {currentTheme.name === theme.name && (
+                  <Check
+                    className='h-3 w-3'
+                    style={{ color: `hsl(${currentTheme.colors.primary})` }}
+                  />
+                )}
+              </div>
+              <div className='flex gap-1'>
+                <div
+                  className='h-2 w-2'
+                  style={{
+                    backgroundColor: `hsl(${theme.colors.primary})`,
+                    borderRadius: theme.corners.sm,
+                  }}
+                />
+                <div
+                  className='h-2 w-2'
+                  style={{
+                    backgroundColor: `hsl(${theme.colors.secondary})`,
+                    borderRadius: theme.corners.sm,
+                  }}
+                />
+                <div
+                  className='h-2 w-2'
+                  style={{
+                    backgroundColor: `hsl(${theme.colors.accent})`,
+                    borderRadius: theme.corners.sm,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

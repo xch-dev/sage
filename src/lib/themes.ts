@@ -51,6 +51,7 @@ export interface Theme {
     inner: string;
     card: string;
     button: string;
+    dropdown: string;
   };
 }
 
@@ -108,6 +109,7 @@ export const themes: Theme[] = [
       inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
       card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
       button: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      dropdown: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
     },
   },
   {
@@ -163,6 +165,7 @@ export const themes: Theme[] = [
       inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.1)',
       card: '0 2px 8px 0 rgb(0 0 0 / 0.2), 0 1px 3px -1px rgb(0 0 0 / 0.1)',
       button: '0 1px 2px 0 rgb(0 0 0 / 0.1)',
+      dropdown: '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
     },
   },
   {
@@ -218,6 +221,7 @@ export const themes: Theme[] = [
       inner: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
       card: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
       button: 'inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)',
+      dropdown: 'inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)',
     },
   },
   {
@@ -273,6 +277,7 @@ export const themes: Theme[] = [
       inner: 'inset 2px 2px 0 0 rgb(0 0 0)',
       card: 'none',
       button: '2px 2px 0 0 rgb(0 0 0)',
+      dropdown: '2px 2px 0 0 rgb(0 0 0)',
     },
   },
   {
@@ -328,6 +333,7 @@ export const themes: Theme[] = [
       inner: 'inset 1px 1px 0 0 rgb(85 85 85), inset -1px -1px 0 0 rgb(255 255 255)',
       card: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
       button: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
+      dropdown: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
     },
   },
   {
@@ -383,6 +389,7 @@ export const themes: Theme[] = [
       inner: 'inset 1px 1px 0 0 rgb(0 0 0)',
       card: '2px 2px 0 0 rgb(0 0 0)',
       button: '2px 2px 0 0 rgb(0 0 0)',
+      dropdown: '2px 2px 0 0 rgb(0 0 0)',
     },
   },
 ];

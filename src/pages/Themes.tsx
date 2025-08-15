@@ -1,9 +1,6 @@
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
-import {
-  ThemeSelector,
-  ThemeSelectorCompact,
-} from '@/components/ThemeSelector';
+import { ThemeSelector } from '@/components/ThemeSelector';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,20 +13,20 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Info, Palette, Sparkles } from 'lucide-react';
+import { Trans } from '@lingui/react/macro';
+import { Info, Palette } from 'lucide-react';
 
-export default function ThemeDemo() {
+export default function Themes() {
   const { currentTheme } = useTheme();
   try {
     console.log('Current theme:', currentTheme);
 
     return (
       <Layout>
-        <Header title='Theme Demo' back={() => window.history.back()} />
+        <Header title='Theme' back={() => window.history.back()} />
 
         <div className='flex-1 overflow-auto'>
           <div className='container mx-auto p-6 space-y-8'>
@@ -111,34 +108,33 @@ export default function ThemeDemo() {
                   </Label>
                   <div className='space-y-4'>
                     <div className='space-y-2'>
-                      <Label>Heading Font: {currentTheme.fonts.heading}</Label>
+                      <Label>
+                        <Trans>Heading Font</Trans>:{' '}
+                        {currentTheme.fonts.heading}
+                      </Label>
                       <p
                         className='text-2xl font-bold'
                         style={{ fontFamily: currentTheme.fonts.heading }}
                       >
-                        The quick brown fox jumps over the lazy dog
+                        <Trans>
+                          The quick brown fox jumps over the lazy dog
+                        </Trans>
                       </p>
                     </div>
                     <div className='space-y-2'>
-                      <Label>Body Font: {currentTheme.fonts.body}</Label>
+                      <Label>
+                        <Trans>Body Font</Trans>: {currentTheme.fonts.body}
+                      </Label>
                       <p
                         className='text-base'
                         style={{ fontFamily: currentTheme.fonts.body }}
                       >
-                        The quick brown fox jumps over the lazy dog. This is
-                        regular body text that demonstrates how readable content
-                        appears with the selected theme font.
+                        <Trans>
+                          The quick brown fox jumps over the lazy dog. This is
+                          regular body text that demonstrates how readable
+                          content appears with the selected theme font.
+                        </Trans>
                       </p>
-                    </div>
-                    <div className='space-y-2'>
-                      <Label>Monospace Font: {currentTheme.fonts.mono}</Label>
-                      <code
-                        className='block text-sm bg-muted p-3 rounded-md'
-                        style={{ fontFamily: currentTheme.fonts.mono }}
-                      >
-                        const greeting = "Hello, world!";{'\n'}
-                        console.log(greeting);
-                      </code>
                     </div>
                   </div>
                 </div>
@@ -150,7 +146,9 @@ export default function ThemeDemo() {
                   </Label>
                   <div className='space-y-4'>
                     <div className='space-y-2'>
-                      <Label>Border Radius: {currentTheme.corners.lg}</Label>
+                      <Label>
+                        <Trans>Border Radius</Trans>: {currentTheme.corners.lg}
+                      </Label>
                       <div className='flex gap-3 items-center'>
                         <div
                           className='w-12 h-12 bg-primary'
@@ -183,7 +181,10 @@ export default function ThemeDemo() {
                           boxShadow: currentTheme.shadows.card,
                         }}
                       >
-                        This card shows the theme's shadow and corner style
+                        <Trans>
+                          This card shows the theme&apos;s shadow and corner
+                          style.
+                        </Trans>
                       </div>
                     </div>
                   </div>
@@ -200,15 +201,29 @@ export default function ThemeDemo() {
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   <div className='flex flex-wrap gap-2'>
-                    <Button>Default</Button>
-                    <Button variant='secondary'>Secondary</Button>
-                    <Button variant='outline'>Outline</Button>
-                    <Button variant='ghost'>Ghost</Button>
-                    <Button variant='destructive'>Destructive</Button>
+                    <Button>
+                      <Trans>Default</Trans>
+                    </Button>
+                    <Button variant='secondary'>
+                      <Trans>Secondary</Trans>
+                    </Button>
+                    <Button variant='outline'>
+                      <Trans>Outline</Trans>
+                    </Button>
+                    <Button variant='ghost'>
+                      <Trans>Ghost</Trans>
+                    </Button>
+                    <Button variant='destructive'>
+                      <Trans>Destructive</Trans>
+                    </Button>
                   </div>
                   <div className='flex flex-wrap gap-2'>
-                    <Button size='sm'>Small</Button>
-                    <Button size='lg'>Large</Button>
+                    <Button size='sm'>
+                      <Trans>Small</Trans>
+                    </Button>
+                    <Button size='lg'>
+                      <Trans>Large</Trans>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -220,12 +235,16 @@ export default function ThemeDemo() {
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   <div className='space-y-2'>
-                    <Label htmlFor='email'>Email</Label>
+                    <Label htmlFor='email'>
+                      <Trans>Email</Trans>
+                    </Label>
                     <Input id='email' placeholder='Enter your email' />
                   </div>
                   <div className='flex items-center space-x-2'>
                     <Switch id='notifications' />
-                    <Label htmlFor='notifications'>Enable notifications</Label>
+                    <Label htmlFor='notifications'>
+                      <Trans>Enable notifications</Trans>
+                    </Label>
                   </div>
                   <div className='w-full bg-secondary rounded-full h-2'>
                     <div
@@ -243,14 +262,23 @@ export default function ThemeDemo() {
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   <div className='flex flex-wrap gap-2'>
-                    <Badge>Default</Badge>
-                    <Badge variant='secondary'>Secondary</Badge>
-                    <Badge variant='outline'>Outline</Badge>
+                    <Badge>
+                      <Trans>Default</Trans>
+                    </Badge>
+                    <Badge variant='secondary'>
+                      <Trans>Secondary</Trans>
+                    </Badge>
+                    <Badge variant='outline'>
+                      <Trans>Outline</Trans>
+                    </Badge>
                   </div>
                   <Alert>
                     <Info className='h-4 w-4' />
                     <AlertDescription>
-                      This is an informational alert that adapts to your theme.
+                      <Trans>
+                        This is an informational alert that adapts to your
+                        theme.
+                      </Trans>
                     </AlertDescription>
                   </Alert>
                 </CardContent>
@@ -264,100 +292,33 @@ export default function ThemeDemo() {
                 <CardContent>
                   <Tabs defaultValue='account' className='w-full'>
                     <TabsList className='grid w-full grid-cols-2'>
-                      <TabsTrigger value='account'>Account</TabsTrigger>
-                      <TabsTrigger value='password'>Password</TabsTrigger>
+                      <TabsTrigger value='account'>
+                        <Trans>Account</Trans>
+                      </TabsTrigger>
+                      <TabsTrigger value='password'>
+                        <Trans>Password</Trans>
+                      </TabsTrigger>
                     </TabsList>
                     <TabsContent value='account' className='mt-4'>
                       <p className='text-sm text-muted-foreground'>
-                        Account settings content goes here.
+                        <Trans>Account settings content goes here.</Trans>
                       </p>
                     </TabsContent>
                     <TabsContent value='password' className='mt-4'>
                       <p className='text-sm text-muted-foreground'>
-                        Password settings content goes here.
+                        <Trans>Password settings content goes here.</Trans>
                       </p>
                     </TabsContent>
                   </Tabs>
                 </CardContent>
               </Card>
             </div>
-
-            {/* Compact Theme Selector */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  <Sparkles className='h-5 w-5' />
-                  Quick Theme Switcher
-                </CardTitle>
-                <CardDescription>
-                  Compact theme selector for quick switching
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ThemeSelectorCompact />
-              </CardContent>
-            </Card>
-
-            <Separator />
-
-            {/* Theme Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle>About Themes</CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <p className='text-sm text-muted-foreground'>
-                  Our theme system uses CSS custom properties (CSS variables) to
-                  provide consistent theming across all components. Each theme
-                  defines a complete visual system that includes:
-                </p>
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                  <div>
-                    <h4 className='font-medium text-sm mb-2'>Colors</h4>
-                    <ul className='text-sm text-muted-foreground space-y-1 ml-4'>
-                      <li>• Background and foreground colors</li>
-                      <li>• Primary, secondary, and accent colors</li>
-                      <li>• Muted and destructive colors</li>
-                      <li>• Border and input colors</li>
-                      <li>• Chart colors for data visualization</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className='font-medium text-sm mb-2'>Typography</h4>
-                    <ul className='text-sm text-muted-foreground space-y-1 ml-4'>
-                      <li>• Sans-serif font family</li>
-                      <li>• Serif font family</li>
-                      <li>• Monospace font family</li>
-                      <li>• Heading font</li>
-                      <li>• Body text font</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className='font-medium text-sm mb-2'>Visual Style</h4>
-                    <ul className='text-sm text-muted-foreground space-y-1 ml-4'>
-                      <li>• Border radius variations</li>
-                      <li>• Drop shadow styles</li>
-                      <li>• Card and button shadows</li>
-                      <li>• Inset shadow effects</li>
-                      <li>• Theme-specific styling</li>
-                    </ul>
-                  </div>
-                </div>
-                <p className='text-sm text-muted-foreground'>
-                  Themes are automatically saved to localStorage and will
-                  persist across browser sessions. Each theme combines carefully
-                  selected color palettes with typography choices that enhance
-                  readability and user experience. You can easily add new themes
-                  by extending the themes array in the theme configuration.
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </Layout>
     );
   } catch (error) {
-    console.error('Error in ThemeDemo:', error);
+    console.error('Error in Theme:', error);
     return (
       <div className='p-6'>
         <h1>Theme Demo</h1>

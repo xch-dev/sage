@@ -23,12 +23,6 @@ export function FontExample() {
             Body text using theme body font. This is great for custom
             components.
           </p>
-          <code
-            style={fonts.styles.mono}
-            className='block bg-muted p-2 rounded'
-          >
-            const code = 'monospace font example';
-          </code>
         </div>
       </div>
 
