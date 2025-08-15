@@ -64,9 +64,9 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -79,9 +79,9 @@ import {
   Wallet,
   WalletDefaults,
 } from '../bindings';
-import { DarkModeContext } from '../contexts/DarkModeContext';
-import { useTheme } from '../contexts/ThemeContext';
+
 import { ThemeSelector } from '../components/ThemeSelector';
+import { useTheme } from '../contexts/ThemeContext';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -218,7 +218,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+    <div className='divide-y rounded-md border bg-card text-card-foreground overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -258,7 +258,6 @@ function SettingItem({
 
 function GlobalSettings() {
   const { addError } = useErrors();
-  const { dark, setDark } = useContext(DarkModeContext);
   const { currentTheme } = useTheme();
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
@@ -287,23 +286,19 @@ function GlobalSettings() {
     <>
       <SettingsSection title={t`Preferences`}>
         <SettingItem
-          label={t`Dark Mode`}
-          description={t`Switch between light and dark theme`}
-          control={<Switch checked={dark} onCheckedChange={setDark} />}
-        />
-        <SettingItem
           label={t`Theme`}
           description={t`Choose your preferred color theme`}
-          control={<div className="w-full">{/* Theme selector will be added below */}</div>}
+          control={
+            <div className='w-full'>
+              {/* Theme selector will be added below */}
+            </div>
+          }
         />
-        <div className="mt-4">
+        <div className='mt-4'>
           <ThemeSelector />
-          <div className="mt-4">
-            <Link to="/theme-demo">
-              <Button 
-                variant="outline" 
-                size="sm"
-              >
+          <div className='mt-4'>
+            <Link to='/theme-demo'>
+              <Button variant='outline' size='sm'>
                 View Theme Demo
               </Button>
             </Link>

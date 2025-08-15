@@ -31,12 +31,12 @@ export function CopyBox(props: CopyBoxProps) {
         aria-describedby={props['aria-describedby']}
         className={`block w-full text-sm rounded-none rounded-l-md border-0 py-1.5 px-2 ${
           truncate ? 'truncate' : ''
-        } text-muted-foreground bg-white text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 font-mono tracking-tight ring-1 ring-inset ring-neutral-200 dark:ring-neutral-800 sm:leading-6`}
+        } text-muted-foreground bg-background text-foreground font-mono tracking-tight ring-1 ring-inset ring-border sm:leading-6`}
       />
       <CopyButton
         value={props.value}
         onCopy={props.onCopy}
-        className='relative rounded-none -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-neutral-200 dark:ring-neutral-800 hover:bg-gray-50 bg-white text-neutral-950 dark:bg-neutral-900 dark:text-neutral-50 '
+        className='relative rounded-none -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 text-sm font-semibold ring-1 ring-inset ring-border hover:bg-accent bg-background text-foreground '
         aria-label={`Copy ${props.value}`}
       />
     </div>

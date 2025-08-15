@@ -1,5 +1,5 @@
+import { applyTheme, getThemeByName, themes, type Theme } from '@/lib/themes';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { themes, type Theme, getThemeByName, applyTheme } from '@/lib/themes';
 
 interface ThemeContextType {
   currentTheme: Theme;
@@ -18,13 +18,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setCurrentTheme(theme);
       applyTheme(theme);
       localStorage.setItem('theme', themeName);
-      
-      // Update dark mode state to match theme
-      const isDarkTheme = themeName === 'dark';
-      localStorage.setItem('dark', isDarkTheme.toString());
-      
-      // Force a re-render by updating the dark mode state
-      window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme: themeName } }));
     }
   };
 
@@ -38,9 +31,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         applyTheme(theme);
       }
     } else {
-      // If no theme is saved, check dark mode preference
-      const isDarkMode = localStorage.getItem('dark') === 'true';
-      const defaultTheme = isDarkMode ? getThemeByName('dark') : getThemeByName('light');
+      // Default to light theme
+      const defaultTheme = getThemeByName('light');
       if (defaultTheme) {
         setCurrentTheme(defaultTheme);
         applyTheme(defaultTheme);
@@ -49,7 +41,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <ThemeContext.Provider value={{ currentTheme, setTheme, availableThemes: themes }}>
+    <ThemeContext.Provider
+      value={{ currentTheme, setTheme, availableThemes: themes }}
+    >
       {children}
     </ThemeContext.Provider>
   );

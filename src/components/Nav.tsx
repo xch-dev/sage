@@ -33,7 +33,7 @@ export function TopNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Main navigation`}
     >
@@ -132,7 +132,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Secondary navigation`}
     >

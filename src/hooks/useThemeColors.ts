@@ -2,7 +2,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 export function useThemeColors() {
   const { currentTheme } = useTheme();
-  
+
   return {
     // Convert HSL values to CSS color strings
     background: `hsl(${currentTheme.colors.background})`,
@@ -29,7 +29,7 @@ export function useThemeColors() {
     chart3: `hsl(${currentTheme.colors.chart3})`,
     chart4: `hsl(${currentTheme.colors.chart4})`,
     chart5: `hsl(${currentTheme.colors.chart5})`,
-    
+
     // Raw HSL values for use with opacity
     backgroundHsl: currentTheme.colors.background,
     foregroundHsl: currentTheme.colors.foreground,
@@ -37,5 +37,14 @@ export function useThemeColors() {
     secondaryHsl: currentTheme.colors.secondary,
     accentHsl: currentTheme.colors.accent,
     destructiveHsl: currentTheme.colors.destructive,
+
+    // Font families
+    fonts: {
+      sans: currentTheme.fonts.sans,
+      serif: currentTheme.fonts.serif,
+      mono: currentTheme.fonts.mono,
+      heading: currentTheme.fonts.heading,
+      body: currentTheme.fonts.body,
+    },
   };
 }

@@ -5,14 +5,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { DarkModeContext } from '@/contexts/DarkModeContext';
+
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
-import { PropsWithChildren, useContext } from 'react';
+import { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
@@ -26,7 +25,6 @@ type LayoutProps = PropsWithChildren<object> & {
 
 export function FullLayout(props: LayoutProps) {
   const { wallet } = props;
-  const { dark } = useContext(DarkModeContext);
 
   const insets = useInsets();
 
@@ -38,13 +36,9 @@ export function FullLayout(props: LayoutProps) {
   const walletIcon = (
     <Link
       to='/wallet'
-      className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+      className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <img
-        src={dark ? iconLight : iconDark}
-        className='h-6 w-6'
-        alt={t`Wallet icon`}
-      />
+      <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
@@ -60,13 +54,9 @@ export function FullLayout(props: LayoutProps) {
       <TooltipTrigger asChild>
         <Link
           to='/wallet'
-          className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <img
-            src={dark ? iconLight : iconDark}
-            className='h-6 w-6'
-            alt={t`Wallet icon`}
-          />
+          <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>
@@ -118,7 +108,7 @@ export function FullLayout(props: LayoutProps) {
 
             <div className='flex-1 flex flex-col justify-between pb-4'>
               <div
-                className={`grid items-start px-3 text-sm font-medium ${
+                className={`grid items-start px-3 text-sm font-medium font-body ${
                   isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >
@@ -126,7 +116,7 @@ export function FullLayout(props: LayoutProps) {
               </div>
 
               <div
-                className={`grid text-sm font-medium ${
+                className={`grid text-sm font-medium font-body ${
                   isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >

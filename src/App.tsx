@@ -1,6 +1,6 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -11,9 +11,8 @@ import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
-import { DarkModeContext } from './contexts/DarkModeContext';
+
 import { ErrorProvider } from './contexts/ErrorContext';
-import { ThemeProvider } from './contexts/ThemeContext';
 import {
   getBrowserLanguage,
   LanguageProvider,
@@ -23,6 +22,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
@@ -110,53 +110,22 @@ const router = createHashRouter(
 );
 
 export default function App() {
-  const [dark, setDark] = useLocalStorage('dark', false);
   const [locale, setLocale] = useLocalStorage<SupportedLanguage>(
     'locale',
     getBrowserLanguage,
   );
 
-  const darkMode = useMemo<DarkModeContext>(
-    () => ({
-      toggle: () => setDark((dark) => !dark),
-      dark,
-      setDark,
-    }),
-    [dark, setDark],
-  );
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(dark ? 'light' : 'dark');
-    root.classList.add(dark ? 'dark' : 'light');
-  }, [dark]);
-
-  // Listen for theme changes
-  useEffect(() => {
-    const handleThemeChange = (event: CustomEvent) => {
-      const { theme } = event.detail;
-      const isDarkTheme = theme === 'dark';
-      setDark(isDarkTheme);
-    };
-
-    window.addEventListener('themeChanged', handleThemeChange as EventListener);
-    return () => {
-      window.removeEventListener('themeChanged', handleThemeChange as EventListener);
-    };
-  }, [setDark]);
-
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
       <ThemeProvider>
-        <DarkModeContext.Provider value={darkMode}>
-          <SafeAreaProvider>
-            <ErrorProvider>
-              <BiometricProvider>
-                <AppInner />
-              </BiometricProvider>
-            </ErrorProvider>
-          </SafeAreaProvider>
-        </DarkModeContext.Provider>
+        <SafeAreaProvider>
+          <ErrorProvider>
+            <BiometricProvider>
+              <AppInner />
+            </BiometricProvider>
+          </ErrorProvider>
+        </SafeAreaProvider>
+
         <ToastContainer
           position='bottom-right'
           autoClose={5000}
@@ -167,7 +136,7 @@ export default function App() {
           pauseOnFocusLoss
           draggable
           pauseOnHover
-          theme={dark ? 'dark' : 'light'}
+          theme='light'
           transition={Slide}
           style={
             {
