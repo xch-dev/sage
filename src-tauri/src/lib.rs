@@ -33,6 +33,7 @@ pub fn run() {
             commands::delete_database,
             commands::rename_key,
             commands::get_keys,
+            commands::set_wallet_emoji,
             commands::get_key,
             commands::get_secret_key,
             commands::send_xch,

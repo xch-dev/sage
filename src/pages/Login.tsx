@@ -57,6 +57,7 @@ import {
   PenIcon,
   SnowflakeIcon,
   TrashIcon,
+  WalletIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import {
@@ -383,7 +384,18 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
         className='cursor-pointer'
       >
         <CardHeader className='flex flex-row items-center justify-between p-5 pt-4 pb-2'>
-          <CardTitle className='text-2xl'>{info.name}</CardTitle>
+          <div className='flex items-center gap-3'>
+            {info.emoji ? (
+              <span className='text-3xl' role='img' aria-label='Wallet emoji'>
+                {info.emoji}
+              </span>
+            ) : (
+              <div className='w-8 h-8 rounded-full bg-muted flex items-center justify-center'>
+                <WalletIcon className='h-4 w-4 text-muted-foreground' />
+              </div>
+            )}
+            <CardTitle className='text-2xl'>{info.name}</CardTitle>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild className='-mr-2.5'>
               <Button variant='ghost' size='icon'>

@@ -1,5 +1,6 @@
 import Container from '@/components/Container';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { PasteInput } from '@/components/PasteInput';
@@ -1012,6 +1013,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
+  const [localEmoji, setLocalEmoji] = useState<string | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -1070,6 +1072,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       .then((data) => {
         setWallet(data);
         if (data?.name) setLocalName(data.name);
+        setLocalEmoji(data?.emoji || null);
       })
       .catch(addError);
 
@@ -1171,6 +1174,32 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                   })
                   .catch(addError);
               }}
+            />
+          }
+        />
+
+        <SettingItem
+          label={t`Wallet Emoji`}
+          description={t`Choose an emoji to identify your wallet`}
+          control={
+            <EmojiPicker
+              value={localEmoji}
+              onChange={(emoji) => {
+                setLocalEmoji(emoji);
+                commands
+                  .setWalletEmoji({
+                    fingerprint,
+                    emoji,
+                  })
+                  .then(() => {
+                    if (wallet) {
+                      setWallet({ ...wallet, emoji });
+                    }
+                  })
+                  .catch(addError);
+              }}
+              placeholder='Choose emoji'
+              className='w-[200px]'
             />
           }
         />

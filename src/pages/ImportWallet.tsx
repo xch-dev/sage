@@ -1,3 +1,4 @@
+import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
@@ -50,6 +51,7 @@ export default function ImportWallet() {
         num <= 100000
       );
     }),
+    emoji: z.string().nullable().optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -67,6 +69,7 @@ export default function ImportWallet() {
         name: values.name,
         key: values.key,
         derivation_index: parseInt(values.addresses),
+        emoji: values.emoji || null,
       })
       .then(fetchState)
       .then(async () => {
@@ -99,6 +102,31 @@ export default function ImportWallet() {
                   <FormControl>
                     <Input required {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='emoji'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>
+                    <Trans>Wallet Emoji (Optional)</Trans>
+                  </FormLabel>
+                  <FormControl>
+                    <EmojiPicker
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder='Choose an emoji for your wallet'
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    <Trans>
+                      Choose an emoji to easily identify your wallet
+                    </Trans>
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

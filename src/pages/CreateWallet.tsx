@@ -1,3 +1,4 @@
+import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +49,7 @@ export default function CreateWallet() {
         name: values.walletName,
         key: values.mnemonic,
         save_secrets: values.saveMnemonic,
+        emoji: values.emoji || null,
       })
       .catch(addError)
       .then(async () => {
@@ -73,6 +75,7 @@ const formSchema = z.object({
   mnemonic: z.string(),
   use24Words: z.boolean(),
   saveMnemonic: z.boolean(),
+  emoji: z.string().nullable().optional(),
 });
 
 function CreateForm(props: {
@@ -132,6 +135,29 @@ function CreateForm(props: {
               <FormControl>
                 <Input placeholder='' required {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='emoji'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>
+                <Trans>Wallet Emoji (Optional)</Trans>
+              </FormLabel>
+              <FormControl>
+                <EmojiPicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder='Choose an emoji for your wallet'
+                />
+              </FormControl>
+              <FormDescription>
+                <Trans>Choose an emoji to easily identify your wallet</Trans>
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
