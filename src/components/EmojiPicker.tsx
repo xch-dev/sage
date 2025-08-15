@@ -19,6 +19,10 @@ export interface EmojiPickerProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  // New props for external trigger control
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  children?: React.ReactNode;
 }
 
 export function EmojiPicker({
@@ -27,15 +31,22 @@ export function EmojiPicker({
   disabled = false,
   placeholder = 'Choose emoji',
   className = '',
+  open,
+  onOpenChange,
+  children,
 }: EmojiPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  // Use external control if provided, otherwise use internal state
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange || setInternalOpen;
 
   const handleEmojiSelect = useCallback(
     (emoji: EmojiData) => {
       onChange(emoji.native);
       setIsOpen(false);
     },
-    [onChange],
+    [onChange, setIsOpen],
   );
 
   const handleClear = (e: React.MouseEvent) => {
@@ -46,33 +57,41 @@ export function EmojiPicker({
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant='outline'
-          className={`w-[200px] justify-start text-left font-normal ${className}`}
-          disabled={disabled}
-        >
-          {value ? (
-            <div className='flex items-center justify-between w-full'>
-              <span className='flex items-center gap-2'>
-                <span className='text-lg'>{value}</span>
-                <span className='text-sm text-muted-foreground'>
-                  {placeholder}
+        {children ? (
+          children
+        ) : (
+          <Button
+            variant='outline'
+            className={`w-[200px] justify-start text-left font-normal ${className}`}
+            disabled={disabled}
+          >
+            {value ? (
+              <div className='flex items-center justify-between w-full'>
+                <span className='flex items-center gap-2'>
+                  <span className='text-lg'>{value}</span>
+                  <span className='text-sm text-muted-foreground'>
+                    {placeholder}
+                  </span>
                 </span>
-              </span>
-              <X
-                className='h-4 w-4 opacity-50 hover:opacity-100'
-                onClick={handleClear}
-              />
-            </div>
-          ) : (
-            <div className='flex items-center gap-2 text-muted-foreground'>
-              <Smile className='h-4 w-4' />
-              <span>{placeholder}</span>
-            </div>
-          )}
-        </Button>
+                <X
+                  className='h-4 w-4 opacity-50 hover:opacity-100'
+                  onClick={handleClear}
+                />
+              </div>
+            ) : (
+              <div className='flex items-center gap-2 text-muted-foreground'>
+                <Smile className='h-4 w-4' />
+                <span>{placeholder}</span>
+              </div>
+            )}
+          </Button>
+        )}
       </PopoverTrigger>
-      <PopoverContent className='w-auto p-0' align='start'>
+      <PopoverContent
+        className='w-auto p-0'
+        align='start'
+        onClick={(e) => e.stopPropagation()}
+      >
         {isOpen && (
           <Picker
             data={data}
