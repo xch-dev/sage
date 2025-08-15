@@ -40,7 +40,7 @@ body {
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
   }
-  
+
   /* Dark theme class - kept for backward compatibility */
   .dark {
     --background: 0 0% 3.9%;
@@ -68,8 +68,6 @@ body {
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
   }
-  
-
 }
 
 @layer base {
@@ -78,6 +76,30 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  body.has-background-image {
+    background-image: var(--background-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  /* Make backgrounds semi-transparent when background image is present */
+  body.has-background-image {
+    background-color: hsla(var(--background) / 0.1);
+  }
+
+  body.has-background-image .bg-card {
+    background-color: hsla(var(--card) / 0.75) !important;
+  }
+
+  body.has-background-image .bg-background {
+    background-color: hsla(var(--background) / 0.1) !important;
+  }
+
+  body.has-background-image .bg-popover {
+    background-color: hsla(var(--popover) / 0.9) !important;
   }
 }
 

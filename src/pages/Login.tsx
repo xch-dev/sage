@@ -608,9 +608,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    <Spoiler theme={dark ? 'dark' : 'light'}>
-                      {secrets.secret_key}
-                    </Spoiler>
+                    <Spoiler>{secrets.secret_key}</Spoiler>
                   </p>
                 </div>
                 {secrets.mnemonic && (
@@ -619,9 +617,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      <Spoiler theme={dark ? 'dark' : 'light'}>
-                        {secrets.mnemonic}
-                      </Spoiler>
+                      <Spoiler>{secrets.mnemonic}</Spoiler>
                     </p>
                   </div>
                 )}
