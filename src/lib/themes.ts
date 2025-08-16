@@ -320,17 +320,6 @@ export async function getThemeByName(name: string): Promise<Theme | undefined> {
 }
 
 /**
- * Synchronous version of getThemeByName for backward compatibility
- * Note: This will return undefined if themes haven't been loaded yet
- */
-export function getThemeByNameSync(name: string): Theme | undefined {
-  if (!themesCache) {
-    return undefined;
-  }
-  return themesCache.find((theme) => theme.name === name);
-}
-
-/**
  * Determines the appropriate background color for outline buttons based on theme
  */
 function getOutlineButtonBackground(theme: Theme): string {
