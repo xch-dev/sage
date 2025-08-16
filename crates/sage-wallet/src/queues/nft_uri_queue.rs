@@ -65,7 +65,7 @@ impl NftUriQueue {
                     let icon_url = data
                         .thumbnail
                         .as_ref()
-                        .map(|thumbnail| base64_data_uri(&thumbnail.icon, &data.mime_type));
+                        .map(|thumbnail| base64_data_uri(&thumbnail.icon, "image/png"));
 
                     if let Some(icon_url) = icon_url {
                         tx.update_nft_data_hash_urls(item.hash, icon_url).await?;
