@@ -18,10 +18,10 @@ Each theme is defined as a TypeScript object with the following structure:
 
 ```typescript
 interface Theme {
-  name: string;           // Unique identifier
-  displayName: string;    // User-friendly name
+  name: string; // Unique identifier
+  displayName: string; // User-friendly name
   colors: {
-    background: string;   // HSL color values (e.g., "0 0% 100%")
+    background: string; // HSL color values (e.g., "0 0% 100%")
     foreground: string;
     primary: string;
     // ... other color properties
@@ -61,13 +61,11 @@ import { useTheme } from '@/contexts/ThemeContext';
 
 function MyComponent() {
   const { currentTheme, setTheme, availableThemes } = useTheme();
-  
+
   return (
     <div>
       <h1>Current theme: {currentTheme.displayName}</h1>
-      <button onClick={() => setTheme('blue')}>
-        Switch to Ocean Blue
-      </button>
+      <button onClick={() => setTheme('blue')}>Switch to Ocean Blue</button>
     </div>
   );
 }
@@ -80,12 +78,14 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 
 function CustomComponent() {
   const colors = useThemeColors();
-  
+
   return (
-    <div style={{ 
-      backgroundColor: colors.primary,
-      color: colors.primaryForeground 
-    }}>
+    <div
+      style={{
+        backgroundColor: colors.primary,
+        color: colors.primaryForeground,
+      }}
+    >
       Custom styled content
     </div>
   );
@@ -154,11 +154,7 @@ The `ThemeProvider` wraps the app and provides theme functionality:
 import { ThemeProvider } from '@/contexts/ThemeContext';
 
 function App() {
-  return (
-    <ThemeProvider>
-      {/* Your app components */}
-    </ThemeProvider>
-  );
+  return <ThemeProvider>{/* Your app components */}</ThemeProvider>;
 }
 ```
 

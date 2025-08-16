@@ -1,9 +1,40 @@
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Check } from 'lucide-react';
+import { Trans } from '@lingui/react/macro';
+import { Check, Loader2 } from 'lucide-react';
 
 export function ThemeSelector() {
-  const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isLoading, error } =
+    useTheme();
+
+  if (isLoading) {
+    return (
+      <div className='flex items-center justify-center p-8'>
+        <Loader2 className='h-6 w-6 animate-spin' />
+        <span className='ml-2'>
+          <Trans>Loading themes...</Trans>
+        </span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className='text-center p-8 text-destructive'>
+        <p>
+          <Trans>Error loading themes: {error}</Trans>
+        </p>
+      </div>
+    );
+  }
+
+  if (!currentTheme) {
+    return (
+      <div className='text-center p-8'>
+        <Trans>No theme available</Trans>
+      </div>
+    );
+  }
 
   return (
     <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
@@ -20,6 +51,11 @@ export function ThemeSelector() {
             borderRadius: theme.corners.lg,
             boxShadow: theme.shadows.card,
             fontFamily: theme.fonts.body,
+            backgroundImage: theme.backgroundImage
+              ? `url(${theme.backgroundImage})`
+              : undefined,
+            backgroundSize: theme.backgroundImage ? 'cover' : undefined,
+            backgroundPosition: theme.backgroundImage ? 'center' : undefined,
             outline:
               currentTheme.name === theme.name
                 ? `2px solid hsl(${currentTheme.colors.primary})`
@@ -107,7 +143,16 @@ export function ThemeSelector() {
 }
 
 export function ThemeSelectorCompact() {
-  const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isLoading } = useTheme();
+
+  if (isLoading || !currentTheme) {
+    return (
+      <div className='flex items-center gap-2'>
+        <Loader2 className='h-4 w-4 animate-spin' />
+        <span className='text-sm'>Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className='flex flex-wrap gap-2'>
@@ -132,7 +177,18 @@ export function ThemeSelectorCompact() {
 }
 
 export function ThemeSelectorSimple() {
-  const { currentTheme, setTheme, availableThemes } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isLoading } = useTheme();
+
+  if (isLoading || !currentTheme) {
+    return (
+      <div className='space-y-3 p-4'>
+        <div className='flex items-center justify-center'>
+          <Loader2 className='h-4 w-4 animate-spin' />
+          <span className='ml-2 text-sm'>Loading themes...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Get the core themes: light, dark, and current theme
   const lightTheme = availableThemes.find((theme) => theme.name === 'light');
@@ -163,6 +219,11 @@ export function ThemeSelectorSimple() {
               borderRadius: theme.corners.lg,
               boxShadow: theme.shadows.card,
               fontFamily: theme.fonts.body,
+              backgroundImage: theme.backgroundImage
+                ? `url(${theme.backgroundImage})`
+                : undefined,
+              backgroundSize: theme.backgroundImage ? 'cover' : undefined,
+              backgroundPosition: theme.backgroundImage ? 'center' : undefined,
               outline:
                 currentTheme.name === theme.name
                   ? `2px solid hsl(${currentTheme.colors.primary})`
@@ -185,6 +246,7 @@ export function ThemeSelectorSimple() {
                   />
                 )}
               </div>
+
               <div className='flex gap-1'>
                 <div
                   className='h-2 w-2'

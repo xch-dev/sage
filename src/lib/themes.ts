@@ -56,8 +56,107 @@ export interface Theme {
   };
 }
 
-export const themes: Theme[] = [
-  {
+// Cache for loaded themes
+let themesCache: Theme[] | null = null;
+let themesPromise: Promise<Theme[]> | null = null;
+
+// Dynamically discover theme folders by scanning the themes directory
+async function discoverThemeFolders(): Promise<string[]> {
+  try {
+    // Try to get directory listing (this works in some server configurations)
+    const response = await fetch('/themes/');
+    if (response.ok) {
+      const text = await response.text();
+      // Parse HTML directory listing to extract folder names
+      const folderMatches = text.match(/href="([^"]+)\/"/g);
+      if (folderMatches) {
+        const folders = folderMatches
+          .map(match => match.replace('href="', '').replace('/"', ''))
+          .filter(folder => folder !== '..' && folder !== '.');
+        
+        // Filter folders that actually contain a theme.json file
+        const validThemes = await Promise.all(
+          folders.map(async (folder) => {
+            try {
+              const themeResponse = await fetch(`/themes/${folder}/theme.json`);
+              return themeResponse.ok ? folder : null;
+            } catch {
+              return null;
+            }
+          })
+        );
+        
+        return validThemes.filter((theme): theme is string => theme !== null);
+      }
+    }
+  } catch {
+    console.warn('Could not scan themes directory');
+  }
+
+  // Fallback to known themes if scanning fails
+  return ['light', 'dark', 'win95', 'colorful', 'amiga', 'macintosh'];
+}
+
+/**
+ * Loads a single theme from its JSON file
+ */
+async function loadTheme(themeName: string): Promise<Theme> {
+  try {
+    const response = await fetch(`/themes/${themeName}/theme.json`);
+    if (!response.ok) {
+      throw new Error(
+        `Failed to load theme ${themeName}: ${response.statusText}`,
+      );
+    }
+
+    const theme = (await response.json()) as Theme;
+
+    // Process background image path to be relative to the theme folder
+    if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
+      theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
+    }
+
+    return theme;
+  } catch (error) {
+    console.error(`Error loading theme ${themeName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Loads all themes from the public/themes folder
+ */
+export async function loadThemes(): Promise<Theme[]> {
+  if (themesCache) {
+    return themesCache;
+  }
+
+  if (themesPromise) {
+    return themesPromise;
+  }
+
+  themesPromise = discoverThemeFolders()
+    .then((themeFolders) => Promise.all(
+      themeFolders.map((themeName) => loadTheme(themeName)),
+    ))
+    .then((themes) => {
+      themesCache = themes;
+      return themes;
+    })
+    .catch((error) => {
+      console.error('Error loading themes:', error);
+      // Return a fallback theme if loading fails
+      return [getFallbackTheme()];
+    });
+
+  return themesPromise;
+}
+
+/**
+ * Provides a fallback theme in case loading fails
+ */
+function getFallbackTheme(): Theme {
+  return {
     name: 'light',
     displayName: 'Light',
     colors: {
@@ -110,294 +209,29 @@ export const themes: Theme[] = [
       inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
       card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
       button: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-      dropdown: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+      dropdown:
+        '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
     },
-  },
-  {
-    name: 'dark',
-    displayName: 'Dark',
-    colors: {
-      background: '0 0% 3.9%',
-      foreground: '0 0% 98%',
-      card: '0 0% 8%',
-      cardForeground: '0 0% 98%',
-      popover: '0 0% 8%',
-      popoverForeground: '0 0% 98%',
-      primary: '0 0% 98%',
-      primaryForeground: '0 0% 9%',
-      secondary: '0 0% 14.9%',
-      secondaryForeground: '0 0% 98%',
-      muted: '0 0% 14.9%',
-      mutedForeground: '0 0% 63.9%',
-      accent: '0 0% 14.9%',
-      accentForeground: '0 0% 98%',
-      destructive: '0 62.8% 30.6%',
-      destructiveForeground: '0 0% 98%',
-      border: '0 0% 14.9%',
-      input: '0 0% 14.9%',
-      ring: '0 0% 83.1%',
-      chart1: '220 70% 50%',
-      chart2: '160 60% 45%',
-      chart3: '30 80% 55%',
-      chart4: '280 65% 60%',
-      chart5: '340 75% 55%',
-    },
-    fonts: {
-      sans: 'Inter, system-ui, sans-serif',
-      serif: 'Georgia, serif',
-      mono: 'JetBrains Mono, Consolas, Monaco, monospace',
-      heading: 'Inter, system-ui, sans-serif',
-      body: 'Inter, system-ui, sans-serif',
-    },
-    corners: {
-      none: '0px',
-      sm: '0.125rem',
-      md: '0.375rem',
-      lg: '0.5rem',
-      xl: '0.75rem',
-      full: '9999px',
-    },
-    shadows: {
-      none: 'none',
-      sm: '0 1px 2px 0 rgb(0 0 0 / 0.1)',
-      md: '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
-      lg: '0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2)',
-      xl: '0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.2)',
-      inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.1)',
-      card: '0 2px 8px 0 rgb(0 0 0 / 0.2), 0 1px 3px -1px rgb(0 0 0 / 0.1)',
-      button: '0 1px 2px 0 rgb(0 0 0 / 0.1)',
-      dropdown: '0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)',
-    },
-  },
-  {
-    name: 'win95',
-    displayName: 'Windows 95',
-    colors: {
-      background: '0 0% 75%',
-      foreground: '0 0% 0%',
-      card: '0 0% 78%',
-      cardForeground: '0 0% 0%',
-      popover: '0 0% 75%',
-      popoverForeground: '0 0% 0%',
-      primary: '240 100% 25%',
-      primaryForeground: '0 0% 100%',
-      secondary: '0 0% 85%',
-      secondaryForeground: '0 0% 0%',
-      muted: '0 0% 85%',
-      mutedForeground: '0 0% 25%',
-      accent: '60 100% 50%',
-      accentForeground: '0 0% 0%',
-      destructive: '0 100% 50%',
-      destructiveForeground: '0 0% 100%',
-      border: '0 0% 50%',
-      input: '0 0% 100%',
-      ring: '240 100% 25%',
-      chart1: '240 100% 25%',
-      chart2: '0 100% 50%',
-      chart3: '60 100% 50%',
-      chart4: '300 100% 50%',
-      chart5: '120 100% 50%',
-    },
-    fonts: {
-      sans: 'MS Sans Serif, Tahoma, Arial, sans-serif',
-      serif: 'Times New Roman, serif',
-      mono: 'Courier New, monospace',
-      heading: 'MS Sans Serif, Tahoma, Arial, sans-serif',
-      body: 'MS Sans Serif, Tahoma, Arial, sans-serif',
-    },
-    corners: {
-      none: '0px',
-      sm: '0px',
-      md: '0px',
-      lg: '0px',
-      xl: '0px',
-      full: '0px',
-    },
-    shadows: {
-      none: 'none',
-      sm: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
-      md: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
-      lg: 'inset 3px 3px 0 0 rgb(128 128 128), inset -3px -3px 0 0 rgb(255 255 255)',
-      xl: 'inset 3px 3px 0 0 rgb(128 128 128), inset -3px -3px 0 0 rgb(255 255 255)',
-      inner: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
-      card: 'inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)',
-      button: 'inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)',
-      dropdown: 'inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)',
-    },
-  },
-  {
-    name: 'colorful',
-    displayName: 'Colorful',
-    backgroundImage: '/images/background.jpg',
-    colors: {
-      background: '0 0% 100%',
-      foreground: '0 0% 3.9%',
-      card: '0 0% 98%',
-      cardForeground: '0 0% 3.9%',
-      popover: '0 0% 100%',
-      popoverForeground: '0 0% 3.9%',
-      primary: '0 0% 9%',
-      primaryForeground: '0 0% 98%',
-      secondary: '0 0% 96.1%',
-      secondaryForeground: '0 0% 9%',
-      muted: '0 0% 96.1%',
-      mutedForeground: '0 0% 45.1%',
-      accent: '0 0% 96.1%',
-      accentForeground: '0 0% 9%',
-      destructive: '0 84.2% 60.2%',
-      destructiveForeground: '0 0% 98%',
-      border: '0 0% 89.8%',
-      input: '0 0% 96.1%',
-      ring: '0 0% 3.9%',
-      chart1: '12 76% 61%',
-      chart2: '173 58% 39%',
-      chart3: '197 37% 24%',
-      chart4: '43 74% 66%',
-      chart5: '27 87% 67%',
-    },
-    fonts: {
-      sans: 'Inter, system-ui, sans-serif',
-      serif: 'Georgia, serif',
-      mono: 'Courier New, Monaco, Consolas, monospace',
-      heading: 'Inter, system-ui, sans-serif',
-      body: 'Inter, system-ui, sans-serif',
-    },
-    corners: {
-      none: '0px',
-      sm: '0.125rem',
-      md: '0.375rem',
-      lg: '0.5rem',
-      xl: '0.75rem',
-      full: '9999px',
-    },
-    shadows: {
-      none: 'none',
-      sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-      md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-      lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-      xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-      inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
-      card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-      button: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-      dropdown: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    },
-  },
-  {
-    name: 'amiga',
-    displayName: 'Amiga Workbench',
-    colors: {
-      background: '209 100% 78%',
-      foreground: '0 0% 0%',
-      card: '209 100% 85%',
-      cardForeground: '0 0% 0%',
-      popover: '209 100% 85%',
-      popoverForeground: '0 0% 0%',
-      primary: '25 100% 50%',
-      primaryForeground: '0 0% 0%',
-      secondary: '0 0% 85%',
-      secondaryForeground: '0 0% 0%',
-      muted: '0 0% 90%',
-      mutedForeground: '0 0% 30%',
-      accent: '25 100% 50%',
-      accentForeground: '0 0% 0%',
-      destructive: '0 100% 50%',
-      destructiveForeground: '0 0% 100%',
-      border: '0 0% 0%',
-      input: '0 0% 100%',
-      ring: '25 100% 50%',
-      chart1: '209 100% 50%',
-      chart2: '25 100% 50%',
-      chart3: '0 100% 50%',
-      chart4: '300 100% 50%',
-      chart5: '60 100% 50%',
-    },
-    fonts: {
-      sans: 'Topaz, Monaco, Courier, monospace',
-      serif: 'Times, Times New Roman, serif',
-      mono: 'Topaz, Monaco, Courier, monospace',
-      heading: 'Topaz, Monaco, Courier, monospace',
-      body: 'Topaz, Monaco, Courier, monospace',
-    },
-    corners: {
-      none: '0px',
-      sm: '0px',
-      md: '0px',
-      lg: '0px',
-      xl: '0px',
-      full: '0px',
-    },
-    shadows: {
-      none: 'none',
-      sm: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
-      md: 'inset -2px -2px 0 0 rgb(85 85 85), inset 2px 2px 0 0 rgb(255 255 255)',
-      lg: 'inset -2px -2px 0 0 rgb(85 85 85), inset 2px 2px 0 0 rgb(255 255 255)',
-      xl: 'inset -3px -3px 0 0 rgb(85 85 85), inset 3px 3px 0 0 rgb(255 255 255)',
-      inner: 'inset 1px 1px 0 0 rgb(85 85 85), inset -1px -1px 0 0 rgb(255 255 255)',
-      card: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
-      button: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
-      dropdown: 'inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)',
-    },
-  },
-  {
-    name: 'macintosh',
-    displayName: 'Classic Mac',
-    colors: {
-      background: '0 0% 100%',
-      foreground: '0 0% 0%',
-      card: '0 0% 100%',
-      cardForeground: '0 0% 0%',
-      popover: '0 0% 100%',
-      popoverForeground: '0 0% 0%',
-      primary: '0 0% 0%',
-      primaryForeground: '0 0% 100%',
-      secondary: '0 0% 87%',
-      secondaryForeground: '0 0% 0%',
-      muted: '0 0% 93%',
-      mutedForeground: '0 0% 20%',
-      accent: '0 0% 87%',
-      accentForeground: '0 0% 0%',
-      destructive: '0 0% 0%',
-      destructiveForeground: '0 0% 100%',
-      border: '0 0% 0%',
-      input: '0 0% 100%',
-      ring: '0 0% 0%',
-      chart1: '0 0% 0%',
-      chart2: '0 0% 20%',
-      chart3: '0 0% 40%',
-      chart4: '0 0% 60%',
-      chart5: '0 0% 80%',
-    },
-    fonts: {
-      sans: 'Chicago, Monaco, Courier, monospace',
-      serif: 'Times, Times New Roman, serif',
-      mono: 'Monaco, Courier, monospace',
-      heading: 'Chicago, Monaco, Courier, monospace',
-      body: 'Chicago, Monaco, Courier, monospace',
-    },
-    corners: {
-      none: '0px',
-      sm: '0px',
-      md: '8px',
-      lg: '8px',
-      xl: '8px',
-      full: '8px',
-    },
-    shadows: {
-      none: 'none',
-      sm: '2px 2px 0 0 rgb(0 0 0)',
-      md: '3px 3px 0 0 rgb(0 0 0)',
-      lg: '4px 4px 0 0 rgb(0 0 0)',
-      xl: '5px 5px 0 0 rgb(0 0 0)',
-      inner: 'inset 1px 1px 0 0 rgb(0 0 0)',
-      card: '2px 2px 0 0 rgb(0 0 0)',
-      button: '2px 2px 0 0 rgb(0 0 0)',
-      dropdown: '2px 2px 0 0 rgb(0 0 0)',
-    },
-  },
-];
+  };
+}
 
-export function getThemeByName(name: string): Theme | undefined {
-  return themes.find(theme => theme.name === name);
+/**
+ * Gets a theme by name from the loaded themes
+ */
+export async function getThemeByName(name: string): Promise<Theme | undefined> {
+  const themes = await loadThemes();
+  return themes.find((theme) => theme.name === name);
+}
+
+/**
+ * Synchronous version of getThemeByName for backward compatibility
+ * Note: This will return undefined if themes haven't been loaded yet
+ */
+export function getThemeByNameSync(name: string): Theme | undefined {
+  if (!themesCache) {
+    return undefined;
+  }
+  return themesCache.find((theme) => theme.name === name);
 }
 
 export function applyTheme(theme: Theme) {
@@ -429,7 +263,11 @@ export function applyTheme(theme: Theme) {
 
   // Apply background image if present
   if (theme.backgroundImage) {
-    root.style.setProperty('--background-image', `url(${theme.backgroundImage})`, 'important');
+    root.style.setProperty(
+      '--background-image',
+      `url(${theme.backgroundImage})`,
+      'important',
+    );
     document.body.classList.add('has-background-image');
   } else {
     root.style.removeProperty('--background-image');
