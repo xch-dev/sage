@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DarkModeContext } from '@/contexts/DarkModeContext';
+
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import {
@@ -59,13 +59,7 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
-import {
-  ForwardedRef,
-  forwardRef,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
@@ -254,7 +248,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
 
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const { dark } = useContext(DarkModeContext);
+
   const { promptIfEnabled } = useBiometric();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -614,9 +608,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    <Spoiler theme={dark ? 'dark' : 'light'}>
-                      {secrets.secret_key}
-                    </Spoiler>
+                    <Spoiler>{secrets.secret_key}</Spoiler>
                   </p>
                 </div>
                 {secrets.mnemonic && (
@@ -625,9 +617,7 @@ function WalletItem({ draggable, info, keys, setKeys }: WalletItemProps) {
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      <Spoiler theme={dark ? 'dark' : 'light'}>
-                        {secrets.mnemonic}
-                      </Spoiler>
+                      <Spoiler>{secrets.mnemonic}</Spoiler>
                     </p>
                   </div>
                 )}

@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { CopyCheckIcon, CopyIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -32,17 +33,17 @@ export function CopyButton({
       variant='ghost'
       onClick={copyAddress}
       className={className}
-      aria-label={ariaLabel || (copied ? 'Copied!' : `Copy ${value}`)}
-      title={copied ? 'Copied!' : `Copy ${value}`}
+      aria-label={ariaLabel || (copied ? t`Copied!` : t`Copy ${value}`)}
+      title={copied ? t`Copied!` : t`Copy ${value}`}
     >
       {copied ? (
         <CopyCheckIcon
-          className='h-5 w-5 text-emerald-500'
+          className='h-4 w-4 text-emerald-500'
           aria-hidden='true'
         />
       ) : (
         <CopyIcon
-          className='h-5 w-5 text-muted-foreground'
+          className='h-4 w-4 text-muted-foreground'
           aria-hidden='true'
         />
       )}

@@ -7,12 +7,18 @@ export interface AddressItemProps {
   label: string;
   address: string;
   className?: string;
+  hideLabel?: boolean;
+  inputClassName?: string;
+  truncateMiddle?: boolean;
 }
 
 export function AddressItem({
   label,
   address,
   className = '',
+  hideLabel = false,
+  inputClassName,
+  truncateMiddle = false,
 }: AddressItemProps) {
   const labelId = useId();
   const contentId = useId();
@@ -29,13 +35,15 @@ export function AddressItem({
       aria-labelledby={labelId}
       aria-label={t`${label} address section`}
     >
-      <label
-        id={labelId}
-        htmlFor={contentId}
-        className='text-sm font-medium text-muted-foreground block mb-1'
-      >
-        {label}
-      </label>
+      {!hideLabel && (
+        <label
+          id={labelId}
+          htmlFor={contentId}
+          className='text-sm font-medium text-muted-foreground block mb-1'
+        >
+          {label}
+        </label>
+      )}
       <CopyBox
         id={contentId}
         title={t`Copy ${label}: ${address}`}
@@ -43,6 +51,8 @@ export function AddressItem({
         onCopy={() => toast.success(t`${label} copied to clipboard`)}
         aria-label={t`${label}: ${address} (click to copy)`}
         aria-describedby={labelId}
+        inputClassName={inputClassName}
+        truncateMiddle={truncateMiddle}
       />
     </div>
   );

@@ -1,14 +1,12 @@
-import { DarkModeContext } from '@/contexts/DarkModeContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
-import { PropsWithChildren, ReactNode, useContext } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
@@ -35,7 +33,6 @@ export default function Header(
   const insets = useInsets();
 
   const { wallet } = useWallet();
-  const { dark } = useContext(DarkModeContext);
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
@@ -93,20 +90,16 @@ export default function Header(
           <div className='mt-4'>
             <Link
               to='/wallet'
-              className='flex items-center gap-2 font-semibold'
+              className='flex items-center gap-2 font-semibold font-heading'
               aria-label={t`Go to wallet`}
             >
-              <img
-                src={dark ? iconLight : iconDark}
-                className='h-6 w-6'
-                alt={t`Wallet icon`}
-              />
+              <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
           <TopNav />
           <div
-            className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}
+            className={`mt-auto grid gap-1 text-md font-medium font-body ${!isMobile ? 'pb-4' : ''}`}
           >
             <BottomNav />
           </div>
@@ -126,7 +119,7 @@ export default function Header(
         </div>
         <div className='flex-1 flex justify-between items-center gap-4 md:h-8 md:my-1'>
           <div className='flex items-center gap-4'>
-            <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
+            <h1 className='text-xl font-bold tracking-tight md:text-3xl font-heading'>
               {props.title}
             </h1>
             <AnimatePresence mode='wait'>

@@ -29,7 +29,7 @@ const SheetOverlay = React.forwardRef<
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName;
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-white p-6 shadow-lg transition ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out dark:bg-neutral-950 pt-[env(safe-area-inset-top)]',
+  'fixed z-50 gap-4 bg-card p-6 text-card-foreground shadow-lg transition ease-in-out data-[state=closed]:duration-200 data-[state=open]:duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out pt-[env(safe-area-inset-top)]',
   {
     variants: {
       side: {
@@ -69,7 +69,7 @@ const SheetContent = React.forwardRef<
       {!isMobile && (
         <SheetPrimitive.Close
           tabIndex={-1}
-          className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-neutral-950 focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-neutral-100 dark:ring-offset-neutral-950 dark:focus:ring-neutral-300 dark:data-[state=open]:bg-neutral-800'
+          className='absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent'
           aria-label='Close'
         >
           <Cross2Icon className='h-4 w-4' aria-hidden='true' />
@@ -117,7 +117,7 @@ const SheetTitle = React.forwardRef<
   <SheetPrimitive.Title
     ref={ref}
     className={cn(
-      'text-lg font-semibold text-neutral-950 dark:text-neutral-50',
+      'text-lg font-semibold font-heading text-foreground',
       className,
     )}
     {...props}
@@ -131,7 +131,7 @@ const SheetDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Description
     ref={ref}
-    className={cn('text-sm text-neutral-500 dark:text-neutral-400', className)}
+    className={cn('text-sm text-muted-foreground', className)}
     {...props}
   />
 ));

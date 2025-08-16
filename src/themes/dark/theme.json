@@ -1,0 +1,56 @@
+{
+  "name": "dark",
+  "displayName": "Dark",
+  "colors": {
+    "background": "0 0% 3.9%",
+    "foreground": "0 0% 98%",
+    "card": "0 0% 8%",
+    "cardForeground": "0 0% 98%",
+    "popover": "0 0% 8%",
+    "popoverForeground": "0 0% 98%",
+    "primary": "0 0% 98%",
+    "primaryForeground": "0 0% 9%",
+    "secondary": "0 0% 14.9%",
+    "secondaryForeground": "0 0% 98%",
+    "muted": "0 0% 14.9%",
+    "mutedForeground": "0 0% 63.9%",
+    "accent": "0 0% 14.9%",
+    "accentForeground": "0 0% 98%",
+    "destructive": "0 62.8% 30.6%",
+    "destructiveForeground": "0 0% 98%",
+    "border": "0 0% 14.9%",
+    "input": "0 0% 14.9%",
+    "ring": "0 0% 83.1%",
+    "chart1": "220 70% 50%",
+    "chart2": "160 60% 45%",
+    "chart3": "30 80% 55%",
+    "chart4": "280 65% 60%",
+    "chart5": "340 75% 55%"
+  },
+  "fonts": {
+    "sans": "Inter, system-ui, sans-serif",
+    "serif": "Georgia, serif",
+    "mono": "JetBrains Mono, Consolas, Monaco, monospace",
+    "heading": "Inter, system-ui, sans-serif",
+    "body": "Inter, system-ui, sans-serif"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "0.125rem",
+    "md": "0.375rem",
+    "lg": "0.5rem",
+    "xl": "0.75rem",
+    "full": "9999px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "0 1px 2px 0 rgb(0 0 0 / 0.1)",
+    "md": "0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)",
+    "lg": "0 10px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2)",
+    "xl": "0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.2)",
+    "inner": "inset 0 2px 4px 0 rgb(0 0 0 / 0.1)",
+    "card": "0 2px 8px 0 rgb(0 0 0 / 0.2), 0 1px 3px -1px rgb(0 0 0 / 0.1)",
+    "button": "0 1px 2px 0 rgb(0 0 0 / 0.1)",
+    "dropdown": "0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.2)"
+  }
+}

@@ -1,6 +1,6 @@
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -11,7 +11,6 @@ import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
-import { DarkModeContext } from './contexts/DarkModeContext';
 import { ErrorProvider } from './contexts/ErrorContext';
 import {
   getBrowserLanguage,
@@ -22,6 +21,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
@@ -49,6 +49,7 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
+import ThemeDemo from './pages/Themes';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
@@ -102,35 +103,20 @@ const router = createHashRouter(
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
+      <Route path='/theme-demo' element={<ThemeDemo />} />
     </>,
   ),
 );
 
 export default function App() {
-  const [dark, setDark] = useLocalStorage('dark', false);
   const [locale, setLocale] = useLocalStorage<SupportedLanguage>(
     'locale',
     getBrowserLanguage,
   );
 
-  const darkMode = useMemo<DarkModeContext>(
-    () => ({
-      toggle: () => setDark((dark) => !dark),
-      dark,
-      setDark,
-    }),
-    [dark, setDark],
-  );
-
-  useEffect(() => {
-    const root = window.document.documentElement;
-    root.classList.remove(dark ? 'light' : 'dark');
-    root.classList.add(dark ? 'dark' : 'light');
-  }, [dark]);
-
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
-      <DarkModeContext.Provider value={darkMode}>
+      <ThemeProvider>
         <SafeAreaProvider>
           <ErrorProvider>
             <BiometricProvider>
@@ -138,26 +124,27 @@ export default function App() {
             </BiometricProvider>
           </ErrorProvider>
         </SafeAreaProvider>
-      </DarkModeContext.Provider>
-      <ToastContainer
-        position='bottom-right'
-        autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
-        theme={dark ? 'dark' : 'light'}
-        transition={Slide}
-        style={
-          {
-            '--toastify-toast-transition-timing': 'ease',
-            '--toastify-toast-transition-duration': '750ms',
-          } as React.CSSProperties
-        }
-      />
+
+        <ToastContainer
+          position='bottom-right'
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme='light'
+          transition={Slide}
+          style={
+            {
+              '--toastify-toast-transition-timing': 'ease',
+              '--toastify-toast-transition-duration': '750ms',
+            } as React.CSSProperties
+          }
+        />
+      </ThemeProvider>
     </LanguageProvider>
   );
 }

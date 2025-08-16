@@ -4,16 +4,14 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-neutral-950 [&>svg~*]:pl-7 dark:border-neutral-800 dark:[&>svg]:text-neutral-50',
+  'relative w-full rounded-lg border border-border px-4 py-3 text-sm [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground [&>svg~*]:pl-7',
   {
     variants: {
       variant: {
-        default:
-          'bg-white text-neutral-950 dark:bg-neutral-950 dark:text-neutral-50',
+        default: 'bg-card text-card-foreground',
         destructive:
-          'border-red-500/50 text-red-500 dark:border-red-500 [&>svg]:text-red-500 dark:border-red-900/50 dark:text-red-900 dark:dark:border-red-900 dark:[&>svg]:text-red-900',
-        warning:
-          'border-yellow-500/50 text-yellow-500 dark:border-yellow-300 [&>svg]:text-yellow-500 dark:border-yellow-900/50 dark:text-yellow-300 dark:dark:border-yellow-800 dark:[&>svg]:text-yellow-300',
+          'border-destructive/50 text-destructive [&>svg]:text-destructive',
+        warning: 'border-yellow-500/50 text-yellow-600 [&>svg]:text-yellow-600',
       },
     },
     defaultVariants: {

@@ -1,0 +1,495 @@
+export interface Theme {
+  name: string;
+  displayName: string;
+  backgroundImage?: string;
+  colors: {
+    background: string;
+    foreground: string;
+    card: string;
+    cardForeground: string;
+    popover: string;
+    popoverForeground: string;
+    primary: string;
+    primaryForeground: string;
+    secondary: string;
+    secondaryForeground: string;
+    muted: string;
+    mutedForeground: string;
+    accent: string;
+    accentForeground: string;
+    destructive: string;
+    destructiveForeground: string;
+    border: string;
+    input: string;
+    inputBackground?: string;
+    ring: string;
+    chart1: string;
+    chart2: string;
+    chart3: string;
+    chart4: string;
+    chart5: string;
+  };
+  fonts: {
+    sans: string;
+    serif: string;
+    mono: string;
+    heading: string;
+    body: string;
+  };
+  corners: {
+    none: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    full: string;
+  };
+  shadows: {
+    none: string;
+    sm: string;
+    md: string;
+    lg: string;
+    xl: string;
+    inner: string;
+    card: string;
+    button: string;
+    dropdown: string;
+  };
+  // Optional theme-specific button configurations
+  buttons?: {
+    default?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    outline?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    secondary?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    destructive?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    ghost?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    link?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+  };
+  // Button style flags for dynamic CSS application
+  buttonStyles?: string[];
+}
+
+// Cache for loaded themes
+let themesCache: Theme[] | null = null;
+let themesPromise: Promise<Theme[]> | null = null;
+
+// Dynamically discover theme folders by scanning the themes directory
+async function discoverThemeFolders(): Promise<string[]> {
+  try {
+    // Use dynamic imports to discover available themes
+    const themeModules = import.meta.glob('../themes/*/theme.json', { eager: false });
+
+    // Extract theme names from the module paths
+    const themeNames = Object.keys(themeModules).map(path => {
+      // Path format: "../themes/themeName/theme.json"
+      const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
+      return match ? match[1] : null;
+    }).filter((name): name is string => name !== null);
+
+    // Sort theme names alphabetically
+    return themeNames.sort();
+  } catch (error) {
+    console.warn('Could not discover theme folders:', error);
+    // Fallback to known themes if discovery fails
+    return [];
+  }
+}
+
+/**
+ * Loads a single theme from its JSON file
+ */
+async function loadTheme(themeName: string): Promise<Theme> {
+  try {
+    // Import theme as a module for hot reloading
+    const themeModule = await import(`../themes/${themeName}/theme.json`);
+    const theme = themeModule.default as Theme;
+
+    // Process background image path to be relative to the theme folder
+    if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
+      // Use static glob import to avoid dynamic import warnings
+      const imageModules = import.meta.glob('../themes/*/*.{jpg,jpeg,png,gif,webp}', { eager: true });
+      const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
+      const imageModule = imageModules[imagePath];
+
+      if (imageModule) {
+        theme.backgroundImage = (imageModule as { default: string }).default;
+      } else {
+        // Fallback to a relative path if not found
+        theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+      }
+    }
+
+    return theme;
+  } catch (error) {
+    console.error(`Error loading theme ${themeName}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Loads all themes from the public/themes folder
+ */
+export async function loadThemes(): Promise<Theme[]> {
+  if (themesCache) {
+    return themesCache;
+  }
+
+  if (themesPromise) {
+    return themesPromise;
+  }
+
+  themesPromise = discoverThemeFolders()
+    .then((themeFolders) => Promise.all(
+      themeFolders.map((themeName) => loadTheme(themeName)),
+    ))
+    .then((themes) => {
+      themesCache = themes;
+      return themes;
+    })
+    .catch((error) => {
+      console.error('Error loading themes:', error);
+      // Return a fallback theme if loading fails
+      return [];
+    });
+
+  return themesPromise;
+}
+
+/**
+ * Gets a theme by name from the loaded themes
+ */
+export async function getThemeByName(name: string): Promise<Theme | undefined> {
+  const themes = await loadThemes();
+  return themes.find((theme) => theme.name === name);
+}
+
+/**
+ * Synchronous version of getThemeByName for backward compatibility
+ * Note: This will return undefined if themes haven't been loaded yet
+ */
+export function getThemeByNameSync(name: string): Theme | undefined {
+  if (!themesCache) {
+    return undefined;
+  }
+  return themesCache.find((theme) => theme.name === name);
+}
+
+/**
+ * Determines the appropriate background color for outline buttons based on theme
+ */
+function getOutlineButtonBackground(theme: Theme): string {
+  // Parse background lightness to determine if theme is light or dark
+  const backgroundHsl = theme.colors.background;
+  const lightnessMatch = backgroundHsl.match(/(\d+(?:\.\d+)?)%$/);
+  const lightness = lightnessMatch ? parseFloat(lightnessMatch[1]) : 50;
+
+  // If background is very dark (< 20% lightness), use card color for subtle background
+  // If background is light (> 50% lightness), use transparent
+  if (lightness < 20) {
+    return `hsl(${theme.colors.card})`;
+  } else if (lightness > 50) {
+    return 'transparent';
+  } else {
+    // For mid-range themes, use a slightly lighter version of the background
+    return `hsl(${theme.colors.secondary})`;
+  }
+}
+
+export function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+
+  // Remove any existing theme classes
+  const existingThemeClasses = Array.from(document.body.classList).filter(cls => cls.startsWith('theme-'));
+  document.body.classList.remove(...existingThemeClasses);
+
+  // Add theme-specific class
+  document.body.classList.add(`theme-${theme.name}`);
+
+  // Apply all color variables with !important to override CSS classes
+  Object.entries(theme.colors).forEach(([key, value]) => {
+    const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+    root.style.setProperty(cssVar, value, 'important');
+  });
+
+  // Apply theme-specific input background if defined
+  if (theme.colors.inputBackground) {
+    root.style.setProperty('--input-background', theme.colors.inputBackground, 'important');
+  } else {
+    // For other themes, use the regular input color
+    root.style.setProperty('--input-background', theme.colors.input, 'important');
+  }
+
+  // Set dynamic outline button background based on theme
+  const outlineButtonBg = getOutlineButtonBackground(theme);
+  root.style.setProperty('--outline-button-bg', outlineButtonBg, 'important');
+
+  // Apply button-specific variables if defined
+  if (theme.buttons) {
+    Object.entries(theme.buttons).forEach(([variant, config]) => {
+      if (config) {
+        // Apply base button styles
+        if (config.background) {
+          root.style.setProperty(`--btn-${variant}-bg`, config.background, 'important');
+        }
+        if (config.color) {
+          root.style.setProperty(`--btn-${variant}-color`, config.color, 'important');
+        }
+        if (config.border) {
+          root.style.setProperty(`--btn-${variant}-border`, config.border, 'important');
+        }
+        if (config.borderStyle) {
+          root.style.setProperty(`--btn-${variant}-border-style`, config.borderStyle, 'important');
+        }
+        if (config.borderWidth) {
+          root.style.setProperty(`--btn-${variant}-border-width`, config.borderWidth, 'important');
+        }
+        if (config.borderColor) {
+          root.style.setProperty(`--btn-${variant}-border-color`, config.borderColor, 'important');
+        }
+        if (config.borderRadius) {
+          root.style.setProperty(`--btn-${variant}-radius`, config.borderRadius, 'important');
+        }
+        if (config.boxShadow) {
+          root.style.setProperty(`--btn-${variant}-shadow`, config.boxShadow, 'important');
+        }
+
+        // Apply hover styles
+        if (config.hover) {
+          if (config.hover.background) {
+            root.style.setProperty(`--btn-${variant}-hover-bg`, config.hover.background, 'important');
+          }
+          if (config.hover.color) {
+            root.style.setProperty(`--btn-${variant}-hover-color`, config.hover.color, 'important');
+          }
+          if (config.hover.transform) {
+            root.style.setProperty(`--btn-${variant}-hover-transform`, config.hover.transform, 'important');
+          }
+          if (config.hover.borderStyle) {
+            root.style.setProperty(`--btn-${variant}-hover-border-style`, config.hover.borderStyle, 'important');
+          }
+          if (config.hover.borderColor) {
+            root.style.setProperty(`--btn-${variant}-hover-border-color`, config.hover.borderColor, 'important');
+          }
+          if (config.hover.boxShadow) {
+            root.style.setProperty(`--btn-${variant}-hover-shadow`, config.hover.boxShadow, 'important');
+          }
+        }
+
+        // Apply active styles
+        if (config.active) {
+          if (config.active.background) {
+            root.style.setProperty(`--btn-${variant}-active-bg`, config.active.background, 'important');
+          }
+          if (config.active.color) {
+            root.style.setProperty(`--btn-${variant}-active-color`, config.active.color, 'important');
+          }
+          if (config.active.transform) {
+            root.style.setProperty(`--btn-${variant}-active-transform`, config.active.transform, 'important');
+          }
+          if (config.active.borderStyle) {
+            root.style.setProperty(`--btn-${variant}-active-border-style`, config.active.borderStyle, 'important');
+          }
+          if (config.active.borderColor) {
+            root.style.setProperty(`--btn-${variant}-active-border-color`, config.active.borderColor, 'important');
+          }
+          if (config.active.boxShadow) {
+            root.style.setProperty(`--btn-${variant}-active-shadow`, config.active.boxShadow, 'important');
+          }
+        }
+      }
+    });
+  }
+
+  // Apply button style flags for dynamic CSS
+  const buttonStyles = theme.buttonStyles || [];
+
+  // Set CSS variables for button style flags
+  root.style.setProperty('--theme-has-gradient-buttons', buttonStyles.includes('gradient') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-shimmer-effects', buttonStyles.includes('shimmer') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-pixel-art', buttonStyles.includes('pixel-art') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-3d-effects', buttonStyles.includes('3d-effects') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-rounded-buttons', buttonStyles.includes('rounded-buttons') ? '1' : '0', 'important');
+
+  // Set data attribute on body for CSS selectors
+  document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+
+  // Apply font variables
+  Object.entries(theme.fonts).forEach(([key, value]) => {
+    const cssVar = `--font-${key}`;
+    root.style.setProperty(cssVar, value, 'important');
+  });
+
+  // Apply corner variables
+  Object.entries(theme.corners).forEach(([key, value]) => {
+    const cssVar = `--corner-${key}`;
+    root.style.setProperty(cssVar, value, 'important');
+  });
+
+  // Apply shadow variables
+  Object.entries(theme.shadows).forEach(([key, value]) => {
+    const cssVar = `--shadow-${key}`;
+    root.style.setProperty(cssVar, value, 'important');
+  });
+
+  // Apply background image if present
+  if (theme.backgroundImage) {
+    root.style.setProperty(
+      '--background-image',
+      `url(${theme.backgroundImage})`,
+      'important',
+    );
+    document.body.classList.add('has-background-image');
+  } else {
+    root.style.removeProperty('--background-image');
+    document.body.classList.remove('has-background-image');
+  }
+}
