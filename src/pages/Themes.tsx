@@ -77,7 +77,7 @@ export default function Themes() {
   try {
     return (
       <Layout>
-        <Header title='Theme' back={() => window.history.back()} />
+        <Header title='Themes' back={() => window.history.back()} />
 
         <div className='flex-1 overflow-auto'>
           <div className='container mx-auto p-6 space-y-8'>

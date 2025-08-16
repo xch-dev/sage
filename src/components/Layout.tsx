@@ -185,7 +185,10 @@ export default function Layout(props: LayoutProps) {
   const { wallet } = useWallet();
   const location = useLocation();
 
-  if (!wallet && location.pathname === '/settings') {
+  if (
+    !wallet &&
+    (location.pathname === '/settings' || location.pathname === '/themes')
+  ) {
     return <MinimalLayout {...props} />;
   }
 

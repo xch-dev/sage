@@ -295,9 +295,9 @@ function GlobalSettings() {
         <div>
           <ThemeSelectorSimple />
           <div className='m-4'>
-            <Link to='/theme-demo'>
+            <Link to='/themes'>
               <Button variant='outline' size='sm'>
-                More Themes...
+                <Trans>More Themes...</Trans>
               </Button>
             </Link>
           </div>

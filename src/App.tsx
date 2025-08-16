@@ -49,7 +49,7 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
-import ThemeDemo from './pages/Themes';
+import Themes from './pages/Themes';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
@@ -103,7 +103,7 @@ const router = createHashRouter(
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
-      <Route path='/theme-demo' element={<ThemeDemo />} />
+      <Route path='/themes' element={<Themes />} />
     </>,
   ),
 );
