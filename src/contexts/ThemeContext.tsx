@@ -1,7 +1,6 @@
 import {
   applyTheme,
   getThemeByName,
-  getThemeByNameSync,
   loadThemes,
   type Theme,
 } from '@/lib/themes';
@@ -47,6 +46,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const themes = await loadThemes();
         setAvailableThemes(themes);
 
+        // If no themes loaded, just use CSS defaults
+        if (themes.length === 0) {
+          setCurrentTheme(null);
+          return;
+        }
+
         // Load saved theme from localStorage
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
@@ -74,13 +79,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error('Error loading themes:', err);
         setError('Failed to load themes');
-
-        // Try to use fallback theme
-        const fallbackTheme = getThemeByNameSync('light');
-        if (fallbackTheme) {
-          setCurrentTheme(fallbackTheme);
-          applyTheme(fallbackTheme);
-        }
+        // Don't set a fallback theme - let CSS defaults handle it
+        setCurrentTheme(null);
       } finally {
         setIsLoading(false);
       }
