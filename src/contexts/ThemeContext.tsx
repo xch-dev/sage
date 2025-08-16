@@ -98,6 +98,7 @@ function getTheme(themeName: string, themes: Theme[]) {
   }
   return null;
 }
+
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
