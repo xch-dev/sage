@@ -62,9 +62,24 @@ let themesPromise: Promise<Theme[]> | null = null;
 
 // Dynamically discover theme folders by scanning the themes directory
 async function discoverThemeFolders(): Promise<string[]> {
-  // For now, return known themes since we're using static imports
-  // In the future, this could be enhanced to dynamically discover themes
-  return ['light', 'dark', 'win95', 'colorful', 'amiga', 'macintosh'];
+  try {
+    // Use dynamic imports to discover available themes
+    const themeModules = import.meta.glob('../themes/*/theme.json', { eager: true });
+    
+    // Extract theme names from the module paths
+    const themeNames = Object.keys(themeModules).map(path => {
+      // Path format: "../themes/themeName/theme.json"
+      const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
+      return match ? match[1] : null;
+    }).filter((name): name is string => name !== null);
+    
+    // Sort theme names alphabetically
+    return themeNames.sort();
+  } catch (error) {
+    console.warn('Could not discover theme folders:', error);
+    // Fallback to known themes if discovery fails
+    return ['light', 'dark'];
+  }
 }
 
 /**
