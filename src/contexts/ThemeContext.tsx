@@ -13,6 +13,7 @@ interface ThemeContextType {
   availableThemes: Theme[];
   isLoading: boolean;
   error: string | null;
+  lastUsedNonCoreTheme: string | null;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -23,6 +24,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savedTheme, setSavedTheme] = useLocalStorage<string>('theme', 'light');
+  const [lastUsedNonCoreTheme, setLastUsedNonCoreTheme] = useLocalStorage<
+    string | null
+  >('last-used-non-core-theme', null);
 
   const setTheme = async (themeName: string) => {
     try {
@@ -31,6 +35,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         setCurrentTheme(theme);
         applyTheme(theme);
         setSavedTheme(themeName);
+
+        // Save as last used non-core theme if it's not light or dark
+        if (themeName !== 'light' && themeName !== 'dark') {
+          setLastUsedNonCoreTheme(themeName);
+        }
       }
     } catch (err) {
       console.error('Error setting theme:', err);
@@ -77,7 +86,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider
-      value={{ currentTheme, setTheme, availableThemes, isLoading, error }}
+      value={{
+        currentTheme,
+        setTheme,
+        availableThemes,
+        isLoading,
+        error,
+        lastUsedNonCoreTheme,
+      }}
     >
       {children}
     </ThemeContext.Provider>

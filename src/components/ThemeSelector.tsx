@@ -4,8 +4,14 @@ import { Trans } from '@lingui/react/macro';
 import { Check, Loader2 } from 'lucide-react';
 
 export function ThemeSelector() {
-  const { currentTheme, setTheme, availableThemes, isLoading, error } =
-    useTheme();
+  const {
+    currentTheme,
+    setTheme,
+    availableThemes,
+    isLoading,
+    error,
+    lastUsedNonCoreTheme,
+  } = useTheme();
 
   if (isLoading) {
     return (
@@ -36,9 +42,30 @@ export function ThemeSelector() {
     );
   }
 
+  // Get the core themes: light and dark
+  const lightTheme = availableThemes.find((theme) => theme.name === 'light');
+  const darkTheme = availableThemes.find((theme) => theme.name === 'dark');
+
+  // Get the third theme: last used non-core theme or colorful as fallback
+  let thirdTheme = null;
+  if (lastUsedNonCoreTheme) {
+    thirdTheme = availableThemes.find(
+      (theme) => theme.name === lastUsedNonCoreTheme,
+    );
+  }
+
+  // If no last used non-core theme or it's not available, use colorful as fallback
+  if (!thirdTheme) {
+    thirdTheme = availableThemes.find((theme) => theme.name === 'colorful');
+  }
+
+  const coreThemes = [lightTheme, darkTheme, thirdTheme].filter(
+    (theme): theme is NonNullable<typeof theme> => theme !== undefined,
+  );
+
   return (
     <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-      {availableThemes.map((theme) => (
+      {coreThemes.map((theme) => (
         <div
           key={theme.name}
           className={`cursor-pointer transition-all hover:opacity-90 ${
@@ -143,7 +170,13 @@ export function ThemeSelector() {
 }
 
 export function ThemeSelectorCompact() {
-  const { currentTheme, setTheme, availableThemes, isLoading } = useTheme();
+  const {
+    currentTheme,
+    setTheme,
+    availableThemes,
+    isLoading,
+    lastUsedNonCoreTheme,
+  } = useTheme();
 
   if (isLoading || !currentTheme) {
     return (
@@ -154,9 +187,30 @@ export function ThemeSelectorCompact() {
     );
   }
 
+  // Get the core themes: light and dark
+  const lightTheme = availableThemes.find((theme) => theme.name === 'light');
+  const darkTheme = availableThemes.find((theme) => theme.name === 'dark');
+
+  // Get the third theme: last used non-core theme or colorful as fallback
+  let thirdTheme = null;
+  if (lastUsedNonCoreTheme) {
+    thirdTheme = availableThemes.find(
+      (theme) => theme.name === lastUsedNonCoreTheme,
+    );
+  }
+
+  // If no last used non-core theme or it's not available, use colorful as fallback
+  if (!thirdTheme) {
+    thirdTheme = availableThemes.find((theme) => theme.name === 'colorful');
+  }
+
+  const coreThemes = [lightTheme, darkTheme, thirdTheme].filter(
+    (theme): theme is NonNullable<typeof theme> => theme !== undefined,
+  );
+
   return (
     <div className='flex flex-wrap gap-2'>
-      {availableThemes.map((theme) => (
+      {coreThemes.map((theme) => (
         <Button
           key={theme.name}
           variant={currentTheme.name === theme.name ? 'default' : 'outline'}
@@ -177,7 +231,13 @@ export function ThemeSelectorCompact() {
 }
 
 export function ThemeSelectorSimple() {
-  const { currentTheme, setTheme, availableThemes, isLoading } = useTheme();
+  const {
+    currentTheme,
+    setTheme,
+    availableThemes,
+    isLoading,
+    lastUsedNonCoreTheme,
+  } = useTheme();
 
   if (isLoading || !currentTheme) {
     return (
@@ -190,18 +250,26 @@ export function ThemeSelectorSimple() {
     );
   }
 
-  // Get the core themes: light, dark, and current theme
+  // Get the core themes: light and dark
   const lightTheme = availableThemes.find((theme) => theme.name === 'light');
   const darkTheme = availableThemes.find((theme) => theme.name === 'dark');
 
-  const coreThemes = [lightTheme, darkTheme].filter(
+  // Get the third theme: last used non-core theme or colorful as fallback
+  let thirdTheme = null;
+  if (lastUsedNonCoreTheme) {
+    thirdTheme = availableThemes.find(
+      (theme) => theme.name === lastUsedNonCoreTheme,
+    );
+  }
+
+  // If no last used non-core theme or it's not available, use colorful as fallback
+  if (!thirdTheme) {
+    thirdTheme = availableThemes.find((theme) => theme.name === 'colorful');
+  }
+
+  const coreThemes = [lightTheme, darkTheme, thirdTheme].filter(
     (theme): theme is NonNullable<typeof theme> => theme !== undefined,
   );
-
-  // Add current theme if it's not light or dark
-  if (currentTheme.name !== 'light' && currentTheme.name !== 'dark') {
-    coreThemes.push(currentTheme);
-  }
 
   return (
     <div className='space-y-3 p-4'>
