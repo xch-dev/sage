@@ -22,6 +22,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
+import { parse as safeJsonParse } from 'secure-json-parse';
 
 export default function Nft() {
   const { launcher_id: launcherId } = useParams();
@@ -70,7 +71,7 @@ export default function Nft() {
   const metadata = useMemo(() => {
     if (!nft || !data?.metadata_json) return {};
     try {
-      return JSON.parse(data.metadata_json) ?? {};
+      return safeJsonParse(data.metadata_json) ?? {};
     } catch {
       return {};
     }

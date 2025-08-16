@@ -66,6 +66,7 @@
     "react-number-format": "^5.4.3",
     "react-router-dom": "^6.26.0",
     "react-toastify": "^11.0.3",
+    "secure-json-parse": "^4.0.0",
     "spoiled": "^0.4.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
