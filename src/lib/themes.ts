@@ -93,8 +93,17 @@ async function loadTheme(themeName: string): Promise<Theme> {
 
     // Process background image path to be relative to the theme folder
     if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
-      // Use a public path for background images to avoid dynamic import issues
-      theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
+      // Use static glob import to avoid dynamic import warnings
+      const imageModules = import.meta.glob('../themes/*/*.{jpg,jpeg,png,gif,webp}', { eager: true });
+      const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
+      const imageModule = imageModules[imagePath];
+
+      if (imageModule) {
+        theme.backgroundImage = (imageModule as { default: string }).default;
+      } else {
+        // Fallback to a relative path if not found
+        theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+      }
     }
 
     return theme;
