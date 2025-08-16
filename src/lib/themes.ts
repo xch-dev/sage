@@ -226,14 +226,18 @@ let themesPromise: Promise<Theme[]> | null = null;
 async function discoverThemeFolders(): Promise<string[]> {
   try {
     // Use dynamic imports to discover available themes
-    const themeModules = import.meta.glob('../themes/*/theme.json', { eager: false });
+    const themeModules = import.meta.glob('../themes/*/theme.json', {
+      eager: false,
+    });
 
     // Extract theme names from the module paths
-    const themeNames = Object.keys(themeModules).map(path => {
-      // Path format: "../themes/themeName/theme.json"
-      const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
-      return match ? match[1] : null;
-    }).filter((name): name is string => name !== null);
+    const themeNames = Object.keys(themeModules)
+      .map((path) => {
+        // Path format: "../themes/themeName/theme.json"
+        const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
+        return match ? match[1] : null;
+      })
+      .filter((name): name is string => name !== null);
 
     // Sort theme names alphabetically
     return themeNames.sort();
@@ -256,7 +260,10 @@ async function loadTheme(themeName: string): Promise<Theme> {
     // Process background image path to be relative to the theme folder
     if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
       // Use static glob import to avoid dynamic import warnings
-      const imageModules = import.meta.glob('../themes/*/*.{jpg,jpeg,png,gif,webp}', { eager: true });
+      const imageModules = import.meta.glob(
+        '../themes/*/*.{jpg,jpeg,png,gif,webp}',
+        { eager: true },
+      );
       const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
       const imageModule = imageModules[imagePath];
 
@@ -288,9 +295,9 @@ export async function loadThemes(): Promise<Theme[]> {
   }
 
   themesPromise = discoverThemeFolders()
-    .then((themeFolders) => Promise.all(
-      themeFolders.map((themeName) => loadTheme(themeName)),
-    ))
+    .then((themeFolders) =>
+      Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
+    )
     .then((themes) => {
       themesCache = themes;
       return themes;
@@ -348,7 +355,9 @@ export function applyTheme(theme: Theme) {
   const root = document.documentElement;
 
   // Remove any existing theme classes
-  const existingThemeClasses = Array.from(document.body.classList).filter(cls => cls.startsWith('theme-'));
+  const existingThemeClasses = Array.from(document.body.classList).filter(
+    (cls) => cls.startsWith('theme-'),
+  );
   document.body.classList.remove(...existingThemeClasses);
 
   // Add theme-specific class
@@ -362,10 +371,18 @@ export function applyTheme(theme: Theme) {
 
   // Apply theme-specific input background if defined
   if (theme.colors.inputBackground) {
-    root.style.setProperty('--input-background', theme.colors.inputBackground, 'important');
+    root.style.setProperty(
+      '--input-background',
+      theme.colors.inputBackground,
+      'important',
+    );
   } else {
     // For other themes, use the regular input color
-    root.style.setProperty('--input-background', theme.colors.input, 'important');
+    root.style.setProperty(
+      '--input-background',
+      theme.colors.input,
+      'important',
+    );
   }
 
   // Set dynamic outline button background based on theme
@@ -378,71 +395,151 @@ export function applyTheme(theme: Theme) {
       if (config) {
         // Apply base button styles
         if (config.background) {
-          root.style.setProperty(`--btn-${variant}-bg`, config.background, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-bg`,
+            config.background,
+            'important',
+          );
         }
         if (config.color) {
-          root.style.setProperty(`--btn-${variant}-color`, config.color, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-color`,
+            config.color,
+            'important',
+          );
         }
         if (config.border) {
-          root.style.setProperty(`--btn-${variant}-border`, config.border, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-border`,
+            config.border,
+            'important',
+          );
         }
         if (config.borderStyle) {
-          root.style.setProperty(`--btn-${variant}-border-style`, config.borderStyle, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-border-style`,
+            config.borderStyle,
+            'important',
+          );
         }
         if (config.borderWidth) {
-          root.style.setProperty(`--btn-${variant}-border-width`, config.borderWidth, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-border-width`,
+            config.borderWidth,
+            'important',
+          );
         }
         if (config.borderColor) {
-          root.style.setProperty(`--btn-${variant}-border-color`, config.borderColor, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-border-color`,
+            config.borderColor,
+            'important',
+          );
         }
         if (config.borderRadius) {
-          root.style.setProperty(`--btn-${variant}-radius`, config.borderRadius, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-radius`,
+            config.borderRadius,
+            'important',
+          );
         }
         if (config.boxShadow) {
-          root.style.setProperty(`--btn-${variant}-shadow`, config.boxShadow, 'important');
+          root.style.setProperty(
+            `--btn-${variant}-shadow`,
+            config.boxShadow,
+            'important',
+          );
         }
 
         // Apply hover styles
         if (config.hover) {
           if (config.hover.background) {
-            root.style.setProperty(`--btn-${variant}-hover-bg`, config.hover.background, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-bg`,
+              config.hover.background,
+              'important',
+            );
           }
           if (config.hover.color) {
-            root.style.setProperty(`--btn-${variant}-hover-color`, config.hover.color, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-color`,
+              config.hover.color,
+              'important',
+            );
           }
           if (config.hover.transform) {
-            root.style.setProperty(`--btn-${variant}-hover-transform`, config.hover.transform, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-transform`,
+              config.hover.transform,
+              'important',
+            );
           }
           if (config.hover.borderStyle) {
-            root.style.setProperty(`--btn-${variant}-hover-border-style`, config.hover.borderStyle, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-border-style`,
+              config.hover.borderStyle,
+              'important',
+            );
           }
           if (config.hover.borderColor) {
-            root.style.setProperty(`--btn-${variant}-hover-border-color`, config.hover.borderColor, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-border-color`,
+              config.hover.borderColor,
+              'important',
+            );
           }
           if (config.hover.boxShadow) {
-            root.style.setProperty(`--btn-${variant}-hover-shadow`, config.hover.boxShadow, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-hover-shadow`,
+              config.hover.boxShadow,
+              'important',
+            );
           }
         }
 
         // Apply active styles
         if (config.active) {
           if (config.active.background) {
-            root.style.setProperty(`--btn-${variant}-active-bg`, config.active.background, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-bg`,
+              config.active.background,
+              'important',
+            );
           }
           if (config.active.color) {
-            root.style.setProperty(`--btn-${variant}-active-color`, config.active.color, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-color`,
+              config.active.color,
+              'important',
+            );
           }
           if (config.active.transform) {
-            root.style.setProperty(`--btn-${variant}-active-transform`, config.active.transform, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-transform`,
+              config.active.transform,
+              'important',
+            );
           }
           if (config.active.borderStyle) {
-            root.style.setProperty(`--btn-${variant}-active-border-style`, config.active.borderStyle, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-border-style`,
+              config.active.borderStyle,
+              'important',
+            );
           }
           if (config.active.borderColor) {
-            root.style.setProperty(`--btn-${variant}-active-border-color`, config.active.borderColor, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-border-color`,
+              config.active.borderColor,
+              'important',
+            );
           }
           if (config.active.boxShadow) {
-            root.style.setProperty(`--btn-${variant}-active-shadow`, config.active.boxShadow, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-active-shadow`,
+              config.active.boxShadow,
+              'important',
+            );
           }
         }
       }
@@ -453,11 +550,31 @@ export function applyTheme(theme: Theme) {
   const buttonStyles = theme.buttonStyles || [];
 
   // Set CSS variables for button style flags
-  root.style.setProperty('--theme-has-gradient-buttons', buttonStyles.includes('gradient') ? '1' : '0', 'important');
-  root.style.setProperty('--theme-has-shimmer-effects', buttonStyles.includes('shimmer') ? '1' : '0', 'important');
-  root.style.setProperty('--theme-has-pixel-art', buttonStyles.includes('pixel-art') ? '1' : '0', 'important');
-  root.style.setProperty('--theme-has-3d-effects', buttonStyles.includes('3d-effects') ? '1' : '0', 'important');
-  root.style.setProperty('--theme-has-rounded-buttons', buttonStyles.includes('rounded-buttons') ? '1' : '0', 'important');
+  root.style.setProperty(
+    '--theme-has-gradient-buttons',
+    buttonStyles.includes('gradient') ? '1' : '0',
+    'important',
+  );
+  root.style.setProperty(
+    '--theme-has-shimmer-effects',
+    buttonStyles.includes('shimmer') ? '1' : '0',
+    'important',
+  );
+  root.style.setProperty(
+    '--theme-has-pixel-art',
+    buttonStyles.includes('pixel-art') ? '1' : '0',
+    'important',
+  );
+  root.style.setProperty(
+    '--theme-has-3d-effects',
+    buttonStyles.includes('3d-effects') ? '1' : '0',
+    'important',
+  );
+  root.style.setProperty(
+    '--theme-has-rounded-buttons',
+    buttonStyles.includes('rounded-buttons') ? '1' : '0',
+    'important',
+  );
 
   // Set data attribute on body for CSS selectors
   document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));

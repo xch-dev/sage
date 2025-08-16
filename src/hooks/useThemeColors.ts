@@ -253,68 +253,110 @@ export function useThemeColors() {
     // Button configurations with fallbacks to theme defaults
     buttons: {
       default: {
-        background: currentTheme.buttons?.default?.background || `hsl(${currentTheme.colors.primary})`,
-        color: currentTheme.buttons?.default?.color || `hsl(${currentTheme.colors.primaryForeground})`,
+        background:
+          currentTheme.buttons?.default?.background ||
+          `hsl(${currentTheme.colors.primary})`,
+        color:
+          currentTheme.buttons?.default?.color ||
+          `hsl(${currentTheme.colors.primaryForeground})`,
         border: currentTheme.buttons?.default?.border || 'none',
         borderStyle: currentTheme.buttons?.default?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.default?.borderWidth || '0',
-        borderColor: currentTheme.buttons?.default?.borderColor || 'transparent',
-        borderRadius: currentTheme.buttons?.default?.borderRadius || currentTheme.corners.md,
-        boxShadow: currentTheme.buttons?.default?.boxShadow || currentTheme.shadows.button,
+        borderColor:
+          currentTheme.buttons?.default?.borderColor || 'transparent',
+        borderRadius:
+          currentTheme.buttons?.default?.borderRadius ||
+          currentTheme.corners.md,
+        boxShadow:
+          currentTheme.buttons?.default?.boxShadow ||
+          currentTheme.shadows.button,
         hover: currentTheme.buttons?.default?.hover,
         active: currentTheme.buttons?.default?.active,
       },
       outline: {
         background: currentTheme.buttons?.outline?.background || 'transparent',
-        color: currentTheme.buttons?.outline?.color || `hsl(${currentTheme.colors.foreground})`,
-        border: currentTheme.buttons?.outline?.border || `1px solid hsl(${currentTheme.colors.border})`,
+        color:
+          currentTheme.buttons?.outline?.color ||
+          `hsl(${currentTheme.colors.foreground})`,
+        border:
+          currentTheme.buttons?.outline?.border ||
+          `1px solid hsl(${currentTheme.colors.border})`,
         borderStyle: currentTheme.buttons?.outline?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.outline?.borderWidth || '1px',
-        borderColor: currentTheme.buttons?.outline?.borderColor || `hsl(${currentTheme.colors.border})`,
-        borderRadius: currentTheme.buttons?.outline?.borderRadius || currentTheme.corners.md,
-        boxShadow: currentTheme.buttons?.outline?.boxShadow || currentTheme.shadows.button,
+        borderColor:
+          currentTheme.buttons?.outline?.borderColor ||
+          `hsl(${currentTheme.colors.border})`,
+        borderRadius:
+          currentTheme.buttons?.outline?.borderRadius ||
+          currentTheme.corners.md,
+        boxShadow:
+          currentTheme.buttons?.outline?.boxShadow ||
+          currentTheme.shadows.button,
         hover: currentTheme.buttons?.outline?.hover,
         active: currentTheme.buttons?.outline?.active,
       },
       secondary: {
-        background: currentTheme.buttons?.secondary?.background || `hsl(${currentTheme.colors.secondary})`,
-        color: currentTheme.buttons?.secondary?.color || `hsl(${currentTheme.colors.secondaryForeground})`,
+        background:
+          currentTheme.buttons?.secondary?.background ||
+          `hsl(${currentTheme.colors.secondary})`,
+        color:
+          currentTheme.buttons?.secondary?.color ||
+          `hsl(${currentTheme.colors.secondaryForeground})`,
         border: currentTheme.buttons?.secondary?.border || 'none',
         borderStyle: currentTheme.buttons?.secondary?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.secondary?.borderWidth || '0',
-        borderColor: currentTheme.buttons?.secondary?.borderColor || 'transparent',
-        borderRadius: currentTheme.buttons?.secondary?.borderRadius || currentTheme.corners.md,
-        boxShadow: currentTheme.buttons?.secondary?.boxShadow || currentTheme.shadows.button,
+        borderColor:
+          currentTheme.buttons?.secondary?.borderColor || 'transparent',
+        borderRadius:
+          currentTheme.buttons?.secondary?.borderRadius ||
+          currentTheme.corners.md,
+        boxShadow:
+          currentTheme.buttons?.secondary?.boxShadow ||
+          currentTheme.shadows.button,
         hover: currentTheme.buttons?.secondary?.hover,
         active: currentTheme.buttons?.secondary?.active,
       },
       destructive: {
-        background: currentTheme.buttons?.destructive?.background || `hsl(${currentTheme.colors.destructive})`,
-        color: currentTheme.buttons?.destructive?.color || `hsl(${currentTheme.colors.destructiveForeground})`,
+        background:
+          currentTheme.buttons?.destructive?.background ||
+          `hsl(${currentTheme.colors.destructive})`,
+        color:
+          currentTheme.buttons?.destructive?.color ||
+          `hsl(${currentTheme.colors.destructiveForeground})`,
         border: currentTheme.buttons?.destructive?.border || 'none',
         borderStyle: currentTheme.buttons?.destructive?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.destructive?.borderWidth || '0',
-        borderColor: currentTheme.buttons?.destructive?.borderColor || 'transparent',
-        borderRadius: currentTheme.buttons?.destructive?.borderRadius || currentTheme.corners.md,
-        boxShadow: currentTheme.buttons?.destructive?.boxShadow || currentTheme.shadows.button,
+        borderColor:
+          currentTheme.buttons?.destructive?.borderColor || 'transparent',
+        borderRadius:
+          currentTheme.buttons?.destructive?.borderRadius ||
+          currentTheme.corners.md,
+        boxShadow:
+          currentTheme.buttons?.destructive?.boxShadow ||
+          currentTheme.shadows.button,
         hover: currentTheme.buttons?.destructive?.hover,
         active: currentTheme.buttons?.destructive?.active,
       },
       ghost: {
         background: currentTheme.buttons?.ghost?.background || 'transparent',
-        color: currentTheme.buttons?.ghost?.color || `hsl(${currentTheme.colors.foreground})`,
+        color:
+          currentTheme.buttons?.ghost?.color ||
+          `hsl(${currentTheme.colors.foreground})`,
         border: currentTheme.buttons?.ghost?.border || 'none',
         borderStyle: currentTheme.buttons?.ghost?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.ghost?.borderWidth || '0',
         borderColor: currentTheme.buttons?.ghost?.borderColor || 'transparent',
-        borderRadius: currentTheme.buttons?.ghost?.borderRadius || currentTheme.corners.md,
+        borderRadius:
+          currentTheme.buttons?.ghost?.borderRadius || currentTheme.corners.md,
         boxShadow: currentTheme.buttons?.ghost?.boxShadow || 'none',
         hover: currentTheme.buttons?.ghost?.hover,
         active: currentTheme.buttons?.ghost?.active,
       },
       link: {
         background: currentTheme.buttons?.link?.background || 'transparent',
-        color: currentTheme.buttons?.link?.color || `hsl(${currentTheme.colors.primary})`,
+        color:
+          currentTheme.buttons?.link?.color ||
+          `hsl(${currentTheme.colors.primary})`,
         border: currentTheme.buttons?.link?.border || 'none',
         borderStyle: currentTheme.buttons?.link?.borderStyle || 'solid',
         borderWidth: currentTheme.buttons?.link?.borderWidth || '0',

@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { ThemeSelector } from '@/components/ThemeSelector';
@@ -27,7 +28,9 @@ export default function Themes() {
           <div className='container mx-auto p-6'>
             <div className='flex items-center justify-center p-8'>
               <Loader2 className='h-6 w-6 animate-spin' />
-              <span className='ml-2'>Loading themes...</span>
+              <span className='ml-2'>
+                <Trans>Loading themes...</Trans>
+              </span>
             </div>
           </div>
         </div>
@@ -43,7 +46,9 @@ export default function Themes() {
           <div className='container mx-auto p-6'>
             <Alert variant='destructive'>
               <Info className='h-4 w-4' />
-              <AlertDescription>Error loading themes: {error}</AlertDescription>
+              <AlertDescription>
+                <Trans>Error loading themes</Trans>: {error}
+              </AlertDescription>
             </Alert>
           </div>
         </div>
@@ -59,7 +64,9 @@ export default function Themes() {
           <div className='container mx-auto p-6'>
             <Alert>
               <Info className='h-4 w-4' />
-              <AlertDescription>No theme available</AlertDescription>
+              <AlertDescription>
+                <Trans>No theme available</Trans>
+              </AlertDescription>
             </Alert>
           </div>
         </div>
@@ -79,10 +86,10 @@ export default function Themes() {
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
                   <Palette className='h-5 w-5' />
-                  Choose Your Theme
+                  <Trans>Choose Your Theme</Trans>
                 </CardTitle>
                 <CardDescription>
-                  Select from our collection of beautiful themes
+                  <Trans>Select from our collection of beautiful themes</Trans>
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -93,21 +100,27 @@ export default function Themes() {
             {/* Current Theme Info */}
             <Card>
               <CardHeader>
-                <CardTitle>Current Theme: {currentTheme.displayName}</CardTitle>
+                <CardTitle>
+                  <Trans>Current Theme</Trans>: {currentTheme.displayName}
+                </CardTitle>
                 <CardDescription>
-                  This is how your selected theme looks across different
-                  components
+                  <Trans>
+                    This is how your selected theme looks across different
+                    components
+                  </Trans>
                 </CardDescription>
               </CardHeader>
               <CardContent className='space-y-6'>
                 {/* Color Palette */}
                 <div>
                   <Label className='text-base font-semibold mb-3 block'>
-                    Colors
+                    <Trans>Colors</Trans>
                   </Label>
                   <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
                     <div className='space-y-2'>
-                      <Label>Primary</Label>
+                      <Label>
+                        <Trans>Primary</Trans>
+                      </Label>
                       <div
                         className='h-12 rounded-md border'
                         style={{
@@ -116,7 +129,9 @@ export default function Themes() {
                       />
                     </div>
                     <div className='space-y-2'>
-                      <Label>Secondary</Label>
+                      <Label>
+                        <Trans>Secondary</Trans>
+                      </Label>
                       <div
                         className='h-12 rounded-md border'
                         style={{
@@ -125,7 +140,9 @@ export default function Themes() {
                       />
                     </div>
                     <div className='space-y-2'>
-                      <Label>Accent</Label>
+                      <Label>
+                        <Trans>Accent</Trans>
+                      </Label>
                       <div
                         className='h-12 rounded-md border'
                         style={{
@@ -134,7 +151,9 @@ export default function Themes() {
                       />
                     </div>
                     <div className='space-y-2'>
-                      <Label>Destructive</Label>
+                      <Label>
+                        <Trans>Destructive</Trans>
+                      </Label>
                       <div
                         className='h-12 rounded-md border'
                         style={{
@@ -148,7 +167,7 @@ export default function Themes() {
                 {/* Fonts */}
                 <div>
                   <Label className='text-base font-semibold mb-3 block'>
-                    Typography
+                    <Trans>Typography</Trans>
                   </Label>
                   <div className='space-y-4'>
                     <div>
@@ -175,7 +194,7 @@ export default function Themes() {
                 {/* Border Radius */}
                 <div>
                   <Label className='text-base font-semibold mb-3 block'>
-                    Border Radius
+                    <Trans>Border Radius</Trans>
                   </Label>
                   <div className='space-y-4'>
                     <div>
@@ -209,7 +228,7 @@ export default function Themes() {
                 {/* Component Examples */}
                 <div>
                   <Label className='text-base font-semibold mb-3 block'>
-                    Component Examples
+                    <Trans>Component Examples</Trans>
                   </Label>
                   <div className='space-y-4'>
                     <div
@@ -226,75 +245,82 @@ export default function Themes() {
                         className='text-lg font-semibold mb-2'
                         style={{ fontFamily: currentTheme.fonts.heading }}
                       >
-                        Card Component
+                        <Trans>Card Component</Trans>
                       </h3>
                       <p style={{ fontFamily: currentTheme.fonts.body }}>
-                        This is how a card component looks with the current
-                        theme.
+                        <Trans>
+                          This is how a card component looks with the current
+                          theme.
+                        </Trans>
                       </p>
                     </div>
 
-                    <div className='flex gap-2'>
-                      <Button
-                        style={{
-                          backgroundColor: `hsl(${currentTheme.colors.primary})`,
-                          color: `hsl(${currentTheme.colors.primaryForeground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
-                          boxShadow: currentTheme.shadows.button,
-                        }}
-                      >
-                        Primary Button
-                      </Button>
-                      <Button
-                        variant='outline'
-                        style={{
-                          borderColor: `hsl(${currentTheme.colors.border})`,
-                          color: `hsl(${currentTheme.colors.foreground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
-                        }}
-                      >
-                        Outline Button
-                      </Button>
-                      <Button
-                        variant='destructive'
-                        style={{
-                          borderColor: `hsl(${currentTheme.colors.border})`,
-                          color: `hsl(${currentTheme.colors.foreground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
-                        }}
-                      >
-                        Destructive Button
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        style={{
-                          borderColor: `hsl(${currentTheme.colors.border})`,
-                          color: `hsl(${currentTheme.colors.foreground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
-                        }}
-                      >
-                        Ghost Button
-                      </Button>
-                      <Button
-                        variant='link'
-                        style={{
-                          borderColor: `hsl(${currentTheme.colors.border})`,
-                          color: `hsl(${currentTheme.colors.foreground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
-                        }}
-                      >
-                        Link Button
-                      </Button>
+                    <div className='space-y-4'>
+                      <Label className='text-base font-semibold block'>
+                        <Trans>Buttons</Trans>
+                      </Label>
+                      <div className='flex flex-col sm:flex-row gap-2 flex-wrap'>
+                        <Button
+                          style={{
+                            backgroundColor: `hsl(${currentTheme.colors.primary})`,
+                            color: `hsl(${currentTheme.colors.primaryForeground})`,
+                            fontFamily: currentTheme.fonts.body,
+                            borderRadius: currentTheme.corners.md,
+                            boxShadow: currentTheme.shadows.button,
+                          }}
+                        >
+                          <Trans>Primary</Trans>
+                        </Button>
+                        <Button
+                          variant='outline'
+                          style={{
+                            borderColor: `hsl(${currentTheme.colors.border})`,
+                            color: `hsl(${currentTheme.colors.foreground})`,
+                            fontFamily: currentTheme.fonts.body,
+                            borderRadius: currentTheme.corners.md,
+                          }}
+                        >
+                          <Trans>Outline</Trans>
+                        </Button>
+                        <Button
+                          variant='destructive'
+                          style={{
+                            borderColor: `hsl(${currentTheme.colors.border})`,
+                            color: `hsl(${currentTheme.colors.foreground})`,
+                            fontFamily: currentTheme.fonts.body,
+                            borderRadius: currentTheme.corners.md,
+                          }}
+                        >
+                          <Trans>Destructive</Trans>
+                        </Button>
+                        <Button
+                          variant='ghost'
+                          style={{
+                            borderColor: `hsl(${currentTheme.colors.border})`,
+                            color: `hsl(${currentTheme.colors.foreground})`,
+                            fontFamily: currentTheme.fonts.body,
+                            borderRadius: currentTheme.corners.md,
+                          }}
+                        >
+                          <Trans>Ghost</Trans>
+                        </Button>
+                        <Button
+                          variant='link'
+                          style={{
+                            borderColor: `hsl(${currentTheme.colors.border})`,
+                            color: `hsl(${currentTheme.colors.foreground})`,
+                            fontFamily: currentTheme.fonts.body,
+                            borderRadius: currentTheme.corners.md,
+                          }}
+                        >
+                          <Trans>Link</Trans>
+                        </Button>
+                      </div>
                     </div>
 
                     <div className='space-y-2'>
                       <Input
-                        placeholder='Input field example'
+                        placeholder={t`Input field example`}
                         style={{
                           backgroundColor: `hsl(${currentTheme.colors.input})`,
                           borderColor: `hsl(${currentTheme.colors.border})`,
@@ -316,7 +342,7 @@ export default function Themes() {
     console.error('Error rendering theme page:', error);
     return (
       <Layout>
-        <Header title='Theme' back={() => window.history.back()} />
+        <Header title={t`Themes`} back={() => window.history.back()} />
         <div className='flex-1 overflow-auto'>
           <div className='container mx-auto p-6'>
             <Alert variant='destructive'>
