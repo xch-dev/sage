@@ -43,8 +43,7 @@ class MintGardenService {
       this.store = await load('.mintgarden-profile-cache.dat');
     } catch (error) {
       console.warn('Failed to load MintGarden cache store:', error);
-    }
-    finally {
+    } finally {
       this.isInitialized = true;
     }
   }
@@ -308,4 +307,3 @@ export async function getMintGardenProfile(
 // Export the service class and configuration interface for advanced usage
 export { MintGardenService };
 export type { MintGardenServiceConfig };
-

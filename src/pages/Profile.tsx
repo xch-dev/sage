@@ -1,16 +1,17 @@
+import { AddressItem } from '@/components/AddressItem';
 import { AssetIcon } from '@/components/AssetIcon';
 import Container from '@/components/Container';
-import { CopyBox } from '@/components/CopyBox';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDidData } from '@/hooks/useDidData';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { ExternalLink, FileText, User } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import { commands, NetworkKind } from '../bindings';
 
 export default function Profile() {
@@ -47,13 +48,22 @@ export default function Profile() {
       <>
         <Header title={t`DID Profile`} />
         <Container>
-          <div className='mx-auto sm:w-full md:w-[50%] max-w-[600px]'>
-            <div className='flex flex-col gap-4'>
-              <div className='animate-pulse'>
-                <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-2'></div>
-                <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2'></div>
-              </div>
-            </div>
+          <div className='space-y-6'>
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <User className='h-5 w-5' />
+                  <Trans>DID Profile</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='animate-pulse space-y-4'>
+                  <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3'></div>
+                  <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2'></div>
+                  <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3'></div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </Container>
       </>
@@ -65,13 +75,19 @@ export default function Profile() {
       <>
         <Header title={t`DID Profile`} />
         <Container>
-          <div className='mx-auto sm:w-full md:w-[50%] max-w-[600px]'>
-            <div className='flex flex-col gap-4'>
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <User className='h-5 w-5' />
+                <Trans>DID Profile</Trans>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <div className='text-center text-gray-500 dark:text-gray-400'>
                 <Trans>DID not found</Trans>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </Container>
       </>
     );
@@ -79,79 +95,73 @@ export default function Profile() {
 
   return (
     <>
-      <Header title={t`DID Profile`} />
+      <Header title={didAsset?.name ?? t`DID Profile`} />
       <Container>
-        <div className='mx-auto sm:w-full md:w-[50%] max-w-[600px]'>
-          <div className='flex flex-col gap-4'>
-            <h2 className='text-xl font-semibold'>{t`DID Profile`}</h2>
-
-            <div className='flex flex-col gap-3'>
-              <div>
-                <h6 className='text-md font-bold'>{didAsset?.name}</h6>
-                {didAsset && <AssetIcon asset={didAsset} size='xxl' />}
+        {/* DID Profile Display */}
+        <Card className='mb-6'>
+          <CardHeader>
+            <CardTitle className='flex items-center gap-2'>
+              <User className='h-5 w-5' />
+              <Trans>DID Profile</Trans>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className='flex flex-col md:flex-row gap-6 items-start'>
+              <div className='flex-shrink-0 w-full md:w-auto md:max-w-[200px]'>
+                {didAsset && (
+                  <div className='flex flex-col items-center gap-4 p-4 border rounded-lg bg-gray-50 dark:bg-gray-800'>
+                    <AssetIcon asset={didAsset} size='xxl' />
+                    <div className='text-center'>
+                      <h3 className='font-semibold text-lg'>{didAsset.name}</h3>
+                    </div>
+                  </div>
+                )}
               </div>
+              <div className='flex-1 min-w-0 space-y-4'>
+                <AddressItem label={t`Launcher ID`} address={did.launcher_id} />
+                <AddressItem label={t`Address`} address={did.address} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              <div>
-                <h6 className='text-md font-bold'>
-                  <Trans>Launcher ID</Trans>
-                </h6>
-                <CopyBox
-                  title={t`Launcher ID`}
-                  value={did.launcher_id}
-                  onCopy={() =>
-                    toast.success(t`Launcher ID copied to clipboard`)
-                  }
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+          {/* Left Column */}
+          <div className='space-y-6'>
+            {/* Technical Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <FileText className='h-5 w-5' />
+                  <Trans>Technical Information</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-4'>
+                {did.coin_id && did.coin_id !== '0' && (
+                  <AddressItem label={t`Coin ID`} address={did.coin_id} />
+                )}
+                <AddressItem
+                  label={t`Recovery Hash`}
+                  address={did.recovery_hash ?? ''}
                 />
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
-              {did.address && (
-                <div>
-                  <h6 className='text-md font-bold'>
-                    <Trans>Address</Trans>
-                  </h6>
-                  <CopyBox
-                    title={t`Address`}
-                    value={did.address}
-                    onCopy={() => toast.success(t`Address copied to clipboard`)}
-                  />
-                </div>
-              )}
-
-              {did.coin_id && did.coin_id !== '0' && (
-                <div>
-                  <h6 className='text-md font-bold'>
-                    <Trans>Coin ID</Trans>
-                  </h6>
-                  <CopyBox
-                    title={t`Coin ID`}
-                    value={did.coin_id}
-                    onCopy={() => toast.success(t`Coin ID copied to clipboard`)}
-                  />
-                </div>
-              )}
-
-              {did.recovery_hash && (
-                <div>
-                  <h6 className='text-md font-bold'>
-                    <Trans>Recovery Hash</Trans>
-                  </h6>
-                  <CopyBox
-                    title={t`Recovery Hash`}
-                    value={did.recovery_hash}
-                    onCopy={() =>
-                      toast.success(t`Recovery Hash copied to clipboard`)
-                    }
-                  />
-                </div>
-              )}
-
-              <div className='flex flex-col gap-1'>
-                <h6 className='text-md font-bold'>
+          {/* Right Column */}
+          <div className='space-y-6'>
+            {/* External Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <ExternalLink className='h-5 w-5' />
                   <Trans>External Links</Trans>
-                </h6>
-
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='space-y-3'>
                 <Button
                   variant='outline'
+                  className='w-full justify-start'
                   onClick={() => {
                     openUrl(
                       `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/${did.launcher_id}`,
@@ -164,11 +174,12 @@ export default function Profile() {
                     className='h-4 w-4 mr-2'
                     alt='MintGarden logo'
                   />
-                  MintGarden
+                  View on MintGarden
                 </Button>
 
                 <Button
                   variant='outline'
+                  className='w-full justify-start'
                   onClick={() => {
                     openUrl(
                       `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/did/${did.launcher_id}`,
@@ -181,10 +192,10 @@ export default function Profile() {
                     className='h-4 w-4 mr-2'
                     alt='Spacescan.io logo'
                   />
-                  Spacescan.io
+                  View on Spacescan.io
                 </Button>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </Container>
