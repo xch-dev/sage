@@ -1,9 +1,10 @@
 import { CopyBox } from '@/components/CopyBox';
 import { t } from '@lingui/core/macro';
+import { useId } from 'react';
 import { toast } from 'react-toastify';
 
 export interface AddressItemProps {
-  label: string | null;
+  label: string;
   address: string;
   className?: string;
 }
@@ -13,15 +14,35 @@ export function AddressItem({
   address,
   className = '',
 }: AddressItemProps) {
+  const labelId = useId();
+  const contentId = useId();
+
+  // Don't render if address is empty
+  if (!address || address.trim() === '') {
+    return null;
+  }
+
   return (
-    <div className={className}>
-      <h6 className='text-sm font-semibold text-muted-foreground mb-2'>
+    <div
+      className={className}
+      role='region'
+      aria-labelledby={labelId}
+      aria-label={t`${label} address section`}
+    >
+      <label
+        id={labelId}
+        htmlFor={contentId}
+        className='text-sm font-medium text-muted-foreground block mb-1'
+      >
         {label}
-      </h6>
+      </label>
       <CopyBox
-        title={label ?? ''}
+        id={contentId}
+        title={t`Copy ${label}: ${address}`}
         value={address}
         onCopy={() => toast.success(t`${label} copied to clipboard`)}
+        aria-label={t`${label}: ${address} (click to copy)`}
+        aria-describedby={labelId}
       />
     </div>
   );

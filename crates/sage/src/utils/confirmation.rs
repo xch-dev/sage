@@ -156,17 +156,13 @@ pub async fn extract_nft_data(
     if let Some(data_hash) = onchain_metadata.data_hash {
         if let Some(Data {
             thumbnail: Some(thumbnail),
-            mime_type,
             ..
         }) = cache.nft_data.get(&data_hash)
         {
-            result.icon_url = Some(base64_data_uri(&thumbnail.icon, mime_type));
+            result.icon_url = Some(base64_data_uri(&thumbnail.icon, "image/png"));
         } else if let Some(db) = &db {
             if let Some(icon) = db.icon(data_hash).await? {
-                result.icon_url = Some(base64_data_uri(
-                    &icon.data,
-                    icon.mime_type.as_deref().unwrap_or("image/png"),
-                ));
+                result.icon_url = Some(base64_data_uri(&icon.data, "image/png"));
             }
         }
     }

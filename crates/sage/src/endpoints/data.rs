@@ -516,7 +516,7 @@ impl Sage {
                 Result::Ok(PendingTransactionRecord {
                     transaction_id: hex::encode(tx.hash),
                     fee: Amount::u64(tx.fee),
-                    submitted_at: Some(tx.submitted_timestamp.to_string()),
+                    submitted_at: tx.submitted_timestamp,
                 })
             })
             .collect::<Result<Vec<_>>>()?;

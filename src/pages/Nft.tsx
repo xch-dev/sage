@@ -2,12 +2,13 @@ import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
 import { DidInfo } from '@/components/DidInfo';
 import Header from '@/components/Header';
+import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
-import { formatTimestamp, isValidUrl } from '@/lib/utils';
+import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -24,8 +25,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {
-  const { launcher_id: launcherId } = useParams();
   const navigate = useNavigate();
+  const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
@@ -144,57 +145,38 @@ export default function Nft() {
                 />
 
                 {nft?.edition_total != null && nft?.edition_total > 1 && (
-                  <div>
-                    <div className='text-sm font-medium text-muted-foreground'>
-                      <Trans>Edition</Trans>
-                    </div>
-                    <div className='text-sm'>
-                      <Trans>
-                        {nft.edition_number} of {nft.edition_total}
-                      </Trans>
-                    </div>
-                  </div>
+                  <LabeledItem
+                    label={t`Edition`}
+                    content={`${nft.edition_number} of ${nft.edition_total}`}
+                  />
                 )}
 
-                {metadata.description && (
-                  <div>
-                    <div className='text-sm font-medium text-muted-foreground'>
-                      <Trans>Description</Trans>
-                    </div>
-                    <div className='break-words text-sm'>
-                      {metadata.description}
-                    </div>
-                  </div>
-                )}
+                <LabeledItem
+                  label={t`Description`}
+                  content={metadata?.description}
+                />
 
-                {nft?.collection_name && (
-                  <div>
-                    <div className='text-sm font-medium text-muted-foreground'>
-                      <Trans>Collection</Trans>
-                    </div>
-                    <div
-                      className='break-all text-sm cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                      onClick={() =>
-                        nft?.collection_id &&
-                        navigate(
-                          `/nfts/collections/${nft.collection_id}/metadata`,
-                        )
-                      }
-                    >
-                      {nft.collection_name}
-                    </div>
-                  </div>
-                )}
+                <LabeledItem
+                  label={t`Collection`}
+                  content={nft?.collection_name}
+                  onClick={() => {
+                    if (nft?.collection_id) {
+                      navigate(
+                        `/nfts/collections/${nft.collection_id}/metadata`,
+                      );
+                    }
+                  }}
+                />
 
                 {nft?.created_timestamp && (
-                  <div>
-                    <div className='text-sm font-medium text-muted-foreground'>
-                      <Trans>Created</Trans>
-                    </div>
-                    <div className='text-sm'>
-                      {formatTimestamp(nft.created_timestamp, 'short', 'short')}
-                    </div>
-                  </div>
+                  <LabeledItem
+                    label={t`Created`}
+                    content={formatTimestamp(
+                      nft.created_timestamp,
+                      'short',
+                      'short',
+                    )}
+                  />
                 )}
               </div>
             </div>
@@ -221,24 +203,11 @@ export default function Nft() {
                           key={`${attr?.trait_type}_${attr?.value}`}
                           className='px-3 py-2 border rounded-lg '
                         >
-                          <div
-                            className='text-sm font-medium text-muted-foreground truncate'
-                            title={attr.trait_type}
-                          >
-                            {attr.trait_type}
-                          </div>
-                          {isValidUrl(attr.value) ? (
-                            <div
-                              onClick={() => openUrl(attr.value)}
-                              className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
-                            >
-                              {attr.value}
-                            </div>
-                          ) : (
-                            <div className='text-sm break-all'>
-                              {attr.value}
-                            </div>
-                          )}
+                          <LabeledItem
+                            label={attr.trait_type}
+                            className='truncate'
+                            content={attr.value}
+                          />
                         </div>
                       ),
                     )}
@@ -263,11 +232,8 @@ export default function Nft() {
                 </CardHeader>
                 <CardContent className='space-y-4'>
                   {!!nft?.data_uris.length && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>Data URIs</Trans>
-                      </div>
-                      <div className=''>
+                    <LabeledItem label={t`Data URIs`} content={null}>
+                      <>
                         {nft.data_uris.map((uri) => (
                           <div
                             key={uri}
@@ -277,16 +243,13 @@ export default function Nft() {
                             {uri}
                           </div>
                         ))}
-                      </div>
-                    </div>
+                      </>
+                    </LabeledItem>
                   )}
 
                   {!!nft?.metadata_uris.length && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>Metadata URIs</Trans>
-                      </div>
-                      <div className=''>
+                    <LabeledItem label={t`Metadata URIs`} content={null}>
+                      <>
                         {nft.metadata_uris.map((uri) => (
                           <div
                             key={uri}
@@ -296,16 +259,13 @@ export default function Nft() {
                             {uri}
                           </div>
                         ))}
-                      </div>
-                    </div>
+                      </>
+                    </LabeledItem>
                   )}
 
                   {!!nft?.license_uris.length && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>License URIs</Trans>
-                      </div>
-                      <div className=''>
+                    <LabeledItem label={t`License URIs`} content={null}>
+                      <>
                         {nft.license_uris.map((uri) => (
                           <div
                             key={uri}
@@ -315,42 +275,27 @@ export default function Nft() {
                             {uri}
                           </div>
                         ))}
-                      </div>
-                    </div>
+                      </>
+                    </LabeledItem>
                   )}
 
-                  {nft?.data_hash && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>Data Hash</Trans>
-                      </div>
-                      <div className='break-all text-sm font-mono'>
-                        {nft.data_hash}
-                      </div>
-                    </div>
-                  )}
+                  <LabeledItem
+                    label={t`Data Hash`}
+                    content={nft.data_hash}
+                    className='font-mono'
+                  />
 
-                  {nft?.metadata_hash && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>Metadata Hash</Trans>
-                      </div>
-                      <div className='break-all text-sm font-mono'>
-                        {nft.metadata_hash}
-                      </div>
-                    </div>
-                  )}
+                  <LabeledItem
+                    label={t`Metadata Hash`}
+                    content={nft.metadata_hash}
+                    className='font-mono'
+                  />
 
-                  {nft?.license_hash && (
-                    <div>
-                      <div className='text-sm font-medium text-muted-foreground'>
-                        <Trans>License Hash</Trans>
-                      </div>
-                      <div className='break-all text-sm font-mono'>
-                        {nft.license_hash}
-                      </div>
-                    </div>
-                  )}
+                  <LabeledItem
+                    label={t`License Hash`}
+                    content={nft.license_hash}
+                    className='font-mono'
+                  />
                 </CardContent>
               </Card>
             )}
