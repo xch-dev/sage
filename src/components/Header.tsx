@@ -96,11 +96,17 @@ export default function Header(
               className='flex items-center gap-2 font-semibold'
               aria-label={t`Go to wallet`}
             >
-              <img
-                src={dark ? iconLight : iconDark}
-                className='h-6 w-6'
-                alt={t`Wallet icon`}
-              />
+              {wallet?.emoji ? (
+                <span className='text-xl' role='img' aria-label='Wallet emoji'>
+                  {wallet.emoji}
+                </span>
+              ) : (
+                <img
+                  src={dark ? iconLight : iconDark}
+                  className='h-6 w-6'
+                  alt={t`Wallet icon`}
+                />
+              )}
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>

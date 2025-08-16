@@ -9,6 +9,7 @@ pub struct KeyInfo {
     pub kind: KeyKind,
     pub has_secrets: bool,
     pub network_id: String,
+    pub emoji: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

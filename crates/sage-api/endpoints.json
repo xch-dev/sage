@@ -7,6 +7,7 @@
   "delete_key": false,
   "delete_database": false,
   "rename_key": false,
+  "set_wallet_emoji": false,
   "get_key": false,
   "get_secret_key": false,
   "get_keys": false,

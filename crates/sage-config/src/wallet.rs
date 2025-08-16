@@ -39,6 +39,8 @@ pub struct Wallet {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub network: Option<String>,
     pub delta_sync: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub emoji: Option<String>,
 }
 
 impl Wallet {
@@ -72,6 +74,7 @@ impl Default for Wallet {
             derivation: DerivationMode::Default,
             network: None,
             delta_sync: None,
+            emoji: None,
         }
     }
 }
@@ -132,6 +135,7 @@ mod tests {
             derivation: DerivationMode::Default,
             network: None,
             delta_sync: None,
+            emoji: None,
         }
     }
 

@@ -15,6 +15,7 @@ use sage_api::{
     GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
     GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
     Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
+    SetWalletEmoji, SetWalletEmojiResponse,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -159,6 +160,7 @@ impl Sage {
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
+            emoji: req.emoji,
             ..Default::default()
         });
         self.config.global.fingerprint = Some(fingerprint);
@@ -271,6 +273,22 @@ impl Sage {
         Ok(RenameKeyResponse {})
     }
 
+    pub fn set_wallet_emoji(&mut self, req: SetWalletEmoji) -> Result<SetWalletEmojiResponse> {
+        let Some(wallet) = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|wallet| wallet.fingerprint == req.fingerprint)
+        else {
+            return Err(Error::UnknownFingerprint);
+        };
+
+        wallet.emoji = req.emoji;
+        self.save_config()?;
+
+        Ok(SetWalletEmojiResponse {})
+    }
+
     pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
         let fingerprint = req.fingerprint.or(self.config.global.fingerprint);
 
@@ -294,6 +312,7 @@ impl Sage {
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(fingerprint),
                 network_id,
+                emoji: wallet_config.emoji,
             }),
         })
     }
@@ -327,6 +346,7 @@ impl Sage {
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
                 network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
+                emoji: wallet.emoji.clone(),
             });
         }
 

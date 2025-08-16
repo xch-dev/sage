@@ -35,6 +35,9 @@ async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
 async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
     return await TAURI_INVOKE("get_keys", { req });
 },
+async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
+    return await TAURI_INVOKE("set_wallet_emoji", { req });
+},
 async getKey(req: GetKey) : Promise<GetKeyResponse> {
     return await TAURI_INVOKE("get_key", { req });
 },
@@ -482,7 +485,7 @@ export type GetTransactions = { offset: number; limit: number; ascending: boolea
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
-export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
+export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean; emoji?: string | null }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
 export type ImportOfferResponse = { offer_id: string }
@@ -490,7 +493,7 @@ export type IncreaseDerivationIndex = { hardened?: boolean | null; unhardened?: 
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string }
+export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
 export type KeyKind = "bls"
 export type LineageProof = { parentName: string | null; innerPuzzleHash: string | null; amount: number | null }
 export type LogFile = { name: string; text: string }
@@ -546,6 +549,8 @@ export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetNetwork = { name: string }
 export type SetNetworkOverride = { fingerprint: number; name: string | null }
 export type SetTargetPeers = { target_peers: number }
+export type SetWalletEmoji = { fingerprint: number; emoji: string | null }
+export type SetWalletEmojiResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SignMessageByAddress = { message: string; address: string }
@@ -586,7 +591,7 @@ export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary }
-export type Wallet = { name: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null; delta_sync: boolean | null }
+export type Wallet = { name: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null; delta_sync: boolean | null; emoji?: string | null }
 export type WalletDefaults = { change: ChangeMode; derivation: DerivationMode; delta_sync: boolean }
 
 /** tauri-specta globals **/
