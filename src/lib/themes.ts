@@ -21,6 +21,7 @@ export interface Theme {
     destructiveForeground: string;
     border: string;
     input: string;
+    inputBackground?: string;
     ring: string;
     chart1: string;
     chart2: string;
@@ -260,6 +261,14 @@ export function applyTheme(theme: Theme) {
     const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
     root.style.setProperty(cssVar, value, 'important');
   });
+
+  // Apply theme-specific input background if defined
+  if (theme.colors.inputBackground) {
+    root.style.setProperty('--input-background', theme.colors.inputBackground, 'important');
+  } else {
+    // For other themes, use the regular input color
+    root.style.setProperty('--input-background', theme.colors.input, 'important');
+  }
 
   // Set dynamic outline button background based on theme
   const outlineButtonBg = getOutlineButtonBackground(theme);

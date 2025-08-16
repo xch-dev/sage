@@ -20,6 +20,7 @@
     "destructiveForeground": "0 0% 100%",
     "border": "0 0% 50%",
     "input": "0 0% 100%",
+    "inputBackground": "0 0% 100%",
     "ring": "240 100% 25%",
     "chart1": "240 100% 25%",
     "chart2": "0 100% 50%",
