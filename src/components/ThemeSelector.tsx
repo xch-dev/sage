@@ -4,14 +4,8 @@ import { Trans } from '@lingui/react/macro';
 import { Check, Loader2 } from 'lucide-react';
 
 export function ThemeSelector() {
-  const {
-    currentTheme,
-    setTheme,
-    availableThemes,
-    isLoading,
-    error,
-    lastUsedNonCoreTheme,
-  } = useTheme();
+  const { currentTheme, setTheme, availableThemes, isLoading, error } =
+    useTheme();
 
   if (isLoading) {
     return (
@@ -42,30 +36,9 @@ export function ThemeSelector() {
     );
   }
 
-  // Get the core themes: light and dark
-  const lightTheme = availableThemes.find((theme) => theme.name === 'light');
-  const darkTheme = availableThemes.find((theme) => theme.name === 'dark');
-
-  // Get the third theme: last used non-core theme or colorful as fallback
-  let thirdTheme = null;
-  if (lastUsedNonCoreTheme) {
-    thirdTheme = availableThemes.find(
-      (theme) => theme.name === lastUsedNonCoreTheme,
-    );
-  }
-
-  // If no last used non-core theme or it's not available, use colorful as fallback
-  if (!thirdTheme) {
-    thirdTheme = availableThemes.find((theme) => theme.name === 'colorful');
-  }
-
-  const coreThemes = [lightTheme, darkTheme, thirdTheme].filter(
-    (theme): theme is NonNullable<typeof theme> => theme !== undefined,
-  );
-
   return (
     <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-      {coreThemes.map((theme) => (
+      {availableThemes.map((theme) => (
         <div
           key={theme.name}
           className={`cursor-pointer transition-all hover:opacity-90 ${

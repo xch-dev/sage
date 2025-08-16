@@ -12,7 +12,7 @@ import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 
@@ -183,10 +183,14 @@ function MinimalLayout(props: LayoutProps) {
 
 export default function Layout(props: LayoutProps) {
   const { wallet } = useWallet();
+  const location = useLocation();
 
-  if (!wallet) {
+  if (
+    !wallet &&
+    (location.pathname === '/settings' || location.pathname === '/themes')
+  ) {
     return <MinimalLayout {...props} />;
   }
 
-  return <FullLayout {...props} wallet={wallet} />;
+  return <FullLayout {...props} wallet={wallet || undefined} />;
 }
