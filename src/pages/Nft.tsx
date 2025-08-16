@@ -147,7 +147,7 @@ export default function Nft() {
                   <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
                     <pre className='whitespace-pre-wrap text-sm'>
                       {data?.blob
-                        ? JSON.stringify(JSON.parse(atob(data.blob)), null, 2)
+                        ? JSON.stringify(safeJsonParse(atob(data.blob)), null, 2)
                         : ''}
                     </pre>
                   </div>
