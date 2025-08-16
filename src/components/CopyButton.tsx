@@ -7,9 +7,15 @@ interface CopyButtonProps {
   value: string;
   className?: string;
   onCopy?: () => void;
+  'aria-label'?: string;
 }
 
-export function CopyButton({ value, className, onCopy }: CopyButtonProps) {
+export function CopyButton({
+  value,
+  className,
+  onCopy,
+  'aria-label': ariaLabel,
+}: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
   const copyAddress = () => {
@@ -26,11 +32,19 @@ export function CopyButton({ value, className, onCopy }: CopyButtonProps) {
       variant='ghost'
       onClick={copyAddress}
       className={className}
+      aria-label={ariaLabel || (copied ? 'Copied!' : `Copy ${value}`)}
+      title={copied ? 'Copied!' : `Copy ${value}`}
     >
       {copied ? (
-        <CopyCheckIcon className='h-5 w-5 text-emerald-500' />
+        <CopyCheckIcon
+          className='h-5 w-5 text-emerald-500'
+          aria-hidden='true'
+        />
       ) : (
-        <CopyIcon className='h-5 w-5 text-muted-foreground' />
+        <CopyIcon
+          className='h-5 w-5 text-muted-foreground'
+          aria-hidden='true'
+        />
       )}
     </Button>
   );

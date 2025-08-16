@@ -11,7 +11,7 @@ pub struct MempoolItem {
     pub hash: Bytes32,
     pub aggregated_signature: Signature,
     pub fee: u64,
-    pub submitted_timestamp: i64,
+    pub submitted_timestamp: Option<u64>,
 }
 
 impl Database {
@@ -188,7 +188,7 @@ async fn mempool_items_to_submit(
             hash: row.hash.convert()?,
             aggregated_signature: row.aggregated_signature.convert()?,
             fee: row.fee.convert()?,
-            submitted_timestamp: row.submitted_timestamp.unwrap_or(0),
+            submitted_timestamp: row.submitted_timestamp.map(|ts| ts as u64),
         })
     })
     .collect()
@@ -328,7 +328,7 @@ async fn mempool_items(conn: impl SqliteExecutor<'_>) -> Result<Vec<MempoolItem>
             hash: row.hash.convert()?,
             aggregated_signature: row.aggregated_signature.convert()?,
             fee: row.fee.convert()?,
-            submitted_timestamp: row.submitted_timestamp.unwrap_or(0),
+            submitted_timestamp: row.submitted_timestamp.map(|ts| ts as u64),
         })
     })
     .collect()
