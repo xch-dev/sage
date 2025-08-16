@@ -62,38 +62,8 @@ let themesPromise: Promise<Theme[]> | null = null;
 
 // Dynamically discover theme folders by scanning the themes directory
 async function discoverThemeFolders(): Promise<string[]> {
-  try {
-    // Try to get directory listing (this works in some server configurations)
-    const response = await fetch('/themes/');
-    if (response.ok) {
-      const text = await response.text();
-      // Parse HTML directory listing to extract folder names
-      const folderMatches = text.match(/href="([^"]+)\/"/g);
-      if (folderMatches) {
-        const folders = folderMatches
-          .map(match => match.replace('href="', '').replace('/"', ''))
-          .filter(folder => folder !== '..' && folder !== '.');
-        
-        // Filter folders that actually contain a theme.json file
-        const validThemes = await Promise.all(
-          folders.map(async (folder) => {
-            try {
-              const themeResponse = await fetch(`/themes/${folder}/theme.json`);
-              return themeResponse.ok ? folder : null;
-            } catch {
-              return null;
-            }
-          })
-        );
-        
-        return validThemes.filter((theme): theme is string => theme !== null);
-      }
-    }
-  } catch {
-    console.warn('Could not scan themes directory');
-  }
-
-  // Fallback to known themes if scanning fails
+  // For now, return known themes since we're using static imports
+  // In the future, this could be enhanced to dynamically discover themes
   return ['light', 'dark', 'win95', 'colorful', 'amiga', 'macintosh'];
 }
 
@@ -102,18 +72,20 @@ async function discoverThemeFolders(): Promise<string[]> {
  */
 async function loadTheme(themeName: string): Promise<Theme> {
   try {
-    const response = await fetch(`/themes/${themeName}/theme.json`);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to load theme ${themeName}: ${response.statusText}`,
-      );
-    }
-
-    const theme = (await response.json()) as Theme;
+    // Import theme as a module for hot reloading
+    const themeModule = await import(`../themes/${themeName}/theme.json`);
+    const theme = themeModule.default as Theme;
 
     // Process background image path to be relative to the theme folder
     if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
-      theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
+      // Import the background image as a module for hot reloading
+      try {
+        const bgModule = await import(`../themes/${themeName}/${theme.backgroundImage}`);
+        theme.backgroundImage = bgModule.default;
+      } catch {
+        // Fallback to public path if import fails
+        theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
+      }
     }
 
     return theme;
