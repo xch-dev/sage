@@ -5,6 +5,7 @@ import {
   type Theme,
 } from '@/lib/themes';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useLocalStorage } from 'usehooks-ts';
 
 interface ThemeContextType {
   currentTheme: Theme | null;
@@ -21,6 +22,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [availableThemes, setAvailableThemes] = useState<Theme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [savedTheme, setSavedTheme] = useLocalStorage<string>('theme', 'light');
 
   const setTheme = async (themeName: string) => {
     try {
@@ -28,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       if (theme) {
         setCurrentTheme(theme);
         applyTheme(theme);
-        localStorage.setItem('theme', themeName);
+        setSavedTheme(themeName);
       }
     } catch (err) {
       console.error('Error setting theme:', err);
@@ -53,27 +55,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Load saved theme from localStorage
-        const savedTheme = localStorage.getItem('theme');
         if (savedTheme) {
-          const theme = themes.find((t) => t.name === savedTheme);
+          const theme = getTheme(savedTheme, themes);
           if (theme) {
             setCurrentTheme(theme);
             applyTheme(theme);
-          } else {
-            // Fallback to first theme if saved theme not found
-            setCurrentTheme(themes[0]);
-            applyTheme(themes[0]);
-          }
-        } else {
-          // Default to light theme
-          const lightTheme = themes.find((t) => t.name === 'light');
-          if (lightTheme) {
-            setCurrentTheme(lightTheme);
-            applyTheme(lightTheme);
-          } else {
-            // Fallback to first theme
-            setCurrentTheme(themes[0]);
-            applyTheme(themes[0]);
           }
         }
       } catch (err) {
@@ -87,7 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeThemes();
-  }, []);
+  }, [savedTheme]);
 
   return (
     <ThemeContext.Provider
@@ -98,6 +84,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+function getTheme(themeName: string, themes: Theme[]) {
+  let theme = themes.find((t) => t.name === themeName);
+  if (theme) {
+    return theme;
+  }
+  theme = themes.find((t) => t.name === 'light');
+  if (theme) {
+    return theme;
+  }
+  if (themes.length > 0) {
+    return themes[0];
+  }
+  return null;
+}
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
