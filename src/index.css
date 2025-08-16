@@ -101,6 +101,11 @@ body {
   body.has-background-image .bg-popover {
     background-color: hsla(var(--popover) / 0.9) !important;
   }
+
+  /* Dynamic outline button styling for all themes */
+  .outline-btn {
+    background-color: var(--outline-button-bg);
+  }
 }
 
 @keyframes pulsate-opacity {

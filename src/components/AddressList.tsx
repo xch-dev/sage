@@ -2,10 +2,8 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef, Row } from '@tanstack/react-table';
 import { useMemo } from 'react';
-import { toast } from 'react-toastify';
 import { DerivationRecord } from '../bindings';
-import { CopyButton } from './CopyButton';
-import { FormattedAddress } from './FormattedAddress';
+import { AddressItem } from './AddressItem';
 import { SimplePagination } from './SimplePagination';
 import { DataTable } from './ui/data-table';
 
@@ -19,22 +17,7 @@ const AddressHeader = () => <Trans>Address</Trans>;
 
 const AddressCell = ({ row }: { row: Row<DerivationRecord> }) => {
   const address = row.getValue('address') as string;
-  return (
-    <div className='flex w-full items-center'>
-      <div className='flex-grow overflow-hidden pr-2'>
-        <FormattedAddress address={address} />
-      </div>
-      <div className='flex-shrink-0'>
-        <CopyButton
-          value={address}
-          className='h-8'
-          onCopy={() => {
-            toast.success(t`Address copied to clipboard`);
-          }}
-        />
-      </div>
-    </div>
-  );
+  return <AddressItem address={address} label={t`Address`} hideLabel={true} />;
 };
 
 const PublicKeyHeader = () => <Trans>Public Key</Trans>;
@@ -42,20 +25,7 @@ const PublicKeyHeader = () => <Trans>Public Key</Trans>;
 const PublicKeyCell = ({ row }: { row: Row<DerivationRecord> }) => {
   const publicKey = row.getValue('public_key') as string;
   return (
-    <div className='flex w-full items-center'>
-      <div className='flex-grow overflow-hidden pr-2 font-mono text-xs truncate'>
-        {publicKey}
-      </div>
-      <div className='flex-shrink-0'>
-        <CopyButton
-          value={publicKey}
-          className='h-8'
-          onCopy={() => {
-            toast.success(t`Public key copied to clipboard`);
-          }}
-        />
-      </div>
-    </div>
+    <AddressItem address={publicKey} label={t`Public key`} hideLabel={true} />
   );
 };
 

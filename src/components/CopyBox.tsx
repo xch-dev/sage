@@ -1,4 +1,6 @@
+import { cn } from '@/lib/utils';
 import { CopyButton } from './CopyButton';
+import { Input } from './ui/input';
 
 interface CopyBoxProps {
   title: string;
@@ -19,19 +21,20 @@ export function CopyBox(props: CopyBoxProps) {
     props.id || `copy-box-input-${Math.random().toString(36).substring(2, 9)}`;
 
   return (
-    <div className={`flex rounded-md shadow-sm max-w-x ${props.className}`}>
-      <input
+    <div className={cn('flex rounded-md shadow-sm', props.className)}>
+      <Input
         id={inputId}
         ref={props.inputRef}
         title={props.title}
-        type='text'
         value={props.displayValue ?? props.value}
+        type='text'
         readOnly
         aria-label={props['aria-label'] || props.title}
         aria-describedby={props['aria-describedby']}
-        className={`block w-full h-9 text-sm rounded-none rounded-l-md border border-input py-1 px-2 ${
-          truncate ? 'truncate' : ''
-        } bg-background text-foreground font-mono tracking-tight shadow-sm sm:leading-6`}
+        className={cn(
+          'rounded-r-none border-r-0 font-mono tracking-tight',
+          truncate && 'truncate',
+        )}
       />
       <CopyButton
         value={props.value}

@@ -7,12 +7,14 @@ export interface AddressItemProps {
   label: string;
   address: string;
   className?: string;
+  hideLabel?: boolean;
 }
 
 export function AddressItem({
   label,
   address,
   className = '',
+  hideLabel = false,
 }: AddressItemProps) {
   const labelId = useId();
   const contentId = useId();
@@ -29,13 +31,15 @@ export function AddressItem({
       aria-labelledby={labelId}
       aria-label={t`${label} address section`}
     >
-      <label
-        id={labelId}
-        htmlFor={contentId}
-        className='text-sm font-medium text-muted-foreground block mb-1'
-      >
-        {label}
-      </label>
+      {!hideLabel && (
+        <label
+          id={labelId}
+          htmlFor={contentId}
+          className='text-sm font-medium text-muted-foreground block mb-1'
+        >
+          {label}
+        </label>
+      )}
       <CopyBox
         id={contentId}
         title={t`Copy ${label}: ${address}`}

@@ -64,15 +64,15 @@ let themesPromise: Promise<Theme[]> | null = null;
 async function discoverThemeFolders(): Promise<string[]> {
   try {
     // Use dynamic imports to discover available themes
-    const themeModules = import.meta.glob('../themes/*/theme.json', { eager: true });
-    
+    const themeModules = import.meta.glob('../themes/*/theme.json', { eager: false });
+
     // Extract theme names from the module paths
     const themeNames = Object.keys(themeModules).map(path => {
       // Path format: "../themes/themeName/theme.json"
       const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
       return match ? match[1] : null;
     }).filter((name): name is string => name !== null);
-    
+
     // Sort theme names alphabetically
     return themeNames.sort();
   } catch (error) {
@@ -93,14 +93,8 @@ async function loadTheme(themeName: string): Promise<Theme> {
 
     // Process background image path to be relative to the theme folder
     if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
-      // Import the background image as a module for hot reloading
-      try {
-        const bgModule = await import(`../themes/${themeName}/${theme.backgroundImage}`);
-        theme.backgroundImage = bgModule.default;
-      } catch {
-        // Fallback to public path if import fails
-        theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
-      }
+      // Use a public path for background images to avoid dynamic import issues
+      theme.backgroundImage = `/themes/${themeName}/${theme.backgroundImage}`;
     }
 
     return theme;
@@ -221,14 +215,46 @@ export function getThemeByNameSync(name: string): Theme | undefined {
   return themesCache.find((theme) => theme.name === name);
 }
 
+/**
+ * Determines the appropriate background color for outline buttons based on theme
+ */
+function getOutlineButtonBackground(theme: Theme): string {
+  // Parse background lightness to determine if theme is light or dark
+  const backgroundHsl = theme.colors.background;
+  const lightnessMatch = backgroundHsl.match(/(\d+(?:\.\d+)?)%$/);
+  const lightness = lightnessMatch ? parseFloat(lightnessMatch[1]) : 50;
+
+  // If background is very dark (< 20% lightness), use card color for subtle background
+  // If background is light (> 50% lightness), use transparent
+  if (lightness < 20) {
+    return `hsl(${theme.colors.card})`;
+  } else if (lightness > 50) {
+    return 'transparent';
+  } else {
+    // For mid-range themes, use a slightly lighter version of the background
+    return `hsl(${theme.colors.secondary})`;
+  }
+}
+
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
+
+  // Remove any existing theme classes
+  const existingThemeClasses = Array.from(document.body.classList).filter(cls => cls.startsWith('theme-'));
+  document.body.classList.remove(...existingThemeClasses);
+
+  // Add theme-specific class
+  document.body.classList.add(`theme-${theme.name}`);
 
   // Apply all color variables with !important to override CSS classes
   Object.entries(theme.colors).forEach(([key, value]) => {
     const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
     root.style.setProperty(cssVar, value, 'important');
   });
+
+  // Set dynamic outline button background based on theme
+  const outlineButtonBg = getOutlineButtonBackground(theme);
+  root.style.setProperty('--outline-button-bg', outlineButtonBg, 'important');
 
   // Apply font variables
   Object.entries(theme.fonts).forEach(([key, value]) => {
