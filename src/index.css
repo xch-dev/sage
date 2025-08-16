@@ -40,6 +40,77 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Button-specific CSS variables with defaults */
+    --btn-default-bg: hsl(var(--primary));
+    --btn-default-color: hsl(var(--primary-foreground));
+    --btn-default-border: none;
+    --btn-default-border-style: solid;
+    --btn-default-border-width: 0;
+    --btn-default-border-color: transparent;
+    --btn-default-radius: var(--radius);
+    --btn-default-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-default-hover-bg: hsl(var(--primary) / 0.9);
+    --btn-default-hover-color: hsl(var(--primary-foreground));
+    --btn-default-hover-transform: none;
+    --btn-default-hover-border-style: solid;
+    --btn-default-hover-border-color: transparent;
+    --btn-default-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-default-active-bg: hsl(var(--primary) / 0.8);
+    --btn-default-active-color: hsl(var(--primary-foreground));
+    --btn-default-active-transform: none;
+    --btn-default-active-border-style: solid;
+    --btn-default-active-border-color: transparent;
+    --btn-default-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+    --btn-outline-bg: transparent;
+    --btn-outline-color: hsl(var(--foreground));
+    --btn-outline-border: 1px solid hsl(var(--border));
+    --btn-outline-border-style: solid;
+    --btn-outline-border-width: 1px;
+    --btn-outline-border-color: hsl(var(--border));
+    --btn-outline-radius: var(--radius);
+    --btn-outline-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-outline-hover-bg: hsl(var(--accent));
+    --btn-outline-hover-color: hsl(var(--accent-foreground));
+    --btn-outline-hover-transform: none;
+    --btn-outline-hover-border-style: solid;
+    --btn-outline-hover-border-color: hsl(var(--border));
+    --btn-outline-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-outline-active-bg: hsl(var(--accent) / 0.8);
+    --btn-outline-active-color: hsl(var(--accent-foreground));
+    --btn-outline-active-transform: none;
+    --btn-outline-active-border-style: solid;
+    --btn-outline-active-border-color: hsl(var(--border));
+    --btn-outline-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+    --btn-secondary-bg: hsl(var(--secondary));
+    --btn-secondary-color: hsl(var(--secondary-foreground));
+    --btn-secondary-border: none;
+    --btn-secondary-border-style: solid;
+    --btn-secondary-border-width: 0;
+    --btn-secondary-border-color: transparent;
+    --btn-secondary-radius: var(--radius);
+    --btn-secondary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-secondary-hover-bg: hsl(var(--secondary) / 0.8);
+    --btn-secondary-hover-color: hsl(var(--secondary-foreground));
+    --btn-secondary-hover-transform: none;
+    --btn-secondary-hover-border-style: solid;
+    --btn-secondary-hover-border-color: transparent;
+    --btn-secondary-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-secondary-active-bg: hsl(var(--secondary) / 0.6);
+    --btn-secondary-active-color: hsl(var(--secondary-foreground));
+    --btn-secondary-active-transform: none;
+    --btn-secondary-active-border-style: solid;
+    --btn-secondary-active-border-color: transparent;
+    --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+    /* Theme-specific button style flags */
+    --theme-has-gradient-buttons: 0;
+    --theme-has-shimmer-effects: 0;
+    --theme-has-pixel-art: 0;
+    --theme-has-3d-effects: 0;
+    --theme-has-rounded-buttons: 0;
   }
 
   /* Dark theme class - kept for backward compatibility */
@@ -107,6 +178,142 @@ body {
   /* Dynamic outline button styling for all themes */
   .outline-btn {
     background-color: var(--outline-button-bg);
+  }
+}
+
+/* Dynamic theme-specific button variant overrides */
+@layer components {
+  /* Theme-aware button variant that uses CSS variables */
+  .btn-variant-theme {
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border: var(--btn-default-border-width) var(--btn-default-border-style)
+      var(--btn-default-border-color);
+    border-radius: var(--btn-default-radius);
+    box-shadow: var(--btn-default-shadow);
+    transition: all 0.2s ease;
+  }
+
+  .btn-variant-theme:hover {
+    background: var(--btn-default-hover-bg);
+    color: var(--btn-default-hover-color);
+    transform: var(--btn-default-hover-transform);
+    border-style: var(--btn-default-hover-border-style);
+    border-color: var(--btn-default-hover-border-color);
+    box-shadow: var(--btn-default-hover-shadow);
+  }
+
+  .btn-variant-theme:active {
+    background: var(--btn-default-active-bg);
+    color: var(--btn-default-active-color);
+    transform: var(--btn-default-active-transform);
+    border-style: var(--btn-default-active-border-style);
+    border-color: var(--btn-default-active-border-color);
+    box-shadow: var(--btn-default-active-shadow);
+  }
+
+  /* Gradient buttons - applied when theme has gradient flag */
+  .btn-variant-default[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      hsl(var(--primary)),
+      hsl(var(--accent))
+    );
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Shimmer effects - applied when theme has shimmer flag */
+  .btn-variant-outline[data-theme-style*='shimmer'] {
+    background: transparent;
+    border: 1px solid hsl(var(--primary) / 0.3);
+    color: hsl(var(--primary) / 0.8);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-variant-outline[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--primary) / 0.2),
+      transparent
+    );
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-outline[data-theme-style*='shimmer']:hover {
+    border-color: hsl(var(--primary) / 0.5);
+    color: hsl(var(--primary));
+  }
+
+  .btn-variant-outline[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  /* Pixel art style - applied when theme has pixel-art flag */
+  .btn-variant-default[data-theme-style*='pixel-art'] {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 2px solid hsl(var(--foreground));
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
+  }
+
+  .btn-variant-default[data-theme-style*='pixel-art']:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 hsl(var(--foreground));
+  }
+
+  .btn-variant-outline[data-theme-style*='pixel-art'] {
+    background: transparent;
+    border: 2px solid hsl(var(--foreground));
+    color: hsl(var(--foreground));
+    box-shadow: 2px 2px 0 hsl(var(--foreground));
+  }
+
+  /* 3D effects - applied when theme has 3d-effects flag */
+  .btn-variant-default[data-theme-style*='3d-effects'] {
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border: 2px outset hsl(var(--border));
+    box-shadow:
+      inset 1px 1px 0 hsl(var(--background)),
+      inset -1px -1px 0 hsl(var(--muted-foreground));
+  }
+
+  .btn-variant-default[data-theme-style*='3d-effects']:active {
+    border-style: inset;
+    box-shadow:
+      inset 1px 1px 0 hsl(var(--muted-foreground)),
+      inset -1px -1px 0 hsl(var(--background));
+  }
+
+  .btn-variant-outline[data-theme-style*='3d-effects'] {
+    background: hsl(var(--background));
+    border: 2px outset hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+
+  /* Rounded buttons - applied when theme has rounded-buttons flag */
+  .btn-variant-default[data-theme-style*='rounded-buttons'] {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 12px;
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.2);
+  }
+
+  .btn-variant-outline[data-theme-style*='rounded-buttons'] {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
+    border-radius: 12px;
   }
 }
 

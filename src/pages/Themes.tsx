@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Trans } from '@lingui/react/macro';
-import { Info, Palette, Loader2 } from 'lucide-react';
+import { Info, Loader2, Palette } from 'lucide-react';
 
 export default function Themes() {
   const { currentTheme, isLoading, error } = useTheme();
@@ -255,7 +255,40 @@ export default function Themes() {
                           borderRadius: currentTheme.corners.md,
                         }}
                       >
-                        Secondary Button
+                        Outline Button
+                      </Button>
+                      <Button
+                        variant='destructive'
+                        style={{
+                          borderColor: `hsl(${currentTheme.colors.border})`,
+                          color: `hsl(${currentTheme.colors.foreground})`,
+                          fontFamily: currentTheme.fonts.body,
+                          borderRadius: currentTheme.corners.md,
+                        }}
+                      >
+                        Destructive Button
+                      </Button>
+                      <Button
+                        variant='ghost'
+                        style={{
+                          borderColor: `hsl(${currentTheme.colors.border})`,
+                          color: `hsl(${currentTheme.colors.foreground})`,
+                          fontFamily: currentTheme.fonts.body,
+                          borderRadius: currentTheme.corners.md,
+                        }}
+                      >
+                        Ghost Button
+                      </Button>
+                      <Button
+                        variant='link'
+                        style={{
+                          borderColor: `hsl(${currentTheme.colors.border})`,
+                          color: `hsl(${currentTheme.colors.foreground})`,
+                          fontFamily: currentTheme.fonts.body,
+                          borderRadius: currentTheme.corners.md,
+                        }}
+                      >
+                        Link Button
                       </Button>
                     </div>
 

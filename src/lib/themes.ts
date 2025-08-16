@@ -55,6 +55,167 @@ export interface Theme {
     button: string;
     dropdown: string;
   };
+  // Optional theme-specific button configurations
+  buttons?: {
+    default?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    outline?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    secondary?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    destructive?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    ghost?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+    link?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      borderStyle?: string;
+      borderWidth?: string;
+      borderColor?: string;
+      borderRadius?: string;
+      boxShadow?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+      active?: {
+        background?: string;
+        color?: string;
+        transform?: string;
+        borderStyle?: string;
+        borderColor?: string;
+        boxShadow?: string;
+      };
+    };
+  };
+  // Button style flags for dynamic CSS application
+  buttonStyles?: string[];
 }
 
 // Cache for loaded themes
@@ -273,6 +434,96 @@ export function applyTheme(theme: Theme) {
   // Set dynamic outline button background based on theme
   const outlineButtonBg = getOutlineButtonBackground(theme);
   root.style.setProperty('--outline-button-bg', outlineButtonBg, 'important');
+
+  // Apply button-specific variables if defined
+  if (theme.buttons) {
+    Object.entries(theme.buttons).forEach(([variant, config]) => {
+      if (config) {
+        // Apply base button styles
+        if (config.background) {
+          root.style.setProperty(`--btn-${variant}-bg`, config.background, 'important');
+        }
+        if (config.color) {
+          root.style.setProperty(`--btn-${variant}-color`, config.color, 'important');
+        }
+        if (config.border) {
+          root.style.setProperty(`--btn-${variant}-border`, config.border, 'important');
+        }
+        if (config.borderStyle) {
+          root.style.setProperty(`--btn-${variant}-border-style`, config.borderStyle, 'important');
+        }
+        if (config.borderWidth) {
+          root.style.setProperty(`--btn-${variant}-border-width`, config.borderWidth, 'important');
+        }
+        if (config.borderColor) {
+          root.style.setProperty(`--btn-${variant}-border-color`, config.borderColor, 'important');
+        }
+        if (config.borderRadius) {
+          root.style.setProperty(`--btn-${variant}-radius`, config.borderRadius, 'important');
+        }
+        if (config.boxShadow) {
+          root.style.setProperty(`--btn-${variant}-shadow`, config.boxShadow, 'important');
+        }
+
+        // Apply hover styles
+        if (config.hover) {
+          if (config.hover.background) {
+            root.style.setProperty(`--btn-${variant}-hover-bg`, config.hover.background, 'important');
+          }
+          if (config.hover.color) {
+            root.style.setProperty(`--btn-${variant}-hover-color`, config.hover.color, 'important');
+          }
+          if (config.hover.transform) {
+            root.style.setProperty(`--btn-${variant}-hover-transform`, config.hover.transform, 'important');
+          }
+          if (config.hover.borderStyle) {
+            root.style.setProperty(`--btn-${variant}-hover-border-style`, config.hover.borderStyle, 'important');
+          }
+          if (config.hover.borderColor) {
+            root.style.setProperty(`--btn-${variant}-hover-border-color`, config.hover.borderColor, 'important');
+          }
+          if (config.hover.boxShadow) {
+            root.style.setProperty(`--btn-${variant}-hover-shadow`, config.hover.boxShadow, 'important');
+          }
+        }
+
+        // Apply active styles
+        if (config.active) {
+          if (config.active.background) {
+            root.style.setProperty(`--btn-${variant}-active-bg`, config.active.background, 'important');
+          }
+          if (config.active.color) {
+            root.style.setProperty(`--btn-${variant}-active-color`, config.active.color, 'important');
+          }
+          if (config.active.transform) {
+            root.style.setProperty(`--btn-${variant}-active-transform`, config.active.transform, 'important');
+          }
+          if (config.active.borderStyle) {
+            root.style.setProperty(`--btn-${variant}-active-border-style`, config.active.borderStyle, 'important');
+          }
+          if (config.active.borderColor) {
+            root.style.setProperty(`--btn-${variant}-active-border-color`, config.active.borderColor, 'important');
+          }
+          if (config.active.boxShadow) {
+            root.style.setProperty(`--btn-${variant}-active-shadow`, config.active.boxShadow, 'important');
+          }
+        }
+      }
+    });
+  }
+
+  // Apply button style flags for dynamic CSS
+  const buttonStyles = theme.buttonStyles || [];
+
+  // Set CSS variables for button style flags
+  root.style.setProperty('--theme-has-gradient-buttons', buttonStyles.includes('gradient') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-shimmer-effects', buttonStyles.includes('shimmer') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-pixel-art', buttonStyles.includes('pixel-art') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-3d-effects', buttonStyles.includes('3d-effects') ? '1' : '0', 'important');
+  root.style.setProperty('--theme-has-rounded-buttons', buttonStyles.includes('rounded-buttons') ? '1' : '0', 'important');
+
+  // Set data attribute on body for CSS selectors
+  document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
 
   // Apply font variables
   Object.entries(theme.fonts).forEach(([key, value]) => {

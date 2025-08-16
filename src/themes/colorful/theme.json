@@ -54,5 +54,46 @@
     "card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
     "button": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
     "dropdown": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)"
-  }
+  },
+  "buttons": {
+    "default": {
+      "background": "linear-gradient(135deg, hsl(0 0% 9%), hsl(280 100% 85%))",
+      "color": "hsl(0 0% 98%)",
+      "border": "1px solid hsl(0 0% 89.8%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "0 4px 12px hsl(280 100% 85% / 0.3)",
+      "hover": {
+        "background": "linear-gradient(135deg, hsl(280 100% 85%), hsl(0 0% 9%))",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 6px 16px hsl(280 100% 85% / 0.4)"
+      }
+    },
+    "outline": {
+      "background": "transparent",
+      "color": "hsl(0 0% 9%)",
+      "border": "2px solid hsl(280 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "none",
+      "hover": {
+        "background": "hsl(280 100% 85% / 0.1)",
+        "color": "hsl(280 50% 25%)",
+        "transform": "scale(1.02)"
+      }
+    },
+    "secondary": {
+      "background": "hsl(210 100% 85%)",
+      "color": "hsl(210 50% 25%)",
+      "border": "1px solid hsl(210 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "0 2px 8px hsl(210 100% 85% / 0.3)",
+      "hover": {
+        "background": "hsl(210 100% 80%)",
+        "transform": "translateY(-1px)"
+      }
+    }
+  },
+  "buttonStyles": [
+    "gradient",
+    "shimmer"
+  ]
 }
