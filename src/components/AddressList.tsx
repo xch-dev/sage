@@ -17,7 +17,15 @@ const AddressHeader = () => <Trans>Address</Trans>;
 
 const AddressCell = ({ row }: { row: Row<DerivationRecord> }) => {
   const address = row.getValue('address') as string;
-  return <AddressItem address={address} label={t`Address`} hideLabel={true} />;
+  return (
+    <AddressItem
+      address={address}
+      label={t`Address`}
+      hideLabel={true}
+      inputClassName='focus-visible:ring-0 focus-visible:ring-offset-0'
+      truncateMiddle={true}
+    />
+  );
 };
 
 const PublicKeyHeader = () => <Trans>Public Key</Trans>;
@@ -25,7 +33,12 @@ const PublicKeyHeader = () => <Trans>Public Key</Trans>;
 const PublicKeyCell = ({ row }: { row: Row<DerivationRecord> }) => {
   const publicKey = row.getValue('public_key') as string;
   return (
-    <AddressItem address={publicKey} label={t`Public key`} hideLabel={true} />
+    <AddressItem
+      address={publicKey}
+      label={t`Public key`}
+      hideLabel={true}
+      inputClassName='focus-visible:ring-0 focus-visible:ring-offset-0'
+    />
   );
 };
 

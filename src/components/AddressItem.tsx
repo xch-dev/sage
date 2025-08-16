@@ -8,6 +8,8 @@ export interface AddressItemProps {
   address: string;
   className?: string;
   hideLabel?: boolean;
+  inputClassName?: string;
+  truncateMiddle?: boolean;
 }
 
 export function AddressItem({
@@ -15,6 +17,8 @@ export function AddressItem({
   address,
   className = '',
   hideLabel = false,
+  inputClassName,
+  truncateMiddle = false,
 }: AddressItemProps) {
   const labelId = useId();
   const contentId = useId();
@@ -47,6 +51,8 @@ export function AddressItem({
         onCopy={() => toast.success(t`${label} copied to clipboard`)}
         aria-label={t`${label}: ${address} (click to copy)`}
         aria-describedby={labelId}
+        inputClassName={inputClassName}
+        truncateMiddle={truncateMiddle}
       />
     </div>
   );

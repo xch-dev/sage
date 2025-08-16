@@ -15,6 +15,8 @@ export function ReceiveAddress({ className }: { className?: string }) {
       className={className}
       label={t`Receive Address`}
       hideLabel={true}
+      inputClassName='focus-visible:ring-0 focus-visible:ring-offset-0'
+      truncateMiddle={true}
     />
   );
 }
