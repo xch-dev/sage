@@ -1,6 +1,7 @@
 import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
 import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
+import { DidInfo } from '@/components/DidInfo';
 import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
-import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -37,11 +37,6 @@ export default function CollectionMetaData() {
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [network, setNetwork] = useState<NetworkKind | null>(null);
-  const [minterProfile, setMinterProfile] = useState<{
-    encoded_id: string;
-    name: string;
-    avatar_uri: string | null;
-  } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -92,15 +87,6 @@ export default function CollectionMetaData() {
 
     fetchData();
   }, [collection_id, addError]);
-
-  useEffect(() => {
-    if (!collection?.did_id) {
-      setMinterProfile(null);
-      return;
-    }
-
-    getMintGardenProfile(collection.did_id).then(setMinterProfile);
-  }, [collection?.did_id]);
 
   useEffect(() => {
     commands
@@ -417,27 +403,7 @@ export default function CollectionMetaData() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-4'>
-                <AddressItem
-                  label={t`Minter DID`}
-                  address={collection.did_id}
-                />
-                {minterProfile && (
-                  <div
-                    className='flex items-center gap-2 mt-2 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                    onClick={() =>
-                      openUrl(`https://mintgarden.io/${collection.did_id}`)
-                    }
-                  >
-                    {minterProfile.avatar_uri && (
-                      <img
-                        src={minterProfile.avatar_uri}
-                        alt={`${minterProfile.name} avatar`}
-                        className='w-6 h-6 rounded-full'
-                      />
-                    )}
-                    <div className='text-sm'>{minterProfile.name}</div>
-                  </div>
-                )}
+                <DidInfo did={collection.did_id} title={t`Minter DID`} />
               </CardContent>
             </Card>
 
