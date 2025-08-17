@@ -1,9 +1,5 @@
-import {
-  applyTheme,
-  getThemeByName,
-  loadThemes,
-  type Theme,
-} from '@/lib/themes';
+import { type Theme, applyTheme } from '@/lib/theme';
+import { getThemeByName, loadThemes } from '@/lib/themes';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 
