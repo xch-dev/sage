@@ -86,7 +86,9 @@ export function applyTheme(theme: Theme) {
     '--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5',
     '--font-sans', '--font-serif', '--font-mono', '--font-heading', '--font-body',
     '--corner-none', '--corner-sm', '--corner-md', '--corner-lg', '--corner-xl', '--corner-full',
-    '--shadow-none', '--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-xl', '--shadow-inner', '--shadow-card', '--shadow-button', '--shadow-dropdown'
+    '--shadow-none', '--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-xl', '--shadow-inner', '--shadow-card', '--shadow-button', '--shadow-dropdown',
+    '--theme-has-gradient-buttons', '--theme-has-shimmer-effects', '--theme-has-pixel-art', '--theme-has-3d-effects', '--theme-has-rounded-buttons',
+    '--outline-button-bg'
   ];
 
   cssVarsToClear.forEach(cssVar => {
