@@ -1,8 +1,20 @@
+/**
+ * Loads a theme from JSON file. Theme authors only need to specify the properties they want to customize.
+ * Missing properties will be ignored and CSS defaults will be used instead.
+ */
 export async function loadTheme(themeName: string): Promise<Theme> {
   try {
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
     const theme = themeModule.default as Theme;
+
+    // Validate that required properties are present
+    if (!theme.name) {
+      throw new Error(`Theme ${themeName} is missing required 'name' property`);
+    }
+    if (!theme.displayName) {
+      throw new Error(`Theme ${themeName} is missing required 'displayName' property`);
+    }
 
     // Process background image path to be relative to the theme folder
     if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
@@ -29,6 +41,10 @@ export async function loadTheme(themeName: string): Promise<Theme> {
   }
 }
 
+/**
+ * Applies a theme to the document. Only properties that are defined in the theme will be applied.
+ * Missing properties will be ignored, allowing CSS defaults to be used.
+ */
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
 
@@ -59,19 +75,21 @@ export function applyTheme(theme: Theme) {
   });
 
   // Apply all color variables with !important to override CSS classes
-  Object.entries(theme.colors).forEach(([key, value]) => {
-    const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-    root.style.setProperty(cssVar, value, 'important');
+  Object.entries(theme.colors || {}).forEach(([key, value]) => {
+    if (value) {
+      const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      root.style.setProperty(cssVar, value, 'important');
+    }
   });
 
   // Apply theme-specific input background if defined
-  if (theme.colors.inputBackground) {
+  if (theme.colors?.inputBackground) {
     root.style.setProperty(
       '--input-background',
       theme.colors.inputBackground,
       'important',
     );
-  } else if (theme.colors.input) {
+  } else if (theme.colors?.input) {
     // For other themes, use the regular input color
     root.style.setProperty(
       '--input-background',
@@ -276,21 +294,27 @@ export function applyTheme(theme: Theme) {
   document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
 
   // Apply font variables
-  Object.entries(theme.fonts).forEach(([key, value]) => {
-    const cssVar = `--font-${key}`;
-    root.style.setProperty(cssVar, value, 'important');
+  Object.entries(theme.fonts || {}).forEach(([key, value]) => {
+    if (value) {
+      const cssVar = `--font-${key}`;
+      root.style.setProperty(cssVar, value, 'important');
+    }
   });
 
   // Apply corner variables
-  Object.entries(theme.corners).forEach(([key, value]) => {
-    const cssVar = `--corner-${key}`;
-    root.style.setProperty(cssVar, value, 'important');
+  Object.entries(theme.corners || {}).forEach(([key, value]) => {
+    if (value) {
+      const cssVar = `--corner-${key}`;
+      root.style.setProperty(cssVar, value, 'important');
+    }
   });
 
   // Apply shadow variables
-  Object.entries(theme.shadows).forEach(([key, value]) => {
-    const cssVar = `--shadow-${key}`;
-    root.style.setProperty(cssVar, value, 'important');
+  Object.entries(theme.shadows || {}).forEach(([key, value]) => {
+    if (value) {
+      const cssVar = `--shadow-${key}`;
+      root.style.setProperty(cssVar, value, 'important');
+    }
   });
 
   // Apply background image if present
@@ -312,7 +336,7 @@ export function applyTheme(theme: Theme) {
  */
 function getOutlineButtonBackground(theme: Theme): string {
   // If theme has no colors defined, use CSS defaults (light theme)
-  if (!theme.colors.background) {
+  if (!theme.colors?.background) {
     return 'transparent';
   }
 
@@ -324,12 +348,12 @@ function getOutlineButtonBackground(theme: Theme): string {
   // If background is very dark (< 20% lightness), use card color for subtle background
   // If background is light (> 50% lightness), use transparent
   if (lightness < 20) {
-    return `hsl(${theme.colors.card})`;
+    return theme.colors.card ? `hsl(${theme.colors.card})` : 'transparent';
   } else if (lightness > 50) {
     return 'transparent';
   } else {
     // For mid-range themes, use a slightly lighter version of the background
-    return `hsl(${theme.colors.secondary})`;
+    return theme.colors.secondary ? `hsl(${theme.colors.secondary})` : 'transparent';
   }
 }
 
@@ -338,58 +362,58 @@ export interface Theme {
   displayName: string;
   backgroundImage?: string;
   inherits?: string;
-  colors: {
-    background: string;
-    foreground: string;
-    card: string;
-    cardForeground: string;
-    popover: string;
-    popoverForeground: string;
-    primary: string;
-    primaryForeground: string;
-    secondary: string;
-    secondaryForeground: string;
-    muted: string;
-    mutedForeground: string;
-    accent: string;
-    accentForeground: string;
-    destructive: string;
-    destructiveForeground: string;
-    border: string;
-    input: string;
+  colors?: {
+    background?: string;
+    foreground?: string;
+    card?: string;
+    cardForeground?: string;
+    popover?: string;
+    popoverForeground?: string;
+    primary?: string;
+    primaryForeground?: string;
+    secondary?: string;
+    secondaryForeground?: string;
+    muted?: string;
+    mutedForeground?: string;
+    accent?: string;
+    accentForeground?: string;
+    destructive?: string;
+    destructiveForeground?: string;
+    border?: string;
+    input?: string;
     inputBackground?: string;
-    ring: string;
-    chart1: string;
-    chart2: string;
-    chart3: string;
-    chart4: string;
-    chart5: string;
+    ring?: string;
+    chart1?: string;
+    chart2?: string;
+    chart3?: string;
+    chart4?: string;
+    chart5?: string;
   };
-  fonts: {
-    sans: string;
-    serif: string;
-    mono: string;
-    heading: string;
-    body: string;
+  fonts?: {
+    sans?: string;
+    serif?: string;
+    mono?: string;
+    heading?: string;
+    body?: string;
   };
-  corners: {
-    none: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    full: string;
+  corners?: {
+    none?: string;
+    sm?: string;
+    md?: string;
+    lg?: string;
+    xl?: string;
+    full?: string;
   };
-  shadows: {
-    none: string;
-    sm: string;
-    md: string;
-    lg: string;
-    xl: string;
-    inner: string;
-    card: string;
-    button: string;
-    dropdown: string;
+  shadows?: {
+    none?: string;
+    sm?: string;
+    md?: string;
+    lg?: string;
+    xl?: string;
+    inner?: string;
+    card?: string;
+    button?: string;
+    dropdown?: string;
   };
   // Optional theme-specific button configurations
   buttons?: {

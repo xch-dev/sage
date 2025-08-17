@@ -1,4 +1,3 @@
-import { t } from '@lingui/core/macro';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import { ThemeSelector } from '@/components/ThemeSelector';
@@ -14,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/contexts/ThemeContext';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Info, Loader2, Palette } from 'lucide-react';
 
@@ -124,7 +124,9 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: `hsl(${currentTheme.colors.primary})`,
+                          backgroundColor: currentTheme.colors?.primary
+                            ? `hsl(${currentTheme.colors.primary})`
+                            : undefined,
                         }}
                       />
                     </div>
@@ -135,7 +137,9 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: `hsl(${currentTheme.colors.secondary})`,
+                          backgroundColor: currentTheme.colors?.secondary
+                            ? `hsl(${currentTheme.colors.secondary})`
+                            : undefined,
                         }}
                       />
                     </div>
@@ -146,7 +150,9 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: `hsl(${currentTheme.colors.accent})`,
+                          backgroundColor: currentTheme.colors?.accent
+                            ? `hsl(${currentTheme.colors.accent})`
+                            : undefined,
                         }}
                       />
                     </div>
@@ -157,7 +163,9 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: `hsl(${currentTheme.colors.destructive})`,
+                          backgroundColor: currentTheme.colors?.destructive
+                            ? `hsl(${currentTheme.colors.destructive})`
+                            : undefined,
                         }}
                       />
                     </div>
@@ -171,19 +179,25 @@ export default function Themes() {
                   </Label>
                   <div className='space-y-4'>
                     <div>
-                      <Trans>Heading Font</Trans>: {currentTheme.fonts.heading}
+                      <Trans>Heading Font</Trans>:{' '}
+                      {currentTheme.fonts?.heading || 'Default'}
                       <div
                         className='mt-2 p-3 border rounded-md'
-                        style={{ fontFamily: currentTheme.fonts.heading }}
+                        style={{
+                          fontFamily: currentTheme.fonts?.heading || 'inherit',
+                        }}
                       >
                         The quick brown fox jumps over the lazy dog
                       </div>
                     </div>
                     <div>
-                      <Trans>Body Font</Trans>: {currentTheme.fonts.body}
+                      <Trans>Body Font</Trans>:{' '}
+                      {currentTheme.fonts?.body || 'Default'}
                       <div
                         className='mt-2 p-3 border rounded-md'
-                        style={{ fontFamily: currentTheme.fonts.body }}
+                        style={{
+                          fontFamily: currentTheme.fonts?.body || 'inherit',
+                        }}
                       >
                         The quick brown fox jumps over the lazy dog
                       </div>
@@ -198,27 +212,40 @@ export default function Themes() {
                   </Label>
                   <div className='space-y-4'>
                     <div>
-                      <Trans>Border Radius</Trans>: {currentTheme.corners.lg}
+                      <Trans>Border Radius</Trans>:{' '}
+                      {currentTheme.corners?.lg || 'Default'}
                       <div className='mt-2 flex gap-2'>
                         <div
                           className='w-8 h-8 bg-primary'
-                          style={{ borderRadius: currentTheme.corners.none }}
+                          style={{
+                            borderRadius: currentTheme.corners?.none || '0px',
+                          }}
                         />
                         <div
                           className='w-8 h-8 bg-primary'
-                          style={{ borderRadius: currentTheme.corners.sm }}
+                          style={{
+                            borderRadius:
+                              currentTheme.corners?.sm || '0.125rem',
+                          }}
                         />
                         <div
                           className='w-8 h-8 bg-primary'
-                          style={{ borderRadius: currentTheme.corners.md }}
+                          style={{
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
+                          }}
                         />
                         <div
                           className='w-8 h-8 bg-primary'
-                          style={{ borderRadius: currentTheme.corners.lg }}
+                          style={{
+                            borderRadius: currentTheme.corners?.lg || '0.5rem',
+                          }}
                         />
                         <div
                           className='w-8 h-8 bg-primary'
-                          style={{ borderRadius: currentTheme.corners.xl }}
+                          style={{
+                            borderRadius: currentTheme.corners?.xl || '0.75rem',
+                          }}
                         />
                       </div>
                     </div>
@@ -234,20 +261,32 @@ export default function Themes() {
                     <div
                       className='p-4 border rounded-lg'
                       style={{
-                        backgroundColor: `hsl(${currentTheme.colors.card})`,
-                        color: `hsl(${currentTheme.colors.cardForeground})`,
-                        borderColor: `hsl(${currentTheme.colors.border})`,
-                        borderRadius: currentTheme.corners.lg,
-                        boxShadow: currentTheme.shadows.card,
+                        backgroundColor: currentTheme.colors?.card
+                          ? `hsl(${currentTheme.colors.card})`
+                          : undefined,
+                        color: currentTheme.colors?.cardForeground
+                          ? `hsl(${currentTheme.colors.cardForeground})`
+                          : undefined,
+                        borderColor: currentTheme.colors?.border
+                          ? `hsl(${currentTheme.colors.border})`
+                          : undefined,
+                        borderRadius: currentTheme.corners?.lg || '0.5rem',
+                        boxShadow: currentTheme.shadows?.card || undefined,
                       }}
                     >
                       <h3
                         className='text-lg font-semibold mb-2'
-                        style={{ fontFamily: currentTheme.fonts.heading }}
+                        style={{
+                          fontFamily: currentTheme.fonts?.heading || 'inherit',
+                        }}
                       >
                         <Trans>Card Component</Trans>
                       </h3>
-                      <p style={{ fontFamily: currentTheme.fonts.body }}>
+                      <p
+                        style={{
+                          fontFamily: currentTheme.fonts?.body || 'inherit',
+                        }}
+                      >
                         <Trans>
                           This is how a card component looks with the current
                           theme.
@@ -262,11 +301,17 @@ export default function Themes() {
                       <div className='flex flex-col sm:flex-row gap-2 flex-wrap'>
                         <Button
                           style={{
-                            backgroundColor: `hsl(${currentTheme.colors.primary})`,
-                            color: `hsl(${currentTheme.colors.primaryForeground})`,
-                            fontFamily: currentTheme.fonts.body,
-                            borderRadius: currentTheme.corners.md,
-                            boxShadow: currentTheme.shadows.button,
+                            backgroundColor: currentTheme.colors?.primary
+                              ? `hsl(${currentTheme.colors.primary})`
+                              : undefined,
+                            color: currentTheme.colors?.primaryForeground
+                              ? `hsl(${currentTheme.colors.primaryForeground})`
+                              : undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
+                            boxShadow:
+                              currentTheme.shadows?.button || undefined,
                           }}
                         >
                           <Trans>Primary</Trans>
@@ -274,10 +319,15 @@ export default function Themes() {
                         <Button
                           variant='outline'
                           style={{
-                            borderColor: `hsl(${currentTheme.colors.border})`,
-                            color: `hsl(${currentTheme.colors.foreground})`,
-                            fontFamily: currentTheme.fonts.body,
-                            borderRadius: currentTheme.corners.md,
+                            borderColor: currentTheme.colors?.border
+                              ? `hsl(${currentTheme.colors.border})`
+                              : undefined,
+                            color: currentTheme.colors?.foreground
+                              ? `hsl(${currentTheme.colors.foreground})`
+                              : undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
                           }}
                         >
                           <Trans>Outline</Trans>
@@ -285,10 +335,15 @@ export default function Themes() {
                         <Button
                           variant='destructive'
                           style={{
-                            borderColor: `hsl(${currentTheme.colors.border})`,
-                            color: `hsl(${currentTheme.colors.foreground})`,
-                            fontFamily: currentTheme.fonts.body,
-                            borderRadius: currentTheme.corners.md,
+                            borderColor: currentTheme.colors?.border
+                              ? `hsl(${currentTheme.colors.border})`
+                              : undefined,
+                            color: currentTheme.colors?.foreground
+                              ? `hsl(${currentTheme.colors.foreground})`
+                              : undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
                           }}
                         >
                           <Trans>Destructive</Trans>
@@ -296,10 +351,15 @@ export default function Themes() {
                         <Button
                           variant='ghost'
                           style={{
-                            borderColor: `hsl(${currentTheme.colors.border})`,
-                            color: `hsl(${currentTheme.colors.foreground})`,
-                            fontFamily: currentTheme.fonts.body,
-                            borderRadius: currentTheme.corners.md,
+                            borderColor: currentTheme.colors?.border
+                              ? `hsl(${currentTheme.colors.border})`
+                              : undefined,
+                            color: currentTheme.colors?.foreground
+                              ? `hsl(${currentTheme.colors.foreground})`
+                              : undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
                           }}
                         >
                           <Trans>Ghost</Trans>
@@ -307,10 +367,15 @@ export default function Themes() {
                         <Button
                           variant='link'
                           style={{
-                            borderColor: `hsl(${currentTheme.colors.border})`,
-                            color: `hsl(${currentTheme.colors.foreground})`,
-                            fontFamily: currentTheme.fonts.body,
-                            borderRadius: currentTheme.corners.md,
+                            borderColor: currentTheme.colors?.border
+                              ? `hsl(${currentTheme.colors.border})`
+                              : undefined,
+                            color: currentTheme.colors?.foreground
+                              ? `hsl(${currentTheme.colors.foreground})`
+                              : undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
                           }}
                         >
                           <Trans>Link</Trans>
@@ -322,11 +387,17 @@ export default function Themes() {
                       <Input
                         placeholder={t`Input field example`}
                         style={{
-                          backgroundColor: `hsl(${currentTheme.colors.input})`,
-                          borderColor: `hsl(${currentTheme.colors.border})`,
-                          color: `hsl(${currentTheme.colors.foreground})`,
-                          fontFamily: currentTheme.fonts.body,
-                          borderRadius: currentTheme.corners.md,
+                          backgroundColor: currentTheme.colors?.input
+                            ? `hsl(${currentTheme.colors.input})`
+                            : undefined,
+                          borderColor: currentTheme.colors?.border
+                            ? `hsl(${currentTheme.colors.border})`
+                            : undefined,
+                          color: currentTheme.colors?.foreground
+                            ? `hsl(${currentTheme.colors.foreground})`
+                            : undefined,
+                          fontFamily: currentTheme.fonts?.body || 'inherit',
+                          borderRadius: currentTheme.corners?.md || '0.375rem',
                         }}
                       />
                     </div>

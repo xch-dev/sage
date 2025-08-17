@@ -45,12 +45,18 @@ export function ThemeSelector() {
             currentTheme.name === theme.name ? 'ring-2' : 'hover:ring-1'
           }`}
           style={{
-            backgroundColor: `hsl(${theme.colors.card})`,
-            color: `hsl(${theme.colors.cardForeground})`,
-            border: `1px solid hsl(${theme.colors.border})`,
-            borderRadius: theme.corners.lg,
-            boxShadow: theme.shadows.card,
-            fontFamily: theme.fonts.body,
+            backgroundColor: theme.colors?.card
+              ? `hsl(${theme.colors.card})`
+              : undefined,
+            color: theme.colors?.cardForeground
+              ? `hsl(${theme.colors.cardForeground})`
+              : undefined,
+            border: theme.colors?.border
+              ? `1px solid hsl(${theme.colors.border})`
+              : undefined,
+            borderRadius: theme.corners?.lg || '0.5rem',
+            boxShadow: theme.shadows?.card || undefined,
+            fontFamily: theme.fonts?.body || 'inherit',
             backgroundImage: theme.backgroundImage
               ? `url(${theme.backgroundImage})`
               : undefined,
@@ -58,7 +64,7 @@ export function ThemeSelector() {
             backgroundPosition: theme.backgroundImage ? 'center' : undefined,
             outline:
               currentTheme.name === theme.name
-                ? `2px solid hsl(${currentTheme.colors.primary})`
+                ? `2px solid ${currentTheme.colors?.primary ? `hsl(${currentTheme.colors.primary})` : 'currentColor'}`
                 : 'none',
           }}
           onClick={() => setTheme(theme.name)}
@@ -67,14 +73,18 @@ export function ThemeSelector() {
             <div className='flex items-center justify-between mb-3'>
               <h3
                 className='font-medium text-sm'
-                style={{ fontFamily: theme.fonts.heading }}
+                style={{ fontFamily: theme.fonts?.heading || 'inherit' }}
               >
                 {theme.displayName}
               </h3>
               {currentTheme.name === theme.name && (
                 <Check
                   className='h-4 w-4'
-                  style={{ color: `hsl(${currentTheme.colors.primary})` }}
+                  style={{
+                    color: currentTheme.colors?.primary
+                      ? `hsl(${currentTheme.colors.primary})`
+                      : 'currentColor',
+                  }}
                 />
               )}
             </div>
@@ -84,13 +94,21 @@ export function ThemeSelector() {
               <div
                 className='h-8 flex items-center px-2'
                 style={{
-                  backgroundColor: `hsl(${theme.colors.primary})`,
-                  borderColor: `hsl(${theme.colors.border})`,
-                  color: `hsl(${theme.colors.primaryForeground})`,
-                  fontFamily: theme.fonts.heading,
-                  borderRadius: theme.corners.md,
-                  border: `1px solid hsl(${theme.colors.border})`,
-                  boxShadow: theme.shadows.button,
+                  backgroundColor: theme.colors?.primary
+                    ? `hsl(${theme.colors.primary})`
+                    : undefined,
+                  borderColor: theme.colors?.border
+                    ? `hsl(${theme.colors.border})`
+                    : undefined,
+                  color: theme.colors?.primaryForeground
+                    ? `hsl(${theme.colors.primaryForeground})`
+                    : undefined,
+                  fontFamily: theme.fonts?.heading || 'inherit',
+                  borderRadius: theme.corners?.md || '0.375rem',
+                  border: theme.colors?.border
+                    ? `1px solid hsl(${theme.colors.border})`
+                    : undefined,
+                  boxShadow: theme.shadows?.button || undefined,
                 }}
               >
                 <span className='text-xs font-medium'>Aa</span>
@@ -99,40 +117,50 @@ export function ThemeSelector() {
                 <div
                   className='h-4 w-4'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.primary})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.primary
+                      ? `hsl(${theme.colors.primary})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
                 <div
                   className='h-4 w-4'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.secondary})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.secondary
+                      ? `hsl(${theme.colors.secondary})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
                 <div
                   className='h-4 w-4'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.accent})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.accent
+                      ? `hsl(${theme.colors.accent})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
                 <div
                   className='h-4 w-4'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.destructive})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.destructive
+                      ? `hsl(${theme.colors.destructive})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
               </div>
               <div
                 className='text-xs truncate'
                 style={{
-                  color: `hsl(${theme.colors.mutedForeground})`,
-                  fontFamily: theme.fonts.body,
+                  color: theme.colors?.mutedForeground
+                    ? `hsl(${theme.colors.mutedForeground})`
+                    : undefined,
+                  fontFamily: theme.fonts?.body || 'inherit',
                 }}
               >
-                {theme.fonts.heading.split(',')[0]}
+                {theme.fonts?.heading?.split(',')[0] || 'Default'}
               </div>
             </div>
           </div>
@@ -190,11 +218,15 @@ export function ThemeSelectorCompact() {
           size='sm'
           onClick={() => setTheme(theme.name)}
           className='flex items-center gap-2'
-          style={{ fontFamily: theme.fonts.body }}
+          style={{ fontFamily: theme.fonts?.body || 'inherit' }}
         >
           <div
             className='w-3 h-3 rounded-full'
-            style={{ backgroundColor: `hsl(${theme.colors.primary})` }}
+            style={{
+              backgroundColor: theme.colors?.primary
+                ? `hsl(${theme.colors.primary})`
+                : undefined,
+            }}
           />
           {theme.displayName}
         </Button>
@@ -254,12 +286,18 @@ export function ThemeSelectorSimple() {
               currentTheme.name === theme.name ? 'ring-2' : 'hover:ring-1'
             }`}
             style={{
-              backgroundColor: `hsl(${theme.colors.card})`,
-              color: `hsl(${theme.colors.cardForeground})`,
-              border: `1px solid hsl(${theme.colors.border})`,
-              borderRadius: theme.corners.lg,
-              boxShadow: theme.shadows.card,
-              fontFamily: theme.fonts.body,
+              backgroundColor: theme.colors?.card
+                ? `hsl(${theme.colors.card})`
+                : undefined,
+              color: theme.colors?.cardForeground
+                ? `hsl(${theme.colors.cardForeground})`
+                : undefined,
+              border: theme.colors?.border
+                ? `1px solid hsl(${theme.colors.border})`
+                : undefined,
+              borderRadius: theme.corners?.lg || '0.5rem',
+              boxShadow: theme.shadows?.card || undefined,
+              fontFamily: theme.fonts?.body || 'inherit',
               backgroundImage: theme.backgroundImage
                 ? `url(${theme.backgroundImage})`
                 : undefined,
@@ -267,7 +305,7 @@ export function ThemeSelectorSimple() {
               backgroundPosition: theme.backgroundImage ? 'center' : undefined,
               outline:
                 currentTheme.name === theme.name
-                  ? `2px solid hsl(${currentTheme.colors.primary})`
+                  ? `2px solid ${currentTheme.colors?.primary ? `hsl(${currentTheme.colors.primary})` : 'currentColor'}`
                   : 'none',
             }}
             onClick={() => setTheme(theme.name)}
@@ -276,14 +314,18 @@ export function ThemeSelectorSimple() {
               <div className='flex items-center justify-between mb-2'>
                 <h4
                   className='font-medium text-xs'
-                  style={{ fontFamily: theme.fonts.heading }}
+                  style={{ fontFamily: theme.fonts?.heading || 'inherit' }}
                 >
                   {theme.displayName}
                 </h4>
                 {currentTheme.name === theme.name && (
                   <Check
                     className='h-3 w-3'
-                    style={{ color: `hsl(${currentTheme.colors.primary})` }}
+                    style={{
+                      color: currentTheme.colors?.primary
+                        ? `hsl(${currentTheme.colors.primary})`
+                        : 'currentColor',
+                    }}
                   />
                 )}
               </div>
@@ -292,22 +334,28 @@ export function ThemeSelectorSimple() {
                 <div
                   className='h-2 w-2'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.primary})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.primary
+                      ? `hsl(${theme.colors.primary})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
                 <div
                   className='h-2 w-2'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.secondary})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.secondary
+                      ? `hsl(${theme.colors.secondary})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
                 <div
                   className='h-2 w-2'
                   style={{
-                    backgroundColor: `hsl(${theme.colors.accent})`,
-                    borderRadius: theme.corners.sm,
+                    backgroundColor: theme.colors?.accent
+                      ? `hsl(${theme.colors.accent})`
+                      : undefined,
+                    borderRadius: theme.corners?.sm || '0.125rem',
                   }}
                 />
               </div>
