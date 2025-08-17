@@ -27,29 +27,31 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
       }
     }
 
-    // Process background image path to be relative to the theme folder
-    if (theme.backgroundImage && !theme.backgroundImage.startsWith('/')) {
-      // Use static glob import to avoid dynamic import warnings
-      const imageModules = import.meta.glob(
-        '../themes/*/*.{jpg,jpeg,png,gif,webp}',
-        { eager: true },
-      );
-      const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
-      const imageModule = imageModules[imagePath];
+    // Process background image path
+    if (theme.backgroundImage) {
+      // If it's already a full URL (http/https), use it as is
+      if (theme.backgroundImage.startsWith('http://') || theme.backgroundImage.startsWith('https://')) {
+        // Keep the external URL as is
+      } else if (!theme.backgroundImage.startsWith('/')) {
+        // Use static glob import to avoid dynamic import warnings for local files
+        const imageModules = import.meta.glob(
+          '../themes/*/*.{jpg,jpeg,png,gif,webp}',
+          { eager: true },
+        );
+        const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
+        const imageModule = imageModules[imagePath];
 
-      if (imageModule) {
-        theme.backgroundImage = (imageModule as { default: string }).default;
-      } else {
-        // Fallback to a relative path if not found
-        theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+        if (imageModule) {
+          theme.backgroundImage = (imageModule as { default: string }).default;
+        } else {
+          // Fallback to a relative path if not found
+          theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+        }
       }
     }
 
-    if (theme.icon_name === 'dark') {
-      theme.icon_path = iconDark;
-    } else {
-      theme.icon_path = iconLight;
-    }
+    // only light and dark icons for now
+    theme.icon_path = theme.icon_name === 'dark' ? iconDark : iconLight;
 
     return theme;
   } catch (error) {
@@ -57,7 +59,6 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
     return null;
   }
 }
-
 
 /**
  * Applies a theme to the document. Only properties that are defined in the theme will be applied.
@@ -343,6 +344,15 @@ export function applyTheme(theme: Theme) {
       'important',
     );
     document.body.classList.add('has-background-image');
+
+    // Set background opacity variables
+    const bodyOpacity = theme.backgroundOpacity?.body ?? 0.1;
+    const cardOpacity = theme.backgroundOpacity?.card ?? 0.75;
+    const popoverOpacity = theme.backgroundOpacity?.popover ?? 0.9;
+
+    root.style.setProperty('--background-body-opacity', bodyOpacity.toString(), 'important');
+    root.style.setProperty('--background-card-opacity', cardOpacity.toString(), 'important');
+    root.style.setProperty('--background-popover-opacity', popoverOpacity.toString(), 'important');
   } else {
     root.style.removeProperty('--background-image');
     document.body.classList.remove('has-background-image');
@@ -381,6 +391,11 @@ export interface Theme {
   icon_name?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  backgroundOpacity?: {
+    body?: number;
+    card?: number;
+    popover?: number;
+  };
   inherits?: string;
   colors?: {
     background?: string;

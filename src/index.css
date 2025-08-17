@@ -44,7 +44,8 @@ body {
     /* Default font families */
     --font-sans: Inter, system-ui, sans-serif;
     --font-serif: Georgia, serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      Liberation Mono, Courier New, monospace;
     --font-heading: Inter, system-ui, sans-serif;
     --font-body: Inter, system-ui, sans-serif;
 
@@ -59,13 +60,17 @@ body {
     /* Default shadow values */
     --shadow-none: none;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1),
+      0 8px 10px -6px rgb(0 0 0 / 0.1);
     --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
     --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
     --shadow-button: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
 
     /* Button-specific CSS variables with defaults */
     --btn-default-bg: hsl(var(--primary));
@@ -138,8 +143,6 @@ body {
     --theme-has-3d-effects: 0;
     --theme-has-rounded-buttons: 0;
   }
-
-
 }
 
 @layer base {
@@ -159,19 +162,27 @@ body {
 
   /* Make backgrounds semi-transparent when background image is present */
   body.has-background-image {
-    background-color: hsla(var(--background) / 0.1);
+    background-color: hsla(
+      var(--background) / var(--background-body-opacity, 0.1)
+    );
   }
 
   body.has-background-image .bg-card {
-    background-color: hsla(var(--card) / 0.75) !important;
+    background-color: hsla(
+      var(--card) / var(--background-card-opacity, 0.75)
+    ) !important;
   }
 
   body.has-background-image .bg-background {
-    background-color: hsla(var(--background) / 0.1) !important;
+    background-color: hsla(
+      var(--background) / var(--background-body-opacity, 0.1)
+    ) !important;
   }
 
   body.has-background-image .bg-popover {
-    background-color: hsla(var(--popover) / 0.9) !important;
+    background-color: hsla(
+      var(--popover) / var(--background-popover-opacity, 0.9)
+    ) !important;
   }
 
   /* Dynamic outline button styling for all themes */

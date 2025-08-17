@@ -45,9 +45,11 @@ export function ThemeSelector() {
             currentTheme.name === theme.name ? 'ring-2' : 'hover:ring-1'
           }`}
           style={{
-            backgroundColor: theme.colors?.card
-              ? `hsl(${theme.colors.card})`
-              : undefined,
+            backgroundColor: theme.backgroundImage
+              ? `hsla(${theme.colors?.card || '0 0% 98%'}, ${theme.backgroundOpacity?.card ?? 0.75})`
+              : theme.colors?.card
+                ? `hsl(${theme.colors.card})`
+                : undefined,
             color: theme.colors?.cardForeground
               ? `hsl(${theme.colors.cardForeground})`
               : undefined,
@@ -286,9 +288,11 @@ export function ThemeSelectorSimple() {
               currentTheme.name === theme.name ? 'ring-2' : 'hover:ring-1'
             }`}
             style={{
-              backgroundColor: theme.colors?.card
-                ? `hsl(${theme.colors.card})`
-                : undefined,
+              backgroundColor: theme.backgroundImage
+                ? `hsla(${theme.colors?.card || '0 0% 98%'}, ${theme.backgroundOpacity?.card ?? 0.75})`
+                : theme.colors?.card
+                  ? `hsl(${theme.colors.card})`
+                  : undefined,
               color: theme.colors?.cardForeground
                 ? `hsl(${theme.colors.cardForeground})`
                 : undefined,
