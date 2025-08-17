@@ -43,6 +43,7 @@ export function ThemeSelector() {
         <ThemeCard
           key={theme.name}
           theme={theme}
+          currentTheme={currentTheme}
           isSelected={currentTheme.name === theme.name}
           onSelect={setTheme}
         />
@@ -164,6 +165,7 @@ export function ThemeSelectorSimple() {
           <ThemeCard
             key={theme.name}
             theme={theme}
+            currentTheme={currentTheme}
             isSelected={currentTheme.name === theme.name}
             onSelect={setTheme}
             variant='simple'

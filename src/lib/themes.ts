@@ -48,7 +48,9 @@ export async function loadThemes(): Promise<Theme[]> {
     )
     .then((themes) => {
       // Filter out null themes (themes that failed to load)
-      const validThemes = themes.filter((theme): theme is Theme => theme !== null);
+      const validThemes = themes.filter(
+        (theme): theme is Theme => theme !== null,
+      );
       themesCache = validThemes;
       return validThemes;
     })
@@ -68,4 +70,3 @@ export async function getThemeByName(name: string): Promise<Theme | undefined> {
   const themes = await loadThemes();
   return themes.find((theme) => theme.name === name);
 }
-

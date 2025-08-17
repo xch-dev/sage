@@ -1,6 +1,6 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
-import { deepMerge } from "./utils";
+import { deepMerge } from './utils';
 
 /**
  * Loads a theme from JSON file. Theme authors only need to specify the properties they want to customize.
@@ -17,7 +17,9 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
       throw new Error(`Theme ${themeName} is missing required 'name' property`);
     }
     if (!theme.displayName) {
-      throw new Error(`Theme ${themeName} is missing required 'displayName' property`);
+      throw new Error(
+        `Theme ${themeName} is missing required 'displayName' property`,
+      );
     }
 
     if (theme.inherits) {
@@ -30,7 +32,10 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
     // Process background image path
     if (theme.backgroundImage) {
       // If it's already a full URL (http/https), use it as is
-      if (theme.backgroundImage.startsWith('http://') || theme.backgroundImage.startsWith('https://')) {
+      if (
+        theme.backgroundImage.startsWith('http://') ||
+        theme.backgroundImage.startsWith('https://')
+      ) {
         // Keep the external URL as is
       } else if (!theme.backgroundImage.startsWith('/')) {
         // Use static glob import to avoid dynamic import warnings for local files
@@ -78,20 +83,60 @@ export function applyTheme(theme: Theme) {
 
   // Clear all previously set CSS variables to reset to defaults
   const cssVarsToClear = [
-    '--background', '--foreground', '--card', '--card-foreground',
-    '--popover', '--popover-foreground', '--primary', '--primary-foreground',
-    '--secondary', '--secondary-foreground', '--muted', '--muted-foreground',
-    '--accent', '--accent-foreground', '--destructive', '--destructive-foreground',
-    '--border', '--input', '--input-background', '--ring',
-    '--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5',
-    '--font-sans', '--font-serif', '--font-mono', '--font-heading', '--font-body',
-    '--corner-none', '--corner-sm', '--corner-md', '--corner-lg', '--corner-xl', '--corner-full',
-    '--shadow-none', '--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-xl', '--shadow-inner', '--shadow-card', '--shadow-button', '--shadow-dropdown',
-    '--theme-has-gradient-buttons', '--theme-has-shimmer-effects', '--theme-has-pixel-art', '--theme-has-3d-effects', '--theme-has-rounded-buttons',
-    '--outline-button-bg'
+    '--background',
+    '--foreground',
+    '--card',
+    '--card-foreground',
+    '--popover',
+    '--popover-foreground',
+    '--primary',
+    '--primary-foreground',
+    '--secondary',
+    '--secondary-foreground',
+    '--muted',
+    '--muted-foreground',
+    '--accent',
+    '--accent-foreground',
+    '--destructive',
+    '--destructive-foreground',
+    '--border',
+    '--input',
+    '--input-background',
+    '--ring',
+    '--chart-1',
+    '--chart-2',
+    '--chart-3',
+    '--chart-4',
+    '--chart-5',
+    '--font-sans',
+    '--font-serif',
+    '--font-mono',
+    '--font-heading',
+    '--font-body',
+    '--corner-none',
+    '--corner-sm',
+    '--corner-md',
+    '--corner-lg',
+    '--corner-xl',
+    '--corner-full',
+    '--shadow-none',
+    '--shadow-sm',
+    '--shadow-md',
+    '--shadow-lg',
+    '--shadow-xl',
+    '--shadow-inner',
+    '--shadow-card',
+    '--shadow-button',
+    '--shadow-dropdown',
+    '--theme-has-gradient-buttons',
+    '--theme-has-shimmer-effects',
+    '--theme-has-pixel-art',
+    '--theme-has-3d-effects',
+    '--theme-has-rounded-buttons',
+    '--outline-button-bg',
   ];
 
-  cssVarsToClear.forEach(cssVar => {
+  cssVarsToClear.forEach((cssVar) => {
     root.style.removeProperty(cssVar);
   });
 
@@ -352,9 +397,21 @@ export function applyTheme(theme: Theme) {
     const cardOpacity = theme.backgroundOpacity?.card ?? 0.75;
     const popoverOpacity = theme.backgroundOpacity?.popover ?? 0.9;
 
-    root.style.setProperty('--background-body-opacity', bodyOpacity.toString(), 'important');
-    root.style.setProperty('--background-card-opacity', cardOpacity.toString(), 'important');
-    root.style.setProperty('--background-popover-opacity', popoverOpacity.toString(), 'important');
+    root.style.setProperty(
+      '--background-body-opacity',
+      bodyOpacity.toString(),
+      'important',
+    );
+    root.style.setProperty(
+      '--background-card-opacity',
+      cardOpacity.toString(),
+      'important',
+    );
+    root.style.setProperty(
+      '--background-popover-opacity',
+      popoverOpacity.toString(),
+      'important',
+    );
   } else {
     root.style.removeProperty('--background-image');
     document.body.classList.remove('has-background-image');
@@ -383,7 +440,9 @@ function getOutlineButtonBackground(theme: Theme): string {
     return 'transparent';
   } else {
     // For mid-range themes, use a slightly lighter version of the background
-    return theme.colors.secondary ? `hsl(${theme.colors.secondary})` : 'transparent';
+    return theme.colors.secondary
+      ? `hsl(${theme.colors.secondary})`
+      : 'transparent';
   }
 }
 
