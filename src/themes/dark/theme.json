@@ -1,6 +1,7 @@
 {
   "name": "dark",
   "displayName": "Dark",
+  "inherits": "light",
   "colors": {
     "background": "0 0% 3.9%",
     "foreground": "0 0% 98%",
@@ -26,21 +27,6 @@
     "chart3": "30 80% 55%",
     "chart4": "280 65% 60%",
     "chart5": "340 75% 55%"
-  },
-  "fonts": {
-    "sans": "Inter, system-ui, sans-serif",
-    "serif": "Georgia, serif",
-    "mono": "JetBrains Mono, Consolas, Monaco, monospace",
-    "heading": "Inter, system-ui, sans-serif",
-    "body": "Inter, system-ui, sans-serif"
-  },
-  "corners": {
-    "none": "0px",
-    "sm": "0.125rem",
-    "md": "0.375rem",
-    "lg": "0.5rem",
-    "xl": "0.75rem",
-    "full": "9999px"
   },
   "shadows": {
     "none": "none",
