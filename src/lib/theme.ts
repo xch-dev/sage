@@ -1,12 +1,14 @@
+import { deepMerge } from "./utils";
+
 /**
  * Loads a theme from JSON file. Theme authors only need to specify the properties they want to customize.
  * Missing properties will be ignored and CSS defaults will be used instead.
  */
-export async function loadTheme(themeName: string): Promise<Theme> {
+export async function loadTheme(themeName: string): Promise<Theme | null> {
   try {
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
-    const theme = themeModule.default as Theme;
+    let theme = themeModule.default as Theme;
 
     // Validate that required properties are present
     if (!theme.name) {
@@ -14,6 +16,13 @@ export async function loadTheme(themeName: string): Promise<Theme> {
     }
     if (!theme.displayName) {
       throw new Error(`Theme ${themeName} is missing required 'displayName' property`);
+    }
+
+    if (theme.inherits) {
+      const inheritedTheme = await loadTheme(theme.inherits);
+      if (inheritedTheme) {
+        theme = deepMerge(inheritedTheme, theme);
+      }
     }
 
     // Process background image path to be relative to the theme folder
@@ -37,7 +46,7 @@ export async function loadTheme(themeName: string): Promise<Theme> {
     return theme;
   } catch (error) {
     console.error(`Error loading theme ${themeName}:`, error);
-    throw error;
+    return null;
   }
 }
 

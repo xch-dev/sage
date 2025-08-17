@@ -47,8 +47,10 @@ export async function loadThemes(): Promise<Theme[]> {
       Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
     )
     .then((themes) => {
-      themesCache = themes;
-      return themes;
+      // Filter out null themes (themes that failed to load)
+      const validThemes = themes.filter((theme): theme is Theme => theme !== null);
+      themesCache = validThemes;
+      return validThemes;
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
