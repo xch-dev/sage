@@ -323,6 +323,11 @@ export async function getThemeByName(name: string): Promise<Theme | undefined> {
  * Determines the appropriate background color for outline buttons based on theme
  */
 function getOutlineButtonBackground(theme: Theme): string {
+  // If theme has no colors defined, use CSS defaults (light theme)
+  if (!theme.colors.background) {
+    return 'transparent';
+  }
+
   // Parse background lightness to determine if theme is light or dark
   const backgroundHsl = theme.colors.background;
   const lightnessMatch = backgroundHsl.match(/(\d+(?:\.\d+)?)%$/);
@@ -352,6 +357,23 @@ export function applyTheme(theme: Theme) {
   // Add theme-specific class
   document.body.classList.add(`theme-${theme.name}`);
 
+  // Clear all previously set CSS variables to reset to defaults
+  const cssVarsToClear = [
+    '--background', '--foreground', '--card', '--card-foreground',
+    '--popover', '--popover-foreground', '--primary', '--primary-foreground',
+    '--secondary', '--secondary-foreground', '--muted', '--muted-foreground',
+    '--accent', '--accent-foreground', '--destructive', '--destructive-foreground',
+    '--border', '--input', '--input-background', '--ring',
+    '--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5',
+    '--font-sans', '--font-serif', '--font-mono', '--font-heading', '--font-body',
+    '--corner-none', '--corner-sm', '--corner-md', '--corner-lg', '--corner-xl', '--corner-full',
+    '--shadow-none', '--shadow-sm', '--shadow-md', '--shadow-lg', '--shadow-xl', '--shadow-inner', '--shadow-card', '--shadow-button', '--shadow-dropdown'
+  ];
+  
+  cssVarsToClear.forEach(cssVar => {
+    root.style.removeProperty(cssVar);
+  });
+
   // Apply all color variables with !important to override CSS classes
   Object.entries(theme.colors).forEach(([key, value]) => {
     const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
@@ -365,7 +387,7 @@ export function applyTheme(theme: Theme) {
       theme.colors.inputBackground,
       'important',
     );
-  } else {
+  } else if (theme.colors.input) {
     // For other themes, use the regular input color
     root.style.setProperty(
       '--input-background',
@@ -373,6 +395,7 @@ export function applyTheme(theme: Theme) {
       'important',
     );
   }
+  // If neither is defined, CSS defaults will be used
 
   // Set dynamic outline button background based on theme
   const outlineButtonBg = getOutlineButtonBackground(theme);
