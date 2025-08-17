@@ -1,6 +1,7 @@
 {
   "name": "classic-mac",
   "displayName": "Classic Mac",
+  "icon_name": "dark",
   "colors": {
     "background": "0 0% 100%",
     "foreground": "0 0% 0%",

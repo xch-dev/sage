@@ -7,8 +7,8 @@ import {
 } from '@/components/ui/tooltip';
 
 import { useInsets } from '@/contexts/SafeAreaContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
@@ -25,7 +25,7 @@ type LayoutProps = PropsWithChildren<object> & {
 
 export function FullLayout(props: LayoutProps) {
   const { wallet } = props;
-
+  const { currentTheme } = useTheme();
   const insets = useInsets();
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
@@ -38,7 +38,11 @@ export function FullLayout(props: LayoutProps) {
       to='/wallet'
       className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
+      <img
+        src={currentTheme?.icon_path}
+        className='h-6 w-6'
+        alt={t`Wallet icon`}
+      />
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
@@ -56,7 +60,11 @@ export function FullLayout(props: LayoutProps) {
           to='/wallet'
           className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
+          <img
+            src={currentTheme?.icon_path}
+            className='h-6 w-6'
+            alt={t`Wallet icon`}
+          />
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>

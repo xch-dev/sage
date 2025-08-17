@@ -1,6 +1,6 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -36,6 +36,8 @@ export default function Header(
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const { currentTheme } = useTheme();
 
   return (
     <header
@@ -93,7 +95,11 @@ export default function Header(
               className='flex items-center gap-2 font-semibold font-heading'
               aria-label={t`Go to wallet`}
             >
-              <img src={iconLight} className='h-6 w-6' alt={t`Wallet icon`} />
+              <img
+                src={currentTheme?.icon_path}
+                className='h-6 w-6'
+                alt={t`Wallet icon`}
+              />
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>

@@ -1,3 +1,5 @@
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { deepMerge } from "./utils";
 
 /**
@@ -43,12 +45,19 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
       }
     }
 
+    if (theme.icon_name === 'dark') {
+      theme.icon_path = iconDark;
+    } else {
+      theme.icon_path = iconLight;
+    }
+
     return theme;
   } catch (error) {
     console.error(`Error loading theme ${themeName}:`, error);
     return null;
   }
 }
+
 
 /**
  * Applies a theme to the document. Only properties that are defined in the theme will be applied.
@@ -369,6 +378,8 @@ function getOutlineButtonBackground(theme: Theme): string {
 export interface Theme {
   name: string;
   displayName: string;
+  icon_name?: 'light' | 'dark';
+  icon_path?: string;
   backgroundImage?: string;
   inherits?: string;
   colors?: {

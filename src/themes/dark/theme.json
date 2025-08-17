@@ -2,6 +2,7 @@
   "name": "dark",
   "displayName": "Dark",
   "inherits": "light",
+  "icon_name": "light",
   "colors": {
     "background": "0 0% 3.9%",
     "foreground": "0 0% 98%",
