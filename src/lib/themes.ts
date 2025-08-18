@@ -1,6 +1,5 @@
 import { type Theme, loadTheme } from './theme';
 
-// Cache for loaded themes
 let themesCache: Theme[] | null = null;
 let themesPromise: Promise<Theme[]> | null = null;
 
@@ -25,7 +24,6 @@ async function discoverThemeFolders(): Promise<string[]> {
     return themeNames.sort();
   } catch (error) {
     console.warn('Could not discover theme folders:', error);
-    // Fallback to known themes if discovery fails
     return [];
   }
 }
@@ -56,7 +54,6 @@ export async function loadThemes(): Promise<Theme[]> {
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
-      // Return a fallback theme if loading fails
       return [];
     });
 
