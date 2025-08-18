@@ -4,10 +4,10 @@
   "backgroundImage": "background.jpg",
   "inherits": "light",
   "colors": {
-    "secondary": "hsl(210 100% 85%)",
-    "secondaryForeground": "hsl(210 50% 25%)",
-    "accent": "hsl(280 100% 85%)",
-    "accentForeground": "hsl(280 50% 25%)"
+    "secondary": "210 100% 85%",
+    "secondaryForeground": "210 50% 25%",
+    "accent": "280 100% 85%",
+    "accentForeground": "280 50% 25%"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"
@@ -49,8 +49,5 @@
       }
     }
   },
-  "buttonStyles": [
-    "gradient",
-    "shimmer"
-  ]
+  "buttonStyles": ["gradient", "shimmer"]
 }

@@ -427,15 +427,22 @@ function getOutlineButtonBackground(theme: Theme): string {
     return 'transparent';
   }
 
-  // For any color format, we'll use a simple heuristic:
-  // If the theme has a card color, use it for subtle background
-  // Otherwise, use secondary color or transparent
-  if (theme.colors.card) {
-    return theme.colors.card;
-  } else if (theme.colors.secondary) {
-    return theme.colors.secondary;
-  } else {
+  // Parse background lightness to determine if theme is light or dark
+  const backgroundHsl = theme.colors.background;
+  const lightnessMatch = backgroundHsl.match(/(\d+(?:\.\d+)?)%$/);
+  const lightness = lightnessMatch ? parseFloat(lightnessMatch[1]) : 50;
+
+  // If background is very dark (< 20% lightness), use card color for subtle background
+  // If background is light (> 50% lightness), use transparent
+  if (lightness < 20) {
+    return theme.colors.card ? `hsl(${theme.colors.card})` : 'transparent';
+  } else if (lightness > 50) {
     return 'transparent';
+  } else {
+    // For mid-range themes, use a slightly lighter version of the background
+    return theme.colors.secondary
+      ? `hsl(${theme.colors.secondary})`
+      : 'transparent';
   }
 }
 

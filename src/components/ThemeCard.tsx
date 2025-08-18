@@ -21,30 +21,30 @@ function createThemeStyles(
 
   // Background color - only use theme's own colors, never CSS variables
   if (theme.backgroundImage) {
-    styles.backgroundColor = theme.colors?.card || '#ffffff';
+    styles.backgroundColor = `hsla(${theme.colors?.card || '0 0% 100%'}, ${theme.backgroundOpacity?.card ?? 0.75})`;
   } else if (theme.colors?.card) {
-    styles.backgroundColor = theme.colors.card;
+    styles.backgroundColor = `hsl(${theme.colors.card})`;
   } else {
     // Default fallback that doesn't depend on ambient theme
     styles.backgroundColor =
-      variant === 'default' ? '#ffffff' : undefined;
+      variant === 'default' ? 'hsl(0 0% 100%)' : undefined;
   }
 
   // Text color - only use theme's own colors
   if (theme.colors?.cardForeground) {
-    styles.color = theme.colors.cardForeground;
+    styles.color = `hsl(${theme.colors.cardForeground})`;
   } else {
     // Default fallback that doesn't depend on ambient theme
-    styles.color = variant === 'default' ? '#000000' : undefined;
+    styles.color = variant === 'default' ? 'hsl(0 0% 0%)' : undefined;
   }
 
   // Border - only use theme's own colors
   if (theme.colors?.border) {
-    styles.border = `1px solid ${theme.colors.border}`;
+    styles.border = `1px solid hsl(${theme.colors.border})`;
   } else {
     // Default fallback that doesn't depend on ambient theme
     styles.border =
-      variant === 'default' ? '1px solid #e5e5e5' : undefined;
+      variant === 'default' ? '1px solid hsl(0 0% 90%)' : undefined;
   }
 
   // Border radius - use theme's own values or fixed defaults
@@ -80,10 +80,10 @@ function createThemeStyles(
   // Selection outline - use current theme's colors for selection indicator
   if (isSelected) {
     if (currentTheme.colors?.primary) {
-      styles.outline = `2px solid ${currentTheme.colors.primary}`;
+      styles.outline = `2px solid hsl(${currentTheme.colors.primary})`;
     } else {
       // Fallback that doesn't depend on ambient theme
-      styles.outline = '2px solid #e5e7eb';
+      styles.outline = '2px solid hsl(220 13% 91%)';
     }
   } else {
     styles.outline = 'none';
@@ -105,21 +105,21 @@ export function ThemeCard({
   const renderDefaultContent = () => {
     const buttonStyles: Record<string, string | undefined> = {};
     if (theme.colors?.primary) {
-      buttonStyles.backgroundColor = theme.colors.primary;
+      buttonStyles.backgroundColor = `hsl(${theme.colors.primary})`;
     } else {
-      buttonStyles.backgroundColor = '#e5e7eb'; // Default gray
+      buttonStyles.backgroundColor = 'hsl(220 13% 91%)'; // Default gray
     }
     if (theme.colors?.border) {
-      buttonStyles.borderColor = theme.colors.border;
-      buttonStyles.border = `1px solid ${theme.colors.border}`;
+      buttonStyles.borderColor = `hsl(${theme.colors.border})`;
+      buttonStyles.border = `1px solid hsl(${theme.colors.border})`;
     } else {
-      buttonStyles.borderColor = '#e5e5e5';
-      buttonStyles.border = '1px solid #e5e5e5';
+      buttonStyles.borderColor = 'hsl(0 0% 90%)';
+      buttonStyles.border = '1px solid hsl(0 0% 90%)';
     }
     if (theme.colors?.primaryForeground) {
-      buttonStyles.color = theme.colors.primaryForeground;
+      buttonStyles.color = `hsl(${theme.colors.primaryForeground})`;
     } else {
-      buttonStyles.color = '#000000'; // Default black
+      buttonStyles.color = 'hsl(0 0% 0%)'; // Default black
     }
     if (theme.fonts?.heading) {
       buttonStyles.fontFamily = theme.fonts.heading;
@@ -146,16 +146,16 @@ export function ThemeCard({
 
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
-      checkStyles.color = currentTheme.colors.primary;
+      checkStyles.color = `hsl(${currentTheme.colors.primary})`;
     } else {
-      checkStyles.color = '#e5e7eb'; // Default gray
+      checkStyles.color = 'hsl(220 13% 91%)'; // Default gray
     }
 
     const mutedTextStyles: Record<string, string | undefined> = {};
     if (theme.colors?.mutedForeground) {
-      mutedTextStyles.color = theme.colors.mutedForeground;
+      mutedTextStyles.color = `hsl(${theme.colors.mutedForeground})`;
     } else {
-      mutedTextStyles.color = '#737373'; // Default muted color
+      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
     }
     if (theme.fonts?.body) {
       mutedTextStyles.fontFamily = theme.fonts.body;
@@ -181,28 +181,36 @@ export function ThemeCard({
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.primary || undefined,
+                backgroundColor: theme.colors?.primary
+                  ? `hsl(${theme.colors.primary})`
+                  : undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.secondary || undefined,
+                backgroundColor: theme.colors?.secondary
+                  ? `hsl(${theme.colors.secondary})`
+                  : undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.accent || undefined,
+                backgroundColor: theme.colors?.accent
+                  ? `hsl(${theme.colors.accent})`
+                  : undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.destructive || undefined,
+                backgroundColor: theme.colors?.destructive
+                  ? `hsl(${theme.colors.destructive})`
+                  : undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
@@ -225,7 +233,7 @@ export function ThemeCard({
 
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
-      checkStyles.color = currentTheme.colors.primary;
+      checkStyles.color = `hsl(${currentTheme.colors.primary})`;
     } else {
       checkStyles.color = 'currentColor';
     }
@@ -243,21 +251,27 @@ export function ThemeCard({
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.primary || undefined,
+              backgroundColor: theme.colors?.primary
+                ? `hsl(${theme.colors.primary})`
+                : undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.secondary || undefined,
+              backgroundColor: theme.colors?.secondary
+                ? `hsl(${theme.colors.secondary})`
+                : undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.accent || undefined,
+              backgroundColor: theme.colors?.accent
+                ? `hsl(${theme.colors.accent})`
+                : undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
