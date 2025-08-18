@@ -4,14 +4,14 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::{DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::driver::{ClawbackV2, Layer, SpendContext, StandardLayer};
+use chia_wallet_sdk::driver::{ClawbackV2, Layer, OptionUnderlying, SpendContext, StandardLayer};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
     SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
     SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
 };
-use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
+use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
 use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
 use tracing::{debug, info, warn};
 
@@ -88,6 +88,16 @@ impl Sage {
                     );
                     clawback.into_1_of_n().construct_puzzle(&mut ctx)?
                 }
+                P2Puzzle::Option(underlying) => {
+                    let underlying = OptionUnderlying::new(
+                        underlying.launcher_id,
+                        underlying.creator_puzzle_hash,
+                        underlying.seconds,
+                        underlying.amount,
+                        underlying.strike_type,
+                    );
+                    underlying.into_1_of_n().construct_puzzle(&mut ctx)?
+                }
             };
 
             let (puzzle, proof) = match req.kind {
@@ -103,6 +113,7 @@ impl Sage {
                     let Some(did) = wallet.db.did_coin(row.coin.coin_id()).await? else {
                         return Err(Error::MissingDidCoin(row.coin.coin_id()));
                     };
+                    let did = did.deserialize(&mut ctx)?;
                     let puzzle = did.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
                     (puzzle, Some(did.proof))
                 }
@@ -110,6 +121,7 @@ impl Sage {
                     let Some(nft) = wallet.db.nft_coin(row.coin.coin_id()).await? else {
                         return Err(Error::MissingNftCoin(row.coin.coin_id()));
                     };
+                    let nft = nft.deserialize(&mut ctx)?;
                     let puzzle = nft.info.into_layers(p2_puzzle).construct_puzzle(&mut ctx)?;
                     (puzzle, Some(nft.proof))
                 }

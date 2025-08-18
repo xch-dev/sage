@@ -288,7 +288,7 @@ impl Sage {
         self.wallet = Some(wallet.clone());
         self.unit = Unit {
             ticker: self.network().ticker.clone(),
-            decimals: self.network().precision,
+            precision: self.network().precision,
         };
 
         self.command_sender

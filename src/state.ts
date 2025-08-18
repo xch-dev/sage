@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import {
-  Assets,
+  Amount,
   commands,
   events,
   GetSyncStatusResponse,
@@ -28,6 +28,17 @@ export interface OfferState {
   requested: Assets;
   fee: string;
   expiration: OfferExpiration | null;
+}
+
+export interface Assets {
+  tokens: TokenAmount[];
+  nfts: string[];
+  options: string[];
+}
+
+export interface TokenAmount {
+  asset_id: string | null;
+  amount: Amount;
 }
 
 export interface OfferExpiration {
@@ -146,7 +157,7 @@ export function defaultState(): WalletState {
       balance: '0',
       unit: {
         ticker: 'XCH',
-        decimals: 12,
+        precision: 12,
       },
       total_coins: 0,
       synced_coins: 0,

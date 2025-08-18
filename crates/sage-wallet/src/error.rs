@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use clvmr::reduction::EvalErr;
 use sage_assets::UriError;
-use sage_database::DatabaseError;
+use sage_database::{CoinKind, DatabaseError};
 use thiserror::Error;
 use tokio::{task::JoinError, time::error::Elapsed};
 
@@ -75,9 +75,6 @@ pub enum WalletError {
     #[error("Missing secret key")]
     UnknownPublicKey,
 
-    #[error("SECP is not supported")]
-    SecpNotSupported,
-
     #[error("Missing XCH coin with id {0}")]
     MissingXchCoin(Bytes32),
 
@@ -103,7 +100,7 @@ pub enum WalletError {
     MissingNft(Bytes32),
 
     #[error("Missing option contract with id {0}. It may have been spent recently. Please try again later.")]
-    MissingOptionContract(Bytes32),
+    MissingOption(Bytes32),
 
     #[error("Missing asset with id {0}")]
     MissingAsset(Bytes32),
@@ -113,6 +110,12 @@ pub enum WalletError {
 
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
+
+    #[error("NFT option contracts are not supported")]
+    NftOptionNotSupported,
+
+    #[error("Unsupported underlying coin kind: {0:?}")]
+    UnsupportedUnderlyingCoinKind(CoinKind),
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),

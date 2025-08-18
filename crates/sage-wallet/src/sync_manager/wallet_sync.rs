@@ -4,11 +4,11 @@ use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{sleep, timeout},
+    time::sleep,
 };
 use tracing::{info, warn};
 
-use crate::{Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -17,6 +17,7 @@ pub async fn sync_wallet(
     peer: WalletPeer,
     state: Arc<Mutex<PeerState>>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    command_sender: mpsc::Sender<SyncCommand>,
     delta_sync: bool,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
@@ -42,6 +43,7 @@ pub async fn sync_wallet(
         start_header_hash,
         coin_ids,
         sync_sender.clone(),
+        command_sender.clone(),
         false,
     )
     .await?;
@@ -54,6 +56,7 @@ pub async fn sync_wallet(
             start_header_hash,
             batch,
             sync_sender.clone(),
+            command_sender.clone(),
         )
         .await?;
     }
@@ -83,6 +86,7 @@ pub async fn sync_wallet(
                 wallet.genesis_challenge,
                 batch,
                 sync_sender.clone(),
+                command_sender.clone(),
             )
             .await?;
         }
@@ -107,6 +111,7 @@ pub async fn sync_wallet(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn sync_coin_ids(
     wallet: &Wallet,
     peer: &WalletPeer,
@@ -114,6 +119,7 @@ async fn sync_coin_ids(
     start_header_hash: Bytes32,
     coin_ids: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    command_sender: mpsc::Sender<SyncCommand>,
     only_send_event_if_spent: bool,
 ) -> Result<(), WalletError> {
     for (i, coin_ids) in coin_ids.chunks(10000).enumerate() {
@@ -127,11 +133,9 @@ async fn sync_coin_ids(
             peer.socket_addr()
         );
 
-        let coin_states = timeout(
-            Duration::from_secs(10),
-            peer.subscribe_coins(coin_ids.to_vec(), start_height, start_header_hash),
-        )
-        .await??;
+        let coin_states = peer
+            .subscribe_coins(coin_ids.to_vec(), start_height, start_header_hash)
+            .await?;
 
         info!("Received {} coin states", coin_states.len());
 
@@ -139,7 +143,7 @@ async fn sync_coin_ids(
             .iter()
             .any(|cs| cs.spent_height.is_some() || !only_send_event_if_spent)
         {
-            incremental_sync(wallet, coin_states, true, &sync_sender).await?;
+            incremental_sync(wallet, coin_states, true, &sync_sender, &command_sender).await?;
         }
     }
 
@@ -153,6 +157,7 @@ async fn sync_puzzle_hashes(
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
     sync_sender: mpsc::Sender<SyncEvent>,
+    command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     if puzzle_hashes.is_empty() {
         return Ok(());
@@ -170,21 +175,26 @@ async fn sync_puzzle_hashes(
             peer.socket_addr()
         );
 
-        let data = timeout(
-            Duration::from_secs(45),
-            peer.subscribe_puzzles(
+        let data = peer
+            .subscribe_puzzles(
                 puzzle_hashes.to_vec(),
                 prev_height,
                 prev_header_hash,
                 CoinStateFilters::new(true, true, true, 0),
-            ),
-        )
-        .await??;
+            )
+            .await?;
 
         info!("Received {} coin states", data.coin_states.len());
 
         if !data.coin_states.is_empty() {
-            incremental_sync(wallet, data.coin_states, true, &sync_sender).await?;
+            incremental_sync(
+                wallet,
+                data.coin_states,
+                true,
+                &sync_sender,
+                &command_sender,
+            )
+            .await?;
         }
 
         prev_height = Some(data.height);
@@ -203,6 +213,7 @@ pub async fn incremental_sync(
     coin_states: Vec<CoinState>,
     derive_automatically: bool,
     sync_sender: &mpsc::Sender<SyncEvent>,
+    command_sender: &mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
     let mut confirmed_transactions = HashSet::new();
@@ -247,12 +258,10 @@ pub async fn incremental_sync(
         tx.remove_mempool_item(mempool_item_id).await?;
     }
 
-    let mut derived = false;
+    let mut new_derivations = Vec::new();
 
     if derive_automatically {
-        derived = !auto_insert_unhardened_derivations(wallet, &mut tx)
-            .await?
-            .is_empty();
+        new_derivations = auto_insert_unhardened_derivations(wallet, &mut tx).await?;
     }
 
     let next_index = tx.derivation_index(false).await?;
@@ -263,9 +272,16 @@ pub async fn incremental_sync(
         sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
     }
 
-    if derived {
+    if !new_derivations.is_empty() {
         sync_sender
             .send(SyncEvent::DerivationIndex { next_index })
+            .await
+            .ok();
+
+        command_sender
+            .send(SyncCommand::SubscribePuzzles {
+                puzzle_hashes: new_derivations,
+            })
             .await
             .ok();
     }
@@ -301,6 +317,7 @@ pub async fn add_new_subscriptions(
     coin_ids: Vec<Bytes32>,
     puzzle_hashes: Vec<Bytes32>,
     sync_sender: mpsc::Sender<SyncEvent>,
+    command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     sync_coin_ids(
         wallet,
@@ -309,6 +326,7 @@ pub async fn add_new_subscriptions(
         wallet.genesis_challenge,
         coin_ids,
         sync_sender.clone(),
+        command_sender.clone(),
         true,
     )
     .await?;
@@ -319,7 +337,8 @@ pub async fn add_new_subscriptions(
         None,
         wallet.genesis_challenge,
         &puzzle_hashes,
-        sync_sender,
+        sync_sender.clone(),
+        command_sender.clone(),
     )
     .await?;
 

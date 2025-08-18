@@ -1,4 +1,4 @@
-import { commands } from '@/bindings';
+import { commands, OfferAmount } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
@@ -64,6 +64,16 @@ export function useOfferProcessor({
       throw new Error(t`Biometric authentication failed or was cancelled`);
     }
 
+    const offeredTokens = offerState.offered.tokens.map((token) => ({
+      asset_id: token.asset_id,
+      amount: toMojos(token.amount.toString(), token.asset_id ? 3 : 12),
+    }));
+
+    const requestedTokens = offerState.requested.tokens.map((token) => ({
+      asset_id: token.asset_id,
+      amount: toMojos(token.amount.toString(), token.asset_id ? 3 : 12),
+    }));
+
     try {
       if (
         splitNftOffers &&
@@ -79,32 +89,33 @@ export function useOfferProcessor({
 
           onProgress?.(index);
 
+          const offeredAssets: OfferAmount[] = [
+            ...offeredTokens,
+            { asset_id: nft, amount: 1 },
+            ...offerState.offered.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
+          const requestedAssets: OfferAmount[] = [
+            ...requestedTokens,
+            ...offerState.requested.nfts.map((nft) => ({
+              asset_id: nft,
+              amount: 1,
+            })),
+            ...offerState.requested.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
           const data = await commands.makeOffer({
-            offered_assets: {
-              xch: toMojos(
-                (offerState.offered.xch || '0').toString(),
-                walletState.sync.unit.decimals,
-              ),
-              cats: offerState.offered.cats.map((cat) => ({
-                asset_id: cat.asset_id,
-                amount: toMojos((cat.amount || '0').toString(), 3),
-              })),
-              nfts: [nft],
-            },
-            requested_assets: {
-              xch: toMojos(
-                (offerState.requested.xch || '0').toString(),
-                walletState.sync.unit.decimals,
-              ),
-              cats: offerState.requested.cats.map((cat) => ({
-                asset_id: cat.asset_id,
-                amount: toMojos((cat.amount || '0').toString(), 3),
-              })),
-              nfts: offerState.requested.nfts.filter((n) => n),
-            },
+            offered_assets: offeredAssets,
+            requested_assets: requestedAssets,
             fee: toMojos(
               (offerState.fee || '0').toString(),
-              walletState.sync.unit.decimals,
+              walletState.sync.unit.precision,
             ),
             expires_at_second: expiresAtSecond,
           });
@@ -117,32 +128,37 @@ export function useOfferProcessor({
         }
       } else {
         onProgress?.(0);
+
+        const offeredAssets: OfferAmount[] = [
+          ...offeredTokens,
+          ...offerState.offered.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.offered.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
+        const requestedAssets: OfferAmount[] = [
+          ...requestedTokens,
+          ...offerState.requested.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.requested.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
+
         const data = await commands.makeOffer({
-          offered_assets: {
-            xch: toMojos(
-              (offerState.offered.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: offerState.offered.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: offerState.offered.nfts.filter((n) => n),
-          },
-          requested_assets: {
-            xch: toMojos(
-              (offerState.requested.xch || '0').toString(),
-              walletState.sync.unit.decimals,
-            ),
-            cats: offerState.requested.cats.map((cat) => ({
-              asset_id: cat.asset_id,
-              amount: toMojos((cat.amount || '0').toString(), 3),
-            })),
-            nfts: offerState.requested.nfts.filter((n) => n),
-          },
+          offered_assets: offeredAssets,
+          requested_assets: requestedAssets,
           fee: toMojos(
             (offerState.fee || '0').toString(),
-            walletState.sync.unit.decimals,
+            walletState.sync.unit.precision,
           ),
           expires_at_second: expiresAtSecond,
         });
@@ -163,7 +179,7 @@ export function useOfferProcessor({
   }, [
     offerState,
     splitNftOffers,
-    walletState.sync.unit.decimals,
+    walletState.sync.unit.precision,
     promptIfEnabled,
     onProcessingEnd,
     onProgress,

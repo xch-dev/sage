@@ -197,10 +197,10 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 <NumberFormat
                   value={fromMojos(
                     offerSummary.fee,
-                    walletState.sync.unit.decimals,
+                    walletState.sync.unit.precision,
                   )}
                   minimumFractionDigits={0}
-                  maximumFractionDigits={walletState.sync.unit.decimals}
+                  maximumFractionDigits={walletState.sync.unit.precision}
                 />{' '}
                 {walletState.sync.unit.ticker}
               </div>
@@ -258,16 +258,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <Assets
-              assets={
-                offerSummary.maker ?? {
-                  xch: { amount: '0', royalty: '0' },
-                  cats: {},
-                  nfts: {},
-                }
-              }
-              catPresence={catPresence}
-            />
+            <Assets assets={offerSummary.maker} catPresence={catPresence} />
           </CardContent>
         </Card>
       </div>

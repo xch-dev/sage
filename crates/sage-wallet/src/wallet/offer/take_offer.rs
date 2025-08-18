@@ -22,7 +22,7 @@ impl Wallet {
 
         let mut requested_nfts = IndexMap::new();
 
-        for launcher_id in arbitrage.requested_nfts {
+        for launcher_id in arbitrage.requested.nfts {
             let Some(nft) = offer.asset_info().nft(launcher_id) else {
                 return Err(WalletError::MissingNft(launcher_id));
             };
@@ -81,8 +81,7 @@ impl Wallet {
         actions.extend(offer.requested_payments().actions());
 
         // Add requested payments
-        self.select_spends(&mut ctx, &mut spends, vec![], &actions)
-            .await?;
+        self.select_spends(&mut ctx, &mut spends, &actions).await?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;

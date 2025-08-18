@@ -70,7 +70,7 @@ export function Offers() {
   const [cancelAllFee, setCancelAllFee] = useState<string>('');
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const cancelAllSchema = z.object({
-    fee: amount(walletState.sync.unit.decimals).refine(
+    fee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -183,7 +183,7 @@ export function Offers() {
   };
 
   const cancelAllHandler = (values: z.infer<typeof cancelAllSchema>) => {
-    const fee = toMojos(values.fee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.fee, walletState.sync.unit.precision);
     const activeOffers = filteredOffers.filter(
       (offer) => offer.status === 'active',
     );

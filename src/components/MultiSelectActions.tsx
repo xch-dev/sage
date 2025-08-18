@@ -135,7 +135,7 @@ export function MultiSelectActions({
       .transferNfts({
         nft_ids: selected,
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err: unknown) => {
@@ -152,7 +152,7 @@ export function MultiSelectActions({
       .assignNftsToDid({
         nft_ids: selected,
         did_id: profile,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err: unknown) => {
@@ -168,7 +168,7 @@ export function MultiSelectActions({
       .transferNfts({
         nft_ids: selected,
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err: unknown) => {

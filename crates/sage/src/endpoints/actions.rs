@@ -8,13 +8,17 @@ use clvmr::Allocator;
 use sage_api::{
     IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
     ResyncCat, ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
-    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse,
+    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
+    UpdateOptionResponse,
 };
 use sage_assets::DexieCat;
 use sage_database::{Asset, AssetKind, Derivation};
 use sage_wallet::SyncCommand;
 
-use crate::{parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result, Sage};
+use crate::{
+    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id, Error,
+    Result, Sage,
+};
 
 impl Sage {
     pub async fn resync_cat(&self, req: ResyncCat) -> Result<ResyncCatResponse> {
@@ -67,6 +71,22 @@ impl Sage {
         wallet.db.update_asset(asset).await?;
 
         Ok(UpdateCatResponse {})
+    }
+
+    pub async fn update_option(&self, req: UpdateOption) -> Result<UpdateOptionResponse> {
+        let wallet = self.wallet()?;
+
+        let option_id = parse_option_id(req.option_id)?;
+
+        let Some(mut asset) = wallet.db.asset(option_id).await? else {
+            return Err(Error::MissingDid(option_id));
+        };
+
+        asset.is_visible = req.visible;
+
+        wallet.db.update_asset(asset).await?;
+
+        Ok(UpdateOptionResponse {})
     }
 
     pub async fn update_did(&self, req: UpdateDid) -> Result<UpdateDidResponse> {
@@ -172,7 +192,7 @@ impl Sage {
         let wallet = self.wallet()?;
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
-        let unhardened = req.hardened.is_none_or(|hardened| !hardened);
+        let unhardened = req.unhardened.is_none_or(|unhardened| unhardened);
 
         let mut derivations = Vec::new();
 

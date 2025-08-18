@@ -1,12 +1,13 @@
 use chia::{
     clvm_utils::ToTreeHash,
-    protocol::{Bytes32, CoinSpend, Program},
+    protocol::{Bytes32, CoinSpend},
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
 use chia_wallet_sdk::driver::{
-    Action, ClawbackV2, Id, MetadataUpdate, Nft, SpendContext, TransferNftById,
+    Action, ClawbackV2, DriverError, Id, MetadataUpdate, SpendContext, TransferNftById,
 };
+use sage_database::{SerializePrimitive, SerializedNft};
 
 use crate::{
     wallet::memos::{calculate_memos, Hint},
@@ -29,7 +30,7 @@ impl Wallet {
         fee: u64,
         did_id: Bytes32,
         mints: Vec<WalletNftMint>,
-    ) -> Result<(Vec<CoinSpend>, Vec<Nft<Program>>), WalletError> {
+    ) -> Result<(Vec<CoinSpend>, Vec<SerializedNft>), WalletError> {
         let default_royalty_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
 
         let mut ctx = SpendContext::new();
@@ -69,11 +70,8 @@ impl Wallet {
             outputs
                 .nfts
                 .into_values()
-                .map(|nft| {
-                    let metadata = ctx.serialize(&nft.info.metadata)?;
-                    Ok(nft.with_metadata(metadata))
-                })
-                .collect::<Result<_, WalletError>>()?,
+                .map(|nft| nft.serialize(&ctx))
+                .collect::<Result<_, DriverError>>()?,
         ))
     }
 

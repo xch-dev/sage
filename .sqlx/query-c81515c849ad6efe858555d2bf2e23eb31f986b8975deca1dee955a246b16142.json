@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT parent_coin_hash, puzzle_hash, amount\n        FROM spendable_coins\n        WHERE coin_hash = ? AND asset_id = 0\n        ",
+  "query": "\n        SELECT parent_coin_hash, puzzle_hash, amount\n        FROM wallet_coins\n        WHERE coin_hash = ? AND asset_id = 0\n        ",
   "describe": {
     "columns": [
       {
@@ -28,5 +28,5 @@
       false
     ]
   },
-  "hash": "4c0cfb85e8e561c95e73ff4f6dda3e1cf8b0ccb18ec02941b691e9917739a957"
+  "hash": "c81515c849ad6efe858555d2bf2e23eb31f986b8975deca1dee955a246b16142"
 }

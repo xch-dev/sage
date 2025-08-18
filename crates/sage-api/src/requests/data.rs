@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Amount, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData, NftRecord,
-    PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
+    OptionRecord, PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -232,6 +232,49 @@ pub struct GetMinterDidIds {
 pub struct GetMinterDidIdsResponse {
     pub did_ids: Vec<String>,
     pub total: u32,
+}
+
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum OptionSortMode {
+    #[default]
+    Name,
+    CreatedHeight,
+    ExpirationSeconds,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptions {
+    pub offset: u32,
+    pub limit: u32,
+    #[serde(default)]
+    pub sort_mode: OptionSortMode,
+    #[serde(default)]
+    pub ascending: bool,
+    pub find_value: Option<String>,
+    #[serde(default)]
+    pub include_hidden: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptionsResponse {
+    pub options: Vec<OptionRecord>,
+    pub total: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOption {
+    pub option_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetOptionResponse {
+    pub option: Option<OptionRecord>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]

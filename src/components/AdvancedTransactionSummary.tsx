@@ -86,7 +86,7 @@ export function AdvancedTransactionSummary({
                   <Trans>Fee</Trans>
                 </Badge>
                 <span>
-                  {toDecimal(summary.fee, walletState.sync.unit.decimals)}{' '}
+                  {toDecimal(summary.fee, walletState.sync.unit.precision)}{' '}
                   {walletState.sync.unit.ticker}
                 </span>
               </div>
@@ -136,9 +136,9 @@ export function calculateTransaction(
       spent.push({
         badge: 'Chia',
         label: `${formatNumber({
-          value: fromMojos(input.amount, xch.decimals),
+          value: fromMojos(input.amount, xch.precision),
           minimumFractionDigits: 0,
-          maximumFractionDigits: xch.decimals,
+          maximumFractionDigits: xch.precision,
         })} ${xch.ticker}`,
         coinId: input.coin_id,
         sort: 1,
@@ -152,9 +152,9 @@ export function calculateTransaction(
         created.push({
           badge: 'Chia',
           label: `${formatNumber({
-            value: fromMojos(output.amount, xch.decimals),
+            value: fromMojos(output.amount, xch.precision),
             minimumFractionDigits: 0,
-            maximumFractionDigits: xch.decimals,
+            maximumFractionDigits: xch.precision,
           })} ${xch.ticker}`,
           address: output.burning
             ? t`Permanently Burned`
@@ -267,6 +267,41 @@ export function calculateTransaction(
                 ? t`You`
                 : output.address,
             sort: 4,
+          });
+        }
+      }
+    }
+
+    if (input.asset?.kind === 'option') {
+      if (
+        !summary.inputs
+          .map((i) => i.outputs)
+          .flat()
+          .find((o) => o.coin_id === input.coin_id)
+      ) {
+        spent.push({
+          badge: 'Option',
+          label: input.asset.name ?? t`Untitled`,
+          coinId: input.coin_id,
+          sort: 5,
+        });
+      }
+
+      for (const output of input.outputs) {
+        if (summary.inputs.find((i) => i.coin_id === output.coin_id)) {
+          continue;
+        }
+
+        if (BigNumber(output.amount).mod(2).isEqualTo(1)) {
+          created.push({
+            badge: 'Option',
+            label: input.asset.name ?? t`Untitled`,
+            address: output.burning
+              ? t`Permanently Burned`
+              : output.receiving
+                ? t`You`
+                : output.address,
+            sort: 5,
           });
         }
       }

@@ -4,8 +4,9 @@ use chia::{
     puzzles::nft::NftMetadata,
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{CatInfo, DidInfo, HashedPtr, NftInfo, Puzzle};
+use chia_wallet_sdk::driver::{CatInfo, DidInfo, NftInfo, OptionInfo, Puzzle};
 use clvmr::Allocator;
+use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -19,11 +20,14 @@ pub enum CoinKind {
         info: CatInfo,
     },
     Did {
-        info: DidInfo<Program>,
+        info: SerializedDidInfo,
     },
     Nft {
-        info: NftInfo<Program>,
+        info: SerializedNftInfo,
         metadata: Option<NftMetadata>,
+    },
+    Option {
+        info: OptionInfo,
     },
 }
 
@@ -61,7 +65,7 @@ impl CoinKind {
             Ok(None) => {}
         }
 
-        match NftInfo::<HashedPtr>::parse(allocator, puzzle) {
+        match NftInfo::parse(allocator, puzzle) {
             // If there was an error parsing the NFT, we can exit early.
             Err(error) => {
                 warn!("Invalid NFT: {}", error);
@@ -70,11 +74,10 @@ impl CoinKind {
 
             // If the coin is a NFT coin, return the relevant information.
             Ok(Some((nft, _inner_puzzle))) => {
-                let metadata_program = Program::from_clvm(allocator, nft.metadata.ptr())?;
                 let metadata = NftMetadata::from_clvm(allocator, nft.metadata.ptr()).ok();
 
                 return Ok(Self::Nft {
-                    info: nft.with_metadata(metadata_program),
+                    info: nft.serialize(allocator)?,
                     metadata,
                 });
             }
@@ -83,7 +86,7 @@ impl CoinKind {
             Ok(None) => {}
         }
 
-        match DidInfo::<HashedPtr>::parse(allocator, puzzle) {
+        match DidInfo::parse(allocator, puzzle) {
             // If there was an error parsing the DID, we can exit early.
             Err(error) => {
                 warn!("Invalid DID: {}", error);
@@ -92,14 +95,28 @@ impl CoinKind {
 
             // If the coin is a DID coin, return the relevant information.
             Ok(Some((did, _inner_puzzle))) => {
-                let metadata = Program::from_clvm(allocator, did.metadata.ptr())?;
-
                 return Ok(Self::Did {
-                    info: did.with_metadata(metadata),
+                    info: did.serialize(allocator)?,
                 });
             }
 
             // If the coin is not a DID coin, continue parsing.
+            Ok(None) => {}
+        }
+
+        match OptionInfo::parse(allocator, puzzle) {
+            // If there was an error parsing the option contract, we can exit early.
+            Err(error) => {
+                warn!("Invalid option contract: {}", error);
+                return Ok(Self::Unknown);
+            }
+
+            // If the coin is an option contract coin, return the relevant information.
+            Ok(Some((option, _inner_puzzle))) => {
+                return Ok(Self::Option { info: option });
+            }
+
+            // If the coin is not an option contract coin, continue parsing.
             Ok(None) => {}
         }
 

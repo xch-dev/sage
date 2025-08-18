@@ -1,10 +1,4 @@
-import {
-  Assets,
-  CatAmount,
-  commands,
-  NftRecord,
-  TokenRecord,
-} from '@/bindings';
+import { commands, NftRecord, OptionRecord, TokenRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,7 +13,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
 import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
-import { OfferState } from '@/state';
+import { Assets, OfferState, TokenAmount } from '@/state';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertTriangle } from 'lucide-react';
@@ -37,7 +32,7 @@ interface MakeOfferConfirmationDialogProps {
   enabledMarketplaces: Record<string, boolean>;
   setEnabledMarketplaces: (marketplaces: Record<string, boolean>) => void;
 }
-interface CatWithName extends CatAmount {
+interface TokenWithName extends TokenAmount {
   displayName?: string;
   iconUrl?: string | null;
   precision?: number;
@@ -50,108 +45,99 @@ function AssetDisplay({
   assets: Assets;
   type: 'offered' | 'requested';
 }) {
-  const xchAmount = assets.xch || '0';
-  const hasXch = new BigNumber(xchAmount).gt(0);
   const [nftDetailsList, setNftDetailsList] = useState<NftRecord[]>([]);
   const [loadingNfts, setLoadingNfts] = useState(false);
-  const [catsWithNames, setCatsWithNames] = useState<CatWithName[]>([]);
-  const [loadingCats, setLoadingCats] = useState(false);
-  const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
-  const [loadingXch, setLoadingXch] = useState(false);
+  const [optionDetailsList, setOptionDetailsList] = useState<OptionRecord[]>(
+    [],
+  );
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [tokensWithNames, setTokensWithNames] = useState<TokenWithName[]>([]);
+  const [loadingTokens, setLoadingTokens] = useState(false);
 
-  // Create a stable reference for NFT IDs to prevent infinite re-renders
+  // Create a stable reference for IDs to prevent infinite re-renders
   const nftIds = useMemo(() => {
     if (!assets.nfts || assets.nfts.length === 0) return [];
     return assets.nfts.filter((id) => id && typeof id === 'string');
   }, [assets.nfts]);
 
-  useEffect(() => {
-    const fetchXchToken = async () => {
-      if (!hasXch) {
-        setXchToken(null);
-        return;
-      }
-      setLoadingXch(true);
-
-      try {
-        const tokenResponse = await commands.getToken({ asset_id: null });
-        setXchToken(tokenResponse.token);
-      } catch (error) {
-        console.error('Error fetching XCH token info:', error);
-        setXchToken(null);
-      }
-      setLoadingXch(false);
-    };
-
-    fetchXchToken();
-  }, [hasXch]);
+  const optionIds = useMemo(() => {
+    if (!assets.options || assets.options.length === 0) return [];
+    return assets.options.filter((id) => id && typeof id === 'string');
+  }, [assets.options]);
 
   useEffect(() => {
-    const fetchCatNames = async () => {
-      if (assets.cats.length === 0) {
-        setCatsWithNames([]);
+    const fetchTokenNames = async () => {
+      if (assets.tokens.length === 0) {
+        setTokensWithNames([]);
         return;
       }
-      setLoadingCats(true);
+      setLoadingTokens(true);
 
       try {
-        const catsWithNamesPromises = assets.cats.map(async (cat) => {
-          try {
-            const tokenResponse = await commands.getToken({
-              asset_id: cat.asset_id,
-            });
-            const token = tokenResponse.token;
-            if (token) {
+        const tokensWithNamesPromises = assets.tokens.map(
+          async ({ asset_id: assetId, amount }) => {
+            try {
+              const tokenResponse = await commands.getToken({
+                asset_id: assetId,
+              });
+              const token = tokenResponse.token;
+              if (token) {
+                return {
+                  asset_id: assetId,
+                  amount,
+                  displayName: getAssetDisplayName(
+                    token.name,
+                    token.ticker,
+                    'token',
+                  ),
+                  iconUrl: token.icon_url,
+                  precision: token.precision,
+                };
+              } else {
+                return {
+                  asset_id: assetId,
+                  amount,
+                  displayName: getAssetDisplayName(null, null, 'token'),
+                  iconUrl: null,
+                  precision: 3,
+                };
+              }
+            } catch (error) {
+              console.error(
+                `Failed to fetch token info for ${assetId}:`,
+                error,
+              );
               return {
-                ...cat,
-                displayName: getAssetDisplayName(
-                  token.name,
-                  token.ticker,
-                  'token',
-                ),
-                iconUrl: token.icon_url,
-                precision: token.precision,
-              };
-            } else {
-              return {
-                ...cat,
+                asset_id: assetId,
+                amount,
                 displayName: getAssetDisplayName(null, null, 'token'),
                 iconUrl: null,
                 precision: 3,
               };
             }
-          } catch (error) {
-            console.error(
-              `Failed to fetch token info for ${cat.asset_id}:`,
-              error,
-            );
-            return {
-              ...cat,
-              displayName: getAssetDisplayName(null, null, 'token'),
-              iconUrl: null,
-              precision: 3,
-            };
-          }
-        });
+          },
+        );
 
-        const catsWithNamesResults = await Promise.all(catsWithNamesPromises);
-        setCatsWithNames(catsWithNamesResults);
+        const tokensWithNamesResults = await Promise.all(
+          tokensWithNamesPromises,
+        );
+        setTokensWithNames(tokensWithNamesResults);
       } catch (error) {
-        console.error('Error fetching CAT names:', error);
-        // Fallback to original cats without names
-        setCatsWithNames(
-          assets.cats.map((cat) => ({
-            ...cat,
+        console.error('Error fetching token names:', error);
+        // Fallback to original tokens without names
+        setTokensWithNames(
+          assets.tokens.map((token) => ({
+            ...token,
             displayName: getAssetDisplayName(null, null, 'token'),
             iconUrl: null,
           })),
         );
       }
-      setLoadingCats(false);
+      setLoadingTokens(false);
     };
 
-    fetchCatNames();
-  }, [assets.cats]);
+    fetchTokenNames();
+  }, [assets.tokens]);
 
   useEffect(() => {
     const fetchNftDetails = async () => {
@@ -178,59 +164,53 @@ function AssetDisplay({
     fetchNftDetails();
   }, [nftIds]);
 
+  useEffect(() => {
+    const fetchOptionDetails = async () => {
+      setLoadingOptions(true);
+
+      const displayableOptions: OptionRecord[] = [];
+      for (const optionId of optionIds) {
+        try {
+          const optionRecordResponse = await commands.getOption({
+            option_id: optionId,
+          });
+          if (optionRecordResponse.option) {
+            displayableOptions.push(optionRecordResponse.option);
+          }
+        } catch {
+          // Do nothing
+        }
+      }
+      setOptionDetailsList(displayableOptions);
+
+      setLoadingOptions(false);
+    };
+
+    fetchOptionDetails();
+  }, [optionIds]);
+
   return (
     <div className='space-y-2'>
-      {hasXch && (
-        <div>
-          <h4 className='font-semibold'>XCH</h4>
-          {loadingXch ? (
-            <p className='text-sm text-muted-foreground'>
-              <Trans>Loading XCH details...</Trans>
-            </p>
-          ) : (
-            <div className='flex items-center gap-2'>
-              <AssetIcon
-                asset={{
-                  icon_url: xchToken?.icon_url ?? null,
-                  kind: 'token',
-                  revocation_address: xchToken?.revocation_address ?? null,
-                }}
-                size='sm'
-              />
-              <span>
-                <NumberFormat
-                  value={xchAmount}
-                  minimumFractionDigits={0}
-                  maximumFractionDigits={xchToken?.precision ?? 12}
-                />{' '}
-                {xchToken
-                  ? getAssetDisplayName(xchToken.name, xchToken.ticker, 'token')
-                  : 'XCH'}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-      {assets.cats.length > 0 && (
+      {assets.tokens.length > 0 && (
         <div>
           <h4 className='font-semibold'>
             <Trans>Tokens</Trans>
           </h4>
           <ScrollArea className='max-h-32'>
-            {loadingCats ? (
+            {loadingTokens ? (
               <p className='text-sm text-muted-foreground'>
                 <Trans>Loading token details...</Trans>
               </p>
             ) : (
               <ul className='space-y-1'>
-                {catsWithNames.map((cat: CatWithName) => (
+                {tokensWithNames.map((token: TokenWithName) => (
                   <li
-                    key={cat.asset_id}
+                    key={token.asset_id}
                     className='text-sm flex items-center gap-2'
                   >
                     <AssetIcon
                       asset={{
-                        icon_url: cat.iconUrl ?? null,
+                        icon_url: token.iconUrl ?? null,
                         kind: 'token',
                         revocation_address: null,
                         // TODO: Use Asset here and use the actual revocation address
@@ -239,11 +219,14 @@ function AssetDisplay({
                     />
                     <span>
                       <NumberFormat
-                        value={cat.amount || '0'}
+                        value={token.amount || '0'}
                         minimumFractionDigits={0}
-                        maximumFractionDigits={cat.precision}
+                        maximumFractionDigits={token.precision}
                       />{' '}
-                      {cat.displayName || `${cat.asset_id.slice(0, 8)}...`}
+                      {token.asset_id
+                        ? token.displayName ||
+                          `${token.asset_id.slice(0, 8)}...`
+                        : t`Chia`}
                     </span>
                   </li>
                 ))}
@@ -252,6 +235,7 @@ function AssetDisplay({
           </ScrollArea>
         </div>
       )}
+
       {assets.nfts.filter((id) => id && typeof id === 'string').length > 0 && (
         <div>
           <h4 className='font-semibold'>NFTs</h4>
@@ -299,9 +283,57 @@ function AssetDisplay({
           </ScrollArea>
         </div>
       )}
-      {!hasXch &&
-        assets.cats.length === 0 &&
-        assets.nfts.filter((n) => n).length === 0 && (
+
+      {assets.options.filter((id) => id && typeof id === 'string').length >
+        0 && (
+        <div>
+          <h4 className='font-semibold'>Options</h4>
+          <ScrollArea className='max-h-40'>
+            {loadingOptions ? (
+              <p className='text-sm text-muted-foreground'>
+                <Trans>Loading option details...</Trans>
+              </p>
+            ) : optionDetailsList.length > 0 ? (
+              <div className='grid grid-cols-4 gap-x-0 gap-y-1'>
+                {optionDetailsList.map((option) => {
+                  return (
+                    <div
+                      key={option.launcher_id}
+                      className='flex flex-col items-center text-center'
+                      title={`${option.name}\nID: ${option.launcher_id}`}
+                    >
+                      <AssetIcon
+                        asset={{
+                          icon_url: null,
+                          kind: 'option',
+                          revocation_address: null,
+                          // TODO: Use Asset here and use the actual revocation address
+                        }}
+                        size='sm'
+                      />
+                      <span className='text-xs truncate w-full'>
+                        {option.name}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className='text-sm text-muted-foreground'>
+                {type === 'offered' ? (
+                  <Trans>No NFTs offered or details unavailable.</Trans>
+                ) : (
+                  <Trans>No NFTs requested or details unavailable.</Trans>
+                )}
+              </p>
+            )}
+          </ScrollArea>
+        </div>
+      )}
+
+      {assets.tokens.length === 0 &&
+        assets.nfts.filter((n) => n).length === 0 &&
+        assets.options.filter((o) => o).length === 0 && (
           <p className='text-sm text-muted-foreground'>
             {type === 'offered' ? (
               <Trans>Nothing offered.</Trans>
@@ -416,19 +448,12 @@ export function MakeOfferConfirmationDialog({
               </h3>
               {/* One-sided offer warning */}
               {(() => {
-                const hasRequestedXch = new BigNumber(
-                  offerState.requested.xch || '0',
-                ).gt(0);
-                const hasRequestedCats = offerState.requested.cats.some((cat) =>
-                  new BigNumber(cat.amount || '0').gt(0),
+                const hasRequestedTokens = offerState.requested.tokens.some(
+                  (token) => new BigNumber(token.amount || '0').gt(0),
                 );
                 const hasRequestedNfts =
                   offerState.requested.nfts.filter((n) => n).length > 0;
-                if (
-                  !hasRequestedXch &&
-                  !hasRequestedCats &&
-                  !hasRequestedNfts
-                ) {
+                if (!hasRequestedTokens && !hasRequestedNfts) {
                   return (
                     <div className='flex items-center gap-2 p-3 mb-2 rounded border border-yellow-400 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200'>
                       <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />

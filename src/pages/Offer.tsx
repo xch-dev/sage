@@ -18,7 +18,7 @@ import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
-export function ViewOffer() {
+export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
   const walletState = useWalletState();
@@ -73,7 +73,7 @@ export function ViewOffer() {
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
-        fee: toMojos(fee || '0', walletState.sync.unit.decimals),
+        fee: toMojos(fee || '0', walletState.sync.unit.precision),
       });
       setResponse(result);
     } catch (error) {

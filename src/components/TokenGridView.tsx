@@ -133,9 +133,9 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                 <CardContent className='flex flex-col gap-1'>
                   <div className='text-2xl font-medium truncate'>
                     <NumberFormat
-                      value={fromMojos(token.balance, 3)}
+                      value={fromMojos(token.balance, token.precision)}
                       minimumFractionDigits={0}
-                      maximumFractionDigits={3}
+                      maximumFractionDigits={token.precision}
                     />{' '}
                     {token.ticker ?? ''}
                   </div>

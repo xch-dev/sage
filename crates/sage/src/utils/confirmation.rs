@@ -80,6 +80,21 @@ impl Sage {
                         kind: AssetKind::Did,
                     }))
                 }
+                CoinKind::Option { info, .. } => {
+                    // TODO: Is this correct? We should probably validate and fill in option info somehow
+                    Some(wallet.db.asset(info.launcher_id).await?.unwrap_or(Asset {
+                        hash: info.launcher_id,
+                        name: None,
+                        ticker: None,
+                        precision: 1,
+                        icon_url: None,
+                        description: None,
+                        is_sensitive_content: false,
+                        is_visible: true,
+                        hidden_puzzle_hash: None,
+                        kind: AssetKind::Option,
+                    }))
+                }
             };
 
             let address = Address::new(p2_puzzle_hash, self.network().prefix()).encode()?;

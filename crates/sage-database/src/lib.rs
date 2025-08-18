@@ -1,8 +1,10 @@
 mod maintenance;
+mod serialized_primitives;
 mod tables;
 mod utils;
 
 pub use maintenance::*;
+pub use serialized_primitives::*;
 pub use tables::*;
 
 pub(crate) use utils::*;
@@ -104,6 +106,12 @@ pub enum DatabaseError {
 
     #[error("Invalid address")]
     InvalidAddress,
+
+    #[error("Option underlying not found")]
+    OptionUnderlyingNotFound,
+
+    #[error("Public key not found for puzzle hash")]
+    PublicKeyNotFound,
 }
 
 pub(crate) type Result<T> = std::result::Result<T, DatabaseError>;

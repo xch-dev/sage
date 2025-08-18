@@ -38,6 +38,7 @@ export function emptyNftRecord(nftId: string): NftRecord {
     license_hash: null,
     edition_number: null,
     edition_total: null,
+    created_timestamp: null,
   };
 }
 export function getAssetDisplayName(
@@ -48,7 +49,11 @@ export function getAssetDisplayName(
   return (
     name ??
     ticker ??
-    (kind === 'token' ? t`Unknown CAT` : t`Untitled ${kind.toUpperCase()}`)
+    (kind === 'token'
+      ? t`Unknown CAT`
+      : kind === 'option'
+        ? 'Untitled Option'
+        : t`Untitled ${kind.toUpperCase()}`)
   );
 }
 
@@ -89,19 +94,21 @@ export function formatUsdPrice(price: number): string {
   }
 }
 
-export function toMojos(amount: string, decimals: number): string {
-  return BigNumber(amount).multipliedBy(BigNumber(10).pow(decimals)).toString();
+export function toMojos(amount: string, precision: number): string {
+  return BigNumber(amount)
+    .multipliedBy(BigNumber(10).pow(precision))
+    .toString();
 }
 
-export function toDecimal(amount: string | number, decimals: number): string {
-  return fromMojos(amount, decimals).toString();
+export function toDecimal(amount: string | number, precision: number): string {
+  return fromMojos(amount, precision).toString();
 }
 
 export function fromMojos(
   amount: string | number | BigNumber,
-  decimals: number,
+  precision: number,
 ): BigNumber {
-  return BigNumber(amount).dividedBy(BigNumber(10).pow(decimals));
+  return BigNumber(amount).dividedBy(BigNumber(10).pow(precision));
 }
 
 export interface AddressInfo {

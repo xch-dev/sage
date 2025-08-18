@@ -55,7 +55,7 @@ import { commands, DidRecord, TransactionResponse } from '../bindings';
 export function DidList() {
   const navigate = useNavigate();
   const { dids, updateDids } = useDids();
-  const didsCount = dids.length;
+
   const [showHidden, setShowHidden] = useState(false);
 
   const visibleDids = showHidden ? dids : dids.filter((did) => did.visible);
@@ -85,7 +85,7 @@ export function DidList() {
           </div>
         )}
 
-        {didsCount === 0 && (
+        {dids.length === 0 && (
           <Alert className='mt-4'>
             <UserRoundPlus className='h-4 w-4' />
             <AlertTitle>
@@ -93,7 +93,7 @@ export function DidList() {
             </AlertTitle>
             <AlertDescription>
               <Plural
-                value={didsCount}
+                value={dids.length}
                 one='You do not currently have any DID profile. Would you like to create one?'
                 other='You do not currently have any DID profiles. Would you like to create one?'
               />
@@ -166,7 +166,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -182,7 +182,7 @@ function Profile({ did, updateDids }: ProfileProps) {
       .transferDids({
         did_ids: [did.launcher_id],
         address: walletState.sync.burn_address,
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {
@@ -197,7 +197,7 @@ function Profile({ did, updateDids }: ProfileProps) {
     commands
       .normalizeDids({
         did_ids: [did.launcher_id],
-        fee: toMojos(fee, walletState.sync.unit.decimals),
+        fee: toMojos(fee, walletState.sync.unit.precision),
       })
       .then(setResponse)
       .catch((err) => {

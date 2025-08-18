@@ -6,7 +6,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
-export function ViewSavedOffer() {
+export function SavedOffer() {
   const { offer_id: offerId } = useParams();
   const { addError } = useErrors();
 

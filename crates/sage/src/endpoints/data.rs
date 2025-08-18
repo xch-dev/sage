@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, Error, Result,
-    Sage,
+    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
+    Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -19,16 +19,18 @@ use sage_api::{
     GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
     GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
+    GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
     GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
-    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
+    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, OptionSortMode as ApiOptionSortMode,
+    PendingTransactionRecord, PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse,
+    TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
-    AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, Transaction,
-    TransactionCoin,
+    AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
+    Transaction, TransactionCoin,
 };
 use sage_wallet::WalletError;
 
@@ -111,8 +113,16 @@ impl Sage {
             synced_coins,
             receive_address: receive_address.unwrap_or_default(),
             burn_address: Address::new(BURN_PUZZLE_HASH, self.network().prefix()).encode()?,
-            unhardened_derivation_index: wallet.db.max_derivation_index(false).await?,
-            hardened_derivation_index: wallet.db.max_derivation_index(true).await?,
+            unhardened_derivation_index: wallet
+                .db
+                .max_derivation_index(false)
+                .await?
+                .map_or(0, |idx| idx + 1),
+            hardened_derivation_index: wallet
+                .db
+                .max_derivation_index(true)
+                .await?
+                .map_or(0, |idx| idx + 1),
             checked_files: wallet.db.checked_files().await?.try_into().unwrap_or(0),
             total_files: wallet.db.total_files().await?.try_into().unwrap_or(0),
             database_size,
@@ -388,6 +398,85 @@ impl Sage {
             .collect();
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
+    }
+
+    pub async fn get_options(&self, req: GetOptions) -> Result<GetOptionsResponse> {
+        let wallet = self.wallet()?;
+
+        let sort_mode = match req.sort_mode {
+            ApiOptionSortMode::Name => OptionSortMode::Name,
+            ApiOptionSortMode::CreatedHeight => OptionSortMode::CreatedHeight,
+            ApiOptionSortMode::ExpirationSeconds => OptionSortMode::ExpirationSeconds,
+        };
+
+        let mut options = Vec::new();
+
+        let (rows, total) = wallet
+            .db
+            .owned_options(
+                req.limit,
+                req.offset,
+                sort_mode,
+                req.ascending,
+                req.find_value,
+                req.include_hidden,
+            )
+            .await?;
+
+        for row in rows {
+            options.push(OptionRecord {
+                launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
+                name: row.asset.name,
+                visible: row.asset.is_visible,
+                coin_id: hex::encode(row.coin_row.coin.coin_id()),
+                address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix())
+                    .encode()?,
+                amount: Amount::u64(row.coin_row.coin.amount),
+                underlying_asset: self.encode_asset(row.underlying_asset)?,
+                underlying_amount: Amount::u64(row.underlying_amount),
+                underlying_coin_id: hex::encode(row.underlying_coin_id),
+                strike_asset: self.encode_asset(row.strike_asset)?,
+                strike_amount: Amount::u64(row.strike_amount),
+                expiration_seconds: row.expiration_seconds,
+                created_height: row.coin_row.created_height,
+                created_timestamp: row.coin_row.created_timestamp,
+            });
+        }
+
+        Ok(GetOptionsResponse { options, total })
+    }
+
+    pub async fn get_option(&self, req: GetOption) -> Result<GetOptionResponse> {
+        let wallet = self.wallet()?;
+
+        let Some(row) = wallet
+            .db
+            .owned_option(parse_option_id(req.option_id)?)
+            .await?
+        else {
+            return Ok(GetOptionResponse { option: None });
+        };
+
+        let option = OptionRecord {
+            launcher_id: Address::new(row.asset.hash, "option".to_string()).encode()?,
+            name: row.asset.name,
+            visible: row.asset.is_visible,
+            coin_id: hex::encode(row.coin_row.coin.coin_id()),
+            address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix()).encode()?,
+            amount: Amount::u64(row.coin_row.coin.amount),
+            underlying_asset: self.encode_asset(row.underlying_asset)?,
+            underlying_amount: Amount::u64(row.underlying_amount),
+            underlying_coin_id: hex::encode(row.underlying_coin_id),
+            strike_asset: self.encode_asset(row.strike_asset)?,
+            strike_amount: Amount::u64(row.strike_amount),
+            expiration_seconds: row.expiration_seconds,
+            created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
+        };
+
+        Ok(GetOptionResponse {
+            option: Some(option),
+        })
     }
 
     pub async fn get_pending_transactions(
@@ -753,6 +842,7 @@ impl Sage {
             edition_number: metadata.as_ref().map(|m| m.edition_number as u32),
             edition_total: metadata.as_ref().map(|m| m.edition_total as u32),
             created_height: row.coin_row.created_height,
+            created_timestamp: row.coin_row.created_timestamp,
             icon_url: row.asset.icon_url,
         })
     }

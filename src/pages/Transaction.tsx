@@ -1,30 +1,14 @@
-import {
-  AssetKind,
-  commands,
-  events,
-  TransactionCoinRecord,
-  TransactionRecord,
-} from '@/bindings';
-import { AssetIcon } from '@/components/AssetIcon';
+import { commands, events, TransactionRecord } from '@/bindings';
+import { AssetCoin } from '@/components/AssetCoin';
 import Container from '@/components/Container';
-import { CopyButton } from '@/components/CopyButton';
 import Header from '@/components/Header';
-import { NumberFormat } from '@/components/NumberFormat';
 import { Card } from '@/components/ui/card';
-import {
-  formatAddress,
-  formatTimestamp,
-  fromMojos,
-  getAssetDisplayName,
-} from '@/lib/utils';
+import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { openUrl } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
 
-// TODO: come through here and reduce or eliminate xch vs cat
 export default function Transaction() {
   const { height } = useParams();
 
@@ -85,7 +69,12 @@ export default function Transaction() {
               </div>
               <div className='space-y-4'>
                 {transaction?.spent.map((coin) => (
-                  <TransactionCoin key={coin.coin_id} coin={coin} />
+                  <AssetCoin
+                    key={coin.coin_id}
+                    asset={coin.asset}
+                    amount={coin.amount}
+                    coinId={coin.coin_id}
+                  />
                 ))}
               </div>
             </Card>
@@ -97,7 +86,12 @@ export default function Transaction() {
               </div>
               <div className='space-y-4'>
                 {transaction?.created.map((coin) => (
-                  <TransactionCoin key={coin.coin_id} coin={coin} />
+                  <AssetCoin
+                    key={coin.coin_id}
+                    asset={coin.asset}
+                    amount={coin.amount}
+                    coinId={coin.coin_id}
+                  />
                 ))}
               </div>
             </Card>
@@ -105,111 +99,5 @@ export default function Transaction() {
         </div>
       </Container>
     </>
-  );
-}
-
-interface TransactionCoinProps {
-  coin: TransactionCoinRecord;
-}
-
-function TransactionCoin({ coin }: TransactionCoinProps) {
-  const coinId = coin.coin_id;
-
-  return (
-    <div className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4'>
-      <div
-        className='cursor-pointer'
-        onClick={() => openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`)}
-        aria-label={t`View coin ${coinId} on Spacescan.io`}
-        role='button'
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            openUrl(`https://spacescan.io/coin/0x${coin.coin_id}`);
-          }
-        }}
-      >
-        <TransactionCoinKind coin={coin} />
-        <div className='flex items-center gap-1 mt-2'>
-          <div className='text-sm text-muted-foreground truncate'>
-            <Trans>Coin with id {coinId}</Trans>
-          </div>
-        </div>
-      </div>
-      {coin.asset.asset_id && (
-        <TransactionCoinId kind={coin.asset.kind} id={coin.asset.asset_id} />
-      )}
-    </div>
-  );
-}
-
-interface TransactionCoinKindProps {
-  coin: TransactionCoinRecord;
-}
-
-function TransactionCoinKind({ coin }: TransactionCoinKindProps) {
-  const name = getAssetDisplayName(
-    coin.asset.name,
-    coin.asset.ticker,
-    coin.asset.kind,
-  );
-
-  return (
-    <div className='flex items-center gap-2'>
-      <AssetIcon asset={coin.asset} size='md' />
-
-      <div className='flex flex-col'>
-        <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
-          {coin.asset.kind === 'token' ? (
-            <>
-              <NumberFormat
-                value={fromMojos(coin.amount, coin.asset.precision)}
-                maximumFractionDigits={coin.asset.precision}
-              />{' '}
-              <span className='break-normal'>{name}</span>
-            </>
-          ) : (
-            <span className='break-normal'>{name}</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TransactionCoinId({ kind, id }: { kind: AssetKind; id: string }) {
-  let label = '';
-  let toastMessage = '';
-
-  switch (kind) {
-    case 'token':
-      label = t`Asset ID`;
-      toastMessage = t`Asset ID copied to clipboard`;
-      break;
-    case 'nft':
-    case 'did':
-      label = t`Launcher ID`;
-      toastMessage = t`Launcher ID copied to clipboard`;
-      break;
-    default:
-      return null;
-  }
-
-  const handleCopyClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
-  const handleCopy = () => {
-    toast.success(toastMessage);
-  };
-
-  return (
-    <div className='flex items-center gap-2 mt-2 text-sm text-muted-foreground'>
-      <span>{label}:</span>
-      <span className='font-mono'>{formatAddress(id, 6, 6)}</span>
-      <div onClick={handleCopyClick}>
-        <CopyButton value={id} className='h-6 w-6 p-0' onCopy={handleCopy} />
-      </div>
-    </div>
   );
 }

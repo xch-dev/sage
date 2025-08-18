@@ -71,6 +71,7 @@ import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
+  KeyInfo,
   LogFile,
   Network,
   NetworkConfig,
@@ -408,7 +409,7 @@ function GlobalSettings() {
       <SettingsSection title={t`Syncing Defaults`}>
         <SettingItem
           label={t`Delta Sync`}
-          description={t`Whether to skip syncing older blocks`}
+          description={t`A more lightweight sync that only checks unseen blocks`}
           control={
             <Switch
               checked={defaultWalletConfig?.delta_sync ?? true}
@@ -648,8 +649,49 @@ function LogViewer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [filteredLines, setFilteredLines] = useState<string[]>([]);
+  const [isAtBottom, setIsAtBottom] = useState(true);
 
+  const rowVirtualizer = useVirtualizer({
+    count: filteredLines.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 24,
+    overscan: 5,
+  });
+
+  const scrollToBottom = useCallback(() => {
+    if (!parentRef.current || !rowVirtualizer) return;
+    const scrollHeight = rowVirtualizer.getTotalSize();
+    parentRef.current.scrollTop = scrollHeight;
+  }, [rowVirtualizer]);
+
+  const checkIfAtBottom = useCallback(() => {
+    if (!parentRef.current || !rowVirtualizer) return false;
+    const { scrollTop, clientHeight } = parentRef.current;
+    const scrollHeight = rowVirtualizer.getTotalSize();
+    // Consider "at bottom" if within 10px of the bottom
+    return scrollHeight - scrollTop - clientHeight < 10;
+  }, [rowVirtualizer]);
+
+  const handleScroll = useCallback(() => {
+    setIsAtBottom(checkIfAtBottom());
+  }, [checkIfAtBottom]);
+
+  const virtualItems = rowVirtualizer.getVirtualItems();
+
+  // Handle scrolling when log changes or new lines are added
   useEffect(() => {
+    const items = virtualItems;
+    // Always scroll on initial load of a log, or when at bottom and content changes
+    if (
+      items.length > 0 &&
+      selectedLog &&
+      (isAtBottom || parentRef.current?.scrollTop === undefined)
+    ) {
+      scrollToBottom();
+    }
+  }, [virtualItems, selectedLog, isAtBottom, scrollToBottom]);
+
+  const updateLogs = useCallback(() => {
     commands
       .getLogs()
       .then((logs) =>
@@ -657,6 +699,16 @@ function LogViewer() {
       )
       .catch(addError);
   }, [addError]);
+
+  useEffect(() => {
+    updateLogs();
+
+    const interval = setInterval(() => {
+      updateLogs();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [updateLogs]);
 
   useEffect(() => {
     if (logs.length > 0) {
@@ -668,7 +720,7 @@ function LogViewer() {
 
   useEffect(() => {
     if (selectedLog) {
-      setLogLines(selectedLog.text.split('\n'));
+      setLogLines(selectedLog.text.trim().split('\n'));
     } else {
       setLogLines([]);
     }
@@ -696,19 +748,13 @@ function LogViewer() {
     setFilteredLines(filtered);
   }, [logLines, searchQuery, selectedLevel]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: filteredLines.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 24,
-    overscan: 5,
-  });
-
   const handleLogChange = (name: string) => {
     setLogName(name);
     const log = logs.find((l) => l.name === name);
     setSelectedLog(log ?? null);
     setSearchQuery('');
     setSelectedLevel('all');
+    setIsAtBottom(true); // Reset isAtBottom when changing logs
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -813,6 +859,7 @@ function LogViewer() {
             ref={parentRef}
             style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
             className='border rounded-lg bg-muted/30 overflow-auto'
+            onScroll={handleScroll}
           >
             <div
               style={{
@@ -962,6 +1009,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
+  const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [networks, setNetworks] = useState<Network[]>([]);
@@ -1003,6 +1051,13 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       setPerformingMaintenance(false);
     }
   }, [addError, fetchDatabaseStats]);
+
+  useEffect(() => {
+    commands
+      .getKey({ fingerprint })
+      .then((data) => setKey(data.key))
+      .catch(addError);
+  }, [addError, fingerprint]);
 
   useEffect(() => {
     commands
@@ -1048,32 +1103,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     fetchState();
   };
 
-  const addDeltaSyncOverride = async () => {
-    if (!wallet) return;
-    try {
-      const config = await commands.defaultWalletConfig();
-      await commands.setDeltaSyncOverride({
-        fingerprint,
-        delta_sync: config.delta_sync,
-      });
-      setWallet({ ...wallet, delta_sync: config.delta_sync });
-    } catch (error) {
-      addError(error as CustomError);
-    }
-  };
-
-  const setDeltaSyncOverride = async (delta_sync: boolean | null) => {
-    if (!wallet) return;
-    clearState();
-    try {
-      await commands.setDeltaSyncOverride({ fingerprint, delta_sync });
-      setWallet({ ...wallet, delta_sync });
-    } catch (error) {
-      addError(error as CustomError);
-    }
-    fetchState();
-  };
-
   const derivationIndex = walletState.sync.unhardened_derivation_index;
 
   const schema = z.object({
@@ -1103,7 +1132,10 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     setPending(true);
 
     commands
-      .increaseDerivationIndex({ index: parseInt(values.index) })
+      .increaseDerivationIndex({
+        index: parseInt(values.index),
+        hardened: key?.has_secrets,
+      })
       .then(() => {
         setDeriveOpen(false);
         updateSyncStatus();
@@ -1204,35 +1236,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
             </div>
           }
         />
-
-        <SettingItem
-          label={t`Override Delta Sync`}
-          description={t`Override the default of whether to sync old blocks`}
-          control={
-            <Switch
-              checked={wallet !== null && wallet.delta_sync !== null}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  addDeltaSyncOverride();
-                } else {
-                  setDeltaSyncOverride(null);
-                }
-              }}
-            />
-          }
-        >
-          {wallet !== null && wallet.delta_sync !== null && (
-            <div className='mt-3 flex items-center gap-2'>
-              <Trans>Enable Delta Sync</Trans>
-              <Switch
-                checked={wallet.delta_sync}
-                onCheckedChange={(checked) => {
-                  setDeltaSyncOverride(checked);
-                }}
-              />
-            </div>
-          )}
-        </SettingItem>
 
         <SettingItem
           label={t`Resync`}

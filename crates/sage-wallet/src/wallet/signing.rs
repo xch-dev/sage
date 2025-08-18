@@ -41,7 +41,7 @@ impl Wallet {
 
         for required in &required_signatures {
             let RequiredSignature::Bls(required) = required else {
-                return Err(WalletError::SecpNotSupported);
+                continue;
             };
             let Some(derivation) = self.db.derivation(required.public_key).await? else {
                 if partial {
@@ -73,7 +73,7 @@ impl Wallet {
 
         for required in required_signatures {
             let RequiredSignature::Bls(required) = required else {
-                return Err(WalletError::SecpNotSupported);
+                continue;
             };
             let Some(sk) = secret_keys.get(&required.public_key).cloned() else {
                 continue;

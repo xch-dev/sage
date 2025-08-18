@@ -1,17 +1,17 @@
-use std::{collections::HashMap, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::{Database, UnsyncedCoin};
 use tokio::{
     sync::{mpsc, Mutex},
-    time::{sleep, timeout},
+    time::sleep,
 };
 use tracing::{debug, info, warn};
 
 use crate::{
-    database::insert_puzzle, fetch_nft_did, ChildKind, PeerState, SyncCommand, SyncEvent,
-    WalletError, WalletPeer,
+    database::insert_puzzle, validate_wallet_coin, ChildKind, PeerState, PuzzleContext,
+    SyncCommand, SyncEvent, WalletError, WalletPeer,
 };
 
 #[derive(Debug)]
@@ -182,12 +182,24 @@ impl PuzzleQueue {
 
                         tx.insert_coin(item.coin_state).await?;
 
-                        let subscribe = kind.subscribe();
+                        let is_inserted = validate_wallet_coin(&mut tx, coin_id, &kind).await?
+                            && insert_puzzle(
+                                &mut tx,
+                                item.coin_state,
+                                kind.clone(),
+                                item.context.clone(),
+                                None,
+                            )
+                            .await?;
 
-                        if insert_puzzle(&mut tx, item.coin_state, kind, item.minter_hash).await?
-                            && subscribe
-                        {
-                            subscriptions.push(coin_id);
+                        if is_inserted {
+                            if kind.subscribe() {
+                                subscriptions.push(coin_id);
+                            }
+
+                            if let PuzzleContext::Option(context) = item.context {
+                                subscriptions.push(context.underlying.coin.coin_id());
+                            }
                         }
                     }
 
@@ -238,7 +250,7 @@ impl PuzzleQueue {
 struct SyncedCoin {
     coin_state: CoinState,
     kind: Option<ChildKind>,
-    minter_hash: Option<Bytes32>,
+    context: PuzzleContext,
 }
 
 async fn fetch_puzzles(
@@ -255,11 +267,8 @@ async fn fetch_puzzles(
         let parent_spend = if is_custody_p2_puzzle_hash {
             None
         } else {
-            timeout(
-                Duration::from_secs(15),
-                peer.fetch_optional_coin_spend(coin.parent_coin_info, genesis_challenge),
-            )
-            .await??
+            peer.fetch_optional_coin_spend(coin.parent_coin_info, genesis_challenge)
+                .await?
         };
 
         if let Some(parent_spend) = parent_spend {
@@ -270,33 +279,27 @@ async fn fetch_puzzles(
                 coin,
             )?;
 
-            let minter_hash = if let ChildKind::Nft { info, .. } = &kind {
-                fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new()).await?
-            } else {
-                None
-            };
+            let context = PuzzleContext::fetch(peer, genesis_challenge, &kind).await?;
 
             synced_coins.push(SyncedCoin {
                 coin_state: unsynced_coin.coin_state,
                 kind: Some(kind),
-                minter_hash,
+                context,
             });
         } else {
             synced_coins.push(SyncedCoin {
                 coin_state: unsynced_coin.coin_state,
                 kind: None,
-                minter_hash: None,
+                context: PuzzleContext::None,
             });
         }
     }
 
     if unsynced_coin.is_children_unsynced {
         if let Some(spent_height) = unsynced_coin.coin_state.spent_height {
-            let (puzzle_reveal, solution) = timeout(
-                Duration::from_secs(15),
-                peer.fetch_puzzle_solution(coin.coin_id(), spent_height),
-            )
-            .await??;
+            let (puzzle_reveal, solution) = peer
+                .fetch_puzzle_solution(coin.coin_id(), spent_height)
+                .await?;
 
             let children = ChildKind::parse_children(coin, &puzzle_reveal, &solution)?;
 
@@ -315,17 +318,12 @@ async fn fetch_puzzles(
                     continue;
                 };
 
-                let minter_hash = if let ChildKind::Nft { info, .. } = &kind {
-                    fetch_nft_did(peer, genesis_challenge, info.launcher_id, &HashMap::new())
-                        .await?
-                } else {
-                    None
-                };
+                let context = PuzzleContext::fetch(peer, genesis_challenge, &kind).await?;
 
                 synced_coins.push(SyncedCoin {
                     coin_state,
                     kind: Some(kind),
-                    minter_hash,
+                    context,
                 });
             }
         }

@@ -192,7 +192,7 @@ export function ClawbackCoinsCard({
   const [clawBackOpen, setClawBackOpen] = useState(false);
 
   const clawBackFormSchema = z.object({
-    clawBackFee: amount(walletState.sync.unit.decimals).refine(
+    clawBackFee: amount(walletState.sync.unit.precision).refine(
       (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
@@ -203,7 +203,7 @@ export function ClawbackCoinsCard({
   });
 
   const onClawBackSubmit = (values: z.infer<typeof clawBackFormSchema>) => {
-    const fee = toMojos(values.clawBackFee, walletState.sync.unit.decimals);
+    const fee = toMojos(values.clawBackFee, walletState.sync.unit.precision);
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(

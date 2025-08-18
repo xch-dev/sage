@@ -12,15 +12,15 @@ use chia::{
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{
-        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, Outputs, Relation,
-        SettlementLayer, SpendContext, SpendKind, SpendWithConditions, SpendableAsset, Spends,
-        StandardLayer,
+        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
+        Relation, SettlementLayer, SpendContext, SpendKind, SpendWithConditions, SpendableAsset,
+        Spends, StandardLayer,
     },
     signer::AggSigConstants,
     utils::select_coins,
 };
 use indexmap::IndexMap;
-use sage_database::{AssetKind, CoinKind, Database, P2Puzzle};
+use sage_database::{AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle};
 
 mod cats;
 mod coin_management;
@@ -30,12 +30,14 @@ mod memos;
 mod multi_send;
 mod nfts;
 mod offer;
+mod options;
 mod signing;
 mod xch;
 
 pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
+pub use options::*;
 
 use crate::WalletError;
 
@@ -146,8 +148,7 @@ impl Wallet {
                         .await?
                         .ok_or(WalletError::MissingDidCoin(coin_id))?;
 
-                    let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
-                    spends.add(did.with_metadata(metadata_ptr));
+                    spends.add(did.deserialize(ctx)?);
                 }
                 Some(CoinKind::Nft) => {
                     let nft = self
@@ -156,8 +157,16 @@ impl Wallet {
                         .await?
                         .ok_or(WalletError::MissingNftCoin(coin_id))?;
 
-                    let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
-                    spends.add(nft.with_metadata(metadata_ptr));
+                    spends.add(nft.deserialize(ctx)?);
+                }
+                Some(CoinKind::Option) => {
+                    let option = self
+                        .db
+                        .option_coin(coin_id)
+                        .await?
+                        .ok_or(WalletError::MissingOptionCoin(coin_id))?;
+
+                    spends.add(option);
                 }
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
@@ -176,8 +185,7 @@ impl Wallet {
             .prepare_spends_for_selection(ctx, &selected_coin_ids)
             .await?;
 
-        self.select_spends(ctx, &mut spends, selected_coin_ids, actions)
-            .await?;
+        self.select_spends(ctx, &mut spends, actions).await?;
 
         Ok(spends)
     }
@@ -186,7 +194,6 @@ impl Wallet {
         &self,
         ctx: &mut SpendContext,
         spends: &mut Spends,
-        selected_coin_ids: Vec<Bytes32>,
         actions: &[Action],
     ) -> Result<(), WalletError> {
         let mut deltas = Deltas::from_actions(actions);
@@ -197,7 +204,8 @@ impl Wallet {
             deltas.update(id).input += cat.selected_amount();
         }
 
-        let selected_coin_ids: HashSet<Bytes32> = selected_coin_ids.into_iter().collect();
+        let selected_coin_ids: HashSet<Bytes32> =
+            spends.non_settlement_coin_ids().into_iter().collect();
 
         for &id in deltas.ids() {
             let delta = deltas.get(&id).copied().unwrap_or_default();
@@ -235,8 +243,7 @@ impl Wallet {
                             .await?
                             .ok_or(WalletError::MissingDid(asset_id))?;
 
-                        let metadata_ptr = ctx.alloc_hashed(&did.info.metadata)?;
-                        spends.add(did.with_metadata(metadata_ptr));
+                        spends.add(did.deserialize(ctx)?);
                     }
                     Some(AssetKind::Nft) => {
                         let nft = self
@@ -245,8 +252,16 @@ impl Wallet {
                             .await?
                             .ok_or(WalletError::MissingNft(asset_id))?;
 
-                        let metadata_ptr = ctx.alloc_hashed(&nft.info.metadata)?;
-                        spends.add(nft.with_metadata(metadata_ptr));
+                        spends.add(nft.deserialize(ctx)?);
+                    }
+                    Some(AssetKind::Option) => {
+                        let option = self
+                            .db
+                            .option(asset_id)
+                            .await?
+                            .ok_or(WalletError::MissingOption(asset_id))?;
+
+                        spends.add(option);
                     }
                     None => return Err(WalletError::MissingAsset(asset_id)),
                 },
@@ -317,6 +332,24 @@ impl Wallet {
                             } else {
                                 return Err(DriverError::MissingKey);
                             }
+                        }
+                        P2Puzzle::Option(underlying) => {
+                            let custody = StandardLayer::new(underlying.public_key);
+                            let spend = custody.spend_with_conditions(ctx, spend.finish())?;
+
+                            let underlying = OptionUnderlying::new(
+                                underlying.launcher_id,
+                                custody.tree_hash().into(),
+                                underlying.seconds,
+                                underlying.amount,
+                                underlying.strike_type,
+                            );
+
+                            if asset.p2_puzzle_hash() != underlying.tree_hash().into() {
+                                return Err(DriverError::MissingKey);
+                            }
+
+                            underlying.clawback_spend(ctx, spend)
                         }
                     }
                 }
