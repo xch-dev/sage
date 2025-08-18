@@ -67,7 +67,6 @@ const router = createHashRouter(
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-token' element={<IssueToken />} />
         <Route path='send/:asset_id' element={<Send />} />
-        <Route path='addresses' element={<Addresses />} />
       </Route>
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
@@ -84,6 +83,9 @@ const router = createHashRouter(
       <Route path='/dids' element={<Wallet />}>
         <Route path='' element={<DidList />} />
         <Route path='create' element={<CreateProfile />} />
+      </Route>
+      <Route path='/addresses' element={<Wallet />}>
+        <Route path='' element={<Addresses />} />
       </Route>
       <Route path='/options' element={<Wallet />}>
         <Route path='' element={<OptionList />} />

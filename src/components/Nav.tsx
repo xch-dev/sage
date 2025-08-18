@@ -81,7 +81,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       </NavLink>
 
       <NavLink
-        url={'/wallet/addresses'}
+        url={'/addresses'}
         isCollapsed={isCollapsed}
         message={<Trans>Addresses</Trans>}
       >
