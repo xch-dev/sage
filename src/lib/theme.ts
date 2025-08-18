@@ -7,7 +7,28 @@ import { deepMerge } from './utils';
  * Missing properties will be ignored and CSS defaults will be used instead.
  */
 export async function loadTheme(themeName: string): Promise<Theme | null> {
+  return loadThemeWithTracking(themeName, new Set<string>());
+}
+
+/**
+ * Internal function that tracks theme loading to prevent circular inheritance
+ */
+async function loadThemeWithTracking(
+  themeName: string,
+  loadedThemes: Set<string>
+): Promise<Theme | null> {
   try {
+    // Check for circular inheritance
+    if (loadedThemes.has(themeName)) {
+      console.warn(
+        `Circular theme inheritance detected: ${Array.from(loadedThemes).join(' -> ')} -> ${themeName}. Skipping inheritance.`
+      );
+      return null;
+    }
+
+    // Add current theme to tracking set
+    loadedThemes.add(themeName);
+
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
     let theme = themeModule.default as Theme;
@@ -23,7 +44,7 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
     }
 
     if (theme.inherits) {
-      const inheritedTheme = await loadTheme(theme.inherits);
+      const inheritedTheme = await loadThemeWithTracking(theme.inherits, loadedThemes);
       if (inheritedTheme) {
         theme = deepMerge(inheritedTheme, theme);
       }
