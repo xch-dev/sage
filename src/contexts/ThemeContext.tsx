@@ -1,12 +1,6 @@
 import { type Theme, applyTheme } from '@/lib/theme';
 import { getThemeByName, loadThemes } from '@/lib/themes';
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 
 interface ThemeContextType {
@@ -30,9 +24,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     string | null
   >('last-used-non-core-theme', null);
 
-  // Use ref to track if themes have been initialized to avoid duplicate loading
-  const themesInitialized = useRef(false);
-
   const setTheme = async (themeName: string) => {
     try {
       const theme = await getThemeByName(themeName);
@@ -54,19 +45,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initializeThemes = async () => {
-      // Skip if themes are already being loaded or have been loaded
-      if (themesInitialized.current) {
-        return;
-      }
-
       try {
         setIsLoading(true);
         setError(null);
 
-        // Load all themes (now cached in the themes library)
+        // Load all themes
         const themes = await loadThemes();
         setAvailableThemes(themes);
-        themesInitialized.current = true;
 
         // If no themes loaded, just use CSS defaults
         if (themes.length === 0) {

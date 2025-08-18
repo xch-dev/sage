@@ -54,45 +54,16 @@ export async function loadThemes(): Promise<Theme[]> {
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
-      themesCachePromise = null;
       return [];
     });
 
   return themesPromise;
 }
 
-// Module-level cache for themes
-let themesCache: Theme[] | null = null;
-let themesCachePromise: Promise<Theme[]> | null = null;
-
 /**
  * Gets a theme by name from the loaded themes
  */
 export async function getThemeByName(name: string): Promise<Theme | undefined> {
-  let themes: Theme[];
-
-  // Use cached themes if available
-  if (themesCache) {
-    themes = themesCache;
-  } else if (themesCachePromise) {
-    // Wait for ongoing loading to complete
-    themes = await themesCachePromise;
-  } else {
-    // Start loading themes and cache the promise
-    themesCachePromise = loadThemes();
-    themes = await themesCachePromise;
-    themesCache = themes;
-    themesCachePromise = null;
-  }
-
+  const themes = await loadThemes();
   return themes.find((theme) => theme.name === name);
-}
-
-/**
- * Clears the themes cache (useful for development or theme updates)
- * This should be called when themes are modified during development
- */
-export function clearThemesCache() {
-  themesCache = null;
-  themesCachePromise = null;
 }

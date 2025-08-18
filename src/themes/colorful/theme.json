@@ -49,5 +49,8 @@
       }
     }
   },
-  "buttonStyles": ["gradient", "shimmer"]
+  "buttonStyles": [
+    "gradient",
+    "shimmer"
+  ]
 }
