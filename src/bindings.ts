@@ -149,6 +149,9 @@ async getToken(req: GetToken) : Promise<GetTokenResponse> {
 async getDids(req: GetDids) : Promise<GetDidsResponse> {
     return await TAURI_INVOKE("get_dids", { req });
 },
+async getProfile(req: GetProfile) : Promise<GetProfileResponse> {
+    return await TAURI_INVOKE("get_profile", { req });
+},
 async getMinterDidIds(req: GetMinterDidIds) : Promise<GetMinterDidIdsResponse> {
     return await TAURI_INVOKE("get_minter_did_ids", { req });
 },
@@ -468,6 +471,8 @@ export type GetPeers = Record<string, never>
 export type GetPeersResponse = { peers: PeerRecord[] }
 export type GetPendingTransactions = Record<string, never>
 export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
+export type GetProfile = { launcher_id: string }
+export type GetProfileResponse = { did: DidRecord | null }
 export type GetSecretKey = { fingerprint: number }
 export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
 export type GetSpendableCoinCount = { asset_id: string | null }

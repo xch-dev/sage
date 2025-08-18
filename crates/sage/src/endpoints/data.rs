@@ -20,9 +20,9 @@ use sage_api::{
     GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
     GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
     GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
-    GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetProfile, GetProfileResponse,
+    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetToken, GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
     NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, OptionSortMode as ApiOptionSortMode,
     PendingTransactionRecord, PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse,
@@ -357,6 +357,28 @@ impl Sage {
             .transpose()?;
 
         Ok(GetTokenResponse { token })
+    }
+
+    pub async fn get_profile(&self, req: GetProfile) -> Result<GetProfileResponse> {
+        let wallet = self.wallet()?;
+
+        let launcher_id = parse_did_id(req.launcher_id.clone())?;
+        let Some(row) = wallet.db.owned_did(launcher_id).await? else {
+            return Ok(GetProfileResponse { did: None });
+        };
+
+        let did = DidRecord {
+            launcher_id: Address::new(row.asset.hash, "did:chia:".to_string()).encode()?,
+            name: row.asset.name,
+            visible: row.asset.is_visible,
+            coin_id: hex::encode(row.coin_row.coin.coin_id()),
+            address: Address::new(row.coin_row.p2_puzzle_hash, self.network().prefix()).encode()?,
+            amount: Amount::u64(row.coin_row.coin.amount),
+            recovery_hash: row.did_info.recovery_list_hash.map(hex::encode),
+            created_height: row.coin_row.created_height,
+        };
+
+        Ok(GetProfileResponse { did: Some(did) })
     }
 
     pub async fn get_dids(&self, _req: GetDids) -> Result<GetDidsResponse> {

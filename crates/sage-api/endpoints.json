@@ -24,6 +24,7 @@
   "get_all_cats": true,
   "get_token": true,
   "get_dids": true,
+  "get_profile": true,
   "get_minter_did_ids": true,
   "get_options": true,
   "get_option": true,
