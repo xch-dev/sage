@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
-import missing from '@/images/missing.png';
+import { nftUri } from '@/lib/nftUri';
 
 interface NftConfirmationProps {
   type: 'burn' | 'transfer' | 'edit';
@@ -114,7 +114,7 @@ export function NftConfirmation({
                 width='64'
                 height='64'
                 className='h-full w-full object-cover aspect-square color-[transparent]'
-                src={thumbnail ?? missing}
+                src={nftUri('image/png', thumbnail)}
               />
             }
             title={nftName}
