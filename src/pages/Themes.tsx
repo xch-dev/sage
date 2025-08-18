@@ -124,9 +124,7 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.primary
-                            ? `hsl(${currentTheme.colors.primary})`
-                            : undefined,
+                          backgroundColor: currentTheme.colors?.primary || undefined,
                         }}
                       />
                     </div>
@@ -137,9 +135,7 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.secondary
-                            ? `hsl(${currentTheme.colors.secondary})`
-                            : undefined,
+                          backgroundColor: currentTheme.colors?.secondary || undefined,
                         }}
                       />
                     </div>
@@ -150,9 +146,7 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.accent
-                            ? `hsl(${currentTheme.colors.accent})`
-                            : undefined,
+                          backgroundColor: currentTheme.colors?.accent || undefined,
                         }}
                       />
                     </div>
@@ -163,9 +157,7 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.destructive
-                            ? `hsl(${currentTheme.colors.destructive})`
-                            : undefined,
+                          backgroundColor: currentTheme.colors?.destructive || undefined,
                         }}
                       />
                     </div>
@@ -261,15 +253,9 @@ export default function Themes() {
                     <div
                       className='p-4 border rounded-lg'
                       style={{
-                        backgroundColor: currentTheme.colors?.card
-                          ? `hsl(${currentTheme.colors.card})`
-                          : undefined,
-                        color: currentTheme.colors?.cardForeground
-                          ? `hsl(${currentTheme.colors.cardForeground})`
-                          : undefined,
-                        borderColor: currentTheme.colors?.border
-                          ? `hsl(${currentTheme.colors.border})`
-                          : undefined,
+                        backgroundColor: currentTheme.colors?.card || undefined,
+                        color: currentTheme.colors?.cardForeground || undefined,
+                        borderColor: currentTheme.colors?.border || undefined,
                         borderRadius: currentTheme.corners?.lg || '0.5rem',
                         boxShadow: currentTheme.shadows?.card || undefined,
                       }}
@@ -301,12 +287,8 @@ export default function Themes() {
                       <div className='flex flex-col sm:flex-row gap-2 flex-wrap'>
                         <Button
                           style={{
-                            backgroundColor: currentTheme.colors?.primary
-                              ? `hsl(${currentTheme.colors.primary})`
-                              : undefined,
-                            color: currentTheme.colors?.primaryForeground
-                              ? `hsl(${currentTheme.colors.primaryForeground})`
-                              : undefined,
+                            backgroundColor: currentTheme.colors?.primary || undefined,
+                            color: currentTheme.colors?.primaryForeground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -319,12 +301,8 @@ export default function Themes() {
                         <Button
                           variant='outline'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor: currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -335,12 +313,8 @@ export default function Themes() {
                         <Button
                           variant='destructive'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor: currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -351,12 +325,8 @@ export default function Themes() {
                         <Button
                           variant='ghost'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor: currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -367,12 +337,8 @@ export default function Themes() {
                         <Button
                           variant='link'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor: currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -387,15 +353,9 @@ export default function Themes() {
                       <Input
                         placeholder={t`Input field example`}
                         style={{
-                          backgroundColor: currentTheme.colors?.input
-                            ? `hsl(${currentTheme.colors.input})`
-                            : undefined,
-                          borderColor: currentTheme.colors?.border
-                            ? `hsl(${currentTheme.colors.border})`
-                            : undefined,
-                          color: currentTheme.colors?.foreground
-                            ? `hsl(${currentTheme.colors.foreground})`
-                            : undefined,
+                          backgroundColor: currentTheme.colors?.input || undefined,
+                          borderColor: currentTheme.colors?.border || undefined,
+                          color: currentTheme.colors?.foreground || undefined,
                           fontFamily: currentTheme.fonts?.body || 'inherit',
                           borderRadius: currentTheme.corners?.md || '0.375rem',
                         }}
