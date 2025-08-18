@@ -29,18 +29,7 @@ async function discoverThemeFolders(): Promise<string[]> {
  * Loads all themes from the public/themes folder
  */
 export async function loadThemes(): Promise<Theme[]> {
-  // Return cached themes if available
-  if (themesCache) {
-    return themesCache;
-  }
-
-  // Return existing promise if loading is in progress
-  if (themesCachePromise) {
-    return themesCachePromise;
-  }
-
-  // Start loading themes and cache the promise
-  themesCachePromise = discoverThemeFolders()
+  return discoverThemeFolders()
     .then((themeFolders) =>
       Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
     )
@@ -50,19 +39,11 @@ export async function loadThemes(): Promise<Theme[]> {
         (theme): theme is Theme => theme !== null,
       );
     })
-    .then((themes) => {
-      // Cache the result
-      themesCache = themes;
-      themesCachePromise = null;
-      return themes;
-    })
     .catch((error) => {
       console.error('Error loading themes:', error);
       themesCachePromise = null;
       return [];
     });
-
-  return themesCachePromise;
 }
 
 // Module-level cache for themes
