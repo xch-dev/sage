@@ -1,5 +1,8 @@
 import { type Theme, loadTheme } from './theme';
 
+let themesCache: Theme[] | null = null;
+let themesPromise: Promise<Theme[]> | null = null;
+
 // Dynamically discover theme folders by scanning the themes directory
 async function discoverThemeFolders(): Promise<string[]> {
   try {
@@ -29,21 +32,33 @@ async function discoverThemeFolders(): Promise<string[]> {
  * Loads all themes from the public/themes folder
  */
 export async function loadThemes(): Promise<Theme[]> {
-  return discoverThemeFolders()
+  if (themesCache) {
+    return themesCache;
+  }
+
+  if (themesPromise) {
+    return themesPromise;
+  }
+
+  themesPromise = discoverThemeFolders()
     .then((themeFolders) =>
       Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
     )
     .then((themes) => {
       // Filter out null themes (themes that failed to load)
-      return themes.filter(
+      const validThemes = themes.filter(
         (theme): theme is Theme => theme !== null,
       );
+      themesCache = validThemes;
+      return validThemes;
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
       themesCachePromise = null;
       return [];
     });
+
+  return themesPromise;
 }
 
 // Module-level cache for themes
