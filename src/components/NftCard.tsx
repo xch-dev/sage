@@ -1,7 +1,6 @@
 import {
   commands,
   events,
-  NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -100,7 +99,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const { addError } = useErrors();
 
-  const [data, setData] = useState<NftData | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -161,13 +159,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       }
     };
   }, [nft.launcher_id, fetchThumbnail]);
-
-  useEffect(() => {
-    commands
-      .getNftData({ nft_id: nft.launcher_id })
-      .then((response) => setData(response.data))
-      .catch(addError);
-  }, [nft.launcher_id, addError]);
 
   const toggleVisibility = () => {
     commands
@@ -704,7 +695,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                   <NftConfirmation
                     type='burn'
                     nfts={[nft]}
-                    nftData={{ [nft.launcher_id]: data }}
+                    thumbnails={{ [nft.launcher_id]: thumbnail }}
                   />
                 ),
               }
@@ -715,7 +706,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     <NftConfirmation
                       type='transfer'
                       nfts={[nft]}
-                      nftData={{ [nft.launcher_id]: data }}
+                      thumbnails={{ [nft.launcher_id]: thumbnail }}
                       address={transferAddress}
                     />
                   ),
@@ -726,7 +717,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     content: (
                       <AddUrlConfirmation
                         nft={nft}
-                        nftData={data}
+                        thumbnail={thumbnail}
                         url={addedUrl}
                         kind={addedUrlKind}
                       />
@@ -739,7 +730,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                         <NftConfirmation
                           type='edit'
                           nfts={[nft]}
-                          nftData={{ [nft.launcher_id]: data }}
+                          thumbnails={{ [nft.launcher_id]: thumbnail }}
                           profileId={assignedProfileId}
                         />
                       ),
