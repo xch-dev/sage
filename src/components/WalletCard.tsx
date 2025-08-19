@@ -32,10 +32,10 @@ import {
   EraserIcon,
   EyeIcon,
   FlameIcon,
-  ImageMinus,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
+  RefreshCcw,
   SnowflakeIcon,
   TrashIcon,
   WalletIcon,
@@ -303,7 +303,7 @@ export function WalletCard({
                       e.stopPropagation();
                     }}
                   >
-                    <ImageMinus className='mr-2 h-4 w-4' />
+                    <EraserIcon className='mr-2 h-4 w-4' />
                     <span>
                       <Trans>Remove Emoji</Trans>
                     </span>
@@ -316,7 +316,7 @@ export function WalletCard({
                     e.stopPropagation();
                   }}
                 >
-                  <EraserIcon className='mr-2 h-4 w-4' />
+                  <RefreshCcw className='mr-2 h-4 w-4' />
                   <span>
                     <Trans>Resync ({networkId})</Trans>
                   </span>
