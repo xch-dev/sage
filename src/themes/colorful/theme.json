@@ -4,6 +4,7 @@
   "backgroundImage": "background.jpg",
   "inherits": "light",
   "colors": {
+    "background": "280 50% 25%",
     "secondary": "210 100% 85%",
     "secondaryForeground": "210 50% 25%",
     "accent": "280 100% 85%",
@@ -49,5 +50,13 @@
       }
     }
   },
-  "buttonStyles": ["gradient", "shimmer"]
+  "buttonStyles": ["gradient", "shimmer"],
+  "switches": {
+    "checked": {
+      "background": "hsl(280 90% 85%)"
+    },
+    "unchecked": {
+      "background": "hsl(280 30% 85%)"
+    }
+  }
 }

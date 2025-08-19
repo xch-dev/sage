@@ -690,4 +690,13 @@ export interface Theme {
   };
   // Button style flags for dynamic CSS application
   buttonStyles?: string[];
+  // Optional theme-specific switch configurations
+  switches?: {
+    checked?: {
+      background?: string;
+    };
+    unchecked?: {
+      background?: string;
+    };
+  };
 }
