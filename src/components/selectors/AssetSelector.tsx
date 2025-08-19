@@ -189,7 +189,17 @@ export function AssetSelector({
             <span>Tokens</span>
           </Label>
           {assets.tokens.map(({ asset_id: assetId, amount }, i) => (
-            <div key={tokenIds[i]} className='flex h-14 mb-1'>
+            <div
+              key={tokenIds[i]}
+              style={{
+                zIndex:
+                  assets.tokens.length -
+                  i +
+                  assets.nfts.length +
+                  assets.options.length,
+              }}
+              className='flex h-14 mb-1 relative'
+            >
               <TokenSelector
                 value={assetId}
                 onChange={(assetId) => updateToken(i, 'asset_id', assetId)}
@@ -261,7 +271,11 @@ export function AssetSelector({
             </div>
           )}
           {assets.nfts.map((nft, i) => (
-            <div key={nftIds[i]} className='flex h-14 z-20 mb-1'>
+            <div
+              key={nftIds[i]}
+              style={{ zIndex: assets.nfts.length - i + assets.options.length }}
+              className='flex h-14 mb-1 relative'
+            >
               {offering === true ? (
                 <NftSelector
                   value={nft || null}
@@ -298,7 +312,11 @@ export function AssetSelector({
             <span>Options</span>
           </Label>
           {assets.options.map((option, i) => (
-            <div key={optionIds[i]} className='flex h-14 z-20 mb-1'>
+            <div
+              key={optionIds[i]}
+              style={{ zIndex: assets.options.length - i }}
+              className='flex h-14 mb-1 relative'
+            >
               {offering === true ? (
                 <OptionSelector
                   value={option || null}
