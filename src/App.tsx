@@ -21,7 +21,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
-import { ThemeProvider } from './contexts/ThemeContext';
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
@@ -55,6 +55,35 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+
+// Theme-aware toast container component
+function ThemeAwareToastContainer() {
+  const { currentTheme } = useTheme();
+
+  const toastTheme = currentTheme?.most_like ?? 'light';
+
+  return (
+    <ToastContainer
+      position='bottom-right'
+      autoClose={5000}
+      hideProgressBar={false}
+      newestOnTop={false}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      theme={toastTheme}
+      transition={Slide}
+      style={
+        {
+          '--toastify-toast-transition-timing': 'ease',
+          '--toastify-toast-transition-duration': '750ms',
+        } as React.CSSProperties
+      }
+    />
+  );
+}
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -123,29 +152,10 @@ export default function App() {
           <ErrorProvider>
             <BiometricProvider>
               <AppInner />
+              <ThemeAwareToastContainer />
             </BiometricProvider>
           </ErrorProvider>
         </SafeAreaProvider>
-
-        <ToastContainer
-          position='bottom-right'
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme='light'
-          transition={Slide}
-          style={
-            {
-              '--toastify-toast-transition-timing': 'ease',
-              '--toastify-toast-transition-duration': '750ms',
-            } as React.CSSProperties
-          }
-        />
       </ThemeProvider>
     </LanguageProvider>
   );

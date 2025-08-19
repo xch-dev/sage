@@ -1,7 +1,7 @@
 {
   "name": "classic-mac",
   "displayName": "Classic Mac",
-  "most_like": "dark",
+  "most_like": "light",
   "colors": {
     "background": "0 0% 100%",
     "foreground": "0 0% 0%",
