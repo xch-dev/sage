@@ -174,7 +174,7 @@ impl Wallet {
                         coin.amount,
                     ));
                 }
-                CoinKind::Cat { .. } => {
+                CoinKind::Cat => {
                     let Some(cat) = self.db.cat_coin(option.info.underlying_coin_id).await? else {
                         return Err(WalletError::MissingCatCoin(option.info.underlying_coin_id));
                     };

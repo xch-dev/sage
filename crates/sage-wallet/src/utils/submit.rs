@@ -74,7 +74,7 @@ pub async fn submit_transaction(
 
     if ack.status == 1 {
         return Ok(Status::Pending);
-    };
+    }
 
     Ok(Status::Failed(ack.status, ack.error))
 }
