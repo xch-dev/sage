@@ -53,7 +53,7 @@ export default function Header(
             variant='outline'
             size='icon'
             onClick={() => (props.back ? props.back() : navigate(-1))}
-            className='md:hidden text-muted-foreground'
+            className='md:hidden text-muted-foreground flex-shrink-0'
             aria-label={t`Back`}
           >
             <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />

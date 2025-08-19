@@ -50,7 +50,7 @@
       }
     }
   },
-  "buttonStyles": ["gradient", "shimmer"],
+  "buttonStyles": ["shimmer"],
   "switches": {
     "checked": {
       "background": "hsl(280 90% 85%)"
