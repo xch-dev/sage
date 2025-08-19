@@ -4,10 +4,11 @@
   "backgroundImage": "background.jpg",
   "inherits": "light",
   "colors": {
-    "secondary": "210 100% 85%",
-    "secondaryForeground": "210 50% 25%",
-    "accent": "280 100% 85%",
-    "accentForeground": "280 50% 25%"
+    "card": "#f8f9fa",
+    "secondary": "#b3d9ff",
+    "secondaryForeground": "#1a365d",
+    "accent": "#e6ccff",
+    "accentForeground": "#4a1d96"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"

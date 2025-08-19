@@ -1,5 +1,9 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
+import {
+  getColorLightness,
+  makeColorTransparent
+} from './color-utils';
 import { deepMerge } from './utils';
 
 /**
@@ -165,7 +169,7 @@ export function applyTheme(theme: Theme) {
   Object.entries(theme.colors || {}).forEach(([key, value]) => {
     if (value) {
       const cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-      root.style.setProperty(cssVar, value, 'important');
+      root.style.setProperty(cssVar, value || '', 'important');
     }
   });
 
@@ -173,14 +177,14 @@ export function applyTheme(theme: Theme) {
   if (theme.colors?.inputBackground) {
     root.style.setProperty(
       '--input-background',
-      theme.colors.inputBackground,
+      theme.colors.inputBackground || '',
       'important',
     );
   } else if (theme.colors?.input) {
     // For other themes, use the regular input color
     root.style.setProperty(
       '--input-background',
-      theme.colors.input,
+      theme.colors.input || '',
       'important',
     );
   }
@@ -189,6 +193,42 @@ export function applyTheme(theme: Theme) {
   // Set dynamic outline button background based on theme
   const outlineButtonBg = getOutlineButtonBackground(theme);
   root.style.setProperty('--outline-button-bg', outlineButtonBg, 'important');
+
+  // Set navigation active background with transparency
+  if (theme.colors?.primary) {
+    const navActiveBg = makeColorTransparent(theme.colors.primary, 0.1);
+    root.style.setProperty('--nav-active-bg', navActiveBg, 'important');
+  }
+
+  // Set transparent versions of colors for background image support
+  if (theme.backgroundImage) {
+    const bodyOpacity = theme.backgroundOpacity?.body ?? 0.1;
+    const cardOpacity = theme.backgroundOpacity?.card ?? 0.75;
+    const popoverOpacity = theme.backgroundOpacity?.popover ?? 0.9;
+
+    // Get the actual values from CSS variables since they might be inherited
+    const backgroundValue = theme.colors?.background ||
+      getComputedStyle(root).getPropertyValue('--background').trim();
+    const cardValue = theme.colors?.card ||
+      getComputedStyle(root).getPropertyValue('--card').trim();
+    const popoverValue = theme.colors?.popover ||
+      getComputedStyle(root).getPropertyValue('--popover').trim();
+
+    if (backgroundValue) {
+      const transparentBg = makeColorTransparent(backgroundValue, bodyOpacity);
+      root.style.setProperty('--background-transparent', transparentBg, 'important');
+    }
+
+    if (cardValue) {
+      const transparentCard = makeColorTransparent(cardValue, cardOpacity);
+      root.style.setProperty('--card-transparent', transparentCard, 'important');
+    }
+
+    if (popoverValue) {
+      const transparentPopover = makeColorTransparent(popoverValue, popoverOpacity);
+      root.style.setProperty('--popover-transparent', transparentPopover, 'important');
+    }
+  }
 
   // Apply button-specific variables if defined
   if (theme.buttons) {
@@ -448,21 +488,19 @@ function getOutlineButtonBackground(theme: Theme): string {
     return 'transparent';
   }
 
-  // Parse background lightness to determine if theme is light or dark
-  const backgroundHsl = theme.colors.background;
-  const lightnessMatch = backgroundHsl.match(/(\d+(?:\.\d+)?)%$/);
-  const lightness = lightnessMatch ? parseFloat(lightnessMatch[1]) : 50;
+  // Get background lightness using our color utility
+  const lightness = getColorLightness(theme.colors.background);
 
   // If background is very dark (< 20% lightness), use card color for subtle background
   // If background is light (> 50% lightness), use transparent
   if (lightness < 20) {
-    return theme.colors.card ? `hsl(${theme.colors.card})` : 'transparent';
+    return theme.colors.card ? theme.colors.card || '' : 'transparent';
   } else if (lightness > 50) {
     return 'transparent';
   } else {
     // For mid-range themes, use a slightly lighter version of the background
     return theme.colors.secondary
-      ? `hsl(${theme.colors.secondary})`
+      ? theme.colors.secondary || ''
       : 'transparent';
   }
 }

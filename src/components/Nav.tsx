@@ -234,14 +234,19 @@ function NavLink({
   } text-lg md:text-base`;
 
   const className = isActive
-    ? `${baseClassName} text-primary bg-primary/10 border-primary`
+    ? `${baseClassName} text-primary border-primary`
     : `${baseClassName} text-muted-foreground hover:text-primary`;
+
+  const activeStyle = isActive
+    ? { backgroundColor: 'var(--nav-active-bg)' }
+    : {};
 
   const link =
     typeof url === 'string' ? (
       <Link
         to={url}
         className={className}
+        style={activeStyle}
         aria-current={isActive ? 'page' : ariaCurrent}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
@@ -253,6 +258,7 @@ function NavLink({
         type='button'
         onClick={url}
         className={className}
+        style={activeStyle}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
         {children}
