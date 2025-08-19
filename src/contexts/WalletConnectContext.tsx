@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
@@ -29,6 +30,7 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
@@ -700,6 +702,7 @@ function RequestDialog({
   reject,
   signClient,
 }: RequestDialogProps) {
+  const [isApproving, setIsApproving] = useState(false);
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
@@ -743,7 +746,20 @@ function RequestDialog({
               Reject
             </Button>
           </DialogClose>
-          <Button onClick={() => approve(request)}>Approve</Button>
+          <LoadingButton
+            loading={isApproving}
+            loadingText={t`Approving`}
+            onClick={async () => {
+              setIsApproving(true);
+              try {
+                await approve(request);
+              } finally {
+                setIsApproving(false);
+              }
+            }}
+          >
+            <Trans>Approve</Trans>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

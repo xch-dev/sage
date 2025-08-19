@@ -1,3 +1,4 @@
+import { t } from '@lingui/core/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import * as React from 'react';
 import { Button, ButtonProps } from './button';
@@ -22,9 +23,9 @@ const LoadingButton = React.forwardRef<HTMLButtonElement, LoadingButtonProps>(
   ) => {
     const getLoadingAriaLabel = () => {
       if (ariaLabel) {
-        return `${ariaLabel} - ${loadingText || 'Loading'}`;
+        return `${ariaLabel} - ${loadingText || t`Loading`}`;
       }
-      return loadingText || 'Loading';
+      return loadingText || t`Loading`;
     };
 
     return (

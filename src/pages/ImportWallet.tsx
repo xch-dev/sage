@@ -1,7 +1,6 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import SafeAreaView from '@/components/SafeAreaView';
-import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -12,6 +11,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useWallet } from '@/contexts/WalletContext';
@@ -19,7 +19,6 @@ import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -196,12 +195,14 @@ export default function ImportWallet() {
               />
             )}
 
-            <Button type='submit' disabled={pending || !form.formState.isValid}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? <Trans>Importing</Trans> : <Trans>Import</Trans>}
-            </Button>
+            <LoadingButton
+              type='submit'
+              loading={pending}
+              loadingText={t`Importing`}
+              disabled={!form.formState.isValid}
+            >
+              <Trans>Import</Trans>
+            </LoadingButton>
           </form>
         </Form>
       </Container>
