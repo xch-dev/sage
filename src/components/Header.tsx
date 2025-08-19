@@ -87,6 +87,14 @@ export default function Header(
             paddingBottom: insets.bottom
               ? `${insets.bottom + 16}px`
               : 'env(safe-area-inset-bottom)',
+            ...(currentTheme?.backgroundImage && {
+              backgroundImage: `url(${currentTheme.backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+              backgroundColor: 'transparent',
+            }),
           }}
         >
           <div className='mt-4'>
@@ -96,7 +104,12 @@ export default function Header(
               aria-label={t`Go to wallet`}
             >
               {wallet?.emoji ? (
-                <span className='text-xl' role='img' aria-label='Wallet emoji'>
+                <span
+                  className='text-xl'
+                  role='img'
+                  aria-label='Wallet emoji'
+                  aria-hidden='true'
+                >
                   {wallet.emoji}
                 </span>
               ) : (
@@ -104,6 +117,7 @@ export default function Header(
                   src={currentTheme?.icon_path}
                   className='h-6 w-6'
                   alt={t`Wallet icon`}
+                  aria-hidden='true'
                 />
               )}
               <span className='text-lg'>{wallet?.name}</span>
