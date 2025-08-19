@@ -1,28 +1,21 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use chia::protocol::SpendBundle;
 use sage_database::Database;
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::{sync::mpsc, time::sleep};
 use tracing::{info, warn};
 
-use crate::{submit_to_peers, PeerState, Status, SyncEvent, WalletError};
+use crate::{submit_to_peers, Status, SyncEvent, SyncState, WalletError};
 
 #[derive(Debug)]
 pub struct TransactionQueue {
     db: Database,
-    state: Arc<Mutex<PeerState>>,
+    state: SyncState,
     sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl TransactionQueue {
-    pub fn new(
-        db: Database,
-        state: Arc<Mutex<PeerState>>,
-        sync_sender: mpsc::Sender<SyncEvent>,
-    ) -> Self {
+    pub fn new(db: Database, state: SyncState, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
         Self {
             db,
             state,
@@ -38,7 +31,7 @@ impl TransactionQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        let peers = self.state.lock().await.peers();
+        let peers = self.state.peers.lock().await.peers();
 
         if peers.is_empty() {
             return Ok(());
@@ -60,7 +53,7 @@ impl TransactionQueue {
         for spend_bundle in spend_bundles {
             sleep(Duration::from_secs(1)).await;
 
-            let peers = self.state.lock().await.peers();
+            let peers = self.state.peers.lock().await.peers();
 
             if peers.is_empty() {
                 return Ok(());

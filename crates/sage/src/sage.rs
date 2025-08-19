@@ -20,12 +20,12 @@ use sage_config::{
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use sage_wallet::{SyncCommand, SyncEvent, SyncManager, SyncOptions, SyncState, Timeouts, Wallet};
 use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     ConnectOptions, SqlitePool,
 };
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
 use tracing::{error, info, Level};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
@@ -42,7 +42,7 @@ pub struct Sage {
     pub network_list: NetworkList,
     pub keychain: Keychain,
     pub wallet: Option<Arc<Wallet>>,
-    pub peer_state: Arc<Mutex<PeerState>>,
+    pub state: SyncState,
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
 }
@@ -56,7 +56,7 @@ impl Sage {
             network_list: NetworkList::default(),
             keychain: Keychain::default(),
             wallet: None,
-            peer_state: Arc::new(Mutex::new(PeerState::default())),
+            state: SyncState::new(),
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
         }
@@ -229,7 +229,7 @@ impl Sage {
                 timeouts: Timeouts::default(),
                 testing: false,
             },
-            self.peer_state.clone(),
+            self.state.clone(),
             self.wallet.clone(),
             self.network().clone(),
             connector,
@@ -323,7 +323,7 @@ impl Sage {
             Peers::default()
         };
 
-        let mut state = self.peer_state.lock().await;
+        let mut state = self.state.peers.lock().await;
 
         for (&ip, &timestamp) in &peers.banned {
             let now = SystemTime::now()
@@ -375,7 +375,7 @@ impl Sage {
         }
 
         let mut peers = Peers::default();
-        let mut state = self.peer_state.lock().await;
+        let mut state = self.state.peers.lock().await;
 
         for peer in state.user_managed_peers() {
             peers.user_managed.insert(peer.socket_addr().ip());

@@ -49,7 +49,7 @@ impl SyncManager {
     pub(super) async fn clear_subscriptions(&self) {
         let mut futures = FuturesUnordered::new();
 
-        for peer in self.state.lock().await.peers() {
+        for peer in self.state.peers.lock().await.peers() {
             let ip = peer.socket_addr().ip();
 
             let puzzle_peer = peer.clone();
@@ -182,7 +182,7 @@ impl SyncManager {
     }
 
     pub(super) async fn peer_discovery(&mut self) -> bool {
-        let peers = self.state.lock().await.peers();
+        let peers = self.state.peers.lock().await.peers();
 
         if peers.is_empty() {
             warn!("No existing peers to request new peers from");
@@ -217,7 +217,7 @@ impl SyncManager {
                 }
                 Err(error) => {
                     debug!("Failed to request peers from {}: {}", ip, error);
-                    self.state.lock().await.ban(
+                    self.state.peers.lock().await.ban(
                         ip,
                         Duration::from_secs(300),
                         "failed to request peers",
@@ -256,7 +256,7 @@ impl SyncManager {
                 debug!("Invalid IP address in peer list");
 
                 if ban {
-                    self.state.lock().await.ban(
+                    self.state.peers.lock().await.ban(
                         ip,
                         Duration::from_secs(300),
                         "invalid ip in peer list",
@@ -286,7 +286,7 @@ impl SyncManager {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
-            let state = self.state.lock().await;
+            let state = self.state.peers.lock().await;
             if state.is_connected(socket_addr.ip()) || state.is_banned(socket_addr.ip()) {
                 continue;
             }
@@ -314,7 +314,7 @@ impl SyncManager {
                             return true;
                         }
                     } else if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "could not add peer",
@@ -324,7 +324,7 @@ impl SyncManager {
                 Ok(Err(error)) => {
                     debug!("Failed to connect to peer {socket_addr}: {error}");
                     if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "failed to connect",
@@ -334,7 +334,7 @@ impl SyncManager {
                 Err(_timeout) => {
                     debug!("Connection to peer {socket_addr} timed out");
                     if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "connection timed out",
@@ -348,7 +348,7 @@ impl SyncManager {
     }
 
     async fn check_peer_count(&mut self) -> bool {
-        self.state.lock().await.peer_count() >= self.options.target_peers
+        self.state.peers.lock().await.peer_count() >= self.options.target_peers
     }
 
     pub(crate) async fn try_add_peer(
@@ -386,7 +386,7 @@ impl SyncManager {
         let ip = peer.socket_addr().ip();
         let sender = self.command_sender.clone();
 
-        let mut state = self.state.lock().await;
+        let mut state = self.state.peers.lock().await;
 
         if !force && state.peer_count() >= self.options.target_peers {
             debug!(

@@ -99,7 +99,7 @@ impl Sage {
                     }
 
                     if peer.is_none() {
-                        peer = self.peer_state.lock().await.acquire_peer();
+                        peer = self.state.peers.lock().await.acquire_peer();
                     }
 
                     let Some(requested_nft) =
@@ -114,7 +114,7 @@ impl Sage {
                         return Err(Error::InvalidAmount(raw_amount.to_string()));
                     }
                     if peer.is_none() {
-                        peer = self.peer_state.lock().await.acquire_peer();
+                        peer = self.state.peers.lock().await.acquire_peer();
                     }
 
                     let Some(requested_option) = wallet
@@ -197,7 +197,8 @@ impl Sage {
 
         if req.auto_submit {
             let peer = self
-                .peer_state
+                .state
+                .peers
                 .lock()
                 .await
                 .acquire_peer()

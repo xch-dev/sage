@@ -17,7 +17,7 @@ use futures_lite::future::poll_once;
 use itertools::Itertools;
 use sage_config::Network;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::mpsc,
     task::JoinHandle,
     time::{sleep, timeout},
 };
@@ -35,16 +35,18 @@ mod peer_discovery;
 mod peer_state;
 mod sync_command;
 mod sync_event;
+mod sync_state;
 mod wallet_sync;
 
 pub use options::*;
 pub use peer_state::*;
 pub use sync_command::*;
 pub use sync_event::*;
+pub use sync_state::*;
 
 pub struct SyncManager {
     options: SyncOptions,
-    state: Arc<Mutex<PeerState>>,
+    state: SyncState,
     wallet: Option<Arc<Wallet>>,
     network: Network,
     connector: Connector,
@@ -108,7 +110,7 @@ impl Drop for SyncManager {
 impl SyncManager {
     pub fn new(
         options: SyncOptions,
-        state: Arc<Mutex<PeerState>>,
+        state: SyncState,
         wallet: Option<Arc<Wallet>>,
         network: Network,
         connector: Connector,
@@ -162,7 +164,7 @@ impl SyncManager {
                         || self.network.genesis_challenge != network.genesis_challenge
                         || self.network.default_port != network.default_port
                     {
-                        self.state.lock().await.reset();
+                        self.state.peers.lock().await.reset();
                         self.abort_wallet_tasks();
                         self.network = network;
                     }
@@ -170,7 +172,7 @@ impl SyncManager {
                 SyncCommand::HandleMessage { ip, message } => {
                     if let Err(error) = self.handle_message(ip, message).await {
                         debug!("Failed to handle message from {ip}: {error}");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             ip,
                             Duration::from_secs(300),
                             "failed to handle message",
@@ -192,7 +194,7 @@ impl SyncManager {
                     self.pending_puzzle_subscriptions.extend(puzzle_hashes);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
-                    self.state.lock().await.remove_peer(ip);
+                    self.state.peers.lock().await.remove_peer(ip);
                     debug!("Peer {ip} disconnected");
                 }
                 SyncCommand::SetTargetPeers(target_peers) => {
@@ -218,6 +220,7 @@ impl SyncManager {
 
         let Some(peer) = self
             .state
+            .peers
             .lock()
             .await
             .peer(ip)
@@ -241,7 +244,7 @@ impl SyncManager {
         .await
         {
             warn!("Failed to add new subscriptions: {error}");
-            self.state.lock().await.ban(
+            self.state.peers.lock().await.ban(
                 ip,
                 Duration::from_secs(300),
                 "failed to add new subscriptions",
@@ -284,6 +287,7 @@ impl SyncManager {
                 let message =
                     NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
                 self.state
+                    .peers
                     .lock()
                     .await
                     .update_peak(ip, message.height, message.header_hash);
@@ -314,7 +318,7 @@ impl SyncManager {
 
                     if !spent_coin_ids.is_empty() {
                         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-                            if let Some(info) = self.state.lock().await.peer(ip) {
+                            if let Some(info) = self.state.peers.lock().await.peer(ip) {
                                 // TODO: Handle cases
                                 info.peer.unsubscribe_coins(spent_coin_ids).await.ok();
                             }
@@ -348,7 +352,7 @@ impl SyncManager {
     }
 
     async fn update(&mut self) {
-        let peer_count = self.state.lock().await.peer_count();
+        let peer_count = self.state.peers.lock().await.peer_count();
 
         if peer_count < self.options.target_peers && self.options.discover_peers {
             if peer_count > 0 {
@@ -365,7 +369,7 @@ impl SyncManager {
     }
 
     async fn update_tasks(&mut self) {
-        let state = self.state.lock().await;
+        let state = self.state.peers.lock().await;
 
         match &mut self.initial_wallet_sync {
             sync @ InitialWalletSync::Idle => {
@@ -495,7 +499,7 @@ impl SyncManager {
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             *ip,
                             Duration::from_secs(300),
                             "wallet sync failed",
@@ -505,7 +509,7 @@ impl SyncManager {
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             *ip,
                             Duration::from_secs(300),
                             "wallet sync timed out",

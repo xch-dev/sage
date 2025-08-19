@@ -239,7 +239,7 @@ impl Sage {
 
         let wallet = self.wallet()?;
         let spend_bundle = rust_bundle(req.spend_bundle)?;
-        let peers = self.peer_state.lock().await.peers();
+        let peers = self.state.peers.lock().await.peers();
 
         debug!("{spend_bundle:?}");
 
@@ -248,7 +248,8 @@ impl Sage {
         match submit_to_peers(&peers, spend_bundle.clone()).await? {
             Status::Pending => {
                 let peer = self
-                    .peer_state
+                    .state
+                    .peers
                     .lock()
                     .await
                     .acquire_peer()

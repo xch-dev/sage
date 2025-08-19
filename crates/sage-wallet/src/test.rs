@@ -30,7 +30,7 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    insert_transaction, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
+    insert_transaction, SyncCommand, SyncEvent, SyncManager, SyncOptions, SyncState, Timeouts,
     Transaction, Wallet,
 };
 
@@ -48,7 +48,7 @@ pub struct TestWallet {
     pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
     pub index: u32,
-    pub state: Arc<Mutex<PeerState>>,
+    pub state: SyncState,
     pub options: SyncOptions,
 }
 
@@ -135,7 +135,7 @@ impl TestWallet {
             sim.lock().await.new_coin(puzzle_hash.into(), balance);
         }
 
-        let state = Arc::new(Mutex::new(PeerState::default()));
+        let state = SyncState::new();
         let wallet = Arc::new(Wallet::new(
             db,
             fingerprint,
@@ -206,7 +206,13 @@ impl TestWallet {
     }
 
     pub async fn push_bundle(&self, spend_bundle: SpendBundle) -> anyhow::Result<()> {
-        let peer = self.state.lock().await.acquire_peer().expect("no peer");
+        let peer = self
+            .state
+            .peers
+            .lock()
+            .await
+            .acquire_peer()
+            .expect("no peer");
 
         let subscriptions = insert_transaction(
             &self.wallet.db,

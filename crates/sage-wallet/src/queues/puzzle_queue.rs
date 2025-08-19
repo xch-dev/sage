@@ -1,17 +1,14 @@
-use std::{sync::Arc, time::Duration};
+use std::time::Duration;
 
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::{Database, UnsyncedCoin};
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::{sync::mpsc, time::sleep};
 use tracing::{debug, info, warn};
 
 use crate::{
-    database::insert_puzzle, validate_wallet_coin, ChildKind, PeerState, PuzzleContext,
-    SyncCommand, SyncEvent, WalletError, WalletPeer,
+    database::insert_puzzle, validate_wallet_coin, ChildKind, PuzzleContext, SyncCommand,
+    SyncEvent, SyncState, WalletError, WalletPeer,
 };
 
 #[derive(Debug)]
@@ -19,7 +16,7 @@ pub struct PuzzleQueue {
     db: Database,
     genesis_challenge: Bytes32,
     batch_size_per_peer: usize,
-    state: Arc<Mutex<PeerState>>,
+    state: SyncState,
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
 }
@@ -29,7 +26,7 @@ impl PuzzleQueue {
         db: Database,
         genesis_challenge: Bytes32,
         batch_size_per_peer: usize,
-        state: Arc<Mutex<PeerState>>,
+        state: SyncState,
         sync_sender: mpsc::Sender<SyncEvent>,
         command_sender: mpsc::Sender<SyncCommand>,
     ) -> Self {
@@ -51,7 +48,7 @@ impl PuzzleQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        let peers = self.state.lock().await.peers();
+        let peers = self.state.peers.lock().await.peers();
 
         if peers.is_empty() {
             return Ok(());
@@ -219,7 +216,7 @@ impl PuzzleQueue {
                             | WalletError::PeerMisbehaved
                             | WalletError::Client(..)
                     ) {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             addr.ip(),
                             Duration::from_secs(300),
                             "failed puzzle lookup",

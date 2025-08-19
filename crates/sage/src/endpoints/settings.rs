@@ -15,7 +15,7 @@ use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
-        let peer_state = self.peer_state.lock().await;
+        let peer_state = self.state.peers.lock().await;
 
         Ok(GetPeersResponse {
             peers: peer_state
@@ -36,7 +36,7 @@ impl Sage {
     }
 
     pub async fn remove_peer(&self, req: RemovePeer) -> Result<RemovePeerResponse> {
-        let mut peer_state = self.peer_state.lock().await;
+        let mut peer_state = self.state.peers.lock().await;
 
         let ip = req.ip.parse()?;
 

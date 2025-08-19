@@ -2,20 +2,17 @@ use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::{sync::mpsc, time::sleep};
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, SyncState, Wallet, WalletError, WalletPeer};
 
-use super::{PeerState, SyncEvent};
+use super::SyncEvent;
 
 pub async fn sync_wallet(
     wallet: Arc<Wallet>,
     peer: WalletPeer,
-    state: Arc<Mutex<PeerState>>,
+    state: SyncState,
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
     delta_sync: bool,
@@ -93,7 +90,9 @@ pub async fn sync_wallet(
     }
 
     if delta_sync {
-        if let Some((height, header_hash)) = state.lock().await.peak_of(peer.socket_addr().ip()) {
+        if let Some((height, header_hash)) =
+            state.peers.lock().await.peak_of(peer.socket_addr().ip())
+        {
             info!(
                 "Updating peak from peer to {} with header hash {}",
                 height, header_hash
