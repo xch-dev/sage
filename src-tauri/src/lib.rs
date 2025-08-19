@@ -107,6 +107,7 @@ pub fn run() {
             commands::get_network,
             commands::set_delta_sync,
             commands::set_delta_sync_override,
+            commands::set_change_address,
             commands::update_cat,
             commands::resync_cat,
             commands::update_did,

@@ -25,7 +25,17 @@ export function SavedOffer() {
     <>
       <Header title='Saved Offer' />
 
-      <Container>{record && <OfferCard record={record} />}</Container>
+      <Container>
+        {record && (
+          <OfferCard
+            offerId={record.offer_id}
+            offer={record.offer}
+            status={record.status}
+            summary={record.summary}
+            creationTimestamp={record.creation_timestamp}
+          />
+        )}
+      </Container>
     </>
   );
 }

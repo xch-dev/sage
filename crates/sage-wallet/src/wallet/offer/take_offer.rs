@@ -40,7 +40,7 @@ impl Wallet {
             );
         }
 
-        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let offer_amounts = OfferAmounts {
             xch: arbitrage.offered.xch,

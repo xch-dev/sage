@@ -29,7 +29,7 @@ export const PasteInput = forwardRef<HTMLInputElement, PasteInputProps>(
     return (
       <div
         className={cn(
-          'flex h-9 w-full items-center rounded-md border border-neutral-200 bg-transparent shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-neutral-950 placeholder:text-neutral-500 focus-within:outline-none focus-within:ring-1 focus-within:ring-neutral-950 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-800 dark:file:text-neutral-50 dark:placeholder:text-neutral-400 dark:focus-within:ring-neutral-300',
+          'dynamic-input flex h-9 w-full items-center rounded-md border border-input shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-within:outline-none focus-within:ring-1 focus-within:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
           className,
         )}
       >
@@ -47,9 +47,9 @@ export const PasteInput = forwardRef<HTMLInputElement, PasteInputProps>(
         />
         <div className='flex items-center pr-3' onClick={onEndIconClick}>
           {isMobile ? (
-            <ScanIcon className='h-4 w-4 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50 cursor-pointer shrink-0' />
+            <ScanIcon className='h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0' />
           ) : (
-            <ClipboardPasteIcon className='h-4 w-4 text-neutral-500 dark:text-neutral-400 hover:text-neutral-950 dark:hover:text-neutral-50 cursor-pointer shrink-0' />
+            <ClipboardPasteIcon className='h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0' />
           )}
         </div>
       </div>

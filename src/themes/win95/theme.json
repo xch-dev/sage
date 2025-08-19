@@ -1,0 +1,66 @@
+{
+  "name": "win95",
+  "displayName": "Windows 95",
+  "most_like": "light",
+  "colors": {
+    "background": "0 0% 75%",
+    "foreground": "0 0% 0%",
+    "card": "0 0% 78%",
+    "cardForeground": "0 0% 0%",
+    "popover": "0 0% 75%",
+    "popoverForeground": "0 0% 0%",
+    "primary": "240 100% 25%",
+    "primaryForeground": "0 0% 100%",
+    "secondary": "0 0% 85%",
+    "secondaryForeground": "0 0% 0%",
+    "muted": "0 0% 85%",
+    "mutedForeground": "0 0% 25%",
+    "accent": "60 100% 50%",
+    "accentForeground": "0 0% 0%",
+    "destructive": "0 100% 50%",
+    "destructiveForeground": "0 0% 100%",
+    "border": "0 0% 50%",
+    "input": "0 0% 100%",
+    "inputBackground": "0 0% 100%",
+    "ring": "240 100% 25%",
+    "chart1": "240 100% 25%",
+    "chart2": "0 100% 50%",
+    "chart3": "60 100% 50%",
+    "chart4": "300 100% 50%",
+    "chart5": "120 100% 50%"
+  },
+  "fonts": {
+    "sans": "MS Sans Serif, Tahoma, Arial, sans-serif",
+    "serif": "Times New Roman, serif",
+    "mono": "Courier New, monospace",
+    "heading": "MS Sans Serif, Tahoma, Arial, sans-serif",
+    "body": "MS Sans Serif, Tahoma, Arial, sans-serif"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "0px",
+    "md": "0px",
+    "lg": "0px",
+    "xl": "0px",
+    "full": "0px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)",
+    "md": "inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)",
+    "lg": "inset 3px 3px 0 0 rgb(128 128 128), inset -3px -3px 0 0 rgb(255 255 255)",
+    "xl": "inset 3px 3px 0 0 rgb(128 128 128), inset -3px -3px 0 0 rgb(255 255 255)",
+    "inner": "inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)",
+    "card": "inset 2px 2px 0 0 rgb(128 128 128), inset -2px -2px 0 0 rgb(255 255 255)",
+    "button": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)",
+    "dropdown": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)"
+  },
+  "buttonStyles": ["3d-effects"],
+  "buttons": {
+    "outline": {
+      "borderStyle": "inset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(var(--border))"
+    }
+  }
+}

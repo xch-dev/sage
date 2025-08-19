@@ -45,7 +45,7 @@ impl Wallet {
     ) -> Result<SpendBundle, WalletError> {
         let mut ctx = SpendContext::new();
 
-        let change_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let offer_amounts = OfferAmounts {
             xch: offered.xch,

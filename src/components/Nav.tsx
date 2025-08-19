@@ -22,7 +22,7 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Separator } from './ui/separator';
 
 interface NavProps {
@@ -36,7 +36,7 @@ export function TopNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Main navigation`}
     >
@@ -86,7 +86,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       </NavLink>
 
       <NavLink
-        url={'/wallet/addresses'}
+        url={'/addresses'}
         isCollapsed={isCollapsed}
         message={<Trans>Addresses</Trans>}
       >
@@ -137,7 +137,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Secondary navigation`}
     >
@@ -228,16 +228,26 @@ function NavLink({
   customTooltip,
   ariaCurrent,
 }: NavLinkProps) {
-  const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
+  const location = useLocation();
+  const isActive =
+    typeof url === 'string' &&
+    (location.pathname === url ||
+      (url !== '/' && location.pathname.startsWith(url)));
+
+  const baseClassName = `flex items-center gap-3 rounded-lg py-1.5 transition-all ${
     isCollapsed ? 'justify-center' : 'px-2'
   } text-lg md:text-base`;
+
+  const className = isActive
+    ? `${baseClassName} text-primary bg-primary/10 border-primary`
+    : `${baseClassName} text-muted-foreground hover:text-primary`;
 
   const link =
     typeof url === 'string' ? (
       <Link
         to={url}
         className={className}
-        aria-current={ariaCurrent}
+        aria-current={isActive ? 'page' : ariaCurrent}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
         {children}

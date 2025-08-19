@@ -1,0 +1,57 @@
+{
+  "name": "classic-mac",
+  "displayName": "Classic Mac",
+  "most_like": "light",
+  "colors": {
+    "background": "0 0% 100%",
+    "foreground": "0 0% 0%",
+    "card": "0 0% 100%",
+    "cardForeground": "0 0% 0%",
+    "popover": "0 0% 100%",
+    "popoverForeground": "0 0% 0%",
+    "primary": "0 0% 0%",
+    "primaryForeground": "0 0% 100%",
+    "secondary": "0 0% 87%",
+    "secondaryForeground": "0 0% 0%",
+    "muted": "0 0% 93%",
+    "mutedForeground": "0 0% 20%",
+    "accent": "0 0% 87%",
+    "accentForeground": "0 0% 0%",
+    "destructive": "0 0% 0%",
+    "destructiveForeground": "0 0% 100%",
+    "border": "0 0% 0%",
+    "input": "0 0% 100%",
+    "ring": "0 0% 0%",
+    "chart1": "0 0% 0%",
+    "chart2": "0 0% 20%",
+    "chart3": "0 0% 40%",
+    "chart4": "0 0% 60%",
+    "chart5": "0 0% 80%"
+  },
+  "fonts": {
+    "sans": "Chicago, Monaco, Courier, monospace",
+    "serif": "Times, Times New Roman, serif",
+    "mono": "Monaco, Courier, monospace",
+    "heading": "Chicago, Monaco, Courier, monospace",
+    "body": "Chicago, Monaco, Courier, monospace"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "0px",
+    "md": "8px",
+    "lg": "8px",
+    "xl": "8px",
+    "full": "8px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "2px 2px 0 0 rgb(0 0 0)",
+    "md": "3px 3px 0 0 rgb(0 0 0)",
+    "lg": "4px 4px 0 0 rgb(0 0 0)",
+    "xl": "5px 5px 0 0 rgb(0 0 0)",
+    "inner": "inset 1px 1px 0 0 rgb(0 0 0)",
+    "card": "2px 2px 0 0 rgb(0 0 0)",
+    "button": "2px 2px 0 0 rgb(0 0 0)",
+    "dropdown": "2px 2px 0 0 rgb(0 0 0)"
+  }
+}

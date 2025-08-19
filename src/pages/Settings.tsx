@@ -64,9 +64,9 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -79,7 +79,8 @@ import {
   Wallet,
   WalletDefaults,
 } from '../bindings';
-import { DarkModeContext } from '../contexts/DarkModeContext';
+
+import { ThemeSelectorSimple } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -216,7 +217,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+    <div className='divide-y rounded-md border bg-card text-card-foreground overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -256,7 +257,6 @@ function SettingItem({
 
 function GlobalSettings() {
   const { addError } = useErrors();
-  const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
@@ -284,10 +284,24 @@ function GlobalSettings() {
     <>
       <SettingsSection title={t`Preferences`}>
         <SettingItem
-          label={t`Dark Mode`}
-          description={t`Switch between light and dark theme`}
-          control={<Switch checked={dark} onCheckedChange={setDark} />}
+          label={t`Theme`}
+          description={t`Choose your preferred theme`}
+          control={
+            <div className='w-full'>
+              {/* Theme selector will be added below */}
+            </div>
+          }
         />
+        <div>
+          <ThemeSelectorSimple />
+          <div className='m-4'>
+            <Link to='/themes'>
+              <Button variant='outline' size='sm'>
+                <Trans>More Themes...</Trans>
+              </Button>
+            </Link>
+          </div>
+        </div>
         {isMobile && (
           <SettingItem
             label={t`Biometric Authentication`}
@@ -1012,6 +1026,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
+  const [localChangeAddress, setLocalChangeAddress] = useState('');
+  const [enableChangeAddress, setEnableChangeAddress] = useState(false);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -1070,6 +1086,10 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       .then((data) => {
         setWallet(data);
         if (data?.name) setLocalName(data.name);
+        if (data?.change_address) {
+          setLocalChangeAddress(data.change_address);
+          setEnableChangeAddress(true);
+        }
       })
       .catch(addError);
 
@@ -1097,6 +1117,31 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     try {
       await commands.setNetworkOverride({ fingerprint, name });
       setWallet({ ...wallet, network: name });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+    fetchState();
+  };
+
+  const setChangeAddress = async (address: string | null) => {
+    if (!wallet) return;
+    clearState();
+    try {
+      if (address) {
+        const { valid } = await commands.checkAddress({ address });
+        if (!valid) {
+          addError({
+            kind: 'not_found',
+            reason: 'Cannot send change to external address',
+          });
+          return;
+        }
+      }
+      await commands.setChangeAddress({
+        fingerprint,
+        change_address: address || null,
+      });
+      setWallet({ ...wallet, change_address: address });
     } catch (error) {
       addError(error as CustomError);
     }
@@ -1214,6 +1259,39 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+        </SettingItem>
+
+        <SettingItem
+          label={t`Change Address`}
+          description={t`Set a custom address to send change to`}
+          control={
+            <Switch
+              checked={!!wallet?.change_address}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setLocalChangeAddress('');
+                  setEnableChangeAddress(true);
+                } else {
+                  setChangeAddress(null).then(() => {
+                    setLocalChangeAddress('');
+                    setEnableChangeAddress(false);
+                  });
+                }
+              }}
+            />
+          }
+        >
+          {enableChangeAddress && (
+            <div className='mt-3'>
+              <Input
+                placeholder='Enter custom address'
+                className='w-[200px]'
+                value={localChangeAddress}
+                onChange={(event) => setLocalChangeAddress(event.target.value)}
+                onBlur={() => setChangeAddress(localChangeAddress)}
+              />
             </div>
           )}
         </SettingItem>

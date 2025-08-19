@@ -28,7 +28,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -116,25 +116,36 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const fetchThumbnail = useCallback(() => {
-    commands
-      .getNftThumbnail({ nft_id: nft.launcher_id })
-      .then((response) => setThumbnail(response.thumbnail))
-      .catch((error) => console.error(error));
-  }, [nft.launcher_id]);
-
   useEffect(() => {
-    fetchThumbnail();
+    let isUnmounted = false;
+
+    const fetchThumbnailSafely = () => {
+      if (!isUnmounted) {
+        commands
+          .getNftThumbnail({ nft_id: nft.launcher_id })
+          .then((response) => {
+            if (!isUnmounted) {
+              setThumbnail(response.thumbnail);
+            }
+          })
+          .catch((error) => {
+            if (!isUnmounted) {
+              console.error(error);
+            }
+          });
+      }
+    };
+
+    fetchThumbnailSafely();
 
     let unlistenPromise: Promise<() => void> | null = null;
-    let isUnmounted = false;
 
     const setupListener = async () => {
       try {
         unlistenPromise = events.syncEvent.listen((event) => {
           const type = event.payload.type;
           if (type === 'nft_data' && !isUnmounted) {
-            fetchThumbnail();
+            fetchThumbnailSafely();
           }
         });
       } catch (error) {
@@ -149,16 +160,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       if (unlistenPromise) {
         unlistenPromise
           .then((unlisten) => {
-            if (!isUnmounted) {
-              unlisten();
-            }
+            unlisten();
           })
           .catch((error) => {
             console.error('Failed to cleanup event listener:', error);
           });
       }
     };
-  }, [nft.launcher_id, fetchThumbnail]);
+  }, [nft.launcher_id]);
 
   const toggleVisibility = () => {
     commands

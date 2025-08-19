@@ -1,0 +1,51 @@
+{
+  "name": "colorful",
+  "displayName": "Colorful",
+  "backgroundImage": "background.jpg",
+  "inherits": "light",
+  "most_like": "light",
+  "colors": {
+    "background": "280 50% 25%",
+    "secondary": "210 100% 85%",
+    "secondaryForeground": "210 50% 25%",
+    "accent": "280 100% 85%",
+    "accentForeground": "280 50% 25%"
+  },
+  "fonts": {
+    "mono": "JetBrains Mono, Consolas, Monaco, monospace"
+  },
+  "buttons": {
+    "outline": {
+      "background": "transparent",
+      "color": "hsl(0 0% 9%)",
+      "border": "2px solid hsl(280 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "none",
+      "hover": {
+        "background": "hsl(280 100% 85% / 0.1)",
+        "color": "hsl(280 50% 25%)",
+        "transform": "scale(1.02)"
+      }
+    },
+    "secondary": {
+      "background": "hsl(210 100% 85%)",
+      "color": "hsl(210 50% 25%)",
+      "border": "1px solid hsl(210 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "0 2px 8px hsl(210 100% 85% / 0.3)",
+      "hover": {
+        "background": "hsl(210 100% 80%)",
+        "transform": "translateY(-1px)"
+      }
+    }
+  },
+  "buttonStyles": ["shimmer"],
+  "switches": {
+    "checked": {
+      "background": "hsl(280 90% 85%)"
+    },
+    "unchecked": {
+      "background": "hsl(280 30% 85%)"
+    }
+  }
+}
