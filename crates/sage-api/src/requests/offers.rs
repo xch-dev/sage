@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, OfferRecord, OfferSummary, SpendBundleJson, TransactionSummary};
+use crate::{
+    Amount, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson, TransactionSummary,
+};
 
 use super::TransactionResponse;
 
@@ -78,6 +80,7 @@ pub struct ViewOffer {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct ViewOfferResponse {
     pub offer: OfferSummary,
+    pub status: OfferRecordStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

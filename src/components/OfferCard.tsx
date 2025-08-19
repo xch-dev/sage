@@ -1,4 +1,9 @@
-import { commands, NetworkKind, OfferRecord, OfferSummary } from '@/bindings';
+import {
+  commands,
+  NetworkKind,
+  OfferRecordStatus,
+  OfferSummary,
+} from '@/bindings';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { NumberFormat } from '@/components/NumberFormat';
@@ -28,21 +33,27 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 type CatPresence = Record<string, boolean>;
 
 interface OfferCardProps {
-  record?: OfferRecord;
+  offerId?: string;
+  offer?: string;
+  status?: OfferRecordStatus;
+  creationTimestamp?: number;
   summary?: OfferSummary;
   content?: React.ReactNode;
 }
 
-export function OfferCard({ record, summary, content }: OfferCardProps) {
+export function OfferCard({
+  offerId,
+  offer,
+  status,
+  creationTimestamp,
+  summary: offerSummary,
+  content,
+}: OfferCardProps) {
   const walletState = useWalletState();
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const isMobile = platform() === 'ios' || platform() === 'android';
-
-  const offerSummary = summary || record?.summary;
-  const offerId = record?.offer_id || '';
-  const offer = record?.offer || undefined;
 
   const handleShare = async () => {
     if (!offer) return;
@@ -121,23 +132,23 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
         </CardHeader>
         <CardContent>
           <div className='flex items-center gap-4 mb-4'>
-            {record?.status && (
+            {status && (
               <div
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  record?.status === 'active'
+                  status === 'active' || status === 'pending'
                     ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
-                    : record?.status === 'completed'
+                    : status === 'completed'
                       ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
-                      : record?.status === 'cancelled'
+                      : status === 'cancelled'
                         ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
                         : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                 }`}
               >
-                {record?.status === 'active'
+                {status === 'active' || status === 'pending'
                   ? t`Pending`
-                  : record?.status === 'completed'
+                  : status === 'completed'
                     ? t`Taken`
-                    : record?.status === 'cancelled'
+                    : status === 'cancelled'
                       ? t`Cancelled`
                       : t`Expired`}
               </div>
@@ -145,16 +156,12 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
           </div>
 
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            {record?.creation_timestamp && (
+            {creationTimestamp && (
               <div className='flex items-center gap-2'>
                 <Calendar className='h-4 w-4 text-muted-foreground' />
                 <LabeledItem
                   label={t`Created`}
-                  content={formatTimestamp(
-                    record.creation_timestamp,
-                    'short',
-                    'short',
-                  )}
+                  content={formatTimestamp(creationTimestamp, 'short', 'short')}
                 />
               </div>
             )}

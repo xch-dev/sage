@@ -1,4 +1,9 @@
-import { commands, OfferSummary, TakeOfferResponse } from '@/bindings';
+import {
+  commands,
+  OfferRecordStatus,
+  OfferSummary,
+  TakeOfferResponse,
+} from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TakeOfferConfirmation } from '@/components/confirmations/TakeOfferConfirmation';
 import Container from '@/components/Container';
@@ -27,6 +32,7 @@ export function Offer() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
   const [summary, setSummary] = useState<OfferSummary | null>(null);
+  const [status, setStatus] = useState<OfferRecordStatus | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
@@ -43,6 +49,7 @@ export function Offer() {
 
       const data = await commands.viewOffer({ offer: resolvedOffer });
       setSummary(data.offer);
+      setStatus(data.status);
       setLoadingStatus(t`Processing offer data...`);
     } catch (error) {
       addError(error as CustomError);
@@ -92,6 +99,7 @@ export function Offer() {
           summary && (
             <>
               <OfferCard
+                status={status ?? undefined}
                 summary={summary}
                 content={
                   <div className='flex flex-col space-y-1.5'>
@@ -118,7 +126,14 @@ export function Offer() {
                   <Trans>Import Offer</Trans>
                 </Button>
 
-                <Button onClick={take}>
+                <Button
+                  onClick={take}
+                  disabled={
+                    status === 'completed' ||
+                    status === 'cancelled' ||
+                    status === 'expired'
+                  }
+                >
                   <Trans>Take Offer</Trans>
                 </Button>
               </div>
