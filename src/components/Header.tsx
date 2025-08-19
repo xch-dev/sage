@@ -92,8 +92,10 @@ export default function Header(
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
-              backgroundAttachment: 'fixed',
+              backgroundAttachment: 'scroll',
               backgroundColor: 'transparent',
+              transform: 'translateZ(0)',
+              willChange: 'transform',
             }),
           }}
         >
