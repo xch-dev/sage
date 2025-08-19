@@ -42,46 +42,47 @@ export function LabeledItem({
       <label
         id={labelId}
         htmlFor={contentId}
-        className='text-sm font-medium text-muted-foreground block mb-1'
+        className='text-sm font-medium text-muted-foreground block mb-0.5'
       >
         {label}
       </label>
 
       {content && isValidUrl(content) ? (
-        <button
-          type='button'
+        <span
           id={contentId}
           onClick={() => openUrl(content)}
           onKeyDown={(e) => handleKeyDown(e, () => openUrl(content))}
-          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left w-full p-0 border-0 bg-transparent'
+          className='text-sm break-words text-blue-700 dark:text-blue-300 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left p-0 border-0 bg-transparent m-0'
           title={t`Open external link: ${content}`}
           aria-label={t`${label}: ${content} (opens in external application)`}
           aria-describedby={labelId}
+          role='button'
+          tabIndex={0}
         >
           {content}
-        </button>
+        </span>
       ) : onClick ? (
-        <button
-          type='button'
+        <span
           id={contentId}
           onClick={onClick}
           onKeyDown={(e) => handleKeyDown(e, onClick)}
-          className='text-sm break-all text-blue-700 dark:text-blue-300 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left w-full p-0 border-0 bg-transparent'
+          className='text-sm break-words text-blue-700 dark:text-blue-300 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left p-0 border-0 bg-transparent m-0'
           title={t`Navigate to: ${content}`}
           aria-label={t`${label}: ${content} (navigate within app)`}
           aria-describedby={labelId}
+          role='button'
+          tabIndex={0}
         >
           {content}
-        </button>
+        </span>
       ) : (
-        <div
+        <span
           id={contentId}
-          className={`text-sm break-all ${className}`}
+          className={`text-sm break-words ${className}`}
           aria-describedby={labelId}
-          role='text'
         >
           {content}
-        </div>
+        </span>
       )}
 
       {children}

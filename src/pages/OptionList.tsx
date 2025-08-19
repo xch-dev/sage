@@ -177,7 +177,6 @@ export function OptionList() {
         )}
       </Container>
 
-      {/* Shared dialogs */}
       {dialogs}
     </>
   );

@@ -232,12 +232,10 @@ export default function ConfirmationDialog({
             </div>
 
             <div className='flex-1 relative'>
-              {/* Transaction Summary Tab */}
               <TabsContent
                 value='summary'
                 className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
               >
-                {/* High Fee Warning */}
                 {isHighFee && !fee.isZero() && (
                   <Alert variant='warning' className='mb-3'>
                     <AlertCircleIcon className='h-4 w-4' />
@@ -252,9 +250,6 @@ export default function ConfirmationDialog({
                   </Alert>
                 )}
 
-                {/* Fee Display */}
-
-                {/* Additional Data Display */}
                 {additionalData && (
                   <div className='mb-4'>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -271,7 +266,6 @@ export default function ConfirmationDialog({
                   </div>
                 )}
 
-                {/* Combined Assets and Recipients */}
                 {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -299,7 +293,6 @@ export default function ConfirmationDialog({
 
                           <Separator className='my-2' />
 
-                          {/* Show recipients */}
                           <div className='flex flex-col gap-2'>
                             <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
                               <div className='flex items-center'>
@@ -367,13 +360,11 @@ export default function ConfirmationDialog({
                 )}
               </TabsContent>
 
-              {/* Transaction Details Tab */}
               <TabsContent
                 value='details'
                 className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
               >
                 <div className='flex flex-col gap-4'>
-                  {/* Spent Coins */}
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
                       <BadgeMinus className='h-4 w-4 mr-1' />
@@ -419,14 +410,12 @@ export default function ConfirmationDialog({
                     </div>
                   </div>
 
-                  {/* Transaction Output */}
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
                       <BadgePlus className='h-4 w-4 mr-1' />
                       <Trans>Transaction Output</Trans>
                     </h3>
                     <div className='space-y-2'>
-                      {/* Fee */}
                       {!fee.isZero() && (
                         <div className='flex flex-col gap-1.5 rounded-md border p-2'>
                           <div className='flex items-center justify-between'>
@@ -452,7 +441,6 @@ export default function ConfirmationDialog({
                         </div>
                       )}
 
-                      {/* Created Coins */}
                       {created
                         .sort((a, b) => a.sort - b.sort)
                         .map((item) => (
@@ -490,7 +478,6 @@ export default function ConfirmationDialog({
                 </div>
               </TabsContent>
 
-              {/* JSON Tab */}
               <TabsContent
                 value='json'
                 className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
