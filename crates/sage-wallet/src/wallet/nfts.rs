@@ -31,7 +31,7 @@ impl Wallet {
         did_id: Bytes32,
         mints: Vec<WalletNftMint>,
     ) -> Result<(Vec<CoinSpend>, Vec<SerializedNft>), WalletError> {
-        let default_royalty_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let default_royalty_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
         let mut actions = vec![Action::fee(fee)];
@@ -82,7 +82,7 @@ impl Wallet {
         fee: u64,
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let sender_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let sender_puzzle_hash = self.change_p2_puzzle_hash().await?;
         let is_external = !self.db.is_custody_p2_puzzle_hash(puzzle_hash).await?;
 
         let mut ctx = SpendContext::new();
@@ -219,7 +219,7 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let puzzle_hash = test.wallet.p2_puzzle_hash(false, true).await?;
+        let puzzle_hash = test.wallet.change_p2_puzzle_hash().await?;
 
         let nft = nfts.remove(0);
 
@@ -280,7 +280,7 @@ mod tests {
         test.transact(coin_spends).await?;
         test.wait_for_coins().await;
 
-        let puzzle_hash = test.wallet.p2_puzzle_hash(false, true).await?;
+        let puzzle_hash = test.wallet.change_p2_puzzle_hash().await?;
 
         let nft = nfts.remove(0);
 
@@ -331,7 +331,7 @@ mod tests {
         alice.transact(coin_spends).await?;
         alice.wait_for_coins().await;
 
-        let puzzle_hash = bob.wallet.p2_puzzle_hash(false, true).await?;
+        let puzzle_hash = bob.wallet.change_p2_puzzle_hash().await?;
 
         let nft = nfts.remove(0);
 

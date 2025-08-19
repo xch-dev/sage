@@ -4,9 +4,10 @@ use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
     GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
-    SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
-    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
-    SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers, SetTargetPeersResponse,
+    SetChangeAddress, SetChangeAddressResponse, SetDeltaSync, SetDeltaSyncOverride,
+    SetDeltaSyncOverrideResponse, SetDeltaSyncResponse, SetDiscoverPeers, SetDiscoverPeersResponse,
+    SetNetwork, SetNetworkOverride, SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers,
+    SetTargetPeersResponse,
 };
 use sage_config::{MAINNET, TESTNET11};
 use sage_wallet::SyncCommand;
@@ -156,5 +157,23 @@ impl Sage {
         wallet_config.delta_sync = req.delta_sync;
         self.save_config()?;
         Ok(SetDeltaSyncOverrideResponse {})
+    }
+
+    pub async fn set_change_address(
+        &mut self,
+        req: SetChangeAddress,
+    ) -> Result<SetChangeAddressResponse> {
+        let Some(wallet_config) = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == req.fingerprint)
+        else {
+            return Err(Error::UnknownFingerprint);
+        };
+        wallet_config.change_address = req.change_address;
+        self.save_config()?;
+        self.switch_wallet().await?;
+        Ok(SetChangeAddressResponse {})
     }
 }

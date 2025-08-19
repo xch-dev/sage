@@ -90,6 +90,13 @@ pub struct SetDeltaSyncOverride {
     pub delta_sync: Option<bool>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SetChangeAddress {
+    pub fingerprint: u32,
+    pub change_address: Option<String>,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct EmptyResponse {}
@@ -102,3 +109,4 @@ pub type SetNetworkResponse = EmptyResponse;
 pub type SetNetworkOverrideResponse = EmptyResponse;
 pub type SetDeltaSyncResponse = EmptyResponse;
 pub type SetDeltaSyncOverrideResponse = EmptyResponse;
+pub type SetChangeAddressResponse = EmptyResponse;

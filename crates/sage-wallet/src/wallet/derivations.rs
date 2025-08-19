@@ -79,11 +79,10 @@ impl Wallet {
         Ok(p2_puzzle_hashes)
     }
 
-    pub async fn p2_puzzle_hash(
-        &self,
-        hardened: bool,
-        reuse: bool,
-    ) -> Result<Bytes32, WalletError> {
-        Ok(self.p2_puzzle_hashes(1, hardened, reuse).await?[0])
+    pub async fn change_p2_puzzle_hash(&self) -> Result<Bytes32, WalletError> {
+        if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
+            return Ok(change_p2_puzzle_hash);
+        }
+        Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
     }
 }
