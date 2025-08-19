@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
@@ -703,6 +704,7 @@ function RequestDialog({
   signClient,
 }: RequestDialogProps) {
   const [isApproving, setIsApproving] = useState(false);
+  const { currentTheme } = useTheme();
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
@@ -725,7 +727,21 @@ function RequestDialog({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
-      <DialogContent className='max-w-2xl'>
+      <DialogContent
+        className='max-w-2xl'
+        style={{
+          backgroundImage: currentTheme?.backgroundImage
+            ? `url(${currentTheme.backgroundImage})`
+            : undefined,
+          backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
+          backgroundPosition: currentTheme?.backgroundImage
+            ? 'center'
+            : undefined,
+          backgroundRepeat: currentTheme?.backgroundImage
+            ? 'no-repeat'
+            : undefined,
+        }}
+      >
         <DialogHeader>
           {peerMetadata && (
             <div className='text-sm text-muted-foreground mb-4'>
