@@ -7,6 +7,7 @@ import { usePeers } from '@/hooks/usePeers';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowLeftRight,
   BookUser,
@@ -30,6 +31,8 @@ interface NavProps {
 
 export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
+
+  const isIos = platform() === 'ios';
 
   return (
     <nav
@@ -64,13 +67,15 @@ export function TopNav({ isCollapsed }: NavProps) {
         <SquareUserRound className={className} />
       </NavLink>
 
-      <NavLink
-        url={'/options'}
-        isCollapsed={isCollapsed}
-        message={<Trans>Options</Trans>}
-      >
-        <FilePenLine className={className} />
-      </NavLink>
+      {!isIos && (
+        <NavLink
+          url={'/options'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Options</Trans>}
+        >
+          <FilePenLine className={className} />
+        </NavLink>
+      )}
 
       <NavLink
         url={'/offers'}
