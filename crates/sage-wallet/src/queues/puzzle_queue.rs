@@ -3,7 +3,7 @@ use std::time::Duration;
 use chia::protocol::{Bytes32, CoinState};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::{Database, UnsyncedCoin};
-use tokio::{sync::mpsc, time::sleep};
+use tokio::time::sleep;
 use tracing::{debug, info, warn};
 
 use crate::{
@@ -14,29 +14,23 @@ use crate::{
 #[derive(Debug)]
 pub struct PuzzleQueue {
     db: Database,
+    state: SyncState,
     genesis_challenge: Bytes32,
     batch_size_per_peer: usize,
-    state: SyncState,
-    sync_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
 }
 
 impl PuzzleQueue {
     pub fn new(
         db: Database,
+        state: SyncState,
         genesis_challenge: Bytes32,
         batch_size_per_peer: usize,
-        state: SyncState,
-        sync_sender: mpsc::Sender<SyncEvent>,
-        command_sender: mpsc::Sender<SyncCommand>,
     ) -> Self {
         Self {
             db,
+            state,
             genesis_challenge,
             batch_size_per_peer,
-            state,
-            sync_sender,
-            command_sender,
         }
     }
 
@@ -227,14 +221,16 @@ impl PuzzleQueue {
         }
 
         if send_events {
-            self.command_sender
+            self.state
+                .commands
                 .send(SyncCommand::SubscribeCoins {
                     coin_ids: subscriptions,
                 })
                 .await
                 .ok();
 
-            self.sync_sender
+            self.state
+                .events
                 .send(SyncEvent::PuzzleBatchSynced)
                 .await
                 .ok();

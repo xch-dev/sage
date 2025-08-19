@@ -135,7 +135,8 @@ impl TestWallet {
         }
 
         let (command_sender, command_receiver) = mpsc::channel(100);
-        let state = SyncState::new(command_sender);
+        let (event_sender, event_receiver) = mpsc::channel(100);
+        let state = SyncState::new(command_sender, event_sender);
         let wallet = Arc::new(Wallet::new(
             db,
             fingerprint,
@@ -144,7 +145,7 @@ impl TestWallet {
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
         ));
 
-        let (mut sync_manager, events) = SyncManager::new(
+        let mut sync_manager = SyncManager::new(
             options,
             state.clone(),
             command_receiver,
@@ -171,7 +172,7 @@ impl TestWallet {
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),
             hardened_puzzle_hash: hardened_puzzle_hash.into(),
-            events,
+            events: event_receiver,
             index: key_index,
             state,
             options,

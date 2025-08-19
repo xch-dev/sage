@@ -3,23 +3,18 @@ use crate::{SyncEvent, SyncState, WalletError, WalletPeer};
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
 use std::time::Duration;
-use tokio::{sync::mpsc, time::sleep};
+use tokio::time::sleep;
 use tracing::{error, info};
 
 #[derive(Debug)]
 pub struct BlockTimeQueue {
     db: Database,
     state: SyncState,
-    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl BlockTimeQueue {
-    pub fn new(db: Database, state: SyncState, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self {
-            db,
-            state,
-            sync_sender,
-        }
+    pub fn new(db: Database, state: SyncState) -> Self {
+        Self { db, state }
     }
 
     pub async fn start(mut self, delay: Duration) -> Result<(), WalletError> {
@@ -60,7 +55,7 @@ impl BlockTimeQueue {
             }
         }
 
-        self.sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+        self.state.events.send(SyncEvent::CoinsUpdated).await.ok();
 
         Ok(())
     }

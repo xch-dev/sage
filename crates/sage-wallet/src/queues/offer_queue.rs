@@ -7,7 +7,7 @@ use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::{decode_offer, Offer};
 use clvmr::Allocator;
 use sage_database::{Database, OfferStatus};
-use tokio::{sync::mpsc, time::sleep};
+use tokio::time::sleep;
 use tracing::warn;
 
 use crate::{SyncEvent, SyncState, WalletError};
@@ -15,23 +15,16 @@ use crate::{SyncEvent, SyncState, WalletError};
 #[derive(Debug)]
 pub struct OfferQueue {
     db: Database,
-    genesis_challenge: Bytes32,
     state: SyncState,
-    sync_sender: mpsc::Sender<SyncEvent>,
+    genesis_challenge: Bytes32,
 }
 
 impl OfferQueue {
-    pub fn new(
-        db: Database,
-        genesis_challenge: Bytes32,
-        state: SyncState,
-        sync_sender: mpsc::Sender<SyncEvent>,
-    ) -> Self {
+    pub fn new(db: Database, state: SyncState, genesis_challenge: Bytes32) -> Self {
         Self {
             db,
-            genesis_challenge,
             state,
-            sync_sender,
+            genesis_challenge,
         }
     }
 
@@ -150,7 +143,8 @@ impl OfferQueue {
         for (offer_id, status) in new_offer_statuses {
             self.db.update_offer_status(offer_id, status).await?;
 
-            self.sync_sender
+            self.state
+                .events
                 .send(SyncEvent::OfferUpdated { offer_id, status })
                 .await
                 .ok();

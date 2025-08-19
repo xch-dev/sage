@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use chia::protocol::SpendBundle;
 use sage_database::Database;
-use tokio::{sync::mpsc, time::sleep};
+use tokio::time::sleep;
 use tracing::{info, warn};
 
 use crate::{submit_to_peers, Status, SyncEvent, SyncState, WalletError};
@@ -11,16 +11,11 @@ use crate::{submit_to_peers, Status, SyncEvent, SyncState, WalletError};
 pub struct TransactionQueue {
     db: Database,
     state: SyncState,
-    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl TransactionQueue {
-    pub fn new(db: Database, state: SyncState, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self {
-            db,
-            state,
-            sync_sender,
-        }
+    pub fn new(db: Database, state: SyncState) -> Self {
+        Self { db, state }
     }
 
     pub async fn start(mut self, delay: Duration) -> Result<(), WalletError> {
@@ -76,7 +71,8 @@ impl TransactionQueue {
 
                     self.db.update_mempool_item_time(transaction_id).await?;
 
-                    self.sync_sender
+                    self.state
+                        .events
                         .send(SyncEvent::TransactionUpdated { transaction_id })
                         .await
                         .ok();
@@ -93,7 +89,8 @@ impl TransactionQueue {
 
                     tx.commit().await?;
 
-                    self.sync_sender
+                    self.state
+                        .events
                         .send(SyncEvent::TransactionFailed {
                             transaction_id,
                             error,

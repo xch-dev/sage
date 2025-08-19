@@ -55,7 +55,7 @@ impl Sage {
             network_list: NetworkList::default(),
             keychain: Keychain::default(),
             wallet: None,
-            state: SyncState::new(mpsc::channel(1).0),
+            state: SyncState::new(mpsc::channel(1).0, mpsc::channel(1).0),
             unit: XCH.clone(),
         }
     }
@@ -212,10 +212,11 @@ impl Sage {
         let connector = self.setup_ssl()?;
 
         let (command_sender, command_receiver) = mpsc::channel(100);
-        let state = SyncState::new(command_sender);
+        let (event_sender, event_receiver) = mpsc::channel(100);
+        let state = SyncState::new(command_sender, event_sender);
         self.state = state.clone();
 
-        let (sync_manager, receiver) = SyncManager::new(
+        let sync_manager = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
                 discover_peers: self.config.network.discover_peers,
@@ -240,7 +241,7 @@ impl Sage {
 
         tokio::spawn(sync_manager.sync());
 
-        Ok(receiver)
+        Ok(event_receiver)
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {

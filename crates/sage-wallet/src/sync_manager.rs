@@ -50,7 +50,6 @@ pub struct SyncManager {
     wallet: Option<Arc<Wallet>>,
     network: Network,
     connector: Connector,
-    event_sender: mpsc::Sender<SyncEvent>,
     command_receiver: mpsc::Receiver<SyncCommand>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
@@ -114,16 +113,13 @@ impl SyncManager {
         wallet: Option<Arc<Wallet>>,
         network: Network,
         connector: Connector,
-    ) -> (Self, mpsc::Receiver<SyncEvent>) {
-        let (event_sender, event_receiver) = mpsc::channel(100);
-
-        let manager = Self {
+    ) -> Self {
+        Self {
             options,
             state,
             wallet,
             network,
             connector,
-            event_sender,
             command_receiver,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
@@ -134,9 +130,7 @@ impl SyncManager {
             blocktime_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
-        };
-
-        (manager, event_receiver)
+        }
     }
 
     pub async fn sync(mut self) {
@@ -236,7 +230,7 @@ impl SyncManager {
             &peer,
             self.pending_coin_subscriptions.clone(),
             self.pending_puzzle_subscriptions.clone(),
-            self.event_sender.clone(),
+            self.state.events.clone(),
             self.state.commands.clone(),
         )
         .await
@@ -327,7 +321,7 @@ impl SyncManager {
                         wallet,
                         message.items,
                         true,
-                        &self.event_sender,
+                        &self.state.events,
                         &self.state.commands,
                     )
                     .await?;
@@ -378,12 +372,12 @@ impl SyncManager {
                             wallet.clone(),
                             peer,
                             self.state.clone(),
-                            self.event_sender.clone(),
+                            self.state.events.clone(),
                             self.state.commands.clone(),
                             self.options.delta_sync,
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
-                        self.event_sender.send(SyncEvent::Start(ip)).await.ok();
+                        self.state.events.send(SyncEvent::Start(ip)).await.ok();
                     }
                 }
             }
@@ -392,13 +386,13 @@ impl SyncManager {
             {
                 task.abort();
                 self.initial_wallet_sync = InitialWalletSync::Idle;
-                self.event_sender.send(SyncEvent::Stop).await.ok();
+                self.state.events.send(SyncEvent::Stop).await.ok();
             }
             InitialWalletSync::Subscribed(ip)
                 if !state.is_connected(*ip) || self.wallet.is_none() =>
             {
                 self.initial_wallet_sync = InitialWalletSync::Idle;
-                self.event_sender.send(SyncEvent::Stop).await.ok();
+                self.state.events.send(SyncEvent::Stop).await.ok();
             }
             _ => {}
         }
@@ -408,11 +402,9 @@ impl SyncManager {
                 let task = tokio::spawn(
                     PuzzleQueue::new(
                         wallet.db.clone(),
+                        self.state.clone(),
                         wallet.genesis_challenge,
                         self.options.puzzle_batch_size_per_peer,
-                        self.state.clone(),
-                        self.event_sender.clone(),
-                        self.state.commands.clone(),
                     )
                     .start(self.options.timeouts.puzzle_delay),
                 );
@@ -426,7 +418,7 @@ impl SyncManager {
 
                 if mainnet || testnet {
                     let task = tokio::spawn(
-                        CatQueue::new(wallet.db.clone(), testnet, self.event_sender.clone())
+                        CatQueue::new(wallet.db.clone(), self.state.clone(), testnet)
                             .start(self.options.timeouts.cat_delay),
                     );
                     self.cat_queue_task = Some(task);
@@ -435,7 +427,7 @@ impl SyncManager {
 
             if self.nft_uri_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
-                    NftUriQueue::new(wallet.db.clone(), self.event_sender.clone())
+                    NftUriQueue::new(wallet.db.clone(), self.state.clone())
                         .start(self.options.timeouts.nft_uri_delay),
                 );
                 self.nft_uri_queue_task = Some(task);
@@ -443,12 +435,8 @@ impl SyncManager {
 
             if self.transaction_queue_task.is_none() {
                 let task = tokio::spawn(
-                    TransactionQueue::new(
-                        wallet.db.clone(),
-                        self.state.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(self.options.timeouts.transaction_delay),
+                    TransactionQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.options.timeouts.transaction_delay),
                 );
                 self.transaction_queue_task = Some(task);
             }
@@ -457,9 +445,8 @@ impl SyncManager {
                 let task = tokio::spawn(
                     OfferQueue::new(
                         wallet.db.clone(),
-                        wallet.genesis_challenge,
                         self.state.clone(),
-                        self.event_sender.clone(),
+                        wallet.genesis_challenge,
                     )
                     .start(self.options.timeouts.offer_delay),
                 );
@@ -468,12 +455,8 @@ impl SyncManager {
 
             if self.blocktime_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
-                    BlockTimeQueue::new(
-                        wallet.db.clone(),
-                        self.state.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(self.options.timeouts.blocktime_delay),
+                    BlockTimeQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.options.timeouts.blocktime_delay),
                 );
                 self.blocktime_queue_task = Some(task);
             }
@@ -493,7 +476,7 @@ impl SyncManager {
                 match result {
                     Ok(Ok(())) => {
                         self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
-                        self.event_sender.send(SyncEvent::Subscribed).await.ok();
+                        self.state.events.send(SyncEvent::Subscribed).await.ok();
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
@@ -503,7 +486,7 @@ impl SyncManager {
                             "wallet sync failed",
                         );
                         self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
+                        self.state.events.send(SyncEvent::Stop).await.ok();
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
@@ -513,7 +496,7 @@ impl SyncManager {
                             "wallet sync timed out",
                         );
                         self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
+                        self.state.events.send(SyncEvent::Stop).await.ok();
                     }
                 }
             }
