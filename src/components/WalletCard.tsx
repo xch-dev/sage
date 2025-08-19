@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DarkModeContext } from '@/contexts/DarkModeContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useSortable } from '@dnd-kit/sortable';
@@ -39,7 +39,7 @@ import {
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
-import { useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
@@ -64,7 +64,6 @@ export function WalletCard({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const { dark } = useContext(DarkModeContext);
   const { promptIfEnabled } = useBiometric();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -75,6 +74,7 @@ export function WalletCard({
   const [isResyncOpen, setIsResyncOpen] = useState(false);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const { currentTheme } = useTheme();
 
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
@@ -468,7 +468,7 @@ export function WalletCard({
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    <Spoiler theme={dark ? 'dark' : 'light'}>
+                    <Spoiler theme={currentTheme?.most_like ?? 'light'}>
                       {secrets.secret_key}
                     </Spoiler>
                   </p>
@@ -479,7 +479,7 @@ export function WalletCard({
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      <Spoiler theme={dark ? 'dark' : 'light'}>
+                      <Spoiler theme={currentTheme?.most_like ?? 'light'}>
                         {secrets.mnemonic}
                       </Spoiler>
                     </p>

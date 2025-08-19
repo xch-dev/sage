@@ -77,7 +77,7 @@ async function loadThemeWithTracking(
     }
 
     // only light and dark icons for now
-    theme.icon_path = theme.icon_name === 'dark' ? iconDark : iconLight;
+    theme.icon_path = theme.most_like === 'dark' ? iconDark : iconLight;
 
     return theme;
   } catch (error) {
@@ -470,7 +470,7 @@ function getOutlineButtonBackground(theme: Theme): string {
 export interface Theme {
   name: string;
   displayName: string;
-  icon_name?: 'light' | 'dark';
+  most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
   backgroundOpacity?: {
