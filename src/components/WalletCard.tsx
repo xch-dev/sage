@@ -32,6 +32,7 @@ import {
   EraserIcon,
   EyeIcon,
   FlameIcon,
+  ImageMinus,
   LogInIcon,
   MoreVerticalIcon,
   PenIcon,
@@ -302,7 +303,7 @@ export function WalletCard({
                       e.stopPropagation();
                     }}
                   >
-                    <EraserIcon className='mr-2 h-4 w-4' />
+                    <ImageMinus className='mr-2 h-4 w-4' />
                     <span>
                       <Trans>Remove Emoji</Trans>
                     </span>
