@@ -19,7 +19,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [availableThemes, setAvailableThemes] = useState<Theme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [savedTheme, setSavedTheme] = useLocalStorage<string>('theme', 'light');
+  const [savedTheme, setSavedTheme] = useLocalStorage<string | null>(
+    'theme',
+    null,
+  );
+  const [dark] = useLocalStorage<boolean>('dark', false); // pre-themes dark mode setting
   const [lastUsedNonCoreTheme, setLastUsedNonCoreTheme] = useLocalStorage<
     string | null
   >('last-used-non-core-theme', null);
@@ -59,13 +63,17 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // Load saved theme from localStorage
-        if (savedTheme) {
-          const theme = getTheme(savedTheme, themes);
-          if (theme) {
-            setCurrentTheme(theme);
-            applyTheme(theme);
-          }
+        // Check for legacy dark setting and migrate if needed
+        if (dark && !savedTheme) {
+          setSavedTheme('dark');
+        }
+
+        // Load saved theme from localStorage or use fallback
+        const themeToLoad = savedTheme || 'light';
+        const theme = getTheme(themeToLoad, themes);
+        if (theme) {
+          setCurrentTheme(theme);
+          applyTheme(theme);
         }
       } catch (err) {
         console.error('Error loading themes:', err);
@@ -78,7 +86,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     initializeThemes();
-  }, [savedTheme]);
+  }, [savedTheme, dark, setSavedTheme]);
 
   return (
     <ThemeContext.Provider
