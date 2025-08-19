@@ -41,7 +41,7 @@ export default function Header(
 
   return (
     <header
-      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 ${
+      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 z-10 ${
         !isMobile ? 'pt-2' : 'pb-2 pt-2'
       }`}
       role='banner'
