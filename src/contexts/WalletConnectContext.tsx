@@ -151,14 +151,15 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
       try {
         const {
-          params: { pairingTopic, requiredNamespaces },
+          params: { pairingTopic, requiredNamespaces, optionalNamespaces },
         } = proposal;
 
         if (!pairingTopic) {
           throw new Error('Pairing topic not found');
         }
 
-        const requiredNamespace = requiredNamespaces.chia;
+        const requiredNamespace =
+          requiredNamespaces.chia || optionalNamespaces.chia;
         if (!requiredNamespace) {
           throw new Error('Missing required chia namespace');
         }
