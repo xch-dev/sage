@@ -136,16 +136,15 @@ export function MintOption() {
       <Header title={t`Mint Option`} />
 
       <Container>
-        <Alert variant='warning' className='mb-3'>
+        <Alert variant='warning' className='mb-4'>
           <AlertCircleIcon className='h-4 w-4' />
           <AlertTitle>
             <Trans>Experimental Feature</Trans>
           </AlertTitle>
           <AlertDescription>
             <Trans>
-              Option Contracts are an experimental feature that will lock up
-              your underlying assets until expiration or exercise. Support in
-              other apps is limited at this time.
+              Option Contracts are experimental and support in other apps is
+              limited.
             </Trans>
           </AlertDescription>
         </Alert>
@@ -160,9 +159,7 @@ export function MintOption() {
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                <Trans>
-                  Select the asset that you want to lock up in the option.
-                </Trans>
+                <Trans>Select the asset that you want to lock up.</Trans>
               </div>
 
               <div className='flex mt-4'>
@@ -198,9 +195,7 @@ export function MintOption() {
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                <Trans>
-                  Select the asset that you want to request as the strike price.
-                </Trans>
+                <Trans>Select the asset that you want to request.</Trans>
               </div>
 
               <div className='flex mt-4'>
