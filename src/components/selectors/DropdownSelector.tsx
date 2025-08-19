@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PropsWithChildren, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../ui/button';
 
 export interface DropdownSelectorProps<T> extends PropsWithChildren {
@@ -30,7 +31,13 @@ export function DropdownSelector<T>({
 }: DropdownSelectorProps<T>) {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<(HTMLDivElement | null)[]>([]);
@@ -45,7 +52,9 @@ export function DropdownSelector<T>({
     function handleClickOutside(event: MouseEvent) {
       if (
         containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        !containerRef.current.contains(event.target as Node) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -130,6 +139,35 @@ export function DropdownSelector<T>({
     }
   }, [isOpen]);
 
+  // Update dropdown position when open or window resizes/scrolls
+  useEffect(() => {
+    if (isOpen) {
+      const updateDropdownPosition = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          setDropdownPosition({
+            top: rect.bottom + window.scrollY,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+          });
+        }
+      };
+
+      updateDropdownPosition();
+
+      const handleScroll = () => updateDropdownPosition();
+      const handleResize = () => updateDropdownPosition();
+
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen]);
+
   // Add new effect to handle search text changes
   useEffect(() => {
     if (!setPage || !inputRef.current) return;
@@ -167,112 +205,120 @@ export function DropdownSelector<T>({
         </div>
       </Button>
 
-      {isOpen && (
-        <div
-          className={`absolute z-50 mt-2 ${width} bg-popover border rounded-md shadow-lg`}
-          role='listbox'
-          aria-label='Options'
-        >
-          <div className='p-2 space-y-2'>
-            {!!setPage && (
-              <div className='flex items-center justify-between'>
-                <span id='page-label'>Page {page + 1}</span>
-                <div
-                  className='flex items-center gap-2'
-                  role='navigation'
-                  aria-label='Pagination'
-                >
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setPage(Math.max(0, page - 1));
-                      inputRef.current?.focus();
-                    }}
-                    disabled={page === 0}
-                    aria-label='Previous page'
-                  >
-                    <ChevronLeft className='h-4 w-4' aria-hidden='true' />
-                  </Button>
-                  <Button
-                    variant='outline'
-                    size='icon'
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (loadedItems.length < pageSize) return;
-                      setPage(page + 1);
-                      inputRef.current?.focus();
-                    }}
-                    aria-label='Next page'
-                  >
-                    <ChevronRight className='h-4 w-4' aria-hidden='true' />
-                  </Button>
-                </div>
-              </div>
-            )}
-            {manualInput && (
-              <div
-                ref={(el) => {
-                  if (el) {
-                    const input = el.querySelector('input');
-                    if (input) {
-                      inputRef.current = input;
-                    }
-                  }
-                }}
-              >
-                {manualInput}
-              </div>
-            )}
-            {(!!setPage || manualInput) && <hr className='my-2' />}
-          </div>
-
+      {isOpen &&
+        createPortal(
           <div
-            className='max-h-[260px] overflow-y-auto'
-            ref={listRef}
-            tabIndex={0}
+            ref={dropdownRef}
+            className={`fixed z-[9999] ${width} bg-popover border rounded-md shadow-lg`}
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`,
+            }}
             role='listbox'
+            aria-label='Options'
           >
-            {loadedItems.length === 0 ? (
-              <div className='p-4 text-center text-sm text-muted-foreground'>
-                No items available
-              </div>
-            ) : (
-              loadedItems.map((item, i) => {
-                const disabled = isDisabled?.(item) ?? false;
-                return (
+            <div className='p-2 space-y-2 bg-popover'>
+              {!!setPage && (
+                <div className='flex items-center justify-between'>
+                  <span id='page-label'>Page {page + 1}</span>
                   <div
-                    // eslint-disable-next-line react/no-array-index-key
-                    key={i}
-                    ref={(el) => (optionsRef.current[i] = el)}
-                    onClick={() => {
-                      if (!disabled) {
-                        onSelect(item);
-                        setIsOpen(false);
-                      }
-                    }}
-                    role='option'
-                    aria-selected={i === selectedIndex}
-                    aria-disabled={disabled}
-                    className={`px-2 py-1.5 text-sm rounded-sm cursor-pointer ${
-                      disabled
-                        ? 'opacity-50 cursor-not-allowed'
-                        : i === selectedIndex
-                          ? 'bg-accent'
-                          : 'hover:bg-accent'
-                    }`}
+                    className='flex items-center gap-2'
+                    role='navigation'
+                    aria-label='Pagination'
                   >
-                    {renderItem(item)}
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setPage(Math.max(0, page - 1));
+                        inputRef.current?.focus();
+                      }}
+                      disabled={page === 0}
+                      aria-label='Previous page'
+                    >
+                      <ChevronLeft className='h-4 w-4' aria-hidden='true' />
+                    </Button>
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (loadedItems.length < pageSize) return;
+                        setPage(page + 1);
+                        inputRef.current?.focus();
+                      }}
+                      aria-label='Next page'
+                    >
+                      <ChevronRight className='h-4 w-4' aria-hidden='true' />
+                    </Button>
                   </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      )}
+                </div>
+              )}
+              {manualInput && (
+                <div
+                  ref={(el) => {
+                    if (el) {
+                      const input = el.querySelector('input');
+                      if (input) {
+                        inputRef.current = input;
+                      }
+                    }
+                  }}
+                >
+                  {manualInput}
+                </div>
+              )}
+              {(!!setPage || manualInput) && <hr className='my-2' />}
+            </div>
+
+            <div
+              className='max-h-[260px] overflow-y-auto'
+              ref={listRef}
+              tabIndex={0}
+              role='listbox'
+            >
+              {loadedItems.length === 0 ? (
+                <div className='p-4 text-center text-sm text-muted-foreground'>
+                  No items available
+                </div>
+              ) : (
+                loadedItems.map((item, i) => {
+                  const disabled = isDisabled?.(item) ?? false;
+                  return (
+                    <div
+                      // eslint-disable-next-line react/no-array-index-key
+                      key={i}
+                      ref={(el) => (optionsRef.current[i] = el)}
+                      onClick={() => {
+                        if (!disabled) {
+                          onSelect(item);
+                          setIsOpen(false);
+                        }
+                      }}
+                      role='option'
+                      aria-selected={i === selectedIndex}
+                      aria-disabled={disabled}
+                      className={`px-2 py-1.5 text-sm rounded-sm cursor-pointer ${
+                        disabled
+                          ? 'opacity-50 cursor-not-allowed'
+                          : i === selectedIndex
+                            ? 'bg-accent'
+                            : 'hover:bg-accent'
+                      }`}
+                    >
+                      {renderItem(item)}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
