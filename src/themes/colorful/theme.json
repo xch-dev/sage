@@ -3,6 +3,7 @@
   "displayName": "Colorful",
   "backgroundImage": "background.jpg",
   "inherits": "light",
+  "most_like": "light",
   "colors": {
     "background": "280 50% 25%",
     "secondary": "210 100% 85%",
