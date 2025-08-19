@@ -13,7 +13,7 @@ import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { ExternalLink, FileImage, Info, Tag } from 'lucide-react';
+import { FileImage, Info, Tag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 
@@ -177,40 +177,30 @@ export default function CollectionMetaData() {
           </CardHeader>
           <CardContent>
             <div className='flex flex-col md:flex-row gap-6 items-start'>
-              <div className='flex-shrink-0 w-full md:w-auto md:max-w-[400px]'>
+              <div className='w-full md:w-auto md:max-w-[280px] lg:max-w-[350px] xl:max-w-[400px]'>
                 <div className='relative'>
-                  {getBannerUrl() && (
-                    <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
-                      <img
-                        src={getBannerUrl() ?? missing}
-                        alt={t`Banner for ${collectionName}`}
-                        className='w-full h-full object-cover'
-                      />
-                    </div>
-                  )}
+                  <div className='w-full h-48 mb-4 rounded-lg overflow-hidden'>
+                    <img
+                      src={getBannerUrl() ?? missing}
+                      alt={t`Banner for ${collectionName}`}
+                      className='w-full h-full object-cover'
+                    />
+                  </div>
                   <div
                     className={`mx-auto max-w-[200px] ${getBannerUrl() ? '-mt-24 relative z-10' : ''}`}
                   >
-                    {collection.icon ? (
-                      <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
-                        <img
-                          src={collection.icon}
-                          alt={t`Icon for ${collectionName}`}
-                          className='w-full aspect-square object-contain'
-                        />
-                      </div>
-                    ) : (
-                      <div className='w-full aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-lg flex items-center justify-center shadow-lg'>
-                        <span className='text-neutral-400 dark:text-neutral-600'>
-                          <Trans>No Icon</Trans>
-                        </span>
-                      </div>
-                    )}
+                    <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
+                      <img
+                        src={collection.icon ?? missing}
+                        alt={t`Icon for ${collectionName}`}
+                        className='w-full aspect-square object-contain'
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className='flex-1 min-w-0 space-y-2'>
+              <div className='flex-1 min-w-0 space-y-3'>
                 <AddressItem
                   label={t`Collection ID`}
                   address={collection.collection_id}
@@ -290,12 +280,50 @@ export default function CollectionMetaData() {
                         </div>
                       </LabeledItem>
                     ))}
+
+                <LabeledItem label={t`External Links`} content={null}>
+                  <Button
+                    variant='outline'
+                    className='w-full'
+                    onClick={() =>
+                      openUrl(
+                        `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
+                      )
+                    }
+                    disabled={network === 'unknown'}
+                  >
+                    <img
+                      src='https://mintgarden.io/mint-logo.svg'
+                      className='h-4 w-4 mr-2'
+                      alt='MintGarden logo'
+                    />
+                    View on MintGarden
+                  </Button>
+
+                  <Button
+                    variant='outline'
+                    className='w-full mt-1'
+                    onClick={() =>
+                      openUrl(
+                        `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
+                      )
+                    }
+                    disabled={network === 'unknown'}
+                  >
+                    <img
+                      src={spacescanLogo}
+                      className='h-4 w-4 mr-2'
+                      alt='Spacescan.io logo'
+                    />
+                    View on Spacescan.io
+                  </Button>
+                </LabeledItem>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
           {metadataContent?.collection?.attributes && (
             <Card>
               <CardHeader>
@@ -357,51 +385,6 @@ export default function CollectionMetaData() {
                 label={t`Metadata Collection ID`}
                 address={collection.metadata_collection_id}
               />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center gap-2'>
-                <ExternalLink className='h-5 w-5' />
-                <Trans>External Links</Trans>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className='space-y-3'>
-              <Button
-                variant='outline'
-                className='w-full justify-start'
-                onClick={() =>
-                  openUrl(
-                    `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
-                  )
-                }
-                disabled={network === 'unknown'}
-              >
-                <img
-                  src='https://mintgarden.io/mint-logo.svg'
-                  className='h-4 w-4 mr-2'
-                  alt='MintGarden logo'
-                />
-                <Trans>View on MintGarden</Trans>
-              </Button>
-              <Button
-                variant='outline'
-                className='w-full justify-start'
-                onClick={() =>
-                  openUrl(
-                    `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
-                  )
-                }
-                disabled={network === 'unknown'}
-              >
-                <img
-                  src={spacescanLogo}
-                  className='h-4 w-4 mr-2'
-                  alt='Spacescan.io logo'
-                />
-                <Trans>View on Spacescan.io</Trans>
-              </Button>
             </CardContent>
           </Card>
         </div>
