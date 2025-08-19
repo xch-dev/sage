@@ -219,7 +219,7 @@ impl Wallet {
             }
 
             match id {
-                Id::New(_) => continue,
+                Id::New(_) => {}
                 Id::Xch => {
                     let coins = self
                         .select_xch_coins(required_amount, &selected_coin_ids)

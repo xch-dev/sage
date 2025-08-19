@@ -5795,7 +5795,6 @@ dependencies = [
 name = "sage-api"
 version = "0.12.0"
 dependencies = [
- "once_cell",
  "sage-config",
  "serde",
  "specta",
@@ -5875,7 +5874,6 @@ dependencies = [
  "expect-test",
  "hex",
  "indexmap 2.10.0",
- "once_cell",
  "serde",
  "serde_json",
  "serde_with",

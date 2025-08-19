@@ -22,4 +22,3 @@ sage-config = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tauri-specta = { workspace = true, features = ["derive"], optional = true }
 specta = { workspace = true, features = ["derive", "bigdecimal"], optional = true }
-once_cell = { workspace = true }

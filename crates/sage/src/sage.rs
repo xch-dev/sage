@@ -166,7 +166,7 @@ impl Sage {
                 &wallet_config_path,
                 toml::to_string_pretty(&self.wallet_config)?,
             )?;
-        };
+        }
 
         if network_list_path.try_exists()? {
             let text = fs::read_to_string(&network_list_path)?;
