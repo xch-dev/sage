@@ -51,7 +51,6 @@ pub struct SyncManager {
     network: Network,
     connector: Connector,
     event_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
     command_receiver: mpsc::Receiver<SyncCommand>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
@@ -111,11 +110,11 @@ impl SyncManager {
     pub fn new(
         options: SyncOptions,
         state: SyncState,
+        command_receiver: mpsc::Receiver<SyncCommand>,
         wallet: Option<Arc<Wallet>>,
         network: Network,
         connector: Connector,
-    ) -> (Self, mpsc::Sender<SyncCommand>, mpsc::Receiver<SyncEvent>) {
-        let (command_sender, command_receiver) = mpsc::channel(100);
+    ) -> (Self, mpsc::Receiver<SyncEvent>) {
         let (event_sender, event_receiver) = mpsc::channel(100);
 
         let manager = Self {
@@ -125,7 +124,6 @@ impl SyncManager {
             network,
             connector,
             event_sender,
-            command_sender: command_sender.clone(),
             command_receiver,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
@@ -138,7 +136,7 @@ impl SyncManager {
             pending_puzzle_subscriptions: Vec::new(),
         };
 
-        (manager, command_sender, event_receiver)
+        (manager, event_receiver)
     }
 
     pub async fn sync(mut self) {
@@ -239,7 +237,7 @@ impl SyncManager {
             self.pending_coin_subscriptions.clone(),
             self.pending_puzzle_subscriptions.clone(),
             self.event_sender.clone(),
-            self.command_sender.clone(),
+            self.state.commands.clone(),
         )
         .await
         {
@@ -330,7 +328,7 @@ impl SyncManager {
                         message.items,
                         true,
                         &self.event_sender,
-                        &self.command_sender,
+                        &self.state.commands,
                     )
                     .await?;
 
@@ -381,7 +379,7 @@ impl SyncManager {
                             peer,
                             self.state.clone(),
                             self.event_sender.clone(),
-                            self.command_sender.clone(),
+                            self.state.commands.clone(),
                             self.options.delta_sync,
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
@@ -414,7 +412,7 @@ impl SyncManager {
                         self.options.puzzle_batch_size_per_peer,
                         self.state.clone(),
                         self.event_sender.clone(),
-                        self.command_sender.clone(),
+                        self.state.commands.clone(),
                     )
                     .start(self.options.timeouts.puzzle_delay),
                 );

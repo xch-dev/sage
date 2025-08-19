@@ -22,7 +22,7 @@ use sage_database::{Database, Derivation};
 use sqlx::{migrate, SqlitePool};
 use tokio::{
     sync::{
-        mpsc::{Receiver, Sender},
+        mpsc::{self, Receiver},
         Mutex,
     },
     time::timeout,
@@ -45,7 +45,6 @@ pub struct TestWallet {
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
     pub hardened_puzzle_hash: Bytes32,
-    pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
     pub index: u32,
     pub state: SyncState,
@@ -135,7 +134,8 @@ impl TestWallet {
             sim.lock().await.new_coin(puzzle_hash.into(), balance);
         }
 
-        let state = SyncState::new();
+        let (command_sender, command_receiver) = mpsc::channel(100);
+        let state = SyncState::new(command_sender);
         let wallet = Arc::new(Wallet::new(
             db,
             fingerprint,
@@ -144,9 +144,10 @@ impl TestWallet {
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
         ));
 
-        let (mut sync_manager, sender, events) = SyncManager::new(
+        let (mut sync_manager, events) = SyncManager::new(
             options,
             state.clone(),
+            command_receiver,
             Some(wallet.clone()),
             TESTNET11.clone(),
             Connector::Plain,
@@ -170,7 +171,6 @@ impl TestWallet {
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),
             hardened_puzzle_hash: hardened_puzzle_hash.into(),
-            sender,
             events,
             index: key_index,
             state,
@@ -224,7 +224,8 @@ impl TestWallet {
         )
         .await?;
 
-        self.sender
+        self.state
+            .commands
             .send(SyncCommand::SubscribeCoins {
                 coin_ids: subscriptions,
             })

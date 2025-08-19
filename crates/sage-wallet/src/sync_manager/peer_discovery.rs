@@ -384,7 +384,7 @@ impl SyncManager {
         };
 
         let ip = peer.socket_addr().ip();
-        let sender = self.command_sender.clone();
+        let sender = self.state.commands.clone();
 
         let mut state = self.state.peers.lock().await;
 

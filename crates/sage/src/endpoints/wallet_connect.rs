@@ -265,7 +265,8 @@ impl Sage {
                 )
                 .await?;
 
-                self.command_sender
+                self.state
+                    .commands
                     .send(SyncCommand::SubscribeCoins {
                         coin_ids: subscriptions,
                     })

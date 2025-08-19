@@ -1,8 +1,8 @@
 use std::{ops::Deref, sync::Arc};
 
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc::Sender, Mutex};
 
-use crate::PeerState;
+use crate::{PeerState, SyncCommand};
 
 #[derive(Debug, Clone)]
 pub struct SyncState(Arc<SyncStateInner>);
@@ -17,13 +17,14 @@ impl Deref for SyncState {
 #[derive(Debug)]
 pub struct SyncStateInner {
     pub peers: Mutex<PeerState>,
+    pub commands: Sender<SyncCommand>,
 }
 
 impl SyncState {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub fn new(commands: Sender<SyncCommand>) -> Self {
         Self(Arc::new(SyncStateInner {
             peers: Mutex::new(PeerState::default()),
+            commands,
         }))
     }
 }

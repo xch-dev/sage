@@ -43,7 +43,6 @@ pub struct Sage {
     pub keychain: Keychain,
     pub wallet: Option<Arc<Wallet>>,
     pub state: SyncState,
-    pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
 }
 
@@ -56,8 +55,7 @@ impl Sage {
             network_list: NetworkList::default(),
             keychain: Keychain::default(),
             wallet: None,
-            state: SyncState::new(),
-            command_sender: mpsc::channel(1).0,
+            state: SyncState::new(mpsc::channel(1).0),
             unit: XCH.clone(),
         }
     }
@@ -213,7 +211,11 @@ impl Sage {
     fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         let connector = self.setup_ssl()?;
 
-        let (sync_manager, command_sender, receiver) = SyncManager::new(
+        let (command_sender, command_receiver) = mpsc::channel(100);
+        let state = SyncState::new(command_sender);
+        self.state = state.clone();
+
+        let (sync_manager, receiver) = SyncManager::new(
             SyncOptions {
                 target_peers: self.config.network.target_peers.try_into()?,
                 discover_peers: self.config.network.discover_peers,
@@ -229,20 +231,21 @@ impl Sage {
                 timeouts: Timeouts::default(),
                 testing: false,
             },
-            self.state.clone(),
+            state,
+            command_receiver,
             self.wallet.clone(),
             self.network().clone(),
             connector,
         );
 
         tokio::spawn(sync_manager.sync());
-        self.command_sender = command_sender;
 
         Ok(receiver)
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::SwitchNetwork(self.network().clone()))
             .await?;
 
@@ -255,7 +258,8 @@ impl Sage {
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
 
-            self.command_sender
+            self.state
+                .commands
                 .send(SyncCommand::SwitchWallet {
                     wallet: None,
                     delta_sync: self.wallet_config.defaults.delta_sync,
@@ -291,7 +295,8 @@ impl Sage {
             precision: self.network().precision,
         };
 
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::SwitchWallet {
                 wallet: Some(wallet),
                 delta_sync: self
@@ -343,7 +348,8 @@ impl Sage {
                 continue;
             }
 
-            self.command_sender
+            self.state
+                .commands
                 .send(SyncCommand::ConnectPeer {
                     ip,
                     user_managed: false,
@@ -356,7 +362,8 @@ impl Sage {
                 continue;
             }
 
-            self.command_sender
+            self.state
+                .commands
                 .send(SyncCommand::ConnectPeer {
                     ip,
                     user_managed: true,
