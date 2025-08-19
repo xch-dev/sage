@@ -12,14 +12,7 @@ import { formatTimestamp } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import {
-  ExternalLink,
-  FileImage,
-  FileText,
-  Hash,
-  Tag,
-  Users,
-} from 'lucide-react';
+import { FileImage, FileText, Hash, Tag, Users } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
@@ -116,12 +109,13 @@ export default function Nft() {
     getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
   }, [nft?.owner_did]);
 
+  console.log(metadata);
+
   return (
     <>
       <Header title={nft?.name ?? t`Unknown NFT`} />
       <Container>
-        {/* NFT Media Display */}
-        <Card className='mb-6'>
+        <Card className='mb-4'>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
               <FileImage className='h-5 w-5' />
@@ -130,7 +124,7 @@ export default function Nft() {
           </CardHeader>
           <CardContent>
             <div className='flex flex-col md:flex-row gap-6 items-start'>
-              <div className='flex-shrink-0 w-full md:w-auto md:max-w-[400px]'>
+              <div className='w-full md:w-auto md:max-w-[280px] lg:max-w-[350px] xl:max-w-[400px]'>
                 {isImage(data?.mime_type ?? null) ? (
                   <img
                     alt='NFT image'
@@ -168,7 +162,8 @@ export default function Nft() {
                   />
                 )}
               </div>
-              <div className='flex-1 min-w-0 space-y-4'>
+
+              <div className='flex-1 min-w-0 space-y-3'>
                 <AddressItem
                   label={t`Launcher ID`}
                   address={nft?.launcher_id ?? ''}
@@ -208,256 +203,239 @@ export default function Nft() {
                     )}
                   />
                 )}
+
+                <LabeledItem label={t`External Links`} content={null}>
+                  <Button
+                    variant='outline'
+                    className='w-full'
+                    onClick={() => {
+                      openUrl(
+                        `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                      );
+                    }}
+                    disabled={network === 'unknown'}
+                  >
+                    <img
+                      src='https://mintgarden.io/mint-logo.svg'
+                      className='h-4 w-4 mr-2'
+                      alt='MintGarden logo'
+                    />
+                    View on MintGarden
+                  </Button>
+
+                  <Button
+                    variant='outline'
+                    className='w-full mt-1'
+                    onClick={() => {
+                      openUrl(
+                        `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
+                      );
+                    }}
+                    disabled={network === 'unknown'}
+                  >
+                    <img
+                      src={spacescanLogo}
+                      className='h-4 w-4 mr-2'
+                      alt='Spacescan.io logo'
+                    />
+                    View on Spacescan.io
+                  </Button>
+                </LabeledItem>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-          {/* Left Column */}
-          <div className='space-y-6'>
-            {/* Attributes */}
-            {(metadata.attributes?.length ?? 0) > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <Tag className='h-5 w-5' />
-                    <Trans>Attributes</Trans>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className='grid grid-cols-2 gap-3'>
-                    {metadata.attributes.map(
-                      (attr: { trait_type: string; value: string }) => (
-                        <div
-                          key={`${attr?.trait_type}_${attr?.value}`}
-                          className='px-3 py-2 border rounded-lg '
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
+          {(metadata.attributes?.length ?? 0) > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className='flex items-center gap-2'>
+                  <Tag className='h-5 w-5' />
+                  <Trans>Attributes</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='grid grid-cols-2 gap-2'>
+                  {metadata.attributes.map(
+                    (attr: { trait_type: string; value: string }) => (
+                      <div
+                        key={`${attr?.trait_type}_${attr?.value}`}
+                        className='px-3 py-2 border rounded-lg '
+                      >
+                        <LabeledItem
+                          label={attr.trait_type}
+                          content={null}
+                          className=''
                         >
-                          <LabeledItem
-                            label={attr.trait_type}
-                            className='truncate'
-                            content={attr.value}
-                          />
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* URIs and Hashes */}
-            {(!!nft?.data_uris.length ||
-              !!nft?.metadata_uris.length ||
-              !!nft?.license_uris.length ||
-              nft?.data_hash ||
-              nft?.metadata_hash ||
-              nft?.license_hash) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className='flex items-center gap-2'>
-                    <Hash className='h-5 w-5' />
-                    <Trans>Data and License Details</Trans>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='space-y-4'>
-                  {!!nft?.data_uris.length && (
-                    <LabeledItem label={t`Data URIs`} content={null}>
-                      <>
-                        {nft.data_uris.map((uri) => (
-                          <div
-                            key={uri}
-                            className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
-                            onClick={() => openUrl(uri)}
-                          >
-                            {uri}
-                          </div>
-                        ))}
-                      </>
-                    </LabeledItem>
-                  )}
-
-                  {!!nft?.metadata_uris.length && (
-                    <LabeledItem label={t`Metadata URIs`} content={null}>
-                      <>
-                        {nft.metadata_uris.map((uri) => (
-                          <div
-                            key={uri}
-                            className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
-                            onClick={() => openUrl(uri)}
-                          >
-                            {uri}
-                          </div>
-                        ))}
-                      </>
-                    </LabeledItem>
-                  )}
-
-                  {!!nft?.license_uris.length && (
-                    <LabeledItem label={t`License URIs`} content={null}>
-                      <>
-                        {nft.license_uris.map((uri) => (
-                          <div
-                            key={uri}
-                            className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
-                            onClick={() => openUrl(uri)}
-                          >
-                            {uri}
-                          </div>
-                        ))}
-                      </>
-                    </LabeledItem>
-                  )}
-
-                  <LabeledItem
-                    label={t`Data Hash`}
-                    content={nft.data_hash}
-                    className='font-mono'
-                  />
-
-                  <LabeledItem
-                    label={t`Metadata Hash`}
-                    content={nft.metadata_hash}
-                    className='font-mono'
-                  />
-
-                  <LabeledItem
-                    label={t`License Hash`}
-                    content={nft.license_hash}
-                    className='font-mono'
-                  />
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Ownership and Technical Information */}
-          <div className='space-y-6'>
-            {/* Ownership */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  <Users className='h-5 w-5' />
-                  <Trans>Ownership</Trans>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <div className='space-y-2'>
-                  <AddressItem
-                    label={t`Minter DID`}
-                    address={nft?.minter_did ?? ''}
-                  />
-                  {minterProfile && (
-                    <div
-                      className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                      onClick={() =>
-                        openUrl(`https://mintgarden.io/${nft?.minter_did}`)
-                      }
-                    >
-                      {minterProfile.avatar_uri && (
-                        <img
-                          src={minterProfile.avatar_uri}
-                          alt={`${minterProfile.name} avatar`}
-                          className='w-6 h-6 rounded-full'
-                        />
-                      )}
-                      <div className='text-sm'>{minterProfile.name}</div>
-                    </div>
+                          <div className='text-sm truncate'>{attr.value}</div>
+                        </LabeledItem>
+                      </div>
+                    ),
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          )}
 
-                <div className='space-y-2'>
-                  <AddressItem
-                    label={t`Owner DID`}
-                    address={nft?.owner_did ?? ''}
-                  />
-                  {ownerProfile && (
-                    <div
-                      className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
-                      onClick={() =>
-                        openUrl(`https://mintgarden.io/${nft?.owner_did}`)
-                      }
-                    >
-                      {ownerProfile.avatar_uri && (
-                        <img
-                          src={ownerProfile.avatar_uri}
-                          alt={`${ownerProfile.name} avatar`}
-                          className='w-6 h-6 rounded-full'
-                        />
-                      )}
-                      <div className='text-sm'>{ownerProfile.name}</div>
-                    </div>
-                  )}
-                </div>
-
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <Users className='h-5 w-5' />
+                <Trans>Ownership</Trans>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <div className='space-y-2'>
                 <AddressItem
-                  label={t`Royalties ${royaltyPercentage}%`}
-                  address={nft?.royalty_address ?? ''}
+                  label={t`Minter DID`}
+                  address={nft?.minter_did ?? ''}
                 />
-              </CardContent>
-            </Card>
+                {minterProfile && (
+                  <div
+                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                    onClick={() =>
+                      openUrl(`https://mintgarden.io/${nft?.minter_did}`)
+                    }
+                  >
+                    {minterProfile.avatar_uri && (
+                      <img
+                        src={minterProfile.avatar_uri}
+                        alt={`${minterProfile.name} avatar`}
+                        className='w-6 h-6 rounded-full'
+                      />
+                    )}
+                    <div className='text-sm'>{minterProfile.name}</div>
+                  </div>
+                )}
+              </div>
 
-            {/* Technical Information */}
+              <div className='space-y-2'>
+                <AddressItem
+                  label={t`Owner DID`}
+                  address={nft?.owner_did ?? ''}
+                />
+                {ownerProfile && (
+                  <div
+                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                    onClick={() =>
+                      openUrl(`https://mintgarden.io/${nft?.owner_did}`)
+                    }
+                  >
+                    {ownerProfile.avatar_uri && (
+                      <img
+                        src={ownerProfile.avatar_uri}
+                        alt={`${ownerProfile.name} avatar`}
+                        className='w-6 h-6 rounded-full'
+                      />
+                    )}
+                    <div className='text-sm'>{ownerProfile.name}</div>
+                  </div>
+                )}
+              </div>
+
+              <AddressItem
+                label={t`Royalties ${royaltyPercentage}%`}
+                address={nft?.royalty_address ?? ''}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className='flex items-center gap-2'>
+                <FileText className='h-5 w-5' />
+                <Trans>Technical Information</Trans>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className='space-y-3'>
+              <AddressItem label={t`Address`} address={nft?.address ?? ''} />
+              <AddressItem label={t`Coin ID`} address={nft?.coin_id ?? ''} />
+            </CardContent>
+          </Card>
+
+          {(!!nft?.data_uris.length ||
+            !!nft?.metadata_uris.length ||
+            !!nft?.license_uris.length ||
+            nft?.data_hash ||
+            nft?.metadata_hash ||
+            nft?.license_hash) && (
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <FileText className='h-5 w-5' />
-                  <Trans>Technical Information</Trans>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-4'>
-                <AddressItem label={t`Address`} address={nft?.address ?? ''} />
-                <AddressItem label={t`Coin ID`} address={nft?.coin_id ?? ''} />
-              </CardContent>
-            </Card>
-
-            {/* External Links */}
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center gap-2'>
-                  <ExternalLink className='h-5 w-5' />
-                  <Trans>External Links</Trans>
+                  <Hash className='h-5 w-5' />
+                  <Trans>Data and License Details</Trans>
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-3'>
-                <Button
-                  variant='outline'
-                  className='w-full justify-start'
-                  onClick={() => {
-                    openUrl(
-                      `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
-                    );
-                  }}
-                  disabled={network === 'unknown'}
-                >
-                  <img
-                    src='https://mintgarden.io/mint-logo.svg'
-                    className='h-4 w-4 mr-2'
-                    alt='MintGarden logo'
-                  />
-                  View on MintGarden
-                </Button>
+                {!!nft?.data_uris.length && (
+                  <LabeledItem label={t`Data URIs`} content={null}>
+                    <>
+                      {nft.data_uris.map((uri) => (
+                        <div
+                          key={uri}
+                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          onClick={() => openUrl(uri)}
+                        >
+                          {uri}
+                        </div>
+                      ))}
+                    </>
+                  </LabeledItem>
+                )}
 
-                <Button
-                  variant='outline'
-                  className='w-full justify-start'
-                  onClick={() => {
-                    openUrl(
-                      `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
-                    );
-                  }}
-                  disabled={network === 'unknown'}
-                >
-                  <img
-                    src={spacescanLogo}
-                    className='h-4 w-4 mr-2'
-                    alt='Spacescan.io logo'
-                  />
-                  View on Spacescan.io
-                </Button>
+                {!!nft?.metadata_uris.length && (
+                  <LabeledItem label={t`Metadata URIs`} content={null}>
+                    <>
+                      {nft.metadata_uris.map((uri) => (
+                        <div
+                          key={uri}
+                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          onClick={() => openUrl(uri)}
+                        >
+                          {uri}
+                        </div>
+                      ))}
+                    </>
+                  </LabeledItem>
+                )}
+
+                {!!nft?.license_uris.length && (
+                  <LabeledItem label={t`License URIs`} content={null}>
+                    <>
+                      {nft.license_uris.map((uri) => (
+                        <div
+                          key={uri}
+                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          onClick={() => openUrl(uri)}
+                        >
+                          {uri}
+                        </div>
+                      ))}
+                    </>
+                  </LabeledItem>
+                )}
+
+                <LabeledItem
+                  label={t`Data Hash`}
+                  content={nft.data_hash}
+                  className='font-mono'
+                />
+
+                <LabeledItem
+                  label={t`Metadata Hash`}
+                  content={nft.metadata_hash}
+                  className='font-mono'
+                />
+
+                <LabeledItem
+                  label={t`License Hash`}
+                  content={nft.license_hash}
+                  className='font-mono'
+                />
               </CardContent>
             </Card>
-          </div>
+          )}
         </div>
       </Container>
     </>

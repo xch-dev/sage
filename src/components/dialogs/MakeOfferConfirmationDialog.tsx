@@ -446,7 +446,7 @@ export function MakeOfferConfirmationDialog({
                   </span>
                 )}
               </h3>
-              {/* One-sided offer warning */}
+
               {(() => {
                 const hasRequestedTokens = offerState.requested.tokens.some(
                   (token) => new BigNumber(token.amount || '0').gt(0),

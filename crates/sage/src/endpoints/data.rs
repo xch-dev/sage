@@ -724,13 +724,8 @@ impl Sage {
                 blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.data)),
                 mime_type: data.map(|data| data.mime_type),
                 hash_matches,
-                metadata_json: offchain_metadata.and_then(|offchain_metadata| {
-                    if offchain_metadata.mime_type == "application/json" {
-                        String::from_utf8(offchain_metadata.data).ok()
-                    } else {
-                        None
-                    }
-                }),
+                metadata_json: offchain_metadata
+                    .and_then(|offchain_metadata| String::from_utf8(offchain_metadata.data).ok()),
                 metadata_hash_matches,
             }),
         })
