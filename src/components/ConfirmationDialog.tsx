@@ -253,7 +253,7 @@ export default function ConfirmationDialog({
             <div className='flex-1 relative'>
               <TabsContent
                 value='summary'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 {isHighFee && !fee.isZero() && (
                   <Alert variant='warning' className='mb-3'>
@@ -381,7 +381,7 @@ export default function ConfirmationDialog({
 
               <TabsContent
                 value='details'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 <div className='flex flex-col gap-4'>
                   <div>
@@ -499,7 +499,7 @@ export default function ConfirmationDialog({
 
               <TabsContent
                 value='json'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 <Alert variant='warning'>
                   <AlertCircleIcon className='h-4 w-4' />
