@@ -294,6 +294,20 @@ export function WalletCard({
                     <Trans>Rename</Trans>
                   </span>
                 </DropdownMenuItem>
+                {info.emoji && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      updateEmoji(null);
+                      e.stopPropagation();
+                    }}
+                  >
+                    <EraserIcon className='mr-2 h-4 w-4' />
+                    <span>
+                      <Trans>Remove Emoji</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem
                   className='cursor-pointer text-red-600 focus:text-red-500'
                   onClick={(e) => {
