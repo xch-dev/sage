@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{collections::HashSet, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
@@ -10,7 +10,7 @@ use crate::{SyncCommand, SyncState, Wallet, WalletError, WalletPeer};
 use super::SyncEvent;
 
 pub async fn sync_wallet(
-    wallet: Arc<Wallet>,
+    wallet: Wallet,
     peer: WalletPeer,
     state: SyncState,
     delta_sync: bool,

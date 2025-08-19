@@ -55,7 +55,18 @@ impl Sage {
             network_list: NetworkList::default(),
             keychain: Keychain::default(),
             wallet: None,
-            state: SyncState::new(mpsc::channel(1).0, mpsc::channel(1).0),
+            state: SyncState::new(
+                SyncOptions {
+                    max_peer_age_seconds: 3600 * 8,
+                    dns_batch_size: 10,
+                    connection_batch_size: 30,
+                    puzzle_batch_size_per_peer: 5,
+                    timeouts: Timeouts::default(),
+                    testing: false,
+                },
+                mpsc::channel(1).0,
+                mpsc::channel(1).0,
+            ),
             unit: XCH.clone(),
         }
     }
@@ -67,7 +78,7 @@ impl Sage {
         self.setup_config()?;
         self.setup_logging()?;
 
-        let receiver = self.setup_sync_manager()?;
+        let receiver = self.setup_sync_manager().await?;
         self.setup_peers().await?;
 
         info!("Sage wallet initialized");
@@ -208,36 +219,23 @@ impl Sage {
         Ok(create_rustls_connector(&cert)?)
     }
 
-    fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
+    async fn setup_sync_manager(&mut self) -> Result<mpsc::Receiver<SyncEvent>> {
         let connector = self.setup_ssl()?;
 
         let (command_sender, command_receiver) = mpsc::channel(100);
         let (event_sender, event_receiver) = mpsc::channel(100);
-        let state = SyncState::new(command_sender, event_sender);
+        let state = SyncState::new(self.state.options, command_sender, event_sender);
         self.state = state.clone();
 
-        let sync_manager = SyncManager::new(
-            SyncOptions {
-                target_peers: self.config.network.target_peers.try_into()?,
-                discover_peers: self.config.network.discover_peers,
-                max_peer_age_seconds: 3600 * 8,
-                dns_batch_size: 10,
-                connection_batch_size: 30,
-                delta_sync: self
-                    .wallet_config()
-                    .cloned()
-                    .unwrap_or_default()
-                    .delta_sync(&self.wallet_config.defaults),
-                puzzle_batch_size_per_peer: 5,
-                timeouts: Timeouts::default(),
-                testing: false,
-            },
-            state,
-            command_receiver,
-            self.wallet.clone(),
-            self.network().clone(),
-            connector,
-        );
+        let sync_manager = SyncManager::new(state.clone(), command_receiver, connector);
+
+        state.update_network(self.network().clone()).await;
+        state
+            .update_network_config(self.config.network.clone())
+            .await;
+        state
+            .update_wallet_defaults(self.wallet_config.defaults.clone())
+            .await;
 
         tokio::spawn(sync_manager.sync());
 
@@ -245,10 +243,7 @@ impl Sage {
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
-        self.state
-            .commands
-            .send(SyncCommand::SwitchNetwork(self.network().clone()))
-            .await?;
+        self.state.update_network(self.network().clone()).await;
 
         Ok(())
     }
@@ -259,13 +254,7 @@ impl Sage {
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
 
-            self.state
-                .commands
-                .send(SyncCommand::SwitchWallet {
-                    wallet: None,
-                    delta_sync: self.wallet_config.defaults.delta_sync,
-                })
-                .await?;
+            self.state.logout_wallet().await;
 
             return Ok(());
         };
@@ -282,31 +271,23 @@ impl Sage {
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
-        let wallet = Arc::new(Wallet::new(
+        let wallet = Wallet::new(
             db.clone(),
             fingerprint,
             intermediate_pk,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
-        ));
+        );
 
-        self.wallet = Some(wallet.clone());
+        self.wallet = Some(Arc::new(wallet.clone()));
         self.unit = Unit {
             ticker: self.network().ticker.clone(),
             precision: self.network().precision,
         };
 
         self.state
-            .commands
-            .send(SyncCommand::SwitchWallet {
-                wallet: Some(wallet),
-                delta_sync: self
-                    .wallet_config()
-                    .cloned()
-                    .unwrap_or_default()
-                    .delta_sync(&self.wallet_config.defaults),
-            })
-            .await?;
+            .login_wallet(wallet, self.wallet_config().cloned().unwrap_or_default())
+            .await;
 
         Ok(())
     }
