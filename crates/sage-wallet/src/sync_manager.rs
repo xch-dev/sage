@@ -228,10 +228,9 @@ impl SyncManager {
         if let Err(error) = add_new_subscriptions(
             wallet,
             &peer,
+            &self.state,
             self.pending_coin_subscriptions.clone(),
             self.pending_puzzle_subscriptions.clone(),
-            self.state.events.clone(),
-            self.state.commands.clone(),
         )
         .await
         {
@@ -317,14 +316,7 @@ impl SyncManager {
                         }
                     }
 
-                    incremental_sync(
-                        wallet,
-                        message.items,
-                        true,
-                        &self.state.events,
-                        &self.state.commands,
-                    )
-                    .await?;
+                    incremental_sync(wallet, &self.state, message.items, true).await?;
 
                     info!(
                         "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
@@ -372,8 +364,6 @@ impl SyncManager {
                             wallet.clone(),
                             peer,
                             self.state.clone(),
-                            self.state.events.clone(),
-                            self.state.commands.clone(),
                             self.options.delta_sync,
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
