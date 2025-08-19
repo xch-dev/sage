@@ -164,7 +164,6 @@ export default function Option() {
         </Card>
 
         <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-          {/* Contract Details */}
           <div className='space-y-6'>
             <Card>
               <CardHeader>
@@ -192,7 +191,6 @@ export default function Option() {
             </Card>
           </div>
 
-          {/* Technical Information */}
           <div className='space-y-6'>
             <Card>
               <CardHeader>
@@ -210,7 +208,6 @@ export default function Option() {
               </CardContent>
             </Card>
 
-            {/* External Links */}
             <Card>
               <CardHeader>
                 <CardTitle>

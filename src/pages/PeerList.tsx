@@ -536,7 +536,6 @@ export default function PeerList() {
           </CardContent>
         </Card>
 
-        {/* Sync Status Section */}
         <Card className='rounded-md border mt-4'>
           <CardHeader>
             <CardTitle>
@@ -545,7 +544,6 @@ export default function PeerList() {
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
-              {/* Coin Sync Progress */}
               <div className='space-y-2'>
                 <div className='flex justify-between items-center text-sm'>
                   <span className='text-muted-foreground'>
@@ -572,7 +570,6 @@ export default function PeerList() {
                 </div>
               </div>
 
-              {/* File Sync Progress */}
               <div className='space-y-2'>
                 <div className='flex justify-between items-center text-sm'>
                   <span className='text-muted-foreground'>

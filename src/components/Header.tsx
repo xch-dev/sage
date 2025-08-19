@@ -132,7 +132,7 @@ export default function Header(
         </div>
         <div className='flex-1 flex justify-between items-center gap-4 md:h-8 md:my-1'>
           <div className='flex items-center gap-4'>
-            <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
+            <h1 className='text-xl font-bold tracking-tight md:text-3xl truncate'>
               {props.title}
             </h1>
             <AnimatePresence mode='wait'>
