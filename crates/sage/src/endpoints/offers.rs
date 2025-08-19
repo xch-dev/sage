@@ -233,9 +233,18 @@ impl Sage {
     }
 
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
-        let offer = self.summarize_offer(decode_offer(&req.offer)?).await?;
+        let (offer, status) = self.summarize_offer(decode_offer(&req.offer)?).await?;
 
-        Ok(ViewOfferResponse { offer })
+        Ok(ViewOfferResponse {
+            offer,
+            status: match status {
+                OfferStatus::Pending => OfferRecordStatus::Pending,
+                OfferStatus::Active => OfferRecordStatus::Active,
+                OfferStatus::Completed => OfferRecordStatus::Completed,
+                OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
+                OfferStatus::Expired => OfferRecordStatus::Expired,
+            },
+        })
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
