@@ -276,7 +276,7 @@ export default function ConfirmationDialog({
                       {additionalData.title}
                     </h3>
                     <div className='space-y-2'>
-                      <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
+                      <div className='flex items-start gap-2 text-sm border border-border rounded-md p-2 bg-card/30'>
                         <div className='break-words whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
@@ -570,7 +570,7 @@ export default function ConfirmationDialog({
                   </Button>
                 </div>
 
-                <div className='relative p-3 mt-4 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono'>
+                <div className='relative p-3 mt-4 break-all rounded-md bg-muted/50 text-foreground whitespace-pre-wrap text-xs font-mono'>
                   {json}
                 </div>
               </TabsContent>
