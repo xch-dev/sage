@@ -571,7 +571,7 @@ export type UpdateOptionResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
-export type ViewOfferResponse = { offer: OfferSummary }
+export type ViewOfferResponse = { offer: OfferSummary; status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 
