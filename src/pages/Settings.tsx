@@ -64,9 +64,9 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -79,7 +79,8 @@ import {
   Wallet,
   WalletDefaults,
 } from '../bindings';
-import { DarkModeContext } from '../contexts/DarkModeContext';
+
+import { ThemeSelectorSimple } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -216,7 +217,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+    <div className='divide-y rounded-md border bg-card text-card-foreground overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -256,7 +257,6 @@ function SettingItem({
 
 function GlobalSettings() {
   const { addError } = useErrors();
-  const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
@@ -284,10 +284,24 @@ function GlobalSettings() {
     <>
       <SettingsSection title={t`Preferences`}>
         <SettingItem
-          label={t`Dark Mode`}
-          description={t`Switch between light and dark theme`}
-          control={<Switch checked={dark} onCheckedChange={setDark} />}
+          label={t`Theme`}
+          description={t`Choose your preferred theme`}
+          control={
+            <div className='w-full'>
+              {/* Theme selector will be added below */}
+            </div>
+          }
         />
+        <div>
+          <ThemeSelectorSimple />
+          <div className='m-4'>
+            <Link to='/themes'>
+              <Button variant='outline' size='sm'>
+                <Trans>More Themes...</Trans>
+              </Button>
+            </Link>
+          </div>
+        </div>
         {isMobile && (
           <SettingItem
             label={t`Biometric Authentication`}

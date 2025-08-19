@@ -7,13 +7,31 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Geist Mono"', ...defaultTheme.fontFamily.sans],
+        sans: ['var(--font-sans)', ...defaultTheme.fontFamily.sans],
+        serif: ['var(--font-serif)', ...defaultTheme.fontFamily.serif],
+        mono: ['var(--font-mono)', ...defaultTheme.fontFamily.mono],
+        heading: ['var(--font-heading)', ...defaultTheme.fontFamily.sans],
+        body: ['var(--font-body)', ...defaultTheme.fontFamily.sans],
       },
 
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        none: 'var(--corner-none)',
+        sm: 'var(--corner-sm)',
+        md: 'var(--corner-md)',
+        lg: 'var(--corner-lg)',
+        xl: 'var(--corner-xl)',
+        full: 'var(--corner-full)',
+      },
+      boxShadow: {
+        none: 'var(--shadow-none)',
+        sm: 'var(--shadow-sm)',
+        DEFAULT: 'var(--shadow-md)',
+        md: 'var(--shadow-md)',
+        lg: 'var(--shadow-lg)',
+        xl: 'var(--shadow-xl)',
+        inner: 'var(--shadow-inner)',
+        card: 'var(--shadow-card)',
+        button: 'var(--shadow-button)',
       },
       colors: {
         background: 'hsl(var(--background))',
@@ -48,6 +66,7 @@ export default {
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
+        'input-background': 'hsl(var(--input-background))',
         ring: 'hsl(var(--ring))',
         chart: {
           1: 'hsl(var(--chart-1))',
