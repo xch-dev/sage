@@ -38,11 +38,17 @@ export function FullLayout(props: LayoutProps) {
       to='/wallet'
       className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <img
-        src={currentTheme?.icon_path}
-        className='h-6 w-6'
-        alt={t`Wallet icon`}
-      />
+      {wallet?.emoji ? (
+        <span className='text-xl' role='img' aria-label='Wallet emoji'>
+          {wallet.emoji}
+        </span>
+      ) : (
+        <img
+          src={currentTheme?.icon_path}
+          className='h-6 w-6'
+          alt={t`Wallet icon`}
+        />
+      )}
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
@@ -60,11 +66,17 @@ export function FullLayout(props: LayoutProps) {
           to='/wallet'
           className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <img
-            src={currentTheme?.icon_path}
-            className='h-6 w-6'
-            alt={t`Wallet icon`}
-          />
+          {wallet?.emoji ? (
+            <span className='text-xl' role='img' aria-label='Wallet emoji'>
+              {wallet.emoji}
+            </span>
+          ) : (
+            <img
+              src={currentTheme?.icon_path}
+              className='h-6 w-6'
+              alt={t`Wallet icon`}
+            />
+          )}
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>
@@ -85,33 +97,60 @@ export function FullLayout(props: LayoutProps) {
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
             <div className='flex h-14 items-center pt-2 px-5 justify-between'>
-              {walletIconWithTooltip}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type='button'
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='text-muted-foreground hover:text-primary transition-colors'
-                    aria-label={
-                      isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
-                    }
-                    aria-expanded={!isCollapsed}
-                  >
-                    {isCollapsed ? (
-                      <PanelLeft className='h-5 w-5' aria-hidden='true' />
-                    ) : (
-                      <PanelLeftClose className='h-5 w-5' aria-hidden='true' />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side='right' role='tooltip'>
-                  {isCollapsed
-                    ? wallet?.name
-                      ? t`Expand sidebar - ${wallet.name}`
-                      : t`Expand sidebar`
-                    : t`Collapse sidebar`}
-                </TooltipContent>
-              </Tooltip>
+              {isCollapsed && wallet?.emoji ? (
+                // When collapsed and emoji exists, show only the emoji as a clickable button
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type='button'
+                      onClick={() => setIsCollapsed(!isCollapsed)}
+                      className='text-2xl hover:scale-110 transition-transform cursor-pointer'
+                      aria-label={t`Expand sidebar - ${wallet.name}`}
+                      aria-expanded={!isCollapsed}
+                    >
+                      <span role='img' aria-label='Wallet emoji'>
+                        {wallet.emoji}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side='right' role='tooltip'>
+                    {t`Expand sidebar - ${wallet.name}`}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <>
+                  {!isCollapsed && walletIconWithTooltip}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type='button'
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className='text-muted-foreground hover:text-primary transition-colors'
+                        aria-label={
+                          isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
+                        }
+                        aria-expanded={!isCollapsed}
+                      >
+                        {isCollapsed ? (
+                          <PanelLeft className='h-5 w-5' aria-hidden='true' />
+                        ) : (
+                          <PanelLeftClose
+                            className='h-5 w-5'
+                            aria-hidden='true'
+                          />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side='right' role='tooltip'>
+                      {isCollapsed
+                        ? wallet?.name
+                          ? t`Expand sidebar - ${wallet.name}`
+                          : t`Expand sidebar`
+                        : t`Collapse sidebar`}
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
             </div>
 
             <div className='flex-1 flex flex-col justify-between pb-4'>
