@@ -18,6 +18,7 @@ use chia_wallet_sdk::client::{connect_peer, ClientError, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rand::Rng;
+use sage_config::{Network, NetworkConfig};
 use tokio::{sync::mpsc, time::timeout};
 use tracing::{debug, info, warn};
 
@@ -49,7 +50,7 @@ impl SyncManager {
     pub(super) async fn clear_subscriptions(&self) {
         let mut futures = FuturesUnordered::new();
 
-        for peer in self.state.lock().await.peers() {
+        for peer in self.state.peers.lock().await.peers() {
             let ip = peer.socket_addr().ip();
 
             let puzzle_peer = peer.clone();
@@ -64,12 +65,16 @@ impl SyncManager {
         while let Some(()) = futures.next().await {}
     }
 
-    pub(super) async fn dns_discovery(&mut self) -> bool {
+    pub(super) async fn dns_discovery(
+        &mut self,
+        network: &Network,
+        network_config: &NetworkConfig,
+    ) -> bool {
         let addrs = lookup_all(
-            &self.network.dns_introducers(),
-            self.network.default_port,
-            self.options.timeouts.dns,
-            self.options.dns_batch_size,
+            &network.dns_introducers(),
+            network.default_port,
+            self.state.options.timeouts.dns,
+            self.state.options.dns_batch_size,
         )
         .await;
 
@@ -77,8 +82,11 @@ impl SyncManager {
             return false;
         }
 
-        for addrs in addrs.chunks(self.options.connection_batch_size) {
-            if self.connect_batch(addrs, false, false).await {
+        for addrs in addrs.chunks(self.state.options.connection_batch_size) {
+            if self
+                .connect_batch(addrs, false, false, network, network_config)
+                .await
+            {
                 break;
             }
         }
@@ -86,19 +94,23 @@ impl SyncManager {
         true
     }
 
-    pub(super) async fn introducer_discovery(&mut self) {
+    pub(super) async fn introducer_discovery(
+        &mut self,
+        network: &Network,
+        network_config: &NetworkConfig,
+    ) {
         info!(
             "Looking up non-DNS introducers {}",
-            self.network.peer_introducers().join(", ")
+            network.peer_introducers().join(", ")
         );
 
         let mut futures = FuturesUnordered::new();
 
-        for host in self.network.peer_introducers() {
-            let introducer_timeout = self.options.timeouts.introducer;
-            let port = self.network.default_port;
+        for host in network.peer_introducers() {
+            let introducer_timeout = self.state.options.timeouts.introducer;
+            let port = network.default_port;
             let connector = self.connector.clone();
-            let network_id = self.network.network_id();
+            let network_id = network.network_id();
 
             futures.push(async move {
                 let host_clone = host.clone();
@@ -169,7 +181,8 @@ impl SyncManager {
         while let Some((host, result)) = futures.next().await {
             match result {
                 Ok(Ok((ip, peer_list))) => {
-                    self.handle_peer_list(None, peer_list, ip, false).await;
+                    self.handle_peer_list(None, peer_list, ip, false, network, network_config)
+                        .await;
                 }
                 Ok(Err(error)) => {
                     debug!("Failed to request peers from {host}: {error}");
@@ -181,8 +194,12 @@ impl SyncManager {
         }
     }
 
-    pub(super) async fn peer_discovery(&mut self) -> bool {
-        let peers = self.state.lock().await.peers();
+    pub(super) async fn peer_discovery(
+        &mut self,
+        network: &Network,
+        network_config: &NetworkConfig,
+    ) -> bool {
+        let peers = self.state.peers.lock().await.peers();
 
         if peers.is_empty() {
             warn!("No existing peers to request new peers from");
@@ -209,7 +226,14 @@ impl SyncManager {
             match result {
                 Ok(peer_list) => {
                     if self
-                        .handle_peer_list(Some(timestamp), peer_list, ip, true)
+                        .handle_peer_list(
+                            Some(timestamp),
+                            peer_list,
+                            ip,
+                            true,
+                            network,
+                            network_config,
+                        )
                         .await
                     {
                         return true;
@@ -217,7 +241,7 @@ impl SyncManager {
                 }
                 Err(error) => {
                     debug!("Failed to request peers from {}: {}", ip, error);
-                    self.state.lock().await.ban(
+                    self.state.peers.lock().await.ban(
                         ip,
                         Duration::from_secs(300),
                         "failed to request peers",
@@ -235,10 +259,13 @@ impl SyncManager {
         mut peer_list: Vec<TimestampedPeerInfo>,
         ip: IpAddr,
         ban: bool,
+        network: &Network,
+        network_config: &NetworkConfig,
     ) -> bool {
         if let Some(timestamp) = timestamp {
-            peer_list
-                .retain(|item| item.timestamp >= timestamp - self.options.max_peer_age_seconds);
+            peer_list.retain(|item| {
+                item.timestamp >= timestamp - self.state.options.max_peer_age_seconds
+            });
         }
 
         if !peer_list.is_empty() {
@@ -256,7 +283,7 @@ impl SyncManager {
                 debug!("Invalid IP address in peer list");
 
                 if ban {
-                    self.state.lock().await.ban(
+                    self.state.peers.lock().await.ban(
                         ip,
                         Duration::from_secs(300),
                         "invalid ip in peer list",
@@ -265,11 +292,14 @@ impl SyncManager {
 
                 break;
             };
-            addrs.push(SocketAddr::new(new_ip, self.network.default_port));
+            addrs.push(SocketAddr::new(new_ip, network.default_port));
         }
 
-        for addrs in addrs.chunks(self.options.connection_batch_size) {
-            if self.connect_batch(addrs, false, false).await {
+        for addrs in addrs.chunks(self.state.options.connection_batch_size) {
+            if self
+                .connect_batch(addrs, false, false, network, network_config)
+                .await
+            {
                 return true;
             }
         }
@@ -282,19 +312,21 @@ impl SyncManager {
         addrs: &[SocketAddr],
         force: bool,
         user_managed: bool,
+        network: &Network,
+        network_config: &NetworkConfig,
     ) -> bool {
         let mut futures = FuturesUnordered::new();
 
         for &socket_addr in addrs {
-            let state = self.state.lock().await;
+            let state = self.state.peers.lock().await;
             if state.is_connected(socket_addr.ip()) || state.is_banned(socket_addr.ip()) {
                 continue;
             }
             drop(state);
 
-            let network_id = self.network.network_id();
+            let network_id = network.network_id();
             let connector = self.connector.clone();
-            let duration = self.options.timeouts.connection;
+            let duration = self.state.options.timeouts.connection;
 
             futures.push(async move {
                 let result = timeout(
@@ -309,12 +341,15 @@ impl SyncManager {
         while let Some((socket_addr, result)) = futures.next().await {
             match result {
                 Ok(Ok((peer, receiver))) => {
-                    if self.try_add_peer(peer, receiver, force, user_managed).await {
-                        if self.check_peer_count().await {
+                    if self
+                        .try_add_peer(peer, receiver, force, user_managed, network_config)
+                        .await
+                    {
+                        if self.check_peer_count(network_config).await {
                             return true;
                         }
                     } else if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "could not add peer",
@@ -324,7 +359,7 @@ impl SyncManager {
                 Ok(Err(error)) => {
                     debug!("Failed to connect to peer {socket_addr}: {error}");
                     if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "failed to connect",
@@ -334,7 +369,7 @@ impl SyncManager {
                 Err(_timeout) => {
                     debug!("Connection to peer {socket_addr} timed out");
                     if !force {
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             socket_addr.ip(),
                             Duration::from_secs(60 * 10),
                             "connection timed out",
@@ -344,11 +379,11 @@ impl SyncManager {
             }
         }
 
-        self.check_peer_count().await
+        self.check_peer_count(network_config).await
     }
 
-    async fn check_peer_count(&mut self) -> bool {
-        self.state.lock().await.peer_count() >= self.options.target_peers
+    async fn check_peer_count(&mut self, network_config: &NetworkConfig) -> bool {
+        self.state.peers.lock().await.peer_count() >= network_config.target_peers
     }
 
     pub(crate) async fn try_add_peer(
@@ -357,8 +392,10 @@ impl SyncManager {
         mut receiver: mpsc::Receiver<Message>,
         force: bool,
         user_managed: bool,
+        network_config: &NetworkConfig,
     ) -> bool {
-        let Ok(Some(message)) = timeout(self.options.timeouts.initial_peak, receiver.recv()).await
+        let Ok(Some(message)) =
+            timeout(self.state.options.timeouts.initial_peak, receiver.recv()).await
         else {
             debug!(
                 "Timeout receiving NewPeakWallet message from peer {}",
@@ -384,17 +421,17 @@ impl SyncManager {
         };
 
         let ip = peer.socket_addr().ip();
-        let sender = self.command_sender.clone();
+        let sender = self.state.commands.clone();
 
-        let mut state = self.state.lock().await;
+        let mut state = self.state.peers.lock().await;
 
-        if !force && state.peer_count() >= self.options.target_peers {
+        if !force && state.peer_count() >= network_config.target_peers {
             debug!(
                 "Peer {} is trying to connect when we have enough peers",
                 peer.socket_addr()
             );
             return false;
-        } else if force && state.peer_count() >= self.options.target_peers {
+        } else if force && state.peer_count() >= network_config.target_peers {
             let mut peers = state.peers_with_heights();
             let mut rng = rand::thread_rng();
 
@@ -414,7 +451,7 @@ impl SyncManager {
                 )
             });
 
-            let count = state.peer_count() - self.options.target_peers + 1;
+            let count = state.peer_count() - network_config.target_peers + 1;
 
             debug!("Removing {} peers to make room for new peer", count);
 

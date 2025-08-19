@@ -1,6 +1,5 @@
 use std::{
     collections::{HashMap, HashSet},
-    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -8,34 +7,24 @@ use chia::protocol::Bytes32;
 use chia_wallet_sdk::driver::{decode_offer, Offer};
 use clvmr::Allocator;
 use sage_database::{Database, OfferStatus};
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::time::sleep;
 use tracing::warn;
 
-use crate::{PeerState, SyncEvent, WalletError};
+use crate::{SyncEvent, SyncState, WalletError};
 
 #[derive(Debug)]
 pub struct OfferQueue {
     db: Database,
+    state: SyncState,
     genesis_challenge: Bytes32,
-    state: Arc<Mutex<PeerState>>,
-    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl OfferQueue {
-    pub fn new(
-        db: Database,
-        genesis_challenge: Bytes32,
-        state: Arc<Mutex<PeerState>>,
-        sync_sender: mpsc::Sender<SyncEvent>,
-    ) -> Self {
+    pub fn new(db: Database, state: SyncState, genesis_challenge: Bytes32) -> Self {
         Self {
             db,
-            genesis_challenge,
             state,
-            sync_sender,
+            genesis_challenge,
         }
     }
 
@@ -47,7 +36,7 @@ impl OfferQueue {
     }
 
     async fn process_batch(&mut self) -> Result<(), WalletError> {
-        if self.state.lock().await.peer_count() == 0 {
+        if self.state.peers.lock().await.peer_count() == 0 {
             return Ok(());
         }
 
@@ -81,7 +70,7 @@ impl OfferQueue {
             }
         }
 
-        let Some(peer) = self.state.lock().await.acquire_peer() else {
+        let Some(peer) = self.state.peers.lock().await.acquire_peer() else {
             return Ok(());
         };
 
@@ -99,7 +88,7 @@ impl OfferQueue {
             Ok(coin_states) => coin_states,
             Err(err) => {
                 warn!("Coin lookup failed for {}: {}", peer.socket_addr(), err);
-                self.state.lock().await.ban(
+                self.state.peers.lock().await.ban(
                     peer.socket_addr().ip(),
                     Duration::from_secs(300),
                     "coin lookup failed",
@@ -130,7 +119,13 @@ impl OfferQueue {
             }
         }
 
-        let peak_height = self.state.lock().await.peak().map_or(0, |peak| peak.0);
+        let peak_height = self
+            .state
+            .peers
+            .lock()
+            .await
+            .peak()
+            .map_or(0, |peak| peak.0);
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
         for offer in offers {
@@ -148,7 +143,8 @@ impl OfferQueue {
         for (offer_id, status) in new_offer_statuses {
             self.db.update_offer_status(offer_id, status).await?;
 
-            self.sync_sender
+            self.state
+                .events
                 .send(SyncEvent::OfferUpdated { offer_id, status })
                 .await
                 .ok();

@@ -36,7 +36,8 @@ impl Sage {
     pub(crate) async fn submit(&self, spend_bundle: SpendBundle) -> Result<()> {
         let wallet = self.wallet()?;
         let peer = self
-            .peer_state
+            .state
+            .peers
             .lock()
             .await
             .acquire_peer()
@@ -52,7 +53,8 @@ impl Sage {
         )
         .await?;
 
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::SubscribeCoins {
                 coin_ids: subscriptions,
             })

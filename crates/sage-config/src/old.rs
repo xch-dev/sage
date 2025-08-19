@@ -94,7 +94,7 @@ impl Default for OldAppConfig {
 #[serde(default)]
 struct OldNetworkConfig {
     network_id: String,
-    target_peers: u32,
+    target_peers: usize,
     discover_peers: bool,
 }
 

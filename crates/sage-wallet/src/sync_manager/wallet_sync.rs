@@ -1,23 +1,18 @@
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{collections::HashSet, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::time::sleep;
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, SyncState, Wallet, WalletError, WalletPeer};
 
-use super::{PeerState, SyncEvent};
+use super::SyncEvent;
 
 pub async fn sync_wallet(
-    wallet: Arc<Wallet>,
+    wallet: Wallet,
     peer: WalletPeer,
-    state: Arc<Mutex<PeerState>>,
-    sync_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
+    state: SyncState,
     delta_sync: bool,
 ) -> Result<(), WalletError> {
     info!("Starting sync against peer {}", peer.socket_addr());
@@ -39,11 +34,10 @@ pub async fn sync_wallet(
     sync_coin_ids(
         &wallet,
         &peer,
+        &state,
         start_height,
         start_header_hash,
         coin_ids,
-        sync_sender.clone(),
-        command_sender.clone(),
         false,
     )
     .await?;
@@ -52,11 +46,10 @@ pub async fn sync_wallet(
         sync_puzzle_hashes(
             &wallet,
             &peer,
+            &state,
             start_height,
             start_header_hash,
             batch,
-            sync_sender.clone(),
-            command_sender.clone(),
         )
         .await?;
     }
@@ -73,7 +66,8 @@ pub async fn sync_wallet(
 
         info!("Inserted {} derivations", derivations.len());
 
-        sync_sender
+        state
+            .events
             .send(SyncEvent::DerivationIndex { next_index })
             .await
             .ok();
@@ -82,18 +76,19 @@ pub async fn sync_wallet(
             sync_puzzle_hashes(
                 &wallet,
                 &peer,
+                &state,
                 None,
                 wallet.genesis_challenge,
                 batch,
-                sync_sender.clone(),
-                command_sender.clone(),
             )
             .await?;
         }
     }
 
     if delta_sync {
-        if let Some((height, header_hash)) = state.lock().await.peak_of(peer.socket_addr().ip()) {
+        if let Some((height, header_hash)) =
+            state.peers.lock().await.peak_of(peer.socket_addr().ip())
+        {
             info!(
                 "Updating peak from peer to {} with header hash {}",
                 height, header_hash
@@ -115,11 +110,10 @@ pub async fn sync_wallet(
 async fn sync_coin_ids(
     wallet: &Wallet,
     peer: &WalletPeer,
+    state: &SyncState,
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     coin_ids: Vec<Bytes32>,
-    sync_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
     only_send_event_if_spent: bool,
 ) -> Result<(), WalletError> {
     for (i, coin_ids) in coin_ids.chunks(10000).enumerate() {
@@ -143,7 +137,7 @@ async fn sync_coin_ids(
             .iter()
             .any(|cs| cs.spent_height.is_some() || !only_send_event_if_spent)
         {
-            incremental_sync(wallet, coin_states, true, &sync_sender, &command_sender).await?;
+            incremental_sync(wallet, state, coin_states, true).await?;
         }
     }
 
@@ -153,11 +147,10 @@ async fn sync_coin_ids(
 async fn sync_puzzle_hashes(
     wallet: &Wallet,
     peer: &WalletPeer,
+    state: &SyncState,
     start_height: Option<u32>,
     start_header_hash: Bytes32,
     puzzle_hashes: &[Bytes32],
-    sync_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     if puzzle_hashes.is_empty() {
         return Ok(());
@@ -187,14 +180,7 @@ async fn sync_puzzle_hashes(
         info!("Received {} coin states", data.coin_states.len());
 
         if !data.coin_states.is_empty() {
-            incremental_sync(
-                wallet,
-                data.coin_states,
-                true,
-                &sync_sender,
-                &command_sender,
-            )
-            .await?;
+            incremental_sync(wallet, state, data.coin_states, true).await?;
         }
 
         prev_height = Some(data.height);
@@ -210,10 +196,9 @@ async fn sync_puzzle_hashes(
 
 pub async fn incremental_sync(
     wallet: &Wallet,
+    state: &SyncState,
     coin_states: Vec<CoinState>,
     derive_automatically: bool,
-    sync_sender: &mpsc::Sender<SyncEvent>,
-    command_sender: &mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
     let mut confirmed_transactions = HashSet::new();
@@ -269,16 +254,18 @@ pub async fn incremental_sync(
     tx.commit().await?;
 
     if !coin_states.is_empty() {
-        sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+        state.events.send(SyncEvent::CoinsUpdated).await.ok();
     }
 
     if !new_derivations.is_empty() {
-        sync_sender
+        state
+            .events
             .send(SyncEvent::DerivationIndex { next_index })
             .await
             .ok();
 
-        command_sender
+        state
+            .commands
             .send(SyncCommand::SubscribePuzzles {
                 puzzle_hashes: new_derivations,
             })
@@ -314,19 +301,17 @@ async fn auto_insert_unhardened_derivations(
 pub async fn add_new_subscriptions(
     wallet: &Wallet,
     peer: &WalletPeer,
+    state: &SyncState,
     coin_ids: Vec<Bytes32>,
     puzzle_hashes: Vec<Bytes32>,
-    sync_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     sync_coin_ids(
         wallet,
         peer,
+        state,
         None,
         wallet.genesis_challenge,
         coin_ids,
-        sync_sender.clone(),
-        command_sender.clone(),
         true,
     )
     .await?;
@@ -334,11 +319,10 @@ pub async fn add_new_subscriptions(
     sync_puzzle_hashes(
         wallet,
         peer,
+        state,
         None,
         wallet.genesis_challenge,
         &puzzle_hashes,
-        sync_sender.clone(),
-        command_sender.clone(),
     )
     .await?;
 

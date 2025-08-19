@@ -4,23 +4,20 @@ use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use sage_assets::{base64_data_uri, fetch_uri};
 use sage_database::{Database, NftMetadataInfo, ResizedImageKind};
-use tokio::{
-    sync::mpsc,
-    time::{sleep, timeout},
-};
+use tokio::time::{sleep, timeout};
 use tracing::{debug, info, warn};
 
-use crate::{compute_nft_info, SyncEvent, WalletError};
+use crate::{compute_nft_info, SyncEvent, SyncState, WalletError};
 
 #[derive(Debug)]
 pub struct NftUriQueue {
     db: Database,
-    sync_sender: mpsc::Sender<SyncEvent>,
+    state: SyncState,
 }
 
 impl NftUriQueue {
-    pub fn new(db: Database, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self { db, sync_sender }
+    pub fn new(db: Database, state: SyncState) -> Self {
+        Self { db, state }
     }
 
     pub async fn start(self, delay: Duration) -> Result<(), WalletError> {
@@ -122,7 +119,7 @@ impl NftUriQueue {
             tx.commit().await?;
         }
 
-        self.sync_sender.send(SyncEvent::NftData).await.ok();
+        self.state.events.send(SyncEvent::NftData).await.ok();
 
         Ok(())
     }

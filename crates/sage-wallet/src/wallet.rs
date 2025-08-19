@@ -41,7 +41,7 @@ pub use options::*;
 
 use crate::WalletError;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Wallet {
     pub db: Database,
     pub fingerprint: u32,

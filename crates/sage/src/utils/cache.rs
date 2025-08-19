@@ -133,7 +133,7 @@ impl Sage {
     pub async fn cache_option(&self, launcher_id: Bytes32) -> Result<Asset> {
         let wallet = self.wallet()?;
 
-        let peer = self.peer_state.lock().await.acquire_peer();
+        let peer = self.state.peers.lock().await.acquire_peer();
 
         wallet
             .fetch_offer_option_info(peer.as_ref(), launcher_id)

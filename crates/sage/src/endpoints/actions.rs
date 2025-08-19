@@ -246,7 +246,8 @@ impl Sage {
             tx.commit().await?;
         }
 
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::SubscribePuzzles {
                 puzzle_hashes: derivations,
             })

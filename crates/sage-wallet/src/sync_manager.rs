@@ -1,7 +1,6 @@
 use std::{
     fmt,
     net::{IpAddr, SocketAddr},
-    sync::Arc,
     time::Duration,
 };
 
@@ -15,9 +14,8 @@ use chia_wallet_sdk::{
 };
 use futures_lite::future::poll_once;
 use itertools::Itertools;
-use sage_config::Network;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::mpsc,
     task::JoinHandle,
     time::{sleep, timeout},
 };
@@ -25,8 +23,7 @@ use tracing::{debug, info, warn};
 use wallet_sync::{add_new_subscriptions, incremental_sync, sync_wallet};
 
 use crate::{
-    BlockTimeQueue, CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, Wallet,
-    WalletError,
+    BlockTimeQueue, CatQueue, NftUriQueue, OfferQueue, PuzzleQueue, TransactionQueue, WalletError,
 };
 
 mod dns;
@@ -35,21 +32,18 @@ mod peer_discovery;
 mod peer_state;
 mod sync_command;
 mod sync_event;
+mod sync_state;
 mod wallet_sync;
 
 pub use options::*;
 pub use peer_state::*;
 pub use sync_command::*;
 pub use sync_event::*;
+pub use sync_state::*;
 
 pub struct SyncManager {
-    options: SyncOptions,
-    state: Arc<Mutex<PeerState>>,
-    wallet: Option<Arc<Wallet>>,
-    network: Network,
+    state: SyncState,
     connector: Connector,
-    event_sender: mpsc::Sender<SyncEvent>,
-    command_sender: mpsc::Sender<SyncCommand>,
     command_receiver: mpsc::Receiver<SyncCommand>,
     initial_wallet_sync: InitialWalletSync,
     puzzle_lookup_task: Option<JoinHandle<Result<(), WalletError>>>,
@@ -107,23 +101,13 @@ impl Drop for SyncManager {
 
 impl SyncManager {
     pub fn new(
-        options: SyncOptions,
-        state: Arc<Mutex<PeerState>>,
-        wallet: Option<Arc<Wallet>>,
-        network: Network,
+        state: SyncState,
+        command_receiver: mpsc::Receiver<SyncCommand>,
         connector: Connector,
-    ) -> (Self, mpsc::Sender<SyncCommand>, mpsc::Receiver<SyncEvent>) {
-        let (command_sender, command_receiver) = mpsc::channel(100);
-        let (event_sender, event_receiver) = mpsc::channel(100);
-
-        let manager = Self {
-            options,
+    ) -> Self {
+        Self {
             state,
-            wallet,
-            network,
             connector,
-            event_sender,
-            command_sender: command_sender.clone(),
             command_receiver,
             initial_wallet_sync: InitialWalletSync::Idle,
             puzzle_lookup_task: None,
@@ -134,9 +118,7 @@ impl SyncManager {
             blocktime_queue_task: None,
             pending_coin_subscriptions: Vec::new(),
             pending_puzzle_subscriptions: Vec::new(),
-        };
-
-        (manager, command_sender, event_receiver)
+        }
     }
 
     pub async fn sync(mut self) {
@@ -144,33 +126,25 @@ impl SyncManager {
             self.process_commands().await;
             self.update().await;
             self.subscribe().await;
-            sleep(self.options.timeouts.sync_delay).await;
+            sleep(self.state.options.timeouts.sync_delay).await;
         }
     }
 
     async fn process_commands(&mut self) {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
-                SyncCommand::SwitchWallet { wallet, delta_sync } => {
+                SyncCommand::Reset { remove_peers } => {
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
-                    self.wallet = wallet;
-                    self.options.delta_sync = delta_sync;
-                }
-                SyncCommand::SwitchNetwork(network) => {
-                    if self.network.network_id() != network.network_id()
-                        || self.network.genesis_challenge != network.genesis_challenge
-                        || self.network.default_port != network.default_port
-                    {
-                        self.state.lock().await.reset();
-                        self.abort_wallet_tasks();
-                        self.network = network;
+
+                    if remove_peers {
+                        self.state.peers.lock().await.reset();
                     }
                 }
                 SyncCommand::HandleMessage { ip, message } => {
                     if let Err(error) = self.handle_message(ip, message).await {
                         debug!("Failed to handle message from {ip}: {error}");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             ip,
                             Duration::from_secs(300),
                             "failed to handle message",
@@ -178,10 +152,14 @@ impl SyncManager {
                     }
                 }
                 SyncCommand::ConnectPeer { ip, user_managed } => {
+                    let network = self.state.network.lock().await.clone();
+                    let network_config = self.state.network_config.lock().await.clone();
                     self.connect_batch(
-                        &[SocketAddr::new(ip, self.network.default_port)],
+                        &[SocketAddr::new(ip, network.default_port)],
                         true,
                         user_managed,
+                        &network,
+                        &network_config,
                     )
                     .await;
                 }
@@ -192,14 +170,8 @@ impl SyncManager {
                     self.pending_puzzle_subscriptions.extend(puzzle_hashes);
                 }
                 SyncCommand::ConnectionClosed(ip) => {
-                    self.state.lock().await.remove_peer(ip);
+                    self.state.peers.lock().await.remove_peer(ip);
                     debug!("Peer {ip} disconnected");
-                }
-                SyncCommand::SetTargetPeers(target_peers) => {
-                    self.options.target_peers = target_peers;
-                }
-                SyncCommand::SetDiscoverPeers(discover_peers) => {
-                    self.options.discover_peers = discover_peers;
                 }
             }
         }
@@ -218,6 +190,7 @@ impl SyncManager {
 
         let Some(peer) = self
             .state
+            .peers
             .lock()
             .await
             .peer(ip)
@@ -226,22 +199,21 @@ impl SyncManager {
             return;
         };
 
-        let Some(wallet) = self.wallet.as_ref() else {
+        let Some(wallet) = self.state.wallet.lock().await.clone() else {
             return;
         };
 
         if let Err(error) = add_new_subscriptions(
-            wallet,
+            &wallet,
             &peer,
+            &self.state,
             self.pending_coin_subscriptions.clone(),
             self.pending_puzzle_subscriptions.clone(),
-            self.event_sender.clone(),
-            self.command_sender.clone(),
         )
         .await
         {
             warn!("Failed to add new subscriptions: {error}");
-            self.state.lock().await.ban(
+            self.state.peers.lock().await.ban(
                 ip,
                 Duration::from_secs(300),
                 "failed to add new subscriptions",
@@ -284,6 +256,7 @@ impl SyncManager {
                 let message =
                     NewPeakWallet::from_bytes(&message.data).map_err(ClientError::from)?;
                 self.state
+                    .peers
                     .lock()
                     .await
                     .update_peak(ip, message.height, message.header_hash);
@@ -291,7 +264,8 @@ impl SyncManager {
             ProtocolMessageTypes::CoinStateUpdate => {
                 let message =
                     CoinStateUpdate::from_bytes(&message.data).map_err(ClientError::from)?;
-                if let Some(wallet) = self.wallet.as_ref() {
+
+                if let Some(wallet) = self.state.wallet.lock().await.clone() {
                     let unspent_count = message
                         .items
                         .iter()
@@ -314,21 +288,14 @@ impl SyncManager {
 
                     if !spent_coin_ids.is_empty() {
                         if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-                            if let Some(info) = self.state.lock().await.peer(ip) {
+                            if let Some(info) = self.state.peers.lock().await.peer(ip) {
                                 // TODO: Handle cases
                                 info.peer.unsubscribe_coins(spent_coin_ids).await.ok();
                             }
                         }
                     }
 
-                    incremental_sync(
-                        wallet,
-                        message.items,
-                        true,
-                        &self.event_sender,
-                        &self.command_sender,
-                    )
-                    .await?;
+                    incremental_sync(&wallet, &self.state, message.items, true).await?;
 
                     info!(
                         "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
@@ -348,15 +315,20 @@ impl SyncManager {
     }
 
     async fn update(&mut self) {
-        let peer_count = self.state.lock().await.peer_count();
+        let peer_count = self.state.peers.lock().await.peer_count();
 
-        if peer_count < self.options.target_peers && self.options.discover_peers {
+        let network = self.state.network.lock().await.clone();
+        let network_config = self.state.network_config.lock().await.clone();
+
+        if peer_count < network_config.target_peers && network_config.discover_peers {
             if peer_count > 0 {
-                if !self.peer_discovery().await && !self.dns_discovery().await {
-                    self.introducer_discovery().await;
+                if !self.peer_discovery(&network, &network_config).await
+                    && !self.dns_discovery(&network, &network_config).await
+                {
+                    self.introducer_discovery(&network, &network_config).await;
                 }
-            } else if !self.dns_discovery().await {
-                self.introducer_discovery().await;
+            } else if !self.dns_discovery(&network, &network_config).await {
+                self.introducer_discovery(&network, &network_config).await;
             }
         }
 
@@ -365,88 +337,82 @@ impl SyncManager {
     }
 
     async fn update_tasks(&mut self) {
-        let state = self.state.lock().await;
+        let state = self.state.peers.lock().await;
+
+        let wallet = self.state.wallet.lock().await.clone();
+        let wallet_config = self.state.wallet_config.lock().await.clone();
+        let wallet_defaults = *self.state.wallet_defaults.lock().await;
+        let network = self.state.network.lock().await.clone();
 
         match &mut self.initial_wallet_sync {
             sync @ InitialWalletSync::Idle => {
-                if let Some(wallet) = self.wallet.clone() {
+                if let Some(wallet) = wallet.clone() {
                     if let Some(peer) = state.acquire_peer() {
                         let ip = peer.socket_addr().ip();
                         let task = tokio::spawn(sync_wallet(
-                            wallet.clone(),
+                            wallet,
                             peer,
                             self.state.clone(),
-                            self.event_sender.clone(),
-                            self.command_sender.clone(),
-                            self.options.delta_sync,
+                            wallet_config.delta_sync(&wallet_defaults),
                         ));
                         *sync = InitialWalletSync::Syncing { ip, task };
-                        self.event_sender.send(SyncEvent::Start(ip)).await.ok();
+                        self.state.events.send(SyncEvent::Start(ip)).await.ok();
                     }
                 }
             }
             InitialWalletSync::Syncing { ip, task }
-                if !state.is_connected(*ip) || self.wallet.is_none() =>
+                if !state.is_connected(*ip) || wallet.is_none() =>
             {
                 task.abort();
                 self.initial_wallet_sync = InitialWalletSync::Idle;
-                self.event_sender.send(SyncEvent::Stop).await.ok();
+                self.state.events.send(SyncEvent::Stop).await.ok();
             }
-            InitialWalletSync::Subscribed(ip)
-                if !state.is_connected(*ip) || self.wallet.is_none() =>
-            {
+            InitialWalletSync::Subscribed(ip) if !state.is_connected(*ip) || wallet.is_none() => {
                 self.initial_wallet_sync = InitialWalletSync::Idle;
-                self.event_sender.send(SyncEvent::Stop).await.ok();
+                self.state.events.send(SyncEvent::Stop).await.ok();
             }
             _ => {}
         }
 
-        if let Some(wallet) = self.wallet.clone() {
+        if let Some(wallet) = wallet {
             if self.puzzle_lookup_task.is_none() {
                 let task = tokio::spawn(
                     PuzzleQueue::new(
                         wallet.db.clone(),
-                        wallet.genesis_challenge,
-                        self.options.puzzle_batch_size_per_peer,
                         self.state.clone(),
-                        self.event_sender.clone(),
-                        self.command_sender.clone(),
+                        wallet.genesis_challenge,
+                        self.state.options.puzzle_batch_size_per_peer,
                     )
-                    .start(self.options.timeouts.puzzle_delay),
+                    .start(self.state.options.timeouts.puzzle_delay),
                 );
                 self.puzzle_lookup_task = Some(task);
             }
 
-            if self.cat_queue_task.is_none() && !self.options.testing {
-                let mainnet = self.network.genesis_challenge == MAINNET_CONSTANTS.genesis_challenge;
-                let testnet =
-                    self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+            if self.cat_queue_task.is_none() && !self.state.options.testing {
+                let mainnet = network.genesis_challenge == MAINNET_CONSTANTS.genesis_challenge;
+                let testnet = network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
                 if mainnet || testnet {
                     let task = tokio::spawn(
-                        CatQueue::new(wallet.db.clone(), testnet, self.event_sender.clone())
-                            .start(self.options.timeouts.cat_delay),
+                        CatQueue::new(wallet.db.clone(), self.state.clone(), testnet)
+                            .start(self.state.options.timeouts.cat_delay),
                     );
                     self.cat_queue_task = Some(task);
                 }
             }
 
-            if self.nft_uri_queue_task.is_none() && !self.options.testing {
+            if self.nft_uri_queue_task.is_none() && !self.state.options.testing {
                 let task = tokio::spawn(
-                    NftUriQueue::new(wallet.db.clone(), self.event_sender.clone())
-                        .start(self.options.timeouts.nft_uri_delay),
+                    NftUriQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.state.options.timeouts.nft_uri_delay),
                 );
                 self.nft_uri_queue_task = Some(task);
             }
 
             if self.transaction_queue_task.is_none() {
                 let task = tokio::spawn(
-                    TransactionQueue::new(
-                        wallet.db.clone(),
-                        self.state.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(self.options.timeouts.transaction_delay),
+                    TransactionQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.state.options.timeouts.transaction_delay),
                 );
                 self.transaction_queue_task = Some(task);
             }
@@ -455,23 +421,18 @@ impl SyncManager {
                 let task = tokio::spawn(
                     OfferQueue::new(
                         wallet.db.clone(),
-                        wallet.genesis_challenge,
                         self.state.clone(),
-                        self.event_sender.clone(),
+                        wallet.genesis_challenge,
                     )
-                    .start(self.options.timeouts.offer_delay),
+                    .start(self.state.options.timeouts.offer_delay),
                 );
                 self.offer_queue_task = Some(task);
             }
 
-            if self.blocktime_queue_task.is_none() && !self.options.testing {
+            if self.blocktime_queue_task.is_none() && !self.state.options.testing {
                 let task = tokio::spawn(
-                    BlockTimeQueue::new(
-                        wallet.db.clone(),
-                        self.state.clone(),
-                        self.event_sender.clone(),
-                    )
-                    .start(self.options.timeouts.blocktime_delay),
+                    BlockTimeQueue::new(wallet.db.clone(), self.state.clone())
+                        .start(self.state.options.timeouts.blocktime_delay),
                 );
                 self.blocktime_queue_task = Some(task);
             }
@@ -491,27 +452,27 @@ impl SyncManager {
                 match result {
                     Ok(Ok(())) => {
                         self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
-                        self.event_sender.send(SyncEvent::Subscribed).await.ok();
+                        self.state.events.send(SyncEvent::Subscribed).await.ok();
                     }
                     Ok(Err(error)) => {
                         warn!("Initial wallet sync failed: {error}");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             *ip,
                             Duration::from_secs(300),
                             "wallet sync failed",
                         );
                         self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
+                        self.state.events.send(SyncEvent::Stop).await.ok();
                     }
                     Err(_timeout) => {
                         warn!("Initial wallet sync timed out");
-                        self.state.lock().await.ban(
+                        self.state.peers.lock().await.ban(
                             *ip,
                             Duration::from_secs(300),
                             "wallet sync timed out",
                         );
                         self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
+                        self.state.events.send(SyncEvent::Stop).await.ok();
                     }
                 }
             }

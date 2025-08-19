@@ -3,27 +3,20 @@ use std::time::Duration;
 use sage_assets::DexieCat;
 use sage_database::{Asset, AssetKind, Database};
 //use serde::Deserialize;
-use tokio::{
-    sync::mpsc,
-    time::{sleep, timeout},
-};
+use tokio::time::{sleep, timeout};
 
-use crate::{SyncEvent, WalletError};
+use crate::{SyncEvent, SyncState, WalletError};
 
 #[derive(Debug)]
 pub struct CatQueue {
     db: Database,
+    state: SyncState,
     testnet: bool,
-    sync_sender: mpsc::Sender<SyncEvent>,
 }
 
 impl CatQueue {
-    pub fn new(db: Database, testnet: bool, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self {
-            db,
-            testnet,
-            sync_sender,
-        }
+    pub fn new(db: Database, state: SyncState, testnet: bool) -> Self {
+        Self { db, state, testnet }
     }
 
     pub async fn start(self, delay: Duration) -> Result<(), WalletError> {
@@ -60,7 +53,7 @@ impl CatQueue {
 
         tx.commit().await?;
 
-        self.sync_sender.send(SyncEvent::CatInfo).await.ok();
+        self.state.events.send(SyncEvent::CatInfo).await.ok();
 
         Ok(())
     }

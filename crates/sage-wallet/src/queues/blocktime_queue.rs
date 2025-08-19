@@ -1,34 +1,20 @@
-use crate::{PeerState, SyncEvent, WalletError, WalletPeer};
+use crate::{SyncEvent, SyncState, WalletError, WalletPeer};
 
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::Database;
-use std::sync::Arc;
 use std::time::Duration;
-use tokio::{
-    sync::{mpsc, Mutex},
-    time::sleep,
-};
+use tokio::time::sleep;
 use tracing::{error, info};
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct BlockTimeQueue {
     db: Database,
-    state: Arc<Mutex<PeerState>>,
-    sync_sender: mpsc::Sender<SyncEvent>,
+    state: SyncState,
 }
 
 impl BlockTimeQueue {
-    pub fn new(
-        db: Database,
-        state: Arc<Mutex<PeerState>>,
-        sync_sender: mpsc::Sender<SyncEvent>,
-    ) -> Self {
-        Self {
-            db,
-            state,
-            sync_sender,
-        }
+    pub fn new(db: Database, state: SyncState) -> Self {
+        Self { db, state }
     }
 
     pub async fn start(mut self, delay: Duration) -> Result<(), WalletError> {
@@ -41,7 +27,7 @@ impl BlockTimeQueue {
     async fn process_batch(&mut self) -> Result<(), WalletError> {
         // Look for missing created timestamps, ordered by height highest to lowest.
         // Followed by spent timestamps, ordered by height highest to lowest.
-        let peers = self.state.lock().await.peers();
+        let peers = self.state.peers.lock().await.peers();
         let limit = 5 * u32::try_from(peers.len())?;
 
         let heights = self.db.unsynced_blocks(limit).await?;
@@ -69,7 +55,7 @@ impl BlockTimeQueue {
             }
         }
 
-        self.sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
+        self.state.events.send(SyncEvent::CoinsUpdated).await.ok();
 
         Ok(())
     }

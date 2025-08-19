@@ -17,12 +17,12 @@ use chia_wallet_sdk::{
     test::{BlsPair, PeerSimulator},
     types::TESTNET11_CONSTANTS,
 };
-use sage_config::TESTNET11;
+use sage_config::{NetworkConfig, TESTNET11};
 use sage_database::{Database, Derivation};
 use sqlx::{migrate, SqlitePool};
 use tokio::{
     sync::{
-        mpsc::{Receiver, Sender},
+        mpsc::{self, Receiver},
         Mutex,
     },
     time::timeout,
@@ -30,7 +30,7 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    insert_transaction, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
+    insert_transaction, SyncCommand, SyncEvent, SyncManager, SyncOptions, SyncState, Timeouts,
     Transaction, Wallet,
 };
 
@@ -41,15 +41,13 @@ pub struct TestWallet {
     pub sim: Arc<PeerSimulator>,
     pub agg_sig: AggSigConstants,
     pub peer: Peer,
-    pub wallet: Arc<Wallet>,
+    pub wallet: Wallet,
     pub master_sk: SecretKey,
     pub puzzle_hash: Bytes32,
     pub hardened_puzzle_hash: Bytes32,
-    pub sender: Sender<SyncCommand>,
     pub events: Receiver<SyncEvent>,
     pub index: u32,
-    pub state: Arc<Mutex<PeerState>>,
-    pub options: SyncOptions,
+    pub state: SyncState,
 }
 
 impl TestWallet {
@@ -135,28 +133,39 @@ impl TestWallet {
             sim.lock().await.new_coin(puzzle_hash.into(), balance);
         }
 
-        let state = Arc::new(Mutex::new(PeerState::default()));
-        let wallet = Arc::new(Wallet::new(
+        let wallet = Wallet::new(
             db,
             fingerprint,
             intermediate_pk,
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
-        ));
-
-        let (mut sync_manager, sender, events) = SyncManager::new(
-            options,
-            state.clone(),
-            Some(wallet.clone()),
-            TESTNET11.clone(),
-            Connector::Plain,
         );
+
+        let (command_sender, command_receiver) = mpsc::channel(100);
+        let (event_sender, event_receiver) = mpsc::channel(100);
+
+        let state = SyncState::new(options, command_sender, event_sender);
+        state.update_network(TESTNET11.clone()).await;
+        state
+            .update_network_config(NetworkConfig {
+                default_network: "testnet11".to_string(),
+                target_peers: 1,
+                discover_peers: false,
+            })
+            .await;
+        state
+            .login_wallet(wallet.clone(), sage_config::Wallet::default())
+            .await;
+
+        let mut sync_manager = SyncManager::new(state.clone(), command_receiver, Connector::Plain);
 
         let (peer, receiver) = sim.connect_raw().await?;
 
+        let network_config = state.network_config.lock().await.clone();
+
         assert!(
             sync_manager
-                .try_add_peer(peer.clone(), receiver, true, false)
+                .try_add_peer(peer.clone(), receiver, true, false, &network_config)
                 .await
         );
 
@@ -170,11 +179,9 @@ impl TestWallet {
             master_sk: sk,
             puzzle_hash: puzzle_hash.into(),
             hardened_puzzle_hash: hardened_puzzle_hash.into(),
-            sender,
-            events,
+            events: event_receiver,
             index: key_index,
             state,
-            options,
         };
 
         test.consume_until(|event| matches!(event, SyncEvent::Subscribed))
@@ -185,7 +192,8 @@ impl TestWallet {
     }
 
     pub async fn resync(&mut self) -> anyhow::Result<()> {
-        *self = Self::with_sim(self.sim.clone(), 0, self.index, self.options).await?;
+        let options = self.state.options;
+        *self = Self::with_sim(self.sim.clone(), 0, self.index, options).await?;
         Ok(())
     }
 
@@ -206,7 +214,13 @@ impl TestWallet {
     }
 
     pub async fn push_bundle(&self, spend_bundle: SpendBundle) -> anyhow::Result<()> {
-        let peer = self.state.lock().await.acquire_peer().expect("no peer");
+        let peer = self
+            .state
+            .peers
+            .lock()
+            .await
+            .acquire_peer()
+            .expect("no peer");
 
         let subscriptions = insert_transaction(
             &self.wallet.db,
@@ -218,7 +232,8 @@ impl TestWallet {
         )
         .await?;
 
-        self.sender
+        self.state
+            .commands
             .send(SyncCommand::SubscribeCoins {
                 coin_ids: subscriptions,
             })
@@ -263,12 +278,9 @@ impl TestWallet {
 
 pub fn default_test_options() -> SyncOptions {
     SyncOptions {
-        target_peers: 0,
-        discover_peers: false,
         dns_batch_size: 0,
         connection_batch_size: 0,
         max_peer_age_seconds: 0,
-        delta_sync: true,
         puzzle_batch_size_per_peer: 5,
         timeouts: Timeouts {
             sync_delay: Duration::from_millis(100),

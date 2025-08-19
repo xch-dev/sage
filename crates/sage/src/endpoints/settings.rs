@@ -15,7 +15,7 @@ use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn get_peers(&self, _req: GetPeers) -> Result<GetPeersResponse> {
-        let peer_state = self.peer_state.lock().await;
+        let peer_state = self.state.peers.lock().await;
 
         Ok(GetPeersResponse {
             peers: peer_state
@@ -36,7 +36,7 @@ impl Sage {
     }
 
     pub async fn remove_peer(&self, req: RemovePeer) -> Result<RemovePeerResponse> {
-        let mut peer_state = self.peer_state.lock().await;
+        let mut peer_state = self.state.peers.lock().await;
 
         let ip = req.ip.parse()?;
 
@@ -50,7 +50,8 @@ impl Sage {
     }
 
     pub async fn add_peer(&self, req: AddPeer) -> Result<AddPeerResponse> {
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::ConnectPeer {
                 ip: req.ip.parse()?,
                 user_managed: true,
@@ -67,7 +68,8 @@ impl Sage {
         if self.config.network.discover_peers != req.discover_peers {
             self.config.network.discover_peers = req.discover_peers;
             self.save_config()?;
-            self.command_sender
+            self.state
+                .commands
                 .send(SyncCommand::SetDiscoverPeers(req.discover_peers))
                 .await?;
         }
@@ -81,7 +83,8 @@ impl Sage {
     ) -> Result<SetTargetPeersResponse> {
         self.config.network.target_peers = req.target_peers;
         self.save_config()?;
-        self.command_sender
+        self.state
+            .commands
             .send(SyncCommand::SetTargetPeers(req.target_peers as usize))
             .await?;
 

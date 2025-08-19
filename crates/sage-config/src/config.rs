@@ -41,7 +41,7 @@ impl Default for GlobalConfig {
 #[serde(default)]
 pub struct NetworkConfig {
     pub default_network: String,
-    pub target_peers: u32,
+    pub target_peers: usize,
     pub discover_peers: bool,
 }
 
