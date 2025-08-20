@@ -1,7 +1,7 @@
 import { Resync } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import {
@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../ui/dialog';
+import { LoadingButton } from '../ui/loading-button';
 import { Switch } from '../ui/switch';
 
 export interface ResyncDialogProps {
@@ -90,8 +91,10 @@ export function ResyncDialog({
           <Button variant='outline' onClick={() => setOpen(false)}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button
+          <LoadingButton
             variant='destructive'
+            loading={pending}
+            loadingText={t`Resyncing`}
             onClick={() => {
               setPending(true);
               submit({
@@ -109,13 +112,9 @@ export function ResyncDialog({
                 });
             }}
             autoFocus
-            disabled={pending}
           >
-            {pending && (
-              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-            )}
-            {pending ? <Trans>Resyncing</Trans> : <Trans>Resync</Trans>}
-          </Button>
+            <Trans>Resync</Trans>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
