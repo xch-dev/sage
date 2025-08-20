@@ -153,10 +153,15 @@ jobs:
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
-      - name: Workaround iOS selection
+      - name: Setup Xcode
+        if: matrix.platform_name == 'iOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Download iOS platform
         if: matrix.platform_name == 'iOS'
         run: |
-          sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
           xcodebuild -version
           xcodebuild -downloadPlatform iOS
 
