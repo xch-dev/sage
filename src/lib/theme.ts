@@ -1,9 +1,6 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
-import {
-  getColorLightness,
-  makeColorTransparent
-} from './color-utils';
+import { getColorLightness, makeColorTransparent } from './color-utils';
 import { deepMerge } from './utils';
 
 /**
@@ -204,26 +201,44 @@ export function applyTheme(theme: Theme) {
     const popoverOpacity = theme.backgroundOpacity?.popover ?? 0.9;
 
     // Get the actual values from CSS variables since they might be inherited
-    const backgroundValue = theme.colors?.background ||
+    const backgroundValue =
+      theme.colors?.background ||
       getComputedStyle(root).getPropertyValue('--background').trim();
-    const cardValue = theme.colors?.card ||
+    const cardValue =
+      theme.colors?.card ||
       getComputedStyle(root).getPropertyValue('--card').trim();
-    const popoverValue = theme.colors?.popover ||
+    const popoverValue =
+      theme.colors?.popover ||
       getComputedStyle(root).getPropertyValue('--popover').trim();
 
     if (backgroundValue) {
       const transparentBg = makeColorTransparent(backgroundValue, bodyOpacity);
-      root.style.setProperty('--background-transparent', transparentBg, 'important');
+      root.style.setProperty(
+        '--background-transparent',
+        transparentBg,
+        'important',
+      );
     }
 
     if (cardValue) {
       const transparentCard = makeColorTransparent(cardValue, cardOpacity);
-      root.style.setProperty('--card-transparent', transparentCard, 'important');
+      root.style.setProperty(
+        '--card-transparent',
+        transparentCard,
+        'important',
+      );
     }
 
     if (popoverValue) {
-      const transparentPopover = makeColorTransparent(popoverValue, popoverOpacity);
-      root.style.setProperty('--popover-transparent', transparentPopover, 'important');
+      const transparentPopover = makeColorTransparent(
+        popoverValue,
+        popoverOpacity,
+      );
+      root.style.setProperty(
+        '--popover-transparent',
+        transparentPopover,
+        'important',
+      );
     }
   }
 

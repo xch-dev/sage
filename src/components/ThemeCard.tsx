@@ -19,28 +19,38 @@ function createThemeStyles(
 ) {
   const styles: Record<string, string | undefined> = {};
 
-  // Background color - only use theme's own colors, never CSS variables
+  // Background color - use theme's own colors directly, supporting any CSS color format
   if (theme.backgroundImage) {
-    styles.backgroundColor = `hsla(${theme.colors?.card || '0 0% 100%'}, ${theme.backgroundOpacity?.card ?? 0.75})`;
+    const cardColor = theme.colors?.card || 'hsl(0 0% 100%)';
+    const opacity = theme.backgroundOpacity?.card ?? 0.75;
+    // Handle different color formats for transparency
+    if (cardColor.startsWith('hsl')) {
+      styles.backgroundColor = `hsla(${cardColor.slice(4, -1)}, ${opacity})`;
+    } else if (cardColor.startsWith('rgb')) {
+      styles.backgroundColor = `rgba(${cardColor.slice(4, -1)}, ${opacity})`;
+    } else {
+      // For other formats, use CSS color-mix as fallback
+      styles.backgroundColor = `color-mix(in srgb, ${cardColor} ${opacity * 100}%, transparent)`;
+    }
   } else if (theme.colors?.card) {
-    styles.backgroundColor = `hsl(${theme.colors.card})`;
+    styles.backgroundColor = theme.colors.card;
   } else {
     // Default fallback that doesn't depend on ambient theme
     styles.backgroundColor =
       variant === 'default' ? 'hsl(0 0% 100%)' : undefined;
   }
 
-  // Text color - only use theme's own colors
+  // Text color - use theme's own colors directly
   if (theme.colors?.cardForeground) {
-    styles.color = `hsl(${theme.colors.cardForeground})`;
+    styles.color = theme.colors.cardForeground;
   } else {
     // Default fallback that doesn't depend on ambient theme
     styles.color = variant === 'default' ? 'hsl(0 0% 0%)' : undefined;
   }
 
-  // Border - only use theme's own colors
+  // Border - use theme's own colors directly
   if (theme.colors?.border) {
-    styles.border = `1px solid hsl(${theme.colors.border})`;
+    styles.border = `1px solid ${theme.colors.border}`;
   } else {
     // Default fallback that doesn't depend on ambient theme
     styles.border =
@@ -80,7 +90,7 @@ function createThemeStyles(
   // Selection outline - use current theme's colors for selection indicator
   if (isSelected) {
     if (currentTheme.colors?.primary) {
-      styles.outline = `2px solid hsl(${currentTheme.colors.primary})`;
+      styles.outline = `2px solid ${currentTheme.colors.primary}`;
     } else {
       // Fallback that doesn't depend on ambient theme
       styles.outline = '2px solid hsl(220 13% 91%)';
@@ -105,19 +115,19 @@ export function ThemeCard({
   const renderDefaultContent = () => {
     const buttonStyles: Record<string, string | undefined> = {};
     if (theme.colors?.primary) {
-      buttonStyles.backgroundColor = `hsl(${theme.colors.primary})`;
+      buttonStyles.backgroundColor = theme.colors.primary;
     } else {
       buttonStyles.backgroundColor = 'hsl(220 13% 91%)'; // Default gray
     }
     if (theme.colors?.border) {
-      buttonStyles.borderColor = `hsl(${theme.colors.border})`;
-      buttonStyles.border = `1px solid hsl(${theme.colors.border})`;
+      buttonStyles.borderColor = theme.colors.border;
+      buttonStyles.border = `1px solid ${theme.colors.border}`;
     } else {
       buttonStyles.borderColor = 'hsl(0 0% 90%)';
       buttonStyles.border = '1px solid hsl(0 0% 90%)';
     }
     if (theme.colors?.primaryForeground) {
-      buttonStyles.color = `hsl(${theme.colors.primaryForeground})`;
+      buttonStyles.color = theme.colors.primaryForeground;
     } else {
       buttonStyles.color = 'hsl(0 0% 0%)'; // Default black
     }
@@ -146,14 +156,14 @@ export function ThemeCard({
 
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
-      checkStyles.color = `hsl(${currentTheme.colors.primary})`;
+      checkStyles.color = currentTheme.colors.primary;
     } else {
       checkStyles.color = 'hsl(220 13% 91%)'; // Default gray
     }
 
     const mutedTextStyles: Record<string, string | undefined> = {};
     if (theme.colors?.mutedForeground) {
-      mutedTextStyles.color = `hsl(${theme.colors.mutedForeground})`;
+      mutedTextStyles.color = theme.colors.mutedForeground;
     } else {
       mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
     }
@@ -181,36 +191,28 @@ export function ThemeCard({
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.primary
-                  ? `hsl(${theme.colors.primary})`
-                  : undefined,
+                backgroundColor: theme.colors?.primary || undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.secondary
-                  ? `hsl(${theme.colors.secondary})`
-                  : undefined,
+                backgroundColor: theme.colors?.secondary || undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.accent
-                  ? `hsl(${theme.colors.accent})`
-                  : undefined,
+                backgroundColor: theme.colors?.accent || undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
             <div
               className='h-4 w-4'
               style={{
-                backgroundColor: theme.colors?.destructive
-                  ? `hsl(${theme.colors.destructive})`
-                  : undefined,
+                backgroundColor: theme.colors?.destructive || undefined,
                 borderRadius: theme.corners?.sm || '0.125rem',
               }}
             />
@@ -233,7 +235,7 @@ export function ThemeCard({
 
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
-      checkStyles.color = `hsl(${currentTheme.colors.primary})`;
+      checkStyles.color = currentTheme.colors.primary;
     } else {
       checkStyles.color = 'currentColor';
     }
@@ -251,27 +253,21 @@ export function ThemeCard({
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.primary
-                ? `hsl(${theme.colors.primary})`
-                : undefined,
+              backgroundColor: theme.colors?.primary || undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.secondary
-                ? `hsl(${theme.colors.secondary})`
-                : undefined,
+              backgroundColor: theme.colors?.secondary || undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
           <div
             className='h-2 w-2'
             style={{
-              backgroundColor: theme.colors?.accent
-                ? `hsl(${theme.colors.accent})`
-                : undefined,
+              backgroundColor: theme.colors?.accent || undefined,
               borderRadius: theme.corners?.sm || '0.125rem',
             }}
           />
