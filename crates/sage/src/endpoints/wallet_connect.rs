@@ -1,3 +1,5 @@
+use std::slice;
+
 use chia::{
     bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
     clvm_utils::ToTreeHash,
@@ -29,7 +31,11 @@ impl Sage {
         let mut coin_ids = Vec::new();
 
         for coin_id in req.coin_ids {
-            if wallet.db.are_coins_spendable(&[coin_id.clone()]).await? {
+            if wallet
+                .db
+                .are_coins_spendable(slice::from_ref(&coin_id))
+                .await?
+            {
                 coin_ids.push(coin_id);
             }
         }

@@ -329,11 +329,11 @@ impl Wallet {
                             } else if is_receiver && timestamp >= clawback.seconds {
                                 clawback.receiver_spend(ctx, spend)
                             } else if is_sender || is_receiver {
-                                return Err(DriverError::Custom(
+                                Err(DriverError::Custom(
                                     "Cannot fulfill clawback spend".to_string(),
-                                ));
+                                ))
                             } else {
-                                return Err(DriverError::MissingKey);
+                                Err(DriverError::MissingKey)
                             }
                         }
                         P2Puzzle::Option(underlying) => {
