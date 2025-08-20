@@ -10,7 +10,7 @@ use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
     GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
-    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer,
+    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer,
     TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
@@ -592,11 +592,28 @@ impl Sage {
                 None
             };
 
+            let option_assets = if asset.kind == AssetKind::Option {
+                let Some(row) = wallet.db.option_assets(asset.hash).await? else {
+                    return Err(Error::MissingOption(asset.hash));
+                };
+
+                Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                })
+            } else {
+                None
+            };
+
             let asset = OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(royalty),
                 asset: self.encode_asset(asset)?,
                 nft_royalty,
+                option_assets,
             };
 
             if is_requested {

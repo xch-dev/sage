@@ -5,6 +5,7 @@ use chia::protocol::Bytes32;
 use chia::protocol::SpendBundle;
 use chia_wallet_sdk::driver::{DriverError, Offer};
 use chia_wallet_sdk::{driver::SpendContext, utils::Address};
+use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
 use sage_database::OfferStatus;
 use sage_wallet::WalletError;
@@ -45,6 +46,7 @@ impl Sage {
                 royalty: Amount::u64(offered_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -59,6 +61,7 @@ impl Sage {
                 royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -84,17 +87,29 @@ impl Sage {
                     .encode()?,
                     royalty_basis_points: nft.info.royalty_basis_points,
                 }),
+                option_assets: None,
             });
         }
 
         for (&launcher_id, option) in &offer.offered_coins().options {
             let asset = self.cache_option(launcher_id).await?;
 
+            let Some(row) = wallet.db.option_assets(launcher_id).await? else {
+                return Err(Error::MissingOption(launcher_id));
+            };
+
             maker.push(OfferAsset {
                 amount: Amount::u64(option.coin.amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                }),
             });
         }
 
@@ -110,6 +125,7 @@ impl Sage {
                 royalty: Amount::u64(requested_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -124,6 +140,7 @@ impl Sage {
                 royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -156,6 +173,7 @@ impl Sage {
                         .encode()?,
                     royalty_basis_points: nft.royalty_basis_points,
                 }),
+                option_assets: None,
             });
         }
 
@@ -167,11 +185,22 @@ impl Sage {
 
             let asset = self.cache_option(launcher_id).await?;
 
+            let Some(row) = wallet.db.option_assets(launcher_id).await? else {
+                return Err(Error::MissingOption(launcher_id));
+            };
+
             taker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                }),
             });
         }
 
