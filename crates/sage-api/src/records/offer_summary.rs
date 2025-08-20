@@ -19,6 +19,7 @@ pub struct OfferAsset {
     pub amount: Amount,
     pub royalty: Amount,
     pub nft_royalty: Option<NftRoyalty>,
+    pub option_assets: Option<OptionAssets>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,4 +27,14 @@ pub struct OfferAsset {
 pub struct NftRoyalty {
     pub royalty_address: String,
     pub royalty_basis_points: u16,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct OptionAssets {
+    pub underlying_asset: Asset,
+    pub underlying_amount: Amount,
+    pub strike_asset: Asset,
+    pub strike_amount: Amount,
+    pub expiration_seconds: u64,
 }

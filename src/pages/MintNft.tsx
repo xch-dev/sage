@@ -1,7 +1,6 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
-import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -10,6 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { LoadingButton } from '@/components/ui/loading-button';
 import {
   FeeAmountInput,
   IntegerInput,
@@ -30,7 +30,6 @@ import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -353,12 +352,13 @@ export default function MintNft() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? <Trans>Minting</Trans> : <Trans>Mint</Trans>} NFT
-            </Button>
+            <LoadingButton
+              type='submit'
+              loading={pending}
+              loadingText={t`Minting`}
+            >
+              <Trans>Mint</Trans> NFT
+            </LoadingButton>
           </form>
         </Form>
       </Container>
