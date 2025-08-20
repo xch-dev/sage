@@ -10,7 +10,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import {
   FeeAmountInput,
   IntegerInput,
@@ -66,9 +65,29 @@ export default function MintNft() {
     },
   });
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('royaltyAddress', scanResValue);
-  });
+  const { handleScanOrPaste: handleRoyaltyPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('royaltyAddress', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleDataUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('dataUris', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleMetadataUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('metadataUris', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleLicenseUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('licenseUris', scanResValue);
+    },
+  );
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -180,11 +199,11 @@ export default function MintNft() {
                     <Trans>Data URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleDataUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -201,11 +220,11 @@ export default function MintNft() {
                     <Trans>Metadata URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleMetadataUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -222,11 +241,11 @@ export default function MintNft() {
                     <Trans>License URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleLicenseUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -247,7 +266,7 @@ export default function MintNft() {
                       type='text'
                       placeholder={t`Enter address`}
                       {...field}
-                      onEndIconClick={handleScanOrPaste}
+                      onEndIconClick={handleRoyaltyPaste}
                     />
                   </FormControl>
                   <FormMessage />
