@@ -325,7 +325,7 @@ msgstr ""
 #: src/pages/IssueToken.tsx:109
 #: src/components/TransactionColumns.tsx:102
 #: src/components/CoinList.tsx:134
-#: src/components/selectors/AssetSelector.tsx:218
+#: src/components/selectors/AssetSelector.tsx:223
 #: src/components/confirmations/TokenConfirmation.tsx:137
 msgid "Amount"
 msgstr "Betrag"
@@ -1064,7 +1064,7 @@ msgstr "Ein Profil erstellen?"
 msgid "Create an option?"
 msgstr ""
 
-#: src/components/selectors/AssetSelector.tsx:269
+#: src/components/selectors/AssetSelector.tsx:274
 msgid "Create individual offers for each NFT"
 msgstr ""
 
@@ -2318,7 +2318,7 @@ msgstr "Nächste Seite"
 
 #: src/components/NftGroupCard.tsx:465
 #: src/components/MultiSelectActions.tsx:271
-#: src/components/selectors/AssetSelector.tsx:177
+#: src/components/selectors/AssetSelector.tsx:180
 msgid "NFT"
 msgstr "NFT"
 
@@ -2620,7 +2620,7 @@ msgstr ""
 msgid "option"
 msgstr ""
 
-#: src/components/selectors/AssetSelector.tsx:181
+#: src/components/selectors/AssetSelector.tsx:185
 msgid "Option"
 msgstr ""
 
@@ -4076,7 +4076,7 @@ msgstr "Mehrfachauswahl umschalten"
 msgid "Toggle navigation menu"
 msgstr "Navigationsmenü umschalten"
 
-#: src/components/selectors/AssetSelector.tsx:173
+#: src/components/selectors/AssetSelector.tsx:176
 msgid "Token"
 msgstr "Token"
 
@@ -4479,7 +4479,7 @@ msgid "Use 24 words"
 msgstr "Verwenden Sie 24 Wörter"
 
 #: src/pages/Send.tsx:331
-#: src/components/selectors/AssetSelector.tsx:237
+#: src/components/selectors/AssetSelector.tsx:242
 msgid "Use maximum balance"
 msgstr ""
 

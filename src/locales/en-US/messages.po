@@ -325,7 +325,7 @@ msgstr "All Levels"
 #: src/pages/IssueToken.tsx:109
 #: src/components/TransactionColumns.tsx:102
 #: src/components/CoinList.tsx:134
-#: src/components/selectors/AssetSelector.tsx:218
+#: src/components/selectors/AssetSelector.tsx:223
 #: src/components/confirmations/TokenConfirmation.tsx:137
 msgid "Amount"
 msgstr "Amount"
@@ -1064,7 +1064,7 @@ msgstr "Create a profile?"
 msgid "Create an option?"
 msgstr "Create an option?"
 
-#: src/components/selectors/AssetSelector.tsx:269
+#: src/components/selectors/AssetSelector.tsx:274
 msgid "Create individual offers for each NFT"
 msgstr "Create individual offers for each NFT"
 
@@ -2318,7 +2318,7 @@ msgstr "Next page"
 
 #: src/components/NftGroupCard.tsx:465
 #: src/components/MultiSelectActions.tsx:271
-#: src/components/selectors/AssetSelector.tsx:177
+#: src/components/selectors/AssetSelector.tsx:180
 msgid "NFT"
 msgstr "NFT"
 
@@ -2620,7 +2620,7 @@ msgstr "Optimizing..."
 msgid "option"
 msgstr "option"
 
-#: src/components/selectors/AssetSelector.tsx:181
+#: src/components/selectors/AssetSelector.tsx:185
 msgid "Option"
 msgstr "Option"
 
@@ -4076,7 +4076,7 @@ msgstr "Toggle multi-select"
 msgid "Toggle navigation menu"
 msgstr "Toggle navigation menu"
 
-#: src/components/selectors/AssetSelector.tsx:173
+#: src/components/selectors/AssetSelector.tsx:176
 msgid "Token"
 msgstr "Token"
 
@@ -4479,7 +4479,7 @@ msgid "Use 24 words"
 msgstr "Use 24 words"
 
 #: src/pages/Send.tsx:331
-#: src/components/selectors/AssetSelector.tsx:237
+#: src/components/selectors/AssetSelector.tsx:242
 msgid "Use maximum balance"
 msgstr "Use maximum balance"
 
