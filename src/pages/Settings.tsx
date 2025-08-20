@@ -783,13 +783,13 @@ function LogViewer() {
   const getLevelColor = (level: string) => {
     switch (level.toUpperCase()) {
       case 'ERROR':
-        return 'text-red-500 dark:text-red-400';
+        return 'text-red-500';
       case 'WARN':
-        return 'text-yellow-600 dark:text-yellow-500';
+        return 'text-yellow-600';
       case 'INFO':
-        return 'text-blue-600 dark:text-blue-500';
+        return 'text-blue-600';
       case 'DEBUG':
-        return 'text-slate-500 dark:text-slate-400';
+        return 'text-slate-500';
       default:
         return 'text-muted-foreground';
     }

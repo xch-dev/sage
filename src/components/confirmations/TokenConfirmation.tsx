@@ -169,7 +169,7 @@ export function TokenConfirmation({
                 {coins.map((coin) => (
                   <div
                     key={coin.coin_id}
-                    className='flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-1 last:border-0 last:pb-0'
+                    className='flex justify-between items-center border-b border-border pb-1 last:border-0 last:pb-0'
                   >
                     <div className='truncate flex-1 mr-2'>
                       {coin.coin_id.substring(0, 8)}...

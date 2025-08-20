@@ -147,7 +147,9 @@ export function MintOptionConfirmation({
       )}
 
       <ConfirmationCard
-        icon={<FilePenLine className='h-8 w-8 text-purple-500' />}
+        icon={
+          <FilePenLine className='h-8 w-8 text-purple-500' aria-hidden='true' />
+        }
         title={<Trans>Option Contract</Trans>}
       >
         <div className='text-muted-foreground'>

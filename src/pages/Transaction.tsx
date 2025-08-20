@@ -64,7 +64,7 @@ export default function Transaction() {
         <Card className='mb-6'>
           <CardHeader className='pb-2'>
             <CardTitle className='flex items-center gap-2'>
-              <ArrowLeftRight className='h-5 w-5' />
+              <ArrowLeftRight className='h-5 w-5' aria-hidden='true' />
               <Trans>Transaction Details</Trans>
             </CardTitle>
           </CardHeader>
@@ -72,7 +72,7 @@ export default function Transaction() {
             <div className='flex items-center gap-4 mb-4'>
               <div className='px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'>
                 <div className='flex items-center gap-1'>
-                  <CheckCircle className='h-4 w-4' />
+                  <CheckCircle className='h-4 w-4' aria-hidden='true' />
                   <Trans>Confirmed</Trans>
                 </div>
               </div>
@@ -107,7 +107,7 @@ export default function Transaction() {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <ArrowUp className='h-5 w-5' />
+                  <ArrowUp className='h-5 w-5' aria-hidden='true' />
                   <Trans>Sent</Trans>
                 </CardTitle>
               </CardHeader>
@@ -127,7 +127,7 @@ export default function Transaction() {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <ArrowDown className='h-5 w-5' />
+                  <ArrowDown className='h-5 w-5' aria-hidden='true' />
                   <Trans>Received</Trans>
                 </CardTitle>
               </CardHeader>

@@ -246,13 +246,13 @@ const MobileRow = ({
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
           <div className='flex items-center space-x-2'>
-            <span className='text-gray-500'>
+            <span className='text-muted-foreground'>
               <Trans>Height:</Trans>
             </span>
             <span>{peer.peak_height.toLocaleString()}</span>
           </div>
           <div className='flex items-center justify-end space-x-2'>
-            <span className='text-gray-500'>
+            <span className='text-muted-foreground'>
               <Trans>Port:</Trans>
             </span>
             <span>{peer.port}</span>

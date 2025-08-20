@@ -276,7 +276,7 @@ export default function ConfirmationDialog({
                       {additionalData.title}
                     </h3>
                     <div className='space-y-2'>
-                      <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
+                      <div className='flex items-start gap-2 text-sm border border-border rounded-md p-2 bg-card/30'>
                         <div className='break-words whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
@@ -288,7 +288,10 @@ export default function ConfirmationDialog({
                 {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
-                      <ArrowUpIcon className='h-4 w-4 mr-1' />
+                      <ArrowUpIcon
+                        className='h-4 w-4 mr-1'
+                        aria-hidden='true'
+                      />
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
@@ -302,7 +305,10 @@ export default function ConfirmationDialog({
                               <span className='truncate'>{group.badge}</span>
                             </Badge>
                             <div className='flex items-center'>
-                              <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
+                              <ArrowUpRightIcon
+                                className='h-4 w-4 mr-1 text-blue-500'
+                                aria-hidden='true'
+                              />
                               <Trans>Total:</Trans>{' '}
                               <span className='font-medium text-foreground ml-1'>
                                 {group.totalAmount} {group.ticker}
@@ -317,7 +323,7 @@ export default function ConfirmationDialog({
                               <div className='flex items-center'>
                                 <Trans>To:</Trans>{' '}
                                 {group.recipients.length > 1 && (
-                                  <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
+                                  <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
                                     <Trans id='sending_to_recipients'>
                                       Sending <span>{group.label}</span> to{' '}
                                       <span>{group.recipients.length}</span>{' '}
@@ -340,7 +346,10 @@ export default function ConfirmationDialog({
                                   key={address}
                                   className='flex items-center gap-1.5 min-w-0 w-full pl-2'
                                 >
-                                  <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
+                                  <ForwardIcon
+                                    className='w-4 h-4 text-blue-500 shrink-0'
+                                    aria-hidden='true'
+                                  />
                                   <div className='text-sm truncate flex-1'>
                                     {address}
                                   </div>
@@ -386,7 +395,7 @@ export default function ConfirmationDialog({
                 <div className='flex flex-col gap-4'>
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                      <BadgeMinus className='h-4 w-4 mr-1' />
+                      <BadgeMinus className='h-4 w-4 mr-1' aria-hidden='true' />
                       <Trans>Spent Coins</Trans>
                     </h3>
                     <div className='space-y-2'>
@@ -431,7 +440,7 @@ export default function ConfirmationDialog({
 
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                      <BadgePlus className='h-4 w-4 mr-1' />
+                      <BadgePlus className='h-4 w-4 mr-1' aria-hidden='true' />
                       <Trans>Transaction Output</Trans>
                     </h3>
                     <div className='space-y-2'>
@@ -472,7 +481,10 @@ export default function ConfirmationDialog({
                               <div className='font-medium'>{item.label}</div>
                             </div>
                             <div className='flex items-center gap-1.5'>
-                              <ForwardIcon className='w-4 h-4 shrink-0 text-blue-500' />
+                              <ForwardIcon
+                                className='w-4 h-4 shrink-0 text-blue-500'
+                                aria-hidden='true'
+                              />
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
@@ -502,7 +514,7 @@ export default function ConfirmationDialog({
                 className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 <Alert variant='warning'>
-                  <AlertCircleIcon className='h-4 w-4' />
+                  <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
                   <AlertTitle>
                     <Trans>Advanced Feature</Trans>
                   </AlertTitle>
@@ -542,7 +554,10 @@ export default function ConfirmationDialog({
                   >
                     {signature ? (
                       <>
-                        <CheckCircleIcon className='h-4 w-4 mr-1' />
+                        <CheckCircleIcon
+                          className='h-4 w-4 mr-1'
+                          aria-hidden='true'
+                        />
                         <Trans>Signed</Trans>
                       </>
                     ) : (
@@ -558,19 +573,22 @@ export default function ConfirmationDialog({
                   >
                     {jsonCopied ? (
                       <>
-                        <CopyCheckIcon className='h-4 w-4 text-emerald-500' />
+                        <CopyCheckIcon
+                          className='h-4 w-4 text-emerald-500'
+                          aria-hidden='true'
+                        />
                         <Trans>Copied</Trans>
                       </>
                     ) : (
                       <>
-                        <CopyIcon className='h-4 w-4' />
+                        <CopyIcon className='h-4 w-4' aria-hidden='true' />
                         <Trans>Copy JSON</Trans>
                       </>
                     )}
                   </Button>
                 </div>
 
-                <div className='relative p-3 mt-4 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono'>
+                <div className='relative p-3 mt-4 break-all rounded-md bg-muted/50 text-foreground whitespace-pre-wrap text-xs font-mono'>
                   {json}
                 </div>
               </TabsContent>

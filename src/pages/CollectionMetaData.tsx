@@ -135,9 +135,9 @@ export default function CollectionMetaData() {
         <Header title={t`Loading Collection...`} />
         <Container>
           <div className='animate-pulse'>
-            <div className='h-32 w-32 bg-neutral-200 dark:bg-neutral-800 rounded-lg mx-auto mb-4' />
-            <div className='h-8 bg-neutral-200 dark:bg-neutral-800 rounded w-3/4 mx-auto mb-4' />
-            <div className='h-4 bg-neutral-200 dark:bg-neutral-800 rounded w-1/2 mx-auto' />
+            <div className='h-32 w-32 bg-muted rounded-lg mx-auto mb-4' />
+            <div className='h-8 bg-muted rounded w-3/4 mx-auto mb-4' />
+            <div className='h-4 bg-muted rounded w-1/2 mx-auto' />
           </div>
         </Container>
       </>
@@ -189,7 +189,7 @@ export default function CollectionMetaData() {
                   <div
                     className={`mx-auto max-w-[200px] ${getBannerUrl() ? '-mt-24 relative z-10' : ''}`}
                   >
-                    <div className='rounded-lg overflow-hidden bg-white dark:bg-neutral-900 shadow-lg'>
+                    <div className='rounded-lg overflow-hidden bg-card shadow-lg'>
                       <img
                         src={collection.icon ?? missing}
                         alt={t`Icon for ${collectionName}`}
@@ -213,7 +213,7 @@ export default function CollectionMetaData() {
                   />
                   {minterProfile && (
                     <div
-                      className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                      className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                       onClick={() =>
                         openUrl(`https://mintgarden.io/${collection.did_id}`)
                       }
@@ -269,7 +269,7 @@ export default function CollectionMetaData() {
                             /^(https?|ipfs|data):\/\/\S+/i,
                           ) ? (
                             <div
-                              className='text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
+                              className='text-blue-600 hover:text-blue-800 cursor-pointer hover:underline truncate'
                               onClick={() => openUrl(value as string)}
                             >
                               {value}
@@ -353,7 +353,7 @@ export default function CollectionMetaData() {
                           attr.value.match(/^(https?|ipfs|data):\/\/\S+/i) ? (
                             <div
                               onClick={() => openUrl(attr.value)}
-                              className='text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline truncate'
+                              className='text-sm text-blue-600 hover:text-blue-800 cursor-pointer hover:underline truncate'
                             >
                               {attr.value}
                             </div>

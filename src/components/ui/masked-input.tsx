@@ -82,7 +82,7 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
         />
         {ticker && (
           <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-            <span className='text-gray-500 text-sm'>
+            <span className='text-muted-foreground text-sm'>
               {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
             </span>
           </div>

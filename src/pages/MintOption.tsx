@@ -235,7 +235,7 @@ export function MintOption() {
                   onValueChange={(values) => setDays(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Days</Trans>
                   </span>
                 </div>
@@ -250,7 +250,7 @@ export function MintOption() {
                   onValueChange={(values) => setHours(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Hours</Trans>
                   </span>
                 </div>
@@ -265,7 +265,7 @@ export function MintOption() {
                   onValueChange={(values) => setMinutes(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Minutes</Trans>
                   </span>
                 </div>
@@ -285,7 +285,10 @@ export function MintOption() {
               onValueChange={(values) => setFee(values.value)}
             />
             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-              <span className='text-gray-500 text-sm' id='price-currency'>
+              <span
+                className='text-muted-foreground text-sm'
+                id='price-currency'
+              >
                 {walletState.sync.unit.ticker}
               </span>
             </div>

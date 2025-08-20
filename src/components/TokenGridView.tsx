@@ -139,7 +139,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     />{' '}
                     {token.ticker ?? ''}
                   </div>
-                  <div className='flex justify-between items-center text-sm text-neutral-500'>
+                  <div className='flex justify-between items-center text-sm text-muted-foreground'>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div>
