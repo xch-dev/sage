@@ -42,7 +42,7 @@ export function AdvancedTransactionSummary({
     <div className='flex flex-col gap-1.5'>
       <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
         <div className='flex items-center gap-2 text-lg'>
-          <BadgeMinus className='w-6 h-6' />
+          <BadgeMinus className='w-6 h-6' aria-hidden='true' />
           <span>
             <Trans>Spent Coins</Trans>
           </span>
@@ -62,8 +62,8 @@ export function AdvancedTransactionSummary({
                   <span>{spent.label}</span>
                 </div>
                 <div className='flex items-center gap-1'>
-                  <BoxIcon className='w-4 h-4' />
-                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
+                  <BoxIcon className='w-4 h-4' aria-hidden='true' />
+                  <div className='truncate text-muted-foreground'>
                     {spent.coinId}
                   </div>
                 </div>
@@ -73,7 +73,7 @@ export function AdvancedTransactionSummary({
       </div>
       <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
         <div className='flex items-center gap-2 text-lg'>
-          <BadgePlus className='w-6 h-6' />
+          <BadgePlus className='w-6 h-6' aria-hidden='true' />
           <span>
             <Trans>Transaction Output</Trans>
           </span>
@@ -106,8 +106,8 @@ export function AdvancedTransactionSummary({
                   <span>{created.label}</span>
                 </div>
                 <div className='flex items-center gap-1'>
-                  <ForwardIcon className='w-4 h-4' />
-                  <div className='truncate text-neutral-600 dark:text-neutral-400'>
+                  <ForwardIcon className='w-4 h-4' aria-hidden='true' />
+                  <div className='truncate text-muted-foreground'>
                     {created.address}
                   </div>
                 </div>
