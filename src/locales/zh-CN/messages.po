@@ -307,7 +307,7 @@ msgstr "高级"
 msgid "Advanced Feature"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:164
+#: src/pages/ImportWallet.tsx:163
 msgid "Advanced options"
 msgstr ""
 
@@ -342,6 +342,14 @@ msgstr "金额包括"
 msgid "Analyze Duration"
 msgstr ""
 
+#: src/contexts/WalletConnectContext.tsx:778
+msgid "Approve"
+msgstr ""
+
+#: src/contexts/WalletConnectContext.tsx:768
+msgid "Approving"
+msgstr ""
+
 #: src/components/WalletCard.tsx:384
 msgid "Are you sure you want to delete this wallet? This cannot be undone, and all funds will be lost unless you have saved your mnemonic phrase."
 msgstr "确定要删除这个钱包吗? 此操作无法撤销, 且所有资金将丢失, 除非已保存助记词."
@@ -354,7 +362,7 @@ msgstr "确定移除 {peersToDeleteCount} 个节点?"
 msgid "Are you sure you want to remove the peer?"
 msgstr "确定移除该节点?"
 
-#: src/components/dialogs/ResyncDialog.tsx:49
+#: src/components/dialogs/ResyncDialog.tsx:50
 msgid "Are you sure you want to resync this wallet's data? This will re-download data from the network which can take a while depending on the size of the wallet."
 msgstr "确定要重新同步此钱包的数据吗? 这将从网络重新下载数据, 根据钱包的大小, 这可能需要一些时间."
 
@@ -589,7 +597,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/components/ConfirmationDialog.tsx:623
 #: src/components/ClawbackCoinsCard.tsx:335
 #: src/components/AssignNftDialog.tsx:144
-#: src/components/dialogs/ResyncDialog.tsx:91
+#: src/components/dialogs/ResyncDialog.tsx:92
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:313
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:587
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
@@ -666,12 +674,12 @@ msgstr ""
 msgid "Chia"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:124
+#: src/pages/ImportWallet.tsx:123
 #: src/pages/CreateWallet.tsx:157
 msgid "Choose an emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:129
+#: src/pages/ImportWallet.tsx:128
 #: src/pages/CreateWallet.tsx:162
 msgid "Choose an emoji to easily identify your wallet"
 msgstr ""
@@ -1151,7 +1159,7 @@ msgstr ""
 msgid "Data URIs"
 msgstr "数据URI"
 
-#: src/pages/MintNft.tsx:180
+#: src/pages/MintNft.tsx:179
 msgid "Data URLs"
 msgstr "数据URL"
 
@@ -1219,7 +1227,7 @@ msgstr "删除 {selectedPeersCount}"
 msgid "Delete All"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:79
+#: src/components/dialogs/ResyncDialog.tsx:80
 msgid "Delete all cached data"
 msgstr ""
 
@@ -1231,7 +1239,7 @@ msgstr ""
 msgid "Delete and redownload coin data from the network"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:57
+#: src/components/dialogs/ResyncDialog.tsx:58
 msgid "Delete coin data"
 msgstr ""
 
@@ -1247,7 +1255,7 @@ msgstr ""
 msgid "Delete offer record?"
 msgstr "删除报价记录?"
 
-#: src/components/dialogs/ResyncDialog.tsx:68
+#: src/components/dialogs/ResyncDialog.tsx:69
 msgid "Delete saved offer files"
 msgstr "删除已保存报价"
 
@@ -1390,7 +1398,7 @@ msgstr ""
 #~ msgid "Edition {0} of {1}"
 #~ msgstr ""
 
-#: src/pages/MintNft.tsx:299
+#: src/pages/MintNft.tsx:298
 msgid "Edition Count"
 msgstr ""
 
@@ -1403,7 +1411,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/Send.tsx:278
-#: src/pages/MintNft.tsx:248
+#: src/pages/MintNft.tsx:247
 #: src/pages/Addresses.tsx:94
 #: src/components/TransferDialog.tsx:83
 msgid "Enter address"
@@ -1413,13 +1421,13 @@ msgstr "输入地址"
 #~ msgid "Enter amount"
 #~ msgstr "输入金额"
 
-#: src/pages/MintNft.tsx:185
-#: src/pages/MintNft.tsx:206
-#: src/pages/MintNft.tsx:227
+#: src/pages/MintNft.tsx:184
+#: src/pages/MintNft.tsx:205
+#: src/pages/MintNft.tsx:226
 msgid "Enter comma separated URLs"
 msgstr "请输入以逗号分隔的网址"
 
-#: src/pages/MintNft.tsx:304
+#: src/pages/MintNft.tsx:303
 msgid "Enter count"
 msgstr ""
 
@@ -1463,7 +1471,7 @@ msgstr "输入网络手续费"
 msgid "Enter Offer String or URL"
 msgstr ""
 
-#: src/pages/MintNft.tsx:271
+#: src/pages/MintNft.tsx:270
 msgid "Enter percent"
 msgstr "输入百分比"
 
@@ -1491,7 +1499,7 @@ msgstr "输入此钱包的新显示名称."
 msgid "Enter URL"
 msgstr "输入网址"
 
-#: src/pages/ImportWallet.tsx:151
+#: src/pages/ImportWallet.tsx:150
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr ""
 
@@ -1866,7 +1874,7 @@ msgid "ID: {cardId}"
 msgstr ""
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:203
+#: src/pages/ImportWallet.tsx:204
 msgid "Import"
 msgstr "导入"
 
@@ -1875,11 +1883,11 @@ msgid "Import Offer"
 msgstr ""
 
 #: src/pages/Login.tsx:217
-#: src/pages/ImportWallet.tsx:87
+#: src/pages/ImportWallet.tsx:86
 msgid "Import Wallet"
 msgstr "导入钱包"
 
-#: src/pages/ImportWallet.tsx:203
+#: src/pages/ImportWallet.tsx:201
 msgid "Importing"
 msgstr ""
 
@@ -1903,7 +1911,7 @@ msgstr ""
 msgid "Index"
 msgstr "索引"
 
-#: src/pages/ImportWallet.tsx:180
+#: src/pages/ImportWallet.tsx:179
 msgid "Initial Addresses"
 msgstr ""
 
@@ -2009,7 +2017,7 @@ msgstr "许可证哈希"
 msgid "License URIs"
 msgstr "许可证网址"
 
-#: src/pages/MintNft.tsx:222
+#: src/pages/MintNft.tsx:221
 msgid "License URLs"
 msgstr "许可证网址"
 
@@ -2019,6 +2027,11 @@ msgstr ""
 
 #: src/components/MarketplaceCard.tsx:124
 msgid "Link copied to clipboard"
+msgstr ""
+
+#: src/components/ui/loading-button.tsx:26
+#: src/components/ui/loading-button.tsx:28
+msgid "Loading"
 msgstr ""
 
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
@@ -2037,7 +2050,7 @@ msgstr ""
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:493
+#: src/contexts/WalletConnectContext.tsx:496
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2154,7 +2167,7 @@ msgstr "元数据哈希"
 msgid "Metadata URIs"
 msgstr "元数据网址"
 
-#: src/pages/MintNft.tsx:201
+#: src/pages/MintNft.tsx:200
 msgid "Metadata URLs"
 msgstr "元数据网址"
 
@@ -2171,7 +2184,7 @@ msgid "Mint new option"
 msgstr ""
 
 #: src/pages/NftList.tsx:139
-#: src/pages/MintNft.tsx:133
+#: src/pages/MintNft.tsx:132
 msgid "Mint NFT"
 msgstr "铸造NFT"
 
@@ -2207,7 +2220,7 @@ msgstr ""
 #~ msgid "MintGarden Link"
 #~ msgstr "MintGarden链接"
 
-#: src/pages/MintNft.tsx:341
+#: src/pages/MintNft.tsx:339
 msgid "Minting"
 msgstr "正在铸造"
 
@@ -2267,7 +2280,7 @@ msgstr "网络"
 #: src/pages/Send.tsx:348
 #: src/pages/Offer.tsx:107
 #: src/pages/MintOption.tsx:279
-#: src/pages/MintNft.tsx:324
+#: src/pages/MintNft.tsx:323
 #: src/pages/MakeOffer.tsx:157
 #: src/pages/IssueToken.tsx:132
 #: src/pages/CreateProfile.tsx:87
@@ -2915,7 +2928,7 @@ msgstr ""
 msgid "Processing offer data..."
 msgstr "正在处理报价数据..."
 
-#: src/pages/MintNft.tsx:144
+#: src/pages/MintNft.tsx:143
 #: src/components/AssignNftDialog.tsx:88
 #: src/components/AdvancedTransactionSummary.tsx:213
 #: src/components/AdvancedTransactionSummary.tsx:227
@@ -2943,7 +2956,7 @@ msgstr ""
 msgid "Profile ID copied to clipboard"
 msgstr ""
 
-#: src/pages/MintNft.tsx:52
+#: src/pages/MintNft.tsx:51
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
 msgstr "需提供个人资料"
@@ -3090,8 +3103,8 @@ msgstr ""
 
 #: src/pages/Settings.tsx:1319
 #: src/pages/Settings.tsx:1327
-#: src/components/dialogs/ResyncDialog.tsx:45
-#: src/components/dialogs/ResyncDialog.tsx:117
+#: src/components/dialogs/ResyncDialog.tsx:46
+#: src/components/dialogs/ResyncDialog.tsx:116
 msgid "Resync"
 msgstr "重新同步"
 
@@ -3107,11 +3120,11 @@ msgstr ""
 #~ msgid "Resync on {network}"
 #~ msgstr "在 {network} 上重新同步"
 
-#: src/components/dialogs/ResyncDialog.tsx:43
+#: src/components/dialogs/ResyncDialog.tsx:44
 msgid "Resync on {networkId}"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:117
+#: src/components/dialogs/ResyncDialog.tsx:97
 msgid "Resyncing"
 msgstr ""
 
@@ -3143,7 +3156,7 @@ msgstr "版税 {royaltyPercentage}%"
 msgid "royalty"
 msgstr "版税"
 
-#: src/pages/MintNft.tsx:243
+#: src/pages/MintNft.tsx:242
 msgid "Royalty Address"
 msgstr "版税地址"
 
@@ -3151,7 +3164,7 @@ msgstr "版税地址"
 #~ msgid "Royalty address copied to clipboard"
 #~ msgstr ""
 
-#: src/pages/MintNft.tsx:265
+#: src/pages/MintNft.tsx:264
 msgid "Royalty Percent"
 msgstr "税率"
 
@@ -3298,8 +3311,8 @@ msgstr ""
 msgid "Select page number"
 msgstr ""
 
-#: src/pages/MintNft.tsx:150
-#: src/pages/MintNft.tsx:152
+#: src/pages/MintNft.tsx:149
+#: src/pages/MintNft.tsx:151
 #: src/components/AssignNftDialog.tsx:94
 #: src/components/AssignNftDialog.tsx:96
 msgid "Select profile"
@@ -3628,12 +3641,12 @@ msgid "Strike Price"
 msgstr ""
 
 #: src/pages/CreateWallet.tsx:268
-#: src/components/ConfirmationDialog.tsx:676
+#: src/components/ConfirmationDialog.tsx:674
 #: src/components/dialogs/CancelOfferDialog.tsx:82
 msgid "Submit"
 msgstr "提交"
 
-#: src/components/ConfirmationDialog.tsx:676
+#: src/components/ConfirmationDialog.tsx:627
 msgid "Submitting"
 msgstr "正在提交"
 
@@ -3780,11 +3793,11 @@ msgstr ""
 msgid "The default fee to use for transactions"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:186
+#: src/pages/ImportWallet.tsx:185
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr ""
 
-#: src/pages/MintNft.tsx:270
+#: src/pages/MintNft.tsx:269
 msgid "The maximum royalty percent is 655.36%"
 msgstr ""
 
@@ -4206,7 +4219,7 @@ msgstr "转出交易"
 msgid "Transaction signed successfully"
 msgstr ""
 
-#: src/components/ConfirmationDialog.tsx:666
+#: src/components/ConfirmationDialog.tsx:668
 msgid "Transaction submitted successfully"
 msgstr ""
 
@@ -4597,7 +4610,7 @@ msgstr "钱包"
 msgid "Wallet Details"
 msgstr "钱包详情"
 
-#: src/pages/ImportWallet.tsx:117
+#: src/pages/ImportWallet.tsx:116
 #: src/pages/CreateWallet.tsx:150
 msgid "Wallet Emoji (Optional)"
 msgstr ""
@@ -4608,12 +4621,12 @@ msgstr ""
 msgid "Wallet icon"
 msgstr "钱包硬币"
 
-#: src/pages/ImportWallet.tsx:145
+#: src/pages/ImportWallet.tsx:144
 msgid "Wallet Key"
 msgstr "钱包密钥"
 
 #: src/pages/Settings.tsx:1196
-#: src/pages/ImportWallet.tsx:100
+#: src/pages/ImportWallet.tsx:99
 #: src/pages/CreateWallet.tsx:133
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"

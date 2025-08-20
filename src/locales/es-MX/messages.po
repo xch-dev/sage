@@ -307,7 +307,7 @@ msgstr "Avanzado"
 msgid "Advanced Feature"
 msgstr "Característica Avanzada"
 
-#: src/pages/ImportWallet.tsx:164
+#: src/pages/ImportWallet.tsx:163
 msgid "Advanced options"
 msgstr "Opciones avanzadas"
 
@@ -342,6 +342,14 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
+#: src/contexts/WalletConnectContext.tsx:778
+msgid "Approve"
+msgstr ""
+
+#: src/contexts/WalletConnectContext.tsx:768
+msgid "Approving"
+msgstr ""
+
 #: src/components/WalletCard.tsx:384
 msgid "Are you sure you want to delete this wallet? This cannot be undone, and all funds will be lost unless you have saved your mnemonic phrase."
 msgstr "¿Estás seguro de que deseas eliminar esta billetera! Esto no se puede deshacer y se perderán todos los fondos a menos que hayas guardado tu frase mnemotécnica."
@@ -354,7 +362,7 @@ msgstr "¿Está seguro de que desea eliminar {peersToDeleteCount} nodos?"
 msgid "Are you sure you want to remove the peer?"
 msgstr "¿Estás seguro de que deseas eliminar al peer?"
 
-#: src/components/dialogs/ResyncDialog.tsx:49
+#: src/components/dialogs/ResyncDialog.tsx:50
 msgid "Are you sure you want to resync this wallet's data? This will re-download data from the network which can take a while depending on the size of the wallet."
 msgstr "¿Está seguro de que desea sincronizar de nuevo los datos de esta billetera! Esto volverá a descargar los datos de la red, lo que puede tardar un tiempo dependiendo del tamaño de la billetera."
 
@@ -589,7 +597,7 @@ msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad 
 #: src/components/ConfirmationDialog.tsx:623
 #: src/components/ClawbackCoinsCard.tsx:335
 #: src/components/AssignNftDialog.tsx:144
-#: src/components/dialogs/ResyncDialog.tsx:91
+#: src/components/dialogs/ResyncDialog.tsx:92
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:313
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:587
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
@@ -666,12 +674,12 @@ msgstr "Comprueba si una dirección es propiedad de esta billetera."
 msgid "Chia"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:124
+#: src/pages/ImportWallet.tsx:123
 #: src/pages/CreateWallet.tsx:157
 msgid "Choose an emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:129
+#: src/pages/ImportWallet.tsx:128
 #: src/pages/CreateWallet.tsx:162
 msgid "Choose an emoji to easily identify your wallet"
 msgstr ""
@@ -1151,7 +1159,7 @@ msgstr "Tabla de datos"
 msgid "Data URIs"
 msgstr "URI de datos"
 
-#: src/pages/MintNft.tsx:180
+#: src/pages/MintNft.tsx:179
 msgid "Data URLs"
 msgstr "URLs de datos"
 
@@ -1219,7 +1227,7 @@ msgstr "Eliminar {selectedPeersCount}"
 msgid "Delete All"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:79
+#: src/components/dialogs/ResyncDialog.tsx:80
 msgid "Delete all cached data"
 msgstr ""
 
@@ -1231,7 +1239,7 @@ msgstr ""
 msgid "Delete and redownload coin data from the network"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:57
+#: src/components/dialogs/ResyncDialog.tsx:58
 msgid "Delete coin data"
 msgstr ""
 
@@ -1247,7 +1255,7 @@ msgstr ""
 msgid "Delete offer record?"
 msgstr "¿Eliminar registro de oferta?"
 
-#: src/components/dialogs/ResyncDialog.tsx:68
+#: src/components/dialogs/ResyncDialog.tsx:69
 msgid "Delete saved offer files"
 msgstr "Eliminar archivos de ofertas guardadas"
 
@@ -1390,7 +1398,7 @@ msgstr ""
 #~ msgid "Edition {0} of {1}"
 #~ msgstr ""
 
-#: src/pages/MintNft.tsx:299
+#: src/pages/MintNft.tsx:298
 msgid "Edition Count"
 msgstr ""
 
@@ -1403,7 +1411,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/Send.tsx:278
-#: src/pages/MintNft.tsx:248
+#: src/pages/MintNft.tsx:247
 #: src/pages/Addresses.tsx:94
 #: src/components/TransferDialog.tsx:83
 msgid "Enter address"
@@ -1413,13 +1421,13 @@ msgstr "Introducir dirección"
 #~ msgid "Enter amount"
 #~ msgstr "Introducir cantidad"
 
-#: src/pages/MintNft.tsx:185
-#: src/pages/MintNft.tsx:206
-#: src/pages/MintNft.tsx:227
+#: src/pages/MintNft.tsx:184
+#: src/pages/MintNft.tsx:205
+#: src/pages/MintNft.tsx:226
 msgid "Enter comma separated URLs"
 msgstr "Introduzca URLs separadas por comas"
 
-#: src/pages/MintNft.tsx:304
+#: src/pages/MintNft.tsx:303
 msgid "Enter count"
 msgstr ""
 
@@ -1463,7 +1471,7 @@ msgstr "Introducir tarifa de red"
 msgid "Enter Offer String or URL"
 msgstr ""
 
-#: src/pages/MintNft.tsx:271
+#: src/pages/MintNft.tsx:270
 msgid "Enter percent"
 msgstr "Introduzca porcentaje"
 
@@ -1491,7 +1499,7 @@ msgstr "Introduzca el nuevo nombre de visualización para esta billetera."
 msgid "Enter URL"
 msgstr "Introducir URL"
 
-#: src/pages/ImportWallet.tsx:151
+#: src/pages/ImportWallet.tsx:150
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr "Introduzca su mnemotécnico, clave privada o clave pública arriba. Si es una clave pública, se importará como una billetera fría de solo lectura."
 
@@ -1866,7 +1874,7 @@ msgid "ID: {cardId}"
 msgstr "ID: {cardId}"
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:203
+#: src/pages/ImportWallet.tsx:204
 msgid "Import"
 msgstr "Importar"
 
@@ -1875,11 +1883,11 @@ msgid "Import Offer"
 msgstr ""
 
 #: src/pages/Login.tsx:217
-#: src/pages/ImportWallet.tsx:87
+#: src/pages/ImportWallet.tsx:86
 msgid "Import Wallet"
 msgstr "Importar billetera"
 
-#: src/pages/ImportWallet.tsx:203
+#: src/pages/ImportWallet.tsx:201
 msgid "Importing"
 msgstr "Importando"
 
@@ -1903,7 +1911,7 @@ msgstr "Aumenta el índice de derivación para generar nuevas direcciones. Confi
 msgid "Index"
 msgstr "Índice"
 
-#: src/pages/ImportWallet.tsx:180
+#: src/pages/ImportWallet.tsx:179
 msgid "Initial Addresses"
 msgstr "Direcciones iniciales"
 
@@ -2009,7 +2017,7 @@ msgstr "Código de hash de licencia"
 msgid "License URIs"
 msgstr "URIs de licencia"
 
-#: src/pages/MintNft.tsx:222
+#: src/pages/MintNft.tsx:221
 msgid "License URLs"
 msgstr "URLs de licencia"
 
@@ -2019,6 +2027,11 @@ msgstr ""
 
 #: src/components/MarketplaceCard.tsx:124
 msgid "Link copied to clipboard"
+msgstr ""
+
+#: src/components/ui/loading-button.tsx:26
+#: src/components/ui/loading-button.tsx:28
+msgid "Loading"
 msgstr ""
 
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:188
@@ -2037,7 +2050,7 @@ msgstr "Cargando Colección..."
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:493
+#: src/contexts/WalletConnectContext.tsx:496
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2154,7 +2167,7 @@ msgstr "Resumen de metadatos"
 msgid "Metadata URIs"
 msgstr "URI de metadatos"
 
-#: src/pages/MintNft.tsx:201
+#: src/pages/MintNft.tsx:200
 msgid "Metadata URLs"
 msgstr "URLs de metadatos"
 
@@ -2171,7 +2184,7 @@ msgid "Mint new option"
 msgstr ""
 
 #: src/pages/NftList.tsx:139
-#: src/pages/MintNft.tsx:133
+#: src/pages/MintNft.tsx:132
 msgid "Mint NFT"
 msgstr "Crear NFT"
 
@@ -2207,7 +2220,7 @@ msgstr "Minters"
 #~ msgid "MintGarden Link"
 #~ msgstr "Enlace de MintGarden"
 
-#: src/pages/MintNft.tsx:341
+#: src/pages/MintNft.tsx:339
 msgid "Minting"
 msgstr "Minting"
 
@@ -2267,7 +2280,7 @@ msgstr "Red"
 #: src/pages/Send.tsx:348
 #: src/pages/Offer.tsx:107
 #: src/pages/MintOption.tsx:279
-#: src/pages/MintNft.tsx:324
+#: src/pages/MintNft.tsx:323
 #: src/pages/MakeOffer.tsx:157
 #: src/pages/IssueToken.tsx:132
 #: src/pages/CreateProfile.tsx:87
@@ -2915,7 +2928,7 @@ msgstr ""
 msgid "Processing offer data..."
 msgstr "Procesando datos de la oferta..."
 
-#: src/pages/MintNft.tsx:144
+#: src/pages/MintNft.tsx:143
 #: src/components/AssignNftDialog.tsx:88
 #: src/components/AdvancedTransactionSummary.tsx:213
 #: src/components/AdvancedTransactionSummary.tsx:227
@@ -2943,7 +2956,7 @@ msgstr "ID de perfil"
 msgid "Profile ID copied to clipboard"
 msgstr "ID de perfil copiado al portapapeles"
 
-#: src/pages/MintNft.tsx:52
+#: src/pages/MintNft.tsx:51
 #: src/components/AssignNftDialog.tsx:55
 msgid "Profile is required"
 msgstr "Perfil es obligatorio"
@@ -3090,8 +3103,8 @@ msgstr "Resultado"
 
 #: src/pages/Settings.tsx:1319
 #: src/pages/Settings.tsx:1327
-#: src/components/dialogs/ResyncDialog.tsx:45
-#: src/components/dialogs/ResyncDialog.tsx:117
+#: src/components/dialogs/ResyncDialog.tsx:46
+#: src/components/dialogs/ResyncDialog.tsx:116
 msgid "Resync"
 msgstr "Sincronizar nuevamente"
 
@@ -3107,11 +3120,11 @@ msgstr ""
 #~ msgid "Resync on {network}"
 #~ msgstr "Resincronizar en {network}"
 
-#: src/components/dialogs/ResyncDialog.tsx:43
+#: src/components/dialogs/ResyncDialog.tsx:44
 msgid "Resync on {networkId}"
 msgstr ""
 
-#: src/components/dialogs/ResyncDialog.tsx:117
+#: src/components/dialogs/ResyncDialog.tsx:97
 msgid "Resyncing"
 msgstr ""
 
@@ -3143,7 +3156,7 @@ msgstr "Regalías {royaltyPercentage}%"
 msgid "royalty"
 msgstr "regalía"
 
-#: src/pages/MintNft.tsx:243
+#: src/pages/MintNft.tsx:242
 msgid "Royalty Address"
 msgstr "Dirección de regalías"
 
@@ -3151,7 +3164,7 @@ msgstr "Dirección de regalías"
 #~ msgid "Royalty address copied to clipboard"
 #~ msgstr "Dirección de regalías copiada al portapapeles"
 
-#: src/pages/MintNft.tsx:265
+#: src/pages/MintNft.tsx:264
 msgid "Royalty Percent"
 msgstr "Porcentaje de regalías"
 
@@ -3298,8 +3311,8 @@ msgstr ""
 msgid "Select page number"
 msgstr "Seleccionar número de página"
 
-#: src/pages/MintNft.tsx:150
-#: src/pages/MintNft.tsx:152
+#: src/pages/MintNft.tsx:149
+#: src/pages/MintNft.tsx:151
 #: src/components/AssignNftDialog.tsx:94
 #: src/components/AssignNftDialog.tsx:96
 msgid "Select profile"
@@ -3628,12 +3641,12 @@ msgid "Strike Price"
 msgstr ""
 
 #: src/pages/CreateWallet.tsx:268
-#: src/components/ConfirmationDialog.tsx:676
+#: src/components/ConfirmationDialog.tsx:674
 #: src/components/dialogs/CancelOfferDialog.tsx:82
 msgid "Submit"
 msgstr "Enviar"
 
-#: src/components/ConfirmationDialog.tsx:676
+#: src/components/ConfirmationDialog.tsx:627
 msgid "Submitting"
 msgstr "Enviando"
 
@@ -3780,11 +3793,11 @@ msgstr "Los activos que recibirás."
 msgid "The default fee to use for transactions"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:186
+#: src/pages/ImportWallet.tsx:185
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr "El índice de derivación inicial para sincronizar (tanto claves protegidas como no protegidas). Esto es principalmente aplicable a monederos legados con claves protegidas o espacios en las direcciones utilizadas."
 
-#: src/pages/MintNft.tsx:270
+#: src/pages/MintNft.tsx:269
 msgid "The maximum royalty percent is 655.36%"
 msgstr ""
 
@@ -4207,7 +4220,7 @@ msgstr "Resultado de la transacción"
 msgid "Transaction signed successfully"
 msgstr "Transacción firmada con éxito"
 
-#: src/components/ConfirmationDialog.tsx:666
+#: src/components/ConfirmationDialog.tsx:668
 msgid "Transaction submitted successfully"
 msgstr "Transacción enviada con éxito"
 
@@ -4599,7 +4612,7 @@ msgstr "Billetera"
 msgid "Wallet Details"
 msgstr "Detalles de la billetera"
 
-#: src/pages/ImportWallet.tsx:117
+#: src/pages/ImportWallet.tsx:116
 #: src/pages/CreateWallet.tsx:150
 msgid "Wallet Emoji (Optional)"
 msgstr ""
@@ -4610,12 +4623,12 @@ msgstr ""
 msgid "Wallet icon"
 msgstr "Icono de billetera"
 
-#: src/pages/ImportWallet.tsx:145
+#: src/pages/ImportWallet.tsx:144
 msgid "Wallet Key"
 msgstr "Llave de la billetera"
 
 #: src/pages/Settings.tsx:1196
-#: src/pages/ImportWallet.tsx:100
+#: src/pages/ImportWallet.tsx:99
 #: src/pages/CreateWallet.tsx:133
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"
