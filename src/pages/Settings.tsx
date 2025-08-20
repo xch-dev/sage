@@ -1039,6 +1039,11 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     useState<PerformDatabaseMaintenanceResponse | null>(null);
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
 
+  const { handleScanOrPaste: handleScanOrPasteChangeAddress } =
+    useScannerOrClipboard((scanResValue) => {
+      setLocalChangeAddress(scanResValue);
+    });
+
   const fetchDatabaseStats = useCallback(async () => {
     setLoadingStats(true);
     try {
@@ -1285,12 +1290,12 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         >
           {enableChangeAddress && (
             <div className='mt-3'>
-              <Input
-                placeholder='Enter custom address'
-                className='w-[200px]'
+              <PasteInput
+                placeholder={t`Enter custom address`}
                 value={localChangeAddress}
                 onChange={(event) => setLocalChangeAddress(event.target.value)}
                 onBlur={() => setChangeAddress(localChangeAddress)}
+                onEndIconClick={handleScanOrPasteChangeAddress}
               />
             </div>
           )}
