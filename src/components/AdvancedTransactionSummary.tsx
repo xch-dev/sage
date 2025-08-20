@@ -40,7 +40,7 @@ export function AdvancedTransactionSummary({
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-neutral-100 p-2 rounded-md'>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgeMinus className='w-6 h-6' />
           <span>
@@ -71,7 +71,7 @@ export function AdvancedTransactionSummary({
             ))}
         </div>
       </div>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-neutral-100 p-2 rounded-md'>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgePlus className='w-6 h-6' />
           <span>
