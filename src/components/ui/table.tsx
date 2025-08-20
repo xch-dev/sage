@@ -14,7 +14,10 @@ const Table = React.forwardRef<
   >
     <table
       ref={ref}
-      className={cn('w-full caption-bottom text-sm table-fixed', className)}
+      className={cn(
+        'w-full caption-bottom text-sm table-fixed table-theme',
+        className,
+      )}
       role='table'
       aria-label={t`Data table`}
       {...props}

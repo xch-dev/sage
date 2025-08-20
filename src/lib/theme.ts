@@ -153,6 +153,28 @@ export function applyTheme(theme: Theme) {
     '--theme-has-3d-effects',
     '--theme-has-rounded-buttons',
     '--outline-button-bg',
+    '--table-background',
+    '--table-border',
+    '--table-border-radius',
+    '--table-box-shadow',
+    '--table-header-background',
+    '--table-header-color',
+    '--table-header-border',
+    '--table-header-font-weight',
+    '--table-header-font-size',
+    '--table-row-background',
+    '--table-row-color',
+    '--table-row-border',
+    '--table-row-hover-background',
+    '--table-row-hover-color',
+    '--table-row-selected-background',
+    '--table-row-selected-color',
+    '--table-cell-padding',
+    '--table-cell-border',
+    '--table-cell-font-size',
+    '--table-footer-background',
+    '--table-footer-color',
+    '--table-footer-border',
   ];
 
   cssVarsToClear.forEach((cssVar) => {
@@ -432,6 +454,185 @@ export function applyTheme(theme: Theme) {
   // Set data attribute on body for CSS selectors
   document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
 
+  // Apply table-specific variables if defined
+  if (theme.tables) {
+    // Apply base table styles
+    if (theme.tables.background) {
+      root.style.setProperty(
+        '--table-background',
+        theme.tables.background,
+        'important',
+      );
+    }
+    if (theme.tables.border) {
+      root.style.setProperty(
+        '--table-border',
+        theme.tables.border,
+        'important',
+      );
+    }
+    if (theme.tables.borderRadius) {
+      root.style.setProperty(
+        '--table-border-radius',
+        theme.tables.borderRadius,
+        'important',
+      );
+    }
+    if (theme.tables.boxShadow) {
+      root.style.setProperty(
+        '--table-box-shadow',
+        theme.tables.boxShadow,
+        'important',
+      );
+    }
+
+    // Apply header styles
+    if (theme.tables.header) {
+      if (theme.tables.header.background) {
+        root.style.setProperty(
+          '--table-header-background',
+          theme.tables.header.background,
+          'important',
+        );
+      }
+      if (theme.tables.header.color) {
+        root.style.setProperty(
+          '--table-header-color',
+          theme.tables.header.color,
+          'important',
+        );
+      }
+      if (theme.tables.header.border) {
+        root.style.setProperty(
+          '--table-header-border',
+          theme.tables.header.border,
+          'important',
+        );
+      }
+      if (theme.tables.header.fontWeight) {
+        root.style.setProperty(
+          '--table-header-font-weight',
+          theme.tables.header.fontWeight,
+          'important',
+        );
+      }
+      if (theme.tables.header.fontSize) {
+        root.style.setProperty(
+          '--table-header-font-size',
+          theme.tables.header.fontSize,
+          'important',
+        );
+      }
+    }
+
+    // Apply row styles
+    if (theme.tables.row) {
+      if (theme.tables.row.background) {
+        root.style.setProperty(
+          '--table-row-background',
+          theme.tables.row.background,
+          'important',
+        );
+      }
+      if (theme.tables.row.color) {
+        root.style.setProperty(
+          '--table-row-color',
+          theme.tables.row.color,
+          'important',
+        );
+      }
+      if (theme.tables.row.border) {
+        root.style.setProperty(
+          '--table-row-border',
+          theme.tables.row.border,
+          'important',
+        );
+      }
+      if (theme.tables.row.hover) {
+        if (theme.tables.row.hover.background) {
+          root.style.setProperty(
+            '--table-row-hover-background',
+            theme.tables.row.hover.background,
+            'important',
+          );
+        }
+        if (theme.tables.row.hover.color) {
+          root.style.setProperty(
+            '--table-row-hover-color',
+            theme.tables.row.hover.color,
+            'important',
+          );
+        }
+      }
+      if (theme.tables.row.selected) {
+        if (theme.tables.row.selected.background) {
+          root.style.setProperty(
+            '--table-row-selected-background',
+            theme.tables.row.selected.background,
+            'important',
+          );
+        }
+        if (theme.tables.row.selected.color) {
+          root.style.setProperty(
+            '--table-row-selected-color',
+            theme.tables.row.selected.color,
+            'important',
+          );
+        }
+      }
+    }
+
+    // Apply cell styles
+    if (theme.tables.cell) {
+      if (theme.tables.cell.padding) {
+        root.style.setProperty(
+          '--table-cell-padding',
+          theme.tables.cell.padding,
+          'important',
+        );
+      }
+      if (theme.tables.cell.border) {
+        root.style.setProperty(
+          '--table-cell-border',
+          theme.tables.cell.border,
+          'important',
+        );
+      }
+      if (theme.tables.cell.fontSize) {
+        root.style.setProperty(
+          '--table-cell-font-size',
+          theme.tables.cell.fontSize,
+          'important',
+        );
+      }
+    }
+
+    // Apply footer styles
+    if (theme.tables.footer) {
+      if (theme.tables.footer.background) {
+        root.style.setProperty(
+          '--table-footer-background',
+          theme.tables.footer.background,
+          'important',
+        );
+      }
+      if (theme.tables.footer.color) {
+        root.style.setProperty(
+          '--table-footer-color',
+          theme.tables.footer.color,
+          'important',
+        );
+      }
+      if (theme.tables.footer.border) {
+        root.style.setProperty(
+          '--table-footer-border',
+          theme.tables.footer.border,
+          'important',
+        );
+      }
+    }
+  }
+
   // Apply font variables
   Object.entries(theme.fonts || {}).forEach(([key, value]) => {
     if (value) {
@@ -581,6 +782,43 @@ export interface Theme {
     card?: string;
     button?: string;
     dropdown?: string;
+  };
+  // Optional theme-specific table configurations
+  tables?: {
+    background?: string;
+    border?: string;
+    borderRadius?: string;
+    boxShadow?: string;
+    header?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      fontWeight?: string;
+      fontSize?: string;
+    };
+    row?: {
+      background?: string;
+      color?: string;
+      border?: string;
+      hover?: {
+        background?: string;
+        color?: string;
+      };
+      selected?: {
+        background?: string;
+        color?: string;
+      };
+    };
+    cell?: {
+      padding?: string;
+      border?: string;
+      fontSize?: string;
+    };
+    footer?: {
+      background?: string;
+      color?: string;
+      border?: string;
+    };
   };
   // Optional theme-specific button configurations
   buttons?: {

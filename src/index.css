@@ -145,6 +145,29 @@ body {
 
     /* Navigation active background */
     --nav-active-bg: var(--primary);
+
+    /* Table styling variables with defaults */
+    --table-background: transparent;
+    --table-border: 1px solid var(--border);
+    --table-border-radius: var(--radius);
+    --table-box-shadow: var(--shadow-sm);
+    --table-header-background: transparent;
+    --table-header-color: var(--muted-foreground);
+    --table-header-font-weight: 500;
+    --table-header-font-size: 0.875rem;
+    --table-row-background: transparent;
+    --table-row-color: var(--foreground);
+    --table-row-border: 1px solid var(--border);
+    --table-row-hover-background: var(--muted);
+    --table-row-hover-color: var(--foreground);
+    --table-row-selected-background: var(--accent);
+    --table-row-selected-color: var(--accent-foreground);
+    --table-cell-padding: 0.5rem;
+    --table-cell-border: none;
+    --table-cell-font-size: 0.875rem;
+    --table-footer-background: var(--muted);
+    --table-footer-color: var(--muted-foreground);
+    --table-footer-border: 1px solid var(--border);
   }
 }
 
@@ -327,6 +350,50 @@ body {
 
   .peer[data-state='unchecked'] {
     background-color: var(--switch-unchecked-bg) !important;
+  }
+
+  /* Theme-aware table styling */
+  .table-theme {
+    background: var(--table-background);
+    border: var(--table-border);
+    border-radius: var(--table-border-radius);
+    box-shadow: var(--table-box-shadow);
+  }
+
+  .table-theme thead th {
+    background: var(--table-header-background);
+    color: var(--table-header-color);
+    border: var(--table-header-border);
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+  }
+
+  .table-theme tbody tr {
+    background: var(--table-row-background);
+    color: var(--table-row-color);
+    border: var(--table-row-border);
+  }
+
+  .table-theme tbody tr:hover {
+    background: var(--table-row-hover-background);
+    color: var(--table-row-hover-color);
+  }
+
+  .table-theme tbody tr[data-state='selected'] {
+    background: var(--table-row-selected-background);
+    color: var(--table-row-selected-color);
+  }
+
+  .table-theme tbody td {
+    padding: var(--table-cell-padding);
+    border: var(--table-cell-border);
+    font-size: var(--table-cell-font-size);
+  }
+
+  .table-theme tfoot th {
+    background: var(--table-footer-background);
+    color: var(--table-footer-color);
+    border: var(--table-footer-border);
   }
 }
 
