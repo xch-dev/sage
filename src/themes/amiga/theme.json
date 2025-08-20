@@ -1,7 +1,7 @@
 {
   "name": "amiga",
   "displayName": "Amiga Workbench",
-  "icon_name": "dark",
+  "most_like": "light",
   "colors": {
     "background": "hsl(209 100% 78%)",
     "foreground": "hsl(0 0% 0%)",

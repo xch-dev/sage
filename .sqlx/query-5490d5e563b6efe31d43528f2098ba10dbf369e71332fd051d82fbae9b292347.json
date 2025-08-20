@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                hash, kind, name, ticker, precision, icon_url, description,\n                is_sensitive_content, is_visible, hidden_puzzle_hash\n            FROM assets\n            WHERE hash = ?\n            ",
+  "query": "\n        SELECT\n            hash, kind, name, ticker, precision, icon_url, description,\n            is_sensitive_content, is_visible, hidden_puzzle_hash\n        FROM assets\n        WHERE hash = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       true
     ]
   },
-  "hash": "70b86add6450415ec134eab49ecf60fec7dc1be6e61cb80c954dc3895cf5738f"
+  "hash": "5490d5e563b6efe31d43528f2098ba10dbf369e71332fd051d82fbae9b292347"
 }

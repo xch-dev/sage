@@ -19,13 +19,13 @@ export async function loadTheme(themeName: string): Promise<Theme | null> {
  */
 async function loadThemeWithTracking(
   themeName: string,
-  loadedThemes: Set<string>
+  loadedThemes: Set<string>,
 ): Promise<Theme | null> {
   try {
     // Check for circular inheritance
     if (loadedThemes.has(themeName)) {
       console.warn(
-        `Circular theme inheritance detected: ${Array.from(loadedThemes).join(' -> ')} -> ${themeName}. Skipping inheritance.`
+        `Circular theme inheritance detected: ${Array.from(loadedThemes).join(' -> ')} -> ${themeName}. Skipping inheritance.`,
       );
       return null;
     }
@@ -48,7 +48,10 @@ async function loadThemeWithTracking(
     }
 
     if (theme.inherits) {
-      const inheritedTheme = await loadThemeWithTracking(theme.inherits, loadedThemes);
+      const inheritedTheme = await loadThemeWithTracking(
+        theme.inherits,
+        loadedThemes,
+      );
       if (inheritedTheme) {
         theme = deepMerge(inheritedTheme, theme);
       }
@@ -56,13 +59,7 @@ async function loadThemeWithTracking(
 
     // Process background image path
     if (theme.backgroundImage) {
-      // If it's already a full URL (http/https), use it as is
-      if (
-        theme.backgroundImage.startsWith('http://') ||
-        theme.backgroundImage.startsWith('https://')
-      ) {
-        // Keep the external URL as is
-      } else if (!theme.backgroundImage.startsWith('/')) {
+      if (!theme.backgroundImage.startsWith('/')) {
         // Use static glob import to avoid dynamic import warnings for local files
         const imageModules = import.meta.glob(
           '../themes/*/*.{jpg,jpeg,png,gif,webp}',
@@ -81,7 +78,7 @@ async function loadThemeWithTracking(
     }
 
     // only light and dark icons for now
-    theme.icon_path = theme.icon_name === 'dark' ? iconDark : iconLight;
+    theme.icon_path = theme.most_like === 'dark' ? iconLight : iconDark;
 
     return theme;
   } catch (error) {
@@ -508,7 +505,7 @@ function getOutlineButtonBackground(theme: Theme): string {
 export interface Theme {
   name: string;
   displayName: string;
-  icon_name?: 'light' | 'dark';
+  most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
   backgroundOpacity?: {
@@ -731,4 +728,13 @@ export interface Theme {
   };
   // Button style flags for dynamic CSS application
   buttonStyles?: string[];
+  // Optional theme-specific switch configurations
+  switches?: {
+    checked?: {
+      background?: string;
+    };
+    unchecked?: {
+      background?: string;
+    };
+  };
 }

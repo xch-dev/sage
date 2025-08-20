@@ -41,7 +41,7 @@ export default function Header(
 
   return (
     <header
-      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 ${
+      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 z-10 ${
         !isMobile ? 'pt-2' : 'pb-2 pt-2'
       }`}
       role='banner'
@@ -53,7 +53,7 @@ export default function Header(
             variant='outline'
             size='icon'
             onClick={() => (props.back ? props.back() : navigate(-1))}
-            className='md:hidden text-muted-foreground'
+            className='md:hidden text-muted-foreground flex-shrink-0'
             aria-label={t`Back`}
           >
             <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />
@@ -87,6 +87,16 @@ export default function Header(
             paddingBottom: insets.bottom
               ? `${insets.bottom + 16}px`
               : 'env(safe-area-inset-bottom)',
+            ...(currentTheme?.backgroundImage && {
+              backgroundImage: `url(${currentTheme.backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'scroll',
+              backgroundColor: 'transparent',
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }),
           }}
         >
           <div className='mt-4'>
@@ -95,11 +105,23 @@ export default function Header(
               className='flex items-center gap-2 font-semibold font-heading'
               aria-label={t`Go to wallet`}
             >
-              <img
-                src={currentTheme?.icon_path}
-                className='h-6 w-6'
-                alt={t`Wallet icon`}
-              />
+              {wallet?.emoji ? (
+                <span
+                  className='text-xl'
+                  role='img'
+                  aria-label='Wallet emoji'
+                  aria-hidden='true'
+                >
+                  {wallet.emoji}
+                </span>
+              ) : (
+                <img
+                  src={currentTheme?.icon_path}
+                  className='h-6 w-6'
+                  alt={t`Wallet icon`}
+                  aria-hidden='true'
+                />
+              )}
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
@@ -125,7 +147,7 @@ export default function Header(
         </div>
         <div className='flex-1 flex justify-between items-center gap-4 md:h-8 md:my-1'>
           <div className='flex items-center gap-4'>
-            <h1 className='text-xl font-bold tracking-tight md:text-3xl font-heading'>
+            <h1 className='text-xl font-bold tracking-tight md:text-3xl font-heading truncate'>
               {props.title}
             </h1>
             <AnimatePresence mode='wait'>

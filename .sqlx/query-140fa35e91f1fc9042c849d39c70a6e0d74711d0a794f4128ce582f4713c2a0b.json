@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_visible, asset_is_sensitive_content,\n                asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,\n                owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,\n                offer_hash, created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS clawback_timestamp,\n                option_expiration_seconds AS 'option_expiration_seconds!',\n\n                strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,\n                strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,\n                strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,\n                strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,\n                strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,\n\n                underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,\n                underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,\n                underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,\n                underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,\n                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,\n\n                strike_amount, underlying_coin.amount AS underlying_amount\n            FROM owned_coins\n            INNER JOIN options ON options.asset_id = owned_coins.asset_id\n            INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id\n            INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id\n            INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id\n            ORDER BY asset_name ASC\n            ",
+  "query": "\n            SELECT\n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_visible, asset_is_sensitive_content,\n                asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,\n                owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS 'clawback_timestamp?',\n                p2_options.expiration_seconds AS option_expiration_seconds,\n\n                strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,\n                strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,\n                strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,\n                strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,\n                strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,\n\n                underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,\n                underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,\n                underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,\n                underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,\n                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,\n                \n                strike_amount, \n                underlying_coin.amount AS underlying_amount,\n                underlying_coin.hash AS underlying_coin_id\n            FROM owned_coins\n            INNER JOIN options ON options.asset_id = owned_coins.asset_id\n            INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id\n            INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id\n            INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id\n            INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id\n            WHERE asset_hash = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -79,7 +79,7 @@
         "type_info": "Blob"
       },
       {
-        "name": "offer_hash",
+        "name": "offer_hash?",
         "ordinal": 15,
         "type_info": "Blob"
       },
@@ -94,12 +94,12 @@
         "type_info": "Integer"
       },
       {
-        "name": "clawback_timestamp",
+        "name": "clawback_timestamp?",
         "ordinal": 18,
         "type_info": "Integer"
       },
       {
-        "name": "option_expiration_seconds!",
+        "name": "option_expiration_seconds",
         "ordinal": 19,
         "type_info": "Integer"
       },
@@ -212,10 +212,15 @@
         "name": "underlying_amount",
         "ordinal": 41,
         "type_info": "Blob"
+      },
+      {
+        "name": "underlying_coin_id",
+        "ordinal": 42,
+        "type_info": "Blob"
       }
     ],
     "parameters": {
-      "Right": 0
+      "Right": 1
     },
     "nullable": [
       false,
@@ -233,11 +238,11 @@
       false,
       false,
       false,
+      false,
       true,
       true,
-      true,
-      true,
-      true,
+      false,
+      false,
       false,
       true,
       true,
@@ -257,10 +262,11 @@
       false,
       false,
       true,
+      false,
       false,
       false,
       false
     ]
   },
-  "hash": "ec347c927435c44069556453932f1b054ae5d273bf582a5571740909da8ae896"
+  "hash": "140fa35e91f1fc9042c849d39c70a6e0d74711d0a794f4128ce582f4713c2a0b"
 }

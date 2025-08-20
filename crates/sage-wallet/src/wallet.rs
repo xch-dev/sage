@@ -48,6 +48,7 @@ pub struct Wallet {
     pub intermediate_pk: PublicKey,
     pub genesis_challenge: Bytes32,
     pub agg_sig_constants: AggSigConstants,
+    pub change_p2_puzzle_hash: Option<Bytes32>,
 }
 
 impl Wallet {
@@ -57,6 +58,7 @@ impl Wallet {
         intermediate_pk: PublicKey,
         genesis_challenge: Bytes32,
         agg_sig_constants: AggSigConstants,
+        change_p2_puzzle_hash: Option<Bytes32>,
     ) -> Self {
         Self {
             db,
@@ -64,6 +66,7 @@ impl Wallet {
             intermediate_pk,
             genesis_challenge,
             agg_sig_constants,
+            change_p2_puzzle_hash,
         }
     }
 
@@ -117,9 +120,9 @@ impl Wallet {
         ctx: &mut SpendContext,
         selected_coin_ids: &[Bytes32],
     ) -> Result<Spends, WalletError> {
-        let self_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let change_p2_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
-        let mut spends = Spends::new(self_puzzle_hash);
+        let mut spends = Spends::new(change_p2_puzzle_hash);
 
         for &coin_id in selected_coin_ids {
             match self.db.coin_kind(coin_id).await? {
@@ -216,7 +219,7 @@ impl Wallet {
             }
 
             match id {
-                Id::New(_) => continue,
+                Id::New(_) => {}
                 Id::Xch => {
                     let coins = self
                         .select_xch_coins(required_amount, &selected_coin_ids)

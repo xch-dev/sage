@@ -319,6 +319,15 @@ body {
     border: 1px solid var(--border);
     border-radius: 12px;
   }
+
+  /* Custom switch styling */
+  .peer[data-state='checked'] {
+    background-color: var(--switch-checked-bg) !important;
+  }
+
+  .peer[data-state='unchecked'] {
+    background-color: var(--switch-unchecked-bg) !important;
+  }
 }
 
 @keyframes pulsate-opacity {

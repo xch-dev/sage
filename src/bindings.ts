@@ -35,6 +35,9 @@ async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
 async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
     return await TAURI_INVOKE("get_keys", { req });
 },
+async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
+    return await TAURI_INVOKE("set_wallet_emoji", { req });
+},
 async getKey(req: GetKey) : Promise<GetKeyResponse> {
     return await TAURI_INVOKE("get_key", { req });
 },
@@ -254,6 +257,9 @@ async setDeltaSync(req: SetDeltaSync) : Promise<EmptyResponse> {
 async setDeltaSyncOverride(req: SetDeltaSyncOverride) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("set_delta_sync_override", { req });
 },
+async setChangeAddress(req: SetChangeAddress) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_change_address", { req });
+},
 async updateCat(req: UpdateCat) : Promise<UpdateCatResponse> {
     return await TAURI_INVOKE("update_cat", { req });
 },
@@ -364,19 +370,6 @@ export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amoun
 export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
 export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
 export type CancelOffers = { offer_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type ChangeMode = { mode: "default" } | 
-/**
- * Reuse the first address of coins involved in the transaction
- * as the change address for the output. This improves compatibility
- * with wallets which do not support multiple addresses.
- */
-{ mode: "same" } | 
-/**
- * Use an address that has not been used before as the change address
- * for the output. This is beneficial for privacy, but results in more
- * addresses being generated and used which can make syncing slower.
- */
-{ mode: "new" }
 export type CheckAddress = { address: string }
 export type CheckAddressResponse = { valid: boolean }
 export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
@@ -396,16 +389,6 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
-export type DerivationMode = { mode: "default" } | 
-/**
- * Automatically generate new addresses if there aren't enough that
- * haven't been used yet.
- */
-{ mode: "auto"; derivation_batch_size: number } | 
-/**
- * Don't generate any new addresses, only use existing ones.
- */
-{ mode: "static" }
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
@@ -482,7 +465,7 @@ export type GetTransactions = { offset: number; limit: number; ascending: boolea
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
-export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean }
+export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean; emoji?: string | null }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
 export type ImportOfferResponse = { offer_id: string }
@@ -490,7 +473,7 @@ export type IncreaseDerivationIndex = { hardened?: boolean | null; unhardened?: 
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string }
+export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
 export type KeyKind = "bls"
 export type LineageProof = { parentName: string | null; innerPuzzleHash: string | null; amount: number | null }
 export type LogFile = { name: string; text: string }
@@ -540,12 +523,15 @@ export type SendCat = { asset_id: string; address: string; amount: Amount; fee: 
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
 export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
 export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
+export type SetChangeAddress = { fingerprint: number; change_address: string | null }
 export type SetDeltaSync = { delta_sync: boolean }
 export type SetDeltaSyncOverride = { fingerprint: number; delta_sync: boolean | null }
 export type SetDiscoverPeers = { discover_peers: boolean }
 export type SetNetwork = { name: string }
 export type SetNetworkOverride = { fingerprint: number; name: string | null }
 export type SetTargetPeers = { target_peers: number }
+export type SetWalletEmoji = { fingerprint: number; emoji: string | null }
+export type SetWalletEmojiResponse = Record<string, never>
 export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
 export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
 export type SignMessageByAddress = { message: string; address: string }
@@ -585,9 +571,9 @@ export type UpdateOptionResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
-export type ViewOfferResponse = { offer: OfferSummary }
-export type Wallet = { name: string; fingerprint: number; change: ChangeMode; derivation: DerivationMode; network?: string | null; delta_sync: boolean | null }
-export type WalletDefaults = { change: ChangeMode; derivation: DerivationMode; delta_sync: boolean }
+export type ViewOfferResponse = { offer: OfferSummary; status: OfferRecordStatus }
+export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type WalletDefaults = { delta_sync: boolean }
 
 /** tauri-specta globals **/
 

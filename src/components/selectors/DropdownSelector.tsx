@@ -169,7 +169,7 @@ export function DropdownSelector<T>({
 
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 ${width} bg-background border rounded-md shadow-lg`}
+          className={`absolute z-50 mt-2 ${width} bg-popover border rounded-md shadow-lg`}
           role='listbox'
           aria-label='Options'
         >

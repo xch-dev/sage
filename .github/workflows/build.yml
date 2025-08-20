@@ -153,6 +153,13 @@ jobs:
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
+      - name: Workaround iOS selection
+        if: matrix.platform_name == 'iOS'
+        run: |
+          sudo xcode-select -switch /Applications/Xcode_16.2.app/Contents/Developer
+          xcodebuild -version
+          xcodebuild -downloadPlatform iOS
+
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 

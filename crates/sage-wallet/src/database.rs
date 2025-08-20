@@ -314,7 +314,7 @@ pub async fn insert_nft(
                 tx.insert_collection(collection).await?;
             }
         }
-    };
+    }
 
     tx.insert_asset(asset).await?;
 

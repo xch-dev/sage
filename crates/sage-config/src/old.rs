@@ -7,8 +7,8 @@ use serde_with::{hex::Hex, serde_as};
 use specta::Type;
 
 use crate::{
-    ChangeMode, Config, DerivationMode, GlobalConfig, InheritedNetwork, Network, NetworkConfig,
-    NetworkList, RpcConfig, Wallet, WalletConfig, WalletDefaults,
+    Config, GlobalConfig, InheritedNetwork, Network, NetworkConfig, NetworkList, RpcConfig, Wallet,
+    WalletConfig, WalletDefaults,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
@@ -151,14 +151,10 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
         wallet_config.wallets.push(Wallet {
             name: wallet.name,
             fingerprint: fingerprint.parse()?,
-            derivation: if wallet.derive_automatically {
-                DerivationMode::Default
-            } else {
-                DerivationMode::Static
-            },
-            change: ChangeMode::Default,
             network: None,
             delta_sync: None,
+            emoji: None,
+            change_address: None,
         });
     }
 

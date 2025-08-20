@@ -1,6 +1,7 @@
+use std::sync::LazyLock;
+
 use chia::protocol::Bytes32;
 use chia_wallet_sdk::types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use serde_with::{hex::Hex, serde_as};
 use specta::Type;
@@ -158,7 +159,7 @@ pub enum InheritedNetwork {
     Testnet11,
 }
 
-pub static MAINNET: Lazy<Network> = Lazy::new(|| Network {
+pub static MAINNET: LazyLock<Network> = LazyLock::new(|| Network {
     name: "mainnet".to_string(),
     network_id: None,
     default_port: 8444,
@@ -177,7 +178,7 @@ pub static MAINNET: Lazy<Network> = Lazy::new(|| Network {
     inherit: Some(InheritedNetwork::Mainnet),
 });
 
-pub static TESTNET11: Lazy<Network> = Lazy::new(|| Network {
+pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
     name: "testnet11".to_string(),
     network_id: None,
     default_port: 58444,

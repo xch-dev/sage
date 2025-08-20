@@ -1026,6 +1026,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
+  const [localChangeAddress, setLocalChangeAddress] = useState('');
+  const [enableChangeAddress, setEnableChangeAddress] = useState(false);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -1084,6 +1086,10 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       .then((data) => {
         setWallet(data);
         if (data?.name) setLocalName(data.name);
+        if (data?.change_address) {
+          setLocalChangeAddress(data.change_address);
+          setEnableChangeAddress(true);
+        }
       })
       .catch(addError);
 
@@ -1111,6 +1117,31 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     try {
       await commands.setNetworkOverride({ fingerprint, name });
       setWallet({ ...wallet, network: name });
+    } catch (error) {
+      addError(error as CustomError);
+    }
+    fetchState();
+  };
+
+  const setChangeAddress = async (address: string | null) => {
+    if (!wallet) return;
+    clearState();
+    try {
+      if (address) {
+        const { valid } = await commands.checkAddress({ address });
+        if (!valid) {
+          addError({
+            kind: 'not_found',
+            reason: 'Cannot send change to external address',
+          });
+          return;
+        }
+      }
+      await commands.setChangeAddress({
+        fingerprint,
+        change_address: address || null,
+      });
+      setWallet({ ...wallet, change_address: address });
     } catch (error) {
       addError(error as CustomError);
     }
@@ -1228,6 +1259,39 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+        </SettingItem>
+
+        <SettingItem
+          label={t`Change Address`}
+          description={t`Set a custom address to send change to`}
+          control={
+            <Switch
+              checked={!!wallet?.change_address}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setLocalChangeAddress('');
+                  setEnableChangeAddress(true);
+                } else {
+                  setChangeAddress(null).then(() => {
+                    setLocalChangeAddress('');
+                    setEnableChangeAddress(false);
+                  });
+                }
+              }}
+            />
+          }
+        >
+          {enableChangeAddress && (
+            <div className='mt-3'>
+              <Input
+                placeholder='Enter custom address'
+                className='w-[200px]'
+                value={localChangeAddress}
+                onChange={(event) => setLocalChangeAddress(event.target.value)}
+                onBlur={() => setChangeAddress(localChangeAddress)}
+              />
             </div>
           )}
         </SettingItem>

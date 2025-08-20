@@ -32,7 +32,6 @@ use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     Transaction, TransactionCoin,
 };
-use sage_wallet::WalletError;
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -90,15 +89,10 @@ impl Sage {
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
-        let puzzle_hash = match wallet.p2_puzzle_hash(false, false).await {
-            Ok(puzzle_hash) => Some(puzzle_hash),
-            Err(WalletError::InsufficientDerivations) => None,
-            Err(error) => return Err(error.into()),
-        };
+        let change_p2_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
 
-        let receive_address = puzzle_hash
-            .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
-            .transpose()?;
+        let receive_address =
+            Address::new(change_p2_puzzle_hash, self.network().prefix()).encode()?;
 
         let database_size = self
             .wallet_db_path(wallet.fingerprint)
@@ -111,7 +105,7 @@ impl Sage {
             unit: self.unit.clone(),
             total_coins,
             synced_coins,
-            receive_address: receive_address.unwrap_or_default(),
+            receive_address,
             burn_address: Address::new(BURN_PUZZLE_HASH, self.network().prefix()).encode()?,
             unhardened_derivation_index: wallet
                 .db
@@ -724,13 +718,8 @@ impl Sage {
                 blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.data)),
                 mime_type: data.map(|data| data.mime_type),
                 hash_matches,
-                metadata_json: offchain_metadata.and_then(|offchain_metadata| {
-                    if offchain_metadata.mime_type == "application/json" {
-                        String::from_utf8(offchain_metadata.data).ok()
-                    } else {
-                        None
-                    }
-                }),
+                metadata_json: offchain_metadata
+                    .and_then(|offchain_metadata| String::from_utf8(offchain_metadata.data).ok()),
                 metadata_hash_matches,
             }),
         })

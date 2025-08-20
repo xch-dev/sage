@@ -1,7 +1,7 @@
 {
   "name": "win95",
   "displayName": "Windows 95",
-  "icon_name": "dark",
+  "most_like": "light",
   "colors": {
     "background": "hsl(0 0% 75%)",
     "foreground": "hsl(0 0% 0%)",

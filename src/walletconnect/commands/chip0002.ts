@@ -5,7 +5,7 @@ import { HandlerContext } from '../handler';
 
 export async function handleChainId() {
   const data = await commands.getNetwork({});
-  return data.network.network_id;
+  return data.network.network_id || data.network.name;
 }
 
 export async function handleConnect() {

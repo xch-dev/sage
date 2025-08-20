@@ -3,29 +3,18 @@
   "displayName": "Colorful",
   "backgroundImage": "background.jpg",
   "inherits": "light",
+  "most_like": "light",
   "colors": {
-    "card": "#f8f9fa",
-    "secondary": "#b3d9ff",
-    "secondaryForeground": "#1a365d",
-    "accent": "#e6ccff",
-    "accentForeground": "#4a1d96"
+    "background": "280 50% 25%",
+    "secondary": "210 100% 85%",
+    "secondaryForeground": "210 50% 25%",
+    "accent": "280 100% 85%",
+    "accentForeground": "280 50% 25%"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"
   },
   "buttons": {
-    "default": {
-      "background": "linear-gradient(135deg, hsl(0 0% 9%), hsl(280 100% 85%))",
-      "color": "hsl(0 0% 98%)",
-      "border": "1px solid hsl(0 0% 89.8%)",
-      "borderRadius": "0.75rem",
-      "boxShadow": "0 4px 12px hsl(280 100% 85% / 0.3)",
-      "hover": {
-        "background": "linear-gradient(135deg, hsl(280 100% 85%), hsl(0 0% 9%))",
-        "transform": "translateY(-1px)",
-        "boxShadow": "0 6px 16px hsl(280 100% 85% / 0.4)"
-      }
-    },
     "outline": {
       "background": "transparent",
       "color": "hsl(0 0% 9%)",
@@ -51,7 +40,14 @@
     }
   },
   "buttonStyles": [
-    "gradient",
     "shimmer"
-  ]
+  ],
+  "switches": {
+    "checked": {
+      "background": "hsl(280 90% 85%)"
+    },
+    "unchecked": {
+      "background": "hsl(280 30% 85%)"
+    }
+  }
 }
