@@ -132,13 +132,13 @@ export default function Nft() {
                     className='rounded-lg w-full'
                   />
                 ) : isText(data?.mime_type ?? null) ? (
-                  <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+                  <div className='border border-border rounded-lg p-4 bg-muted overflow-auto max-h-[400px]'>
                     <pre className='whitespace-pre-wrap text-sm'>
                       {data?.blob ? atob(data.blob) : ''}
                     </pre>
                   </div>
                 ) : isJson(data?.mime_type ?? null) ? (
-                  <div className='border rounded-lg p-4 bg-gray-50 dark:bg-gray-800 overflow-auto max-h-[400px]'>
+                  <div className='border border-border rounded-lg p-4 bg-muted overflow-auto max-h-[400px]'>
                     <pre className='whitespace-pre-wrap text-sm'>
                       {data?.blob
                         ? JSON.stringify(JSON.parse(atob(data.blob)), null, 2)
@@ -146,7 +146,7 @@ export default function Nft() {
                     </pre>
                   </div>
                 ) : isAudio(data?.mime_type ?? null) ? (
-                  <div className='flex flex-col items-center justify-center p-4 border rounded-lg bg-gray-50 dark:bg-gray-800'>
+                  <div className='flex flex-col items-center justify-center p-4 border border-border rounded-lg bg-muted'>
                     <div className='text-4xl mb-2'>🎵</div>
                     <audio
                       src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
@@ -293,7 +293,7 @@ export default function Nft() {
                 />
                 {minterProfile && (
                   <div
-                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                     onClick={() =>
                       openUrl(`https://mintgarden.io/${nft?.minter_did}`)
                     }
@@ -317,7 +317,7 @@ export default function Nft() {
                 />
                 {ownerProfile && (
                   <div
-                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-700 dark:text-blue-300 hover:underline'
+                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                     onClick={() =>
                       openUrl(`https://mintgarden.io/${nft?.owner_did}`)
                     }
@@ -374,7 +374,7 @@ export default function Nft() {
                       {nft.data_uris.map((uri) => (
                         <div
                           key={uri}
-                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          className='truncate text-sm text-blue-600 hover:text-blue-800 cursor-pointer hover:underline'
                           onClick={() => openUrl(uri)}
                         >
                           {uri}
@@ -390,7 +390,7 @@ export default function Nft() {
                       {nft.metadata_uris.map((uri) => (
                         <div
                           key={uri}
-                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          className='truncate text-sm text-blue-600 hover:text-blue-800 cursor-pointer hover:underline'
                           onClick={() => openUrl(uri)}
                         >
                           {uri}
@@ -406,7 +406,7 @@ export default function Nft() {
                       {nft.license_uris.map((uri) => (
                         <div
                           key={uri}
-                          className='truncate text-sm text-blue-700 dark:text-blue-300 cursor-pointer hover:underline'
+                          className='truncate text-sm text-blue-600 hover:text-blue-800 cursor-pointer hover:underline'
                           onClick={() => openUrl(uri)}
                         >
                           {uri}
