@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
@@ -30,7 +31,6 @@ import {
   ForwardIcon,
   InfoIcon,
   ListCollapseIcon,
-  LoaderCircleIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -622,7 +622,9 @@ export default function ConfirmationDialog({
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button
+          <LoadingButton
+            loading={pending}
+            loadingText={t`Submitting`}
             onClick={() => {
               setPending(true);
 
@@ -668,13 +670,9 @@ export default function ConfirmationDialog({
                 reset();
               })().finally(() => setPending(false));
             }}
-            disabled={pending}
           >
-            {pending && (
-              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-            )}
-            {pending ? <Trans>Submitting</Trans> : <Trans>Submit</Trans>}
-          </Button>
+            <Trans>Submit</Trans>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>
