@@ -317,7 +317,7 @@ export default function ConfirmationDialog({
                               <div className='flex items-center'>
                                 <Trans>To:</Trans>{' '}
                                 {group.recipients.length > 1 && (
-                                  <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
+                                  <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
                                     <Trans id='sending_to_recipients'>
                                       Sending <span>{group.label}</span> to{' '}
                                       <span>{group.recipients.length}</span>{' '}
