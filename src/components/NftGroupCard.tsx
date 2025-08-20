@@ -151,19 +151,16 @@ export function NftGroupCard({
   if (isLoading) {
     return (
       <div
-        className='border border-neutral-200 dark:border-neutral-800 rounded-lg p-4 animate-pulse'
+        className='border border-border rounded-lg p-4 animate-pulse'
         role='status'
         aria-busy='true'
         aria-label={isCollection ? t`Loading collection` : t`Loading profile`}
       >
         <div
-          className='aspect-square bg-neutral-100 dark:bg-neutral-800 rounded-t-lg'
+          className='aspect-square bg-muted rounded-t-lg'
           aria-hidden='true'
         />
-        <div
-          className='h-6 bg-neutral-100 dark:bg-neutral-800 rounded mt-4'
-          aria-hidden='true'
-        />
+        <div className='h-6 bg-muted rounded mt-4' aria-hidden='true' />
       </div>
     );
   }
@@ -191,7 +188,7 @@ export function NftGroupCard({
       }}
       role='article'
       tabIndex={0}
-      className={`cursor-pointer group border border-neutral-200 dark:border-neutral-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
+      className={`cursor-pointer group border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary ${
         isCollection && !item.visible ? 'opacity-50' : ''
       }`}
       aria-label={
@@ -206,7 +203,7 @@ export function NftGroupCard({
       <div className='overflow-hidden rounded-t-lg relative' aria-hidden='true'>
         {isCollection ? (
           <div
-            className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
+            className='bg-muted flex items-center justify-center aspect-square'
             aria-hidden='true'
           >
             {isCollectionRecord(item) && item.icon ? (
@@ -222,14 +219,14 @@ export function NftGroupCard({
               />
             ) : (
               <LibraryBig
-                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                className='h-12 w-12 text-muted-foreground'
                 aria-hidden='true'
               />
             )}
           </div>
         ) : (
           <div
-            className='bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center aspect-square'
+            className='bg-muted flex items-center justify-center aspect-square'
             aria-hidden='true'
           >
             {didProfile?.avatar_uri ? (
@@ -242,19 +239,19 @@ export function NftGroupCard({
               />
             ) : groupMode === NftGroupMode.OwnerDid ? (
               <UserIcon
-                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                className='h-12 w-12 text-muted-foreground'
                 aria-hidden='true'
               />
             ) : (
               <Paintbrush
-                className='h-12 w-12 text-neutral-400 dark:text-neutral-600'
+                className='h-12 w-12 text-muted-foreground'
                 aria-hidden='true'
               />
             )}
           </div>
         )}
       </div>
-      <div className='border-t border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
+      <div className='border-t border-border bg-card text-card-foreground shadow text-md flex items-center justify-between rounded-b-lg p-2 pl-3'>
         <span className='truncate'>
           <TooltipProvider>
             <Tooltip>

@@ -61,7 +61,7 @@ export function CancelOfferConfirmation({
               {hasOfferId && (
                 <ConfirmationCard title={<Trans>Offer Details</Trans>}>
                   <div className='space-y-2'>
-                    <div className='flex justify-between items-center border-b border-neutral-100 dark:border-neutral-800 pb-1'>
+                    <div className='flex justify-between items-center border-b border-border pb-1'>
                       <div className='text-muted-foreground'>
                         <Trans>Offer ID</Trans>
                       </div>
@@ -109,7 +109,7 @@ export function CancelOfferConfirmation({
               </div>
 
               {index < offers.length - 1 && (
-                <div className='border-t border-neutral-200 dark:border-neutral-700 pt-2 mt-4' />
+                <div className='border-t border-border pt-2 mt-4' />
               )}
             </div>
           );

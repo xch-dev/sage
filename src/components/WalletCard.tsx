@@ -341,14 +341,14 @@ export function WalletCard({
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
             {info.has_secrets ? (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs dark:bg-neutral-800'>
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <FlameIcon className='h-4 w-4' />
                 <span>
                   <Trans>Hot</Trans>
                 </span>
               </div>
             ) : (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs dark:bg-neutral-800'>
+              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
                 <SnowflakeIcon className='h-4 w-4' />
                 <span>
                   <Trans>Cold</Trans>

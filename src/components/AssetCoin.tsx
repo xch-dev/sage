@@ -15,7 +15,7 @@ interface AssetCoinProps {
 
 export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
   return (
-    <div className='rounded-xl border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 p-4'>
+    <div className='rounded-xl border border-border bg-card text-card-foreground shadow p-4'>
       <div
         className='cursor-pointer'
         onClick={() => openUrl(`https://spacescan.io/coin/0x${coinId}`)}
@@ -49,7 +49,7 @@ function AssetAmount({ asset, amount }: AssetAmountProps) {
       <AssetIcon asset={asset} size='md' />
 
       <div className='flex flex-col'>
-        <div className='text-md text-neutral-700 dark:text-neutral-300 break-all'>
+        <div className='text-md text-foreground break-all'>
           {asset.kind === 'token' ? (
             <>
               <NumberFormat

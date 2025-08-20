@@ -418,7 +418,7 @@ export default function Send() {
                               }}
                             />
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-gray-500 text-sm'>
+                              <span className='text-muted-foreground text-sm'>
                                 <Trans>Days</Trans>
                               </span>
                             </div>
@@ -435,7 +435,7 @@ export default function Send() {
                               }}
                             />
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-gray-500 text-sm'>
+                              <span className='text-muted-foreground text-sm'>
                                 <Trans>Hours</Trans>
                               </span>
                             </div>
@@ -452,7 +452,7 @@ export default function Send() {
                               }}
                             />
                             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-gray-500 text-sm'>
+                              <span className='text-muted-foreground text-sm'>
                                 <Trans>Minutes</Trans>
                               </span>
                             </div>

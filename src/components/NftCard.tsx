@@ -337,7 +337,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           )}
         </div>
         <div
-          className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
+          className='border border-border bg-card text-card-foreground shadow text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
           role='group'
           aria-label={t`NFT details`}
         >

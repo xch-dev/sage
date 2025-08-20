@@ -212,7 +212,7 @@ export function Offers() {
         mobileActionItems={
           <div className='flex items-center gap-2'>
             <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-              <ScanIcon className='h-5 w-5' />
+              <ScanIcon className='h-5 w-5' aria-hidden='true' />
             </Button>
             <Button
               size='icon'
@@ -220,7 +220,7 @@ export function Offers() {
               disabled={!isNfcAvailable}
               onClick={handleNfcScan}
             >
-              <NfcIcon className='h-5 w-5 ' />
+              <NfcIcon className='h-5 w-5 ' aria-hidden='true' />
             </Button>
           </div>
         }
@@ -228,7 +228,10 @@ export function Offers() {
       <Container>
         <div className='flex flex-col gap-10'>
           <div className='flex flex-col items-center justify-center pt-10 text-center gap-4'>
-            <HandCoins className='h-12 w-12 text-muted-foreground' />
+            <HandCoins
+              className='h-12 w-12 text-muted-foreground'
+              aria-hidden='true'
+            />
             <div>
               <h2 className='text-lg font-semibold'>
                 {offers.length > 0 ? (
@@ -274,7 +277,10 @@ export function Offers() {
             <div className='flex flex-col gap-4'>
               <div className='flex flex-row items-center justify-between gap-4'>
                 <div className='flex items-center gap-2'>
-                  <FilterIcon className='h-4 w-4 text-muted-foreground' />
+                  <FilterIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className='w-[180px]'>
                       <SelectValue placeholder='Filter by status' />
@@ -301,7 +307,7 @@ export function Offers() {
                             className='flex items-center gap-1'
                             onClick={() => setIsCancelAllOpen(true)}
                           >
-                            <CircleOff className='h-4 w-4' />
+                            <CircleOff className='h-4 w-4' aria-hidden='true' />
                             <span className='hidden sm:inline'>
                               <Trans>Cancel All Active</Trans>
                             </span>
@@ -323,7 +329,7 @@ export function Offers() {
                             className='flex items-center gap-1'
                             onClick={() => setIsDeleteAllOpen(true)}
                           >
-                            <TrashIcon className='h-4 w-4' />
+                            <TrashIcon className='h-4 w-4' aria-hidden='true' />
                             <span className='hidden sm:inline'>
                               <Trans>Delete All</Trans>
                             </span>

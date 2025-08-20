@@ -15,10 +15,10 @@ export function ConfirmationCard({
 }: ConfirmationCardProps) {
   return (
     <div
-      className={`flex items-start gap-3 border border-neutral-200 dark:border-neutral-800 rounded-md p-3 ${className}`}
+      className={`flex items-start gap-3 border border-border rounded-md p-3 bg-card/50 ${className}`}
     >
       {icon && (
-        <div className='overflow-hidden rounded-md flex-shrink-0 w-16 h-16 border border-neutral-200 dark:border-neutral-800 flex items-center justify-center bg-neutral-50 dark:bg-neutral-900'>
+        <div className='overflow-hidden rounded-md flex-shrink-0 w-16 h-16 border border-border flex items-center justify-center bg-muted/50'>
           {icon}
         </div>
       )}
