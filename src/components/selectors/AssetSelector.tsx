@@ -16,6 +16,7 @@ import { toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowUpToLine,
   FilePenLine,
@@ -44,6 +45,8 @@ export function AssetSelector({
   splitNftOffers,
   setSplitNftOffers,
 }: AssetSelectorProps) {
+  const isIos = platform() === 'ios';
+
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
   const [tokenIds, setTokenIds] = useState<number[]>([]);
   const [nftIds, setNftIds] = useState<number[]>([]);
@@ -177,9 +180,11 @@ export function AssetSelector({
           <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>NFT</Trans>
         </Button>
 
-        <Button variant='outline' className='flex-grow' onClick={addOption}>
-          <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>Option</Trans>
-        </Button>
+        {!isIos && (
+          <Button variant='outline' className='flex-grow' onClick={addOption}>
+            <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>Option</Trans>
+          </Button>
+        )}
       </div>
 
       {assets.tokens.length > 0 && (
