@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AmountCell } from './AmountCell';
 import { AssetIcon } from './AssetIcon';
+import { AssetLink } from './AssetLink';
 
 export interface FlattenedTransaction {
   transactionHeight: number;
@@ -90,8 +91,14 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
               size='sm'
             />
           </div>
-
-          <div className='truncate'>{displayName}</div>
+          <AssetLink
+            asset={{
+              hash: `${row.original.itemId?.toLowerCase() ?? 'xch'}`,
+              name: displayName,
+              kind: row.original.type,
+            }}
+            className='truncate'
+          />
         </div>
       );
     },
