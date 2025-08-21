@@ -219,6 +219,7 @@ export default function Nft() {
                       src='https://mintgarden.io/mint-logo.svg'
                       className='h-4 w-4 mr-2'
                       alt='MintGarden logo'
+                      aria-hidden='true'
                     />
                     View on MintGarden
                   </Button>
@@ -237,8 +238,9 @@ export default function Nft() {
                       src={spacescanLogo}
                       className='h-4 w-4 mr-2'
                       alt='Spacescan.io logo'
+                      aria-hidden='true'
                     />
-                    View on Spacescan.io
+                    <Trans>View on Spacescan.io</Trans>
                   </Button>
                 </LabeledItem>
               </div>
@@ -251,7 +253,7 @@ export default function Nft() {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <Tag className='h-5 w-5' />
+                  <Tag className='h-5 w-5' aria-hidden='true' />
                   <Trans>Attributes</Trans>
                 </CardTitle>
               </CardHeader>
@@ -265,11 +267,9 @@ export default function Nft() {
                       >
                         <LabeledItem
                           label={attr.trait_type}
-                          content={null}
-                          className=''
-                        >
-                          <div className='text-sm truncate'>{attr.value}</div>
-                        </LabeledItem>
+                          content={attr.value}
+                          className='text-sm truncate'
+                        />
                       </div>
                     ),
                   )}
@@ -281,7 +281,7 @@ export default function Nft() {
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
-                <Users className='h-5 w-5' />
+                <Users className='h-5 w-5' aria-hidden='true' />
                 <Trans>Ownership</Trans>
               </CardTitle>
             </CardHeader>
@@ -303,6 +303,7 @@ export default function Nft() {
                         src={minterProfile.avatar_uri}
                         alt={`${minterProfile.name} avatar`}
                         className='w-6 h-6 rounded-full'
+                        aria-hidden='true'
                       />
                     )}
                     <div className='text-sm'>{minterProfile.name}</div>
@@ -327,6 +328,7 @@ export default function Nft() {
                         src={ownerProfile.avatar_uri}
                         alt={`${ownerProfile.name} avatar`}
                         className='w-6 h-6 rounded-full'
+                        aria-hidden='true'
                       />
                     )}
                     <div className='text-sm'>{ownerProfile.name}</div>
@@ -344,7 +346,7 @@ export default function Nft() {
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
-                <FileText className='h-5 w-5' />
+                <FileText className='h-5 w-5' aria-hidden='true' />
                 <Trans>Technical Information</Trans>
               </CardTitle>
             </CardHeader>
@@ -363,7 +365,7 @@ export default function Nft() {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <Hash className='h-5 w-5' />
+                  <Hash className='h-5 w-5' aria-hidden='true' />
                   <Trans>Data and License Details</Trans>
                 </CardTitle>
               </CardHeader>
