@@ -1027,7 +1027,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
-  const [enableChangeAddress, setEnableChangeAddress] = useState(false);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -1039,9 +1038,18 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     useState<PerformDatabaseMaintenanceResponse | null>(null);
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
 
+  const saveChangeAddress = (address: string) => {
+    const trimmedAddress = address.trim();
+    const currentAddress = wallet?.change_address || '';
+    if (trimmedAddress !== currentAddress) {
+      setChangeAddress(trimmedAddress || null);
+    }
+  };
+
   const { handleScanOrPaste: handleScanOrPasteChangeAddress } =
     useScannerOrClipboard((scanResValue) => {
       setLocalChangeAddress(scanResValue);
+      saveChangeAddress(scanResValue);
     });
 
   const fetchDatabaseStats = useCallback(async () => {
@@ -1093,7 +1101,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         if (data?.name) setLocalName(data.name);
         if (data?.change_address) {
           setLocalChangeAddress(data.change_address);
-          setEnableChangeAddress(true);
         }
       })
       .catch(addError);
@@ -1137,7 +1144,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         if (!valid) {
           addError({
             kind: 'not_found',
-            reason: 'Cannot send change to external address',
+            reason: t`Cannot send change to external address. Setting not updated.`,
           });
           return;
         }
@@ -1149,8 +1156,9 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       setWallet({ ...wallet, change_address: address });
     } catch (error) {
       addError(error as CustomError);
+    } finally {
+      fetchState();
     }
-    fetchState();
   };
 
   const derivationIndex = walletState.sync.unhardened_derivation_index;
@@ -1270,35 +1278,20 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
         <SettingItem
           label={t`Change Address`}
-          description={t`Set a custom address to send change to`}
-          control={
-            <Switch
-              checked={!!wallet?.change_address}
-              onCheckedChange={(checked) => {
-                if (checked) {
-                  setLocalChangeAddress('');
-                  setEnableChangeAddress(true);
-                } else {
-                  setChangeAddress(null).then(() => {
-                    setLocalChangeAddress('');
-                    setEnableChangeAddress(false);
-                  });
-                }
-              }}
-            />
-          }
+          description={t`Set a specific address to send change to`}
+          control={<div />}
         >
-          {enableChangeAddress && (
-            <div className='mt-3'>
-              <PasteInput
-                placeholder={t`Enter custom address`}
-                value={localChangeAddress}
-                onChange={(event) => setLocalChangeAddress(event.target.value)}
-                onBlur={() => setChangeAddress(localChangeAddress)}
-                onEndIconClick={handleScanOrPasteChangeAddress}
-              />
-            </div>
-          )}
+          <div className='mt-3'>
+            <PasteInput
+              placeholder={t`Enter change address`}
+              value={localChangeAddress}
+              onChange={(event) => setLocalChangeAddress(event.target.value)}
+              onBlur={() => {
+                saveChangeAddress(localChangeAddress);
+              }}
+              onEndIconClick={handleScanOrPasteChangeAddress}
+            />
+          </div>
         </SettingItem>
       </SettingsSection>
 
