@@ -1,0 +1,64 @@
+{
+  "name": "alien",
+  "displayName": "Alien",
+  "inherits": "dark",
+  "most_like": "dark",
+  "backgroundImage": "background.png",
+  "colors": {
+    "background": "220 50% 25%",
+    "foreground": "210 100% 95%",
+    "card": "220 40% 20%",
+    "cardForeground": "210 100% 95%",
+    "popover": "220 40% 20%",
+    "popoverForeground": "210 100% 95%",
+    "primary": "210 100% 95%",
+    "primaryForeground": "220 50% 25%",
+    "secondary": "220 40% 25%",
+    "secondaryForeground": "210 50% 25%",
+    "muted": "220 30% 20%",
+    "mutedForeground": "210 60% 70%",
+    "accent": "280 100% 85%",
+    "accentForeground": "280 50% 25%",
+    "border": "220 30% 25%",
+    "input": "220 30% 25%",
+    "inputBackground": "220 35% 22%",
+    "ring": "210 100% 85%"
+  },
+  "fonts": {
+    "mono": "JetBrains Mono, Consolas, Monaco, monospace"
+  },
+  "buttons": {
+    "outline": {
+      "background": "transparent",
+      "color": "hsl(210 100% 95%)",
+      "border": "2px solid hsl(280 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "none",
+      "hover": {
+        "background": "hsl(280 100% 85% / 0.2)",
+        "color": "hsl(220 50% 25%)",
+        "transform": "scale(1.02)"
+      }
+    },
+    "secondary": {
+      "background": "hsl(210 100% 85%)",
+      "color": "hsl(220 50% 25%)",
+      "border": "1px solid hsl(210 100% 85%)",
+      "borderRadius": "0.75rem",
+      "boxShadow": "0 2px 8px hsl(210 100% 85% / 0.3)",
+      "hover": {
+        "background": "hsl(210 100% 80%)",
+        "transform": "translateY(-1px)"
+      }
+    }
+  },
+  "buttonStyles": ["shimmer"],
+  "switches": {
+    "checked": {
+      "background": "hsl(280 90% 85%)"
+    },
+    "unchecked": {
+      "background": "hsl(280 30% 85%)"
+    }
+  }
+}
