@@ -66,13 +66,18 @@ export function MakeOffer() {
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
     const hasRequestedTokens = state.requested.tokens.length > 0;
     const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
+    const hasOfferedOptions = state.offered.options.filter((o) => o).length > 0;
+    const hasRequestedOptions =
+      state.requested.options.filter((o) => o).length > 0;
 
     if (
       !(
         hasOfferedTokens ||
         hasOfferedNfts ||
         hasRequestedTokens ||
-        hasRequestedNfts
+        hasRequestedNfts ||
+        hasOfferedOptions ||
+        hasRequestedOptions
       )
     ) {
       addError({
