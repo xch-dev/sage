@@ -1,4 +1,5 @@
 import { DataTable } from '@/components/ui/data-table';
+import { getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Row, SortingState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
@@ -7,7 +8,6 @@ import { useState } from 'react';
 import { TransactionRecord } from '../bindings';
 import { Loading } from './Loading';
 import { columns, FlattenedTransaction } from './TransactionColumns';
-import { getAssetDisplayName } from '@/lib/utils';
 
 export function TransactionListView({
   transactions,

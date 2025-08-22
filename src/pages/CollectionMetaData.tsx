@@ -171,7 +171,7 @@ export default function CollectionMetaData() {
         <Card className='mb-4'>
           <CardHeader>
             <CardTitle className='flex items-center gap-2'>
-              <FileImage className='h-5 w-5' />
+              <FileImage className='h-5 w-5' aria-hidden='true' />
               <Trans>Collection Preview</Trans>
             </CardTitle>
           </CardHeader>
@@ -296,8 +296,9 @@ export default function CollectionMetaData() {
                       src='https://mintgarden.io/mint-logo.svg'
                       className='h-4 w-4 mr-2'
                       alt='MintGarden logo'
+                      aria-hidden='true'
                     />
-                    View on MintGarden
+                    <Trans>View on MintGarden</Trans>
                   </Button>
 
                   <Button
@@ -314,8 +315,9 @@ export default function CollectionMetaData() {
                       src={spacescanLogo}
                       className='h-4 w-4 mr-2'
                       alt='Spacescan.io logo'
+                      aria-hidden='true'
                     />
-                    View on Spacescan.io
+                    <Trans>View on Spacescan.io</Trans>
                   </Button>
                 </LabeledItem>
               </div>
@@ -328,7 +330,7 @@ export default function CollectionMetaData() {
             <Card>
               <CardHeader>
                 <CardTitle className='flex items-center gap-2'>
-                  <Tag className='h-5 w-5' />
+                  <Tag className='h-5 w-5' aria-hidden='true' />
                   <Trans>Attributes</Trans>
                 </CardTitle>
               </CardHeader>
@@ -371,7 +373,7 @@ export default function CollectionMetaData() {
           <Card>
             <CardHeader>
               <CardTitle className='flex items-center gap-2'>
-                <Info className='h-5 w-5' />
+                <Info className='h-5 w-5' aria-hidden='true' />
                 <Trans>Collection Information</Trans>
               </CardTitle>
             </CardHeader>

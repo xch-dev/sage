@@ -14,31 +14,31 @@ body {
 @layer base {
   :root {
     /* Default light theme - these will be overridden by the theme system */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --input-background: 0 0% 100%;
-    --ring: 0 0% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    --background: hsl(0 0% 100%);
+    --foreground: hsl(0 0% 3.9%);
+    --card: hsl(0 0% 98%);
+    --card-foreground: hsl(0 0% 3.9%);
+    --popover: hsl(0 0% 100%);
+    --popover-foreground: hsl(0 0% 3.9%);
+    --primary: hsl(0 0% 9%);
+    --primary-foreground: hsl(0 0% 98%);
+    --secondary: hsl(0 0% 96.1%);
+    --secondary-foreground: hsl(0 0% 9%);
+    --muted: hsl(0 0% 96.1%);
+    --muted-foreground: hsl(0 0% 45.1%);
+    --accent: hsl(0 0% 96.1%);
+    --accent-foreground: hsl(0 0% 9%);
+    --destructive: hsl(0 84.2% 60.2%);
+    --destructive-foreground: hsl(0 0% 98%);
+    --border: hsl(0 0% 89.8%);
+    --input: hsl(0 0% 89.8%);
+    --input-background: hsl(0 0% 100%);
+    --ring: hsl(0 0% 3.9%);
+    --chart-1: hsl(12 76% 61%);
+    --chart-2: hsl(173 58% 39%);
+    --chart-3: hsl(197 37% 24%);
+    --chart-4: hsl(43 74% 66%);
+    --chart-5: hsl(27 87% 67%);
     --radius: 0.5rem;
 
     /* Default font families */
@@ -73,64 +73,64 @@ body {
       0 2px 4px -2px rgb(0 0 0 / 0.1);
 
     /* Button-specific CSS variables with defaults */
-    --btn-default-bg: hsl(var(--primary));
-    --btn-default-color: hsl(var(--primary-foreground));
+    --btn-default-bg: var(--primary);
+    --btn-default-color: var(--primary-foreground);
     --btn-default-border: none;
     --btn-default-border-style: solid;
     --btn-default-border-width: 0;
     --btn-default-border-color: transparent;
     --btn-default-radius: var(--radius);
     --btn-default-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-default-hover-bg: hsl(var(--primary) / 0.9);
-    --btn-default-hover-color: hsl(var(--primary-foreground));
+    --btn-default-hover-bg: var(--primary);
+    --btn-default-hover-color: var(--primary-foreground);
     --btn-default-hover-transform: none;
     --btn-default-hover-border-style: solid;
     --btn-default-hover-border-color: transparent;
     --btn-default-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-default-active-bg: hsl(var(--primary) / 0.8);
-    --btn-default-active-color: hsl(var(--primary-foreground));
+    --btn-default-active-bg: var(--primary);
+    --btn-default-active-color: var(--primary-foreground);
     --btn-default-active-transform: none;
     --btn-default-active-border-style: solid;
     --btn-default-active-border-color: transparent;
     --btn-default-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
     --btn-outline-bg: transparent;
-    --btn-outline-color: hsl(var(--foreground));
-    --btn-outline-border: 1px solid hsl(var(--border));
+    --btn-outline-color: var(--foreground);
+    --btn-outline-border: 1px solid var(--border);
     --btn-outline-border-style: solid;
     --btn-outline-border-width: 1px;
-    --btn-outline-border-color: hsl(var(--border));
+    --btn-outline-border-color: var(--border);
     --btn-outline-radius: var(--radius);
     --btn-outline-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-outline-hover-bg: hsl(var(--accent));
-    --btn-outline-hover-color: hsl(var(--accent-foreground));
+    --btn-outline-hover-bg: var(--accent);
+    --btn-outline-hover-color: var(--accent-foreground);
     --btn-outline-hover-transform: none;
     --btn-outline-hover-border-style: solid;
-    --btn-outline-hover-border-color: hsl(var(--border));
+    --btn-outline-hover-border-color: var(--border);
     --btn-outline-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-outline-active-bg: hsl(var(--accent) / 0.8);
-    --btn-outline-active-color: hsl(var(--accent-foreground));
+    --btn-outline-active-bg: var(--accent);
+    --btn-outline-active-color: var(--accent-foreground);
     --btn-outline-active-transform: none;
     --btn-outline-active-border-style: solid;
-    --btn-outline-active-border-color: hsl(var(--border));
+    --btn-outline-active-border-color: var(--border);
     --btn-outline-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-    --btn-secondary-bg: hsl(var(--secondary));
-    --btn-secondary-color: hsl(var(--secondary-foreground));
+    --btn-secondary-bg: var(--secondary);
+    --btn-secondary-color: var(--secondary-foreground);
     --btn-secondary-border: none;
     --btn-secondary-border-style: solid;
     --btn-secondary-border-width: 0;
     --btn-secondary-border-color: transparent;
     --btn-secondary-radius: var(--radius);
     --btn-secondary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-secondary-hover-bg: hsl(var(--secondary) / 0.8);
-    --btn-secondary-hover-color: hsl(var(--secondary-foreground));
+    --btn-secondary-hover-bg: var(--secondary);
+    --btn-secondary-hover-color: var(--secondary-foreground);
     --btn-secondary-hover-transform: none;
     --btn-secondary-hover-border-style: solid;
     --btn-secondary-hover-border-color: transparent;
     --btn-secondary-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-secondary-active-bg: hsl(var(--secondary) / 0.6);
-    --btn-secondary-active-color: hsl(var(--secondary-foreground));
+    --btn-secondary-active-bg: var(--secondary);
+    --btn-secondary-active-color: var(--secondary-foreground);
     --btn-secondary-active-transform: none;
     --btn-secondary-active-border-style: solid;
     --btn-secondary-active-border-color: transparent;
@@ -142,6 +142,32 @@ body {
     --theme-has-pixel-art: 0;
     --theme-has-3d-effects: 0;
     --theme-has-rounded-buttons: 0;
+
+    /* Navigation active background */
+    --nav-active-bg: var(--primary);
+
+    /* Table styling variables with defaults */
+    --table-background: transparent;
+    --table-border: 1px solid var(--border);
+    --table-border-radius: var(--radius);
+    --table-box-shadow: var(--shadow-sm);
+    --table-header-background: transparent;
+    --table-header-color: var(--muted-foreground);
+    --table-header-font-weight: 500;
+    --table-header-font-size: 0.875rem;
+    --table-row-background: transparent;
+    --table-row-color: var(--foreground);
+    --table-row-border: 1px solid var(--border);
+    --table-row-hover-background: var(--muted);
+    --table-row-hover-color: var(--foreground);
+    --table-row-selected-background: var(--accent);
+    --table-row-selected-color: var(--accent-foreground);
+    --table-cell-padding: 0.5rem;
+    --table-cell-border: none;
+    --table-cell-font-size: 0.875rem;
+    --table-footer-background: var(--muted);
+    --table-footer-color: var(--muted-foreground);
+    --table-footer-border: 1px solid var(--border);
   }
 }
 
@@ -162,27 +188,19 @@ body {
 
   /* Make backgrounds semi-transparent when background image is present */
   body.has-background-image {
-    background-color: hsla(
-      var(--background) / var(--background-body-opacity, 0.1)
-    );
+    background-color: var(--background-transparent);
   }
 
   body.has-background-image .bg-card {
-    background-color: hsla(
-      var(--card) / var(--background-card-opacity, 0.75)
-    ) !important;
+    background-color: var(--card-transparent) !important;
   }
 
   body.has-background-image .bg-background {
-    background-color: hsla(
-      var(--background) / var(--background-body-opacity, 0.1)
-    ) !important;
+    background-color: var(--background-transparent) !important;
   }
 
   body.has-background-image .bg-popover {
-    background-color: hsla(
-      var(--popover) / var(--background-popover-opacity, 0.9)
-    ) !important;
+    background-color: var(--popover-transparent) !important;
   }
 
   /* Dynamic outline button styling for all themes */
@@ -224,22 +242,19 @@ body {
 
   /* Gradient buttons - applied when theme has gradient flag */
   .btn-variant-default[data-theme-style*='gradient'] {
-    background: linear-gradient(
-      135deg,
-      hsl(var(--primary)),
-      hsl(var(--accent))
-    );
-    color: hsl(var(--primary-foreground));
-    border: 1px solid hsl(var(--border));
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: var(--primary-foreground);
+    border: 1px solid var(--border);
   }
 
   /* Shimmer effects - applied when theme has shimmer flag */
   .btn-variant-outline[data-theme-style*='shimmer'] {
     background: transparent;
-    border: 1px solid hsl(var(--primary) / 0.3);
-    color: hsl(var(--primary) / 0.8);
+    border: 1px solid var(--primary);
+    color: var(--primary);
     position: relative;
     overflow: hidden;
+    opacity: 0.8;
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']::before {
@@ -252,15 +267,17 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      hsl(var(--primary) / 0.2),
+      var(--primary),
       transparent
     );
+    opacity: 0.2;
     transition: left 0.3s ease;
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']:hover {
-    border-color: hsl(var(--primary) / 0.5);
-    color: hsl(var(--primary));
+    border-color: var(--primary);
+    color: var(--primary);
+    opacity: 1;
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']:hover::before {
@@ -269,60 +286,60 @@ body {
 
   /* Pixel art style - applied when theme has pixel-art flag */
   .btn-variant-default[data-theme-style*='pixel-art'] {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border: 2px solid hsl(var(--foreground));
-    box-shadow: 2px 2px 0 hsl(var(--foreground));
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 2px solid var(--foreground);
+    box-shadow: 2px 2px 0 var(--foreground);
   }
 
   .btn-variant-default[data-theme-style*='pixel-art']:hover {
     transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 hsl(var(--foreground));
+    box-shadow: 1px 1px 0 var(--foreground);
   }
 
   .btn-variant-outline[data-theme-style*='pixel-art'] {
     background: transparent;
-    border: 2px solid hsl(var(--foreground));
-    color: hsl(var(--foreground));
-    box-shadow: 2px 2px 0 hsl(var(--foreground));
+    border: 2px solid var(--foreground);
+    color: var(--foreground);
+    box-shadow: 2px 2px 0 var(--foreground);
   }
 
   /* 3D effects - applied when theme has 3d-effects flag */
   .btn-variant-default[data-theme-style*='3d-effects'] {
-    background: hsl(var(--muted));
-    color: hsl(var(--foreground));
-    border: 2px outset hsl(var(--border));
+    background: var(--muted);
+    color: var(--foreground);
+    border: 2px outset var(--border);
     box-shadow:
-      inset 1px 1px 0 hsl(var(--background)),
-      inset -1px -1px 0 hsl(var(--muted-foreground));
+      inset 1px 1px 0 var(--background),
+      inset -1px -1px 0 var(--muted-foreground);
   }
 
   .btn-variant-default[data-theme-style*='3d-effects']:active {
     border-style: inset;
     box-shadow:
-      inset 1px 1px 0 hsl(var(--muted-foreground)),
-      inset -1px -1px 0 hsl(var(--background));
+      inset 1px 1px 0 var(--muted-foreground),
+      inset -1px -1px 0 var(--background);
   }
 
   .btn-variant-outline[data-theme-style*='3d-effects'] {
-    background: hsl(var(--background));
-    border: 2px outset hsl(var(--border));
-    color: hsl(var(--foreground));
+    background: var(--background);
+    border: 2px outset var(--border);
+    color: var(--foreground);
   }
 
   /* Rounded buttons - applied when theme has rounded-buttons flag */
   .btn-variant-default[data-theme-style*='rounded-buttons'] {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
+    background: var(--primary);
+    color: var(--primary-foreground);
     border-radius: 12px;
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 3px hsl(var(--foreground) / 0.2);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   }
 
   .btn-variant-outline[data-theme-style*='rounded-buttons'] {
-    background: hsl(var(--background));
-    color: hsl(var(--foreground));
-    border: 1px solid hsl(var(--border));
+    background: var(--background);
+    color: var(--foreground);
+    border: 1px solid var(--border);
     border-radius: 12px;
   }
 
@@ -333,6 +350,50 @@ body {
 
   .peer[data-state='unchecked'] {
     background-color: var(--switch-unchecked-bg) !important;
+  }
+
+  /* Theme-aware table styling */
+  .table-theme {
+    background: var(--table-background);
+    border: var(--table-border);
+    border-radius: var(--table-border-radius);
+    box-shadow: var(--table-box-shadow);
+  }
+
+  .table-theme thead th {
+    background: var(--table-header-background);
+    color: var(--table-header-color);
+    border: var(--table-header-border);
+    font-weight: var(--table-header-font-weight);
+    font-size: var(--table-header-font-size);
+  }
+
+  .table-theme tbody tr {
+    background: var(--table-row-background);
+    color: var(--table-row-color);
+    border: var(--table-row-border);
+  }
+
+  .table-theme tbody tr:hover {
+    background: var(--table-row-hover-background);
+    color: var(--table-row-hover-color);
+  }
+
+  .table-theme tbody tr[data-state='selected'] {
+    background: var(--table-row-selected-background);
+    color: var(--table-row-selected-color);
+  }
+
+  .table-theme tbody td {
+    padding: var(--table-cell-padding);
+    border: var(--table-cell-border);
+    font-size: var(--table-cell-font-size);
+  }
+
+  .table-theme tfoot th {
+    background: var(--table-footer-background);
+    color: var(--table-footer-color);
+    border: var(--table-footer-border);
   }
 }
 

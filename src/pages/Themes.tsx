@@ -10,12 +10,46 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { ColumnDef } from '@tanstack/react-table';
 import { Info, Loader2, Palette } from 'lucide-react';
+
+// Add this interface for the demo table
+interface DemoTableData {
+  id: string;
+  name: string;
+  status: string;
+  value: number;
+}
+
+// Add demo table columns
+const demoColumns: ColumnDef<DemoTableData>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+  },
+  {
+    accessorKey: 'value',
+    header: 'Value',
+  },
+];
+
+// Add demo table data
+const demoTableData: DemoTableData[] = [
+  { id: '1', name: 'Item 1', status: 'Active', value: 100 },
+  { id: '2', name: 'Item 2', status: 'Inactive', value: 250 },
+  { id: '3', name: 'Item 3', status: 'Active', value: 75 },
+  { id: '4', name: 'Item 4', status: 'Pending', value: 300 },
+];
 
 export default function Themes() {
   const { currentTheme, isLoading, error } = useTheme();
@@ -101,12 +135,12 @@ export default function Themes() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Trans>Current Theme</Trans>: {currentTheme.displayName}
+                  <Trans>Current Theme: {currentTheme.displayName}</Trans>
                 </CardTitle>
                 <CardDescription>
                   <Trans>
-                    This is how your selected theme looks across different
-                    components
+                    Preview of the current theme&apos;s color palette and
+                    styling.
                   </Trans>
                 </CardDescription>
               </CardHeader>
@@ -124,9 +158,8 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.primary
-                            ? `hsl(${currentTheme.colors.primary})`
-                            : undefined,
+                          backgroundColor:
+                            currentTheme.colors?.primary || undefined,
                         }}
                       />
                     </div>
@@ -137,9 +170,8 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.secondary
-                            ? `hsl(${currentTheme.colors.secondary})`
-                            : undefined,
+                          backgroundColor:
+                            currentTheme.colors?.secondary || undefined,
                         }}
                       />
                     </div>
@@ -150,9 +182,8 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.accent
-                            ? `hsl(${currentTheme.colors.accent})`
-                            : undefined,
+                          backgroundColor:
+                            currentTheme.colors?.accent || undefined,
                         }}
                       />
                     </div>
@@ -163,44 +194,10 @@ export default function Themes() {
                       <div
                         className='h-12 rounded-md border'
                         style={{
-                          backgroundColor: currentTheme.colors?.destructive
-                            ? `hsl(${currentTheme.colors.destructive})`
-                            : undefined,
+                          backgroundColor:
+                            currentTheme.colors?.destructive || undefined,
                         }}
                       />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fonts */}
-                <div>
-                  <Label className='text-base font-semibold mb-3 block'>
-                    <Trans>Typography</Trans>
-                  </Label>
-                  <div className='space-y-4'>
-                    <div>
-                      <Trans>Heading Font</Trans>:{' '}
-                      {currentTheme.fonts?.heading || 'Default'}
-                      <div
-                        className='mt-2 p-3 border rounded-md'
-                        style={{
-                          fontFamily: currentTheme.fonts?.heading || 'inherit',
-                        }}
-                      >
-                        The quick brown fox jumps over the lazy dog
-                      </div>
-                    </div>
-                    <div>
-                      <Trans>Body Font</Trans>:{' '}
-                      {currentTheme.fonts?.body || 'Default'}
-                      <div
-                        className='mt-2 p-3 border rounded-md'
-                        style={{
-                          fontFamily: currentTheme.fonts?.body || 'inherit',
-                        }}
-                      >
-                        The quick brown fox jumps over the lazy dog
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -252,7 +249,6 @@ export default function Themes() {
                   </div>
                 </div>
 
-                {/* Component Examples */}
                 <div>
                   <Label className='text-base font-semibold mb-3 block'>
                     <Trans>Component Examples</Trans>
@@ -292,6 +288,21 @@ export default function Themes() {
                           theme.
                         </Trans>
                       </p>
+                      <div className='mt-4'>
+                        <Input
+                          placeholder={t`Input field example`}
+                          style={{
+                            backgroundColor:
+                              currentTheme.colors?.input || undefined,
+                            borderColor:
+                              currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
+                            fontFamily: currentTheme.fonts?.body || 'inherit',
+                            borderRadius:
+                              currentTheme.corners?.md || '0.375rem',
+                          }}
+                        />
+                      </div>
                     </div>
 
                     <div className='space-y-4'>
@@ -301,12 +312,11 @@ export default function Themes() {
                       <div className='flex flex-col sm:flex-row gap-2 flex-wrap'>
                         <Button
                           style={{
-                            backgroundColor: currentTheme.colors?.primary
-                              ? `hsl(${currentTheme.colors.primary})`
-                              : undefined,
-                            color: currentTheme.colors?.primaryForeground
-                              ? `hsl(${currentTheme.colors.primaryForeground})`
-                              : undefined,
+                            backgroundColor:
+                              currentTheme.colors?.primary || undefined,
+                            color:
+                              currentTheme.colors?.primaryForeground ||
+                              undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -319,12 +329,9 @@ export default function Themes() {
                         <Button
                           variant='outline'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor:
+                              currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -335,12 +342,9 @@ export default function Themes() {
                         <Button
                           variant='destructive'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor:
+                              currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -351,12 +355,9 @@ export default function Themes() {
                         <Button
                           variant='ghost'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor:
+                              currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -367,12 +368,9 @@ export default function Themes() {
                         <Button
                           variant='link'
                           style={{
-                            borderColor: currentTheme.colors?.border
-                              ? `hsl(${currentTheme.colors.border})`
-                              : undefined,
-                            color: currentTheme.colors?.foreground
-                              ? `hsl(${currentTheme.colors.foreground})`
-                              : undefined,
+                            borderColor:
+                              currentTheme.colors?.border || undefined,
+                            color: currentTheme.colors?.foreground || undefined,
                             fontFamily: currentTheme.fonts?.body || 'inherit',
                             borderRadius:
                               currentTheme.corners?.md || '0.375rem',
@@ -383,23 +381,18 @@ export default function Themes() {
                       </div>
                     </div>
 
-                    <div className='space-y-2'>
-                      <Input
-                        placeholder={t`Input field example`}
-                        style={{
-                          backgroundColor: currentTheme.colors?.input
-                            ? `hsl(${currentTheme.colors.input})`
-                            : undefined,
-                          borderColor: currentTheme.colors?.border
-                            ? `hsl(${currentTheme.colors.border})`
-                            : undefined,
-                          color: currentTheme.colors?.foreground
-                            ? `hsl(${currentTheme.colors.foreground})`
-                            : undefined,
-                          fontFamily: currentTheme.fonts?.body || 'inherit',
-                          borderRadius: currentTheme.corners?.md || '0.375rem',
-                        }}
-                      />
+                    <div className='space-y-4'>
+                      <Label className='text-base font-semibold block'>
+                        <Trans>Tables</Trans>
+                      </Label>
+                      <div className='rounded-md border'>
+                        <DataTable
+                          columns={demoColumns}
+                          data={demoTableData}
+                          rowLabel='item'
+                          rowLabelPlural='items'
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

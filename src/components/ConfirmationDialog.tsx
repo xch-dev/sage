@@ -257,7 +257,7 @@ export default function ConfirmationDialog({
               >
                 {isHighFee && !fee.isZero() && (
                   <Alert variant='warning' className='mb-3'>
-                    <AlertCircleIcon className='h-4 w-4' />
+                    <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
                     <AlertTitle>
                       <Trans>High Transaction Fee</Trans>
                     </AlertTitle>

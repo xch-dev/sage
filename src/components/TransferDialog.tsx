@@ -1,3 +1,4 @@
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +8,7 @@ import BigNumber from 'bignumber.js';
 import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { PasteInput } from './PasteInput';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -24,7 +26,6 @@ import {
   FormLabel,
   FormMessage,
 } from './ui/form';
-import { Input } from './ui/input';
 import { FeeAmountInput } from './ui/masked-input';
 
 export interface TransferDialogProps {
@@ -58,6 +59,10 @@ export function TransferDialog({
     },
   });
 
+  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('address', scanResValue);
+  });
+
   const handler = (values: z.infer<typeof schema>) => {
     onSubmit(values.address, values.fee);
   };
@@ -80,7 +85,11 @@ export function TransferDialog({
                     <Trans>Address</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder={t`Enter address`} />
+                    <PasteInput
+                      {...field}
+                      placeholder={t`Enter address`}
+                      onEndIconClick={handleScanOrPaste}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
