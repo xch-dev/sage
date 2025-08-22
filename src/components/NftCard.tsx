@@ -331,7 +331,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           {selectionState !== null && (
             <Checkbox
               checked={selectionState[0]}
-              className='absolute top-2 right-2 w-5 h-5'
+              className='absolute top-2 right-2 w-5 h-5 data-[state=checked]:!bg-secondary data-[state=unchecked]:!bg-secondary data-[state=checked]:text-secondary-foreground'
               aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
           )}
