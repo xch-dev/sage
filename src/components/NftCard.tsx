@@ -267,12 +267,16 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   return (
     <>
       <div
-        className={`cursor-pointer group${
+        className={`cursor-pointer group rounded-lg transition-all${
           !nft.visible
             ? ' opacity-50 grayscale'
             : !nft.created_height
               ? ' pulsate-opacity'
               : ''
+        }${
+          selectionState?.[0]
+            ? ' ring-2 ring-primary ring-offset-2 bg-primary/5'
+            : ''
         }`}
         onClick={() => {
           if (selectionState === null) {
