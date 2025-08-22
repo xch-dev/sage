@@ -1,0 +1,108 @@
+{
+  "name": "winamp",
+  "displayName": "Winamp Classic",
+  "backgroundImage": "background.jpg",
+  "inherits": "dark",
+  "most_like": "dark",
+  "colors": {
+    "background": "220 15% 8%",
+    "foreground": "180 100% 85%",
+    "card": "220 20% 12%",
+    "cardForeground": "180 100% 90%",
+    "popover": "220 25% 10%",
+    "popoverForeground": "180 100% 90%",
+    "primary": "120 100% 50%",
+    "primaryForeground": "220 15% 8%",
+    "secondary": "200 100% 15%",
+    "secondaryForeground": "180 100% 85%",
+    "muted": "220 20% 15%",
+    "mutedForeground": "180 50% 65%",
+    "accent": "60 100% 50%",
+    "accentForeground": "220 15% 8%",
+    "destructive": "0 100% 60%",
+    "destructiveForeground": "0 0% 98%",
+    "border": "200 100% 25%",
+    "input": "220 25% 10%",
+    "ring": "120 100% 50%"
+  },
+  "fonts": {
+    "heading": "Orbitron, 'Courier New', monospace",
+    "body": "Rajdhani, 'Trebuchet MS', sans-serif",
+    "mono": "Courier New, Consolas, Monaco, monospace"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "2px",
+    "md": "4px",
+    "lg": "6px",
+    "xl": "8px",
+    "xxl": "12px"
+  },
+  "shadows": {
+    "card": "0 0 20px hsl(120 100% 50% / 0.15), inset 0 1px 0 hsl(200 100% 25% / 0.5)",
+    "button": "0 0 10px hsl(120 100% 50% / 0.3), inset 0 1px 0 hsl(200 100% 40%)",
+    "input": "inset 0 2px 4px hsl(220 25% 5%), 0 0 8px hsl(120 100% 50% / 0.1)"
+  },
+  "buttons": {
+    "outline": {
+      "background": "linear-gradient(145deg, hsl(200 100% 15%), hsl(200 100% 10%))",
+      "color": "hsl(180 100% 85%)",
+      "border": "2px solid hsl(120 100% 50%)",
+      "borderRadius": "4px",
+      "boxShadow": "0 0 10px hsl(120 100% 50% / 0.3), inset 0 1px 0 hsl(200 100% 25%)",
+      "textShadow": "0 0 5px hsl(120 100% 50%)",
+      "hover": {
+        "background": "linear-gradient(145deg, hsl(200 100% 20%), hsl(200 100% 15%))",
+        "color": "hsl(120 100% 90%)",
+        "boxShadow": "0 0 15px hsl(120 100% 50% / 0.5), inset 0 1px 0 hsl(200 100% 30%)",
+        "transform": "translateY(-1px)"
+      }
+    },
+    "secondary": {
+      "background": "linear-gradient(145deg, hsl(200 100% 20%), hsl(200 100% 15%))",
+      "color": "hsl(180 100% 85%)",
+      "border": "1px solid hsl(200 100% 30%)",
+      "borderRadius": "4px",
+      "boxShadow": "0 0 8px hsl(200 100% 50% / 0.2), inset 0 1px 0 hsl(200 100% 25%)",
+      "hover": {
+        "background": "linear-gradient(145deg, hsl(200 100% 25%), hsl(200 100% 20%))",
+        "boxShadow": "0 0 12px hsl(200 100% 50% / 0.3), inset 0 1px 0 hsl(200 100% 30%)",
+        "transform": "translateY(-1px)"
+      }
+    },
+    "primary": {
+      "background": "linear-gradient(145deg, hsl(120 100% 55%), hsl(120 100% 45%))",
+      "color": "hsl(220 15% 8%)",
+      "border": "1px solid hsl(120 100% 60%)",
+      "borderRadius": "4px",
+      "boxShadow": "0 0 15px hsl(120 100% 50% / 0.4), inset 0 1px 0 hsl(120 100% 70%)",
+      "textShadow": "0 1px 2px hsl(120 100% 20%)",
+      "hover": {
+        "background": "linear-gradient(145deg, hsl(120 100% 60%), hsl(120 100% 50%))",
+        "boxShadow": "0 0 20px hsl(120 100% 50% / 0.6), inset 0 1px 0 hsl(120 100% 75%)",
+        "transform": "translateY(-1px)"
+      }
+    }
+  },
+  "buttonStyles": ["neon-glow", "metallic"],
+  "switches": {
+    "checked": {
+      "background": "linear-gradient(90deg, hsl(120 100% 50%), hsl(120 100% 40%))",
+      "boxShadow": "0 0 10px hsl(120 100% 50% / 0.5), inset 0 1px 0 hsl(120 100% 60%)"
+    },
+    "unchecked": {
+      "background": "linear-gradient(90deg, hsl(200 100% 15%), hsl(200 100% 10%))",
+      "boxShadow": "inset 0 2px 4px hsl(220 25% 5%)"
+    }
+  },
+  "effects": {
+    "neonGlow": true,
+    "metallicGradients": true,
+    "scanlines": true,
+    "crtEffect": false
+  },
+  "animations": {
+    "buttonHover": "pulse-glow 0.3s ease",
+    "cardEnter": "slide-glow 0.5s ease"
+  }
+}
