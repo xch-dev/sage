@@ -287,6 +287,9 @@ async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDe
 async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
     return await TAURI_INVOKE("get_peers", { req });
 },
+async getUserThemes(req: GetUserThemes) : Promise<GetUserThemesResponse> {
+    return await TAURI_INVOKE("get_user_themes", { req });
+},
 async addPeer(req: AddPeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("add_peer", { req });
 },
@@ -463,6 +466,8 @@ export type GetTransaction = { height: number }
 export type GetTransactionResponse = { transaction: TransactionRecord | null }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
+export type GetUserThemes = Record<string, never>
+export type GetUserThemesResponse = { themes: string[] }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean; emoji?: string | null }

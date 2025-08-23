@@ -1,4 +1,5 @@
-import { type Theme, loadTheme } from './theme';
+import { commands } from '../bindings';
+import { type Theme, loadBuiltInTheme, loadUserTheme } from './theme';
 
 let themesCache: Theme[] | null = null;
 let themesPromise: Promise<Theme[]> | null = null;
@@ -42,7 +43,7 @@ export async function loadThemes(): Promise<Theme[]> {
 
   themesPromise = discoverThemeFolders()
     .then((themeFolders) =>
-      Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
+      Promise.all(themeFolders.map((themeName) => loadBuiltInTheme(themeName))),
     )
     .then((themes) => {
       // Filter out null themes (themes that failed to load)
@@ -52,6 +53,11 @@ export async function loadThemes(): Promise<Theme[]> {
       themesCache = validThemes;
       return validThemes;
     })
+    .then(async () => {
+      const userThemes = await getUserThemes();
+      themesCache = [...(themesCache || []), ...userThemes];
+      return themesCache;
+    })
     .catch((error) => {
       console.error('Error loading themes:', error);
       return [];
@@ -60,9 +66,15 @@ export async function loadThemes(): Promise<Theme[]> {
   return themesPromise;
 }
 
-/**
- * Gets a theme by name from the loaded themes
- */
+async function getUserThemes(): Promise<Theme[]> {
+  const response = await commands.getUserThemes({});
+  const themePromises = response.themes.map(
+    async (theme) => await loadUserTheme(theme),
+  );
+  const themes = await Promise.all(themePromises);
+  return themes.filter((theme): theme is Theme => theme !== null);
+}
+
 export async function getThemeByName(name: string): Promise<Theme | undefined> {
   const themes = await loadThemes();
   return themes.find((theme) => theme.name === name);

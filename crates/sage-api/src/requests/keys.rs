@@ -157,3 +157,13 @@ pub struct GetSecretKey {
 pub struct GetSecretKeyResponse {
     pub secrets: Option<SecretKeyInfo>,
 }
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemes {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemesResponse {
+    pub themes: Vec<String>,
+}

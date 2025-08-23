@@ -72,6 +72,7 @@
   "cancel_offer": true,
   "cancel_offers": true,
   "get_peers": true,
+  "get_user_themes": true,
   "remove_peer": true,
   "add_peer": true,
   "set_discover_peers": true,

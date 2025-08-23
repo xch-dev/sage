@@ -3,20 +3,29 @@ import iconLight from '@/icon-light.png';
 import { getColorLightness, makeColorTransparent } from './color-utils';
 import { deepMerge } from './utils';
 
-/**
- * Loads a theme from JSON file. Theme authors only need to specify the properties they want to customize.
- * Missing properties will be ignored and CSS defaults will be used instead.
- */
-export async function loadTheme(themeName: string): Promise<Theme | null> {
-  return loadThemeWithTracking(themeName, new Set<string>());
+export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
+  try {
+    let theme = JSON.parse(themeJson) as Theme;
+    if (theme.inherits) {
+      const inheritedTheme = await loadBuiltInTheme(
+        theme.inherits,
+        new Set<string>(),
+      );
+      if (inheritedTheme) {
+        theme = deepMerge(inheritedTheme, theme);
+      }
+    }
+    theme.isUserTheme = true;
+    return theme;
+  } catch (error) {
+    console.error(`Error loading user theme:`, error);
+    return null;
+  }
 }
 
-/**
- * Internal function that tracks theme loading to prevent circular inheritance
- */
-async function loadThemeWithTracking(
+export async function loadBuiltInTheme(
   themeName: string,
-  loadedThemes: Set<string>,
+  loadedThemes: Set<string> = new Set<string>(),
 ): Promise<Theme | null> {
   try {
     // Check for circular inheritance
@@ -27,7 +36,6 @@ async function loadThemeWithTracking(
       return null;
     }
 
-    // Add current theme to tracking set
     loadedThemes.add(themeName);
 
     // Import theme as a module for hot reloading
@@ -45,7 +53,7 @@ async function loadThemeWithTracking(
     }
 
     if (theme.inherits) {
-      const inheritedTheme = await loadThemeWithTracking(
+      const inheritedTheme = await loadBuiltInTheme(
         theme.inherits,
         loadedThemes,
       );
@@ -76,6 +84,7 @@ async function loadThemeWithTracking(
 
     // only light and dark icons for now
     theme.icon_path = theme.most_like === 'dark' ? iconLight : iconDark;
+    theme.isUserTheme = false;
 
     return theme;
   } catch (error) {
@@ -724,6 +733,7 @@ export interface Theme {
   most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  isUserTheme?: boolean;
   backgroundOpacity?: {
     body?: number;
     card?: number;

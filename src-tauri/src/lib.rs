@@ -117,6 +117,7 @@ pub fn run() {
             commands::redownload_nft,
             commands::increase_derivation_index,
             commands::get_peers,
+            commands::get_user_themes,
             commands::add_peer,
             commands::remove_peer,
             commands::filter_unlocked_coins,
