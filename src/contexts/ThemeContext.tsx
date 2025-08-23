@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       const theme = await getThemeByName(themeName);
       if (theme) {
         setCurrentTheme(theme);
-        applyTheme(theme);
+        applyTheme(theme, document.documentElement);
         setSavedTheme(themeName);
 
         // Save as last used non-core theme if it's not light or dark
@@ -73,7 +73,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const theme = getTheme(themeToLoad, themes);
         if (theme) {
           setCurrentTheme(theme);
-          applyTheme(theme);
+          applyTheme(theme, document.documentElement);
         }
       } catch (err) {
         console.error('Error loading themes:', err);

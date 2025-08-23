@@ -93,21 +93,15 @@ export async function loadBuiltInTheme(
   }
 }
 
-/**
- * Applies a theme to the document. Only properties that are defined in the theme will be applied.
- * Missing properties will be ignored, allowing CSS defaults to be used.
- */
-export function applyTheme(theme: Theme) {
-  const root = document.documentElement;
-
+export function applyTheme(theme: Theme, root: HTMLElement) {
   // Remove any existing theme classes
-  const existingThemeClasses = Array.from(document.body.classList).filter(
+  const existingThemeClasses = Array.from(root.classList).filter(
     (cls) => cls.startsWith('theme-'),
   );
-  document.body.classList.remove(...existingThemeClasses);
+  root.classList.remove(...existingThemeClasses);
 
   // Add theme-specific class
-  document.body.classList.add(`theme-${theme.name}`);
+  root.classList.add(`theme-${theme.name}`);
 
   // Clear all previously set CSS variables to reset to defaults
   const cssVarsToClear = [
@@ -699,6 +693,130 @@ export function applyTheme(theme: Theme) {
     root.style.removeProperty('--background-image');
     document.body.classList.remove('has-background-image');
   }
+}
+
+/**
+ * Extracts theme properties into a styles object for component use
+ * This is a subset of applyTheme logic focused on component styling
+ */
+export function getThemeStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  // Apply background color
+  if (theme.colors?.card) {
+    styles.backgroundColor = theme.colors.card;
+  }
+
+  // Apply text color
+  if (theme.colors?.cardForeground) {
+    styles.color = theme.colors.cardForeground;
+  }
+
+  // Apply border
+  if (theme.colors?.border) {
+    styles.border = `1px solid ${theme.colors.border}`;
+  }
+
+  // Apply border radius
+  if (theme.corners?.lg) {
+    styles.borderRadius = theme.corners.lg;
+  }
+
+  // Apply box shadow
+  if (theme.shadows?.card) {
+    styles.boxShadow = theme.shadows.card;
+  }
+
+  // Apply font family
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  // Apply background image
+  if (theme.backgroundImage) {
+    styles.backgroundImage = `url(${theme.backgroundImage})`;
+    styles.backgroundSize = 'cover';
+    styles.backgroundPosition = 'center';
+  }
+
+  return styles;
+}
+
+/**
+ * Gets button styles for a specific variant from a theme
+ */
+export function getButtonStyles(
+  theme: Theme,
+  variant: 'default' | 'outline' | 'secondary' | 'destructive' | 'ghost' | 'link' = 'default',
+): Record<string, string> {
+  const styles: Record<string, string> = {};
+  const buttonConfig = theme.buttons?.[variant];
+
+  if (buttonConfig) {
+    if (buttonConfig.background) {
+      styles.backgroundColor = buttonConfig.background;
+    }
+    if (buttonConfig.color) {
+      styles.color = buttonConfig.color;
+    }
+    if (buttonConfig.border) {
+      styles.border = buttonConfig.border;
+    }
+    if (buttonConfig.borderRadius) {
+      styles.borderRadius = buttonConfig.borderRadius;
+    }
+    if (buttonConfig.boxShadow) {
+      styles.boxShadow = buttonConfig.boxShadow;
+    }
+  } else {
+    // Fallback to theme colors if no specific button config
+    if (theme.colors?.primary) {
+      styles.backgroundColor = theme.colors.primary;
+    }
+    if (theme.colors?.primaryForeground) {
+      styles.color = theme.colors.primaryForeground;
+    }
+    if (theme.colors?.border) {
+      styles.border = `1px solid ${theme.colors.border}`;
+    }
+    if (theme.corners?.md) {
+      styles.borderRadius = theme.corners.md;
+    }
+    if (theme.shadows?.button) {
+      styles.boxShadow = theme.shadows.button;
+    }
+  }
+
+  return styles;
+}
+
+/**
+ * Gets heading styles from a theme
+ */
+export function getHeadingStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.fonts?.heading) {
+    styles.fontFamily = theme.fonts.heading;
+  }
+
+  return styles;
+}
+
+/**
+ * Gets muted text styles from a theme
+ */
+export function getMutedTextStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.colors?.mutedForeground) {
+    styles.color = theme.colors.mutedForeground;
+  }
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  return styles;
 }
 
 /**

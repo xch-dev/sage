@@ -29,9 +29,6 @@ async function discoverThemeFolders(): Promise<string[]> {
   }
 }
 
-/**
- * Loads all themes from the public/themes folder
- */
 export async function loadThemes(): Promise<Theme[]> {
   if (themesCache) {
     return themesCache;

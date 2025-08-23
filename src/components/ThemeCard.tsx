@@ -1,5 +1,11 @@
+import {
+  type Theme,
+  getButtonStyles,
+  getHeadingStyles,
+  getMutedTextStyles,
+  getThemeStyles,
+} from '@/lib/theme';
 import { Check } from 'lucide-react';
-import { type Theme } from '@/lib/theme';
 
 interface ThemeCardProps {
   theme: Theme;
@@ -17,9 +23,9 @@ function createThemeStyles(
   isSelected: boolean,
   variant: 'default' | 'compact' | 'simple' = 'default',
 ) {
-  const styles: Record<string, string | undefined> = {};
+  const styles = getThemeStyles(theme);
 
-  // Background color - use theme's own colors directly, supporting any CSS color format
+  // Handle background image with transparency
   if (theme.backgroundImage) {
     const cardColor = theme.colors?.card || 'hsl(0 0% 100%)';
     const opacity = theme.backgroundOpacity?.card ?? 0.75;
@@ -32,59 +38,26 @@ function createThemeStyles(
       // For other formats, use CSS color-mix as fallback
       styles.backgroundColor = `color-mix(in srgb, ${cardColor} ${opacity * 100}%, transparent)`;
     }
-  } else if (theme.colors?.card) {
-    styles.backgroundColor = theme.colors.card;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.backgroundColor =
-      variant === 'default' ? 'hsl(0 0% 100%)' : undefined;
   }
 
-  // Text color - use theme's own colors directly
-  if (theme.colors?.cardForeground) {
-    styles.color = theme.colors.cardForeground;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.color = variant === 'default' ? 'hsl(0 0% 0%)' : undefined;
+  // Add fallbacks for missing properties
+  if (!styles.backgroundColor && variant === 'default') {
+    styles.backgroundColor = 'hsl(0 0% 100%)';
   }
-
-  // Border - use theme's own colors directly
-  if (theme.colors?.border) {
-    styles.border = `1px solid ${theme.colors.border}`;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.border =
-      variant === 'default' ? '1px solid hsl(0 0% 90%)' : undefined;
+  if (!styles.color && variant === 'default') {
+    styles.color = 'hsl(0 0% 0%)';
   }
-
-  // Border radius - use theme's own values or fixed defaults
-  if (theme.corners?.lg) {
-    styles.borderRadius = theme.corners.lg;
-  } else {
-    styles.borderRadius = variant === 'default' ? '0.5rem' : '0.5rem';
+  if (!styles.border && variant === 'default') {
+    styles.border = '1px solid hsl(0 0% 90%)';
   }
-
-  // Box shadow - use theme's own values or fixed defaults
-  if (theme.shadows?.card) {
-    styles.boxShadow = theme.shadows.card;
-  } else {
-    styles.boxShadow =
-      variant === 'default' ? '0 1px 3px 0 rgb(0 0 0 / 0.1)' : undefined;
+  if (!styles.borderRadius) {
+    styles.borderRadius = '0.5rem';
   }
-
-  // Font family - use theme's own values or fixed defaults
-  if (theme.fonts?.body) {
-    styles.fontFamily = theme.fonts.body;
-  } else {
-    styles.fontFamily =
-      variant === 'default' ? 'system-ui, sans-serif' : 'inherit';
+  if (!styles.boxShadow && variant === 'default') {
+    styles.boxShadow = '0 1px 3px 0 rgb(0 0 0 / 0.1)';
   }
-
-  // Background image
-  if (theme.backgroundImage) {
-    styles.backgroundImage = `url(${theme.backgroundImage})`;
-    styles.backgroundSize = 'cover';
-    styles.backgroundPosition = 'center';
+  if (!styles.fontFamily && variant === 'default') {
+    styles.fontFamily = 'system-ui, sans-serif';
   }
 
   // Selection outline - use current theme's colors for selection indicator
@@ -113,45 +86,38 @@ export function ThemeCard({
   const styles = createThemeStyles(theme, currentTheme, isSelected, variant);
 
   const renderDefaultContent = () => {
-    const buttonStyles: Record<string, string | undefined> = {};
-    if (theme.colors?.primary) {
-      buttonStyles.backgroundColor = theme.colors.primary;
-    } else {
+    const buttonStyles = getButtonStyles(theme, 'default');
+    const headingStyles = getHeadingStyles(theme);
+    const mutedTextStyles = getMutedTextStyles(theme);
+
+    // Add fallbacks for button styles
+    if (!buttonStyles.backgroundColor) {
       buttonStyles.backgroundColor = 'hsl(220 13% 91%)'; // Default gray
     }
-    if (theme.colors?.border) {
-      buttonStyles.borderColor = theme.colors.border;
-      buttonStyles.border = `1px solid ${theme.colors.border}`;
-    } else {
-      buttonStyles.borderColor = 'hsl(0 0% 90%)';
-      buttonStyles.border = '1px solid hsl(0 0% 90%)';
-    }
-    if (theme.colors?.primaryForeground) {
-      buttonStyles.color = theme.colors.primaryForeground;
-    } else {
+    if (!buttonStyles.color) {
       buttonStyles.color = 'hsl(0 0% 0%)'; // Default black
     }
-    if (theme.fonts?.heading) {
-      buttonStyles.fontFamily = theme.fonts.heading;
-    } else {
-      buttonStyles.fontFamily = 'system-ui, sans-serif';
+    if (!buttonStyles.border) {
+      buttonStyles.border = '1px solid hsl(0 0% 90%)';
     }
-    if (theme.corners?.md) {
-      buttonStyles.borderRadius = theme.corners.md;
-    } else {
+    if (!buttonStyles.borderRadius) {
       buttonStyles.borderRadius = '0.375rem';
     }
-    if (theme.shadows?.button) {
-      buttonStyles.boxShadow = theme.shadows.button;
-    } else {
+    if (!buttonStyles.boxShadow) {
       buttonStyles.boxShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
     }
 
-    const headingStyles: Record<string, string | undefined> = {};
-    if (theme.fonts?.heading) {
-      headingStyles.fontFamily = theme.fonts.heading;
-    } else {
+    // Add fallbacks for heading styles
+    if (!headingStyles.fontFamily) {
       headingStyles.fontFamily = 'system-ui, sans-serif';
+    }
+
+    // Add fallbacks for muted text styles
+    if (!mutedTextStyles.color) {
+      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
+    }
+    if (!mutedTextStyles.fontFamily) {
+      mutedTextStyles.fontFamily = 'inherit';
     }
 
     const checkStyles: Record<string, string | undefined> = {};
@@ -159,18 +125,6 @@ export function ThemeCard({
       checkStyles.color = currentTheme.colors.primary;
     } else {
       checkStyles.color = 'hsl(220 13% 91%)'; // Default gray
-    }
-
-    const mutedTextStyles: Record<string, string | undefined> = {};
-    if (theme.colors?.mutedForeground) {
-      mutedTextStyles.color = theme.colors.mutedForeground;
-    } else {
-      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
-    }
-    if (theme.fonts?.body) {
-      mutedTextStyles.fontFamily = theme.fonts.body;
-    } else {
-      mutedTextStyles.fontFamily = 'inherit';
     }
 
     return (
@@ -226,10 +180,10 @@ export function ThemeCard({
   };
 
   const renderSimpleContent = () => {
-    const headingStyles: Record<string, string | undefined> = {};
-    if (theme.fonts?.heading) {
-      headingStyles.fontFamily = theme.fonts.heading;
-    } else {
+    const headingStyles = getHeadingStyles(theme);
+
+    // Add fallbacks for heading styles
+    if (!headingStyles.fontFamily) {
       headingStyles.fontFamily = 'inherit';
     }
 
