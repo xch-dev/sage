@@ -1,11 +1,13 @@
 import {
   type Theme,
+  applyTheme,
   getButtonStyles,
   getHeadingStyles,
   getMutedTextStyles,
-  getThemeStyles,
+  getTextStyles,
 } from '@/lib/theme';
 import { Check } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 interface ThemeCardProps {
   theme: Theme;
@@ -16,65 +18,6 @@ interface ThemeCardProps {
   className?: string;
 }
 
-// Helper function to create theme styles that properly handle missing properties
-function createThemeStyles(
-  theme: Theme,
-  currentTheme: Theme,
-  isSelected: boolean,
-  variant: 'default' | 'compact' | 'simple' = 'default',
-) {
-  const styles = getThemeStyles(theme);
-
-  // Handle background image with transparency
-  if (theme.backgroundImage) {
-    const cardColor = theme.colors?.card || 'hsl(0 0% 100%)';
-    const opacity = theme.backgroundOpacity?.card ?? 0.75;
-    // Handle different color formats for transparency
-    if (cardColor.startsWith('hsl')) {
-      styles.backgroundColor = `hsla(${cardColor.slice(4, -1)}, ${opacity})`;
-    } else if (cardColor.startsWith('rgb')) {
-      styles.backgroundColor = `rgba(${cardColor.slice(4, -1)}, ${opacity})`;
-    } else {
-      // For other formats, use CSS color-mix as fallback
-      styles.backgroundColor = `color-mix(in srgb, ${cardColor} ${opacity * 100}%, transparent)`;
-    }
-  }
-
-  // Add fallbacks for missing properties
-  if (!styles.backgroundColor && variant === 'default') {
-    styles.backgroundColor = 'hsl(0 0% 100%)';
-  }
-  if (!styles.color && variant === 'default') {
-    styles.color = 'hsl(0 0% 0%)';
-  }
-  if (!styles.border && variant === 'default') {
-    styles.border = '1px solid hsl(0 0% 90%)';
-  }
-  if (!styles.borderRadius) {
-    styles.borderRadius = '0.5rem';
-  }
-  if (!styles.boxShadow && variant === 'default') {
-    styles.boxShadow = '0 1px 3px 0 rgb(0 0 0 / 0.1)';
-  }
-  if (!styles.fontFamily && variant === 'default') {
-    styles.fontFamily = 'system-ui, sans-serif';
-  }
-
-  // Selection outline - use current theme's colors for selection indicator
-  if (isSelected) {
-    if (currentTheme.colors?.primary) {
-      styles.outline = `2px solid ${currentTheme.colors.primary}`;
-    } else {
-      // Fallback that doesn't depend on ambient theme
-      styles.outline = '2px solid hsl(220 13% 91%)';
-    }
-  } else {
-    styles.outline = 'none';
-  }
-
-  return styles;
-}
-
 export function ThemeCard({
   theme,
   currentTheme,
@@ -83,12 +26,32 @@ export function ThemeCard({
   variant = 'default',
   className = '',
 }: ThemeCardProps) {
-  const styles = createThemeStyles(theme, currentTheme, isSelected, variant);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (cardRef.current) {
+      // Apply the theme to this specific element as a preview
+      applyTheme(theme, cardRef.current, true);
+
+      // Explicitly set the background color to ensure isolation from ambient theme
+      const cardColor =
+        theme.colors?.card || theme.colors?.background || 'hsl(0 0% 100%)';
+      cardRef.current.style.backgroundColor = cardColor;
+    }
+  }, [theme]);
+
+  // Only apply selection outline as inline style
+  const selectionStyle = isSelected
+    ? {
+        outline: `2px solid ${currentTheme.colors?.primary || 'hsl(220 13% 91%)'}`,
+      }
+    : {};
 
   const renderDefaultContent = () => {
     const buttonStyles = getButtonStyles(theme, 'default');
     const headingStyles = getHeadingStyles(theme);
     const mutedTextStyles = getMutedTextStyles(theme);
+    const textStyles = getTextStyles(theme);
 
     // Add fallbacks for button styles
     if (!buttonStyles.backgroundColor) {
@@ -120,6 +83,14 @@ export function ThemeCard({
       mutedTextStyles.fontFamily = 'inherit';
     }
 
+    // Add fallbacks for text styles
+    if (!textStyles.color) {
+      textStyles.color = 'hsl(0 0% 0%)'; // Default black
+    }
+    if (!textStyles.fontFamily) {
+      textStyles.fontFamily = 'inherit';
+    }
+
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
       checkStyles.color = currentTheme.colors.primary;
@@ -139,7 +110,9 @@ export function ThemeCard({
         {/* Theme preview */}
         <div className='space-y-2'>
           <div className='h-8 flex items-center px-2' style={buttonStyles}>
-            <span className='text-xs font-medium'>Aa</span>
+            <span className='text-xs font-medium' style={textStyles}>
+              Aa
+            </span>
           </div>
           <div className='flex gap-1'>
             <div
@@ -232,10 +205,11 @@ export function ThemeCard({
 
   return (
     <div
-      className={`cursor-pointer transition-all hover:opacity-90 ${
+      ref={cardRef}
+      className={`cursor-pointer transition-all hover:opacity-90 text-card-foreground border border-border rounded-lg shadow-card theme-card-isolated ${
         isSelected ? 'ring-2' : 'hover:ring-1'
       } ${className}`}
-      style={styles}
+      style={selectionStyle}
       onClick={() => onSelect(theme.name)}
     >
       {variant === 'simple' ? renderSimpleContent() : renderDefaultContent()}

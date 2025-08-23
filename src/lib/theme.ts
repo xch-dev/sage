@@ -93,15 +93,18 @@ export async function loadBuiltInTheme(
   }
 }
 
-export function applyTheme(theme: Theme, root: HTMLElement) {
-  // Remove any existing theme classes
-  const existingThemeClasses = Array.from(root.classList).filter(
-    (cls) => cls.startsWith('theme-'),
-  );
-  root.classList.remove(...existingThemeClasses);
+export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
+  // Only manipulate classes if not a preview
+  if (!isPreview) {
+    // Remove any existing theme classes
+    const existingThemeClasses = Array.from(root.classList).filter(
+      (cls) => cls.startsWith('theme-'),
+    );
+    root.classList.remove(...existingThemeClasses);
 
-  // Add theme-specific class
-  root.classList.add(`theme-${theme.name}`);
+    // Add theme-specific class
+    root.classList.add(`theme-${theme.name}`);
+  }
 
   // Clear all previously set CSS variables to reset to defaults
   const cssVarsToClear = [
@@ -454,8 +457,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     'important',
   );
 
-  // Set data attribute on body for CSS selectors
-  document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  // Set data attribute for CSS selectors
+  if (isPreview) {
+    root.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  } else {
+    document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  }
 
   // Apply table-specific variables if defined
   if (theme.tables) {
@@ -667,7 +674,18 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       `url(${theme.backgroundImage})`,
       'important',
     );
-    document.body.classList.add('has-background-image');
+
+    // For document-wide themes, add class to body
+    // For preview themes, add class to the element and apply background
+    if (isPreview) {
+      root.classList.add('has-background-image');
+      // Apply background image directly to preview element
+      root.style.backgroundImage = `url(${theme.backgroundImage})`;
+      root.style.backgroundSize = 'cover';
+      root.style.backgroundPosition = 'center';
+    } else {
+      document.body.classList.add('has-background-image');
+    }
 
     // Set background opacity variables
     const bodyOpacity = theme.backgroundOpacity?.body ?? 0.1;
@@ -691,9 +709,18 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     );
   } else {
     root.style.removeProperty('--background-image');
-    document.body.classList.remove('has-background-image');
+    if (isPreview) {
+      root.classList.remove('has-background-image');
+      root.style.removeProperty('background-image');
+      root.style.removeProperty('background-size');
+      root.style.removeProperty('background-position');
+    } else {
+      document.body.classList.remove('has-background-image');
+    }
   }
 }
+
+
 
 /**
  * Extracts theme properties into a styles object for component use
@@ -702,14 +729,18 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
 export function getThemeStyles(theme: Theme): Record<string, string> {
   const styles: Record<string, string> = {};
 
-  // Apply background color
+  // Apply background color - use card color, or background color as fallback
   if (theme.colors?.card) {
     styles.backgroundColor = theme.colors.card;
+  } else if (theme.colors?.background) {
+    styles.backgroundColor = theme.colors.background;
   }
 
-  // Apply text color
+  // Apply text color - use card foreground, or foreground as fallback
   if (theme.colors?.cardForeground) {
     styles.color = theme.colors.cardForeground;
+  } else if (theme.colors?.foreground) {
+    styles.color = theme.colors.foreground;
   }
 
   // Apply border
@@ -737,6 +768,7 @@ export function getThemeStyles(theme: Theme): Record<string, string> {
     styles.backgroundImage = `url(${theme.backgroundImage})`;
     styles.backgroundSize = 'cover';
     styles.backgroundPosition = 'center';
+    styles.backgroundRepeat = 'no-repeat';
   }
 
   return styles;
@@ -803,9 +835,6 @@ export function getHeadingStyles(theme: Theme): Record<string, string> {
   return styles;
 }
 
-/**
- * Gets muted text styles from a theme
- */
 export function getMutedTextStyles(theme: Theme): Record<string, string> {
   const styles: Record<string, string> = {};
 
@@ -819,9 +848,19 @@ export function getMutedTextStyles(theme: Theme): Record<string, string> {
   return styles;
 }
 
-/**
- * Determines the appropriate background color for outline buttons based on theme
- */
+export function getTextStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.colors?.secondary) {
+    styles.color = theme.colors.secondary;
+  }
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  return styles;
+}
+
 function getOutlineButtonBackground(theme: Theme): string {
   // If theme has no colors defined, use CSS defaults (light theme)
   if (!theme.colors?.background) {
