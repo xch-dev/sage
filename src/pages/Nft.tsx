@@ -16,11 +16,13 @@ import { FileImage, FileText, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Nft() {
   const navigate = useNavigate();
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
+  const { reloadThemes } = useTheme();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
   const [themeExists, setThemeExists] = useState<boolean>(false);
@@ -180,7 +182,7 @@ export default function Nft() {
                     controls
                   />
                 )}
-                
+
                 {nft?.special_use_type === 'theme' && (
                   <Button
                     variant='outline'
@@ -190,13 +192,19 @@ export default function Nft() {
                       if (nft?.launcher_id) {
                         setIsSaving(true);
                         try {
-                          await commands.saveUserTheme({ nft_id: nft.launcher_id });
-                          await checkThemeExists(); // Refresh theme existence check
+                          await commands.saveUserTheme({
+                            nft_id: nft.launcher_id,
+                          });
+                          await checkThemeExists();
+                          await reloadThemes();
                           console.log('Theme saved successfully');
                         } catch (error) {
                           addError({
                             kind: 'internal',
-                            reason: error instanceof Error ? error.message : 'Unknown error occurred'
+                            reason:
+                              error instanceof Error
+                                ? error.message
+                                : 'Unknown error occurred',
                           });
                         } finally {
                           setIsSaving(false);
@@ -204,7 +212,13 @@ export default function Nft() {
                       }
                     }}
                   >
-                    <Trans>{themeExists ? 'Theme Saved' : isSaving ? 'Saving...' : 'Save Theme'}</Trans>
+                    <Trans>
+                      {themeExists
+                        ? 'Theme Saved'
+                        : isSaving
+                          ? 'Saving...'
+                          : 'Save Theme'}
+                    </Trans>
                   </Button>
                 )}
               </div>

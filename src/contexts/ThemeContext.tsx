@@ -10,6 +10,7 @@ interface ThemeContextType {
   isLoading: boolean;
   error: string | null;
   lastUsedNonCoreTheme: string | null;
+  reloadThemes: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -44,6 +45,31 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Error setting theme:', err);
       setError('Failed to set theme');
+    }
+  };
+
+  const reloadThemes = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const themes = await loadThemes();
+      setAvailableThemes(themes);
+      if (themes.length === 0) {
+        setCurrentTheme(null);
+        return;
+      }
+      const themeToLoad = savedTheme || 'light';
+      const theme = getTheme(themeToLoad, themes);
+      if (theme) {
+        setCurrentTheme(theme);
+        applyTheme(theme, document.documentElement);
+      }
+    } catch (err) {
+      console.error('Error reloading themes:', err);
+      setError('Failed to reload themes');
+      setCurrentTheme(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -97,6 +123,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         error,
         lastUsedNonCoreTheme,
+        reloadThemes,
       }}
     >
       {children}
