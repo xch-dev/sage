@@ -339,6 +339,12 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
               aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
           )}
+
+          {nft.special_use_type === 'theme' && (
+            <div className='absolute bottom-0 left-0 right-0 bg-background/80 text-secondary text-xs font-medium py-1 px-2 text-center border-t border-border'>
+              <Trans>Theme</Trans>
+            </div>
+          )}
         </div>
         <div
           className='border border-border bg-card text-card-foreground shadow text-md flex items-center justify-between rounded-b-lg p-2 pl-3'

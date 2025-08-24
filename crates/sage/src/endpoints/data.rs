@@ -24,9 +24,9 @@ use sage_api::{
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
     GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, OptionSortMode as ApiOptionSortMode,
-    PendingTransactionRecord, PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse,
-    TokenRecord, TransactionCoinRecord, TransactionRecord,
+    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
+    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
+    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
@@ -786,17 +786,30 @@ impl Sage {
         let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
+        let collection_id =
+            Address::new(row.nft_info.collection_hash, "col".to_string()).encode()?;
+        let minter_did = row
+            .nft_info
+            .minter_hash
+            .map(|did| Address::new(did, "did:chia:".to_string()).encode())
+            .transpose()?;
+
+        let special_use_type = if collection_id
+            == "col1tr58ryd4dwyvduxqcrkldlmr3g60cgj45skmt4ghttk268m7jffq47l2hp"
+            && minter_did.as_deref()
+                // this will only ever be true on testnet11. need mainnet did for this too
+                == Some("did:chia:1c9mxmqnyaymseunws8r0dfxwpfjxetha53lk72wm7syxkln6perqapkpzw")
+        {
+            Some(NftSpecialUseType::Theme)
+        } else {
+            None
+        };
+
         Ok(NftRecord {
             launcher_id: Address::new(row.asset.hash, "nft".to_string()).encode()?,
-            collection_id: Some(
-                Address::new(row.nft_info.collection_hash, "col".to_string()).encode()?,
-            ),
+            collection_id: Some(collection_id),
             collection_name: row.nft_info.collection_name,
-            minter_did: row
-                .nft_info
-                .minter_hash
-                .map(|did| Address::new(did, "did:chia:".to_string()).encode())
-                .transpose()?,
+            minter_did,
             owner_did: row
                 .nft_info
                 .owner_hash
@@ -833,6 +846,7 @@ impl Sage {
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
             icon_url: row.asset.icon_url,
+            special_use_type,
         })
     }
 
