@@ -341,7 +341,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           )}
 
           {nft.special_use_type === 'theme' && (
-            <div className='absolute bottom-0 left-0 right-0 bg-background/80 text-secondary text-xs font-medium py-1 px-2 text-center border-t border-border'>
+            <div className='absolute bottom-0 left-0 right-0 bg-background/80 text-primary text-xs font-medium py-1 px-2 text-center border-t border-border'>
               <Trans>Theme</Trans>
             </div>
           )}

@@ -167,3 +167,25 @@ pub struct GetUserThemes {}
 pub struct GetUserThemesResponse {
     pub themes: Vec<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserTheme {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemeResponse {
+    pub theme: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SaveUserTheme {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SaveUserThemeResponse {}

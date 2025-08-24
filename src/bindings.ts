@@ -287,8 +287,14 @@ async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDe
 async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
     return await TAURI_INVOKE("get_peers", { req });
 },
+async getUserTheme(req: GetUserTheme) : Promise<GetUserThemeResponse> {
+    return await TAURI_INVOKE("get_user_theme", { req });
+},
 async getUserThemes(req: GetUserThemes) : Promise<GetUserThemesResponse> {
     return await TAURI_INVOKE("get_user_themes", { req });
+},
+async saveUserTheme(req: SaveUserTheme) : Promise<SaveUserThemeResponse> {
+    return await TAURI_INVOKE("save_user_theme", { req });
 },
 async addPeer(req: AddPeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("add_peer", { req });
@@ -466,6 +472,8 @@ export type GetTransaction = { height: number }
 export type GetTransactionResponse = { transaction: TransactionRecord | null }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
+export type GetUserTheme = { nft_id: string }
+export type GetUserThemeResponse = { theme: string | null }
 export type GetUserThemes = Record<string, never>
 export type GetUserThemesResponse = { themes: string[] }
 export type GetVersion = Record<string, never>
@@ -525,6 +533,8 @@ export type Resync = { fingerprint: number; delete_coins?: boolean; delete_asset
 export type ResyncCat = { asset_id: string }
 export type ResyncCatResponse = Record<string, never>
 export type ResyncResponse = Record<string, never>
+export type SaveUserTheme = { nft_id: string }
+export type SaveUserThemeResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }
