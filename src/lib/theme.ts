@@ -97,8 +97,8 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
   // Only manipulate classes if not a preview
   if (!isPreview) {
     // Remove any existing theme classes
-    const existingThemeClasses = Array.from(root.classList).filter(
-      (cls) => cls.startsWith('theme-'),
+    const existingThemeClasses = Array.from(root.classList).filter((cls) =>
+      cls.startsWith('theme-'),
     );
     root.classList.remove(...existingThemeClasses);
 
@@ -720,8 +720,6 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
   }
 }
 
-
-
 /**
  * Extracts theme properties into a styles object for component use
  * This is a subset of applyTheme logic focused on component styling
@@ -779,7 +777,13 @@ export function getThemeStyles(theme: Theme): Record<string, string> {
  */
 export function getButtonStyles(
   theme: Theme,
-  variant: 'default' | 'outline' | 'secondary' | 'destructive' | 'ghost' | 'link' = 'default',
+  variant:
+    | 'default'
+    | 'outline'
+    | 'secondary'
+    | 'destructive'
+    | 'ghost'
+    | 'link' = 'default',
 ): Record<string, string> {
   const styles: Record<string, string> = {};
   const buttonConfig = theme.buttons?.[variant];
