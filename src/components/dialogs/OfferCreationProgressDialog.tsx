@@ -17,7 +17,6 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LoaderCircleIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -26,8 +25,9 @@ interface OfferCreationProgressDialogProps {
   onOpenChange: (open: boolean) => void;
   offerState: OfferState;
   splitNftOffers: boolean;
-  enabledMarketplaces: Record<string, boolean>;
-  clearOfferState: () => void;
+  enabledMarketplaces?: Record<string, boolean>;
+  clearOfferState: (offers: string[]) => void;
+  isSwap?: boolean;
 }
 
 export function OfferCreationProgressDialog({
@@ -37,9 +37,9 @@ export function OfferCreationProgressDialog({
   splitNftOffers,
   enabledMarketplaces,
   clearOfferState,
+  isSwap,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
-  const navigate = useNavigate();
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
@@ -81,7 +81,7 @@ export function OfferCreationProgressDialog({
 
       const uploadToMarketplaces = async () => {
         const enabledMarketplaceConfigs = marketplaces.filter(
-          (marketplace) => enabledMarketplaces[marketplace.id],
+          (marketplace) => enabledMarketplaces?.[marketplace.id],
         );
 
         if (enabledMarketplaceConfigs.length === 0) {
@@ -199,7 +199,7 @@ export function OfferCreationProgressDialog({
   const handleCancel = async () => {
     setIsCanceling(true);
     if (isProcessing) {
-      await cancelProcessing();
+      cancelProcessing();
     }
     clearProcessedOffers();
     setIsUploading(false);
@@ -208,8 +208,7 @@ export function OfferCreationProgressDialog({
 
   const handleDone = () => {
     clearProcessedOffers();
-    clearOfferState();
-    navigate('/offers', { replace: true });
+    clearOfferState(createdOffers);
   };
 
   const getProgressMessage = () => {
@@ -222,7 +221,7 @@ export function OfferCreationProgressDialog({
         );
       } else if (currentStep === 'uploading') {
         const enabledMarketplaceConfigs = marketplaces.filter(
-          (marketplace) => enabledMarketplaces[marketplace.id],
+          (marketplace) => enabledMarketplaces?.[marketplace.id],
         );
         const currentMarketplace =
           enabledMarketplaceConfigs[currentMarketplaceIndex];
@@ -275,7 +274,7 @@ export function OfferCreationProgressDialog({
                     {splitNftOffers ? 'your offers are' : 'your offer is'} being
                     {currentStep === 'creating' ? ' created' : ' uploaded'}
                     {currentStep === 'creating' &&
-                    Object.values(enabledMarketplaces).some(Boolean)
+                    Object.values(enabledMarketplaces ?? {}).some(Boolean)
                       ? ' and uploaded'
                       : ''}
                     ...
@@ -289,16 +288,21 @@ export function OfferCreationProgressDialog({
               <Trans>
                 {createdOffers.length} offers have been created and imported
                 successfully
-                {Object.values(enabledMarketplaces).some(Boolean)
+                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
                   ? ' and uploaded to the selected marketplaces'
                   : ''}
                 . You will now be redirected to the offers page where you can
                 view the details of each offer.
               </Trans>
+            ) : isSwap ? (
+              <Trans>
+                The offer to fulfill the swap has been created successfully. It
+                will now be executed on Dexie and imported on the offers page.
+              </Trans>
             ) : (
               <Trans>
                 Your offer has been created and imported successfully
-                {Object.values(enabledMarketplaces).some(Boolean)
+                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
                   ? ' and uploaded to the selected marketplaces'
                   : ''}
                 . You will now be redirected to the offers page where you can
@@ -313,7 +317,7 @@ export function OfferCreationProgressDialog({
               <Trans>Cancel</Trans>
             </Button>
           ) : (
-            <Button onClick={handleDone}>
+            <Button onClick={() => handleDone()}>
               <Trans>Done</Trans>
             </Button>
           )}

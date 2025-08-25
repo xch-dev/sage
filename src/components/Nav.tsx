@@ -13,11 +13,12 @@ import {
   BookUser,
   Cog,
   FilePenLine,
+  Handshake,
+  HistoryIcon,
   Images,
   LogOut,
   MonitorCheck,
   MonitorCog,
-  ShoppingCart,
   SquareUserRound,
   WalletIcon,
 } from 'lucide-react';
@@ -82,7 +83,15 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Offers</Trans>}
       >
-        <ShoppingCart className={className} />
+        <Handshake className={className} />
+      </NavLink>
+
+      <NavLink
+        url={'/swap'}
+        isCollapsed={isCollapsed}
+        message={<Trans>Swap</Trans>}
+      >
+        <ArrowLeftRight className={className} />
       </NavLink>
 
       <NavLink
@@ -98,7 +107,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
       >
-        <ArrowLeftRight className={className} />
+        <HistoryIcon className={className} />
       </NavLink>
     </nav>
   );

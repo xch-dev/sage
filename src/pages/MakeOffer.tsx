@@ -314,7 +314,10 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           enabledMarketplaces={enabledMarketplaces}
-          clearOfferState={() => setState(null)}
+          clearOfferState={() => {
+            setState(null);
+            navigate('/offers', { replace: true });
+          }}
         />
       </Container>
     </>

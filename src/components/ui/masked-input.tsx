@@ -66,7 +66,7 @@ interface TokenInputProps extends MaskedInputProps {
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
-  ({ precision = 24, ticker = null, ...props }, ref) => {
+  ({ precision = 12, ticker = null, ...props }, ref) => {
     const walletState = useWalletState();
 
     return (
