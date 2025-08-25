@@ -219,7 +219,7 @@ export function AssetSelector({
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[100px] h-12'
+                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[150px] h-12'
                   placeholder={t`Amount`}
                   value={amount}
                   onValueChange={(values) =>

@@ -29,8 +29,8 @@ interface MakeOfferConfirmationDialogProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   fee: string;
-  enabledMarketplaces: Record<string, boolean>;
-  setEnabledMarketplaces: (marketplaces: Record<string, boolean>) => void;
+  enabledMarketplaces?: Record<string, boolean>;
+  setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
 }
 interface TokenWithName extends TokenAmount {
   displayName?: string;
@@ -537,49 +537,51 @@ export function MakeOfferConfirmationDialog({
             </div>
           )}
 
-          <div className='flex flex-col gap-4 pt-2'>
-            {marketplaces.map((marketplace) => {
-              const isSupported = marketplace.isSupported(
-                offerState,
-                isSplitting,
-              );
-              if (!isSupported) return null;
+          {enabledMarketplaces && (
+            <div className='flex flex-col gap-4 pt-2'>
+              {marketplaces.map((marketplace) => {
+                const isSupported = marketplace.isSupported(
+                  offerState,
+                  isSplitting,
+                );
+                if (!isSupported) return null;
 
-              return (
-                <div
-                  key={marketplace.id}
-                  className='flex items-center space-x-2'
-                >
-                  <Switch
-                    id={`auto-upload-${marketplace.id}`}
-                    checked={enabledMarketplaces[marketplace.id] || false}
-                    onCheckedChange={(checked) =>
-                      setEnabledMarketplaces({
-                        ...enabledMarketplaces,
-                        [marketplace.id]: checked,
-                      })
-                    }
-                  />
-                  <Label
-                    htmlFor={`auto-upload-${marketplace.id}`}
-                    className='flex flex-col'
+                return (
+                  <div
+                    key={marketplace.id}
+                    className='flex items-center space-x-2'
                   >
-                    <span>
-                      <Trans>Upload to {marketplace.name}</Trans>
-                    </span>
-                    {enabledMarketplaces[marketplace.id] && (
-                      <span className='text-xs text-muted-foreground'>
-                        <Trans>
-                          This will make your offer(s) immediately public and
-                          takeable on {marketplace.name}.
-                        </Trans>
+                    <Switch
+                      id={`auto-upload-${marketplace.id}`}
+                      checked={enabledMarketplaces[marketplace.id] || false}
+                      onCheckedChange={(checked) =>
+                        setEnabledMarketplaces?.({
+                          ...enabledMarketplaces,
+                          [marketplace.id]: checked,
+                        })
+                      }
+                    />
+                    <Label
+                      htmlFor={`auto-upload-${marketplace.id}`}
+                      className='flex flex-col'
+                    >
+                      <span>
+                        <Trans>Upload to {marketplace.name}</Trans>
                       </span>
-                    )}
-                  </Label>
-                </div>
-              );
-            })}
-          </div>
+                      {enabledMarketplaces[marketplace.id] && (
+                        <span className='text-xs text-muted-foreground'>
+                          <Trans>
+                            This will make your offer(s) immediately public and
+                            takeable on {marketplace.name}.
+                          </Trans>
+                        </span>
+                      )}
+                    </Label>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
