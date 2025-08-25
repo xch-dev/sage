@@ -120,6 +120,7 @@ pub fn run() {
             commands::get_user_theme,
             commands::get_user_themes,
             commands::save_user_theme,
+            commands::delete_user_theme,
             commands::add_peer,
             commands::remove_peer,
             commands::filter_unlocked_coins,

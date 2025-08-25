@@ -1,15 +1,37 @@
 use crate::{Result, Sage};
 use sage_api::{
     GetNftData, GetUserTheme, GetUserThemeResponse, GetUserThemes, GetUserThemesResponse,
-    SaveUserTheme, SaveUserThemeResponse,
+    SaveUserTheme, SaveUserThemeResponse, DeleteUserTheme, DeleteUserThemeResponse,
 };
 use serde_json::Value;
 use tokio::fs;
 
 impl Sage {
-    pub async fn get_user_theme(&self, req: GetUserTheme) -> Result<GetUserThemeResponse> {
+    pub async fn delete_user_theme(&self, req: DeleteUserTheme) -> Result<DeleteUserThemeResponse> {
+        if req.nft_id.is_empty() {
+            return Ok(DeleteUserThemeResponse {});
+        }
+
         let themes_dir = self.path.join("themes");
-        let theme_json_path = themes_dir.join(&req.nft_id).join("theme.json");
+        let theme_dir = themes_dir.join(&req.nft_id);
+
+        if !theme_dir.exists() {
+            return Ok(DeleteUserThemeResponse {});
+        }
+
+        fs::remove_dir_all(&theme_dir).await?;
+
+        Ok(DeleteUserThemeResponse {})
+    }
+
+    pub async fn get_user_theme(&self, req: GetUserTheme) -> Result<GetUserThemeResponse> {
+        if req.nft_id.is_empty() {
+            return Ok(GetUserThemeResponse { theme: None });
+        }
+
+        let themes_dir = self.path.join("themes");
+        let theme_dir = themes_dir.join(&req.nft_id);
+        let theme_json_path = theme_dir.join("theme.json");
 
         if !theme_json_path.exists() {
             return Ok(GetUserThemeResponse { theme: None });
@@ -23,15 +45,18 @@ impl Sage {
     }
 
     pub async fn save_user_theme(&self, req: SaveUserTheme) -> Result<SaveUserThemeResponse> {
+        if req.nft_id.is_empty() {
+            return Ok(SaveUserThemeResponse {});
+        }
+
         let themes_dir = self.path.join("themes");
 
-        // Create themes directory if it doesn't exist
         if !themes_dir.exists() {
             fs::create_dir_all(&themes_dir).await?;
         }
 
-        // Create NFT-specific directory
         let nft_theme_dir = themes_dir.join(&req.nft_id);
+                
         if !nft_theme_dir.exists() {
             fs::create_dir_all(&nft_theme_dir).await?;
         }

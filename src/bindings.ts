@@ -296,6 +296,9 @@ async getUserThemes(req: GetUserThemes) : Promise<GetUserThemesResponse> {
 async saveUserTheme(req: SaveUserTheme) : Promise<SaveUserThemeResponse> {
     return await TAURI_INVOKE("save_user_theme", { req });
 },
+async deleteUserTheme(req: DeleteUserTheme) : Promise<DeleteUserThemeResponse> {
+    return await TAURI_INVOKE("delete_user_theme", { req });
+},
 async addPeer(req: AddPeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("add_peer", { req });
 },
@@ -398,6 +401,8 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
+export type DeleteUserTheme = { nft_id: string }
+export type DeleteUserThemeResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
