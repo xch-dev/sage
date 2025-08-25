@@ -203,6 +203,11 @@ body {
     background-color: var(--popover-transparent) !important;
   }
 
+  /* Theme cards with background images */
+  .has-background-image.bg-card {
+    background-color: var(--card);
+  }
+
   /* Dynamic outline button styling for all themes */
   .outline-btn {
     background-color: var(--outline-button-bg);

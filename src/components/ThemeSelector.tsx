@@ -36,17 +36,56 @@ export function ThemeSelector() {
     );
   }
 
+  // Group themes by isUserTheme and sort alphabetically within each group
+  const defaultThemes = availableThemes
+    .filter((theme) => !theme.isUserTheme)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  const userThemes = availableThemes
+    .filter((theme) => theme.isUserTheme)
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
   return (
-    <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
-      {availableThemes.map((theme) => (
-        <ThemeCard
-          key={theme.name}
-          theme={theme}
-          currentTheme={currentTheme}
-          isSelected={currentTheme.name === theme.name}
-          onSelect={setTheme}
-        />
-      ))}
+    <div className='space-y-8'>
+      {/* Default Themes */}
+      {defaultThemes.length > 0 && (
+        <div>
+          <h3 className='text-lg font-semibold mb-4'>
+            <Trans>Default Themes</Trans>
+          </h3>
+          <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
+            {defaultThemes.map((theme) => (
+              <ThemeCard
+                key={theme.name}
+                theme={theme}
+                currentTheme={currentTheme}
+                isSelected={currentTheme.name === theme.name}
+                onSelect={setTheme}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* User Themes */}
+      {userThemes.length > 0 && (
+        <div>
+          <h3 className='text-lg font-semibold mb-4'>
+            <Trans>Your Themes</Trans>
+          </h3>
+          <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
+            {userThemes.map((theme) => (
+              <ThemeCard
+                key={theme.name}
+                theme={theme}
+                currentTheme={currentTheme}
+                isSelected={currentTheme.name === theme.name}
+                onSelect={setTheme}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

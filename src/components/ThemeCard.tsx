@@ -1,5 +1,28 @@
-import { Check } from 'lucide-react';
-import { type Theme } from '@/lib/theme';
+import { commands } from '@/bindings';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useErrors } from '@/hooks/useErrors';
+import {
+  type Theme,
+  applyTheme,
+  getButtonStyles,
+  getHeadingStyles,
+  getMutedTextStyles,
+  getTextStyles,
+} from '@/lib/theme';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Check, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface ThemeCardProps {
   theme: Theme;
@@ -10,98 +33,6 @@ interface ThemeCardProps {
   className?: string;
 }
 
-// Helper function to create theme styles that properly handle missing properties
-function createThemeStyles(
-  theme: Theme,
-  currentTheme: Theme,
-  isSelected: boolean,
-  variant: 'default' | 'compact' | 'simple' = 'default',
-) {
-  const styles: Record<string, string | undefined> = {};
-
-  // Background color - use theme's own colors directly, supporting any CSS color format
-  if (theme.backgroundImage) {
-    const cardColor = theme.colors?.card || 'hsl(0 0% 100%)';
-    const opacity = theme.backgroundOpacity?.card ?? 0.75;
-    // Handle different color formats for transparency
-    if (cardColor.startsWith('hsl')) {
-      styles.backgroundColor = `hsla(${cardColor.slice(4, -1)}, ${opacity})`;
-    } else if (cardColor.startsWith('rgb')) {
-      styles.backgroundColor = `rgba(${cardColor.slice(4, -1)}, ${opacity})`;
-    } else {
-      // For other formats, use CSS color-mix as fallback
-      styles.backgroundColor = `color-mix(in srgb, ${cardColor} ${opacity * 100}%, transparent)`;
-    }
-  } else if (theme.colors?.card) {
-    styles.backgroundColor = theme.colors.card;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.backgroundColor =
-      variant === 'default' ? 'hsl(0 0% 100%)' : undefined;
-  }
-
-  // Text color - use theme's own colors directly
-  if (theme.colors?.cardForeground) {
-    styles.color = theme.colors.cardForeground;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.color = variant === 'default' ? 'hsl(0 0% 0%)' : undefined;
-  }
-
-  // Border - use theme's own colors directly
-  if (theme.colors?.border) {
-    styles.border = `1px solid ${theme.colors.border}`;
-  } else {
-    // Default fallback that doesn't depend on ambient theme
-    styles.border =
-      variant === 'default' ? '1px solid hsl(0 0% 90%)' : undefined;
-  }
-
-  // Border radius - use theme's own values or fixed defaults
-  if (theme.corners?.lg) {
-    styles.borderRadius = theme.corners.lg;
-  } else {
-    styles.borderRadius = variant === 'default' ? '0.5rem' : '0.5rem';
-  }
-
-  // Box shadow - use theme's own values or fixed defaults
-  if (theme.shadows?.card) {
-    styles.boxShadow = theme.shadows.card;
-  } else {
-    styles.boxShadow =
-      variant === 'default' ? '0 1px 3px 0 rgb(0 0 0 / 0.1)' : undefined;
-  }
-
-  // Font family - use theme's own values or fixed defaults
-  if (theme.fonts?.body) {
-    styles.fontFamily = theme.fonts.body;
-  } else {
-    styles.fontFamily =
-      variant === 'default' ? 'system-ui, sans-serif' : 'inherit';
-  }
-
-  // Background image
-  if (theme.backgroundImage) {
-    styles.backgroundImage = `url(${theme.backgroundImage})`;
-    styles.backgroundSize = 'cover';
-    styles.backgroundPosition = 'center';
-  }
-
-  // Selection outline - use current theme's colors for selection indicator
-  if (isSelected) {
-    if (currentTheme.colors?.primary) {
-      styles.outline = `2px solid ${currentTheme.colors.primary}`;
-    } else {
-      // Fallback that doesn't depend on ambient theme
-      styles.outline = '2px solid hsl(220 13% 91%)';
-    }
-  } else {
-    styles.outline = 'none';
-  }
-
-  return styles;
-}
-
 export function ThemeCard({
   theme,
   currentTheme,
@@ -110,48 +41,98 @@ export function ThemeCard({
   variant = 'default',
   className = '',
 }: ThemeCardProps) {
-  const styles = createThemeStyles(theme, currentTheme, isSelected, variant);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { reloadThemes } = useTheme();
+  const { addError } = useErrors();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteTheme = async () => {
+    if (theme.isUserTheme) {
+      setIsDeleting(true);
+      try {
+        await commands.deleteUserTheme({ nft_id: theme.name });
+        await reloadThemes();
+        toast.success(t`Theme deleted successfully`);
+        setShowDeleteConfirm(false);
+      } catch (error) {
+        addError({
+          kind: 'internal',
+          reason:
+            error instanceof Error ? error.message : 'Unknown error occurred',
+        });
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (cardRef.current) {
+      // Apply the theme to this specific element as a preview
+      applyTheme(theme, cardRef.current, true);
+
+      // Explicitly set the background color to ensure isolation from ambient theme
+      const cardColor =
+        theme.colors?.card || theme.colors?.background || 'hsl(0 0% 100%)';
+      cardRef.current.style.backgroundColor = cardColor;
+    }
+  }, [theme]);
+
+  // Only apply selection outline as inline style
+  const selectionStyle = isSelected
+    ? {
+        outline: `2px solid ${currentTheme.colors?.primary || 'hsl(220 13% 91%)'}`,
+      }
+    : {};
 
   const renderDefaultContent = () => {
-    const buttonStyles: Record<string, string | undefined> = {};
-    if (theme.colors?.primary) {
-      buttonStyles.backgroundColor = theme.colors.primary;
-    } else {
+    const buttonStyles = getButtonStyles(theme, 'default');
+    const headingStyles = getHeadingStyles(theme);
+    const mutedTextStyles = getMutedTextStyles(theme);
+    const textStyles = getTextStyles(theme);
+
+    // Add fallbacks for button styles
+    if (!buttonStyles.backgroundColor) {
       buttonStyles.backgroundColor = 'hsl(220 13% 91%)'; // Default gray
     }
-    if (theme.colors?.border) {
-      buttonStyles.borderColor = theme.colors.border;
-      buttonStyles.border = `1px solid ${theme.colors.border}`;
-    } else {
-      buttonStyles.borderColor = 'hsl(0 0% 90%)';
-      buttonStyles.border = '1px solid hsl(0 0% 90%)';
-    }
-    if (theme.colors?.primaryForeground) {
-      buttonStyles.color = theme.colors.primaryForeground;
-    } else {
+    if (!buttonStyles.color) {
       buttonStyles.color = 'hsl(0 0% 0%)'; // Default black
     }
-    if (theme.fonts?.heading) {
-      buttonStyles.fontFamily = theme.fonts.heading;
-    } else {
-      buttonStyles.fontFamily = 'system-ui, sans-serif';
+    if (!buttonStyles.border) {
+      buttonStyles.border = '1px solid hsl(0 0% 90%)';
     }
-    if (theme.corners?.md) {
-      buttonStyles.borderRadius = theme.corners.md;
-    } else {
+    if (!buttonStyles.borderRadius) {
       buttonStyles.borderRadius = '0.375rem';
     }
-    if (theme.shadows?.button) {
-      buttonStyles.boxShadow = theme.shadows.button;
-    } else {
+    if (!buttonStyles.boxShadow) {
       buttonStyles.boxShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
     }
 
-    const headingStyles: Record<string, string | undefined> = {};
-    if (theme.fonts?.heading) {
-      headingStyles.fontFamily = theme.fonts.heading;
-    } else {
+    // Add fallbacks for heading styles
+    if (!headingStyles.fontFamily) {
       headingStyles.fontFamily = 'system-ui, sans-serif';
+    }
+
+    // Add fallbacks for muted text styles
+    if (!mutedTextStyles.color) {
+      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
+    }
+    if (!mutedTextStyles.fontFamily) {
+      mutedTextStyles.fontFamily = 'inherit';
+    }
+
+    // Add fallbacks for text styles
+    if (!textStyles.color) {
+      textStyles.color = 'hsl(0 0% 0%)'; // Default black
+    }
+    if (!textStyles.fontFamily) {
+      textStyles.fontFamily = 'inherit';
     }
 
     const checkStyles: Record<string, string | undefined> = {};
@@ -161,31 +142,38 @@ export function ThemeCard({
       checkStyles.color = 'hsl(220 13% 91%)'; // Default gray
     }
 
-    const mutedTextStyles: Record<string, string | undefined> = {};
-    if (theme.colors?.mutedForeground) {
-      mutedTextStyles.color = theme.colors.mutedForeground;
-    } else {
-      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
-    }
-    if (theme.fonts?.body) {
-      mutedTextStyles.fontFamily = theme.fonts.body;
-    } else {
-      mutedTextStyles.fontFamily = 'inherit';
-    }
-
     return (
       <div className='p-4'>
         <div className='flex items-center justify-between mb-3'>
           <h3 className='font-medium text-sm' style={headingStyles}>
             {theme.displayName}
           </h3>
-          {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
+          <div className='flex items-center gap-2'>
+            {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
+            {theme.isUserTheme && (
+              <Button
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                variant='ghost'
+                size='icon'
+                aria-label={t`Delete theme ${theme.displayName}`}
+                title={t`Delete theme ${theme.displayName}`}
+              >
+                <Trash2
+                  className='h-4 w-4 text-destructive'
+                  aria-hidden='true'
+                />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Theme preview */}
         <div className='space-y-2'>
           <div className='h-8 flex items-center px-2' style={buttonStyles}>
-            <span className='text-xs font-medium'>Aa</span>
+            <span className='text-xs font-medium' style={textStyles}>
+              Aa
+            </span>
           </div>
           <div className='flex gap-1'>
             <div
@@ -226,10 +214,10 @@ export function ThemeCard({
   };
 
   const renderSimpleContent = () => {
-    const headingStyles: Record<string, string | undefined> = {};
-    if (theme.fonts?.heading) {
-      headingStyles.fontFamily = theme.fonts.heading;
-    } else {
+    const headingStyles = getHeadingStyles(theme);
+
+    // Add fallbacks for heading styles
+    if (!headingStyles.fontFamily) {
       headingStyles.fontFamily = 'inherit';
     }
 
@@ -246,7 +234,24 @@ export function ThemeCard({
           <h4 className='font-medium text-xs' style={headingStyles}>
             {theme.displayName}
           </h4>
-          {isSelected && <Check className='h-3 w-3' style={checkStyles} />}
+          <div className='flex items-center gap-1'>
+            {isSelected && <Check className='h-3 w-3' style={checkStyles} />}
+            {theme.isUserTheme && (
+              <Button
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                variant='ghost'
+                size='icon'
+                aria-label={t`Delete theme ${theme.displayName}`}
+                title={t`Delete theme ${theme.displayName}`}
+              >
+                <Trash2
+                  className='h-4 w-4 text-destructive'
+                  aria-hidden='true'
+                />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className='flex gap-1'>
@@ -277,14 +282,48 @@ export function ThemeCard({
   };
 
   return (
-    <div
-      className={`cursor-pointer transition-all hover:opacity-90 ${
-        isSelected ? 'ring-2' : 'hover:ring-1'
-      } ${className}`}
-      style={styles}
-      onClick={() => onSelect(theme.name)}
-    >
-      {variant === 'simple' ? renderSimpleContent() : renderDefaultContent()}
-    </div>
+    <>
+      <div
+        ref={cardRef}
+        className={`cursor-pointer transition-all hover:opacity-90 text-card-foreground border border-border rounded-lg shadow-card theme-card-isolated ${
+          isSelected ? 'ring-2' : 'hover:ring-1'
+        } ${className}`}
+        style={selectionStyle}
+        onClick={() => onSelect(theme.name)}
+      >
+        {variant === 'simple' ? renderSimpleContent() : renderDefaultContent()}
+      </div>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Delete Theme</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Are you sure you want to delete the theme &quot;
+                {theme.displayName}&quot;?
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={handleDeleteTheme}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Trans>Deleting...</Trans> : <Trans>Delete</Trans>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
