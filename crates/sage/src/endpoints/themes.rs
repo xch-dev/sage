@@ -1,7 +1,7 @@
 use crate::{Result, Sage};
 use sage_api::{
-    GetNftData, GetUserTheme, GetUserThemeResponse, GetUserThemes, GetUserThemesResponse,
-    SaveUserTheme, SaveUserThemeResponse, DeleteUserTheme, DeleteUserThemeResponse,
+    DeleteUserTheme, DeleteUserThemeResponse, GetNftData, GetUserTheme, GetUserThemeResponse,
+    GetUserThemes, GetUserThemesResponse, SaveUserTheme, SaveUserThemeResponse,
 };
 use serde_json::Value;
 use tokio::fs;
@@ -56,7 +56,7 @@ impl Sage {
         }
 
         let nft_theme_dir = themes_dir.join(&req.nft_id);
-                
+
         if !nft_theme_dir.exists() {
             fs::create_dir_all(&nft_theme_dir).await?;
         }
@@ -77,13 +77,22 @@ impl Sage {
                     .map_err(|_| crate::Error::InvalidThemeJson)?;
 
                 // Extract the data.theme node
-                let theme_data = json_value
+                let mut theme_data = json_value
                     .get("data")
                     .and_then(|data| data.get("theme"))
-                    .ok_or(crate::Error::MissingThemeData)?;
+                    .ok_or(crate::Error::MissingThemeData)?
+                    .clone();
+
+                // Set the name property to the NFT ID
+                if let Some(theme_obj) = theme_data.as_object_mut() {
+                    theme_obj.insert(
+                        "name".to_string(),
+                        serde_json::Value::String(req.nft_id.clone()),
+                    );
+                }
 
                 // Write the theme data to the file
-                let theme_json = serde_json::to_string_pretty(theme_data)
+                let theme_json = serde_json::to_string_pretty(&theme_data)
                     .map_err(|_| crate::Error::InvalidThemeJson)?;
                 fs::write(&theme_json_path, theme_json).await?;
             }
