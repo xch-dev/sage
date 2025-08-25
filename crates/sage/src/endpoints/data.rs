@@ -794,16 +794,14 @@ impl Sage {
             .map(|did| Address::new(did, "did:chia:".to_string()).encode())
             .transpose()?;
 
-        let special_use_type = if collection_id
-            == "col1tr58ryd4dwyvduxqcrkldlmr3g60cgj45skmt4ghttk268m7jffq47l2hp"
-            && minter_did.as_deref()
-                // this will only ever be true on testnet11. need mainnet did for this too
-                == Some("did:chia:1c9mxmqnyaymseunws8r0dfxwpfjxetha53lk72wm7syxkln6perqapkpzw")
-        {
-            Some(NftSpecialUseType::Theme)
-        } else {
-            None
-        };
+        let special_use_type =
+            // this is the hash collection id for the themes collection plus the testnet minter did
+            // need a mainnet collection hash too
+            if collection_id == "col1tr58ryd4dwyvduxqcrkldlmr3g60cgj45skmt4ghttk268m7jffq47l2hp" {
+                Some(NftSpecialUseType::Theme)
+            } else {
+                None
+            };
 
         Ok(NftRecord {
             launcher_id: Address::new(row.asset.hash, "nft".to_string()).encode()?,
