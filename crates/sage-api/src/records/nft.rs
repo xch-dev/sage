@@ -1,5 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[serde(rename_all = "snake_case")]
+pub enum NftSpecialUseType {
+    #[default]
+    None,
+    Theme,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct NftRecord {
@@ -26,6 +35,7 @@ pub struct NftRecord {
     pub edition_total: Option<u32>,
     pub icon_url: Option<String>,
     pub created_timestamp: Option<u64>,
+    pub special_use_type: Option<NftSpecialUseType>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,7 +1,5 @@
-import { type Theme, loadTheme } from './theme';
-
-let themesCache: Theme[] | null = null;
-let themesPromise: Promise<Theme[]> | null = null;
+import { commands } from '../bindings';
+import { type Theme, loadBuiltInTheme, loadUserTheme } from './theme';
 
 // Dynamically discover theme folders by scanning the themes directory
 async function discoverThemeFolders(): Promise<string[]> {
@@ -28,41 +26,37 @@ async function discoverThemeFolders(): Promise<string[]> {
   }
 }
 
-/**
- * Loads all themes from the public/themes folder
- */
 export async function loadThemes(): Promise<Theme[]> {
-  if (themesCache) {
-    return themesCache;
-  }
-
-  if (themesPromise) {
-    return themesPromise;
-  }
-
-  themesPromise = discoverThemeFolders()
+  return discoverThemeFolders()
     .then((themeFolders) =>
-      Promise.all(themeFolders.map((themeName) => loadTheme(themeName))),
+      Promise.all(themeFolders.map((themeName) => loadBuiltInTheme(themeName))),
     )
     .then((themes) => {
       // Filter out null themes (themes that failed to load)
-      const validThemes = themes.filter(
+      const defaultThemes = themes.filter(
         (theme): theme is Theme => theme !== null,
       );
-      themesCache = validThemes;
-      return validThemes;
+      return defaultThemes;
+    })
+    .then(async (defaultThemes) => {
+      const userThemes = await getUserThemes();
+      return [...(defaultThemes || []), ...userThemes];
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
       return [];
     });
-
-  return themesPromise;
 }
 
-/**
- * Gets a theme by name from the loaded themes
- */
+async function getUserThemes(): Promise<Theme[]> {
+  const response = await commands.getUserThemes({});
+  const themePromises = response.themes.map(
+    async (theme) => await loadUserTheme(theme),
+  );
+  const themes = await Promise.all(themePromises);
+  return themes.filter((theme): theme is Theme => theme !== null);
+}
+
 export async function getThemeByName(name: string): Promise<Theme | undefined> {
   const themes = await loadThemes();
   return themes.find((theme) => theme.name === name);

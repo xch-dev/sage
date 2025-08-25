@@ -63,6 +63,7 @@ export function emptyNftRecord(nftId: string): NftRecord {
     edition_number: null,
     edition_total: null,
     created_timestamp: null,
+    special_use_type: null,
   };
 }
 export function getAssetDisplayName(

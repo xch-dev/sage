@@ -287,6 +287,18 @@ async increaseDerivationIndex(req: IncreaseDerivationIndex) : Promise<IncreaseDe
 async getPeers(req: GetPeers) : Promise<GetPeersResponse> {
     return await TAURI_INVOKE("get_peers", { req });
 },
+async getUserTheme(req: GetUserTheme) : Promise<GetUserThemeResponse> {
+    return await TAURI_INVOKE("get_user_theme", { req });
+},
+async getUserThemes(req: GetUserThemes) : Promise<GetUserThemesResponse> {
+    return await TAURI_INVOKE("get_user_themes", { req });
+},
+async saveUserTheme(req: SaveUserTheme) : Promise<SaveUserThemeResponse> {
+    return await TAURI_INVOKE("save_user_theme", { req });
+},
+async deleteUserTheme(req: DeleteUserTheme) : Promise<DeleteUserThemeResponse> {
+    return await TAURI_INVOKE("delete_user_theme", { req });
+},
 async addPeer(req: AddPeer) : Promise<EmptyResponse> {
     return await TAURI_INVOKE("add_peer", { req });
 },
@@ -389,6 +401,8 @@ export type DeleteKey = { fingerprint: number }
 export type DeleteKeyResponse = Record<string, never>
 export type DeleteOffer = { offer_id: string }
 export type DeleteOfferResponse = Record<string, never>
+export type DeleteUserTheme = { nft_id: string }
+export type DeleteUserThemeResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
@@ -463,6 +477,10 @@ export type GetTransaction = { height: number }
 export type GetTransactionResponse = { transaction: TransactionRecord | null }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
+export type GetUserTheme = { nft_id: string }
+export type GetUserThemeResponse = { theme: string | null }
+export type GetUserThemes = Record<string, never>
+export type GetUserThemesResponse = { themes: string[] }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
 export type ImportKey = { name: string; key: string; derivation_index?: number; save_secrets?: boolean; login?: boolean; emoji?: string | null }
@@ -492,9 +510,10 @@ export type NetworkList = { networks: Network[] }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
 export type NftMint = { address?: string | null; edition_number?: number | null; edition_total?: number | null; data_hash?: string | null; data_uris?: string[]; metadata_hash?: string | null; metadata_uris?: string[]; license_hash?: string | null; license_uris?: string[]; royalty_address?: string | null; royalty_ten_thousandths?: number }
-export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null }
+export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
+export type NftSpecialUseType = "none" | "theme"
 export type NftUriKind = "data" | "metadata" | "license"
 export type NormalizeDids = { did_ids: string[]; fee: Amount; auto_submit?: boolean }
 export type OfferAmount = { asset_id: string | null; amount: Amount }
@@ -519,6 +538,8 @@ export type Resync = { fingerprint: number; delete_coins?: boolean; delete_asset
 export type ResyncCat = { asset_id: string }
 export type ResyncCatResponse = Record<string, never>
 export type ResyncResponse = Record<string, never>
+export type SaveUserTheme = { nft_id: string }
+export type SaveUserThemeResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
 export type SendTransactionImmediately = { spend_bundle: SpendBundle }

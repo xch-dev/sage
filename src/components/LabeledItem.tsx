@@ -38,6 +38,7 @@ export function LabeledItem({
       role='region'
       aria-labelledby={labelId}
       aria-label={t`${label} section`}
+      className={className}
     >
       <label
         id={labelId}

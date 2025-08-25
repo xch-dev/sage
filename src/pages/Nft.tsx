@@ -13,17 +13,33 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { FileImage, FileText, Hash, Tag, Users } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Nft() {
   const navigate = useNavigate();
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
+  const { reloadThemes } = useTheme();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [data, setData] = useState<NftData | null>(null);
+  const [themeExists, setThemeExists] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
+
+  const checkThemeExists = useCallback(async () => {
+    if (launcherId && nft?.special_use_type === 'theme') {
+      try {
+        const response = await commands.getUserTheme({ nft_id: launcherId });
+        setThemeExists(response.theme !== null);
+      } catch {
+        // If theme doesn't exist, that's expected - just set to false
+        setThemeExists(false);
+      }
+    }
+  }, [launcherId, nft?.special_use_type]);
 
   const updateNft = useMemo(
     () => () => {
@@ -53,6 +69,11 @@ export default function Nft() {
       unlisten.then((u) => u());
     };
   }, [updateNft]);
+
+  // Check if theme exists when NFT data changes
+  useEffect(() => {
+    checkThemeExists();
+  }, [checkThemeExists]);
 
   useEffect(() => {
     commands
@@ -160,6 +181,45 @@ export default function Nft() {
                     className='rounded-lg w-full'
                     controls
                   />
+                )}
+
+                {nft?.special_use_type === 'theme' && (
+                  <Button
+                    variant='outline'
+                    className='w-full mt-3'
+                    disabled={themeExists || isSaving}
+                    onClick={async () => {
+                      if (nft?.launcher_id) {
+                        setIsSaving(true);
+                        try {
+                          await commands.saveUserTheme({
+                            nft_id: nft.launcher_id,
+                          });
+                          await checkThemeExists();
+                          await reloadThemes();
+                          console.log('Theme saved successfully');
+                        } catch (error) {
+                          addError({
+                            kind: 'internal',
+                            reason:
+                              error instanceof Error
+                                ? error.message
+                                : 'Unknown error occurred',
+                          });
+                        } finally {
+                          setIsSaving(false);
+                        }
+                      }
+                    }}
+                  >
+                    <Trans>
+                      {themeExists
+                        ? 'Theme Saved'
+                        : isSaving
+                          ? 'Saving...'
+                          : 'Save Theme'}
+                    </Trans>
+                  </Button>
                 )}
               </div>
 
