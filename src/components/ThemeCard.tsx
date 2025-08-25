@@ -1,3 +1,6 @@
+import { commands } from '@/bindings';
+import { useTheme } from '@/contexts/ThemeContext';
+import { useErrors } from '@/hooks/useErrors';
 import {
   type Theme,
   applyTheme,
@@ -6,8 +9,20 @@ import {
   getMutedTextStyles,
   getTextStyles,
 } from '@/lib/theme';
-import { Check } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { t } from '@lingui/core/macro';
+import { Trans } from '@lingui/react/macro';
+import { Check, Trash2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-toastify';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface ThemeCardProps {
   theme: Theme;
@@ -27,6 +42,35 @@ export function ThemeCard({
   className = '',
 }: ThemeCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const { reloadThemes } = useTheme();
+  const { addError } = useErrors();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteTheme = async () => {
+    if (theme.isUserTheme) {
+      setIsDeleting(true);
+      try {
+        await commands.deleteUserTheme({ nft_id: theme.name });
+        await reloadThemes();
+        toast.success(t`Theme deleted successfully`);
+        setShowDeleteConfirm(false);
+      } catch (error) {
+        addError({
+          kind: 'internal',
+          reason:
+            error instanceof Error ? error.message : 'Unknown error occurred',
+        });
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   useEffect(() => {
     if (cardRef.current) {
@@ -104,7 +148,24 @@ export function ThemeCard({
           <h3 className='font-medium text-sm' style={headingStyles}>
             {theme.displayName}
           </h3>
-          {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
+          <div className='flex items-center gap-2'>
+            {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
+            {theme.isUserTheme && (
+              <Button
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                variant='ghost'
+                size='icon'
+                aria-label={t`Delete theme ${theme.displayName}`}
+                title={t`Delete theme ${theme.displayName}`}
+              >
+                <Trash2
+                  className='h-4 w-4 text-destructive'
+                  aria-hidden='true'
+                />
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Theme preview */}
@@ -173,7 +234,24 @@ export function ThemeCard({
           <h4 className='font-medium text-xs' style={headingStyles}>
             {theme.displayName}
           </h4>
-          {isSelected && <Check className='h-3 w-3' style={checkStyles} />}
+          <div className='flex items-center gap-1'>
+            {isSelected && <Check className='h-3 w-3' style={checkStyles} />}
+            {theme.isUserTheme && (
+              <Button
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+                variant='ghost'
+                size='icon'
+                aria-label={t`Delete theme ${theme.displayName}`}
+                title={t`Delete theme ${theme.displayName}`}
+              >
+                <Trash2
+                  className='h-4 w-4 text-destructive'
+                  aria-hidden='true'
+                />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className='flex gap-1'>
@@ -204,15 +282,48 @@ export function ThemeCard({
   };
 
   return (
-    <div
-      ref={cardRef}
-      className={`cursor-pointer transition-all hover:opacity-90 text-card-foreground border border-border rounded-lg shadow-card theme-card-isolated ${
-        isSelected ? 'ring-2' : 'hover:ring-1'
-      } ${className}`}
-      style={selectionStyle}
-      onClick={() => onSelect(theme.name)}
-    >
-      {variant === 'simple' ? renderSimpleContent() : renderDefaultContent()}
-    </div>
+    <>
+      <div
+        ref={cardRef}
+        className={`cursor-pointer transition-all hover:opacity-90 text-card-foreground border border-border rounded-lg shadow-card theme-card-isolated ${
+          isSelected ? 'ring-2' : 'hover:ring-1'
+        } ${className}`}
+        style={selectionStyle}
+        onClick={() => onSelect(theme.name)}
+      >
+        {variant === 'simple' ? renderSimpleContent() : renderDefaultContent()}
+      </div>
+
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Delete Theme</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Are you sure you want to delete the theme &quot;
+                {theme.displayName}&quot;?
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setShowDeleteConfirm(false)}
+            >
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={handleDeleteTheme}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <Trans>Deleting...</Trans> : <Trans>Delete</Trans>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

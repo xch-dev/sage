@@ -72,7 +72,6 @@ impl Sage {
 
         if let Some(nft_data) = nft_data_response.data {
             if let Some(metadata_json) = nft_data.metadata_json {
-                // Parse the JSON and extract the data.theme node
                 let json_value: Value = serde_json::from_str(&metadata_json)
                     .map_err(|_| crate::Error::InvalidThemeJson)?;
 
@@ -91,7 +90,6 @@ impl Sage {
                     );
                 }
 
-                // Write the theme data to the file
                 let theme_json = serde_json::to_string_pretty(&theme_data)
                     .map_err(|_| crate::Error::InvalidThemeJson)?;
                 fs::write(&theme_json_path, theme_json).await?;
