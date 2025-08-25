@@ -86,7 +86,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         <Handshake className={className} />
       </NavLink>
 
-      {isIos && (
+      {!isIos && (
         <NavLink
           url={'/swap'}
           isCollapsed={isCollapsed}
