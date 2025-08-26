@@ -12,9 +12,9 @@ const Switch = React.forwardRef<
 
   // Get custom switch colors with defaults
   const checkedBg =
-    currentTheme?.switches?.checked?.background || 'hsl(var(--primary))';
+    currentTheme?.switches?.checked?.background || 'var(--primary)';
   const uncheckedBg =
-    currentTheme?.switches?.unchecked?.background || 'hsl(var(--border))';
+    currentTheme?.switches?.unchecked?.background || 'var(--border)';
 
   return (
     <SwitchPrimitives.Root
