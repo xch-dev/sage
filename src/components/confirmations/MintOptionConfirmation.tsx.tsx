@@ -98,7 +98,7 @@ export function MintOptionConfirmation({
       {strikeAsset && strikeAmount && (
         <ConfirmationCard
           icon={<Handshake className='h-8 w-8 text-green-500' />}
-          title={<Trans>Strike Price</Trans>}
+          title={<Trans>Strike Asset</Trans>}
         >
           <div className='flex items-center gap-3 rounded-lg'>
             <AssetIcon
