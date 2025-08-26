@@ -49,6 +49,7 @@ import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
 import Settings from './pages/Settings';
+import { Swap } from './pages/Swap';
 import Themes from './pages/Themes';
 import Token from './pages/Token';
 import { TokenList } from './pages/TokenList';
@@ -130,6 +131,9 @@ const router = createHashRouter(
         <Route path='make' element={<MakeOffer />} />
         <Route path='view/:offer' element={<Offer />} />
         <Route path='view_saved/:offer_id' element={<SavedOffer />} />
+      </Route>
+      <Route path='/swap' element={<Wallet />}>
+        <Route path='' element={<Swap />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />

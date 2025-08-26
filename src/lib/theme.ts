@@ -3,20 +3,29 @@ import iconLight from '@/icon-light.png';
 import { getColorLightness, makeColorTransparent } from './color-utils';
 import { deepMerge } from './utils';
 
-/**
- * Loads a theme from JSON file. Theme authors only need to specify the properties they want to customize.
- * Missing properties will be ignored and CSS defaults will be used instead.
- */
-export async function loadTheme(themeName: string): Promise<Theme | null> {
-  return loadThemeWithTracking(themeName, new Set<string>());
+export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
+  try {
+    let theme = JSON.parse(themeJson) as Theme;
+    if (theme.inherits) {
+      const inheritedTheme = await loadBuiltInTheme(
+        theme.inherits,
+        new Set<string>(),
+      );
+      if (inheritedTheme) {
+        theme = deepMerge(inheritedTheme, theme);
+      }
+    }
+    theme.isUserTheme = true;
+    return theme;
+  } catch (error) {
+    console.error(`Error loading user theme:`, error);
+    return null;
+  }
 }
 
-/**
- * Internal function that tracks theme loading to prevent circular inheritance
- */
-async function loadThemeWithTracking(
+export async function loadBuiltInTheme(
   themeName: string,
-  loadedThemes: Set<string>,
+  loadedThemes: Set<string> = new Set<string>(),
 ): Promise<Theme | null> {
   try {
     // Check for circular inheritance
@@ -27,7 +36,6 @@ async function loadThemeWithTracking(
       return null;
     }
 
-    // Add current theme to tracking set
     loadedThemes.add(themeName);
 
     // Import theme as a module for hot reloading
@@ -45,7 +53,7 @@ async function loadThemeWithTracking(
     }
 
     if (theme.inherits) {
-      const inheritedTheme = await loadThemeWithTracking(
+      const inheritedTheme = await loadBuiltInTheme(
         theme.inherits,
         loadedThemes,
       );
@@ -76,6 +84,7 @@ async function loadThemeWithTracking(
 
     // only light and dark icons for now
     theme.icon_path = theme.most_like === 'dark' ? iconLight : iconDark;
+    theme.isUserTheme = false;
 
     return theme;
   } catch (error) {
@@ -84,21 +93,18 @@ async function loadThemeWithTracking(
   }
 }
 
-/**
- * Applies a theme to the document. Only properties that are defined in the theme will be applied.
- * Missing properties will be ignored, allowing CSS defaults to be used.
- */
-export function applyTheme(theme: Theme) {
-  const root = document.documentElement;
+export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
+  // Only manipulate classes if not a preview
+  if (!isPreview) {
+    // Remove any existing theme classes
+    const existingThemeClasses = Array.from(root.classList).filter((cls) =>
+      cls.startsWith('theme-'),
+    );
+    root.classList.remove(...existingThemeClasses);
 
-  // Remove any existing theme classes
-  const existingThemeClasses = Array.from(document.body.classList).filter(
-    (cls) => cls.startsWith('theme-'),
-  );
-  document.body.classList.remove(...existingThemeClasses);
-
-  // Add theme-specific class
-  document.body.classList.add(`theme-${theme.name}`);
+    // Add theme-specific class
+    root.classList.add(`theme-${theme.name}`);
+  }
 
   // Clear all previously set CSS variables to reset to defaults
   const cssVarsToClear = [
@@ -451,8 +457,12 @@ export function applyTheme(theme: Theme) {
     'important',
   );
 
-  // Set data attribute on body for CSS selectors
-  document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  // Set data attribute for CSS selectors
+  if (isPreview) {
+    root.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  } else {
+    document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  }
 
   // Apply table-specific variables if defined
   if (theme.tables) {
@@ -664,7 +674,18 @@ export function applyTheme(theme: Theme) {
       `url(${theme.backgroundImage})`,
       'important',
     );
-    document.body.classList.add('has-background-image');
+
+    // For document-wide themes, add class to body
+    // For preview themes, add class to the element and apply background
+    if (isPreview) {
+      root.classList.add('has-background-image');
+      // Apply background image directly to preview element
+      root.style.backgroundImage = `url(${theme.backgroundImage})`;
+      root.style.backgroundSize = 'cover';
+      root.style.backgroundPosition = 'center';
+    } else {
+      document.body.classList.add('has-background-image');
+    }
 
     // Set background opacity variables
     const bodyOpacity = theme.backgroundOpacity?.body ?? 0.1;
@@ -688,13 +709,162 @@ export function applyTheme(theme: Theme) {
     );
   } else {
     root.style.removeProperty('--background-image');
-    document.body.classList.remove('has-background-image');
+    if (isPreview) {
+      root.classList.remove('has-background-image');
+      root.style.removeProperty('background-image');
+      root.style.removeProperty('background-size');
+      root.style.removeProperty('background-position');
+    } else {
+      document.body.classList.remove('has-background-image');
+    }
   }
 }
 
 /**
- * Determines the appropriate background color for outline buttons based on theme
+ * Extracts theme properties into a styles object for component use
+ * This is a subset of applyTheme logic focused on component styling
  */
+export function getThemeStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  // Apply background color - use card color, or background color as fallback
+  if (theme.colors?.card) {
+    styles.backgroundColor = theme.colors.card;
+  } else if (theme.colors?.background) {
+    styles.backgroundColor = theme.colors.background;
+  }
+
+  // Apply text color - use card foreground, or foreground as fallback
+  if (theme.colors?.cardForeground) {
+    styles.color = theme.colors.cardForeground;
+  } else if (theme.colors?.foreground) {
+    styles.color = theme.colors.foreground;
+  }
+
+  // Apply border
+  if (theme.colors?.border) {
+    styles.border = `1px solid ${theme.colors.border}`;
+  }
+
+  // Apply border radius
+  if (theme.corners?.lg) {
+    styles.borderRadius = theme.corners.lg;
+  }
+
+  // Apply box shadow
+  if (theme.shadows?.card) {
+    styles.boxShadow = theme.shadows.card;
+  }
+
+  // Apply font family
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  // Apply background image
+  if (theme.backgroundImage) {
+    styles.backgroundImage = `url(${theme.backgroundImage})`;
+    styles.backgroundSize = 'cover';
+    styles.backgroundPosition = 'center';
+    styles.backgroundRepeat = 'no-repeat';
+  }
+
+  return styles;
+}
+
+/**
+ * Gets button styles for a specific variant from a theme
+ */
+export function getButtonStyles(
+  theme: Theme,
+  variant:
+    | 'default'
+    | 'outline'
+    | 'secondary'
+    | 'destructive'
+    | 'ghost'
+    | 'link' = 'default',
+): Record<string, string> {
+  const styles: Record<string, string> = {};
+  const buttonConfig = theme.buttons?.[variant];
+
+  if (buttonConfig) {
+    if (buttonConfig.background) {
+      styles.backgroundColor = buttonConfig.background;
+    }
+    if (buttonConfig.color) {
+      styles.color = buttonConfig.color;
+    }
+    if (buttonConfig.border) {
+      styles.border = buttonConfig.border;
+    }
+    if (buttonConfig.borderRadius) {
+      styles.borderRadius = buttonConfig.borderRadius;
+    }
+    if (buttonConfig.boxShadow) {
+      styles.boxShadow = buttonConfig.boxShadow;
+    }
+  } else {
+    // Fallback to theme colors if no specific button config
+    if (theme.colors?.primary) {
+      styles.backgroundColor = theme.colors.primary;
+    }
+    if (theme.colors?.primaryForeground) {
+      styles.color = theme.colors.primaryForeground;
+    }
+    if (theme.colors?.border) {
+      styles.border = `1px solid ${theme.colors.border}`;
+    }
+    if (theme.corners?.md) {
+      styles.borderRadius = theme.corners.md;
+    }
+    if (theme.shadows?.button) {
+      styles.boxShadow = theme.shadows.button;
+    }
+  }
+
+  return styles;
+}
+
+/**
+ * Gets heading styles from a theme
+ */
+export function getHeadingStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.fonts?.heading) {
+    styles.fontFamily = theme.fonts.heading;
+  }
+
+  return styles;
+}
+
+export function getMutedTextStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.colors?.mutedForeground) {
+    styles.color = theme.colors.mutedForeground;
+  }
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  return styles;
+}
+
+export function getTextStyles(theme: Theme): Record<string, string> {
+  const styles: Record<string, string> = {};
+
+  if (theme.colors?.secondary) {
+    styles.color = theme.colors.secondary;
+  }
+  if (theme.fonts?.body) {
+    styles.fontFamily = theme.fonts.body;
+  }
+
+  return styles;
+}
+
 function getOutlineButtonBackground(theme: Theme): string {
   // If theme has no colors defined, use CSS defaults (light theme)
   if (!theme.colors?.background) {
@@ -724,6 +894,7 @@ export interface Theme {
   most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  isUserTheme?: boolean;
   backgroundOpacity?: {
     body?: number;
     card?: number;

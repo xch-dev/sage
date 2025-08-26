@@ -211,6 +211,12 @@ pub enum Error {
     #[error("Could not fetch option with id: {0}")]
     CouldNotFetchOption(Bytes32),
 
+    #[error("Invalid theme JSON format")]
+    InvalidThemeJson,
+
+    #[error("Missing theme data in NFT metadata")]
+    MissingThemeData,
+
     #[error("CLVM eval error: {0}")]
     Eval(#[from] EvalErr),
 
@@ -297,7 +303,9 @@ impl Error {
             | Self::CouldNotFetchNft(..)
             | Self::CouldNotFetchOption(..)
             | Self::MissingAssetId
-            | Self::InvalidGroup => ErrorKind::Api,
+            | Self::InvalidGroup
+            | Self::InvalidThemeJson
+            | Self::MissingThemeData => ErrorKind::Api,
         }
     }
 }

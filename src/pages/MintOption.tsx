@@ -174,12 +174,13 @@ export function MintOption() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='underlying-amount'
-                    className='border-l-0 z-10 rounded-l-none w-[100px] h-12'
+                    className='border-l-0 z-10 rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={underlyingAmount}
                     onValueChange={(values) => {
                       setUnderlyingAmount(values.value);
                     }}
+                    precision={underlyingAssetId === null ? 12 : 3}
                   />
                 </div>
               </div>
@@ -210,12 +211,13 @@ export function MintOption() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='strike-amount'
-                    className='border-l-0 z-10 rounded-l-none w-[100px] h-12'
+                    className='border-l-0 z-10 rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={strikeAmount}
                     onValueChange={(values) => {
                       setStrikeAmount(values.value);
                     }}
+                    precision={strikeAssetId === null ? 12 : 3}
                   />
                 </div>
               </div>
