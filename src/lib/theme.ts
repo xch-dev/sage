@@ -855,8 +855,8 @@ export function getMutedTextStyles(theme: Theme): Record<string, string> {
 export function getTextStyles(theme: Theme): Record<string, string> {
   const styles: Record<string, string> = {};
 
-  if (theme.colors?.secondary) {
-    styles.color = theme.colors.secondary;
+  if (theme.colors?.primaryForeground) {
+    styles.color = theme.colors.primaryForeground;
   }
   if (theme.fonts?.body) {
     styles.fontFamily = theme.fonts.body;
