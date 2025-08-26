@@ -82,14 +82,14 @@ export function getColorLightness(color: string): number {
   // For other formats, we need to convert to RGB first
   // This requires DOM API, so we'll use a temporary element
   if (typeof document !== 'undefined') {
+    let tempElement: HTMLElement | null = null;
     try {
-      const tempElement = document.createElement('div');
+      tempElement = document.createElement('div');
       tempElement.style.color = color;
       tempElement.style.display = 'none';
       document.body.appendChild(tempElement);
 
       const computedColor = getComputedStyle(tempElement).color;
-      document.body.removeChild(tempElement);
 
       // Parse RGB values
       const rgbMatch = computedColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
@@ -107,6 +107,10 @@ export function getColorLightness(color: string): number {
       }
     } catch (error) {
       console.warn('Could not determine color lightness:', color, error);
+    } finally {
+      if (tempElement?.parentNode) {
+        tempElement.parentNode.removeChild(tempElement);
+      }
     }
   }
 

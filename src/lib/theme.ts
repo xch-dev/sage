@@ -64,21 +64,27 @@ export async function loadBuiltInTheme(
 
     // Process background image path
     if (theme.backgroundImage) {
-      if (!theme.backgroundImage.startsWith('/')) {
-        // Use static glob import to avoid dynamic import warnings for local files
-        const imageModules = import.meta.glob(
-          '../themes/*/*.{jpg,jpeg,png,gif,webp}',
-          { eager: true },
-        );
-        const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
-        const imageModule = imageModules[imagePath];
+      try {
+        if (!theme.backgroundImage.startsWith('/')) {
+          // Use static glob import to avoid dynamic import warnings for local files
+          const imageModules = import.meta.glob(
+            '../themes/*/*.{jpg,jpeg,png,gif,webp}',
+            { eager: true },
+          );
+          const imagePath = `../themes/${themeName}/${theme.backgroundImage}`;
+          const imageModule = imageModules[imagePath];
 
-        if (imageModule) {
-          theme.backgroundImage = (imageModule as { default: string }).default;
-        } else {
-          // Fallback to a relative path if not found
-          theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+          if (imageModule) {
+            theme.backgroundImage = (imageModule as { default: string }).default;
+          } else {
+            // Fallback to a relative path if not found
+            theme.backgroundImage = `../themes/${themeName}/${theme.backgroundImage}`;
+          }
         }
+      }
+      catch (error) {
+        console.warn(`Error loading theme ${themeName}:`, error);
+        theme.backgroundImage = undefined;
       }
     }
 
@@ -108,6 +114,7 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
 
   // Clear all previously set CSS variables to reset to defaults
   const cssVarsToClear = [
+    // Core color variables
     '--background',
     '--foreground',
     '--card',
@@ -133,17 +140,23 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--chart-3',
     '--chart-4',
     '--chart-5',
+
+    // Font variables
     '--font-sans',
     '--font-serif',
     '--font-mono',
     '--font-heading',
     '--font-body',
+
+    // Corner radius variables
     '--corner-none',
     '--corner-sm',
     '--corner-md',
     '--corner-lg',
     '--corner-xl',
     '--corner-full',
+
+    // Shadow variables
     '--shadow-none',
     '--shadow-sm',
     '--shadow-md',
@@ -153,12 +166,28 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--shadow-card',
     '--shadow-button',
     '--shadow-dropdown',
+
+    // Theme feature flags
     '--theme-has-gradient-buttons',
     '--theme-has-shimmer-effects',
     '--theme-has-pixel-art',
     '--theme-has-3d-effects',
     '--theme-has-rounded-buttons',
+
+    // Navigation and button variables
     '--outline-button-bg',
+    '--nav-active-bg',
+
+    // Background image and transparency variables
+    '--background-image',
+    '--background-transparent',
+    '--card-transparent',
+    '--popover-transparent',
+    '--background-body-opacity',
+    '--background-card-opacity',
+    '--background-popover-opacity',
+
+    // Table variables
     '--table-background',
     '--table-border',
     '--table-border-radius',
@@ -181,6 +210,133 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--table-footer-background',
     '--table-footer-color',
     '--table-footer-border',
+
+    // Button variant variables (all possible combinations)
+    '--btn-default-bg',
+    '--btn-default-color',
+    '--btn-default-border',
+    '--btn-default-border-style',
+    '--btn-default-border-width',
+    '--btn-default-border-color',
+    '--btn-default-radius',
+    '--btn-default-shadow',
+    '--btn-default-hover-bg',
+    '--btn-default-hover-color',
+    '--btn-default-hover-transform',
+    '--btn-default-hover-border-style',
+    '--btn-default-hover-border-color',
+    '--btn-default-hover-shadow',
+    '--btn-default-active-bg',
+    '--btn-default-active-color',
+    '--btn-default-active-transform',
+    '--btn-default-active-border-style',
+    '--btn-default-active-border-color',
+    '--btn-default-active-shadow',
+
+    '--btn-outline-bg',
+    '--btn-outline-color',
+    '--btn-outline-border',
+    '--btn-outline-border-style',
+    '--btn-outline-border-width',
+    '--btn-outline-border-color',
+    '--btn-outline-radius',
+    '--btn-outline-shadow',
+    '--btn-outline-hover-bg',
+    '--btn-outline-hover-color',
+    '--btn-outline-hover-transform',
+    '--btn-outline-hover-border-style',
+    '--btn-outline-hover-border-color',
+    '--btn-outline-hover-shadow',
+    '--btn-outline-active-bg',
+    '--btn-outline-active-color',
+    '--btn-outline-active-transform',
+    '--btn-outline-active-border-style',
+    '--btn-outline-active-border-color',
+    '--btn-outline-active-shadow',
+
+    '--btn-secondary-bg',
+    '--btn-secondary-color',
+    '--btn-secondary-border',
+    '--btn-secondary-border-style',
+    '--btn-secondary-border-width',
+    '--btn-secondary-border-color',
+    '--btn-secondary-radius',
+    '--btn-secondary-shadow',
+    '--btn-secondary-hover-bg',
+    '--btn-secondary-hover-color',
+    '--btn-secondary-hover-transform',
+    '--btn-secondary-hover-border-style',
+    '--btn-secondary-hover-border-color',
+    '--btn-secondary-hover-shadow',
+    '--btn-secondary-active-bg',
+    '--btn-secondary-active-color',
+    '--btn-secondary-active-transform',
+    '--btn-secondary-active-border-style',
+    '--btn-secondary-active-border-color',
+    '--btn-secondary-active-shadow',
+
+    '--btn-destructive-bg',
+    '--btn-destructive-color',
+    '--btn-destructive-border',
+    '--btn-destructive-border-style',
+    '--btn-destructive-border-width',
+    '--btn-destructive-border-color',
+    '--btn-destructive-radius',
+    '--btn-destructive-shadow',
+    '--btn-destructive-hover-bg',
+    '--btn-destructive-hover-color',
+    '--btn-destructive-hover-transform',
+    '--btn-destructive-hover-border-style',
+    '--btn-destructive-hover-border-color',
+    '--btn-destructive-hover-shadow',
+    '--btn-destructive-active-bg',
+    '--btn-destructive-active-color',
+    '--btn-destructive-active-transform',
+    '--btn-destructive-active-border-style',
+    '--btn-destructive-active-border-color',
+    '--btn-destructive-active-shadow',
+
+    '--btn-ghost-bg',
+    '--btn-ghost-color',
+    '--btn-ghost-border',
+    '--btn-ghost-border-style',
+    '--btn-ghost-border-width',
+    '--btn-ghost-border-color',
+    '--btn-ghost-radius',
+    '--btn-ghost-shadow',
+    '--btn-ghost-hover-bg',
+    '--btn-ghost-hover-color',
+    '--btn-ghost-hover-transform',
+    '--btn-ghost-hover-border-style',
+    '--btn-ghost-hover-border-color',
+    '--btn-ghost-hover-shadow',
+    '--btn-ghost-active-bg',
+    '--btn-ghost-active-color',
+    '--btn-ghost-active-transform',
+    '--btn-ghost-active-border-style',
+    '--btn-ghost-active-border-color',
+    '--btn-ghost-active-shadow',
+
+    '--btn-link-bg',
+    '--btn-link-color',
+    '--btn-link-border',
+    '--btn-link-border-style',
+    '--btn-link-border-width',
+    '--btn-link-border-color',
+    '--btn-link-radius',
+    '--btn-link-shadow',
+    '--btn-link-hover-bg',
+    '--btn-link-hover-color',
+    '--btn-link-hover-transform',
+    '--btn-link-hover-border-style',
+    '--btn-link-hover-border-color',
+    '--btn-link-hover-shadow',
+    '--btn-link-active-bg',
+    '--btn-link-active-color',
+    '--btn-link-active-transform',
+    '--btn-link-active-border-style',
+    '--btn-link-active-border-color',
+    '--btn-link-active-shadow',
   ];
 
   cssVarsToClear.forEach((cssVar) => {

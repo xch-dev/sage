@@ -1,0 +1,108 @@
+{
+    "name": "xch-light",
+    "displayName": "🌱 XCH Light",
+    "backgroundImage": "background.jpg",
+    "inherits": "light",
+    "most_like": "light",
+    "colors": {
+        "background": "hsl(207 78% 95%)",
+        "foreground": "hsl(215 25% 17%)",
+        "card": "hsl(207 78% 98%)",
+        "cardForeground": "hsl(215 25% 17%)",
+        "popover": "hsl(207 78% 98%)",
+        "popoverForeground": "hsl(215 25% 17%)",
+        "primary": "hsl(215 25% 26%)",
+        "primaryForeground": "hsl(74 100% 73%)",
+        "secondary": "hsl(224 40% 79%)",
+        "secondaryForeground": "hsl(215 25% 17%)",
+        "muted": "hsl(207 78% 92%)",
+        "mutedForeground": "hsl(215 25% 45%)",
+        "accent": "hsl(74 100% 73%)",
+        "accentForeground": "hsl(215 25% 17%)",
+        "destructive": "hsl(0 84% 60%)",
+        "destructiveForeground": "hsl(0 0% 98%)",
+        "border": "hsl(224 40% 85%)",
+        "input": "hsl(207 78% 96%)",
+        "ring": "hsl(74 100% 73%)"
+    },
+    "fonts": {
+        "heading": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "body": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        "mono": "JetBrains Mono, 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Source Code Pro', monospace"
+    },
+    "corners": {
+        "none": "0px",
+        "sm": "0.125rem",
+        "md": "0.375rem",
+        "lg": "0.5rem",
+        "xl": "0.75rem",
+        "2xl": "1rem",
+        "full": "9999px"
+    },
+    "buttons": {
+        "outline": {
+            "background": "transparent",
+            "color": "hsl(215 25% 26%)",
+            "border": "2px solid hsl(74 100% 73%)",
+            "borderRadius": "0.5rem",
+            "boxShadow": "0 1px 3px hsl(74 100% 73% / 0.2)",
+            "hover": {
+                "background": "hsl(74 100% 73% / 0.1)",
+                "color": "hsl(215 25% 17%)",
+                "transform": "translateY(-1px)",
+                "boxShadow": "0 2px 6px hsl(74 100% 73% / 0.3)"
+            }
+        },
+        "secondary": {
+            "background": "hsl(224 40% 79%)",
+            "color": "hsl(215 25% 17%)",
+            "border": "1px solid hsl(224 40% 79%)",
+            "borderRadius": "0.5rem",
+            "boxShadow": "0 1px 3px hsl(224 40% 79% / 0.4)",
+            "hover": {
+                "background": "hsl(224 40% 75%)",
+                "transform": "translateY(-1px)",
+                "boxShadow": "0 2px 6px hsl(224 40% 79% / 0.5)"
+            }
+        },
+        "primary": {
+            "background": "hsl(215 25% 26%)",
+            "color": "hsl(74 100% 73%)",
+            "border": "1px solid hsl(215 25% 26%)",
+            "borderRadius": "0.5rem",
+            "boxShadow": "0 2px 4px hsl(215 25% 26% / 0.3)",
+            "hover": {
+                "background": "hsl(215 25% 22%)",
+                "transform": "translateY(-1px)",
+                "boxShadow": "0 4px 8px hsl(215 25% 26% / 0.4)"
+            }
+        }
+    },
+    "buttonStyles": [
+        "glow",
+        "gradient"
+    ],
+    "switches": {
+        "checked": {
+            "background": "hsl(74 100% 73%)",
+            "thumbColor": "hsl(215 25% 26%)"
+        },
+        "unchecked": {
+            "background": "hsl(224 40% 85%)",
+            "thumbColor": "hsl(0 0% 100%)"
+        }
+    },
+    "shadows": {
+        "card": "0 4px 6px -1px hsl(207 78% 85% / 0.1), 0 2px 4px -1px hsl(207 78% 85% / 0.06)",
+        "button": "0 1px 3px hsl(74 100% 73% / 0.2)",
+        "input": "0 1px 2px hsl(224 40% 85% / 0.1)"
+    },
+    "mascot": "🌱",
+    "brandColors": {
+        "shock": "#E5FE75",
+        "mysticBlue": "#D2E3FE",
+        "periwinklePursuit": "#A8BEF1",
+        "starkBlue": "#42506C",
+        "morpheus": "#2C323C"
+    }
+}
