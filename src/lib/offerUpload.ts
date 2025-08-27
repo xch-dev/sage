@@ -71,7 +71,7 @@ export async function uploadToDexie(
     `https://${testnet ? 'api-testnet' : 'api'}.dexie.space/v1/offers`,
     {
       method: 'POST',
-      body: JSON.stringify({ offer }),
+      body: JSON.stringify({ offer, drop_only: true }),
       headers: {
         'Content-Type': 'application/json',
       },
