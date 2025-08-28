@@ -195,6 +195,10 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--table-row-backdrop-filter-webkit',
     '--table-footer-backdrop-filter',
     '--table-footer-backdrop-filter-webkit',
+    '--sidebar-background',
+    '--sidebar-backdrop-filter',
+    '--sidebar-backdrop-filter-webkit',
+    '--sidebar-border',
     '--btn-default-backdrop-filter',
     '--btn-default-backdrop-filter-webkit',
     '--btn-outline-backdrop-filter',
@@ -523,6 +527,38 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     root.setAttribute('data-theme-styles', buttonStyles.join(' '));
   } else {
     document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  }
+
+  // Apply sidebar-specific variables if defined
+  if (theme.sidebar) {
+    if (theme.sidebar.background) {
+      root.style.setProperty(
+        '--sidebar-background',
+        theme.sidebar.background,
+        'important',
+      );
+    }
+    if (theme.sidebar.backdropFilter) {
+      root.style.setProperty(
+        '--sidebar-backdrop-filter',
+        theme.sidebar.backdropFilter,
+        'important',
+      );
+    }
+    if (theme.sidebar.backdropFilterWebkit) {
+      root.style.setProperty(
+        '--sidebar-backdrop-filter-webkit',
+        theme.sidebar.backdropFilterWebkit,
+        'important',
+      );
+    }
+    if (theme.sidebar.border) {
+      root.style.setProperty(
+        '--sidebar-border',
+        theme.sidebar.border,
+        'important',
+      );
+    }
   }
 
   // Apply table-specific variables if defined
@@ -1060,6 +1096,13 @@ export interface Theme {
     card?: string;
     button?: string;
     dropdown?: string;
+  };
+  // Optional theme-specific sidebar configuration
+  sidebar?: {
+    background?: string;
+    backdropFilter?: string;
+    backdropFilterWebkit?: string;
+    border?: string;
   };
   // Optional theme-specific table configurations
   tables?: {

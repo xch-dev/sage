@@ -158,6 +158,13 @@ body {
     --btn-secondary-active-border-color: transparent;
     --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
+    --btn-destructive-backdrop-filter: none;
+    --btn-destructive-backdrop-filter-webkit: none;
+    --btn-ghost-backdrop-filter: none;
+    --btn-ghost-backdrop-filter-webkit: none;
+    --btn-link-backdrop-filter: none;
+    --btn-link-backdrop-filter-webkit: none;
+
     /* Theme-specific button style flags */
     --theme-has-gradient-buttons: 0;
     --theme-has-shimmer-effects: 0;
@@ -167,6 +174,12 @@ body {
 
     /* Navigation active background */
     --nav-active-bg: var(--primary);
+
+    /* Sidebar styling variables with defaults */
+    --sidebar-background: transparent;
+    --sidebar-backdrop-filter: none;
+    --sidebar-backdrop-filter-webkit: none;
+    --sidebar-border: var(--border);
 
     /* Table styling variables with defaults */
     --table-background: transparent;
