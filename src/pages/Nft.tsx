@@ -211,10 +211,10 @@ export default function Nft() {
                   >
                     <Trans>
                       {themeExists
-                        ? 'Theme Saved'
+                        ? t`Theme Saved`
                         : isSaving
-                          ? 'Saving...'
-                          : 'Save Theme'}
+                          ? t`Saving...`
+                          : t`Save Theme`}
                     </Trans>
                   </Button>
                 )}
