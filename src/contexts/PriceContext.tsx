@@ -113,10 +113,17 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         }
 
         const data = await response.json();
-        setXchUsdPrice(data.chia?.usd || 0);
+        const newPrice = data.chia?.usd;
+
+        if (newPrice && newPrice > 0) {
+          setXchUsdPrice(newPrice);
+        } else {
+          console.warn('Invalid XCH price received:', newPrice);
+          // Don't update the price if it's invalid, keep the previous value
+        }
       } catch (error) {
         console.error('Failed to fetch Chia price:', error);
-        setXchUsdPrice(0);
+        // Don't set to 0, keep the previous value
       }
     };
 
@@ -169,7 +176,6 @@ export function PriceProvider({ children }: { children: ReactNode }) {
       const priceData = catPrices[assetId.toLowerCase()];
       const xchPrice = priceData?.lastPrice;
 
-      // Handle null values properly
       if (xchPrice === null || xchPrice === undefined) {
         return '0.00';
       }
@@ -181,7 +187,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
 
   const getCatAskPriceInXch = useCallback(
     (assetId: string) => {
-      const priceData = catPrices[assetId];
+      const priceData = catPrices[assetId.toLowerCase()];
       return priceData?.askPrice ?? null;
     },
     [catPrices],
