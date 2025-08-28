@@ -9,12 +9,12 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
+  ArrowDownUp,
   ArrowLeftRight,
   BookUser,
   Cog,
   FilePenLine,
   Handshake,
-  HistoryIcon,
   Images,
   LogOut,
   MonitorCheck,
@@ -109,7 +109,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
       >
-        <HistoryIcon className={className} />
+        <ArrowDownUp className={className} />
       </NavLink>
     </nav>
   );
