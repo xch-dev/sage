@@ -4,6 +4,7 @@ import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -16,7 +17,6 @@ import { FileImage, FileText, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
-import { useTheme } from '@/contexts/ThemeContext';
 
 export default function Nft() {
   const navigate = useNavigate();
@@ -130,8 +130,6 @@ export default function Nft() {
     getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
   }, [nft?.owner_did]);
 
-  console.log(metadata);
-
   return (
     <>
       <Header title={nft?.name ?? t`Unknown NFT`} />
@@ -197,7 +195,6 @@ export default function Nft() {
                           });
                           await checkThemeExists();
                           await reloadThemes();
-                          console.log('Theme saved successfully');
                         } catch (error) {
                           addError({
                             kind: 'internal',
