@@ -72,6 +72,22 @@ body {
     --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1),
       0 2px 4px -2px rgb(0 0 0 / 0.1);
 
+    /* Default backdrop-filter values */
+    --card-backdrop-filter: none;
+    --card-backdrop-filter-webkit: none;
+    --popover-backdrop-filter: none;
+    --popover-backdrop-filter-webkit: none;
+    --surface-backdrop-filter: none;
+    --surface-backdrop-filter-webkit: none;
+    --input-backdrop-filter: none;
+    --input-backdrop-filter-webkit: none;
+    --table-header-backdrop-filter: none;
+    --table-header-backdrop-filter-webkit: none;
+    --table-row-backdrop-filter: none;
+    --table-row-backdrop-filter-webkit: none;
+    --table-footer-backdrop-filter: none;
+    --table-footer-backdrop-filter-webkit: none;
+
     /* Button-specific CSS variables with defaults */
     --btn-default-bg: var(--primary);
     --btn-default-color: var(--primary-foreground);
@@ -81,6 +97,8 @@ body {
     --btn-default-border-color: transparent;
     --btn-default-radius: var(--radius);
     --btn-default-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-default-backdrop-filter: none;
+    --btn-default-backdrop-filter-webkit: none;
     --btn-default-hover-bg: var(--primary);
     --btn-default-hover-color: var(--primary-foreground);
     --btn-default-hover-transform: none;
@@ -102,6 +120,8 @@ body {
     --btn-outline-border-color: var(--border);
     --btn-outline-radius: var(--radius);
     --btn-outline-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-outline-backdrop-filter: none;
+    --btn-outline-backdrop-filter-webkit: none;
     --btn-outline-hover-bg: var(--accent);
     --btn-outline-hover-color: var(--accent-foreground);
     --btn-outline-hover-transform: none;
@@ -123,6 +143,8 @@ body {
     --btn-secondary-border-color: transparent;
     --btn-secondary-radius: var(--radius);
     --btn-secondary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-secondary-backdrop-filter: none;
+    --btn-secondary-backdrop-filter-webkit: none;
     --btn-secondary-hover-bg: var(--secondary);
     --btn-secondary-hover-color: var(--secondary-foreground);
     --btn-secondary-hover-transform: none;
@@ -136,6 +158,13 @@ body {
     --btn-secondary-active-border-color: transparent;
     --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
+    --btn-destructive-backdrop-filter: none;
+    --btn-destructive-backdrop-filter-webkit: none;
+    --btn-ghost-backdrop-filter: none;
+    --btn-ghost-backdrop-filter-webkit: none;
+    --btn-link-backdrop-filter: none;
+    --btn-link-backdrop-filter-webkit: none;
+
     /* Theme-specific button style flags */
     --theme-has-gradient-buttons: 0;
     --theme-has-shimmer-effects: 0;
@@ -145,6 +174,12 @@ body {
 
     /* Navigation active background */
     --nav-active-bg: var(--primary);
+
+    /* Sidebar styling variables with defaults */
+    --sidebar-background: transparent;
+    --sidebar-backdrop-filter: none;
+    --sidebar-backdrop-filter-webkit: none;
+    --sidebar-border: var(--border);
 
     /* Table styling variables with defaults */
     --table-background: transparent;
@@ -224,6 +259,8 @@ body {
       var(--btn-default-border-color);
     border-radius: var(--btn-default-radius);
     box-shadow: var(--btn-default-shadow);
+    backdrop-filter: var(--btn-default-backdrop-filter);
+    -webkit-backdrop-filter: var(--btn-default-backdrop-filter-webkit);
     transition: all 0.2s ease;
   }
 
@@ -377,6 +414,8 @@ body {
     background: var(--table-row-background);
     color: var(--table-row-color);
     border: var(--table-row-border);
+    backdrop-filter: var(--table-row-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-row-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr:hover {
@@ -399,6 +438,59 @@ body {
     background: var(--table-footer-background);
     color: var(--table-footer-color);
     border: var(--table-footer-border);
+  }
+
+  /* Backdrop filter utility classes */
+  .backdrop-blur-card {
+    backdrop-filter: var(--card-backdrop-filter);
+    -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
+  }
+  
+  .backdrop-blur-popover {
+    backdrop-filter: var(--popover-backdrop-filter);
+    -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
+  }
+  
+  .backdrop-blur-surface {
+    backdrop-filter: var(--surface-backdrop-filter);
+    -webkit-backdrop-filter: var(--surface-backdrop-filter-webkit);
+  }
+  
+  .backdrop-blur-input {
+    backdrop-filter: var(--input-backdrop-filter);
+    -webkit-backdrop-filter: var(--input-backdrop-filter-webkit);
+  }
+
+  /* Apply backdrop filters to existing components */
+  .bg-card {
+    backdrop-filter: var(--card-backdrop-filter);
+    -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
+  }
+
+  .bg-popover {
+    backdrop-filter: var(--popover-backdrop-filter);
+    -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
+  }
+
+  .bg-input,
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  textarea,
+  select {
+    backdrop-filter: var(--input-backdrop-filter);
+    -webkit-backdrop-filter: var(--input-backdrop-filter-webkit);
+  }
+
+  .table-theme thead th {
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+  }
+
+  .table-theme tfoot th {
+    backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
   }
 }
 
