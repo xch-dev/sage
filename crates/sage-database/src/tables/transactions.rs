@@ -211,7 +211,7 @@ pub fn is_valid_asset_id(asset_id: &str) -> bool {
     asset_id.len() == 64 && asset_id.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-fn puzzle_hash_from_address(address: &str) -> Option<String> {
+pub fn puzzle_hash_from_address(address: &str) -> Option<String> {
     chia_wallet_sdk::utils::Address::decode(address)
         .map(|decoded| hex::encode(decoded.puzzle_hash.as_ref()))
         .ok()
