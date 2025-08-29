@@ -93,6 +93,7 @@ export function OptionSelector({
     return options
       .filter(
         (option) =>
+          option.launcher_id === searchTerm ||
           option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           option.underlying_asset.name
             ?.toLowerCase()
@@ -129,7 +130,10 @@ export function OptionSelector({
       onSelect={(option) => {
         onChange(option.launcher_id);
         setSelectedOption(option);
-        setSearchTerm('');
+        // Only clear search term if it's not a valid Option ID (i.e., user clicked on an item from the list)
+        if (!isValidAddress(searchTerm, 'option')) {
+          setSearchTerm('');
+        }
       }}
       className={className}
       manualInput={
