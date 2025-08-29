@@ -51,8 +51,18 @@ export function OptionSelector({
       commands
         .getOption({ option_id: searchTerm })
         .then((data) => {
-          setSelectedOption(data.option);
-          onChange(searchTerm);
+          // Only set the option if it's not expired
+          if (
+            data.option &&
+            data.option.expiration_seconds * 1000 >= Date.now()
+          ) {
+            setSelectedOption(data.option);
+            onChange(searchTerm);
+          } else {
+            // Clear the selection if the option is expired
+            setSelectedOption(null);
+            onChange('');
+          }
         })
         .catch(addError);
     }
@@ -72,7 +82,16 @@ export function OptionSelector({
           commands
             .getOption({ option_id: value })
             .then((data) => {
-              setSelectedOption(data.option);
+              // Only set the option if it's not expired
+              if (
+                data.option &&
+                data.option.expiration_seconds * 1000 >= Date.now()
+              ) {
+                setSelectedOption(data.option);
+              } else {
+                // Clear the selection if the option is expired
+                setSelectedOption(null);
+              }
             })
             .catch(addError);
         }
@@ -93,22 +112,24 @@ export function OptionSelector({
     return options
       .filter(
         (option) =>
-          option.launcher_id === searchTerm ||
-          option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.ticker
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.asset_id === searchTerm ||
-          option.strike_asset.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.strike_asset.ticker
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.strike_asset.asset_id === searchTerm,
+          // Filter out expired options
+          option.expiration_seconds * 1000 >= Date.now() &&
+          (option.launcher_id === searchTerm ||
+            option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.ticker
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.asset_id === searchTerm ||
+            option.strike_asset.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.strike_asset.ticker
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.strike_asset.asset_id === searchTerm),
       )
       .sort(
         (a, b) =>
