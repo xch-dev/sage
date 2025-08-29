@@ -89,9 +89,15 @@ export function FullLayout(props: LayoutProps) {
     <TooltipProvider>
       <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
-          className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
+          className={`hidden md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
-          }`}
+          } ${currentTheme?.sidebar ? '' : 'border-r bg-muted/40'}`}
+          style={currentTheme?.sidebar ? {
+            borderRight: '1px solid var(--sidebar-border)',
+            background: 'var(--sidebar-background)',
+            backdropFilter: 'var(--sidebar-backdrop-filter)',
+            WebkitBackdropFilter: 'var(--sidebar-backdrop-filter-webkit)',
+          } : {}}
           role='complementary'
           aria-label={t`Sidebar navigation`}
         >

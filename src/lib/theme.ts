@@ -181,6 +181,39 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--table-footer-background',
     '--table-footer-color',
     '--table-footer-border',
+    '--card-backdrop-filter',
+    '--card-backdrop-filter-webkit',
+    '--popover-backdrop-filter',
+    '--popover-backdrop-filter-webkit',
+    '--surface-backdrop-filter',
+    '--surface-backdrop-filter-webkit',
+    '--input-backdrop-filter',
+    '--input-backdrop-filter-webkit',
+    '--table-header-backdrop-filter',
+    '--table-header-backdrop-filter-webkit',
+    '--table-row-backdrop-filter',
+    '--table-row-backdrop-filter-webkit',
+    '--table-footer-backdrop-filter',
+    '--table-footer-backdrop-filter-webkit',
+    '--sidebar-background',
+    '--sidebar-backdrop-filter',
+    '--sidebar-backdrop-filter-webkit',
+    '--sidebar-border',
+    '--btn-default-backdrop-filter',
+    '--btn-default-backdrop-filter-webkit',
+    '--btn-outline-backdrop-filter',
+    '--btn-outline-backdrop-filter-webkit',
+    '--btn-secondary-backdrop-filter',
+    '--btn-secondary-backdrop-filter-webkit',
+    '--btn-destructive-backdrop-filter',
+    '--btn-destructive-backdrop-filter-webkit',
+    '--btn-ghost-backdrop-filter',
+    '--btn-ghost-backdrop-filter-webkit',
+    '--btn-link-backdrop-filter',
+    '--btn-link-backdrop-filter-webkit',
+    '--background-size',
+    '--background-position',
+    '--background-repeat',
   ];
 
   cssVarsToClear.forEach((cssVar) => {
@@ -194,6 +227,27 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       root.style.setProperty(cssVar, value || '', 'important');
     }
   });
+
+  // Apply backdrop-filter variables if defined in colors object
+  if (theme.colors) {
+    const backdropFilterMap: Record<string, string> = {
+      'cardBackdropFilter': '--card-backdrop-filter',
+      'cardBackdropFilterWebkit': '--card-backdrop-filter-webkit',
+      'popoverBackdropFilter': '--popover-backdrop-filter',
+      'popoverBackdropFilterWebkit': '--popover-backdrop-filter-webkit',
+      'surfaceBackdropFilter': '--surface-backdrop-filter',
+      'surfaceBackdropFilterWebkit': '--surface-backdrop-filter-webkit',
+      'inputBackdropFilter': '--input-backdrop-filter',
+      'inputBackdropFilterWebkit': '--input-backdrop-filter-webkit',
+    };
+
+    Object.entries(backdropFilterMap).forEach(([themeKey, cssVar]) => {
+      const value = (theme.colors as any)[themeKey];
+      if (value) {
+        root.style.setProperty(cssVar, value, 'important');
+      }
+    });
+  }
 
   // Apply theme-specific input background if defined
   if (theme.colors?.inputBackground) {
@@ -331,6 +385,20 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
             'important',
           );
         }
+        if (config.backdropFilter) {
+          root.style.setProperty(
+            `--btn-${variant}-backdrop-filter`,
+            config.backdropFilter,
+            'important',
+          );
+        }
+        if (config.backdropFilterWebkit) {
+          root.style.setProperty(
+            `--btn-${variant}-backdrop-filter-webkit`,
+            config.backdropFilterWebkit,
+            'important',
+          );
+        }
 
         // Apply hover styles
         if (config.hover) {
@@ -464,6 +532,38 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
   }
 
+  // Apply sidebar-specific variables if defined
+  if (theme.sidebar) {
+    if (theme.sidebar.background) {
+      root.style.setProperty(
+        '--sidebar-background',
+        theme.sidebar.background,
+        'important',
+      );
+    }
+    if (theme.sidebar.backdropFilter) {
+      root.style.setProperty(
+        '--sidebar-backdrop-filter',
+        theme.sidebar.backdropFilter,
+        'important',
+      );
+    }
+    if (theme.sidebar.backdropFilterWebkit) {
+      root.style.setProperty(
+        '--sidebar-backdrop-filter-webkit',
+        theme.sidebar.backdropFilterWebkit,
+        'important',
+      );
+    }
+    if (theme.sidebar.border) {
+      root.style.setProperty(
+        '--sidebar-border',
+        theme.sidebar.border,
+        'important',
+      );
+    }
+  }
+
   // Apply table-specific variables if defined
   if (theme.tables) {
     // Apply base table styles
@@ -590,6 +690,20 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
           );
         }
       }
+      if (theme.tables.row.backdropFilter) {
+        root.style.setProperty(
+          '--table-row-backdrop-filter',
+          theme.tables.row.backdropFilter,
+          'important',
+        );
+      }
+      if (theme.tables.row.backdropFilterWebkit) {
+        root.style.setProperty(
+          '--table-row-backdrop-filter-webkit',
+          theme.tables.row.backdropFilterWebkit,
+          'important',
+        );
+      }
     }
 
     // Apply cell styles
@@ -640,6 +754,38 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
           'important',
         );
       }
+      if (theme.tables.footer.backdropFilter) {
+        root.style.setProperty(
+          '--table-footer-backdrop-filter',
+          theme.tables.footer.backdropFilter,
+          'important',
+        );
+      }
+      if (theme.tables.footer.backdropFilterWebkit) {
+        root.style.setProperty(
+          '--table-footer-backdrop-filter-webkit',
+          theme.tables.footer.backdropFilterWebkit,
+          'important',
+        );
+      }
+    }
+
+    // Apply header backdrop filters
+    if (theme.tables.header) {
+      if (theme.tables.header.backdropFilter) {
+        root.style.setProperty(
+          '--table-header-backdrop-filter',
+          theme.tables.header.backdropFilter,
+          'important',
+        );
+      }
+      if (theme.tables.header.backdropFilterWebkit) {
+        root.style.setProperty(
+          '--table-header-backdrop-filter-webkit',
+          theme.tables.header.backdropFilterWebkit,
+          'important',
+        );
+      }
     }
   }
 
@@ -674,15 +820,35 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       `url(${theme.backgroundImage})`,
       'important',
     );
+    
+    // Set background sizing/positioning CSS variables for the actual app background
+    if (!isPreview) {
+      root.style.setProperty(
+        '--background-size',
+        theme.backgroundSize || 'cover',
+        'important',
+      );
+      root.style.setProperty(
+        '--background-position',
+        theme.backgroundPosition || 'center',
+        'important',
+      );
+      root.style.setProperty(
+        '--background-repeat',
+        theme.backgroundRepeat || 'no-repeat',
+        'important',
+      );
+    }
 
     // For document-wide themes, add class to body
     // For preview themes, add class to the element and apply background
     if (isPreview) {
       root.classList.add('has-background-image');
-      // Apply background image directly to preview element
+      // Apply background image directly to preview element - always use 'cover' for previews
       root.style.backgroundImage = `url(${theme.backgroundImage})`;
       root.style.backgroundSize = 'cover';
       root.style.backgroundPosition = 'center';
+      root.style.backgroundRepeat = 'no-repeat';
     } else {
       document.body.classList.add('has-background-image');
     }
@@ -714,6 +880,7 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       root.style.removeProperty('background-image');
       root.style.removeProperty('background-size');
       root.style.removeProperty('background-position');
+      root.style.removeProperty('background-repeat');
     } else {
       document.body.classList.remove('has-background-image');
     }
@@ -761,7 +928,7 @@ export function getThemeStyles(theme: Theme): Record<string, string> {
     styles.fontFamily = theme.fonts.body;
   }
 
-  // Apply background image
+  // Apply background image - always use 'cover' for component styling/previews
   if (theme.backgroundImage) {
     styles.backgroundImage = `url(${theme.backgroundImage})`;
     styles.backgroundSize = 'cover';
@@ -894,6 +1061,9 @@ export interface Theme {
   most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundPosition?: string;
+  backgroundRepeat?: string;
   isUserTheme?: boolean;
   backgroundOpacity?: {
     body?: number;
@@ -954,6 +1124,13 @@ export interface Theme {
     button?: string;
     dropdown?: string;
   };
+  // Optional theme-specific sidebar configuration
+  sidebar?: {
+    background?: string;
+    backdropFilter?: string;
+    backdropFilterWebkit?: string;
+    border?: string;
+  };
   // Optional theme-specific table configurations
   tables?: {
     background?: string;
@@ -966,11 +1143,15 @@ export interface Theme {
       border?: string;
       fontWeight?: string;
       fontSize?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
     };
     row?: {
       background?: string;
       color?: string;
       border?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -989,6 +1170,8 @@ export interface Theme {
       background?: string;
       color?: string;
       border?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
     };
   };
   // Optional theme-specific button configurations
@@ -1002,6 +1185,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -1028,6 +1213,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -1054,6 +1241,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -1080,6 +1269,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -1106,6 +1297,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -1132,6 +1325,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
