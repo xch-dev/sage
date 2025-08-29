@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT hash, uri, last_checked_timestamp, failed_attempts\n        FROM file_uris\n        INNER JOIN files ON files.id = file_uris.file_id\n        WHERE data IS NULL\n        AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)\n        AND failed_attempts < ?\n        ORDER BY last_checked_timestamp ASC\n        LIMIT ?\n        ",
+  "query": "\n        SELECT hash, uri, last_checked_timestamp, failed_attempts\n        FROM file_uris\n        INNER JOIN files ON files.id = file_uris.file_id\n        WHERE data IS NULL\n        AND (last_checked_timestamp IS NULL OR unixepoch() - last_checked_timestamp >= ?)\n        AND failed_attempts < ?\n        LIMIT ?\n        ",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "c5b1a7d051635ceafd46e18402b2016854de70dbeca4699fcc09621a906a7ca5"
+  "hash": "c5f5eda1f087a32a62c3c0752a4158ead7fc00f9bfc6d63b5613188d461c3b09"
 }

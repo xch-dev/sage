@@ -12,7 +12,7 @@ export interface OfferSummaryCardProps {
 
 export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
   return (
-    <div className='block p-4 rounded-sm bg-neutral-100 dark:bg-neutral-900'>
+    <div className='block p-4 rounded-sm bg-card border border-border'>
       <div className='flex justify-between'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-1'>

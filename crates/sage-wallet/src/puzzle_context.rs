@@ -153,7 +153,7 @@ pub async fn fetch_option(
 
     if launcher.coin.puzzle_hash != SINGLETON_LAUNCHER_HASH.into() {
         return Ok(None);
-    };
+    }
 
     let Ok(launcher_solution) = LauncherSolution::<OptionMetadata>::from_clvm(&allocator, solution)
     else {

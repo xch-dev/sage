@@ -1,6 +1,5 @@
-import { NftData, NftRecord } from '@/bindings';
+import { NftRecord } from '@/bindings';
 import { CopyBox } from '@/components/CopyBox';
-import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LinkIcon } from 'lucide-react';
@@ -8,16 +7,18 @@ import { toast } from 'react-toastify';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
+import { nftUri } from '@/lib/nftUri';
+
 interface AddUrlConfirmationProps {
   nft: NftRecord;
-  nftData: NftData | null;
+  thumbnail: string | null;
   url: string;
   kind: string;
 }
 
 export function AddUrlConfirmation({
   nft,
-  nftData,
+  thumbnail,
   url,
   kind,
 }: AddUrlConfirmationProps) {
@@ -44,7 +45,7 @@ export function AddUrlConfirmation({
             width='64'
             height='64'
             className='h-full w-full object-cover aspect-square color-[transparent]'
-            src={nftUri(nftData?.mime_type ?? null, nftData?.blob ?? null)}
+            src={nftUri('image/png', thumbnail)}
           />
         }
         title={nftName}

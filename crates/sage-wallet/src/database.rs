@@ -263,12 +263,9 @@ pub async fn insert_nft(
 
     let icon_url =
         if let Some(data_hash) = metadata.as_ref().and_then(|metadata| metadata.data_hash) {
-            tx.icon(data_hash).await?.map(|icon| {
-                base64_data_uri(
-                    &icon.data,
-                    &icon.mime_type.unwrap_or_else(|| "image/png".to_string()),
-                )
-            })
+            tx.icon(data_hash)
+                .await?
+                .map(|icon| base64_data_uri(&icon.data, "image/png"))
         } else {
             None
         };
@@ -317,7 +314,7 @@ pub async fn insert_nft(
                 tx.insert_collection(collection).await?;
             }
         }
-    };
+    }
 
     tx.insert_asset(asset).await?;
 

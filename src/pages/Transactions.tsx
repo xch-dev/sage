@@ -156,7 +156,7 @@ export function Transactions() {
       <Container>
         {transactions.length === 0 && !isLoading && !isPaginationLoading && (
           <Alert className='mb-4'>
-            <Info className='h-4 w-4' />
+            <Info className='h-4 w-4' aria-hidden='true' />
             <AlertTitle>
               <Trans>Note</Trans>
             </AlertTitle>

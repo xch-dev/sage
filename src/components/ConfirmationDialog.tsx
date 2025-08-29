@@ -7,6 +7,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { fromMojos } from '@/lib/utils';
@@ -29,7 +31,6 @@ import {
   ForwardIcon,
   InfoIcon,
   ListCollapseIcon,
-  LoaderCircleIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -65,6 +66,7 @@ export default function ConfirmationDialog({
 
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
+  const { currentTheme } = useTheme();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -177,7 +179,21 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'>
+      <DialogContent
+        className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'
+        style={{
+          backgroundImage: currentTheme?.backgroundImage
+            ? `url(${currentTheme.backgroundImage})`
+            : undefined,
+          backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
+          backgroundPosition: currentTheme?.backgroundImage
+            ? 'center'
+            : undefined,
+          backgroundRepeat: currentTheme?.backgroundImage
+            ? 'no-repeat'
+            : undefined,
+        }}
+      >
         <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
@@ -204,7 +220,7 @@ export default function ConfirmationDialog({
                   className='flex-1 rounded-md px-3 py-1 text-sm font-medium'
                 >
                   <div className='flex items-center justify-center'>
-                    <InfoIcon className='h-4 w-4 mr-2' />
+                    <InfoIcon className='h-4 w-4 mr-2' aria-hidden='true' />
                     <Trans>Summary</Trans>
                   </div>
                 </TabsTrigger>
@@ -214,7 +230,10 @@ export default function ConfirmationDialog({
                   className='flex-1 rounded-md px-3 py-1 text-sm font-medium'
                 >
                   <div className='flex items-center justify-center'>
-                    <ListCollapseIcon className='h-4 w-4 mr-2' />
+                    <ListCollapseIcon
+                      className='h-4 w-4 mr-2'
+                      aria-hidden='true'
+                    />
                     <Trans>Details</Trans>
                   </div>
                 </TabsTrigger>
@@ -224,7 +243,7 @@ export default function ConfirmationDialog({
                   className='flex-1 rounded-md px-3 py-1 text-sm font-medium'
                 >
                   <div className='flex items-center justify-center'>
-                    <BracesIcon className='h-4 w-4 mr-2' />
+                    <BracesIcon className='h-4 w-4 mr-2' aria-hidden='true' />
                     <Trans>JSON</Trans>
                   </div>
                 </TabsTrigger>
@@ -232,15 +251,13 @@ export default function ConfirmationDialog({
             </div>
 
             <div className='flex-1 relative'>
-              {/* Transaction Summary Tab */}
               <TabsContent
                 value='summary'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
-                {/* High Fee Warning */}
                 {isHighFee && !fee.isZero() && (
                   <Alert variant='warning' className='mb-3'>
-                    <AlertCircleIcon className='h-4 w-4' />
+                    <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
                     <AlertTitle>
                       <Trans>High Transaction Fee</Trans>
                     </AlertTitle>
@@ -252,9 +269,6 @@ export default function ConfirmationDialog({
                   </Alert>
                 )}
 
-                {/* Fee Display */}
-
-                {/* Additional Data Display */}
                 {additionalData && (
                   <div className='mb-4'>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
@@ -262,7 +276,7 @@ export default function ConfirmationDialog({
                       {additionalData.title}
                     </h3>
                     <div className='space-y-2'>
-                      <div className='flex items-start gap-2 text-sm border rounded-md p-2 bg-neutral-50 dark:bg-neutral-900'>
+                      <div className='flex items-start gap-2 text-sm border border-border rounded-md p-2 bg-card/30'>
                         <div className='break-words whitespace-pre-wrap w-full'>
                           {additionalData.content}
                         </div>
@@ -271,11 +285,13 @@ export default function ConfirmationDialog({
                   </div>
                 )}
 
-                {/* Combined Assets and Recipients */}
                 {showRecipientDetails && (
                   <div>
                     <h3 className='text-sm font-medium mb-2 flex items-center'>
-                      <ArrowUpIcon className='h-4 w-4 mr-1' />
+                      <ArrowUpIcon
+                        className='h-4 w-4 mr-1'
+                        aria-hidden='true'
+                      />
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
@@ -289,7 +305,10 @@ export default function ConfirmationDialog({
                               <span className='truncate'>{group.badge}</span>
                             </Badge>
                             <div className='flex items-center'>
-                              <ArrowUpRightIcon className='h-4 w-4 mr-1 text-blue-500' />
+                              <ArrowUpRightIcon
+                                className='h-4 w-4 mr-1 text-blue-500'
+                                aria-hidden='true'
+                              />
                               <Trans>Total:</Trans>{' '}
                               <span className='font-medium text-foreground ml-1'>
                                 {group.totalAmount} {group.ticker}
@@ -299,13 +318,12 @@ export default function ConfirmationDialog({
 
                           <Separator className='my-2' />
 
-                          {/* Show recipients */}
                           <div className='flex flex-col gap-2'>
                             <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
                               <div className='flex items-center'>
                                 <Trans>To:</Trans>{' '}
                                 {group.recipients.length > 1 && (
-                                  <span className='ml-1 text-xs bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded-full'>
+                                  <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
                                     <Trans id='sending_to_recipients'>
                                       Sending <span>{group.label}</span> to{' '}
                                       <span>{group.recipients.length}</span>{' '}
@@ -328,7 +346,10 @@ export default function ConfirmationDialog({
                                   key={address}
                                   className='flex items-center gap-1.5 min-w-0 w-full pl-2'
                                 >
-                                  <ForwardIcon className='w-4 h-4 text-blue-500 shrink-0' />
+                                  <ForwardIcon
+                                    className='w-4 h-4 text-blue-500 shrink-0'
+                                    aria-hidden='true'
+                                  />
                                   <div className='text-sm truncate flex-1'>
                                     {address}
                                   </div>
@@ -367,16 +388,14 @@ export default function ConfirmationDialog({
                 )}
               </TabsContent>
 
-              {/* Transaction Details Tab */}
               <TabsContent
                 value='details'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 <div className='flex flex-col gap-4'>
-                  {/* Spent Coins */}
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                      <BadgeMinus className='h-4 w-4 mr-1' />
+                      <BadgeMinus className='h-4 w-4 mr-1' aria-hidden='true' />
                       <Trans>Spent Coins</Trans>
                     </h3>
                     <div className='space-y-2'>
@@ -419,14 +438,12 @@ export default function ConfirmationDialog({
                     </div>
                   </div>
 
-                  {/* Transaction Output */}
                   <div>
                     <h3 className='text-sm font-semibold mb-2 flex items-center'>
-                      <BadgePlus className='h-4 w-4 mr-1' />
+                      <BadgePlus className='h-4 w-4 mr-1' aria-hidden='true' />
                       <Trans>Transaction Output</Trans>
                     </h3>
                     <div className='space-y-2'>
-                      {/* Fee */}
                       {!fee.isZero() && (
                         <div className='flex flex-col gap-1.5 rounded-md border p-2'>
                           <div className='flex items-center justify-between'>
@@ -452,7 +469,6 @@ export default function ConfirmationDialog({
                         </div>
                       )}
 
-                      {/* Created Coins */}
                       {created
                         .sort((a, b) => a.sort - b.sort)
                         .map((item) => (
@@ -465,7 +481,10 @@ export default function ConfirmationDialog({
                               <div className='font-medium'>{item.label}</div>
                             </div>
                             <div className='flex items-center gap-1.5'>
-                              <ForwardIcon className='w-4 h-4 shrink-0 text-blue-500' />
+                              <ForwardIcon
+                                className='w-4 h-4 shrink-0 text-blue-500'
+                                aria-hidden='true'
+                              />
                               <div className='text-sm truncate flex-1'>
                                 {item.address}
                               </div>
@@ -490,13 +509,12 @@ export default function ConfirmationDialog({
                 </div>
               </TabsContent>
 
-              {/* JSON Tab */}
               <TabsContent
                 value='json'
-                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-white dark:bg-neutral-950'
+                className='absolute inset-0 overflow-auto border rounded-md p-4 bg-card'
               >
                 <Alert variant='warning'>
-                  <AlertCircleIcon className='h-4 w-4' />
+                  <AlertCircleIcon className='h-4 w-4' aria-hidden='true' />
                   <AlertTitle>
                     <Trans>Advanced Feature</Trans>
                   </AlertTitle>
@@ -536,7 +554,10 @@ export default function ConfirmationDialog({
                   >
                     {signature ? (
                       <>
-                        <CheckCircleIcon className='h-4 w-4 mr-1' />
+                        <CheckCircleIcon
+                          className='h-4 w-4 mr-1'
+                          aria-hidden='true'
+                        />
                         <Trans>Signed</Trans>
                       </>
                     ) : (
@@ -552,19 +573,22 @@ export default function ConfirmationDialog({
                   >
                     {jsonCopied ? (
                       <>
-                        <CopyCheckIcon className='h-4 w-4 text-emerald-500' />
+                        <CopyCheckIcon
+                          className='h-4 w-4 text-emerald-500'
+                          aria-hidden='true'
+                        />
                         <Trans>Copied</Trans>
                       </>
                     ) : (
                       <>
-                        <CopyIcon className='h-4 w-4' />
+                        <CopyIcon className='h-4 w-4' aria-hidden='true' />
                         <Trans>Copy JSON</Trans>
                       </>
                     )}
                   </Button>
                 </div>
 
-                <div className='relative p-3 mt-4 break-all rounded-md bg-neutral-100 dark:bg-neutral-900 whitespace-pre-wrap text-xs font-mono'>
+                <div className='relative p-3 mt-4 break-all rounded-md bg-muted/50 text-foreground whitespace-pre-wrap text-xs font-mono'>
                   {json}
                 </div>
               </TabsContent>
@@ -598,7 +622,9 @@ export default function ConfirmationDialog({
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button
+          <LoadingButton
+            loading={pending}
+            loadingText={t`Submitting`}
             onClick={() => {
               setPending(true);
 
@@ -644,13 +670,9 @@ export default function ConfirmationDialog({
                 reset();
               })().finally(() => setPending(false));
             }}
-            disabled={pending}
           >
-            {pending && (
-              <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-            )}
-            {pending ? <Trans>Submitting</Trans> : <Trans>Submit</Trans>}
-          </Button>
+            <Trans>Submit</Trans>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -118,19 +118,24 @@ export function TokenCard({
 
           <div className='flex gap-2 mt-2 flex-wrap'>
             <Link to={`/wallet/send/${asset.asset_id ?? 'xch'}`}>
-              <Button>
-                <Send className='mr-2 h-4 w-4' /> <Trans>Send</Trans>
+              <Button variant='outline'>
+                <Send className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
+                <Trans>Send</Trans>
               </Button>
             </Link>
-            <Button variant={'outline'} onClick={() => setIsReceiveOpen(true)}>
-              <HandHelping className='mr-2 h-4 w-4' />
+            <Button variant='outline' onClick={() => setIsReceiveOpen(true)}>
+              <HandHelping className='mr-2 h-4 w-4' aria-hidden='true' />
               <Trans>Receive</Trans>
             </Button>
             {asset.asset_id && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant='outline' size='icon'>
-                    <MoreHorizontalIcon className='h-4 w-4' />
+                    <MoreHorizontalIcon
+                      className='h-4 w-4'
+                      aria-hidden='true'
+                      aria-label={t`More options`}
+                    />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>

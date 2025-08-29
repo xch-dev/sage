@@ -66,13 +66,18 @@ export function MakeOffer() {
     const hasOfferedNfts = state.offered.nfts.filter((n) => n).length > 0;
     const hasRequestedTokens = state.requested.tokens.length > 0;
     const hasRequestedNfts = state.requested.nfts.filter((n) => n).length > 0;
+    const hasOfferedOptions = state.offered.options.filter((o) => o).length > 0;
+    const hasRequestedOptions =
+      state.requested.options.filter((o) => o).length > 0;
 
     if (
       !(
         hasOfferedTokens ||
         hasOfferedNfts ||
         hasRequestedTokens ||
-        hasRequestedNfts
+        hasRequestedNfts ||
+        hasOfferedOptions ||
+        hasRequestedOptions
       )
     ) {
       addError({
@@ -167,7 +172,10 @@ export function MakeOffer() {
                   }}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm' id='price-currency'>
+                  <span
+                    className='text-muted-foreground text-sm'
+                    id='price-currency'
+                  >
                     {walletState.sync.unit.ticker}
                   </span>
                 </div>
@@ -217,7 +225,7 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>
+                      <span className='text-muted-foreground text-sm'>
                         <Trans>Days</Trans>
                       </span>
                     </div>
@@ -240,7 +248,7 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>
+                      <span className='text-muted-foreground text-sm'>
                         <Trans>Hours</Trans>
                       </span>
                     </div>
@@ -263,7 +271,7 @@ export function MakeOffer() {
                       }}
                     />
                     <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                      <span className='text-gray-500 text-sm'>
+                      <span className='text-muted-foreground text-sm'>
                         <Trans>Minutes</Trans>
                       </span>
                     </div>
@@ -306,7 +314,10 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           enabledMarketplaces={enabledMarketplaces}
-          clearOfferState={() => setState(null)}
+          clearOfferState={() => {
+            setState(null);
+            navigate('/offers', { replace: true });
+          }}
         />
       </Container>
     </>

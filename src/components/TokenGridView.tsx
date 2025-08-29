@@ -114,7 +114,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
               to={`/wallet/token/${token.asset_id ?? 'xch'}`}
             >
               <Card
-                className={`transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900 ${!token.visible ? 'opacity-50 grayscale' : ''}`}
+                className={`transition-colors ${!token.visible ? 'opacity-50 grayscale' : ''}`}
               >
                 <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2 space-x-2'>
                   <Tooltip>
@@ -139,7 +139,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     />{' '}
                     {token.ticker ?? ''}
                   </div>
-                  <div className='flex justify-between items-center text-sm text-neutral-500'>
+                  <div className='flex justify-between items-center text-sm text-muted-foreground'>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div>

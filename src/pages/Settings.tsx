@@ -64,9 +64,9 @@ import {
   WalletIcon,
 } from 'lucide-react';
 import prettyBytes from 'pretty-bytes';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
@@ -79,7 +79,8 @@ import {
   Wallet,
   WalletDefaults,
 } from '../bindings';
-import { DarkModeContext } from '../contexts/DarkModeContext';
+
+import { ThemeSelectorSimple } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
   const { wallet } = useWallet();
@@ -216,7 +217,7 @@ interface SettingsSectionProps {
 
 function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className='divide-y rounded-md border bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+    <div className='divide-y rounded-md border bg-card text-card-foreground overflow-hidden'>
       <div className='p-3'>
         <h3 className='text-sm font-medium'>{title}</h3>
       </div>
@@ -256,7 +257,6 @@ function SettingItem({
 
 function GlobalSettings() {
   const { addError } = useErrors();
-  const { dark, setDark } = useContext(DarkModeContext);
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
@@ -284,10 +284,24 @@ function GlobalSettings() {
     <>
       <SettingsSection title={t`Preferences`}>
         <SettingItem
-          label={t`Dark Mode`}
-          description={t`Switch between light and dark theme`}
-          control={<Switch checked={dark} onCheckedChange={setDark} />}
+          label={t`Theme`}
+          description={t`Choose your preferred theme`}
+          control={
+            <div className='w-full'>
+              {/* Theme selector will be added below */}
+            </div>
+          }
         />
+        <div>
+          <ThemeSelectorSimple />
+          <div className='m-4'>
+            <Link to='/themes'>
+              <Button variant='outline' size='sm'>
+                <Trans>More Themes...</Trans>
+              </Button>
+            </Link>
+          </div>
+        </div>
         {isMobile && (
           <SettingItem
             label={t`Biometric Authentication`}
@@ -769,13 +783,13 @@ function LogViewer() {
   const getLevelColor = (level: string) => {
     switch (level.toUpperCase()) {
       case 'ERROR':
-        return 'text-red-500 dark:text-red-400';
+        return 'text-red-500';
       case 'WARN':
-        return 'text-yellow-600 dark:text-yellow-500';
+        return 'text-yellow-600';
       case 'INFO':
-        return 'text-blue-600 dark:text-blue-500';
+        return 'text-blue-600';
       case 'DEBUG':
-        return 'text-slate-500 dark:text-slate-400';
+        return 'text-slate-500';
       default:
         return 'text-muted-foreground';
     }
@@ -1012,6 +1026,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [key, setKey] = useState<KeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
+  const [localChangeAddress, setLocalChangeAddress] = useState('');
   const [networks, setNetworks] = useState<Network[]>([]);
   const [deriveOpen, setDeriveOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -1022,6 +1037,20 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [maintenanceResults, setMaintenanceResults] =
     useState<PerformDatabaseMaintenanceResponse | null>(null);
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
+
+  const saveChangeAddress = (address: string) => {
+    const trimmedAddress = address.trim();
+    const currentAddress = wallet?.change_address || '';
+    if (trimmedAddress !== currentAddress) {
+      setChangeAddress(trimmedAddress || null);
+    }
+  };
+
+  const { handleScanOrPaste: handleScanOrPasteChangeAddress } =
+    useScannerOrClipboard((scanResValue) => {
+      setLocalChangeAddress(scanResValue);
+      saveChangeAddress(scanResValue);
+    });
 
   const fetchDatabaseStats = useCallback(async () => {
     setLoadingStats(true);
@@ -1070,6 +1099,9 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       .then((data) => {
         setWallet(data);
         if (data?.name) setLocalName(data.name);
+        if (data?.change_address) {
+          setLocalChangeAddress(data.change_address);
+        }
       })
       .catch(addError);
 
@@ -1101,6 +1133,32 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       addError(error as CustomError);
     }
     fetchState();
+  };
+
+  const setChangeAddress = async (address: string | null) => {
+    if (!wallet) return;
+    clearState();
+    try {
+      if (address) {
+        const { valid } = await commands.checkAddress({ address });
+        if (!valid) {
+          addError({
+            kind: 'not_found',
+            reason: t`Cannot send change to external address. Setting not updated.`,
+          });
+          return;
+        }
+      }
+      await commands.setChangeAddress({
+        fingerprint,
+        change_address: address || null,
+      });
+      setWallet({ ...wallet, change_address: address });
+    } catch (error) {
+      addError(error as CustomError);
+    } finally {
+      fetchState();
+    }
   };
 
   const derivationIndex = walletState.sync.unhardened_derivation_index;
@@ -1216,6 +1274,24 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
               </Select>
             </div>
           )}
+        </SettingItem>
+
+        <SettingItem
+          label={t`Change Address`}
+          description={t`Set a specific address to send change to`}
+          control={<div />}
+        >
+          <div className='mt-3'>
+            <PasteInput
+              placeholder={t`Enter change address`}
+              value={localChangeAddress}
+              onChange={(event) => setLocalChangeAddress(event.target.value)}
+              onBlur={() => {
+                saveChangeAddress(localChangeAddress);
+              }}
+              onEndIconClick={handleScanOrPasteChangeAddress}
+            />
+          </div>
         </SettingItem>
       </SettingsSection>
 

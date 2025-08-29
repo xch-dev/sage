@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy;
+use std::sync::LazyLock;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,17 +18,17 @@ impl Unit {
     }
 }
 
-pub static XCH: Lazy<Unit> = Lazy::new(|| Unit {
+pub static XCH: LazyLock<Unit> = LazyLock::new(|| Unit {
     ticker: "XCH".to_string(),
     precision: 12,
 });
 
-pub static TXCH: Lazy<Unit> = Lazy::new(|| Unit {
+pub static TXCH: LazyLock<Unit> = LazyLock::new(|| Unit {
     ticker: "TXCH".to_string(),
     precision: 12,
 });
 
-pub static MOJOS: Lazy<Unit> = Lazy::new(|| Unit {
+pub static MOJOS: LazyLock<Unit> = LazyLock::new(|| Unit {
     ticker: "Mojos".to_string(),
     precision: 0,
 });

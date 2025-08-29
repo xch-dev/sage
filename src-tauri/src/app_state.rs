@@ -30,7 +30,7 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                     error,
                 },
                 // TODO: New event?
-                SyncEvent::CoinsUpdated { .. }
+                SyncEvent::CoinsUpdated
                 | SyncEvent::TransactionUpdated { .. }
                 | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
                 SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,

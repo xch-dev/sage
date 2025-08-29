@@ -20,7 +20,7 @@ impl Wallet {
         memos: Vec<Bytes>,
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let sender_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let sender_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
         let mut actions = vec![Action::fee(fee)];

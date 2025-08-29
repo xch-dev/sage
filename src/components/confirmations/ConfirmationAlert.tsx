@@ -11,13 +11,10 @@ interface ConfirmationAlertProps {
 }
 
 const variantStyles = {
-  info: 'bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300',
-  warning:
-    'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300',
-  danger:
-    'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300',
-  success:
-    'bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300',
+  info: 'bg-blue-500/10 border-blue-500/30 text-blue-600',
+  warning: 'bg-amber-500/10 border-amber-500/30 text-amber-600',
+  danger: 'bg-red-500/10 border-red-500/30 text-red-600',
+  success: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600',
 };
 
 export function ConfirmationAlert({
@@ -29,7 +26,7 @@ export function ConfirmationAlert({
   return (
     <div className={`p-2 border rounded-md ${variantStyles[variant]}`}>
       <div className='font-medium mb-1 flex items-center'>
-        <Icon className='h-3 w-3 mr-1' />
+        <Icon className='h-3 w-3 mr-1' aria-hidden='true' />
         {title}
       </div>
       <div>{children}</div>

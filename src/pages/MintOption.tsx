@@ -136,16 +136,15 @@ export function MintOption() {
       <Header title={t`Mint Option`} />
 
       <Container>
-        <Alert variant='warning' className='mb-3'>
+        <Alert variant='warning' className='mb-4'>
           <AlertCircleIcon className='h-4 w-4' />
           <AlertTitle>
             <Trans>Experimental Feature</Trans>
           </AlertTitle>
           <AlertDescription>
             <Trans>
-              Option Contracts are an experimental feature that will lock up
-              your underlying assets until expiration or exercise. Support in
-              other apps is limited at this time.
+              Option Contracts are experimental and support in other apps is
+              limited.
             </Trans>
           </AlertDescription>
         </Alert>
@@ -160,9 +159,7 @@ export function MintOption() {
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                <Trans>
-                  Select the asset that you want to lock up in the option.
-                </Trans>
+                <Trans>Select the asset that you want to lock up.</Trans>
               </div>
 
               <div className='flex mt-4'>
@@ -177,12 +174,13 @@ export function MintOption() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='underlying-amount'
-                    className='border-l-0 z-10 rounded-l-none w-[100px] h-12'
+                    className='border-l-0 z-10 rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={underlyingAmount}
                     onValueChange={(values) => {
                       setUnderlyingAmount(values.value);
                     }}
+                    precision={underlyingAssetId === null ? 12 : 3}
                   />
                 </div>
               </div>
@@ -198,9 +196,7 @@ export function MintOption() {
             </CardHeader>
             <CardContent>
               <div className='text-sm text-muted-foreground'>
-                <Trans>
-                  Select the asset that you want to request as the strike price.
-                </Trans>
+                <Trans>Select the asset that you want to request.</Trans>
               </div>
 
               <div className='flex mt-4'>
@@ -215,12 +211,13 @@ export function MintOption() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='strike-amount'
-                    className='border-l-0 z-10 rounded-l-none w-[100px] h-12'
+                    className='border-l-0 z-10 rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={strikeAmount}
                     onValueChange={(values) => {
                       setStrikeAmount(values.value);
                     }}
+                    precision={strikeAssetId === null ? 12 : 3}
                   />
                 </div>
               </div>
@@ -240,7 +237,7 @@ export function MintOption() {
                   onValueChange={(values) => setDays(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Days</Trans>
                   </span>
                 </div>
@@ -255,7 +252,7 @@ export function MintOption() {
                   onValueChange={(values) => setHours(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Hours</Trans>
                   </span>
                 </div>
@@ -270,7 +267,7 @@ export function MintOption() {
                   onValueChange={(values) => setMinutes(values.value)}
                 />
                 <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-gray-500 text-sm'>
+                  <span className='text-muted-foreground text-sm'>
                     <Trans>Minutes</Trans>
                   </span>
                 </div>
@@ -290,7 +287,10 @@ export function MintOption() {
               onValueChange={(values) => setFee(values.value)}
             />
             <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-              <span className='text-gray-500 text-sm' id='price-currency'>
+              <span
+                className='text-muted-foreground text-sm'
+                id='price-currency'
+              >
                 {walletState.sync.unit.ticker}
               </span>
             </div>

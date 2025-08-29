@@ -17,7 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
@@ -29,6 +31,7 @@ import {
   walletConnectCommands,
 } from '@/walletconnect/commands';
 import { handleCommand } from '@/walletconnect/handler';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
@@ -151,14 +154,15 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
 
       try {
         const {
-          params: { pairingTopic, requiredNamespaces },
+          params: { pairingTopic, requiredNamespaces, optionalNamespaces },
         } = proposal;
 
         if (!pairingTopic) {
           throw new Error('Pairing topic not found');
         }
 
-        const requiredNamespace = requiredNamespaces.chia;
+        const requiredNamespace =
+          requiredNamespaces.chia || optionalNamespaces.chia;
         if (!requiredNamespace) {
           throw new Error('Missing required chia namespace');
         }
@@ -700,6 +704,8 @@ function RequestDialog({
   reject,
   signClient,
 }: RequestDialogProps) {
+  const [isApproving, setIsApproving] = useState(false);
+  const { currentTheme } = useTheme();
   const method = request.params.request.method as WalletConnectCommand;
   const params = request.params.request.params;
   const commandInfo = walletConnectCommands[method];
@@ -722,7 +728,21 @@ function RequestDialog({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
-      <DialogContent className='max-w-2xl'>
+      <DialogContent
+        className='max-w-2xl'
+        style={{
+          backgroundImage: currentTheme?.backgroundImage
+            ? `url(${currentTheme.backgroundImage})`
+            : undefined,
+          backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
+          backgroundPosition: currentTheme?.backgroundImage
+            ? 'center'
+            : undefined,
+          backgroundRepeat: currentTheme?.backgroundImage
+            ? 'no-repeat'
+            : undefined,
+        }}
+      >
         <DialogHeader>
           {peerMetadata && (
             <div className='text-sm text-muted-foreground mb-4'>
@@ -743,7 +763,20 @@ function RequestDialog({
               Reject
             </Button>
           </DialogClose>
-          <Button onClick={() => approve(request)}>Approve</Button>
+          <LoadingButton
+            loading={isApproving}
+            loadingText={t`Approving`}
+            onClick={async () => {
+              setIsApproving(true);
+              try {
+                await approve(request);
+              } finally {
+                setIsApproving(false);
+              }
+            }}
+          >
+            <Trans>Approve</Trans>
+          </LoadingButton>
         </DialogFooter>
       </DialogContent>
     </Dialog>

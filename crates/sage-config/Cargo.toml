@@ -1,6 +1,6 @@
 [package]
 name = "sage-config"
-version = "0.11.1"
+version = "0.12.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "Configuration for the Sage wallet."
@@ -22,7 +22,6 @@ serde_with = { workspace = true, features = ["hex"] }
 indexmap = { workspace = true, features = ["serde"] }
 specta = { workspace = true, features = ["derive", "indexmap"] }
 hex = { workspace = true }
-once_cell = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

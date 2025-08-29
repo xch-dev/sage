@@ -169,7 +169,7 @@ export function DropdownSelector<T>({
 
       {isOpen && (
         <div
-          className={`absolute z-50 mt-2 ${width} bg-background border rounded-md shadow-lg`}
+          className={`absolute z-50 mt-2 ${width} bg-popover border rounded-md shadow-lg`}
           role='listbox'
           aria-label='Options'
         >
@@ -257,12 +257,12 @@ export function DropdownSelector<T>({
                     role='option'
                     aria-selected={i === selectedIndex}
                     aria-disabled={disabled}
-                    className={`px-2 py-1.5 text-sm rounded-sm cursor-pointer ${
+                    className={`px-2 py-1.5 text-sm rounded-sm ${
                       disabled
                         ? 'opacity-50 cursor-not-allowed'
                         : i === selectedIndex
-                          ? 'bg-accent'
-                          : 'hover:bg-accent'
+                          ? 'bg-accent cursor-pointer'
+                          : 'hover:bg-accent cursor-pointer'
                     }`}
                   >
                     {renderItem(item)}

@@ -142,6 +142,7 @@ impl TestWallet {
             intermediate_pk,
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
+            None,
         ));
 
         let (mut sync_manager, sender, events) = SyncManager::new(
@@ -243,7 +244,7 @@ impl TestWallet {
     }
 
     pub async fn wait_for_coins(&mut self) {
-        self.consume_until(|event| matches!(event, SyncEvent::CoinsUpdated { .. }))
+        self.consume_until(|event| matches!(event, SyncEvent::CoinsUpdated))
             .await;
     }
 

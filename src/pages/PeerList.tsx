@@ -246,13 +246,13 @@ const MobileRow = ({
 
         <div className='mt-3 grid grid-cols-2 gap-2 text-sm text-muted-foreground'>
           <div className='flex items-center space-x-2'>
-            <span className='text-gray-500'>
+            <span className='text-muted-foreground'>
               <Trans>Height:</Trans>
             </span>
             <span>{peer.peak_height.toLocaleString()}</span>
           </div>
           <div className='flex items-center justify-end space-x-2'>
-            <span className='text-gray-500'>
+            <span className='text-muted-foreground'>
               <Trans>Port:</Trans>
             </span>
             <span>{peer.port}</span>
@@ -536,7 +536,6 @@ export default function PeerList() {
           </CardContent>
         </Card>
 
-        {/* Sync Status Section */}
         <Card className='rounded-md border mt-4'>
           <CardHeader>
             <CardTitle>
@@ -545,7 +544,6 @@ export default function PeerList() {
           </CardHeader>
           <CardContent>
             <div className='space-y-4'>
-              {/* Coin Sync Progress */}
               <div className='space-y-2'>
                 <div className='flex justify-between items-center text-sm'>
                   <span className='text-muted-foreground'>
@@ -572,7 +570,6 @@ export default function PeerList() {
                 </div>
               </div>
 
-              {/* File Sync Progress */}
               <div className='space-y-2'>
                 <div className='flex justify-between items-center text-sm'>
                   <span className='text-muted-foreground'>

@@ -1,4 +1,4 @@
-import { commands, NftData, NftRecord, TransactionResponse } from '@/bindings';
+import { commands, NftRecord, TransactionResponse } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
@@ -34,14 +34,14 @@ import {
 export interface MultiSelectActionsProps {
   selected: string[];
   nfts?: NftRecord[];
-  nftData?: Record<string, NftData | null>;
+  thumbnails?: Record<string, string | null>;
   onConfirm: () => void;
 }
 
 export function MultiSelectActions({
   selected,
   nfts: propNfts,
-  nftData: propNftData,
+  thumbnails: propThumbnails,
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
@@ -64,15 +64,15 @@ export function MultiSelectActions({
 
   // State for fetched NFT data when props aren't provided
   const [fetchedNfts, setFetchedNfts] = useState<NftRecord[]>([]);
-  const [fetchedNftData, setFetchedNftData] = useState<
-    Record<string, NftData | null>
+  const [fetchedThumbnails, setFetchedThumbnails] = useState<
+    Record<string, string | null>
   >({});
 
   // Use prop values if provided, otherwise use fetched values
   const nfts = propNfts?.length ? propNfts : fetchedNfts;
-  const nftData = Object.keys(propNftData || {}).length
-    ? propNftData || {}
-    : fetchedNftData;
+  const thumbnails = Object.keys(propThumbnails || {}).length
+    ? propThumbnails || {}
+    : fetchedThumbnails;
 
   const selectedCount = selected.length;
 
@@ -103,7 +103,7 @@ export function MultiSelectActions({
   useEffect(() => {
     // Skip if we already have NFT data from props or if there are no NFT records
     if (
-      (propNftData && Object.keys(propNftData).length > 0) ||
+      (propThumbnails && Object.keys(propThumbnails).length > 0) ||
       (fetchedNfts.length === 0 && (!propNfts || propNfts.length === 0))
     )
       return;
@@ -112,21 +112,21 @@ export function MultiSelectActions({
 
     const fetchNftData = async () => {
       try {
-        const data: Record<string, NftData | null> = {};
+        const data: Record<string, string | null> = {};
         for (const nft of nftsToFetch) {
-          const response = await commands.getNftData({
+          const response = await commands.getNftThumbnail({
             nft_id: nft.launcher_id,
           });
-          data[nft.launcher_id] = response.data;
+          data[nft.launcher_id] = response.thumbnail;
         }
-        setFetchedNftData(data);
+        setFetchedThumbnails(data);
       } catch (error: unknown) {
         addError(error as CustomError);
       }
     };
 
     fetchNftData();
-  }, [fetchedNfts, propNfts, propNftData, addError]);
+  }, [fetchedNfts, propNfts, propThumbnails, addError]);
 
   const onTransferSubmit = (address: string, fee: string) => {
     setIsTransferring(true);
@@ -181,14 +181,11 @@ export function MultiSelectActions({
   return (
     <>
       <div
-        className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-white border border-neutral-200 dark:border-neutral-800 dark:bg-neutral-900'
+        className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
         role='region'
         aria-label={t`Selected NFTs actions`}
       >
-        <span
-          className='flex-shrink-0 text-neutral-900 dark:text-white'
-          aria-live='polite'
-        >
+        <span className='flex-shrink-0 text-card-foreground' aria-live='polite'>
           <Trans>{selectedCount} selected</Trans>
         </span>
         <DropdownMenu>
@@ -349,7 +346,11 @@ export function MultiSelectActions({
             ? {
                 title: t`Burn NFT`,
                 content: (
-                  <NftConfirmation type='burn' nfts={nfts} nftData={nftData} />
+                  <NftConfirmation
+                    type='burn'
+                    nfts={nfts}
+                    thumbnails={thumbnails}
+                  />
                 ),
               }
             : isTransferring && response && nfts.length > 0
@@ -359,7 +360,7 @@ export function MultiSelectActions({
                     <NftConfirmation
                       type='transfer'
                       nfts={nfts}
-                      nftData={nftData}
+                      thumbnails={thumbnails}
                       address={transferAddress}
                     />
                   ),
@@ -371,7 +372,7 @@ export function MultiSelectActions({
                       <NftConfirmation
                         type='edit'
                         nfts={nfts}
-                        nftData={nftData}
+                        thumbnails={thumbnails}
                         profileId={assignedProfileId}
                       />
                     ),

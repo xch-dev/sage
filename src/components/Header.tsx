@@ -1,14 +1,12 @@
-import { DarkModeContext } from '@/contexts/DarkModeContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
-import { PropsWithChildren, ReactNode, useContext } from 'react';
+import { PropsWithChildren, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
@@ -35,14 +33,15 @@ export default function Header(
   const insets = useInsets();
 
   const { wallet } = useWallet();
-  const { dark } = useContext(DarkModeContext);
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
 
+  const { currentTheme } = useTheme();
+
   return (
     <header
-      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 bg-background z-10 ${
+      className={`flex items-center gap-4 px-4 md:px-6 sticky top-0 z-10 ${
         !isMobile ? 'pt-2' : 'pb-2 pt-2'
       }`}
       role='banner'
@@ -54,7 +53,7 @@ export default function Header(
             variant='outline'
             size='icon'
             onClick={() => (props.back ? props.back() : navigate(-1))}
-            className='md:hidden text-muted-foreground'
+            className='md:hidden text-muted-foreground flex-shrink-0'
             aria-label={t`Back`}
           >
             <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />
@@ -88,25 +87,47 @@ export default function Header(
             paddingBottom: insets.bottom
               ? `${insets.bottom + 16}px`
               : 'env(safe-area-inset-bottom)',
+            ...(currentTheme?.backgroundImage && {
+              backgroundImage: `url(${currentTheme.backgroundImage})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'scroll',
+              backgroundColor: 'transparent',
+              transform: 'translateZ(0)',
+              willChange: 'transform',
+            }),
           }}
         >
           <div className='mt-4'>
             <Link
               to='/wallet'
-              className='flex items-center gap-2 font-semibold'
+              className='flex items-center gap-2 font-semibold font-heading'
               aria-label={t`Go to wallet`}
             >
-              <img
-                src={dark ? iconLight : iconDark}
-                className='h-6 w-6'
-                alt={t`Wallet icon`}
-              />
+              {wallet?.emoji ? (
+                <span
+                  className='text-xl'
+                  role='img'
+                  aria-label='Wallet emoji'
+                  aria-hidden='true'
+                >
+                  {wallet.emoji}
+                </span>
+              ) : (
+                <img
+                  src={currentTheme?.icon_path}
+                  className='h-6 w-6'
+                  alt={t`Wallet icon`}
+                  aria-hidden='true'
+                />
+              )}
               <span className='text-lg'>{wallet?.name}</span>
             </Link>
           </div>
           <TopNav />
           <div
-            className={`mt-auto grid gap-1 text-md font-medium ${!isMobile ? 'pb-4' : ''}`}
+            className={`mt-auto grid gap-1 text-md font-medium font-body ${!isMobile ? 'pb-4' : ''}`}
           >
             <BottomNav />
           </div>
@@ -126,7 +147,7 @@ export default function Header(
         </div>
         <div className='flex-1 flex justify-between items-center gap-4 md:h-8 md:my-1'>
           <div className='flex items-center gap-4'>
-            <h1 className='text-xl font-bold tracking-tight md:text-3xl'>
+            <h1 className='text-xl font-bold tracking-tight md:text-3xl font-heading truncate'>
               {props.title}
             </h1>
             <AnimatePresence mode='wait'>

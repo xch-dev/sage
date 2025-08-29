@@ -1,5 +1,6 @@
 import Container from '@/components/Container';
 import Header from '@/components/Header';
+import { PasteInput } from '@/components/PasteInput';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,11 +10,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { CustomError } from '@/contexts/ErrorContext';
-import { useErrors } from '@/hooks/useErrors';
 import { useDerivationState } from '@/hooks/useDerivationState';
+import { useErrors } from '@/hooks/useErrors';
+import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CheckIcon, XCircleIcon } from 'lucide-react';
@@ -40,6 +41,11 @@ export default function Addresses() {
     pageSize,
     setCurrentPage,
   } = useDerivationState(hardened);
+
+  const { handleScanOrPaste } = useScannerOrClipboard((text: string) => {
+    setAddressToCheck(text);
+    setCheckStatus('idle');
+  });
 
   const pageCount = Math.ceil(totalDerivations / pageSize);
 
@@ -90,20 +96,16 @@ export default function Addresses() {
             </CardDescription>
           </CardHeader>
           <CardContent className='flex gap-2'>
-            <Input
+            <PasteInput
               placeholder={t`Enter address`}
               aria-label={t`Address to check`}
+              aria-describedby='checkAddressDescription'
               value={addressToCheck}
               onChange={(e) => {
                 setAddressToCheck(e.target.value);
                 setCheckStatus('idle');
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && addressToCheck) {
-                  handleCheckAddress();
-                }
-              }}
-              aria-describedby='checkAddressDescription'
+              onEndIconClick={handleScanOrPaste}
             />
             <Button
               variant='secondary'
@@ -128,7 +130,7 @@ export default function Addresses() {
                     ? t`Address is valid`
                     : t`Address is invalid`
               }
-              className='w-10'
+              className='w-9 h-9'
             >
               {checkStatus === 'idle' ? (
                 <CheckIcon className='h-4 w-4' aria-hidden='true' />

@@ -59,29 +59,34 @@ impl Wallet {
         let max_individual_amount = remaining_amount.div_ceil(output_count as u64);
         let derivations_needed = output_count.div_ceil(selected_coin_ids.len()) as u32;
 
-        let puzzle_hashes = self
-            .p2_puzzle_hashes(derivations_needed, false, true)
-            .await?;
+        let puzzle_hashes = if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
+            [change_p2_puzzle_hash].repeat(derivations_needed as usize)
+        } else {
+            self.p2_puzzle_hashes(derivations_needed, false, true)
+                .await?
+        };
 
         for &puzzle_hash in &puzzle_hashes {
-            if remaining_count == 0 {
-                break;
+            for _ in 0..selected_coin_ids.len() {
+                if remaining_count == 0 {
+                    break;
+                }
+
+                let amount = max_individual_amount.min(remaining_amount);
+                remaining_amount -= amount;
+                remaining_count -= 1;
+
+                actions.push(Action::send(
+                    asset_id.map_or(Id::Xch, Id::Existing),
+                    puzzle_hash,
+                    amount,
+                    if asset_id.is_some() {
+                        ctx.hint(puzzle_hash)?
+                    } else {
+                        Memos::None
+                    },
+                ));
             }
-
-            let amount = max_individual_amount.min(remaining_amount);
-            remaining_amount -= amount;
-            remaining_count -= 1;
-
-            actions.push(Action::send(
-                asset_id.map_or(Id::Xch, Id::Existing),
-                puzzle_hash,
-                amount,
-                if asset_id.is_some() {
-                    ctx.hint(puzzle_hash)?
-                } else {
-                    Memos::None
-                },
-            ));
         }
 
         let deltas = spends.apply(&mut ctx, &actions)?;

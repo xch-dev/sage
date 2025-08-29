@@ -1,10 +1,11 @@
 import { OfferAsset } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
-import { fromMojos } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, CheckCircleIcon, XCircleIcon } from 'lucide-react';
+import { AssetCoin } from './AssetCoin';
 import { AssetIcon } from './AssetIcon';
 import { CopyButton } from './CopyButton';
 import { Badge } from './ui/badge';
@@ -27,13 +28,13 @@ export interface AssetsProps {
 export function Assets({ assets, catPresence = {} }: AssetsProps) {
   return (
     <div className='flex flex-col gap-3'>
-      {assets.map(({ asset, amount, royalty, nft_royalty }) => (
+      {assets.map(({ asset, amount, royalty, nft_royalty, option_assets }) => (
         <div
           key={asset.asset_id ?? 'xch'}
           className='flex flex-col gap-2 rounded-lg border p-3'
         >
           <div className='flex items-center gap-2'>
-            <Badge className='px-2 py-0.5 bg-blue-600 text-white dark:bg-blue-600 dark:text-white'>
+            <Badge className='px-2 py-0.5 bg-blue-600 text-white'>
               <span className='truncate'>
                 {asset.ticker ??
                   (asset.kind === 'token' ? 'CAT' : asset.kind.toUpperCase())}
@@ -131,7 +132,7 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
 
               <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
                 <span>
-                  <span className='text-neutral-600 dark:text-neutral-300'>
+                  <span className='text-muted-foreground'>
                     {nft_royalty.royalty_basis_points / 100}% {t`royalty to`}{' '}
                   </span>
                   <span className='font-mono'>
@@ -144,6 +145,47 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                   value={nft_royalty.royalty_address}
                   className='w-4 h-4'
                 />
+              </div>
+            </>
+          )}
+
+          {option_assets && (
+            <>
+              <Separator className='my-1' />
+
+              <div className='flex flex-col gap-3'>
+                <div className='flex flex-col gap-2'>
+                  <div className='text-md text-muted-foreground'>
+                    <Trans>Underlying Asset</Trans>
+                  </div>
+                  <AssetCoin
+                    asset={option_assets.underlying_asset}
+                    amount={option_assets.underlying_amount}
+                    coinId={null}
+                  />
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  <div className='text-md text-muted-foreground'>
+                    <Trans>Strike Asset</Trans>
+                  </div>
+                  <AssetCoin
+                    asset={option_assets.strike_asset}
+                    amount={option_assets.strike_amount}
+                    coinId={null}
+                  />
+                </div>
+
+                <div className='flex items-center gap-2 text-md text-muted-foreground'>
+                  <span>
+                    <Trans>Expires:</Trans>{' '}
+                    {formatTimestamp(
+                      option_assets.expiration_seconds,
+                      'short',
+                      'short',
+                    )}
+                  </span>
+                </div>
               </div>
             </>
           )}
