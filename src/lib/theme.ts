@@ -211,6 +211,9 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--btn-ghost-backdrop-filter-webkit',
     '--btn-link-backdrop-filter',
     '--btn-link-backdrop-filter-webkit',
+    '--background-size',
+    '--background-position',
+    '--background-repeat',
   ];
 
   cssVarsToClear.forEach((cssVar) => {
@@ -817,15 +820,35 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       `url(${theme.backgroundImage})`,
       'important',
     );
+    
+    // Set background sizing/positioning CSS variables for the actual app background
+    if (!isPreview) {
+      root.style.setProperty(
+        '--background-size',
+        theme.backgroundSize || 'cover',
+        'important',
+      );
+      root.style.setProperty(
+        '--background-position',
+        theme.backgroundPosition || 'center',
+        'important',
+      );
+      root.style.setProperty(
+        '--background-repeat',
+        theme.backgroundRepeat || 'no-repeat',
+        'important',
+      );
+    }
 
     // For document-wide themes, add class to body
     // For preview themes, add class to the element and apply background
     if (isPreview) {
       root.classList.add('has-background-image');
-      // Apply background image directly to preview element
+      // Apply background image directly to preview element - always use 'cover' for previews
       root.style.backgroundImage = `url(${theme.backgroundImage})`;
       root.style.backgroundSize = 'cover';
       root.style.backgroundPosition = 'center';
+      root.style.backgroundRepeat = 'no-repeat';
     } else {
       document.body.classList.add('has-background-image');
     }
@@ -857,6 +880,7 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       root.style.removeProperty('background-image');
       root.style.removeProperty('background-size');
       root.style.removeProperty('background-position');
+      root.style.removeProperty('background-repeat');
     } else {
       document.body.classList.remove('has-background-image');
     }
@@ -904,7 +928,7 @@ export function getThemeStyles(theme: Theme): Record<string, string> {
     styles.fontFamily = theme.fonts.body;
   }
 
-  // Apply background image
+  // Apply background image - always use 'cover' for component styling/previews
   if (theme.backgroundImage) {
     styles.backgroundImage = `url(${theme.backgroundImage})`;
     styles.backgroundSize = 'cover';
@@ -1037,6 +1061,9 @@ export interface Theme {
   most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundPosition?: string;
+  backgroundRepeat?: string;
   isUserTheme?: boolean;
   backgroundOpacity?: {
     body?: number;
