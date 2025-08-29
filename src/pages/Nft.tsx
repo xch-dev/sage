@@ -398,25 +398,36 @@ export default function Nft() {
                   </div>
                 )}
               </div>
-              <div>
-                <Button
-                  variant='outline'
-                  onClick={() => {
-                    openUrl(
-                      `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
-                    );
-                  }}
-                  disabled={network === 'unknown'}
-                >
-                  <img
-                    src={spacescanLogo}
-                    className='h-4 w-4 mr-2'
-                    alt='Spacescan.io logo'
-                  />
-                  Spacescan.io
-                </Button>
+
+              <div className='space-y-2'>
+                <AddressItem
+                  label={t`Owner DID`}
+                  address={nft?.owner_did ?? ''}
+                />
+                {ownerProfile && (
+                  <div
+                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
+                    onClick={() =>
+                      openUrl(`https://mintgarden.io/${nft?.owner_did}`)
+                    }
+                  >
+                    {ownerProfile.avatar_uri && (
+                      <img
+                        src={ownerProfile.avatar_uri}
+                        alt={`${ownerProfile.name} avatar`}
+                        className='w-6 h-6 rounded-full'
+                        aria-hidden='true'
+                      />
+                    )}
+                    <div className='text-sm'>{ownerProfile.name}</div>
+                  </div>
+                )}
               </div>
 
+              <AddressItem
+                label={t`Royalties ${royaltyPercentage}%`}
+                address={nft?.royalty_address ?? ''}
+              />
               <div className='flex flex-col gap-4'>
                 {/* Requested Offers Section */}
                 <div className='flex flex-col gap-1'>
@@ -534,35 +545,6 @@ export default function Nft() {
                   )}
                 </div>
               </div>
-              <div className='space-y-2'>
-                <AddressItem
-                  label={t`Owner DID`}
-                  address={nft?.owner_did ?? ''}
-                />
-                {ownerProfile && (
-                  <div
-                    className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
-                    onClick={() =>
-                      openUrl(`https://mintgarden.io/${nft?.owner_did}`)
-                    }
-                  >
-                    {ownerProfile.avatar_uri && (
-                      <img
-                        src={ownerProfile.avatar_uri}
-                        alt={`${ownerProfile.name} avatar`}
-                        className='w-6 h-6 rounded-full'
-                        aria-hidden='true'
-                      />
-                    )}
-                    <div className='text-sm'>{ownerProfile.name}</div>
-                  </div>
-                )}
-              </div>
-
-              <AddressItem
-                label={t`Royalties ${royaltyPercentage}%`}
-                address={nft?.royalty_address ?? ''}
-              />
             </CardContent>
           </Card>
 
