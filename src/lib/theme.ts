@@ -100,6 +100,11 @@ export async function loadBuiltInTheme(
 }
 
 export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
+  // For preview mode, apply complete isolation
+  if (isPreview) {
+    return applyThemeIsolated(theme, root);
+  }
+
   // Only manipulate classes if not a preview
   if (!isPreview) {
     // Remove any existing theme classes
@@ -899,144 +904,95 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
 }
 
 /**
- * Extracts theme properties into a styles object for component use
- * This is a subset of applyTheme logic focused on component styling
+ * Applies theme with complete isolation from ambient theme
+ * Sets all theme values as CSS variables with fallbacks, ensuring no inheritance
  */
-export function getThemeStyles(theme: Theme): Record<string, string> {
-  const styles: Record<string, string> = {};
+function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
+  // Set all CSS variables with explicit values, no inheritance
+  const allVars: Record<string, string> = {};
 
-  // Apply background color - use card color, or background color as fallback
-  if (theme.colors?.card) {
-    styles.backgroundColor = theme.colors.card;
-  } else if (theme.colors?.background) {
-    styles.backgroundColor = theme.colors.background;
-  }
+  // Core colors with fallbacks
+  allVars['--background'] = theme.colors?.background || 'hsl(0 0% 100%)';
+  allVars['--foreground'] = theme.colors?.foreground || 'hsl(0 0% 3.9%)';
+  allVars['--card'] = theme.colors?.card || theme.colors?.background || 'hsl(0 0% 98%)';
+  allVars['--card-foreground'] = theme.colors?.cardForeground || theme.colors?.foreground || 'hsl(0 0% 3.9%)';
+  allVars['--popover'] = theme.colors?.popover || theme.colors?.card || 'hsl(0 0% 100%)';
+  allVars['--popover-foreground'] = theme.colors?.popoverForeground || theme.colors?.foreground || 'hsl(0 0% 3.9%)';
+  allVars['--primary'] = theme.colors?.primary || 'hsl(0 0% 9%)';
+  allVars['--primary-foreground'] = theme.colors?.primaryForeground || 'hsl(0 0% 98%)';
+  allVars['--secondary'] = theme.colors?.secondary || 'hsl(0 0% 96.1%)';
+  allVars['--secondary-foreground'] = theme.colors?.secondaryForeground || 'hsl(0 0% 9%)';
+  allVars['--muted'] = theme.colors?.muted || theme.colors?.secondary || 'hsl(0 0% 96.1%)';
+  allVars['--muted-foreground'] = theme.colors?.mutedForeground || 'hsl(0 0% 45.1%)';
+  allVars['--accent'] = theme.colors?.accent || theme.colors?.secondary || 'hsl(0 0% 96.1%)';
+  allVars['--accent-foreground'] = theme.colors?.accentForeground || theme.colors?.foreground || 'hsl(0 0% 9%)';
+  allVars['--destructive'] = theme.colors?.destructive || 'hsl(0 84.2% 60.2%)';
+  allVars['--destructive-foreground'] = theme.colors?.destructiveForeground || 'hsl(0 0% 98%)';
+  allVars['--border'] = theme.colors?.border || 'hsl(0 0% 89.8%)';
+  allVars['--input'] = theme.colors?.input || theme.colors?.border || 'hsl(0 0% 89.8%)';
+  allVars['--input-background'] = theme.colors?.inputBackground || theme.colors?.background || 'hsl(0 0% 100%)';
+  allVars['--ring'] = theme.colors?.ring || theme.colors?.primary || 'hsl(0 0% 3.9%)';
 
-  // Apply text color - use card foreground, or foreground as fallback
-  if (theme.colors?.cardForeground) {
-    styles.color = theme.colors.cardForeground;
-  } else if (theme.colors?.foreground) {
-    styles.color = theme.colors.foreground;
-  }
+  // Chart colors
+  allVars['--chart-1'] = theme.colors?.chart1 || 'hsl(12 76% 61%)';
+  allVars['--chart-2'] = theme.colors?.chart2 || 'hsl(173 58% 39%)';
+  allVars['--chart-3'] = theme.colors?.chart3 || 'hsl(197 37% 24%)';
+  allVars['--chart-4'] = theme.colors?.chart4 || 'hsl(43 74% 66%)';
+  allVars['--chart-5'] = theme.colors?.chart5 || 'hsl(27 87% 67%)';
 
-  // Apply border
-  if (theme.colors?.border) {
-    styles.border = `1px solid ${theme.colors.border}`;
-  }
+  // Fonts
+  allVars['--font-sans'] = theme.fonts?.sans || 'Inter, system-ui, sans-serif';
+  allVars['--font-serif'] = theme.fonts?.serif || 'Georgia, serif';
+  allVars['--font-mono'] = theme.fonts?.mono || 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace';
+  allVars['--font-heading'] = theme.fonts?.heading || theme.fonts?.sans || 'Inter, system-ui, sans-serif';
+  allVars['--font-body'] = theme.fonts?.body || theme.fonts?.sans || 'Inter, system-ui, sans-serif';
 
-  // Apply border radius
-  if (theme.corners?.lg) {
-    styles.borderRadius = theme.corners.lg;
-  }
+  // Corners
+  allVars['--corner-none'] = theme.corners?.none || '0px';
+  allVars['--corner-sm'] = theme.corners?.sm || '0.125rem';
+  allVars['--corner-md'] = theme.corners?.md || '0.375rem';
+  allVars['--corner-lg'] = theme.corners?.lg || '0.5rem';
+  allVars['--corner-xl'] = theme.corners?.xl || '0.75rem';
+  allVars['--corner-full'] = theme.corners?.full || '9999px';
 
-  // Apply box shadow
-  if (theme.shadows?.card) {
-    styles.boxShadow = theme.shadows.card;
-  }
+  // Shadows
+  allVars['--shadow-none'] = theme.shadows?.none || 'none';
+  allVars['--shadow-sm'] = theme.shadows?.sm || '0 1px 2px 0 rgb(0 0 0 / 0.05)';
+  allVars['--shadow-md'] = theme.shadows?.md || '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)';
+  allVars['--shadow-lg'] = theme.shadows?.lg || '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+  allVars['--shadow-xl'] = theme.shadows?.xl || '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)';
+  allVars['--shadow-inner'] = theme.shadows?.inner || 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)';
+  allVars['--shadow-card'] = theme.shadows?.card || '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)';
+  allVars['--shadow-button'] = theme.shadows?.button || '0 1px 2px 0 rgb(0 0 0 / 0.05)';
+  allVars['--shadow-dropdown'] = theme.shadows?.dropdown || '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)';
 
-  // Apply font family
-  if (theme.fonts?.body) {
-    styles.fontFamily = theme.fonts.body;
-  }
+  // Apply all variables
+  Object.entries(allVars).forEach(([key, value]) => {
+    root.style.setProperty(key, value, 'important');
+  });
 
-  // Apply background image
+  // Set theme class for CSS selectors
+  root.classList.add(`theme-${theme.name}`);
+
+  // Set data attributes for theme styles
+  const buttonStyles = theme.buttonStyles || [];
+  root.setAttribute('data-theme-styles', buttonStyles.join(' '));
+
+  // Apply background image if present
   if (theme.backgroundImage) {
-    styles.backgroundImage = `url(${theme.backgroundImage})`;
-    styles.backgroundSize = 'cover';
-    styles.backgroundPosition = 'center';
-    styles.backgroundRepeat = 'no-repeat';
+    root.style.setProperty('--background-image', `url(${theme.backgroundImage})`, 'important');
+    root.classList.add('has-background-image');
+
+    // Apply background directly for preview
+    root.style.backgroundImage = `url(${theme.backgroundImage})`;
+    root.style.backgroundSize = 'cover';
+    root.style.backgroundPosition = 'center';
+    root.style.backgroundRepeat = 'no-repeat';
   }
 
-  return styles;
-}
-
-export function getPreviewButtonStyles(
-  theme: Theme,
-  variant:
-    | 'default'
-    | 'outline'
-    | 'secondary'
-    | 'destructive'
-    | 'ghost'
-    | 'link' = 'default',
-): Record<string, string> {
-  const styles: Record<string, string> = {};
-  const buttonConfig = theme.buttons?.[variant];
-
-  if (buttonConfig) {
-    if (buttonConfig.background) {
-      styles.backgroundColor = buttonConfig.background;
-    }
-    if (buttonConfig.color) {
-      styles.color = buttonConfig.color;
-    }
-    if (buttonConfig.border) {
-      styles.border = buttonConfig.border;
-    }
-    if (buttonConfig.borderRadius) {
-      styles.borderRadius = buttonConfig.borderRadius;
-    }
-    if (buttonConfig.boxShadow) {
-      styles.boxShadow = buttonConfig.boxShadow;
-    }
-  } else {
-    // Fallback to theme colors if no specific button config
-    if (theme.colors?.primary) {
-      styles.backgroundColor = theme.colors.primary;
-    }
-    if (theme.colors?.primaryForeground) {
-      styles.color = theme.colors.primaryForeground;
-    }
-    if (theme.colors?.border) {
-      styles.border = `1px solid ${theme.colors.border}`;
-    }
-    if (theme.corners?.md) {
-      styles.borderRadius = theme.corners.md;
-    }
-    if (theme.shadows?.button) {
-      styles.boxShadow = theme.shadows.button;
-    }
-  }
-
-  return styles;
-}
-
-export function getPreviewHeadingStyles(theme: Theme): Record<string, string> {
-  const styles: Record<string, string> = {};
-
-  if (theme.fonts?.heading) {
-    styles.fontFamily = theme.fonts.heading;
-  }
-
-  return styles;
-}
-
-export function getPreviewMutedTextStyles(
-  theme: Theme,
-): Record<string, string> {
-  const styles: Record<string, string> = {};
-
-  if (theme.colors?.mutedForeground) {
-    styles.color = theme.colors.mutedForeground;
-  }
-  if (theme.fonts?.body) {
-    styles.fontFamily = theme.fonts.body;
-  }
-
-  return styles;
-}
-
-export function getPreviewTextStyles(theme: Theme): Record<string, string> {
-  const styles: Record<string, string> = {};
-
-  if (theme.colors?.primaryForeground) {
-    styles.color = theme.colors.primaryForeground;
-  }
-  if (theme.fonts?.body) {
-    styles.fontFamily = theme.fonts.body;
-  }
-
-  return styles;
+  // Set the actual background color to ensure complete isolation
+  root.style.backgroundColor = allVars['--card'];
+  root.style.color = allVars['--card-foreground'];
 }
 
 function getOutlineButtonBackground(theme: Theme): string {

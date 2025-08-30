@@ -608,6 +608,14 @@ body {
     background-color: var(--switch-unchecked-bg) !important;
   }
 
+  /* Theme card isolation - prevent inheritance from ambient theme */
+  .theme-card-isolated {
+    /* Create a new stacking context to isolate CSS variables */
+    isolation: isolate;
+    /* Ensure the theme variables don't inherit from parent */
+    contain: style;
+  }
+
   /* Theme-aware table styling */
   .table-theme {
     background: var(--table-background);
