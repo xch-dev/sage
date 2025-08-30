@@ -57,16 +57,14 @@ export function OptionSelector({
             data.option.expiration_seconds * 1000 >= Date.now()
           ) {
             setSelectedOption(data.option);
-            onChange(searchTerm);
           } else {
             // Clear the selection if the option is expired
             setSelectedOption(null);
-            onChange('');
           }
         })
         .catch(addError);
     }
-  }, [isValidOptionId, searchTerm, onChange, addError]);
+  }, [isValidOptionId, searchTerm, addError]);
 
   // Load option record when a value is provided but not found in current options list
   useEffect(() => {

@@ -76,11 +76,11 @@ export function NftSelector({
         .getNft({ nft_id: searchTerm })
         .then((data) => {
           setSelectedNft(data.nft);
-          onChange(searchTerm);
+          // onChange is already called in the input handler, don't call it again
         })
         .catch(addError);
     }
-  }, [isValidNftId, searchTerm, onChange, addError]);
+  }, [isValidNftId, searchTerm, addError]);
 
   const updateThumbnails = useCallback(async () => {
     const nftsToFetch = [...nfts.map((nft) => nft.launcher_id)];

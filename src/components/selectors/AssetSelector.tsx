@@ -25,7 +25,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { OptionSelector } from './OptionSelector';
 
 interface AssetSelectorProps {
@@ -62,7 +62,7 @@ export function AssetSelector({
   }, [offering]);
 
   // Generate unique IDs for new items
-  const generateId = () => Date.now() + Math.random();
+  const generateId = useCallback(() => Date.now() + Math.random(), []);
 
   const addToken = () => {
     const newId = generateId();
@@ -149,7 +149,7 @@ export function AssetSelector({
       );
       setTokenIds(newTokenIds);
     }
-  }, [assets.tokens.length, tokenIds.length]);
+  }, [assets.tokens.length, tokenIds.length, generateId]);
 
   useEffect(() => {
     if (nftIds.length !== assets.nfts.length) {
@@ -158,7 +158,7 @@ export function AssetSelector({
       );
       setNftIds(newNftIds);
     }
-  }, [assets.nfts.length, nftIds.length]);
+  }, [assets.nfts.length, nftIds.length, generateId]);
 
   useEffect(() => {
     if (optionIds.length !== assets.options.length) {
@@ -167,7 +167,7 @@ export function AssetSelector({
       );
       setOptionIds(newOptionIds);
     }
-  }, [assets.options.length, optionIds.length]);
+  }, [assets.options.length, optionIds.length, generateId]);
 
   return (
     <>
@@ -198,7 +198,7 @@ export function AssetSelector({
           </Label>
           {assets.tokens.map(({ asset_id: assetId, amount }, i) => (
             <div
-              key={tokenIds[i]}
+              key={tokenIds[i] || `token-${i}`}
               style={{
                 zIndex:
                   assets.tokens.length -
@@ -280,7 +280,7 @@ export function AssetSelector({
           )}
           {assets.nfts.map((nft, i) => (
             <div
-              key={nftIds[i]}
+              key={nftIds[i] || `nft-${i}`}
               style={{ zIndex: assets.nfts.length - i + assets.options.length }}
               className='flex h-14 mb-1 relative'
             >
@@ -321,7 +321,7 @@ export function AssetSelector({
           </Label>
           {assets.options.map((option, i) => (
             <div
-              key={optionIds[i]}
+              key={optionIds[i] || `option-${i}`}
               style={{ zIndex: assets.options.length - i }}
               className='flex h-14 mb-1 relative'
             >
