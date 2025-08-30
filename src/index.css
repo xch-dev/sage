@@ -136,6 +136,69 @@ body {
     --btn-secondary-active-border-color: transparent;
     --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
+    --btn-destructive-bg: var(--destructive);
+    --btn-destructive-color: var(--destructive-foreground);
+    --btn-destructive-border: none;
+    --btn-destructive-border-style: solid;
+    --btn-destructive-border-width: 0;
+    --btn-destructive-border-color: transparent;
+    --btn-destructive-radius: var(--radius);
+    --btn-destructive-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-destructive-hover-bg: var(--destructive);
+    --btn-destructive-hover-color: var(--destructive-foreground);
+    --btn-destructive-hover-transform: none;
+    --btn-destructive-hover-border-style: solid;
+    --btn-destructive-hover-border-color: transparent;
+    --btn-destructive-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-destructive-active-bg: var(--destructive);
+    --btn-destructive-active-color: var(--destructive-foreground);
+    --btn-destructive-active-transform: none;
+    --btn-destructive-active-border-style: solid;
+    --btn-destructive-active-border-color: transparent;
+    --btn-destructive-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+    --btn-ghost-bg: transparent;
+    --btn-ghost-color: var(--foreground);
+    --btn-ghost-border: none;
+    --btn-ghost-border-style: solid;
+    --btn-ghost-border-width: 0;
+    --btn-ghost-border-color: transparent;
+    --btn-ghost-radius: var(--radius);
+    --btn-ghost-shadow: none;
+    --btn-ghost-hover-bg: var(--accent);
+    --btn-ghost-hover-color: var(--accent-foreground);
+    --btn-ghost-hover-transform: none;
+    --btn-ghost-hover-border-style: solid;
+    --btn-ghost-hover-border-color: transparent;
+    --btn-ghost-hover-shadow: none;
+    --btn-ghost-active-bg: var(--accent);
+    --btn-ghost-active-color: var(--accent-foreground);
+    --btn-ghost-active-transform: none;
+    --btn-ghost-active-border-style: solid;
+    --btn-ghost-active-border-color: transparent;
+    --btn-ghost-active-shadow: none;
+
+    --btn-link-bg: transparent;
+    --btn-link-color: var(--primary);
+    --btn-link-border: none;
+    --btn-link-border-style: solid;
+    --btn-link-border-width: 0;
+    --btn-link-border-color: transparent;
+    --btn-link-radius: var(--radius);
+    --btn-link-shadow: none;
+    --btn-link-hover-bg: transparent;
+    --btn-link-hover-color: var(--primary);
+    --btn-link-hover-transform: none;
+    --btn-link-hover-border-style: solid;
+    --btn-link-hover-border-color: transparent;
+    --btn-link-hover-shadow: none;
+    --btn-link-active-bg: transparent;
+    --btn-link-active-color: var(--primary);
+    --btn-link-active-transform: none;
+    --btn-link-active-border-style: solid;
+    --btn-link-active-border-color: transparent;
+    --btn-link-active-shadow: none;
+
     /* Theme-specific button style flags */
     --theme-has-gradient-buttons: 0;
     --theme-has-shimmer-effects: 0;
@@ -168,6 +231,10 @@ body {
     --table-footer-background: var(--muted);
     --table-footer-color: var(--muted-foreground);
     --table-footer-border: 1px solid var(--border);
+
+    /* Switch styling variables with defaults */
+    --switch-checked-bg: var(--primary);
+    --switch-unchecked-bg: var(--input);
   }
 }
 
@@ -346,6 +413,190 @@ body {
     color: var(--foreground);
     border: 1px solid var(--border);
     border-radius: 12px;
+  }
+
+  /* Destructive button variant theme support */
+  .btn-variant-destructive[data-theme-style*='gradient'] {
+    background: linear-gradient(135deg, var(--destructive), var(--accent));
+    color: var(--destructive-foreground);
+    border: 1px solid var(--border);
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer'] {
+    background: var(--destructive);
+    border: 1px solid var(--destructive);
+    color: var(--destructive-foreground);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.9;
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--destructive-foreground),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-destructive[data-theme-style*='pixel-art'] {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+    border: 2px solid var(--foreground);
+    box-shadow: 2px 2px 0 var(--foreground);
+  }
+
+  .btn-variant-destructive[data-theme-style*='pixel-art']:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--foreground);
+  }
+
+  .btn-variant-destructive[data-theme-style*='3d-effects'] {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+    border: 2px outset var(--destructive);
+    box-shadow:
+      inset 1px 1px 0 var(--background),
+      inset -1px -1px 0 var(--muted-foreground);
+  }
+
+  .btn-variant-destructive[data-theme-style*='3d-effects']:active {
+    border-style: inset;
+    box-shadow:
+      inset 1px 1px 0 var(--muted-foreground),
+      inset -1px -1px 0 var(--background);
+  }
+
+  .btn-variant-destructive[data-theme-style*='rounded-buttons'] {
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Ghost button variant theme support */
+  .btn-variant-ghost[data-theme-style*='gradient'] {
+    background: linear-gradient(135deg, transparent, var(--accent));
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer'] {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--foreground);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-ghost[data-theme-style*='pixel-art'] {
+    background: transparent;
+    color: var(--foreground);
+    border: 2px solid var(--foreground);
+    box-shadow: 2px 2px 0 var(--foreground);
+  }
+
+  .btn-variant-ghost[data-theme-style*='pixel-art']:hover {
+    transform: translate(1px, 1px);
+    box-shadow: 1px 1px 0 var(--foreground);
+  }
+
+  .btn-variant-ghost[data-theme-style*='3d-effects'] {
+    background: transparent;
+    color: var(--foreground);
+    border: 2px outset var(--border);
+  }
+
+  .btn-variant-ghost[data-theme-style*='rounded-buttons'] {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  /* Link button variant theme support */
+  .btn-variant-link[data-theme-style*='gradient'] {
+    background: linear-gradient(135deg, transparent, var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer'] {
+    color: var(--primary);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--primary),
+      transparent
+    );
+    opacity: 0.3;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-link[data-theme-style*='pixel-art'] {
+    color: var(--primary);
+    text-shadow: 1px 1px 0 var(--foreground);
+  }
+
+  .btn-variant-link[data-theme-style*='3d-effects'] {
+    color: var(--primary);
+    text-shadow:
+      1px 1px 0 var(--background),
+      -1px -1px 0 var(--muted-foreground);
+  }
+
+  .btn-variant-link[data-theme-style*='rounded-buttons'] {
+    color: var(--primary);
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: var(--accent);
   }
 
   /* Custom switch styling */

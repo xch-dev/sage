@@ -337,6 +337,10 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
     '--btn-link-active-border-style',
     '--btn-link-active-border-color',
     '--btn-link-active-shadow',
+
+    // Switch variables
+    '--switch-checked-bg',
+    '--switch-unchecked-bg',
   ];
 
   cssVarsToClear.forEach((cssVar) => {
@@ -872,6 +876,24 @@ export function applyTheme(theme: Theme, root: HTMLElement, isPreview = false) {
       root.style.removeProperty('background-position');
     } else {
       document.body.classList.remove('has-background-image');
+    }
+  }
+
+  // Apply switch-specific variables if defined
+  if (theme.switches) {
+    if (theme.switches.checked?.background) {
+      root.style.setProperty(
+        '--switch-checked-bg',
+        theme.switches.checked.background,
+        'important',
+      );
+    }
+    if (theme.switches.unchecked?.background) {
+      root.style.setProperty(
+        '--switch-unchecked-bg',
+        theme.switches.unchecked.background,
+        'important',
+      );
     }
   }
 }
