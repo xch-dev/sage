@@ -671,7 +671,7 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(row) = wallet.db.owned_nft(nft_id).await? else {
+        let Some(row) = wallet.db.wallet_nft(nft_id).await? else {
             return Ok(GetNftResponse { nft: None });
         };
 
