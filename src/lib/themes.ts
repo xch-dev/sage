@@ -1,6 +1,9 @@
 import { commands } from '../bindings';
 import { type Theme, loadBuiltInTheme, loadUserTheme } from './theme';
 
+let themesCache: Theme[] | null = null;
+let cachePromise: Promise<Theme[]> | null = null;
+
 // Dynamically discover theme folders by scanning the themes directory
 async function discoverThemeFolders(): Promise<string[]> {
   try {
@@ -27,7 +30,18 @@ async function discoverThemeFolders(): Promise<string[]> {
 }
 
 export async function loadThemes(): Promise<Theme[]> {
-  return discoverThemeFolders()
+  // Return cached themes if available
+  if (themesCache !== null) {
+    return themesCache;
+  }
+
+  // If already loading, return the existing promise
+  if (cachePromise !== null) {
+    return cachePromise;
+  }
+
+  // Start loading themes and cache the promise
+  cachePromise = discoverThemeFolders()
     .then((themeFolders) =>
       Promise.all(themeFolders.map((themeName) => loadBuiltInTheme(themeName))),
     )
@@ -40,12 +54,18 @@ export async function loadThemes(): Promise<Theme[]> {
     })
     .then(async (defaultThemes) => {
       const userThemes = await getUserThemes();
-      return [...(defaultThemes || []), ...userThemes];
+      const allThemes = [...(defaultThemes || []), ...userThemes];
+
+      themesCache = allThemes;
+      return allThemes;
     })
     .catch((error) => {
       console.error('Error loading themes:', error);
+      cachePromise = null;
       return [];
     });
+
+  return cachePromise;
 }
 
 async function getUserThemes(): Promise<Theme[]> {
@@ -60,4 +80,9 @@ async function getUserThemes(): Promise<Theme[]> {
 export async function getThemeByName(name: string): Promise<Theme | undefined> {
   const themes = await loadThemes();
   return themes.find((theme) => theme.name === name);
+}
+
+export function invalidateThemeCache(): void {
+  themesCache = null;
+  cachePromise = null;
 }

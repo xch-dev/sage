@@ -1,5 +1,5 @@
 import { type Theme, applyTheme } from '@/lib/theme';
-import { getThemeByName, loadThemes } from '@/lib/themes';
+import { getThemeByName, invalidateThemeCache, loadThemes } from '@/lib/themes';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
 
@@ -19,6 +19,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
   const [availableThemes, setAvailableThemes] = useState<Theme[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSettingTheme, setIsSettingTheme] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedTheme, setSavedTheme] = useLocalStorage<string | null>(
     'theme',
@@ -30,21 +31,28 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   >('last-used-non-core-theme', null);
 
   const setTheme = async (themeName: string) => {
+    if (isSettingTheme) return; // Prevent concurrent calls
+
+    setIsSettingTheme(true);
     try {
       const theme = await getThemeByName(themeName);
       if (theme) {
         setCurrentTheme(theme);
         applyTheme(theme, document.documentElement);
         setSavedTheme(themeName);
-
         // Save as last used non-core theme if it's not light or dark
         if (themeName !== 'light' && themeName !== 'dark') {
           setLastUsedNonCoreTheme(themeName);
         }
+        setError(null); // Clear any previous errors
+      } else {
+        setError(`Theme "${themeName}" not found`);
       }
     } catch (err) {
       console.error('Error setting theme:', err);
       setError('Failed to set theme');
+    } finally {
+      setIsSettingTheme(false);
     }
   };
 
@@ -52,6 +60,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       setError(null);
+
+      // Invalidate cache to force fresh load
+      invalidateThemeCache();
+
       const themes = await loadThemes();
       setAvailableThemes(themes);
       if (themes.length === 0) {
