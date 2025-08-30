@@ -177,8 +177,18 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
                 </div>
 
                 <div className='flex items-center gap-2 text-md text-muted-foreground'>
-                  <span>
-                    <Trans>Expires:</Trans>{' '}
+                  <span
+                    className={
+                      option_assets.expiration_seconds <
+                      Math.floor(Date.now() / 1000)
+                        ? 'text-destructive'
+                        : undefined
+                    }
+                  >
+                    {option_assets.expiration_seconds <
+                    Math.floor(Date.now() / 1000)
+                      ? t`Expired at:`
+                      : t`Expires:`}{' '}
                     {formatTimestamp(
                       option_assets.expiration_seconds,
                       'short',

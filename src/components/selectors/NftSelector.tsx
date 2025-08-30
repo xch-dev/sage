@@ -37,9 +37,27 @@ export function NftSelector({
   }, [searchTerm]);
 
   useEffect(() => {
+    // If we have a valid NFT ID, only fetch that specific NFT
+    if (isValidNftId && searchTerm) {
+      commands
+        .getNft({ nft_id: searchTerm })
+        .then((nftData) => {
+          if (nftData.nft) {
+            setNfts([nftData.nft]);
+          } else {
+            setNfts([]);
+          }
+        })
+        .catch(() => {
+          setNfts([]);
+        });
+      return;
+    }
+
+    // Otherwise, fetch NFTs based on search term
     commands
       .getNfts({
-        name: searchTerm && !isValidNftId ? searchTerm : null,
+        name: searchTerm || null,
         offset: page * pageSize,
         limit: pageSize,
         include_hidden: false,
@@ -150,7 +168,10 @@ export function NftSelector({
       onSelect={(nft) => {
         onChange(nft.launcher_id);
         setSelectedNft(nft);
-        setSearchTerm('');
+        // Only clear search term if it's not a valid NFT ID (i.e., user clicked on an item from the list)
+        if (!isValidAddress(searchTerm, 'nft')) {
+          setSearchTerm('');
+        }
       }}
       className={className}
       manualInput={
