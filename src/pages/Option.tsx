@@ -180,7 +180,7 @@ export default function Option() {
                   />
                 </LabeledItem>
 
-                <LabeledItem label={t`Strike Price`} content={null}>
+                <LabeledItem label={t`Strike Asset`} content={null}>
                   <AssetCoin
                     asset={option.strike_asset}
                     amount={option.strike_amount}

@@ -12,14 +12,14 @@ const Switch = React.forwardRef<
 
   // Get custom switch colors with defaults
   const checkedBg =
-    currentTheme?.switches?.checked?.background || 'hsl(var(--primary))';
+    currentTheme?.switches?.checked?.background || 'var(--primary)';
   const uncheckedBg =
-    currentTheme?.switches?.unchecked?.background || 'hsl(var(--border))';
+    currentTheme?.switches?.unchecked?.background || 'var(--border)';
 
   return (
     <SwitchPrimitives.Root
       className={cn(
-        'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
+        'peer switch-component inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       style={

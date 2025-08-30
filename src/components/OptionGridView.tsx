@@ -237,7 +237,7 @@ function OptionAssetPreview({
       label={
         asset === option.underlying_asset
           ? t`Underlying Asset`
-          : t`Strike Price`
+          : t`Strike Asset`
       }
       content={null}
     >
