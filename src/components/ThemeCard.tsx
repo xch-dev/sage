@@ -4,10 +4,10 @@ import { useErrors } from '@/hooks/useErrors';
 import {
   type Theme,
   applyTheme,
-  getButtonStyles,
-  getHeadingStyles,
-  getMutedTextStyles,
-  getTextStyles,
+  getPreviewButtonStyles,
+  getPreviewHeadingStyles,
+  getPreviewMutedTextStyles,
+  getPreviewTextStyles,
 } from '@/lib/theme';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -92,10 +92,10 @@ export function ThemeCard({
     : {};
 
   const renderDefaultContent = () => {
-    const buttonStyles = getButtonStyles(theme, 'default');
-    const headingStyles = getHeadingStyles(theme);
-    const mutedTextStyles = getMutedTextStyles(theme);
-    const textStyles = getTextStyles(theme);
+    const buttonStyles = getPreviewButtonStyles(theme, 'default');
+    const headingStyles = getPreviewHeadingStyles(theme);
+    const mutedTextStyles = getPreviewMutedTextStyles(theme);
+    const textStyles = getPreviewTextStyles(theme);
 
     // Add fallbacks for button styles
     if (!buttonStyles.backgroundColor) {
@@ -214,7 +214,7 @@ export function ThemeCard({
   };
 
   const renderSimpleContent = () => {
-    const headingStyles = getHeadingStyles(theme);
+    const headingStyles = getPreviewHeadingStyles(theme);
 
     // Add fallbacks for heading styles
     if (!headingStyles.fontFamily) {
@@ -235,7 +235,13 @@ export function ThemeCard({
             {theme.displayName}
           </h4>
           <div className='flex items-center gap-1'>
-            {isSelected && <Check className='h-3 w-3' style={checkStyles} />}
+            {isSelected && (
+              <Check
+                className='h-3 w-3'
+                style={checkStyles}
+                aria-label={t`Theme selected`}
+              />
+            )}
             {theme.isUserTheme && (
               <Button
                 onClick={handleDeleteClick}
