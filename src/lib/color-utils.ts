@@ -68,6 +68,42 @@ export function makeColorTransparent(color: string, opacity: number): string {
   return `color-mix(in srgb, ${parsed.value} ${opacity * 100}%, transparent)`;
 }
 
+export function makeColorOpaque(color: string): string {
+  const parsed = parseColor(color);
+
+  // For HSL/HSLA, remove alpha or set it to 1
+  if (parsed.format === 'hsl') {
+    const match = parsed.value.match(/hsla?\((.*?)\)/);
+    if (match) {
+      const params = match[1].split(/[,/]/).map((p) => p.trim());
+      // Keep only the first 3 parameters (h, s, l) and reconstruct as HSL
+      if (params.length >= 3) {
+        return `hsl(${params[0]}, ${params[1]}, ${params[2]})`;
+      }
+    }
+  }
+
+  // For RGB/RGBA, remove alpha or set it to 1
+  if (parsed.format === 'rgb') {
+    const match = parsed.value.match(/rgba?\((.*?)\)/);
+    if (match) {
+      const params = match[1].split(',').map((p) => p.trim());
+      // Keep only the first 3 parameters (r, g, b) and reconstruct as RGB
+      if (params.length >= 3) {
+        return `rgb(${params[0]}, ${params[1]}, ${params[2]})`;
+      }
+    }
+  }
+
+  // For hex colors (already opaque) and named colors, return as-is
+  if (parsed.format === 'hex' || parsed.format === 'named') {
+    return parsed.value;
+  }
+
+  // For other formats, try to use CSS color-mix to make fully opaque
+  return `color-mix(in srgb, ${parsed.value} 100%, ${parsed.value} 0%)`;
+}
+
 export function getColorLightness(color: string): number {
   const parsed = parseColor(color);
 

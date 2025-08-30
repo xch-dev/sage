@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
+import { useOpaqueThemeColors } from '@/hooks/useOpaqueColor';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -120,7 +121,7 @@ const ActionsCell = ({
 }) => (
   <div className='text-center'>
     <Button size='icon' variant='ghost' onClick={() => onDelete(row.original)}>
-      <BanIcon className='h-4 w-4' />
+      <BanIcon className='h-4 w-4' aria-hidden='true' />
     </Button>
   </div>
 );
@@ -161,6 +162,7 @@ const MobileRow = ({
   onSelect: (peer: PeerRecord, forceModeOn?: boolean) => void;
   selectionMode: boolean;
 }) => {
+  const opaqueColors = useOpaqueThemeColors();
   const [{ x }, api] = useSpring(() => ({
     x: 0,
     config: { tension: 400, friction: 30 },
@@ -208,14 +210,17 @@ const MobileRow = ({
   return (
     <div className='relative overflow-hidden border-b last:border-b-0'>
       <div className='absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center'>
-        <Trash2Icon className='h-5 w-5 text-white' />
+        <Trash2Icon className='h-5 w-5 text-white' aria-hidden='true' />
       </div>
 
       <animated.div
         {...bind()}
         {...longPressHandlers}
-        style={{ x }}
-        className='relative bg-background p-4 touch-pan-y select-none'
+        style={{
+          x,
+          backgroundColor: opaqueColors.secondary || 'var(--secondary)',
+        }}
+        className='relative p-4 touch-pan-y select-none'
       >
         <div className='flex items-center space-x-3'>
           {selectionMode && (
@@ -501,7 +506,7 @@ export default function PeerList() {
                       onClick={handleBatchDelete}
                       disabled={Object.keys(rowSelection).length === 0}
                     >
-                      <Trash2Icon className='h-5 w-5' />
+                      <Trash2Icon className='h-5 w-5' aria-hidden='true' />
                     </Button>
                   )}
                 </Dialog>
@@ -631,7 +636,10 @@ export default function PeerList() {
               </Label>
               <Popover>
                 <PopoverTrigger>
-                  <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
+                  <HelpCircleIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
                 </PopoverTrigger>
                 <PopoverContent className='text-sm'>
                   <Plural
