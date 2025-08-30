@@ -1,6 +1,6 @@
+import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
 import SafeAreaView from '@/components/SafeAreaView';
-import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -11,6 +11,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useWallet } from '@/contexts/WalletContext';
@@ -18,7 +19,6 @@ import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +50,7 @@ export default function ImportWallet() {
         num <= 100000
       );
     }),
+    emoji: z.string().nullable().optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -67,6 +68,7 @@ export default function ImportWallet() {
         name: values.name,
         key: values.key,
         derivation_index: parseInt(values.addresses),
+        emoji: values.emoji || null,
       })
       .then(fetchState)
       .then(async () => {
@@ -99,6 +101,35 @@ export default function ImportWallet() {
                   <FormControl>
                     <Input required {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='emoji'
+              render={({ field }) => (
+                <FormItem>
+                  <label htmlFor='emoji' className='space-y-0.5'>
+                    <FormLabel>
+                      <Trans>Wallet Emoji (Optional)</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <div className='flex items-center gap-2'>
+                        <EmojiPicker
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder={t`Choose an emoji`}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      <Trans>
+                        Choose an emoji to easily identify your wallet
+                      </Trans>
+                    </FormDescription>
+                  </label>
                   <FormMessage />
                 </FormItem>
               )}
@@ -164,12 +195,14 @@ export default function ImportWallet() {
               />
             )}
 
-            <Button type='submit' disabled={pending || !form.formState.isValid}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? <Trans>Importing</Trans> : <Trans>Import</Trans>}
-            </Button>
+            <LoadingButton
+              type='submit'
+              loading={pending}
+              loadingText={t`Importing`}
+              disabled={!form.formState.isValid}
+            >
+              <Trans>Import</Trans>
+            </LoadingButton>
           </form>
         </Form>
       </Container>

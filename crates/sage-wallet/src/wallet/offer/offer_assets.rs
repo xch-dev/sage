@@ -24,7 +24,7 @@ impl Wallet {
         let Some(peer) = peer else {
             if let Some(row) = self.db.offer_nft_info(launcher_id).await? {
                 return Ok(Some(row));
-            };
+            }
 
             return Ok(None);
         };
@@ -106,7 +106,7 @@ impl Wallet {
         let Some(peer) = peer else {
             if let Some(row) = self.db.offer_option_info(launcher_id).await? {
                 return Ok(Some(row));
-            };
+            }
 
             return Ok(None);
         };

@@ -153,6 +153,18 @@ jobs:
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
+      - name: Setup Xcode
+        if: matrix.platform_name == 'iOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Download iOS platform
+        if: matrix.platform_name == 'iOS'
+        run: |
+          xcodebuild -version
+          xcodebuild -downloadPlatform iOS
+
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 

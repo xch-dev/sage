@@ -5,14 +5,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { DarkModeContext } from '@/contexts/DarkModeContext';
+
 import { useInsets } from '@/contexts/SafeAreaContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
-import { PropsWithChildren, useContext } from 'react';
+import { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
@@ -26,8 +25,7 @@ type LayoutProps = PropsWithChildren<object> & {
 
 export function FullLayout(props: LayoutProps) {
   const { wallet } = props;
-  const { dark } = useContext(DarkModeContext);
-
+  const { currentTheme } = useTheme();
   const insets = useInsets();
 
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
@@ -38,13 +36,19 @@ export function FullLayout(props: LayoutProps) {
   const walletIcon = (
     <Link
       to='/wallet'
-      className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+      className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
     >
-      <img
-        src={dark ? iconLight : iconDark}
-        className='h-6 w-6'
-        alt={t`Wallet icon`}
-      />
+      {wallet?.emoji ? (
+        <span className='text-xl' role='img' aria-label='Wallet emoji'>
+          {wallet.emoji}
+        </span>
+      ) : (
+        <img
+          src={currentTheme?.icon_path}
+          className='h-6 w-6'
+          alt={t`Wallet icon`}
+        />
+      )}
       <span
         className={`text-lg transition-opacity duration-300 ${
           isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
@@ -60,13 +64,19 @@ export function FullLayout(props: LayoutProps) {
       <TooltipTrigger asChild>
         <Link
           to='/wallet'
-          className={`flex items-center gap-2 font-semibold ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
         >
-          <img
-            src={dark ? iconLight : iconDark}
-            className='h-6 w-6'
-            alt={t`Wallet icon`}
-          />
+          {wallet?.emoji ? (
+            <span className='text-xl' role='img' aria-label='Wallet emoji'>
+              {wallet.emoji}
+            </span>
+          ) : (
+            <img
+              src={currentTheme?.icon_path}
+              className='h-6 w-6'
+              alt={t`Wallet icon`}
+            />
+          )}
         </Link>
       </TooltipTrigger>
       <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>
@@ -87,38 +97,65 @@ export function FullLayout(props: LayoutProps) {
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
             <div className='flex h-14 items-center pt-2 px-5 justify-between'>
-              {walletIconWithTooltip}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    type='button'
-                    onClick={() => setIsCollapsed(!isCollapsed)}
-                    className='text-muted-foreground hover:text-primary transition-colors'
-                    aria-label={
-                      isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
-                    }
-                    aria-expanded={!isCollapsed}
-                  >
-                    {isCollapsed ? (
-                      <PanelLeft className='h-5 w-5' aria-hidden='true' />
-                    ) : (
-                      <PanelLeftClose className='h-5 w-5' aria-hidden='true' />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side='right' role='tooltip'>
-                  {isCollapsed
-                    ? wallet?.name
-                      ? t`Expand sidebar - ${wallet.name}`
-                      : t`Expand sidebar`
-                    : t`Collapse sidebar`}
-                </TooltipContent>
-              </Tooltip>
+              {isCollapsed && wallet?.emoji ? (
+                // When collapsed and emoji exists, show only the emoji as a clickable button
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type='button'
+                      onClick={() => setIsCollapsed(!isCollapsed)}
+                      className='text-2xl hover:scale-110 transition-transform cursor-pointer'
+                      aria-label={t`Expand sidebar - ${wallet.name}`}
+                      aria-expanded={!isCollapsed}
+                    >
+                      <span role='img' aria-label='Wallet emoji'>
+                        {wallet.emoji}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side='right' role='tooltip'>
+                    {t`Expand sidebar - ${wallet.name}`}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <>
+                  {!isCollapsed && walletIconWithTooltip}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type='button'
+                        onClick={() => setIsCollapsed(!isCollapsed)}
+                        className='text-muted-foreground hover:text-primary transition-colors'
+                        aria-label={
+                          isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
+                        }
+                        aria-expanded={!isCollapsed}
+                      >
+                        {isCollapsed ? (
+                          <PanelLeft className='h-5 w-5' aria-hidden='true' />
+                        ) : (
+                          <PanelLeftClose
+                            className='h-5 w-5'
+                            aria-hidden='true'
+                          />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side='right' role='tooltip'>
+                      {isCollapsed
+                        ? wallet?.name
+                          ? t`Expand sidebar - ${wallet.name}`
+                          : t`Expand sidebar`
+                        : t`Collapse sidebar`}
+                    </TooltipContent>
+                  </Tooltip>
+                </>
+              )}
             </div>
 
             <div className='flex-1 flex flex-col justify-between pb-4'>
               <div
-                className={`grid items-start px-3 text-sm font-medium ${
+                className={`grid items-start px-3 text-sm font-medium font-body ${
                   isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >
@@ -126,7 +163,7 @@ export function FullLayout(props: LayoutProps) {
               </div>
 
               <div
-                className={`grid text-sm font-medium ${
+                className={`grid text-sm font-medium font-body ${
                   isCollapsed ? 'justify-center' : 'px-3'
                 }`}
               >
@@ -195,7 +232,10 @@ export default function Layout(props: LayoutProps) {
   const { wallet } = useWallet();
   const location = useLocation();
 
-  if (!wallet && location.pathname === '/settings') {
+  if (
+    !wallet &&
+    (location.pathname === '/settings' || location.pathname === '/themes')
+  ) {
     return <MinimalLayout {...props} />;
   }
 

@@ -86,7 +86,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                   size='icon'
                   className='-mr-1.5 flex-shrink-0'
                 >
-                  <MoreVertical className='h-5 w-5' />
+                  <MoreVertical className='h-5 w-5' aria-hidden='true' />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end'>
@@ -98,7 +98,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                       writeText(record.offer);
                     }}
                   >
-                    <CopyIcon className='mr-2 h-4 w-4' />
+                    <CopyIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Copy</Trans>
                     </span>
@@ -111,7 +111,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                       setIsDeleteOpen(true);
                     }}
                   >
-                    <TrashIcon className='mr-2 h-4 w-4' />
+                    <TrashIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
                       <Trans>Delete</Trans>
                     </span>
@@ -125,7 +125,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                     }}
                     disabled={record.status !== 'active'}
                   >
-                    <CircleOff className='mr-2 h-4 w-4' />
+                    <CircleOff className='mr-2 h-4 w-4' aria-hidden='true' />
                     <Trans>Cancel</Trans>
                   </DropdownMenuItem>
 

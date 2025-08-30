@@ -1,6 +1,6 @@
+import { t } from '@lingui/core/macro';
 import { useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { t } from '@lingui/core/macro';
 import { events } from '../bindings';
 
 export function useTransactionFailures() {
@@ -15,6 +15,10 @@ export function useTransactionFailures() {
           error,
           timestamp: new Date().toISOString(),
         });
+
+        if (error?.toLowerCase().replace('_', ' ').includes('double spend')) {
+          return;
+        }
 
         // Show toast notification with error message if available
         const message = error

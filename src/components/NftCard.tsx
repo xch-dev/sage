@@ -1,7 +1,6 @@
 import {
   commands,
   events,
-  NftData,
   NftRecord,
   NftUriKind,
   TransactionResponse,
@@ -29,7 +28,7 @@ import {
   SendIcon,
   UserRoundPlus,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -100,7 +99,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const { addError } = useErrors();
 
-  const [data, setData] = useState<NftData | null>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
@@ -118,25 +116,36 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   );
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const fetchThumbnail = useCallback(() => {
-    commands
-      .getNftThumbnail({ nft_id: nft.launcher_id })
-      .then((response) => setThumbnail(response.thumbnail))
-      .catch((error) => console.error(error));
-  }, [nft.launcher_id]);
-
   useEffect(() => {
-    fetchThumbnail();
+    let isUnmounted = false;
+
+    const fetchThumbnailSafely = () => {
+      if (!isUnmounted) {
+        commands
+          .getNftThumbnail({ nft_id: nft.launcher_id })
+          .then((response) => {
+            if (!isUnmounted) {
+              setThumbnail(response.thumbnail);
+            }
+          })
+          .catch((error) => {
+            if (!isUnmounted) {
+              console.error(error);
+            }
+          });
+      }
+    };
+
+    fetchThumbnailSafely();
 
     let unlistenPromise: Promise<() => void> | null = null;
-    let isUnmounted = false;
 
     const setupListener = async () => {
       try {
         unlistenPromise = events.syncEvent.listen((event) => {
           const type = event.payload.type;
           if (type === 'nft_data' && !isUnmounted) {
-            fetchThumbnail();
+            fetchThumbnailSafely();
           }
         });
       } catch (error) {
@@ -151,23 +160,14 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
       if (unlistenPromise) {
         unlistenPromise
           .then((unlisten) => {
-            if (!isUnmounted) {
-              unlisten();
-            }
+            unlisten();
           })
           .catch((error) => {
             console.error('Failed to cleanup event listener:', error);
           });
       }
     };
-  }, [nft.launcher_id, fetchThumbnail]);
-
-  useEffect(() => {
-    commands
-      .getNftData({ nft_id: nft.launcher_id })
-      .then((response) => setData(response.data))
-      .catch(addError);
-  }, [nft.launcher_id, addError]);
+  }, [nft.launcher_id]);
 
   const toggleVisibility = () => {
     commands
@@ -267,12 +267,16 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   return (
     <>
       <div
-        className={`cursor-pointer group${
+        className={`cursor-pointer group rounded-lg transition-all${
           !nft.visible
             ? ' opacity-50 grayscale'
             : !nft.created_height
               ? ' pulsate-opacity'
               : ''
+        }${
+          selectionState?.[0]
+            ? ' ring-2 ring-primary ring-offset-2 bg-primary/5'
+            : ''
         }`}
         onClick={() => {
           if (selectionState === null) {
@@ -331,13 +335,19 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
           {selectionState !== null && (
             <Checkbox
               checked={selectionState[0]}
-              className='absolute top-2 right-2 w-5 h-5'
+              className='absolute top-2 right-2 w-5 h-5 data-[state=checked]:!bg-secondary data-[state=unchecked]:!bg-secondary data-[state=checked]:text-secondary-foreground'
               aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
           )}
+
+          {nft.special_use_type === 'theme' && (
+            <div className='absolute bottom-0 left-0 right-0 bg-primary/70 text-primary-foreground text-xs font-medium py-1 px-2 text-center border-t border-border'>
+              <Trans>Theme</Trans>
+            </div>
+          )}
         </div>
         <div
-          className='border border-neutral-200 bg-white text-neutral-950 shadow dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-50 text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
+          className='border border-border bg-card text-card-foreground shadow text-md flex items-center justify-between rounded-b-lg p-2 pl-3'
           role='group'
           aria-label={t`NFT details`}
         >
@@ -704,7 +714,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                   <NftConfirmation
                     type='burn'
                     nfts={[nft]}
-                    nftData={{ [nft.launcher_id]: data }}
+                    thumbnails={{ [nft.launcher_id]: thumbnail }}
                   />
                 ),
               }
@@ -715,7 +725,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     <NftConfirmation
                       type='transfer'
                       nfts={[nft]}
-                      nftData={{ [nft.launcher_id]: data }}
+                      thumbnails={{ [nft.launcher_id]: thumbnail }}
                       address={transferAddress}
                     />
                   ),
@@ -726,7 +736,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     content: (
                       <AddUrlConfirmation
                         nft={nft}
-                        nftData={data}
+                        thumbnail={thumbnail}
                         url={addedUrl}
                         kind={addedUrlKind}
                       />
@@ -739,7 +749,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                         <NftConfirmation
                           type='edit'
                           nfts={[nft]}
-                          nftData={{ [nft.launcher_id]: data }}
+                          thumbnails={{ [nft.launcher_id]: thumbnail }}
                           profileId={assignedProfileId}
                         />
                       ),

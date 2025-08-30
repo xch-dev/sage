@@ -166,7 +166,7 @@ impl Sage {
                 &wallet_config_path,
                 toml::to_string_pretty(&self.wallet_config)?,
             )?;
-        };
+        }
 
         if network_list_path.try_exists()? {
             let text = fs::read_to_string(&network_list_path)?;
@@ -277,12 +277,20 @@ impl Sage {
         db.run_rust_migrations(self.network().ticker.clone())
             .await?;
 
+        let wallet_config = self.wallet_config().cloned().unwrap_or_default();
+
         let wallet = Arc::new(Wallet::new(
             db.clone(),
             fingerprint,
             intermediate_pk,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
+            wallet_config
+                .change_address
+                .as_ref()
+                .map(|address| Address::decode(address))
+                .transpose()?
+                .map(|address| address.puzzle_hash),
         ));
 
         self.wallet = Some(wallet.clone());
@@ -294,11 +302,7 @@ impl Sage {
         self.command_sender
             .send(SyncCommand::SwitchWallet {
                 wallet: Some(wallet),
-                delta_sync: self
-                    .wallet_config()
-                    .cloned()
-                    .unwrap_or_default()
-                    .delta_sync(&self.wallet_config.defaults),
+                delta_sync: wallet_config.delta_sync(&self.wallet_config.defaults),
             })
             .await?;
 

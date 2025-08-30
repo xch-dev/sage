@@ -1,15 +1,22 @@
-import { commands, NetworkKind, OfferRecord, OfferSummary } from '@/bindings';
+import {
+  commands,
+  NetworkKind,
+  OfferRecordStatus,
+  OfferSummary,
+} from '@/bindings';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { NumberFormat } from '@/components/NumberFormat';
 import { marketplaces } from '@/lib/marketplaces';
-import { cn, formatTimestamp, fromMojos } from '@/lib/utils';
+import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
+  Calendar,
+  Clock,
   Copy,
   HandCoinsIcon,
   InfoIcon,
@@ -19,27 +26,34 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { LabeledItem } from './LabeledItem';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 // Interface to track CAT presence in wallet
 type CatPresence = Record<string, boolean>;
 
 interface OfferCardProps {
-  record?: OfferRecord;
+  offerId?: string;
+  offer?: string;
+  status?: OfferRecordStatus;
+  creationTimestamp?: number;
   summary?: OfferSummary;
   content?: React.ReactNode;
 }
 
-export function OfferCard({ record, summary, content }: OfferCardProps) {
+export function OfferCard({
+  offerId,
+  offer,
+  status,
+  creationTimestamp,
+  summary: offerSummary,
+  content,
+}: OfferCardProps) {
   const walletState = useWalletState();
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
   const [network, setNetwork] = useState<NetworkKind | null>(null);
   const isMobile = platform() === 'ios' || platform() === 'android';
-
-  const offerSummary = summary || record?.summary;
-  const offerId = record?.offer_id || '';
-  const offer = record?.offer || undefined;
 
   const handleShare = async () => {
     if (!offer) return;
@@ -79,47 +93,17 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
     commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
-  const getStatusStyles = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'text-green-600 dark:text-green-500';
-      case 'completed':
-        return 'text-blue-600 dark:text-blue-500';
-      case 'cancelled':
-        return 'text-amber-600 dark:text-amber-500';
-      case 'expired':
-        return 'text-red-600 dark:text-red-500';
-      default:
-        return '';
-    }
-  };
-
-  const getStatusDotColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'bg-green-500';
-      case 'completed':
-        return 'bg-blue-500';
-      case 'cancelled':
-        return 'bg-amber-500';
-      case 'expired':
-        return 'bg-red-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
   if (!offerSummary) return null;
 
   return (
     <div className='flex flex-col gap-4 max-w-screen-lg pr-1'>
       <Card>
         <CardHeader className='pb-2'>
-          <div className='flex items-center justify-between'>
-            <CardTitle className='text-lg font-medium flex items-center'>
-              <InfoIcon className='mr-2 h-5 w-5' />
+          <CardTitle className='flex items-center justify-between'>
+            <div className='flex items-center gap-2'>
+              <InfoIcon className='h-5 w-5' />
               <Trans>Offer Details</Trans>
-            </CardTitle>
+            </div>
             {offer && (
               <div className='flex items-center gap-2'>
                 {!isMobile && (
@@ -144,56 +128,67 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 )}
               </div>
             )}
-          </div>
+          </CardTitle>
         </CardHeader>
-        <CardContent className='flex flex-col gap-4'>
+        <CardContent>
+          <div className='flex items-center gap-4 mb-4'>
+            {status && (
+              <div
+                className={`px-3 py-1 rounded-full text-sm font-medium ${
+                  status === 'active' || status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300'
+                    : status === 'completed'
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'
+                      : status === 'cancelled'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                }`}
+              >
+                {status === 'active' || status === 'pending'
+                  ? t`Pending`
+                  : status === 'completed'
+                    ? t`Taken`
+                    : status === 'cancelled'
+                      ? t`Cancelled`
+                      : t`Expired`}
+              </div>
+            )}
+          </div>
+
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-            {record?.status && (
-              <div className='space-y-1.5'>
-                <div className='text-sm font-medium text-muted-foreground'>
-                  <Trans>Status</Trans>
-                </div>
-                <div className='flex items-center gap-2'>
-                  <div
-                    className={cn(
-                      'w-2.5 h-2.5 rounded-full',
-                      getStatusDotColor(record.status),
-                    )}
-                  />
-                  <div
-                    className={cn(
-                      'font-medium',
-                      getStatusStyles(record.status),
-                    )}
-                  >
-                    {record.status === 'active'
-                      ? 'Pending'
-                      : record.status === 'completed'
-                        ? 'Taken'
-                        : record.status === 'cancelled'
-                          ? 'Cancelled'
-                          : 'Expired'}
-                  </div>
-                </div>
+            {creationTimestamp && (
+              <div className='flex items-center gap-2'>
+                <Calendar className='h-4 w-4 text-muted-foreground' />
+                <LabeledItem
+                  label={t`Created`}
+                  content={formatTimestamp(creationTimestamp, 'short', 'short')}
+                />
               </div>
             )}
 
-            {record?.creation_timestamp && (
-              <div className='space-y-1.5'>
-                <div className='text-sm font-medium text-muted-foreground'>
-                  <Trans>Created</Trans>
-                </div>
-                <div>
-                  {new Date(record.creation_timestamp * 1000).toLocaleString()}
-                </div>
+            {(offerSummary.expiration_timestamp ||
+              offerSummary.expiration_height) && (
+              <div className='flex items-center gap-2'>
+                <Clock className='h-4 w-4 text-muted-foreground' />
+                <LabeledItem
+                  label={t`Expires`}
+                  content={
+                    offerSummary.expiration_timestamp
+                      ? formatTimestamp(
+                          offerSummary.expiration_timestamp,
+                          'short',
+                          'short',
+                        )
+                      : offerSummary.expiration_height
+                        ? offerSummary.expiration_height?.toString()
+                        : null
+                  }
+                />
               </div>
             )}
 
-            <div className='space-y-1.5'>
-              <div className='text-sm font-medium text-muted-foreground'>
-                <Trans>Maker Fee</Trans>
-              </div>
-              <div>
+            <LabeledItem label={t`Maker Fee`} content={null}>
+              <div className='text-sm'>
                 <NumberFormat
                   value={fromMojos(
                     offerSummary.fee,
@@ -204,26 +199,7 @@ export function OfferCard({ record, summary, content }: OfferCardProps) {
                 />{' '}
                 {walletState.sync.unit.ticker}
               </div>
-            </div>
-
-            {(offerSummary.expiration_timestamp ||
-              offerSummary.expiration_height) && (
-              <div className='space-y-1.5'>
-                <div className='text-sm font-medium text-muted-foreground'>
-                  <Trans>Expires</Trans>
-                </div>
-                {offerSummary.expiration_timestamp && (
-                  <div className='text-sm'>
-                    {formatTimestamp(offerSummary.expiration_timestamp)}
-                  </div>
-                )}
-                {offerSummary.expiration_height && (
-                  <div className='text-sm text-muted-foreground'>
-                    <Trans>Block:</Trans> {offerSummary.expiration_height}
-                  </div>
-                )}
-              </div>
-            )}
+            </LabeledItem>
           </div>
         </CardContent>
       </Card>

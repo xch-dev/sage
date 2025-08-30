@@ -66,6 +66,8 @@ pub struct ImportKey {
     pub save_secrets: bool,
     #[serde(default = "yes")]
     pub login: bool,
+    #[serde(default)]
+    pub emoji: Option<String>,
 }
 
 fn yes() -> bool {
@@ -110,6 +112,17 @@ pub struct RenameKey {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct RenameKeyResponse {}
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SetWalletEmoji {
+    pub fingerprint: u32,
+    pub emoji: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SetWalletEmojiResponse {}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetKeys {}
@@ -144,3 +157,45 @@ pub struct GetSecretKey {
 pub struct GetSecretKeyResponse {
     pub secrets: Option<SecretKeyInfo>,
 }
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemes {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemesResponse {
+    pub themes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserTheme {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetUserThemeResponse {
+    pub theme: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SaveUserTheme {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct SaveUserThemeResponse {}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteUserTheme {
+    pub nft_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct DeleteUserThemeResponse {}

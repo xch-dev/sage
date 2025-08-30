@@ -11,7 +11,7 @@ import { createContext, ReactNode, useCallback, useState } from 'react';
 import { ErrorKind } from '../bindings';
 
 export interface CustomError {
-  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid';
+  kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid' | 'dexie';
   reason: string;
 }
 
@@ -88,6 +88,10 @@ export default function ErrorDialog({ error, setError }: ErrorDialogProps) {
 
     case 'database_migration':
       kind = 'Database Migration';
+      break;
+
+    case 'dexie':
+      kind = 'Dexie';
       break;
 
     default:

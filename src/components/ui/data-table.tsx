@@ -79,7 +79,10 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className='rounded-md border'>
+      <div
+        className='border'
+        style={{ borderRadius: 'var(--table-border-radius, 0.375rem)' }}
+      >
         <Table aria-label='Table'>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

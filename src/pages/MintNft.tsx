@@ -1,7 +1,6 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
-import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -10,7 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
 import {
   FeeAmountInput,
   IntegerInput,
@@ -31,7 +30,6 @@ import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { LoaderCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -66,9 +64,29 @@ export default function MintNft() {
     },
   });
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('royaltyAddress', scanResValue);
-  });
+  const { handleScanOrPaste: handleRoyaltyPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('royaltyAddress', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleDataUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('dataUris', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleMetadataUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('metadataUris', scanResValue);
+    },
+  );
+
+  const { handleScanOrPaste: handleLicenseUrisPaste } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('licenseUris', scanResValue);
+    },
+  );
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -180,11 +198,11 @@ export default function MintNft() {
                     <Trans>Data URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleDataUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -201,11 +219,11 @@ export default function MintNft() {
                     <Trans>Metadata URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleMetadataUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -222,11 +240,11 @@ export default function MintNft() {
                     <Trans>License URLs</Trans>
                   </FormLabel>
                   <FormControl>
-                    <Input
+                    <PasteInput
                       type='text'
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
-                      className='pr-12'
+                      onEndIconClick={handleLicenseUrisPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -247,7 +265,7 @@ export default function MintNft() {
                       type='text'
                       placeholder={t`Enter address`}
                       {...field}
-                      onEndIconClick={handleScanOrPaste}
+                      onEndIconClick={handleRoyaltyPaste}
                     />
                   </FormControl>
                   <FormMessage />
@@ -280,7 +298,9 @@ export default function MintNft() {
                           className='pr-12'
                         />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                          <span className='text-gray-500 text-sm'>%</span>
+                          <span className='text-muted-foreground text-sm'>
+                            %
+                          </span>
                         </div>
                       </div>
                     </FormControl>
@@ -332,12 +352,13 @@ export default function MintNft() {
               />
             </div>
 
-            <Button type='submit' disabled={pending}>
-              {pending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {pending ? <Trans>Minting</Trans> : <Trans>Mint</Trans>} NFT
-            </Button>
+            <LoadingButton
+              type='submit'
+              loading={pending}
+              loadingText={t`Minting`}
+            >
+              <Trans>Mint</Trans> NFT
+            </LoadingButton>
           </form>
         </Form>
       </Container>

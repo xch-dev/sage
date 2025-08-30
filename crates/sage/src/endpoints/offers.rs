@@ -10,7 +10,7 @@ use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
     GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
-    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, TakeOffer,
+    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer,
     TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
@@ -233,9 +233,18 @@ impl Sage {
     }
 
     pub async fn view_offer(&self, req: ViewOffer) -> Result<ViewOfferResponse> {
-        let offer = self.summarize_offer(decode_offer(&req.offer)?).await?;
+        let (offer, status) = self.summarize_offer(decode_offer(&req.offer)?).await?;
 
-        Ok(ViewOfferResponse { offer })
+        Ok(ViewOfferResponse {
+            offer,
+            status: match status {
+                OfferStatus::Pending => OfferRecordStatus::Pending,
+                OfferStatus::Active => OfferRecordStatus::Active,
+                OfferStatus::Completed => OfferRecordStatus::Completed,
+                OfferStatus::Cancelled => OfferRecordStatus::Cancelled,
+                OfferStatus::Expired => OfferRecordStatus::Expired,
+            },
+        })
     }
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
@@ -583,11 +592,28 @@ impl Sage {
                 None
             };
 
+            let option_assets = if asset.kind == AssetKind::Option {
+                let Some(row) = wallet.db.option_assets(asset.hash).await? else {
+                    return Err(Error::MissingOption(asset.hash));
+                };
+
+                Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                })
+            } else {
+                None
+            };
+
             let asset = OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(royalty),
                 asset: self.encode_asset(asset)?,
                 nft_royalty,
+                option_assets,
             };
 
             if is_requested {

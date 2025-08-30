@@ -24,15 +24,14 @@ use sage_api::{
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
     GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, OptionRecord, OptionSortMode as ApiOptionSortMode,
-    PendingTransactionRecord, PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse,
-    TokenRecord, TransactionCoinRecord, TransactionRecord,
+    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
+    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
+    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
     Transaction, TransactionCoin,
 };
-use sage_wallet::WalletError;
 
 impl Sage {
     pub fn get_version(&self, _req: GetVersion) -> Result<GetVersionResponse> {
@@ -90,15 +89,10 @@ impl Sage {
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
-        let puzzle_hash = match wallet.p2_puzzle_hash(false, false).await {
-            Ok(puzzle_hash) => Some(puzzle_hash),
-            Err(WalletError::InsufficientDerivations) => None,
-            Err(error) => return Err(error.into()),
-        };
+        let change_p2_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
 
-        let receive_address = puzzle_hash
-            .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
-            .transpose()?;
+        let receive_address =
+            Address::new(change_p2_puzzle_hash, self.network().prefix()).encode()?;
 
         let database_size = self
             .wallet_db_path(wallet.fingerprint)
@@ -111,7 +105,7 @@ impl Sage {
             unit: self.unit.clone(),
             total_coins,
             synced_coins,
-            receive_address: receive_address.unwrap_or_default(),
+            receive_address,
             burn_address: Address::new(BURN_PUZZLE_HASH, self.network().prefix()).encode()?,
             unhardened_derivation_index: wallet
                 .db
@@ -494,7 +488,7 @@ impl Sage {
                 Result::Ok(PendingTransactionRecord {
                     transaction_id: hex::encode(tx.hash),
                     fee: Amount::u64(tx.fee),
-                    submitted_at: Some(tx.submitted_timestamp.to_string()),
+                    submitted_at: tx.submitted_timestamp,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -724,13 +718,8 @@ impl Sage {
                 blob: data.as_ref().map(|data| BASE64_STANDARD.encode(&data.data)),
                 mime_type: data.map(|data| data.mime_type),
                 hash_matches,
-                metadata_json: offchain_metadata.and_then(|offchain_metadata| {
-                    if offchain_metadata.mime_type == "application/json" {
-                        String::from_utf8(offchain_metadata.data).ok()
-                    } else {
-                        None
-                    }
-                }),
+                metadata_json: offchain_metadata
+                    .and_then(|offchain_metadata| String::from_utf8(offchain_metadata.data).ok()),
                 metadata_hash_matches,
             }),
         })
@@ -797,17 +786,28 @@ impl Sage {
         let metadata_hash = metadata.as_ref().and_then(|m| m.metadata_hash);
         let license_hash = metadata.as_ref().and_then(|m| m.license_hash);
 
+        let collection_id =
+            Address::new(row.nft_info.collection_hash, "col".to_string()).encode()?;
+        let minter_did = row
+            .nft_info
+            .minter_hash
+            .map(|did| Address::new(did, "did:chia:".to_string()).encode())
+            .transpose()?;
+
+        let special_use_type =
+            // this is the hash collection id for the themes collection plus the testnet minter did
+            // need a mainnet collection hash too
+            if collection_id == "col1tr58ryd4dwyvduxqcrkldlmr3g60cgj45skmt4ghttk268m7jffq47l2hp" {
+                Some(NftSpecialUseType::Theme)
+            } else {
+                None
+            };
+
         Ok(NftRecord {
             launcher_id: Address::new(row.asset.hash, "nft".to_string()).encode()?,
-            collection_id: Some(
-                Address::new(row.nft_info.collection_hash, "col".to_string()).encode()?,
-            ),
+            collection_id: Some(collection_id),
             collection_name: row.nft_info.collection_name,
-            minter_did: row
-                .nft_info
-                .minter_hash
-                .map(|did| Address::new(did, "did:chia:".to_string()).encode())
-                .transpose()?,
+            minter_did,
             owner_did: row
                 .nft_info
                 .owner_hash
@@ -844,6 +844,7 @@ impl Sage {
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
             icon_url: row.asset.icon_url,
+            special_use_type,
         })
     }
 

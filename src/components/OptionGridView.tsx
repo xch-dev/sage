@@ -1,6 +1,5 @@
 import { Amount, Asset, OptionRecord } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
-import { CopyBox } from '@/components/CopyBox';
 import { NumberFormat } from '@/components/NumberFormat';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +34,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { AddressItem } from './AddressItem';
+import { LabeledItem } from './LabeledItem';
 
 interface OptionGridViewProps {
   options: OptionRecord[];
@@ -108,9 +109,7 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   disabled={option.created_height === null}
                 >
                   <HandCoins className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Exercise</Trans>
-                  </span>
+                  <Trans>Exercise</Trans>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -122,9 +121,7 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   disabled={option.created_height === null}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Transfer</Trans>
-                  </span>
+                  <Trans>Transfer</Trans>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -136,9 +133,7 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   disabled={option.created_height === null}
                 >
                   <Flame className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Burn</Trans>
-                  </span>
+                  <Trans>Burn</Trans>
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator />
@@ -152,9 +147,7 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   }}
                 >
                   <Copy className='mr-2 h-4 w-4' />
-                  <span>
-                    <Trans>Copy ID</Trans>
-                  </span>
+                  <Trans>Copy ID</Trans>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem
@@ -174,7 +167,7 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   ) : (
                     <EyeIcon className='mr-2 h-4 w-4' />
                   )}
-                  <span>{option.visible ? t`Hide` : t`Show`}</span>
+                  {option.visible ? t`Hide` : t`Show`}
                 </DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
@@ -182,21 +175,12 @@ function OptionCard({ option, actionHandlers }: OptionCardProps) {
         </CardHeader>
         <CardContent>
           <div className='flex flex-col gap-2'>
-            <div className='flex flex-col gap-1'>
-              <div className='text-sm font-medium text-muted-foreground'>
-                Option ID
-              </div>
-              <CopyBox value={option.launcher_id} title={t`Option ID`} />
-            </div>
+            <AddressItem label={t`Option ID`} address={option.launcher_id} />
 
-            <div className='flex flex-col gap-1'>
-              <div className='text-sm font-medium text-muted-foreground'>
-                Expiration
-              </div>
-              <div className='text-sm font-medium'>
-                {formatTimestamp(option.expiration_seconds)}
-              </div>
-            </div>
+            <LabeledItem
+              label={t`Expiration`}
+              content={formatTimestamp(option.expiration_seconds)}
+            />
 
             {option.expiration_seconds * 1000 < Date.now() ? (
               <div className='flex items-center gap-1.5 text-sm font-medium text-red-500'>
@@ -249,12 +233,14 @@ function OptionAssetPreview({
   option,
 }: OptionAssetPreviewProps) {
   return (
-    <div className='flex flex-col gap-1'>
-      <div className='text-sm font-medium text-muted-foreground'>
-        {asset === option.underlying_asset
+    <LabeledItem
+      label={
+        asset === option.underlying_asset
           ? t`Underlying Asset`
-          : t`Strike Price`}
-      </div>
+          : t`Strike Asset`
+      }
+      content={null}
+    >
       <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
         <AssetIcon asset={asset} size='md' />
         <div className='text-sm text-muted-foreground truncate'>
@@ -268,6 +254,6 @@ function OptionAssetPreview({
           {asset.name ?? asset.ticker ?? t`Unknown`}
         </div>
       </div>
-    </div>
+    </LabeledItem>
   );
 }

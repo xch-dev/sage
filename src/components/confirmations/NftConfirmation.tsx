@@ -1,6 +1,5 @@
-import { NftData, NftRecord } from '@/bindings';
+import { NftRecord } from '@/bindings';
 import { CopyBox } from '@/components/CopyBox';
-import { nftUri } from '@/lib/nftUri';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Flame, SendIcon, UserRoundPlus } from 'lucide-react';
@@ -8,10 +7,12 @@ import { toast } from 'react-toastify';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
+import { nftUri } from '@/lib/nftUri';
+
 interface NftConfirmationProps {
   type: 'burn' | 'transfer' | 'edit';
   nfts: NftRecord[];
-  nftData: Record<string, NftData | null>;
+  thumbnails: Record<string, string | null>;
   address?: string; // Required for transfer
   profileId?: string | null; // Required for edit
 }
@@ -19,7 +20,7 @@ interface NftConfirmationProps {
 export function NftConfirmation({
   type,
   nfts,
-  nftData,
+  thumbnails,
   address,
   profileId,
 }: NftConfirmationProps) {
@@ -101,7 +102,7 @@ export function NftConfirmation({
 
       {nfts.map((nft) => {
         const nftName = nft.name ?? t`Unnamed NFT`;
-        const data = nftData[nft.launcher_id] || null;
+        const thumbnail = thumbnails[nft.launcher_id] || null;
 
         return (
           <ConfirmationCard
@@ -113,7 +114,7 @@ export function NftConfirmation({
                 width='64'
                 height='64'
                 className='h-full w-full object-cover aspect-square color-[transparent]'
-                src={nftUri(data?.mime_type ?? null, data?.blob ?? null)}
+                src={nftUri('image/png', thumbnail)}
               />
             }
             title={nftName}

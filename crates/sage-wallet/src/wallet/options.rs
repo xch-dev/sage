@@ -32,7 +32,7 @@ impl Wallet {
         mint: WalletOptionMint,
         fee: u64,
     ) -> Result<(Vec<CoinSpend>, OptionContract), WalletError> {
-        let creator_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let creator_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
 
@@ -78,7 +78,7 @@ impl Wallet {
         fee: u64,
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
-        let sender_puzzle_hash = self.p2_puzzle_hash(false, true).await?;
+        let sender_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
         let mut actions = vec![Action::fee(fee)];
@@ -174,7 +174,7 @@ impl Wallet {
                         coin.amount,
                     ));
                 }
-                CoinKind::Cat { .. } => {
+                CoinKind::Cat => {
                     let Some(cat) = self.db.cat_coin(option.info.underlying_coin_id).await? else {
                         return Err(WalletError::MissingCatCoin(option.info.underlying_coin_id));
                     };

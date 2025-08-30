@@ -7,21 +7,23 @@ import { usePeers } from '@/hooks/usePeers';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowLeftRight,
   BookUser,
   Cog,
   FilePenLine,
+  Handshake,
+  HistoryIcon,
   Images,
   LogOut,
   MonitorCheck,
   MonitorCog,
-  ShoppingCart,
   SquareUserRound,
   WalletIcon,
 } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Separator } from './ui/separator';
 
 interface NavProps {
@@ -31,9 +33,11 @@ interface NavProps {
 export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
+  const isIos = platform() === 'ios';
+
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Main navigation`}
     >
@@ -64,24 +68,36 @@ export function TopNav({ isCollapsed }: NavProps) {
         <SquareUserRound className={className} />
       </NavLink>
 
-      <NavLink
-        url={'/options'}
-        isCollapsed={isCollapsed}
-        message={<Trans>Options</Trans>}
-      >
-        <FilePenLine className={className} />
-      </NavLink>
+      {!isIos && (
+        <NavLink
+          url={'/options'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Options</Trans>}
+        >
+          <FilePenLine className={className} />
+        </NavLink>
+      )}
 
       <NavLink
         url={'/offers'}
         isCollapsed={isCollapsed}
         message={<Trans>Offers</Trans>}
       >
-        <ShoppingCart className={className} />
+        <Handshake className={className} />
       </NavLink>
 
+      {!isIos && (
+        <NavLink
+          url={'/swap'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Swap</Trans>}
+        >
+          <ArrowLeftRight className={className} />
+        </NavLink>
+      )}
+
       <NavLink
-        url={'/wallet/addresses'}
+        url={'/addresses'}
         isCollapsed={isCollapsed}
         message={<Trans>Addresses</Trans>}
       >
@@ -93,7 +109,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
       >
-        <ArrowLeftRight className={className} />
+        <HistoryIcon className={className} />
       </NavLink>
     </nav>
   );
@@ -132,7 +148,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
       role='navigation'
       aria-label={t`Secondary navigation`}
     >
@@ -223,16 +239,31 @@ function NavLink({
   customTooltip,
   ariaCurrent,
 }: NavLinkProps) {
-  const className = `flex items-center gap-3 rounded-lg py-1.5 text-muted-foreground transition-all hover:text-primary ${
+  const location = useLocation();
+  const isActive =
+    typeof url === 'string' &&
+    (location.pathname === url ||
+      (url !== '/' && location.pathname.startsWith(url)));
+
+  const baseClassName = `flex items-center gap-3 rounded-lg py-1.5 transition-all ${
     isCollapsed ? 'justify-center' : 'px-2'
   } text-lg md:text-base`;
+
+  const className = isActive
+    ? `${baseClassName} text-primary border-primary`
+    : `${baseClassName} text-muted-foreground hover:text-primary`;
+
+  const activeStyle = isActive
+    ? { backgroundColor: 'var(--nav-active-bg)' }
+    : {};
 
   const link =
     typeof url === 'string' ? (
       <Link
         to={url}
         className={className}
-        aria-current={ariaCurrent}
+        style={activeStyle}
+        aria-current={isActive ? 'page' : ariaCurrent}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
         {children}
@@ -243,6 +274,7 @@ function NavLink({
         type='button'
         onClick={url}
         className={className}
+        style={activeStyle}
         aria-label={isCollapsed ? message?.toString() : undefined}
       >
         {children}

@@ -1,16 +1,25 @@
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
+
 use chia::protocol::Bytes32;
 use chia::protocol::SpendBundle;
 use chia_wallet_sdk::driver::{DriverError, Offer};
 use chia_wallet_sdk::{driver::SpendContext, utils::Address};
+use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
+use sage_database::OfferStatus;
 use sage_wallet::WalletError;
 
 use crate::utils::offer_status::offer_expiration;
 use crate::ConfirmationInfo;
+use crate::StatusCoinType;
 use crate::{Error, Result, Sage};
 
 impl Sage {
-    pub(crate) async fn summarize_offer(&self, spend_bundle: SpendBundle) -> Result<OfferSummary> {
+    pub(crate) async fn summarize_offer(
+        &self,
+        spend_bundle: SpendBundle,
+    ) -> Result<(OfferSummary, OfferStatus)> {
         let wallet = self.wallet()?;
 
         let mut ctx = SpendContext::new();
@@ -37,6 +46,7 @@ impl Sage {
                 royalty: Amount::u64(offered_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -51,6 +61,7 @@ impl Sage {
                 royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -76,17 +87,29 @@ impl Sage {
                     .encode()?,
                     royalty_basis_points: nft.info.royalty_basis_points,
                 }),
+                option_assets: None,
             });
         }
 
         for (&launcher_id, option) in &offer.offered_coins().options {
             let asset = self.cache_option(launcher_id).await?;
 
+            let Some(row) = wallet.db.option_assets(launcher_id).await? else {
+                return Err(Error::MissingOption(launcher_id));
+            };
+
             maker.push(OfferAsset {
                 amount: Amount::u64(option.coin.amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                }),
             });
         }
 
@@ -102,6 +125,7 @@ impl Sage {
                 royalty: Amount::u64(requested_royalties.xch),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -116,6 +140,7 @@ impl Sage {
                 royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
                 asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
                 nft_royalty: None,
+                option_assets: None,
             });
         }
 
@@ -148,6 +173,7 @@ impl Sage {
                         .encode()?,
                     royalty_basis_points: nft.royalty_basis_points,
                 }),
+                option_assets: None,
             });
         }
 
@@ -159,20 +185,84 @@ impl Sage {
 
             let asset = self.cache_option(launcher_id).await?;
 
+            let Some(row) = wallet.db.option_assets(launcher_id).await? else {
+                return Err(Error::MissingOption(launcher_id));
+            };
+
             taker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(0),
                 asset: self.encode_asset(asset)?,
                 nft_royalty: None,
+                option_assets: Some(OptionAssets {
+                    underlying_asset: self.encode_asset(row.underlying_asset)?,
+                    underlying_amount: Amount::u64(row.underlying_amount),
+                    strike_asset: self.encode_asset(row.strike_asset)?,
+                    strike_amount: Amount::u64(row.strike_amount),
+                    expiration_seconds: row.expiration_seconds,
+                }),
             });
         }
 
-        Ok(OfferSummary {
+        let summary = OfferSummary {
             fee: Amount::u64(offer.offered_coins().fee),
             maker,
             taker,
             expiration_height: status.expiration_height,
             expiration_timestamp: status.expiration_timestamp,
-        })
+        };
+
+        let mut offer_status = OfferStatus::Active;
+
+        if status.expiration_timestamp.is_some_and(|ts| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs()
+                >= ts
+        }) {
+            offer_status = OfferStatus::Expired;
+        }
+
+        let peer_state = self.peer_state.lock().await;
+
+        if let Some(expiration_height) = summary.expiration_height {
+            if let Some((height, _)) = peer_state.peak() {
+                if height >= expiration_height {
+                    offer_status = OfferStatus::Expired;
+                }
+            }
+        }
+
+        if !status.coins.is_empty() {
+            if let Some(peer) = peer_state.acquire_peer() {
+                let coin_states = peer
+                    .fetch_coins(
+                        status.coins.keys().copied().collect(),
+                        wallet.genesis_challenge,
+                    )
+                    .await?;
+
+                for coin_state in coin_states {
+                    let Some(coin_type) = status.coins.get(&coin_state.coin.coin_id()) else {
+                        continue;
+                    };
+
+                    match coin_type {
+                        StatusCoinType::Cancel { fast_forwardable } => {
+                            if coin_state.spent_height.is_some() && !*fast_forwardable {
+                                offer_status = OfferStatus::Cancelled;
+                            }
+                        }
+                        StatusCoinType::Settle => {
+                            offer_status = OfferStatus::Completed;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok((summary, offer_status))
     }
 }
