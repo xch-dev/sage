@@ -445,7 +445,7 @@ impl Sage {
 
         let Some(row) = wallet
             .db
-            .owned_option(parse_option_id(req.option_id)?)
+            .wallet_option(parse_option_id(req.option_id)?)
             .await?
         else {
             return Ok(GetOptionResponse { option: None });
