@@ -65,7 +65,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Profiles</Trans>}
       >
-        <SquareUserRound className={className} />
+        <SquareUserRound className={className} aria-hidden='true' />
       </NavLink>
 
       {!isIos && (
@@ -74,7 +74,7 @@ export function TopNav({ isCollapsed }: NavProps) {
           isCollapsed={isCollapsed}
           message={<Trans>Options</Trans>}
         >
-          <FilePenLine className={className} />
+          <FilePenLine className={className} aria-hidden='true' />
         </NavLink>
       )}
 
@@ -83,7 +83,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Offers</Trans>}
       >
-        <Handshake className={className} />
+        <Handshake className={className} aria-hidden='true' />
       </NavLink>
 
       {!isIos && (
@@ -92,7 +92,7 @@ export function TopNav({ isCollapsed }: NavProps) {
           isCollapsed={isCollapsed}
           message={<Trans>Swap</Trans>}
         >
-          <ArrowLeftRight className={className} />
+          <ArrowLeftRight className={className} aria-hidden='true' />
         </NavLink>
       )}
 
@@ -101,7 +101,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Addresses</Trans>}
       >
-        <BookUser className={className} />
+        <BookUser className={className} aria-hidden='true' />
       </NavLink>
 
       <NavLink
@@ -109,7 +109,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         isCollapsed={isCollapsed}
         message={<Trans>Transactions</Trans>}
       >
-        <HistoryIcon className={className} />
+        <HistoryIcon className={className} aria-hidden='true' />
       </NavLink>
     </nav>
   );
