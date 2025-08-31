@@ -1,11 +1,21 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
 import { getColorLightness, makeColorTransparent } from './color-utils';
+import { validateTheme, validateThemeJson } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
 
 export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
   try {
+    // Validate in development only
+    if (import.meta.env.DEV) {
+      const validation = validateThemeJson(themeJson);
+      if (!validation.success) {
+        console.error(`User theme validation failed:`, validation.error);
+        return null;
+      }
+    }
+
     let theme = JSON.parse(themeJson) as Theme;
     if (theme.inherits) {
       const inheritedTheme = await loadBuiltInTheme(
@@ -41,16 +51,18 @@ export async function loadBuiltInTheme(
 
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
-    let theme = themeModule.default as Theme;
 
-    if (!theme.name) {
-      throw new Error(`Theme ${themeName} is missing required 'name' property`);
+    // Validate in development only
+    if (import.meta.env.DEV) {
+      const validation = validateTheme(themeModule.default);
+      if (!validation.success) {
+        throw new Error(
+          `Theme ${themeName} validation failed: ${validation.error}`,
+        );
+      }
     }
-    if (!theme.displayName) {
-      throw new Error(
-        `Theme ${themeName} is missing required 'displayName' property`,
-      );
-    }
+
+    let theme = themeModule.default as Theme;
 
     if (theme.inherits) {
       const inheritedTheme = await loadBuiltInTheme(
