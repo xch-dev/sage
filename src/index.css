@@ -707,17 +707,17 @@ body {
     backdrop-filter: var(--card-backdrop-filter);
     -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
   }
-  
+
   .backdrop-blur-popover {
     backdrop-filter: var(--popover-backdrop-filter);
     -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
   }
-  
+
   .backdrop-blur-surface {
     backdrop-filter: var(--surface-backdrop-filter);
     -webkit-backdrop-filter: var(--surface-backdrop-filter-webkit);
   }
-  
+
   .backdrop-blur-input {
     backdrop-filter: var(--input-backdrop-filter);
     -webkit-backdrop-filter: var(--input-backdrop-filter-webkit);
@@ -735,10 +735,10 @@ body {
   }
 
   .bg-input,
-  input[type="text"],
-  input[type="password"],
-  input[type="email"],
-  input[type="number"],
+  input[type='text'],
+  input[type='password'],
+  input[type='email'],
+  input[type='number'],
   textarea,
   select {
     backdrop-filter: var(--input-backdrop-filter);

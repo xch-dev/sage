@@ -113,19 +113,27 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
       `url(${theme.backgroundImage})`,
       'important',
     );
-    
+
     // Apply background size (default: cover)
     const backgroundSize = theme.backgroundSize || 'cover';
     root.style.setProperty('--background-size', backgroundSize, 'important');
-    
+
     // Apply background position (default: center)
     const backgroundPosition = theme.backgroundPosition || 'center';
-    root.style.setProperty('--background-position', backgroundPosition, 'important');
-    
+    root.style.setProperty(
+      '--background-position',
+      backgroundPosition,
+      'important',
+    );
+
     // Apply background repeat (default: no-repeat)
     const backgroundRepeat = theme.backgroundRepeat || 'no-repeat';
-    root.style.setProperty('--background-repeat', backgroundRepeat, 'important');
-    
+    root.style.setProperty(
+      '--background-repeat',
+      backgroundRepeat,
+      'important',
+    );
+
     root.classList.add('has-background-image');
   } else {
     root.style.removeProperty('--background-image');
@@ -139,7 +147,11 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
 function applyThemeVariables(theme: Theme, root: HTMLElement): void {
   // Create mappings from theme properties to CSS variables
   const variableMappings = [
-    { themeObj: theme.colors, transform: (key: string) => `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}` },
+    {
+      themeObj: theme.colors,
+      transform: (key: string) =>
+        `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`,
+    },
     { themeObj: theme.fonts, transform: (key: string) => `--font-${key}` },
     { themeObj: theme.corners, transform: (key: string) => `--corner-${key}` },
     { themeObj: theme.shadows, transform: (key: string) => `--shadow-${key}` },
@@ -164,7 +176,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   );
   root.classList.remove(...existingThemeClasses);
 
-  // Clear all previously set CSS variables to reset to defaults
+  // Clear all CSS variables to reset to defaults
   [
     ...colorVariableNames,
     ...fontVariableNames,
@@ -185,16 +197,17 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
 
   // Apply backdrop-filter variables if defined in colors object
   if (theme.colors) {
-    const backdropFilterMap: Record<string, string> = {
-      cardBackdropFilter: '--card-backdrop-filter',
-      cardBackdropFilterWebkit: '--card-backdrop-filter-webkit',
-      popoverBackdropFilter: '--popover-backdrop-filter',
-      popoverBackdropFilterWebkit: '--popover-backdrop-filter-webkit',
-      surfaceBackdropFilter: '--surface-backdrop-filter',
-      surfaceBackdropFilterWebkit: '--surface-backdrop-filter-webkit',
-      inputBackdropFilter: '--input-backdrop-filter',
-      inputBackdropFilterWebkit: '--input-backdrop-filter-webkit',
-    };
+    const backdropFilterMap: Record<string, string> = {};
+    [
+      'cardBackdropFilter',
+      'popoverBackdropFilter',
+      'surfaceBackdropFilter',
+      'inputBackdropFilter',
+    ].forEach((base) => {
+      const cssVar = `--${base.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+      backdropFilterMap[`${base}`] = cssVar;
+      backdropFilterMap[`${base}Webkit`] = `${cssVar}-webkit`;
+    });
 
     Object.entries(backdropFilterMap).forEach(([themeKey, cssVar]) => {
       const value = theme.colors?.[themeKey as keyof typeof theme.colors];
@@ -257,7 +270,11 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     transparentColorMap.forEach(({ value, opacity, name }) => {
       if (value) {
         const transparentColor = makeColorTransparent(value, opacity);
-        root.style.setProperty(`--${name}-transparent`, transparentColor, 'important');
+        root.style.setProperty(
+          `--${name}-transparent`,
+          transparentColor,
+          'important',
+        );
       }
     });
   }
@@ -282,26 +299,43 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
         Object.entries(propertyToCssMap).forEach(([property, cssName]) => {
           const value = config[property as keyof typeof config];
           if (value && typeof value === 'string') {
-            root.style.setProperty(`--btn-${variant}-${cssName}`, value, 'important');
+            root.style.setProperty(
+              `--btn-${variant}-${cssName}`,
+              value,
+              'important',
+            );
           }
         });
 
         // Apply hover and active states using the same mapping
-        ['hover', 'active'].forEach(state => {
+        ['hover', 'active'].forEach((state) => {
           const stateConfig = config[state as keyof typeof config];
           if (stateConfig && typeof stateConfig === 'object') {
-            Object.entries(propertyToCssMap).forEach(([property, baseCssName]) => {
-              const value = (stateConfig as Record<string, unknown>)[property];
-              if (value && typeof value === 'string') {
-                const cssName = `${state}-${baseCssName}`;
-                root.style.setProperty(`--btn-${variant}-${cssName}`, value, 'important');
-              }
-            });
+            Object.entries(propertyToCssMap).forEach(
+              ([property, baseCssName]) => {
+                const value = (stateConfig as Record<string, unknown>)[
+                  property
+                ];
+                if (value && typeof value === 'string') {
+                  const cssName = `${state}-${baseCssName}`;
+                  root.style.setProperty(
+                    `--btn-${variant}-${cssName}`,
+                    value,
+                    'important',
+                  );
+                }
+              },
+            );
 
             // Handle transform property specifically for hover/active states
-            const transform = (stateConfig as Record<string, unknown>).transform;
+            const transform = (stateConfig as Record<string, unknown>)
+              .transform;
             if (transform && typeof transform === 'string') {
-              root.style.setProperty(`--btn-${variant}-${state}-transform`, transform, 'important');
+              root.style.setProperty(
+                `--btn-${variant}-${state}-transform`,
+                transform,
+                'important',
+              );
             }
           }
         });
@@ -331,18 +365,66 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
 
   if (theme.tables) {
     const tableSections = [
-      { obj: theme.tables, prefix: 'table', properties: ['background', 'border', 'borderRadius', 'boxShadow'] },
-      { obj: theme.tables.header, prefix: 'table-header', properties: ['background', 'color', 'border', 'fontWeight', 'fontSize', 'backdropFilter', 'backdropFilterWebkit'] },
-      { obj: theme.tables.row, prefix: 'table-row', properties: ['background', 'color', 'border', 'backdropFilter', 'backdropFilterWebkit'] },
-      { obj: theme.tables.row?.hover, prefix: 'table-row-hover', properties: ['background', 'color'] },
-      { obj: theme.tables.row?.selected, prefix: 'table-row-selected', properties: ['background', 'color'] },
-      { obj: theme.tables.cell, prefix: 'table-cell', properties: ['padding', 'border', 'fontSize'] },
-      { obj: theme.tables.footer, prefix: 'table-footer', properties: ['background', 'color', 'border', 'backdropFilter', 'backdropFilterWebkit'] },
+      {
+        obj: theme.tables,
+        prefix: 'table',
+        properties: ['background', 'border', 'borderRadius', 'boxShadow'],
+      },
+      {
+        obj: theme.tables.header,
+        prefix: 'table-header',
+        properties: [
+          'background',
+          'color',
+          'border',
+          'fontWeight',
+          'fontSize',
+          'backdropFilter',
+          'backdropFilterWebkit',
+        ],
+      },
+      {
+        obj: theme.tables.row,
+        prefix: 'table-row',
+        properties: [
+          'background',
+          'color',
+          'border',
+          'backdropFilter',
+          'backdropFilterWebkit',
+        ],
+      },
+      {
+        obj: theme.tables.row?.hover,
+        prefix: 'table-row-hover',
+        properties: ['background', 'color'],
+      },
+      {
+        obj: theme.tables.row?.selected,
+        prefix: 'table-row-selected',
+        properties: ['background', 'color'],
+      },
+      {
+        obj: theme.tables.cell,
+        prefix: 'table-cell',
+        properties: ['padding', 'border', 'fontSize'],
+      },
+      {
+        obj: theme.tables.footer,
+        prefix: 'table-footer',
+        properties: [
+          'background',
+          'color',
+          'border',
+          'backdropFilter',
+          'backdropFilterWebkit',
+        ],
+      },
     ];
 
     tableSections.forEach(({ obj, prefix, properties }) => {
       if (obj) {
-        properties.forEach(property => {
+        properties.forEach((property) => {
           const value = (obj as Record<string, unknown>)[property];
           if (value && typeof value === 'string') {
             const cssVar = `--${prefix}-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
@@ -354,9 +436,14 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   }
 
   if (theme.sidebar) {
-    const sidebarProperties = ['background', 'backdropFilter', 'backdropFilterWebkit', 'border'];
-    
-    sidebarProperties.forEach(property => {
+    const sidebarProperties = [
+      'background',
+      'backdropFilter',
+      'backdropFilterWebkit',
+      'border',
+    ];
+
+    sidebarProperties.forEach((property) => {
       const value = (theme.sidebar as Record<string, unknown>)[property];
       if (value && typeof value === 'string') {
         const cssVar = `--sidebar-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
@@ -380,8 +467,15 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     };
 
     Object.entries(opacityDefaults).forEach(([key, defaultValue]) => {
-      const opacity = theme.backgroundOpacity?.[key as keyof typeof theme.backgroundOpacity] ?? defaultValue;
-      root.style.setProperty(`--background-${key}-opacity`, opacity.toString(), 'important');
+      const opacity =
+        theme.backgroundOpacity?.[
+          key as keyof typeof theme.backgroundOpacity
+        ] ?? defaultValue;
+      root.style.setProperty(
+        `--background-${key}-opacity`,
+        opacity.toString(),
+        'important',
+      );
     });
   } else {
     document.body.classList.remove('has-background-image');
@@ -390,10 +484,14 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   if (theme.switches) {
     const switchStates = ['checked', 'unchecked'] as const;
 
-    switchStates.forEach(state => {
+    switchStates.forEach((state) => {
       const switchConfig = theme.switches?.[state];
       if (switchConfig?.background) {
-        root.style.setProperty(`--switch-${state}-bg`, switchConfig.background, 'important');
+        root.style.setProperty(
+          `--switch-${state}-bg`,
+          switchConfig.background,
+          'important',
+        );
       }
     });
   }
@@ -412,7 +510,10 @@ export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
     };
 
     Object.entries(backgroundStyles).forEach(([property, value]) => {
-      root.style.setProperty(property.replace(/([A-Z])/g, '-$1').toLowerCase(), value);
+      root.style.setProperty(
+        property.replace(/([A-Z])/g, '-$1').toLowerCase(),
+        value,
+      );
     });
   }
 
@@ -577,15 +678,6 @@ const backdropFilterVariableNames = [
   '--sidebar-backdrop-filter-webkit',
 ];
 
-const buttonVariants = [
-  'default',
-  'outline',
-  'secondary',
-  'destructive',
-  'ghost',
-  'link',
-];
-
 const buttonBaseVariableNames = [
   'bg',
   'color',
@@ -612,7 +704,14 @@ const buttonBaseVariableNames = [
 ];
 
 // Generate all button variable combinations
-const buttonVariableNames = buttonVariants.flatMap((variant) =>
+const buttonVariableNames = [
+  'default',
+  'outline',
+  'secondary',
+  'destructive',
+  'ghost',
+  'link',
+].flatMap((variant) =>
   buttonBaseVariableNames.map((baseName) => `--btn-${variant}-${baseName}`),
 );
 
