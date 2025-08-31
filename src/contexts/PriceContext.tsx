@@ -115,7 +115,7 @@ export function PriceProvider({ children }: { children: ReactNode }) {
         const data = await response.json();
         const newPrice = data.chia?.usd;
 
-        if (newPrice && newPrice > 0) {
+        if (newPrice && newPrice >= 0) {
           setXchUsdPrice(newPrice);
         } else {
           console.warn('Invalid XCH price received:', newPrice);
