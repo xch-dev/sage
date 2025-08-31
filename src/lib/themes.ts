@@ -1,5 +1,6 @@
 import { commands } from '../bindings';
-import { type Theme, loadBuiltInTheme, loadUserTheme } from './theme';
+import { loadBuiltInTheme, loadUserTheme } from './theme';
+import { Theme } from './theme.type';
 
 let themesCache: Theme[] | null = null;
 let cachePromise: Promise<Theme[]> | null = null;

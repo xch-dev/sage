@@ -1,7 +1,8 @@
 import { commands } from '@/bindings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
-import { type Theme, applyThemeIsolated } from '@/lib/theme';
+import { applyThemeIsolated } from '@/lib/theme';
+import { Theme } from '@/lib/theme.type';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Check, Trash2 } from 'lucide-react';
