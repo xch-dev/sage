@@ -1,7 +1,7 @@
 import { commands } from '@/bindings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
-import { type Theme, applyTheme } from '@/lib/theme';
+import { type Theme, applyThemeIsolated } from '@/lib/theme';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Check, Trash2 } from 'lucide-react';
@@ -68,7 +68,7 @@ export function ThemeCard({
   useEffect(() => {
     if (cardRef.current) {
       // Apply the theme with complete isolation from ambient theme
-      applyTheme(theme, cardRef.current, true);
+      applyThemeIsolated(theme, cardRef.current);
     }
   }, [theme]);
 
