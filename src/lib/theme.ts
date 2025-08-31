@@ -113,9 +113,25 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
       `url(${theme.backgroundImage})`,
       'important',
     );
+    
+    // Apply background size (default: cover)
+    const backgroundSize = theme.backgroundSize || 'cover';
+    root.style.setProperty('--background-size', backgroundSize, 'important');
+    
+    // Apply background position (default: center)
+    const backgroundPosition = theme.backgroundPosition || 'center';
+    root.style.setProperty('--background-position', backgroundPosition, 'important');
+    
+    // Apply background repeat (default: no-repeat)
+    const backgroundRepeat = theme.backgroundRepeat || 'no-repeat';
+    root.style.setProperty('--background-repeat', backgroundRepeat, 'important');
+    
     root.classList.add('has-background-image');
   } else {
     root.style.removeProperty('--background-image');
+    root.style.removeProperty('--background-size');
+    root.style.removeProperty('--background-position');
+    root.style.removeProperty('--background-repeat');
     root.classList.remove('has-background-image');
   }
 }
@@ -354,9 +370,9 @@ export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
   if (theme.backgroundImage) {
     const backgroundStyles = {
       backgroundImage: `url(${theme.backgroundImage})`,
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
+      backgroundSize: theme.backgroundSize || 'cover',
+      backgroundPosition: theme.backgroundPosition || 'center',
+      backgroundRepeat: theme.backgroundRepeat || 'no-repeat',
     };
 
     Object.entries(backgroundStyles).forEach(([property, value]) => {
@@ -468,6 +484,9 @@ const navigationAndButtonVariableNames = [
 
 const backgroundImageAndTransparencyVariableNames = [
   '--background-image',
+  '--background-size',
+  '--background-position',
+  '--background-repeat',
   '--background-transparent',
   '--card-transparent',
   '--popover-transparent',
@@ -546,6 +565,9 @@ export interface Theme {
   most_like?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
+  backgroundSize?: string;
+  backgroundPosition?: string;
+  backgroundRepeat?: string;
   isUserTheme?: boolean;
   schemaVersion?: number;
   backgroundOpacity?: {
