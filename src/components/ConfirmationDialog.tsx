@@ -8,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { fromMojos } from '@/lib/utils';
@@ -66,7 +65,6 @@ export default function ConfirmationDialog({
 
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
-  const { currentTheme } = useTheme();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -179,21 +177,7 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent
-        className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'
-        style={{
-          backgroundImage: currentTheme?.backgroundImage
-            ? `url(${currentTheme.backgroundImage})`
-            : undefined,
-          backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
-          backgroundPosition: currentTheme?.backgroundImage
-            ? 'center'
-            : undefined,
-          backgroundRepeat: currentTheme?.backgroundImage
-            ? 'no-repeat'
-            : undefined,
-        }}
-      >
+      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'>
         <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
