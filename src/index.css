@@ -666,6 +666,8 @@ body {
     border: var(--table-header-border);
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr {
@@ -696,6 +698,8 @@ body {
     background: var(--table-footer-background);
     color: var(--table-footer-color);
     border: var(--table-footer-border);
+    backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
   }
 
   /* Backdrop filter utility classes */
