@@ -1,5 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Sage Theme Schema",
+  "description": "This is the schema for a Sage theme",
   "properties": {
     "backgroundImage": {
       "type": "string"
@@ -684,7 +686,10 @@
       "type": "boolean"
     },
     "most_like": {
-      "enum": ["dark", "light"],
+      "enum": [
+        "dark",
+        "light"
+      ],
       "type": "string"
     },
     "name": {
@@ -883,6 +888,10 @@
       "type": "object"
     }
   },
-  "required": ["displayName", "name", "schemaVersion"],
+  "required": [
+    "displayName",
+    "name",
+    "schemaVersion"
+  ],
   "type": "object"
 }
