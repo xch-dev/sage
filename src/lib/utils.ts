@@ -173,7 +173,8 @@ export function isValidAddress(address: string, prefix: string): boolean {
 export function isValidUrl(str: string) {
   try {
     // only allow http(s) schemes, not file, ftp, wss etc
-    if (str.trimStart().toLowerCase().startsWith('http')) {
+    const trimmed = str.trimStart().toLowerCase();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
       const url = new URL(str);
       // since this is used for nft links, we don't want to allow localhost,
       // or 127.0.0.1 to prevent links to local resources
