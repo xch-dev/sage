@@ -4,7 +4,7 @@ import { Theme } from './theme.type';
 
 // Create Ajv instance
 const ajv = new Ajv({
-  allErrors: false, // Collect all validation errors, not just the first one
+  allErrors: false, // Stop at first validation error
   verbose: false, // Include schema and data in errors for better debugging
 });
 
