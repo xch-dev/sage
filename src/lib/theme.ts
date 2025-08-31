@@ -175,12 +175,34 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     ...backgroundImageAndTransparencyVariableNames,
     ...tableVariableNames,
     ...switchVariableNames,
+    ...backdropFilterVariableNames,
     ...buttonVariableNames,
   ].forEach((cssVar) => {
     root.style.removeProperty(cssVar);
   });
 
   applyThemeVariables(theme, root);
+
+  // Apply backdrop-filter variables if defined in colors object
+  if (theme.colors) {
+    const backdropFilterMap: Record<string, string> = {
+      cardBackdropFilter: '--card-backdrop-filter',
+      cardBackdropFilterWebkit: '--card-backdrop-filter-webkit',
+      popoverBackdropFilter: '--popover-backdrop-filter',
+      popoverBackdropFilterWebkit: '--popover-backdrop-filter-webkit',
+      surfaceBackdropFilter: '--surface-backdrop-filter',
+      surfaceBackdropFilterWebkit: '--surface-backdrop-filter-webkit',
+      inputBackdropFilter: '--input-backdrop-filter',
+      inputBackdropFilterWebkit: '--input-backdrop-filter-webkit',
+    };
+
+    Object.entries(backdropFilterMap).forEach(([themeKey, cssVar]) => {
+      const value = theme.colors?.[themeKey as keyof typeof theme.colors];
+      if (value) {
+        root.style.setProperty(cssVar, value, 'important');
+      }
+    });
+  }
 
   // Apply theme-specific input background if defined
   if (theme.colors?.inputBackground) {
@@ -250,6 +272,8 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       borderColor: 'border-color',
       borderRadius: 'radius',
       boxShadow: 'shadow',
+      backdropFilter: 'backdrop-filter',
+      backdropFilterWebkit: 'backdrop-filter-webkit',
     };
 
     Object.entries(theme.buttons).forEach(([variant, config]) => {
@@ -308,12 +332,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   if (theme.tables) {
     const tableSections = [
       { obj: theme.tables, prefix: 'table', properties: ['background', 'border', 'borderRadius', 'boxShadow'] },
-      { obj: theme.tables.header, prefix: 'table-header', properties: ['background', 'color', 'border', 'fontWeight', 'fontSize'] },
-      { obj: theme.tables.row, prefix: 'table-row', properties: ['background', 'color', 'border'] },
+      { obj: theme.tables.header, prefix: 'table-header', properties: ['background', 'color', 'border', 'fontWeight', 'fontSize', 'backdropFilter', 'backdropFilterWebkit'] },
+      { obj: theme.tables.row, prefix: 'table-row', properties: ['background', 'color', 'border', 'backdropFilter', 'backdropFilterWebkit'] },
       { obj: theme.tables.row?.hover, prefix: 'table-row-hover', properties: ['background', 'color'] },
       { obj: theme.tables.row?.selected, prefix: 'table-row-selected', properties: ['background', 'color'] },
       { obj: theme.tables.cell, prefix: 'table-cell', properties: ['padding', 'border', 'fontSize'] },
-      { obj: theme.tables.footer, prefix: 'table-footer', properties: ['background', 'color', 'border'] },
+      { obj: theme.tables.footer, prefix: 'table-footer', properties: ['background', 'color', 'border', 'backdropFilter', 'backdropFilterWebkit'] },
     ];
 
     tableSections.forEach(({ obj, prefix, properties }) => {
@@ -325,6 +349,18 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
             root.style.setProperty(cssVar, value, 'important');
           }
         });
+      }
+    });
+  }
+
+  if (theme.sidebar) {
+    const sidebarProperties = ['background', 'backdropFilter', 'backdropFilterWebkit', 'border'];
+    
+    sidebarProperties.forEach(property => {
+      const value = (theme.sidebar as Record<string, unknown>)[property];
+      if (value && typeof value === 'string') {
+        const cssVar = `--sidebar-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+        root.style.setProperty(cssVar, value, 'important');
       }
     });
   }
@@ -522,6 +558,25 @@ const tableVariableNames = [
 
 const switchVariableNames = ['--switch-checked-bg', '--switch-unchecked-bg'];
 
+const backdropFilterVariableNames = [
+  '--card-backdrop-filter',
+  '--card-backdrop-filter-webkit',
+  '--popover-backdrop-filter',
+  '--popover-backdrop-filter-webkit',
+  '--surface-backdrop-filter',
+  '--surface-backdrop-filter-webkit',
+  '--input-backdrop-filter',
+  '--input-backdrop-filter-webkit',
+  '--table-header-backdrop-filter',
+  '--table-header-backdrop-filter-webkit',
+  '--table-row-backdrop-filter',
+  '--table-row-backdrop-filter-webkit',
+  '--table-footer-backdrop-filter',
+  '--table-footer-backdrop-filter-webkit',
+  '--sidebar-backdrop-filter',
+  '--sidebar-backdrop-filter-webkit',
+];
+
 const buttonVariants = [
   'default',
   'outline',
@@ -540,6 +595,8 @@ const buttonBaseVariableNames = [
   'border-color',
   'radius',
   'shadow',
+  'backdrop-filter',
+  'backdrop-filter-webkit',
   'hover-bg',
   'hover-color',
   'hover-transform',
@@ -602,6 +659,14 @@ export interface Theme {
     chart3?: string;
     chart4?: string;
     chart5?: string;
+    cardBackdropFilter?: string;
+    cardBackdropFilterWebkit?: string;
+    popoverBackdropFilter?: string;
+    popoverBackdropFilterWebkit?: string;
+    surfaceBackdropFilter?: string;
+    surfaceBackdropFilterWebkit?: string;
+    inputBackdropFilter?: string;
+    inputBackdropFilterWebkit?: string;
   };
   fonts?: {
     sans?: string;
@@ -629,6 +694,13 @@ export interface Theme {
     button?: string;
     dropdown?: string;
   };
+  // Optional theme-specific sidebar configuration
+  sidebar?: {
+    background?: string;
+    backdropFilter?: string;
+    backdropFilterWebkit?: string;
+    border?: string;
+  };
   // Optional theme-specific table configurations
   tables?: {
     background?: string;
@@ -641,11 +713,15 @@ export interface Theme {
       border?: string;
       fontWeight?: string;
       fontSize?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
     };
     row?: {
       background?: string;
       color?: string;
       border?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -664,6 +740,8 @@ export interface Theme {
       background?: string;
       color?: string;
       border?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
     };
   };
   // Optional theme-specific button configurations
@@ -677,6 +755,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -703,6 +783,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -729,6 +811,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -755,6 +839,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -781,6 +867,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
@@ -807,6 +895,8 @@ export interface Theme {
       borderColor?: string;
       borderRadius?: string;
       boxShadow?: string;
+      backdropFilter?: string;
+      backdropFilterWebkit?: string;
       hover?: {
         background?: string;
         color?: string;
