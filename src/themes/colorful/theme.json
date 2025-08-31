@@ -4,6 +4,7 @@
   "backgroundImage": "background.jpg",
   "inherits": "light",
   "most_like": "light",
+  "schemaVersion": 1,
   "colors": {
     "background": "hsl(280 50% 25%)",
     "secondary": "hsl(210 100% 85%)",

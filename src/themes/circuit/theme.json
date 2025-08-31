@@ -4,6 +4,7 @@
   "inherits": "dark",
   "most_like": "dark",
   "backgroundImage": "background.jpg",
+  "schemaVersion": 1,
   "colors": {
     "background": "#0a0e1a",
     "foreground": "#e0f2fe",

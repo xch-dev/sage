@@ -547,6 +547,7 @@ export interface Theme {
   icon_path?: string;
   backgroundImage?: string;
   isUserTheme?: boolean;
+  schemaVersion?: number;
   backgroundOpacity?: {
     body?: number;
     card?: number;
