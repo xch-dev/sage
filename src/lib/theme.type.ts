@@ -12,17 +12,15 @@ export interface Theme {
   backgroundPosition?: string;
   backgroundRepeat?: string;
   isUserTheme?: boolean; // this is set at runtime by the loader
-  backgroundOpacity?: {
-    body?: number;
-    card?: number;
-    popover?: number;
-  };
   colors?: {
     background?: string;
+    backgroundTransparent?: string;
     foreground?: string;
     card?: string;
+    cardTransparent?: string;
     cardForeground?: string;
     popover?: string;
+    popoverTransparent?: string;
     popoverForeground?: string;
     primary?: string;
     primaryForeground?: string;

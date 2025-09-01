@@ -6,20 +6,6 @@
     "backgroundImage": {
       "type": "string"
     },
-    "backgroundOpacity": {
-      "properties": {
-        "body": {
-          "type": "number"
-        },
-        "card": {
-          "type": "number"
-        },
-        "popover": {
-          "type": "number"
-        }
-      },
-      "type": "object"
-    },
     "backgroundPosition": {
       "type": "string"
     },
@@ -537,6 +523,9 @@
         "background": {
           "type": "string"
         },
+        "backgroundTransparent": {
+          "type": "string"
+        },
         "border": {
           "type": "string"
         },
@@ -550,6 +539,9 @@
           "type": "string"
         },
         "cardForeground": {
+          "type": "string"
+        },
+        "cardTransparent": {
           "type": "string"
         },
         "destructive": {
@@ -589,6 +581,9 @@
           "type": "string"
         },
         "popoverForeground": {
+          "type": "string"
+        },
+        "popoverTransparent": {
           "type": "string"
         },
         "primary": {

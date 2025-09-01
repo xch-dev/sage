@@ -343,19 +343,82 @@ body {
 
   /* Gradient buttons - applied when theme has gradient flag */
   .btn-variant-default[data-theme-style*='gradient'] {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--primary-foreground);
-    border: 1px solid var(--border);
+    background: linear-gradient(
+      135deg,
+      var(--btn-default-bg),
+      var(--btn-default-hover-bg)
+    );
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+  }
+
+  .btn-variant-outline[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-outline-bg),
+      var(--btn-outline-hover-bg)
+    );
+    color: var(--btn-outline-color);
+    border: var(--btn-outline-border);
+  }
+
+  .btn-variant-secondary[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-secondary-bg),
+      var(--btn-secondary-hover-bg)
+    );
+    color: var(--btn-secondary-color);
+    border: var(--btn-secondary-border);
   }
 
   /* Shimmer effects - applied when theme has shimmer flag */
-  .btn-variant-outline[data-theme-style*='shimmer'] {
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
+  .btn-variant-default[data-theme-style*='shimmer'] {
+    background: var(--btn-default-bg);
+    border: var(--btn-default-border);
+    color: var(--btn-default-color);
     position: relative;
     overflow: hidden;
     opacity: 0.8;
+  }
+
+  .btn-variant-outline[data-theme-style*='shimmer'] {
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-secondary[data-theme-style*='shimmer'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-default[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-default-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-default[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']::before {
@@ -368,7 +431,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      var(--primary),
+      var(--btn-outline-hover-color),
       transparent
     );
     opacity: 0.2;
@@ -376,8 +439,8 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--btn-outline-hover-border-color);
+    color: var(--btn-outline-hover-color);
     opacity: 1;
   }
 
@@ -385,76 +448,117 @@ body {
     left: 100%;
   }
 
+  .btn-variant-secondary[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-secondary-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-secondary[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
   /* Pixel art style - applied when theme has pixel-art flag */
   .btn-variant-default[data-theme-style*='pixel-art'] {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border: 2px solid var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-default[data-theme-style*='pixel-art']:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--foreground);
+    transform: var(--btn-default-hover-transform);
+    box-shadow: var(--btn-default-hover-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='pixel-art'] {
-    background: transparent;
-    border: 2px solid var(--foreground);
-    color: var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+    box-shadow: var(--btn-outline-shadow);
+  }
+
+  .btn-variant-secondary[data-theme-style*='pixel-art'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
+    box-shadow: var(--btn-secondary-shadow);
   }
 
   /* 3D effects - applied when theme has 3d-effects flag */
   .btn-variant-default[data-theme-style*='3d-effects'] {
-    background: var(--muted);
-    color: var(--foreground);
-    border: 2px outset var(--border);
-    box-shadow:
-      inset 1px 1px 0 var(--background),
-      inset -1px -1px 0 var(--muted-foreground);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-default[data-theme-style*='3d-effects']:active {
-    border-style: inset;
-    box-shadow:
-      inset 1px 1px 0 var(--muted-foreground),
-      inset -1px -1px 0 var(--background);
+    border-style: var(--btn-default-active-border-style);
+    box-shadow: var(--btn-default-active-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='3d-effects'] {
-    background: var(--background);
-    border: 2px outset var(--border);
-    color: var(--foreground);
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+  }
+
+  .btn-variant-secondary[data-theme-style*='3d-effects'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
   }
 
   /* Rounded buttons - applied when theme has rounded-buttons flag */
   .btn-variant-default[data-theme-style*='rounded-buttons'] {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border-radius: var(--btn-default-radius);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='rounded-buttons'] {
-    background: var(--background);
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: var(--btn-outline-bg);
+    color: var(--btn-outline-color);
+    border: var(--btn-outline-border);
+    border-radius: var(--btn-outline-radius);
+  }
+
+  .btn-variant-secondary[data-theme-style*='rounded-buttons'] {
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-color);
+    border: var(--btn-secondary-border);
+    border-radius: var(--btn-secondary-radius);
   }
 
   /* Destructive button variant theme support */
   .btn-variant-destructive[data-theme-style*='gradient'] {
-    background: linear-gradient(135deg, var(--destructive), var(--accent));
-    color: var(--destructive-foreground);
-    border: 1px solid var(--border);
+    background: linear-gradient(
+      135deg,
+      var(--btn-destructive-bg),
+      var(--btn-destructive-hover-bg)
+    );
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
   }
 
   .btn-variant-destructive[data-theme-style*='shimmer'] {
-    background: var(--destructive);
-    border: 1px solid var(--destructive);
-    color: var(--destructive-foreground);
+    background: var(--btn-destructive-bg);
+    border: var(--btn-destructive-border);
+    color: var(--btn-destructive-color);
     position: relative;
     overflow: hidden;
     opacity: 0.9;
@@ -470,7 +574,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      var(--destructive-foreground),
+      var(--btn-destructive-hover-color),
       transparent
     );
     opacity: 0.2;
@@ -481,53 +585,57 @@ body {
     left: 100%;
   }
 
+  .btn-variant-destructive[data-theme-style*='shimmer']:hover {
+    opacity: 1;
+  }
+
   .btn-variant-destructive[data-theme-style*='pixel-art'] {
-    background: var(--destructive);
-    color: var(--destructive-foreground);
-    border: 2px solid var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
   }
 
   .btn-variant-destructive[data-theme-style*='pixel-art']:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--foreground);
+    transform: var(--btn-destructive-hover-transform);
+    box-shadow: var(--btn-destructive-hover-shadow);
   }
 
   .btn-variant-destructive[data-theme-style*='3d-effects'] {
-    background: var(--destructive);
-    color: var(--destructive-foreground);
-    border: 2px outset var(--destructive);
-    box-shadow:
-      inset 1px 1px 0 var(--background),
-      inset -1px -1px 0 var(--muted-foreground);
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
   }
 
   .btn-variant-destructive[data-theme-style*='3d-effects']:active {
-    border-style: inset;
-    box-shadow:
-      inset 1px 1px 0 var(--muted-foreground),
-      inset -1px -1px 0 var(--background);
+    border-style: var(--btn-destructive-active-border-style);
+    box-shadow: var(--btn-destructive-active-shadow);
   }
 
   .btn-variant-destructive[data-theme-style*='rounded-buttons'] {
-    background: var(--destructive);
-    color: var(--destructive-foreground);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border-radius: var(--btn-destructive-radius);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
   }
 
   /* Ghost button variant theme support */
   .btn-variant-ghost[data-theme-style*='gradient'] {
-    background: linear-gradient(135deg, transparent, var(--accent));
-    color: var(--foreground);
-    border: 1px solid var(--border);
+    background: linear-gradient(
+      135deg,
+      var(--btn-ghost-bg),
+      var(--btn-ghost-hover-bg)
+    );
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
   }
 
   .btn-variant-ghost[data-theme-style*='shimmer'] {
-    background: transparent;
-    border: 1px solid var(--accent);
-    color: var(--foreground);
+    background: var(--btn-ghost-bg);
+    border: var(--btn-ghost-border);
+    color: var(--btn-ghost-color);
     position: relative;
     overflow: hidden;
     opacity: 0.8;
@@ -540,7 +648,12 @@ body {
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-ghost-hover-color),
+      transparent
+    );
     opacity: 0.2;
     transition: left 0.3s ease;
   }
@@ -550,40 +663,44 @@ body {
   }
 
   .btn-variant-ghost[data-theme-style*='pixel-art'] {
-    background: transparent;
-    color: var(--foreground);
-    border: 2px solid var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+    box-shadow: var(--btn-ghost-shadow);
   }
 
   .btn-variant-ghost[data-theme-style*='pixel-art']:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--foreground);
+    transform: var(--btn-ghost-hover-transform);
+    box-shadow: var(--btn-ghost-hover-shadow);
   }
 
   .btn-variant-ghost[data-theme-style*='3d-effects'] {
-    background: transparent;
-    color: var(--foreground);
-    border: 2px outset var(--border);
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
   }
 
   .btn-variant-ghost[data-theme-style*='rounded-buttons'] {
-    background: transparent;
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+    border-radius: var(--btn-ghost-radius);
   }
 
   /* Link button variant theme support */
   .btn-variant-link[data-theme-style*='gradient'] {
-    background: linear-gradient(135deg, transparent, var(--primary));
+    background: linear-gradient(
+      135deg,
+      var(--btn-link-bg),
+      var(--btn-link-hover-bg)
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
   .btn-variant-link[data-theme-style*='shimmer'] {
-    color: var(--primary);
+    color: var(--btn-link-color);
     position: relative;
     overflow: hidden;
   }
@@ -598,7 +715,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      var(--primary),
+      var(--btn-link-hover-color),
       transparent
     );
     opacity: 0.3;
@@ -610,22 +727,22 @@ body {
   }
 
   .btn-variant-link[data-theme-style*='pixel-art'] {
-    color: var(--primary);
+    color: var(--btn-link-color);
     text-shadow: 1px 1px 0 var(--foreground);
   }
 
   .btn-variant-link[data-theme-style*='3d-effects'] {
-    color: var(--primary);
+    color: var(--btn-link-color);
     text-shadow:
       1px 1px 0 var(--background),
       -1px -1px 0 var(--muted-foreground);
   }
 
   .btn-variant-link[data-theme-style*='rounded-buttons'] {
-    color: var(--primary);
+    color: var(--btn-link-color);
     padding: 4px 8px;
-    border-radius: 8px;
-    background: var(--accent);
+    border-radius: var(--btn-link-radius);
+    background: var(--btn-link-bg);
   }
 
   /* Custom switch styling */

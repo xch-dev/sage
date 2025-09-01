@@ -10,8 +10,10 @@
     "foreground": "#e0f2fe",
     "card": "rgba(15, 23, 42, 0.9)",
     "cardForeground": "#e0f2fe",
+    "cardTransparent": "rgba(15, 23, 42, 0.9)",
     "popover": "rgba(15, 23, 42, 0.95)",
     "popoverForeground": "#e0f2fe",
+    "popoverTransparent": "rgba(15, 23, 42, 0.95)",
     "primary": "#0ea5e9",
     "primaryForeground": "#ffffff",
     "secondary": "rgba(14, 165, 233, 0.2)",
@@ -194,7 +196,7 @@
       }
     }
   },
-  "buttonStyles": ["gradient", "rounded-buttons"],
+  "buttonStyles": ["rounded-buttons"],
   "switches": {
     "checked": {
       "background": "#0ea5e9"

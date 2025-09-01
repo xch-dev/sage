@@ -27,7 +27,7 @@
     "outline": {
       "background": "transparent",
       "color": "hsl(0 0% 9%)",
-      "border": "2px solid hsl(280 100% 85%)",
+      "border": "1px solid hsl(280 100% 85%)",
       "borderRadius": "0.75rem",
       "boxShadow": "none",
       "hover": {

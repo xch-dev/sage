@@ -256,41 +256,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     root.style.setProperty('--nav-active-bg', navActiveBg, 'important');
   }
 
-  // Set transparent versions of colors for background image support
-  if (theme.backgroundImage) {
-    const bodyOpacity = theme.backgroundOpacity?.body ?? 0.1;
-    const cardOpacity = theme.backgroundOpacity?.card ?? 0.75;
-    const popoverOpacity = theme.backgroundOpacity?.popover ?? 0.9;
-
-    // Get the actual values from CSS variables since they might be inherited
-    const backgroundValue =
-      theme.colors?.background ||
-      getComputedStyle(root).getPropertyValue('--background').trim();
-    const cardValue =
-      theme.colors?.card ||
-      getComputedStyle(root).getPropertyValue('--card').trim();
-    const popoverValue =
-      theme.colors?.popover ||
-      getComputedStyle(root).getPropertyValue('--popover').trim();
-
-    const transparentColorMap = [
-      { value: backgroundValue, opacity: bodyOpacity, name: 'background' },
-      { value: cardValue, opacity: cardOpacity, name: 'card' },
-      { value: popoverValue, opacity: popoverOpacity, name: 'popover' },
-    ];
-
-    transparentColorMap.forEach(({ value, opacity, name }) => {
-      if (value) {
-        const transparentColor = makeColorTransparent(value, opacity);
-        root.style.setProperty(
-          `--${name}-transparent`,
-          transparentColor,
-          'important',
-        );
-      }
-    });
-  }
-
   if (theme.buttons) {
     const propertyToCssMap = {
       background: 'bg',
@@ -470,25 +435,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   // Apply document-wide background image handling for main theme
   if (theme.backgroundImage) {
     document.body.classList.add('has-background-image');
-
-    // Set background opacity variables
-    const opacityDefaults = {
-      body: 0.1,
-      card: 0.75,
-      popover: 0.9,
-    };
-
-    Object.entries(opacityDefaults).forEach(([key, defaultValue]) => {
-      const opacity =
-        theme.backgroundOpacity?.[
-          key as keyof typeof theme.backgroundOpacity
-        ] ?? defaultValue;
-      root.style.setProperty(
-        `--background-${key}-opacity`,
-        opacity.toString(),
-        'important',
-      );
-    });
   } else {
     document.body.classList.remove('has-background-image');
   }
@@ -563,10 +509,13 @@ function getOutlineButtonBackground(theme: Theme): string {
 
 const colorVariableNames = [
   '--background',
+  '--background-transparent',
   '--foreground',
   '--card',
   '--card-foreground',
+  '--card-transparent',
   '--popover',
+  '--popover-transparent',
   '--popover-foreground',
   '--primary',
   '--primary-foreground',
