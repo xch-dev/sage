@@ -64,7 +64,7 @@ const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
       (table.getIsSomePageRowsSelected() && 'indeterminate')
     }
     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-    aria-label='Select all'
+    aria-label={t`Select all`}
   />
 );
 
@@ -73,7 +73,7 @@ const SelectRowCell = ({ row }: { row: Row<PeerRecord> }) => (
     className='mx-2'
     checked={row.getIsSelected()}
     onCheckedChange={(value) => row.toggleSelected(!!value)}
-    aria-label='Select row'
+    aria-label={t`Select row`}
   />
 );
 
@@ -298,6 +298,9 @@ export default function PeerList() {
       {
         id: 'select',
         header: SelectAllHeader,
+        meta: {
+          cellClassName: 'px-2',
+        },
         cell: SelectRowCell,
         size: 40,
       },

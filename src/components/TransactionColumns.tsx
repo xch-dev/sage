@@ -138,6 +138,9 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     id: 'actions',
     enableSorting: false,
     size: 50,
+    meta: {
+      cellClassName: 'px-2',
+    },
     cell: ({ row }) => {
       const txCoin = row.original;
 

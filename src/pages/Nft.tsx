@@ -36,7 +36,6 @@ export default function Nft() {
         const response = await commands.getUserTheme({ nft_id: launcherId });
         setThemeExists(response.theme !== null);
       } catch {
-        // If theme doesn't exist, that's expected - just set to false
         setThemeExists(false);
       }
     }
