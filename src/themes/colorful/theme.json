@@ -51,27 +51,10 @@
   "tables": {
     "background": "rgba(255, 255, 255, 0.12)",
     "header": {
-      "background": "rgba(10,132,255,0.12)",
-      "backdropFilter": "blur(18px) saturate(160%) brightness(1.1)",
-      "backdropFilterWebkit": "blur(18px) saturate(160%) brightness(1.1)"
-    },
-    "row": {
-      "backdropFilter": "blur(16px) saturate(150%) brightness(1.1)",
-      "backdropFilterWebkit": "blur(16px) saturate(150%) brightness(1.1)"
-    },
-    "footer": {
-      "backdropFilter": "blur(14px) saturate(150%) brightness(1.1)",
-      "backdropFilterWebkit": "blur(14px) saturate(150%) brightness(1.1)"
+      "background": "rgba(10,132,255,0.12)"
     }
   },
-  "sidebar": {
-    "background": "rgba(255, 255, 255, 0.25)",
-    "backdropFilter": "blur(20px) saturate(160%) brightness(1.15)",
-    "backdropFilterWebkit": "blur(20px) saturate(160%) brightness(1.15)"
-  },
-  "buttonStyles": [
-    "shimmer"
-  ],
+  "buttonStyles": ["shimmer"],
   "switches": {
     "checked": {
       "background": "hsl(280 90% 85%)"
