@@ -308,16 +308,19 @@ export default function PeerList() {
         accessorKey: 'ip_addr',
         header: IPAddressHeader,
         size: 150,
+        enableSorting: false,
       },
       {
         accessorKey: 'port',
         header: PortHeader,
         size: 100,
+        enableSorting: false,
       },
       {
         accessorKey: 'peak_height',
         header: HeightHeader,
         size: 120,
+        enableSorting: false,
       },
       {
         id: 'type',

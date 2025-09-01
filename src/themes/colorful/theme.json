@@ -59,10 +59,6 @@
       "backdropFilter": "blur(16px) saturate(150%) brightness(1.1)",
       "backdropFilterWebkit": "blur(16px) saturate(150%) brightness(1.1)"
     },
-    "cell": {
-      "padding": "12px 16px",
-      "fontSize": "14px"
-    },
     "footer": {
       "backdropFilter": "blur(14px) saturate(150%) brightness(1.1)",
       "backdropFilterWebkit": "blur(14px) saturate(150%) brightness(1.1)"
@@ -73,7 +69,9 @@
     "backdropFilter": "blur(20px) saturate(160%) brightness(1.15)",
     "backdropFilterWebkit": "blur(20px) saturate(160%) brightness(1.15)"
   },
-  "buttonStyles": ["shimmer"],
+  "buttonStyles": [
+    "shimmer"
+  ],
   "switches": {
     "checked": {
       "background": "hsl(280 90% 85%)"
