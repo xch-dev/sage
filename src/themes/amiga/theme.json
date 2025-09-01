@@ -22,12 +22,7 @@
     "destructiveForeground": "hsl(0 0% 100%)",
     "border": "hsl(0 0% 0%)",
     "input": "hsl(0 0% 100%)",
-    "ring": "hsl(25 100% 50%)",
-    "chart1": "hsl(209 100% 50%)",
-    "chart2": "hsl(25 100% 50%)",
-    "chart3": "hsl(0 100% 50%)",
-    "chart4": "hsl(300 100% 50%)",
-    "chart5": "hsl(60 100% 50%)"
+    "ring": "hsl(25 100% 50%)"
   },
   "fonts": {
     "sans": "Topaz, Monaco, Courier, monospace",

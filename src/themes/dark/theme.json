@@ -24,12 +24,7 @@
     "border": "hsl(0 0% 14.9%)",
     "input": "hsl(0 0% 14.9%)",
     "inputBackground": "hsl(0 0% 14.9%)",
-    "ring": "hsl(0 0% 83.1%)",
-    "chart1": "hsl(220 70% 50%)",
-    "chart2": "hsl(160 60% 45%)",
-    "chart3": "hsl(30 80% 55%)",
-    "chart4": "hsl(280 65% 60%)",
-    "chart5": "hsl(340 75% 55%)"
+    "ring": "hsl(0 0% 83.1%)"
   },
   "shadows": {
     "none": "none",

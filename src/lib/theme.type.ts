@@ -38,11 +38,6 @@ export interface Theme {
     input?: string;
     inputBackground?: string;
     ring?: string;
-    chart1?: string;
-    chart2?: string;
-    chart3?: string;
-    chart4?: string;
-    chart5?: string;
     cardBackdropFilter?: string;
     cardBackdropFilterWebkit?: string;
     popoverBackdropFilter?: string;

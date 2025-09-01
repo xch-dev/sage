@@ -582,11 +582,6 @@ const colorVariableNames = [
   '--input',
   '--input-background',
   '--ring',
-  '--chart-1',
-  '--chart-2',
-  '--chart-3',
-  '--chart-4',
-  '--chart-5',
 ];
 
 const fontVariableNames = [

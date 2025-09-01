@@ -552,21 +552,6 @@
         "cardForeground": {
           "type": "string"
         },
-        "chart1": {
-          "type": "string"
-        },
-        "chart2": {
-          "type": "string"
-        },
-        "chart3": {
-          "type": "string"
-        },
-        "chart4": {
-          "type": "string"
-        },
-        "chart5": {
-          "type": "string"
-        },
         "destructive": {
           "type": "string"
         },

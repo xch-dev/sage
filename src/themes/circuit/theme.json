@@ -25,12 +25,7 @@
     "border": "rgba(59, 130, 246, 0.3)",
     "input": "rgba(15, 23, 42, 0.85)",
     "inputBackground": "rgba(15, 23, 42, 0.7)",
-    "ring": "#0ea5e9",
-    "chart1": "#0ea5e9",
-    "chart2": "#0284c7",
-    "chart3": "#0369a1",
-    "chart4": "#075985",
-    "chart5": "#0c4a6e"
+    "ring": "#0ea5e9"
   },
   "fonts": {
     "sans": "ui-sans-serif, system-ui, sans-serif",
