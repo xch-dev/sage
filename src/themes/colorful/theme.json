@@ -10,7 +10,15 @@
     "secondary": "hsl(210 100% 85%)",
     "secondaryForeground": "hsl(210 50% 25%)",
     "accent": "hsl(280 100% 85%)",
-    "accentForeground": "hsl(280 50% 25%)"
+    "accentForeground": "hsl(280 50% 25%)",
+    "card": "rgba(255, 255, 255, 0.65)",
+    "cardBackdropFilter": "blur(28px) saturate(180%) brightness(1.15)",
+    "cardBackdropFilterWebkit": "blur(28px) saturate(180%) brightness(1.15)",
+    "cardBorder": "1px solid rgba(10,132,255,0.25)",
+    "popover": "rgba(255, 255, 255, 0.70)",
+    "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1.15)",
+    "popoverBackdropFilterWebkit": "blur(24px) saturate(170%) brightness(1.15)",
+    "popoverBorder": "1px solid rgba(10,132,255,0.30)"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"
@@ -39,6 +47,31 @@
         "transform": "translateY(-1px)"
       }
     }
+  },
+  "tables": {
+    "background": "rgba(255, 255, 255, 0.12)",
+    "header": {
+      "background": "rgba(10,132,255,0.12)",
+      "backdropFilter": "blur(18px) saturate(160%) brightness(1.1)",
+      "backdropFilterWebkit": "blur(18px) saturate(160%) brightness(1.1)"
+    },
+    "row": {
+      "backdropFilter": "blur(16px) saturate(150%) brightness(1.1)",
+      "backdropFilterWebkit": "blur(16px) saturate(150%) brightness(1.1)"
+    },
+    "cell": {
+      "padding": "12px 16px",
+      "fontSize": "14px"
+    },
+    "footer": {
+      "backdropFilter": "blur(14px) saturate(150%) brightness(1.1)",
+      "backdropFilterWebkit": "blur(14px) saturate(150%) brightness(1.1)"
+    }
+  },
+  "sidebar": {
+    "background": "rgba(255, 255, 255, 0.25)",
+    "backdropFilter": "blur(20px) saturate(160%) brightness(1.15)",
+    "backdropFilterWebkit": "blur(20px) saturate(160%) brightness(1.15)"
   },
   "buttonStyles": ["shimmer"],
   "switches": {

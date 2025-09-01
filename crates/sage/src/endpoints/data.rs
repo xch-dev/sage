@@ -23,10 +23,11 @@ use sage_api::{
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
     GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
-    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
-    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord, TransactionRecord,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType,
+    OptionRecord, OptionSortMode as ApiOptionSortMode, PendingTransactionRecord,
+    PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
+    TransactionCoinRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
@@ -392,6 +393,24 @@ impl Sage {
             .collect();
 
         Ok(GetMinterDidIdsResponse { did_ids, total })
+    }
+
+    pub async fn is_asset_owned(&self, req: IsAssetOwned) -> Result<IsAssetOwnedResponse> {
+        let wallet = self.wallet()?;
+
+        let asset_hash = if req.asset_id.starts_with("nft") {
+            parse_nft_id(req.asset_id)?
+        } else if req.asset_id.starts_with("did:chia:") {
+            parse_did_id(req.asset_id)?
+        } else if req.asset_id.starts_with("option") {
+            parse_option_id(req.asset_id)?
+        } else {
+            // Assume it's a CAT token (hex string)
+            parse_asset_id(req.asset_id)?
+        };
+
+        let owned = wallet.db.is_asset_owned(asset_hash).await?;
+        Ok(IsAssetOwnedResponse { owned })
     }
 
     pub async fn get_options(&self, req: GetOptions) -> Result<GetOptionsResponse> {

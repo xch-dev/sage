@@ -38,6 +38,24 @@ pub struct Asset {
 }
 
 impl Database {
+    pub async fn is_asset_owned(&self, hash: Bytes32) -> Result<bool> {
+        let hash = hash.as_ref();
+
+        let count = query!(
+            "
+            SELECT COUNT(*) AS count FROM owned_coins 
+            INNER JOIN assets ON assets.id = owned_coins.asset_id
+            WHERE assets.hash = ?
+            ",
+            hash
+        )
+        .fetch_one(&self.pool)
+        .await?
+        .count;
+
+        Ok(count > 0)
+    }
+
     pub async fn insert_asset(&self, asset: Asset) -> Result<()> {
         insert_asset(&self.pool, asset).await?;
 

@@ -24,6 +24,7 @@ export default function Nft() {
   const { addError } = useErrors();
   const { reloadThemes } = useTheme();
   const [nft, setNft] = useState<NftRecord | null>(null);
+  const [nftIsOwned, setNftIsOwned] = useState<boolean>(false);
   const [data, setData] = useState<NftData | null>(null);
   const [themeExists, setThemeExists] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -43,10 +44,16 @@ export default function Nft() {
 
   const updateNft = useMemo(
     () => () => {
-      commands
-        .getNft({ nft_id: launcherId ?? '' })
-        .then((data) => setNft(data.nft))
-        .catch(addError);
+      if (launcherId) {
+        commands
+          .getNft({ nft_id: launcherId })
+          .then((data) => setNft(data.nft))
+          .catch(addError);
+        commands
+          .isAssetOwned({ asset_id: launcherId })
+          .then((data) => setNftIsOwned(data.owned))
+          .catch(addError);
+      }
     },
     [launcherId, addError],
   );
@@ -70,7 +77,6 @@ export default function Nft() {
     };
   }, [updateNft]);
 
-  // Check if theme exists when NFT data changes
   useEffect(() => {
     checkThemeExists();
   }, [checkThemeExists]);
@@ -181,7 +187,7 @@ export default function Nft() {
                   />
                 )}
 
-                {nft?.special_use_type === 'theme' && (
+                {nft?.special_use_type === 'theme' && nftIsOwned && (
                   <Button
                     variant='outline'
                     className='w-full mt-3'

@@ -137,6 +137,7 @@ pub fn run() {
             commands::move_key,
             commands::download_cni_offercode,
             commands::get_logs,
+            commands::is_asset_owned,
         ])
         .events(collect_events![SyncEvent]);
 
