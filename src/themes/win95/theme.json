@@ -23,12 +23,7 @@
     "border": "hsl(0 0% 50%)",
     "input": "hsl(0 0% 100%)",
     "inputBackground": "hsl(0 0% 100%)",
-    "ring": "hsl(240 100% 25%)",
-    "chart1": "hsl(240 100% 25%)",
-    "chart2": "hsl(0 100% 50%)",
-    "chart3": "hsl(60 100% 50%)",
-    "chart4": "hsl(300 100% 50%)",
-    "chart5": "hsl(120 100% 50%)"
+    "ring": "hsl(240 100% 25%)"
   },
   "fonts": {
     "sans": "MS Sans Serif, Tahoma, Arial, sans-serif",
