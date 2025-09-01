@@ -620,12 +620,6 @@
         },
         "secondaryForeground": {
           "type": "string"
-        },
-        "surfaceBackdropFilter": {
-          "type": "string"
-        },
-        "surfaceBackdropFilterWebkit": {
-          "type": "string"
         }
       },
       "type": "object"

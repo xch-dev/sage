@@ -47,8 +47,6 @@ export interface Theme {
     cardBackdropFilterWebkit?: string;
     popoverBackdropFilter?: string;
     popoverBackdropFilterWebkit?: string;
-    surfaceBackdropFilter?: string;
-    surfaceBackdropFilterWebkit?: string;
     inputBackdropFilter?: string;
     inputBackdropFilterWebkit?: string;
   };

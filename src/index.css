@@ -77,8 +77,6 @@ body {
     --card-backdrop-filter-webkit: none;
     --popover-backdrop-filter: none;
     --popover-backdrop-filter-webkit: none;
-    --surface-backdrop-filter: none;
-    --surface-backdrop-filter-webkit: none;
     --input-backdrop-filter: none;
     --input-backdrop-filter-webkit: none;
     --table-header-backdrop-filter: none;
@@ -711,11 +709,6 @@ body {
   .backdrop-blur-popover {
     backdrop-filter: var(--popover-backdrop-filter);
     -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
-  }
-
-  .backdrop-blur-surface {
-    backdrop-filter: var(--surface-backdrop-filter);
-    -webkit-backdrop-filter: var(--surface-backdrop-filter-webkit);
   }
 
   .backdrop-blur-input {

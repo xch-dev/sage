@@ -214,7 +214,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     [
       'cardBackdropFilter',
       'popoverBackdropFilter',
-      'surfaceBackdropFilter',
       'inputBackdropFilter',
     ].forEach((base) => {
       const cssVar = `--${base.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
@@ -677,8 +676,6 @@ const backdropFilterVariableNames = [
   '--card-backdrop-filter-webkit',
   '--popover-backdrop-filter',
   '--popover-backdrop-filter-webkit',
-  '--surface-backdrop-filter',
-  '--surface-backdrop-filter-webkit',
   '--input-backdrop-filter',
   '--input-backdrop-filter-webkit',
   '--table-header-backdrop-filter',
