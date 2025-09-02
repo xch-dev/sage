@@ -577,7 +577,11 @@ const tableVariableNames = [
   '--table-footer-border',
 ];
 
-const switchVariableNames = ['--switch-checked-bg', '--switch-unchecked-bg', '--switch-thumb-bg'];
+const switchVariableNames = [
+  '--switch-checked-bg',
+  '--switch-unchecked-bg',
+  '--switch-thumb-bg',
+];
 
 const backdropFilterVariableNames = [
   '--card-backdrop-filter',
