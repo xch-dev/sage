@@ -36,6 +36,11 @@ body {
     --ring: hsl(0 0% 3.9%);
     --radius: 0.5rem;
 
+    /* Safe defaults for transparency variables used with !important */
+    --background-transparent: transparent;
+    --card-transparent: transparent;
+    --popover-transparent: transparent;
+
     /* Default font families */
     --font-sans: Inter, system-ui, sans-serif;
     --font-serif: Georgia, serif;
@@ -229,6 +234,7 @@ body {
 
     /* Navigation active background */
     --nav-active-bg: var(--primary);
+    --outline-button-bg: transparent;
 
     /* Sidebar styling variables with defaults */
     --sidebar-background: transparent;

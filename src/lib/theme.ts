@@ -58,11 +58,15 @@ export async function loadBuiltInTheme(
 
     if (theme.backgroundImage) {
       try {
-        // Check if it's a remote URL
-        if (theme.backgroundImage.startsWith('http://') || theme.backgroundImage.startsWith('https://')) {
-          // Keep remote URLs as-is
-          // No processing needed
-        } else if (!theme.backgroundImage.startsWith('/')) {
+        // we allow remote urls and local files for built in themes
+        // local images get imported from the theme's folder
+        if (
+          !(
+            theme.backgroundImage.startsWith('http://') ||
+            theme.backgroundImage.startsWith('https://')
+          ) &&
+          !theme.backgroundImage.startsWith('/')
+        ) {
           // Use static glob import to avoid dynamic import warnings for local files
           const imageModules = import.meta.glob(
             '../themes/*/*.{jpg,jpeg,png,gif,webp}',
@@ -179,7 +183,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     ...shadowVariableNames,
     ...themeFeatureFlagVariableNames,
     ...navigationAndButtonVariableNames,
-    ...backgroundImageAndTransparencyVariableNames,
+    ...backgroundImageVariableNames,
     ...tableVariableNames,
     ...switchVariableNames,
     ...backdropFilterVariableNames,
@@ -530,17 +534,11 @@ const navigationAndButtonVariableNames = [
   '--nav-active-bg',
 ];
 
-const backgroundImageAndTransparencyVariableNames = [
+const backgroundImageVariableNames = [
   '--background-image',
   '--background-size',
   '--background-position',
   '--background-repeat',
-  '--background-transparent',
-  '--card-transparent',
-  '--popover-transparent',
-  '--background-body-opacity',
-  '--background-card-opacity',
-  '--background-popover-opacity',
 ];
 
 const tableVariableNames = [
