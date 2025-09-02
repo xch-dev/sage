@@ -830,11 +830,13 @@ body {
 
   /* Apply backdrop filters to existing components */
   .bg-card {
+    background-color: var(--card);
     backdrop-filter: var(--card-backdrop-filter);
     -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
   }
 
   .bg-popover {
+    background-color: var(--popover);
     backdrop-filter: var(--popover-backdrop-filter);
     -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
   }

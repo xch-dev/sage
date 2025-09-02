@@ -1,6 +1,6 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
-import { getColorLightness, makeColorTransparent } from './color-utils';
+import { makeColorTransparent } from './color-utils';
 import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
@@ -58,7 +58,11 @@ export async function loadBuiltInTheme(
 
     if (theme.backgroundImage) {
       try {
-        if (!theme.backgroundImage.startsWith('/')) {
+        // Check if it's a remote URL
+        if (theme.backgroundImage.startsWith('http://') || theme.backgroundImage.startsWith('https://')) {
+          // Keep remote URLs as-is
+          // No processing needed
+        } else if (!theme.backgroundImage.startsWith('/')) {
           // Use static glob import to avoid dynamic import warnings for local files
           const imageModules = import.meta.glob(
             '../themes/*/*.{jpg,jpeg,png,gif,webp}',
@@ -101,7 +105,6 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
   const buttonStyles = theme.buttonStyles || [];
   root.setAttribute('data-theme-styles', buttonStyles.join(' '));
 
-  // Apply background image if present
   if (theme.backgroundImage) {
     root.style.setProperty(
       '--background-image',
@@ -109,11 +112,9 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
       'important',
     );
 
-    // Apply background size (default: cover)
     const backgroundSize = theme.backgroundSize || 'cover';
     root.style.setProperty('--background-size', backgroundSize, 'important');
 
-    // Apply background position (default: center)
     const backgroundPosition = theme.backgroundPosition || 'center';
     root.style.setProperty(
       '--background-position',
@@ -121,7 +122,6 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
       'important',
     );
 
-    // Apply background repeat (default: no-repeat)
     const backgroundRepeat = theme.backgroundRepeat || 'no-repeat';
     root.style.setProperty(
       '--background-repeat',
@@ -227,10 +227,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     );
   }
   // If neither is defined, CSS defaults will be used
-
-  // Set dynamic outline button background based on theme
-  const outlineButtonBg = getOutlineButtonBackground(theme);
-  root.style.setProperty('--outline-button-bg', outlineButtonBg, 'important');
 
   // Set navigation active background with transparency
   if (theme.colors?.primary) {
@@ -463,29 +459,6 @@ export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
   }
   if (theme.colors?.cardForeground) {
     root.style.color = theme.colors.cardForeground;
-  }
-}
-
-function getOutlineButtonBackground(theme: Theme): string {
-  // If theme has no colors defined, use CSS defaults (light theme)
-  if (!theme.colors?.background) {
-    return 'transparent';
-  }
-
-  // Get background lightness using our color utility
-  const lightness = getColorLightness(theme.colors.background);
-
-  // If background is very dark (< 20% lightness), use card color for subtle background
-  // If background is light (> 50% lightness), use transparent
-  if (lightness < 20) {
-    return theme.colors.card ? theme.colors.card || '' : 'transparent';
-  } else if (lightness > 50) {
-    return 'transparent';
-  } else {
-    // For mid-range themes, use a slightly lighter version of the background
-    return theme.colors.secondary
-      ? theme.colors.secondary || ''
-      : 'transparent';
   }
 }
 
