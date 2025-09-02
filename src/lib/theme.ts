@@ -1,22 +1,14 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
 import { getColorLightness, makeColorTransparent } from './color-utils';
-import { validateTheme, validateThemeJson } from './theme-schema-validation';
+import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
 
 export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
   try {
-    // Validate in development only
-    if (import.meta.env.DEV) {
-      const validation = validateThemeJson(themeJson);
-      if (!validation.success) {
-        console.error(`User theme validation failed:`, validation.error);
-        return null;
-      }
-    }
+    let theme = validateTheme(JSON.parse(themeJson));
 
-    let theme = JSON.parse(themeJson) as Theme;
     if (theme.inherits) {
       const inheritedTheme = await loadBuiltInTheme(
         theme.inherits,
@@ -51,16 +43,6 @@ export async function loadBuiltInTheme(
 
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
-
-    // Validate in development only
-    if (import.meta.env.DEV) {
-      const validation = validateTheme(themeModule.default);
-      if (!validation.success) {
-        throw new Error(
-          `Theme ${themeName} validation failed: ${validation.error}`,
-        );
-      }
-    }
 
     let theme = themeModule.default as Theme;
 
