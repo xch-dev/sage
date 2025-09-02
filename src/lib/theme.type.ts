@@ -88,6 +88,7 @@ export interface Theme {
       border?: string;
       fontWeight?: string;
       fontSize?: string;
+      padding?: string;
       backdropFilter?: string;
       backdropFilterWebkit?: string;
     };
@@ -298,6 +299,9 @@ export interface Theme {
       background?: string;
     };
     unchecked?: {
+      background?: string;
+    };
+    thumb?: {
       background?: string;
     };
   };

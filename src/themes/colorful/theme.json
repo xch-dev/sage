@@ -54,13 +54,18 @@
       "background": "rgba(10,132,255,0.12)"
     }
   },
-  "buttonStyles": ["shimmer"],
+  "buttonStyles": [
+    "shimmer"
+  ],
   "switches": {
     "checked": {
-      "background": "hsl(280 90% 85%)"
+      "background": "hsl(280 30% 60%)"
     },
     "unchecked": {
-      "background": "hsl(280 30% 85%)"
+      "background": "hsl(280 90% 85%)"
+    },
+    "thumb": {
+      "background": "hsl(0 0% 100%)"
     }
   }
 }

@@ -338,6 +338,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
           'border',
           'fontWeight',
           'fontSize',
+          'padding',
           'backdropFilter',
           'backdropFilterWebkit',
         ],
@@ -434,6 +435,15 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
         );
       }
     });
+
+    // Handle switch thumb background
+    if (theme.switches.thumb?.background) {
+      root.style.setProperty(
+        '--switch-thumb-bg',
+        theme.switches.thumb.background,
+        'important',
+      );
+    }
   }
 }
 
@@ -551,6 +561,7 @@ const tableVariableNames = [
   '--table-header-border',
   '--table-header-font-weight',
   '--table-header-font-size',
+  '--table-header-padding',
   '--table-row-background',
   '--table-row-color',
   '--table-row-border',
@@ -566,7 +577,7 @@ const tableVariableNames = [
   '--table-footer-border',
 ];
 
-const switchVariableNames = ['--switch-checked-bg', '--switch-unchecked-bg'];
+const switchVariableNames = ['--switch-checked-bg', '--switch-unchecked-bg', '--switch-thumb-bg'];
 
 const backdropFilterVariableNames = [
   '--card-backdrop-filter',

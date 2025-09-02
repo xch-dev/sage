@@ -251,6 +251,7 @@ body {
     --table-header-color: var(--muted-foreground);
     --table-header-font-weight: 500;
     --table-header-font-size: 0.875rem;
+    --table-header-padding: 0.15rem 0.5rem;
     --table-row-background: transparent;
     --table-row-color: var(--foreground);
     --table-row-border: 1px solid var(--border);
@@ -268,6 +269,7 @@ body {
     /* Switch styling variables with defaults */
     --switch-checked-bg: var(--primary);
     --switch-unchecked-bg: var(--input);
+    --switch-thumb-bg: hsl(0 0% 100%);
   }
 }
 
@@ -760,6 +762,47 @@ body {
     background-color: var(--switch-unchecked-bg) !important;
   }
 
+  /* Alternative selectors for when data-state is on child elements */
+  .switch-component.peer:has([data-state='checked']) {
+    background-color: var(--switch-checked-bg) !important;
+  }
+
+  .switch-component.peer:has([data-state='unchecked']) {
+    background-color: var(--switch-unchecked-bg) !important;
+  }
+
+  /* Ensure switches are always visible, even with background images */
+  body.has-background-image .switch-component.peer[data-state='checked'] {
+    background-color: var(--switch-checked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image .switch-component.peer[data-state='unchecked'] {
+    background-color: var(--switch-unchecked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image .switch-component.peer:has([data-state='checked']) {
+    background-color: var(--switch-checked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image
+    .switch-component.peer:has([data-state='unchecked']) {
+    background-color: var(--switch-unchecked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure switch thumb is always visible */
+  .switch-component.peer span {
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+  }
+
+  /* Override for background image themes */
+  body.has-background-image .switch-component.peer span {
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+  }
+
   /* Theme card isolation - prevent inheritance from ambient theme */
   .theme-card-isolated {
     /* Create a new stacking context to isolate CSS variables */
@@ -782,6 +825,7 @@ body {
     border: var(--table-header-border);
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);
+    padding: var(--table-header-padding);
     backdrop-filter: var(--table-header-backdrop-filter);
     -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
   }
