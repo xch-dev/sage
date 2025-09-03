@@ -67,6 +67,7 @@
   "view_offer": true,
   "import_offer": true,
   "get_offers": true,
+  "get_offers_for_asset": true,
   "get_offer": true,
   "delete_offer": true,
   "cancel_offer": true,

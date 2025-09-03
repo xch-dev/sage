@@ -22,7 +22,14 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { FileImage, FileText, HandCoins, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
+import {
+  commands,
+  events,
+  NetworkKind,
+  NftData,
+  NftRecord,
+  OfferRecord,
+} from '../bindings';
 
 export default function Nft() {
   const navigate = useNavigate();
@@ -37,8 +44,9 @@ export default function Nft() {
 
   const [requestedOffers, setRequestedOffers] = useState<DexieOffer[]>([]);
   const [offeredOffers, setOfferedOffers] = useState<DexieOffer[]>([]);
+  const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
 
-  // Check for Dexie offers when NFT loads
+  // Check for open offers when NFT loads
   useEffect(() => {
     if (nft?.launcher_id) {
       // Fetch both requested and offered offers
@@ -53,6 +61,12 @@ export default function Nft() {
         .catch(() => {
           setRequestedOffers([]);
           setOfferedOffers([]);
+        });
+
+      commands
+        .getOffersForAsset({ asset_id: nft.launcher_id })
+        .then((response) => {
+          setOffersForAsset(response.offers);
         });
     }
   }, [nft?.launcher_id]);
@@ -437,7 +451,7 @@ export default function Nft() {
 
                   {requestedOffers.length === 0 ? (
                     <div className='text-sm text-muted-foreground'>
-                      <Trans>No offers requesting this NFT</Trans>
+                      <Trans>No Dexie offers requesting this NFT</Trans>
                     </div>
                   ) : (
                     <div className='grid gap-2'>
@@ -501,7 +515,9 @@ export default function Nft() {
 
                   {offeredOffers.length === 0 ? (
                     <div className='text-sm text-muted-foreground'>
-                      <Trans>This NFT is not currently offered for sale</Trans>
+                      <Trans>
+                        This NFT is not currently offered for sale on Dexie
+                      </Trans>
                     </div>
                   ) : (
                     <div className='grid gap-2'>
@@ -544,6 +560,56 @@ export default function Nft() {
                     </div>
                   )}
                 </div>
+
+                {/* Local Offers Section */}
+                {offersForAsset.length > 0 && (
+                  <div className='flex flex-col gap-1'>
+                    <div className='grid gap-2'>
+                      {offersForAsset.map((localOffer) => (
+                        <div
+                          key={localOffer.offer_id}
+                          className='border rounded-lg p-3'
+                        >
+                          <div className='grid grid-cols-2 gap-4'>
+                            <div>
+                              <div className='text-sm font-medium mb-2'>
+                                <Trans>Local Offer</Trans>
+                              </div>
+                              <div className='text-sm text-muted-foreground'>
+                                <Trans>Status: {localOffer.status}</Trans>
+                              </div>
+                              {localOffer.creation_timestamp && (
+                                <div className='text-sm text-muted-foreground'>
+                                  <Trans>
+                                    Created:{' '}
+                                    {formatTimestamp(
+                                      localOffer.creation_timestamp,
+                                      'short',
+                                      'short',
+                                    )}
+                                  </Trans>
+                                </div>
+                              )}
+                            </div>
+                            <div className='flex flex-col gap-1 justify-start'>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                onClick={() => {
+                                  navigate(
+                                    `/offers/view_saved/${localOffer.offer_id}`,
+                                  );
+                                }}
+                              >
+                                <Trans>View Local Offer</Trans>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
