@@ -18,6 +18,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
+  AlertTriangle,
   ArrowUpToLine,
   FilePenLine,
   HandCoins,
@@ -51,6 +52,7 @@ export function AssetSelector({
   const [tokenIds, setTokenIds] = useState<number[]>([]);
   const [nftIds, setNftIds] = useState<number[]>([]);
   const [optionIds, setOptionIds] = useState<number[]>([]);
+  const [assetsInOffers, setAssetsInOffers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!offering) return;
@@ -60,6 +62,42 @@ export function AssetSelector({
       )
       .catch(console.error);
   }, [offering]);
+
+  // Check which assets are part of open offers
+  useEffect(() => {
+    if (!offering) return;
+
+    const checkAssetsInOffers = async () => {
+      const assetsToCheck = [
+        ...assets.nfts.filter((nft) => nft),
+        ...assets.options.filter((option) => option),
+      ];
+
+      const newAssetsInOffers = new Set<string>();
+
+      for (const assetId of assetsToCheck) {
+        if (assetId) {
+          try {
+            const response = await commands.getOffersForAsset({
+              asset_id: assetId,
+            });
+            if (response.offers.some((offer) => offer.status === 'active')) {
+              newAssetsInOffers.add(assetId);
+            }
+          } catch (error) {
+            console.error(
+              `Failed to check offers for asset ${assetId}:`,
+              error,
+            );
+          }
+        }
+      }
+
+      setAssetsInOffers(newAssetsInOffers);
+    };
+
+    checkAssetsInOffers();
+  }, [offering, assets.nfts, assets.options]);
 
   // Generate unique IDs for new items
   const generateId = () => Date.now() + Math.random();
@@ -298,6 +336,26 @@ export function AssetSelector({
                   onChange={(e) => updateNft(i, e.target.value)}
                 />
               )}
+
+              {/* Warning icon for assets in offers */}
+              {offering && nft && assetsInOffers.has(nft) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='flex items-center px-2 bg-accent text-accent-foreground flex-shrink-0 flex-grow-0 h-12'>
+                        <AlertTriangle
+                          className='h-4 w-4'
+                          aria-label={t`This NFT is part of an open offer`}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <Trans>This NFT is part of an open offer</Trans>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
               <Button
                 variant='outline'
                 className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
@@ -339,6 +397,26 @@ export function AssetSelector({
                   onChange={(e) => updateOption(i, e.target.value)}
                 />
               )}
+
+              {/* Warning icon for assets in offers */}
+              {offering && option && assetsInOffers.has(option) && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='flex items-center px-2 bg-accent text-accent-foreground flex-shrink-0 flex-grow-0 h-12'>
+                        <AlertTriangle
+                          className='h-4 w-4'
+                          aria-label={t`This option is part of an open offer`}
+                        />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <Trans>This option is part of an open offer</Trans>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
               <Button
                 variant='outline'
                 className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
