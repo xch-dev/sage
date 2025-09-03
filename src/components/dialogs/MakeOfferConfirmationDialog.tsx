@@ -293,39 +293,55 @@ function AssetDisplay({
               <p className='text-sm text-muted-foreground'>
                 <Trans>Loading option details...</Trans>
               </p>
-            ) : optionDetailsList.length > 0 ? (
-              <div className='grid grid-cols-4 gap-x-0 gap-y-1'>
-                {optionDetailsList.map((option) => {
-                  return (
-                    <div
-                      key={option.launcher_id}
-                      className='flex flex-col items-center text-center'
-                      title={`${option.name}\nID: ${option.launcher_id}`}
-                    >
-                      <AssetIcon
-                        asset={{
-                          icon_url: null,
-                          kind: 'option',
-                          revocation_address: null,
-                          // TODO: Use Asset here and use the actual revocation address
-                        }}
-                        size='sm'
-                      />
-                      <span className='text-xs truncate w-full'>
-                        {option.name}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
             ) : (
-              <p className='text-sm text-muted-foreground'>
-                {type === 'offered' ? (
-                  <Trans>No NFTs offered or details unavailable.</Trans>
-                ) : (
-                  <Trans>No NFTs requested or details unavailable.</Trans>
-                )}
-              </p>
+              <div className='grid grid-cols-4 gap-x-0 gap-y-1'>
+                {optionDetailsList.length > 0
+                  ? // Show options with details when available
+                    optionDetailsList.map((option) => {
+                      return (
+                        <div
+                          key={option.launcher_id}
+                          className='flex flex-col items-center text-center'
+                          title={`${option.name}\nID: ${option.launcher_id}`}
+                        >
+                          <AssetIcon
+                            asset={{
+                              icon_url: null,
+                              kind: 'option',
+                              revocation_address: null,
+                              // TODO: Use Asset here and use the actual revocation address
+                            }}
+                            size='sm'
+                          />
+                          <span className='text-xs truncate w-full'>
+                            {option.name}
+                          </span>
+                        </div>
+                      );
+                    })
+                  : // Show option IDs when details are not available
+                    optionIds.map((optionId) => {
+                      return (
+                        <div
+                          key={optionId}
+                          className='flex flex-col items-center text-center'
+                          title={`Option ID: ${optionId}`}
+                        >
+                          <AssetIcon
+                            asset={{
+                              icon_url: null,
+                              kind: 'option',
+                              revocation_address: null,
+                            }}
+                            size='sm'
+                          />
+                          <span className='text-xs truncate w-full'>
+                            {optionId.slice(6, 15)}...
+                          </span>
+                        </div>
+                      );
+                    })}
+              </div>
             )}
           </ScrollArea>
         </div>
@@ -453,7 +469,13 @@ export function MakeOfferConfirmationDialog({
                 );
                 const hasRequestedNfts =
                   offerState.requested.nfts.filter((n) => n).length > 0;
-                if (!hasRequestedTokens && !hasRequestedNfts) {
+                const hasRequestedOptions =
+                  offerState.requested.options.filter((o) => o).length > 0;
+                if (
+                  !hasRequestedTokens &&
+                  !hasRequestedNfts &&
+                  !hasRequestedOptions
+                ) {
                   return (
                     <div className='flex items-center gap-2 p-3 mb-2 rounded border border-yellow-400 bg-yellow-50 text-yellow-900 dark:bg-yellow-900/20 dark:text-yellow-200'>
                       <AlertTriangle className='h-5 w-5 text-yellow-500 flex-shrink-0' />

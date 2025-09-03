@@ -772,10 +772,7 @@ export function getThemeStyles(theme: Theme): Record<string, string> {
   return styles;
 }
 
-/**
- * Gets button styles for a specific variant from a theme
- */
-export function getButtonStyles(
+export function getPreviewButtonStyles(
   theme: Theme,
   variant:
     | 'default'
@@ -826,10 +823,7 @@ export function getButtonStyles(
   return styles;
 }
 
-/**
- * Gets heading styles from a theme
- */
-export function getHeadingStyles(theme: Theme): Record<string, string> {
+export function getPreviewHeadingStyles(theme: Theme): Record<string, string> {
   const styles: Record<string, string> = {};
 
   if (theme.fonts?.heading) {
@@ -839,7 +833,9 @@ export function getHeadingStyles(theme: Theme): Record<string, string> {
   return styles;
 }
 
-export function getMutedTextStyles(theme: Theme): Record<string, string> {
+export function getPreviewMutedTextStyles(
+  theme: Theme,
+): Record<string, string> {
   const styles: Record<string, string> = {};
 
   if (theme.colors?.mutedForeground) {
@@ -852,11 +848,11 @@ export function getMutedTextStyles(theme: Theme): Record<string, string> {
   return styles;
 }
 
-export function getTextStyles(theme: Theme): Record<string, string> {
+export function getPreviewTextStyles(theme: Theme): Record<string, string> {
   const styles: Record<string, string> = {};
 
-  if (theme.colors?.secondary) {
-    styles.color = theme.colors.secondary;
+  if (theme.colors?.primaryForeground) {
+    styles.color = theme.colors.primaryForeground;
   }
   if (theme.fonts?.body) {
     styles.fontFamily = theme.fonts.body;
