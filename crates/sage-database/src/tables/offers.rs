@@ -52,6 +52,14 @@ impl Database {
     pub async fn update_offer_status(&self, offer_id: Bytes32, status: OfferStatus) -> Result<()> {
         update_offer_status(&self.pool, offer_id, status).await
     }
+
+    pub async fn offers_for_asset(
+        &self,
+        asset_id: Bytes32,
+        status: Option<OfferStatus>,
+    ) -> Result<Vec<OfferRow>> {
+        offers_for_asset(&self.pool, asset_id, status).await
+    }
 }
 
 impl DatabaseTx<'_> {
@@ -89,6 +97,65 @@ impl DatabaseTx<'_> {
     ) -> Result<()> {
         update_offer_status(&mut *self.tx, offer_id, status).await
     }
+
+    pub async fn offers_for_asset(
+        &mut self,
+        asset_id: Bytes32,
+        status: Option<OfferStatus>,
+    ) -> Result<Vec<OfferRow>> {
+        offers_for_asset(&mut *self.tx, asset_id, status).await
+    }
+}
+
+async fn offers_for_asset(
+    conn: impl SqliteExecutor<'_>,
+    asset_id: Bytes32,
+    status: Option<OfferStatus>,
+) -> Result<Vec<OfferRow>> {
+    let status_value = status.map(|s| s as u8);
+    let asset_id_ref = asset_id.as_ref();
+
+    let rows = sqlx::query!(
+        "SELECT
+            offers.hash as offer_id,
+            encoded_offer,
+            fee,
+            status,
+            expiration_height,
+            expiration_timestamp,
+            inserted_timestamp
+        FROM offers
+        INNER JOIN offer_assets ON offers.id = offer_assets.offer_id
+        INNER JOIN assets ON offer_assets.asset_id = assets.id
+        WHERE assets.hash = ? AND offers.status = ? OR ? IS NULL
+        ORDER BY inserted_timestamp DESC",
+        asset_id_ref,
+        status_value,
+        status_value
+    )
+    .fetch_all(conn)
+    .await?;
+
+    rows.into_iter()
+        .map(|row| {
+            Ok(OfferRow {
+                offer_id: row.offer_id.convert()?,
+                encoded_offer: row.encoded_offer,
+                expiration_height: row.expiration_height.map(|h| h as u32),
+                expiration_timestamp: row.expiration_timestamp.map(|t| t as u64),
+                fee: row.fee.convert()?,
+                status: match row.status {
+                    0 => OfferStatus::Pending,
+                    1 => OfferStatus::Active,
+                    2 => OfferStatus::Completed,
+                    3 => OfferStatus::Cancelled,
+                    4 => OfferStatus::Expired,
+                    _ => return Err(crate::DatabaseError::InvalidEnumVariant),
+                },
+                inserted_timestamp: row.inserted_timestamp as u64,
+            })
+        })
+        .collect()
 }
 
 async fn offer_assets(

@@ -212,6 +212,9 @@ async importOffer(req: ImportOffer) : Promise<ImportOfferResponse> {
 async getOffers(req: GetOffers) : Promise<GetOffersResponse> {
     return await TAURI_INVOKE("get_offers", { req });
 },
+async getOffersForAsset(req: GetOffersForAsset) : Promise<GetOffersForAssetResponse> {
+    return await TAURI_INVOKE("get_offers_for_asset", { req });
+},
 async getOffer(req: GetOffer) : Promise<GetOfferResponse> {
     return await TAURI_INVOKE("get_offer", { req });
 },
@@ -456,6 +459,8 @@ export type GetNftsResponse = { nfts: NftRecord[]; total: number }
 export type GetOffer = { offer_id: string }
 export type GetOfferResponse = { offer: OfferRecord }
 export type GetOffers = Record<string, never>
+export type GetOffersForAsset = { asset_id: string }
+export type GetOffersForAssetResponse = { offers: OfferRecord[] }
 export type GetOffersResponse = { offers: OfferRecord[] }
 export type GetOption = { option_id: string }
 export type GetOptionResponse = { option: OptionRecord | null }

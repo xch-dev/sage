@@ -9,9 +9,10 @@ use itertools::Itertools;
 use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
-    GetOffersResponse, ImportOffer, ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty,
-    OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer,
-    TakeOfferResponse, ViewOffer, ViewOfferResponse,
+    GetOffersForAsset, GetOffersForAssetResponse, GetOffersResponse, ImportOffer,
+    ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset,
+    OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse,
+    ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
@@ -534,6 +535,33 @@ impl Sage {
         }
 
         Ok(GetOffersResponse { offers: records })
+    }
+
+    pub async fn get_offers_for_asset(
+        &self,
+        req: GetOffersForAsset,
+    ) -> Result<GetOffersForAssetResponse> {
+        let wallet = self.wallet()?;
+
+        // Try to parse as different asset types based on prefix
+        let asset_id = if req.asset_id.starts_with("nft") {
+            parse_nft_id(req.asset_id)?
+        } else if req.asset_id.starts_with("option") {
+            parse_option_id(req.asset_id)?
+        } else {
+            parse_asset_id(req.asset_id)?
+        };
+
+        let offers = wallet
+            .db
+            .offers_for_asset(asset_id, Some(OfferStatus::Active))
+            .await?;
+        let mut records = Vec::new();
+
+        for offer in offers {
+            records.push(self.offer_record(&wallet, offer).await?);
+        }
+        Ok(GetOffersForAssetResponse { offers: records })
     }
 
     pub async fn get_offer(&self, req: GetOffer) -> Result<GetOfferResponse> {

@@ -92,6 +92,7 @@ pub fn run() {
             commands::view_offer,
             commands::import_offer,
             commands::get_offers,
+            commands::get_offers_for_asset,
             commands::get_offer,
             commands::delete_offer,
             commands::cancel_offer,
