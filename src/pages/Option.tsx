@@ -1,4 +1,4 @@
-import { commands, events, OptionRecord } from '@/bindings';
+import { commands, events, OfferRecord, OptionRecord } from '@/bindings';
 import { AddressItem } from '@/components/AddressItem';
 import { AssetCoin } from '@/components/AssetCoin';
 import Container from '@/components/Container';
@@ -7,18 +7,20 @@ import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
-import { formatTimestamp } from '@/lib/utils';
+import { formatTimestamp, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import { AlertCircle, Calendar, Clock, FilePenLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export default function Option() {
   const { option_id: optionId } = useParams();
+  const navigate = useNavigate();
   const [option, setOption] = useState<OptionRecord | null>(null);
   const [network, setNetwork] = useState<string | null>(null);
+  const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
 
   const updateOption = useCallback(() => {
     commands
@@ -61,6 +63,20 @@ export default function Option() {
       .then((data) => setNetwork(data.kind))
       .catch((error) => console.error('Failed to get network:', error));
   }, []);
+
+  // Check for local offers when option loads
+  useEffect(() => {
+    if (option?.launcher_id) {
+      commands
+        .getOffersForAsset({ asset_id: option.launcher_id })
+        .then((response) => {
+          setOffersForAsset(response.offers);
+        })
+        .catch(() => {
+          setOffersForAsset([]);
+        });
+    }
+  }, [option?.launcher_id]);
 
   const isExpired = useMemo(() => {
     if (!option) return false;
@@ -190,7 +206,64 @@ export default function Option() {
               </CardContent>
             </Card>
           </div>
-
+          {/* Local Offers Section */}
+          {offersForAsset.length > 0 && (
+            <Card className='mb-6'>
+              <CardHeader className='pb-2'>
+                <CardTitle className='flex items-center gap-2'>
+                  <Trans>Local Offers</Trans>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className='grid gap-2'>
+                  {offersForAsset.map((localOffer) => (
+                    <div
+                      key={localOffer.offer_id}
+                      className='border rounded-lg p-3'
+                    >
+                      <div className='grid grid-cols-2 gap-4'>
+                        <div>
+                          <div className='text-sm font-medium mb-2'>
+                            <Trans>Local Offer</Trans>
+                          </div>
+                          <div className='text-sm text-muted-foreground'>
+                            <Trans>
+                              Status: {getOfferStatus(localOffer.status)}
+                            </Trans>
+                          </div>
+                          {localOffer.creation_timestamp && (
+                            <div className='text-sm text-muted-foreground'>
+                              <Trans>
+                                Created:{' '}
+                                {formatTimestamp(
+                                  localOffer.creation_timestamp,
+                                  'short',
+                                  'short',
+                                )}
+                              </Trans>
+                            </div>
+                          )}
+                        </div>
+                        <div className='flex flex-col gap-1 justify-start'>
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => {
+                              navigate(
+                                `/offers/view_saved/${localOffer.offer_id}`,
+                              );
+                            }}
+                          >
+                            <Trans>View Local Offer</Trans>
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
           <div className='space-y-6'>
             <Card>
               <CardHeader>

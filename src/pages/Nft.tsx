@@ -15,7 +15,7 @@ import {
   fetchOfferedDexieOffersFromNftId,
   fetchRequestedDexieOffersFromNftId,
 } from '@/lib/offerData';
-import { formatTimestamp } from '@/lib/utils';
+import { formatTimestamp, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -576,7 +576,9 @@ export default function Nft() {
                                 <Trans>Local Offer</Trans>
                               </div>
                               <div className='text-sm text-muted-foreground'>
-                                <Trans>Status: {localOffer.status}</Trans>
+                                <Trans>
+                                  Status: {getOfferStatus(localOffer.status)}
+                                </Trans>
                               </div>
                               {localOffer.creation_timestamp && (
                                 <div className='text-sm text-muted-foreground'>
