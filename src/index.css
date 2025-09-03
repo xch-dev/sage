@@ -233,7 +233,11 @@ body {
     --theme-has-rounded-buttons: 0;
 
     /* Navigation active background */
-    --nav-active-bg: var(--primary);
+    --nav-active-bg: color-mix(
+      in srgb,
+      var(--primary, hsl(0 0% 9%)) 10%,
+      transparent
+    );
     --outline-button-bg: transparent;
 
     /* Sidebar styling variables with defaults */

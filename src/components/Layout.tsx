@@ -118,7 +118,7 @@ export function FullLayout(props: LayoutProps) {
                       aria-label={t`Expand sidebar - ${wallet.name}`}
                       aria-expanded={!isCollapsed}
                     >
-                      <span role='img' aria-label='Wallet emoji'>
+                      <span role='img' aria-label={t`Wallet emoji`}>
                         {wallet.emoji}
                       </span>
                     </button>

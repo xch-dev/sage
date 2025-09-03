@@ -1,6 +1,5 @@
 import iconDark from '@/icon-dark.png';
 import iconLight from '@/icon-light.png';
-import { makeColorTransparent } from './color-utils';
 import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
@@ -231,12 +230,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     );
   }
   // If neither is defined, CSS defaults will be used
-
-  // Set navigation active background with transparency
-  if (theme.colors?.primary) {
-    const navActiveBg = makeColorTransparent(theme.colors.primary, 0.1);
-    root.style.setProperty('--nav-active-bg', navActiveBg, 'important');
-  }
 
   if (theme.buttons) {
     const propertyToCssMap = {

@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
-import { useOpaqueThemeColors } from '@/hooks/useOpaqueColor';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -162,7 +161,6 @@ const MobileRow = ({
   onSelect: (peer: PeerRecord, forceModeOn?: boolean) => void;
   selectionMode: boolean;
 }) => {
-  const opaqueColors = useOpaqueThemeColors();
   const [{ x }, api] = useSpring(() => ({
     x: 0,
     config: { tension: 400, friction: 30 },
@@ -218,7 +216,11 @@ const MobileRow = ({
         {...longPressHandlers}
         style={{
           x,
-          backgroundColor: opaqueColors.secondary || 'var(--secondary)',
+          // this removes transparency of the secondary color
+          backgroundColor:
+            // because otherwise the trashcan shows through when there is
+            //transparency or a background image set
+            'color-mix(in srgb, var(--secondary) 100%, transparent)',
         }}
         className='relative p-4 touch-pan-y select-none'
       >
@@ -235,9 +237,15 @@ const MobileRow = ({
             <Tooltip>
               <TooltipTrigger>
                 {peer.user_managed ? (
-                  <UserIcon className='h-4 w-4 text-muted-foreground' />
+                  <UserIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-label={t`Manually added peer`}
+                  />
                 ) : (
-                  <CableIcon className='h-4 w-4 text-muted-foreground' />
+                  <CableIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-label={t`Auto-discovered peer`}
+                  />
                 )}
               </TooltipTrigger>
               <TooltipContent>
