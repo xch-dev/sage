@@ -17,6 +17,9 @@ export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
         theme = deepMerge(inheritedTheme, theme);
       }
     }
+
+    // user themes cannot override these settings
+    theme.isFeatured = false;
     theme.isUserTheme = true;
     return theme;
   } catch (error) {

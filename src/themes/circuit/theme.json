@@ -55,6 +55,12 @@
     "button": "0 2px 4px 0 rgba(14, 165, 233, 0.2)",
     "dropdown": "0 10px 15px -3px rgba(14, 165, 233, 0.2), 0 4px 6px -2px rgba(14, 165, 233, 0.1)"
   },
+  "sidebar": {
+    "background": "rgba(25, 15, 20, 0.35)",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(0.9)",
+    "backdropFilterWebkit": "blur(20px) saturate(180%) brightness(0.9)",
+    "border": "rgba(10,132,255,0.20)"
+  },
   "tables": {
     "background": "rgba(15, 23, 42, 0.85)",
     "border": "1px solid rgba(59, 130, 246, 0.3)",
@@ -196,7 +202,9 @@
       }
     }
   },
-  "buttonStyles": ["rounded-buttons"],
+  "buttonStyles": [
+    "rounded-buttons"
+  ],
   "switches": {
     "checked": {
       "background": "#0ea5e9"

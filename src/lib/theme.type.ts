@@ -4,6 +4,7 @@ export interface Theme {
   name: string;
   displayName: string;
   schemaVersion: number; // 1 is the current version
+  isFeatured?: boolean;
   inherits?: string;
   most_like?: 'light' | 'dark';
   icon_path?: string;
