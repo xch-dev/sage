@@ -225,6 +225,7 @@ export function AssetSelector({
                   onValueChange={(values) =>
                     updateToken(i, 'amount', values.value)
                   }
+                  precision={assetId === null ? 12 : 3}
                 />
                 {offering && (
                   <TooltipProvider>
