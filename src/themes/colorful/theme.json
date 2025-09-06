@@ -52,9 +52,7 @@
       "background": "rgba(10,132,255,0.12)"
     }
   },
-  "buttonStyles": [
-    "shimmer"
-  ],
+  "buttonStyles": ["shimmer"],
   "switches": {
     "checked": {
       "background": "hsl(280 30% 60%)"
