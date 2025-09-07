@@ -51,12 +51,53 @@
     "button": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)",
     "dropdown": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)"
   },
-  "buttonStyles": ["3d-effects"],
+  "buttonStyles": [
+    "3d-effects"
+  ],
   "buttons": {
-    "outline": {
-      "borderStyle": "inset",
+    "default": {
+      "borderStyle": "outset",
       "borderWidth": "2px",
-      "borderColor": "hsl(var(--border))"
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "outline": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "primary": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "destructive": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "link": {
+      "color": "hsl(240 100% 50%)",
+      "textShadow": "none"
     }
   },
   "tables": {

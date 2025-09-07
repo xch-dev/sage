@@ -186,7 +186,6 @@ export default function Themes() {
                   <div className='space-y-4'>
                     <div>
                       <Trans>Border Radius</Trans>:{' '}
-                      {currentTheme.corners?.lg || 'Default'}
                       <div className='mt-2 flex gap-2'>
                         <div className='w-8 h-8 bg-primary rounded-none' />
                         <div className='w-8 h-8 bg-primary rounded-sm' />

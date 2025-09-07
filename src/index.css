@@ -533,6 +533,18 @@ body {
     color: var(--btn-secondary-color);
   }
 
+  .btn-variant-primary[data-theme-style*='3d-effects'] {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+    border: var(--btn-primary-border);
+    box-shadow: var(--btn-primary-shadow);
+  }
+
+  .btn-variant-primary[data-theme-style*='3d-effects']:active {
+    border-style: var(--btn-primary-active-border-style);
+    box-shadow: var(--btn-primary-active-shadow);
+  }
+
   /* Rounded buttons - applied when theme has rounded-buttons flag */
   .btn-variant-default[data-theme-style*='rounded-buttons'] {
     background: var(--btn-default-bg);
