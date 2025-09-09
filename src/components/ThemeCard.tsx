@@ -1,7 +1,7 @@
 import { commands } from '@/bindings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
-import { applyThemeIsolated } from '@/lib/theme';
+import { applyThemeIsolated, isUserTheme } from '@/lib/theme';
 import { Theme } from '@/lib/theme.type';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -47,7 +47,7 @@ export function ThemeCard({
   };
 
   const handleDeleteTheme = async () => {
-    if (theme.isUserTheme) {
+    if (isUserTheme(theme)) {
       setIsDeleting(true);
       try {
         await commands.deleteUserTheme({ nft_id: theme.name });
@@ -96,7 +96,7 @@ export function ThemeCard({
           </h3>
           <div className='flex items-center gap-2'>
             {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
-            {theme.isUserTheme && (
+            {isUserTheme(theme) && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
@@ -155,7 +155,7 @@ export function ThemeCard({
                 aria-label={t`Theme selected`}
               />
             )}
-            {theme.isUserTheme && (
+            {isUserTheme(theme) && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}

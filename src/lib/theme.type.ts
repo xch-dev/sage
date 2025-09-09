@@ -10,7 +10,6 @@ export interface Theme {
   backgroundSize?: string;
   backgroundPosition?: string;
   backgroundRepeat?: string;
-  isUserTheme?: boolean; // this is set at runtime by the loader
   colors?: {
     background?: string;
     backgroundTransparent?: string;

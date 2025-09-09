@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { isUserTheme } from '@/lib/theme';
 import { Theme } from '@/lib/theme.type';
 import { Trans } from '@lingui/react/macro';
 import { Loader2 } from 'lucide-react';
@@ -39,15 +40,15 @@ export function ThemeSelector() {
 
   // Group themes by isUserTheme and isFeatured, sort alphabetically within each group
   const featuredThemes: Theme[] = []; //availableThemes
-  //   .filter((theme) => !theme.isUserTheme && theme.isFeatured)
+  //   .filter((theme) => !isUserTheme(theme) && theme.isFeatured)
   //   .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const defaultThemes = availableThemes
-    .filter((theme) => !theme.isUserTheme)
+    .filter((theme) => !isUserTheme(theme))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const userThemes = availableThemes
-    .filter((theme) => theme.isUserTheme)
+    .filter((theme) => isUserTheme(theme))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return (
