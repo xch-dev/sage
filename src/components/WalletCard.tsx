@@ -483,7 +483,7 @@ export function WalletCard({
                     <Trans>Secret Key</Trans>
                   </h3>
                   <p className='break-all text-sm text-muted-foreground'>
-                    <Spoiler theme={currentTheme?.most_like ?? 'light'}>
+                    <Spoiler theme={currentTheme?.mostLike ?? 'light'}>
                       {secrets.secret_key}
                     </Spoiler>
                   </p>
@@ -494,7 +494,7 @@ export function WalletCard({
                       <Trans>Mnemonic</Trans>
                     </h3>
                     <p className='break-words text-sm text-muted-foreground'>
-                      <Spoiler theme={currentTheme?.most_like ?? 'light'}>
+                      <Spoiler theme={currentTheme?.mostLike ?? 'light'}>
                         {secrets.mnemonic}
                       </Spoiler>
                     </p>

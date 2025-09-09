@@ -93,7 +93,7 @@ export async function loadBuiltInTheme(
     }
 
     // only light and dark icons for now
-    theme.icon_path = theme.most_like === 'dark' ? iconLight : iconDark;
+    theme.icon_path = theme.mostLike === 'dark' ? iconLight : iconDark;
     theme.isUserTheme = false;
 
     return theme;

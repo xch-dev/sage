@@ -6,7 +6,7 @@ export interface Theme {
   schemaVersion: number; // 1 is the current version
   isFeatured?: boolean;
   inherits?: string;
-  most_like?: 'light' | 'dark';
+  mostLike?: 'light' | 'dark';
   icon_path?: string;
   backgroundImage?: string;
   backgroundSize?: string;

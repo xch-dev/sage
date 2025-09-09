@@ -1,7 +1,7 @@
 {
   "name": "light",
   "displayName": "Light",
-  "most_like": "light",
+  "mostLike": "light",
   "schemaVersion": 1,
   "colors": {
     "background": "hsl(0 0% 100%)",

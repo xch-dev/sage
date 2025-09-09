@@ -2,7 +2,7 @@
   "name": "dark",
   "displayName": "Dark",
   "inherits": "light",
-  "most_like": "dark",
+  "mostLike": "dark",
   "schemaVersion": 1,
   "colors": {
     "background": "hsl(0 0% 3.9%)",

@@ -3,7 +3,7 @@
   "displayName": "Colorful",
   "backgroundImage": "background.jpg",
   "inherits": "light",
-  "most_like": "light",
+  "mostLike": "light",
   "schemaVersion": 1,
   "colors": {
     "background": "hsl(280 50% 25%)",
@@ -52,7 +52,9 @@
       "background": "rgba(10,132,255,0.12)"
     }
   },
-  "buttonStyles": ["shimmer"],
+  "buttonStyles": [
+    "shimmer"
+  ],
   "switches": {
     "checked": {
       "background": "hsl(280 30% 60%)"
