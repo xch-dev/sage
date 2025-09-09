@@ -17,7 +17,6 @@ export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
     }
 
     // user themes cannot override these settings
-    theme.isFeatured = false;
     theme.isUserTheme = true;
     return theme;
   } catch (error) {

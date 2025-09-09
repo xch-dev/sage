@@ -1,4 +1,5 @@
 import { useTheme } from '@/contexts/ThemeContext';
+import { Theme } from '@/lib/theme.type';
 import { Trans } from '@lingui/react/macro';
 import { Loader2 } from 'lucide-react';
 import { ThemeCard } from './ThemeCard';
@@ -37,12 +38,12 @@ export function ThemeSelector() {
   }
 
   // Group themes by isUserTheme and isFeatured, sort alphabetically within each group
-  const featuredThemes = availableThemes
-    .filter((theme) => !theme.isUserTheme && theme.isFeatured)
-    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+  const featuredThemes: Theme[] = []; //availableThemes
+  //   .filter((theme) => !theme.isUserTheme && theme.isFeatured)
+  //   .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const defaultThemes = availableThemes
-    .filter((theme) => !theme.isUserTheme && !theme.isFeatured)
+    .filter((theme) => !theme.isUserTheme)
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const userThemes = availableThemes
