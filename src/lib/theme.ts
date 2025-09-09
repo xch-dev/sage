@@ -2,19 +2,14 @@ import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
 
-// Internal theme type that includes runtime properties not in the public interface
-interface InternalTheme extends Theme {
-  isUserTheme?: boolean; // this is set at runtime by the loader
-}
-
 // Helper function to check if a theme is a user theme
 export function isUserTheme(theme: Theme): boolean {
-  return (theme as InternalTheme).isUserTheme === true;
+  return theme.tags?.includes('user') === true;
 }
 
 export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
   try {
-    let theme = validateTheme(JSON.parse(themeJson)) as InternalTheme;
+    let theme = validateTheme(JSON.parse(themeJson));
 
     if (theme.inherits) {
       const inheritedTheme = await loadBuiltInTheme(
@@ -27,7 +22,8 @@ export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
     }
 
     // user themes cannot override these settings
-    theme.isUserTheme = true;
+    theme.tags = theme.tags || [];
+    theme.tags.push('user');
     return theme;
   } catch (error) {
     console.error(`Error loading user theme:`, error);
@@ -53,7 +49,7 @@ export async function loadBuiltInTheme(
     // Import theme as a module for hot reloading
     const themeModule = await import(`../themes/${themeName}/theme.json`);
 
-    let theme = themeModule.default as InternalTheme;
+    let theme = themeModule.default as Theme;
 
     if (theme.inherits) {
       const inheritedTheme = await loadBuiltInTheme(
@@ -106,10 +102,7 @@ export async function loadBuiltInTheme(
   }
 }
 
-function applyCommonThemeProperties(
-  theme: InternalTheme,
-  root: HTMLElement,
-): void {
+function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
   // Set theme class for CSS selectors
   root.classList.add(`theme-${theme.name}`);
 
@@ -151,7 +144,7 @@ function applyCommonThemeProperties(
   }
 }
 
-function applyThemeVariables(theme: InternalTheme, root: HTMLElement): void {
+function applyThemeVariables(theme: Theme, root: HTMLElement): void {
   // Create mappings from theme properties to CSS variables
   const variableMappings = [
     {
@@ -176,7 +169,7 @@ function applyThemeVariables(theme: InternalTheme, root: HTMLElement): void {
   });
 }
 
-export function applyTheme(theme: InternalTheme, root: HTMLElement) {
+export function applyTheme(theme: Theme, root: HTMLElement) {
   // Remove any existing theme classes
   const existingThemeClasses = Array.from(root.classList).filter((cls) =>
     cls.startsWith('theme-'),
@@ -449,10 +442,7 @@ export function applyTheme(theme: InternalTheme, root: HTMLElement) {
   }
 }
 
-export function applyThemeIsolated(
-  theme: InternalTheme,
-  root: HTMLElement,
-): void {
+export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
   applyThemeVariables(theme, root);
   applyCommonThemeProperties(theme, root);
 
