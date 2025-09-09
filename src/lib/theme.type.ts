@@ -7,7 +7,6 @@ export interface Theme {
   isFeatured?: boolean;
   inherits?: string;
   mostLike?: 'light' | 'dark';
-  icon_path?: string;
   backgroundImage?: string;
   backgroundSize?: string;
   backgroundPosition?: string;

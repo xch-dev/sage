@@ -1,5 +1,3 @@
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
@@ -91,10 +89,6 @@ export async function loadBuiltInTheme(
         theme.backgroundImage = undefined;
       }
     }
-
-    // only light and dark icons for now
-    theme.icon_path = theme.mostLike === 'dark' ? iconLight : iconDark;
-    theme.isUserTheme = false;
 
     return theme;
   } catch (error) {

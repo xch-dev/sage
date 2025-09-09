@@ -1,6 +1,8 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -130,7 +132,9 @@ export default function Header(
                   </span>
                 ) : (
                   <img
-                    src={currentTheme?.icon_path}
+                    src={
+                      currentTheme?.mostLike === 'light' ? iconDark : iconLight
+                    }
                     className='h-6 w-6'
                     alt={t`Wallet icon`}
                     aria-hidden='true'
