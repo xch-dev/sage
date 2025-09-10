@@ -7,6 +7,10 @@ export function isUserTheme(theme: Theme): boolean {
   return theme.tags?.includes('user') === true;
 }
 
+export function isFeaturedTheme(theme: Theme): boolean {
+  return theme.tags?.includes('featured') === true;
+}
+
 export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
   try {
     let theme = validateTheme(JSON.parse(themeJson));
