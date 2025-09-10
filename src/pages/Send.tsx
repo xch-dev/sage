@@ -300,6 +300,9 @@ export default function Send() {
                         <TokenAmountInput
                           {...field}
                           ticker={asset?.ticker}
+                          precision={
+                            asset?.precision ?? (assetId === null ? 12 : 3)
+                          }
                           className='pr-12 rounded-r-none z-10'
                         />
                         <TooltipProvider>

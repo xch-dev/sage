@@ -168,6 +168,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
           aria-label={t`Network fee amount`}
           className={`pr-12 ${className || ''}`}
           ticker='xch'
+          precision={12}
         />
       </div>
     );
