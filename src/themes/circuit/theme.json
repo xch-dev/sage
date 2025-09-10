@@ -3,7 +3,7 @@
   "displayName": "Circuit Board",
   "inherits": "dark",
   "mostLike": "dark",
-  "backgroundImage": "background.jpg",
+  "backgroundImage": "background.png",
   "schemaVersion": 1,
   "colors": {
     "background": "#0a0e1a",
