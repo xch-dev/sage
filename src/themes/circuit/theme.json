@@ -58,7 +58,6 @@
   "sidebar": {
     "background": "rgba(25, 15, 20, 0.35)",
     "backdropFilter": "blur(20px) saturate(180%) brightness(0.9)",
-    "backdropFilterWebkit": "blur(20px) saturate(180%) brightness(0.9)",
     "border": "rgba(10,132,255,0.20)"
   },
   "tables": {
