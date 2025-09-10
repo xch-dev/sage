@@ -1,7 +1,8 @@
 {
   "name": "win95",
   "displayName": "Windows 95",
-  "most_like": "light",
+  "mostLike": "light",
+  "schemaVersion": 1,
   "colors": {
     "background": "hsl(0 0% 75%)",
     "foreground": "hsl(0 0% 0%)",
@@ -22,12 +23,7 @@
     "border": "hsl(0 0% 50%)",
     "input": "hsl(0 0% 100%)",
     "inputBackground": "hsl(0 0% 100%)",
-    "ring": "hsl(240 100% 25%)",
-    "chart1": "hsl(240 100% 25%)",
-    "chart2": "hsl(0 100% 50%)",
-    "chart3": "hsl(60 100% 50%)",
-    "chart4": "hsl(300 100% 50%)",
-    "chart5": "hsl(120 100% 50%)"
+    "ring": "hsl(240 100% 25%)"
   },
   "fonts": {
     "sans": "MS Sans Serif, Tahoma, Arial, sans-serif",
@@ -57,10 +53,49 @@
   },
   "buttonStyles": ["3d-effects"],
   "buttons": {
-    "outline": {
-      "borderStyle": "inset",
+    "default": {
+      "borderStyle": "outset",
       "borderWidth": "2px",
-      "borderColor": "hsl(var(--border))"
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "outline": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "primary": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "destructive": {
+      "borderStyle": "outset",
+      "borderWidth": "2px",
+      "borderColor": "hsl(0 0% 100%) hsl(0 0% 0%) hsl(0 0% 0%) hsl(0 0% 100%)",
+      "boxShadow": "var(--shadow-button)",
+      "active": {
+        "borderStyle": "inset",
+        "boxShadow": "var(--shadow-inner)"
+      }
+    },
+    "link": {
+      "color": "hsl(240 100% 50%)",
+      "textShadow": "none"
     }
   },
   "tables": {

@@ -34,12 +34,12 @@ body {
     --input: hsl(0 0% 89.8%);
     --input-background: hsl(0 0% 100%);
     --ring: hsl(0 0% 3.9%);
-    --chart-1: hsl(12 76% 61%);
-    --chart-2: hsl(173 58% 39%);
-    --chart-3: hsl(197 37% 24%);
-    --chart-4: hsl(43 74% 66%);
-    --chart-5: hsl(27 87% 67%);
     --radius: 0.5rem;
+
+    /* Safe defaults for transparency variables used with !important */
+    --background-transparent: transparent;
+    --card-transparent: transparent;
+    --popover-transparent: transparent;
 
     /* Default font families */
     --font-sans: Inter, system-ui, sans-serif;
@@ -72,6 +72,20 @@ body {
     --shadow-dropdown: 0 4px 6px -1px rgb(0 0 0 / 0.1),
       0 2px 4px -2px rgb(0 0 0 / 0.1);
 
+    /* Default backdrop-filter values */
+    --card-backdrop-filter: none;
+    --card-backdrop-filter-webkit: none;
+    --popover-backdrop-filter: none;
+    --popover-backdrop-filter-webkit: none;
+    --input-backdrop-filter: none;
+    --input-backdrop-filter-webkit: none;
+    --table-header-backdrop-filter: none;
+    --table-header-backdrop-filter-webkit: none;
+    --table-row-backdrop-filter: none;
+    --table-row-backdrop-filter-webkit: none;
+    --table-footer-backdrop-filter: none;
+    --table-footer-backdrop-filter-webkit: none;
+
     /* Button-specific CSS variables with defaults */
     --btn-default-bg: var(--primary);
     --btn-default-color: var(--primary-foreground);
@@ -81,6 +95,8 @@ body {
     --btn-default-border-color: transparent;
     --btn-default-radius: var(--radius);
     --btn-default-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-default-backdrop-filter: none;
+    --btn-default-backdrop-filter-webkit: none;
     --btn-default-hover-bg: var(--primary);
     --btn-default-hover-color: var(--primary-foreground);
     --btn-default-hover-transform: none;
@@ -102,6 +118,8 @@ body {
     --btn-outline-border-color: var(--border);
     --btn-outline-radius: var(--radius);
     --btn-outline-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-outline-backdrop-filter: none;
+    --btn-outline-backdrop-filter-webkit: none;
     --btn-outline-hover-bg: var(--accent);
     --btn-outline-hover-color: var(--accent-foreground);
     --btn-outline-hover-transform: none;
@@ -123,6 +141,8 @@ body {
     --btn-secondary-border-color: transparent;
     --btn-secondary-radius: var(--radius);
     --btn-secondary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-secondary-backdrop-filter: none;
+    --btn-secondary-backdrop-filter-webkit: none;
     --btn-secondary-hover-bg: var(--secondary);
     --btn-secondary-hover-color: var(--secondary-foreground);
     --btn-secondary-hover-transform: none;
@@ -136,6 +156,75 @@ body {
     --btn-secondary-active-border-color: transparent;
     --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
+    --btn-destructive-bg: var(--destructive);
+    --btn-destructive-color: var(--destructive-foreground);
+    --btn-destructive-border: none;
+    --btn-destructive-border-style: solid;
+    --btn-destructive-border-width: 0;
+    --btn-destructive-border-color: transparent;
+    --btn-destructive-radius: var(--radius);
+    --btn-destructive-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-destructive-hover-bg: var(--destructive);
+    --btn-destructive-hover-color: var(--destructive-foreground);
+    --btn-destructive-hover-transform: none;
+    --btn-destructive-hover-border-style: solid;
+    --btn-destructive-hover-border-color: transparent;
+    --btn-destructive-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --btn-destructive-active-bg: var(--destructive);
+    --btn-destructive-active-color: var(--destructive-foreground);
+    --btn-destructive-active-transform: none;
+    --btn-destructive-active-border-style: solid;
+    --btn-destructive-active-border-color: transparent;
+    --btn-destructive-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+    --btn-ghost-bg: transparent;
+    --btn-ghost-color: var(--foreground);
+    --btn-ghost-border: none;
+    --btn-ghost-border-style: solid;
+    --btn-ghost-border-width: 0;
+    --btn-ghost-border-color: transparent;
+    --btn-ghost-radius: var(--radius);
+    --btn-ghost-shadow: none;
+    --btn-ghost-hover-bg: var(--accent);
+    --btn-ghost-hover-color: var(--accent-foreground);
+    --btn-ghost-hover-transform: none;
+    --btn-ghost-hover-border-style: solid;
+    --btn-ghost-hover-border-color: transparent;
+    --btn-ghost-hover-shadow: none;
+    --btn-ghost-active-bg: var(--accent);
+    --btn-ghost-active-color: var(--accent-foreground);
+    --btn-ghost-active-transform: none;
+    --btn-ghost-active-border-style: solid;
+    --btn-ghost-active-border-color: transparent;
+    --btn-ghost-active-shadow: none;
+
+    --btn-link-bg: transparent;
+    --btn-link-color: var(--primary);
+    --btn-link-border: none;
+    --btn-link-border-style: solid;
+    --btn-link-border-width: 0;
+    --btn-link-border-color: transparent;
+    --btn-link-radius: var(--radius);
+    --btn-link-shadow: none;
+    --btn-link-hover-bg: transparent;
+    --btn-link-hover-color: var(--primary);
+    --btn-link-hover-transform: none;
+    --btn-link-hover-border-style: solid;
+    --btn-link-hover-border-color: transparent;
+    --btn-link-hover-shadow: none;
+    --btn-link-active-bg: transparent;
+    --btn-link-active-color: var(--primary);
+    --btn-link-active-transform: none;
+    --btn-link-active-border-style: solid;
+    --btn-link-active-border-color: transparent;
+    --btn-link-active-shadow: none;
+    --btn-destructive-backdrop-filter: none;
+    --btn-destructive-backdrop-filter-webkit: none;
+    --btn-ghost-backdrop-filter: none;
+    --btn-ghost-backdrop-filter-webkit: none;
+    --btn-link-backdrop-filter: none;
+    --btn-link-backdrop-filter-webkit: none;
+
     /* Theme-specific button style flags */
     --theme-has-gradient-buttons: 0;
     --theme-has-shimmer-effects: 0;
@@ -144,7 +233,18 @@ body {
     --theme-has-rounded-buttons: 0;
 
     /* Navigation active background */
-    --nav-active-bg: var(--primary);
+    --nav-active-bg: color-mix(
+      in srgb,
+      var(--primary, hsl(0 0% 9%)) 10%,
+      transparent
+    );
+    --outline-button-bg: transparent;
+
+    /* Sidebar styling variables with defaults */
+    --sidebar-background: transparent;
+    --sidebar-backdrop-filter: none;
+    --sidebar-backdrop-filter-webkit: none;
+    --sidebar-border: var(--border);
 
     /* Table styling variables with defaults */
     --table-background: transparent;
@@ -155,6 +255,7 @@ body {
     --table-header-color: var(--muted-foreground);
     --table-header-font-weight: 500;
     --table-header-font-size: 0.875rem;
+    --table-header-padding: 0.15rem 0.5rem;
     --table-row-background: transparent;
     --table-row-color: var(--foreground);
     --table-row-border: 1px solid var(--border);
@@ -168,6 +269,11 @@ body {
     --table-footer-background: var(--muted);
     --table-footer-color: var(--muted-foreground);
     --table-footer-border: 1px solid var(--border);
+
+    /* Switch styling variables with defaults */
+    --switch-checked-bg: var(--primary);
+    --switch-unchecked-bg: var(--input);
+    --switch-thumb-bg: hsl(0 0% 100%);
   }
 }
 
@@ -180,9 +286,9 @@ body {
   }
   body.has-background-image {
     background-image: var(--background-image);
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background-size: var(--background-size, cover);
+    background-position: var(--background-position, center);
+    background-repeat: var(--background-repeat, no-repeat);
     background-attachment: fixed;
   }
 
@@ -224,6 +330,8 @@ body {
       var(--btn-default-border-color);
     border-radius: var(--btn-default-radius);
     box-shadow: var(--btn-default-shadow);
+    backdrop-filter: var(--btn-default-backdrop-filter);
+    -webkit-backdrop-filter: var(--btn-default-backdrop-filter-webkit);
     transition: all 0.2s ease;
   }
 
@@ -247,19 +355,82 @@ body {
 
   /* Gradient buttons - applied when theme has gradient flag */
   .btn-variant-default[data-theme-style*='gradient'] {
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: var(--primary-foreground);
-    border: 1px solid var(--border);
+    background: linear-gradient(
+      135deg,
+      var(--btn-default-bg),
+      var(--btn-default-hover-bg)
+    );
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+  }
+
+  .btn-variant-outline[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-outline-bg),
+      var(--btn-outline-hover-bg)
+    );
+    color: var(--btn-outline-color);
+    border: var(--btn-outline-border);
+  }
+
+  .btn-variant-secondary[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-secondary-bg),
+      var(--btn-secondary-hover-bg)
+    );
+    color: var(--btn-secondary-color);
+    border: var(--btn-secondary-border);
   }
 
   /* Shimmer effects - applied when theme has shimmer flag */
-  .btn-variant-outline[data-theme-style*='shimmer'] {
-    background: transparent;
-    border: 1px solid var(--primary);
-    color: var(--primary);
+  .btn-variant-default[data-theme-style*='shimmer'] {
+    background: var(--btn-default-bg);
+    border: var(--btn-default-border);
+    color: var(--btn-default-color);
     position: relative;
     overflow: hidden;
     opacity: 0.8;
+  }
+
+  .btn-variant-outline[data-theme-style*='shimmer'] {
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-secondary[data-theme-style*='shimmer'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-default[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-default-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-default[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']::before {
@@ -272,7 +443,7 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      var(--primary),
+      var(--btn-outline-hover-color),
       transparent
     );
     opacity: 0.2;
@@ -280,8 +451,8 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='shimmer']:hover {
-    border-color: var(--primary);
-    color: var(--primary);
+    border-color: var(--btn-outline-hover-border-color);
+    color: var(--btn-outline-hover-color);
     opacity: 1;
   }
 
@@ -289,63 +460,313 @@ body {
     left: 100%;
   }
 
+  .btn-variant-secondary[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-secondary-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-secondary[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
   /* Pixel art style - applied when theme has pixel-art flag */
   .btn-variant-default[data-theme-style*='pixel-art'] {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border: 2px solid var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-default[data-theme-style*='pixel-art']:hover {
-    transform: translate(1px, 1px);
-    box-shadow: 1px 1px 0 var(--foreground);
+    transform: var(--btn-default-hover-transform);
+    box-shadow: var(--btn-default-hover-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='pixel-art'] {
-    background: transparent;
-    border: 2px solid var(--foreground);
-    color: var(--foreground);
-    box-shadow: 2px 2px 0 var(--foreground);
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+    box-shadow: var(--btn-outline-shadow);
+  }
+
+  .btn-variant-secondary[data-theme-style*='pixel-art'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
+    box-shadow: var(--btn-secondary-shadow);
   }
 
   /* 3D effects - applied when theme has 3d-effects flag */
   .btn-variant-default[data-theme-style*='3d-effects'] {
-    background: var(--muted);
-    color: var(--foreground);
-    border: 2px outset var(--border);
-    box-shadow:
-      inset 1px 1px 0 var(--background),
-      inset -1px -1px 0 var(--muted-foreground);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-default[data-theme-style*='3d-effects']:active {
-    border-style: inset;
-    box-shadow:
-      inset 1px 1px 0 var(--muted-foreground),
-      inset -1px -1px 0 var(--background);
+    border-style: var(--btn-default-active-border-style);
+    box-shadow: var(--btn-default-active-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='3d-effects'] {
-    background: var(--background);
-    border: 2px outset var(--border);
-    color: var(--foreground);
+    background: var(--btn-outline-bg);
+    border: var(--btn-outline-border);
+    color: var(--btn-outline-color);
+  }
+
+  .btn-variant-secondary[data-theme-style*='3d-effects'] {
+    background: var(--btn-secondary-bg);
+    border: var(--btn-secondary-border);
+    color: var(--btn-secondary-color);
+  }
+
+  .btn-variant-primary[data-theme-style*='3d-effects'] {
+    background: var(--btn-primary-bg);
+    color: var(--btn-primary-color);
+    border: var(--btn-primary-border);
+    box-shadow: var(--btn-primary-shadow);
+  }
+
+  .btn-variant-primary[data-theme-style*='3d-effects']:active {
+    border-style: var(--btn-primary-active-border-style);
+    box-shadow: var(--btn-primary-active-shadow);
   }
 
   /* Rounded buttons - applied when theme has rounded-buttons flag */
   .btn-variant-default[data-theme-style*='rounded-buttons'] {
-    background: var(--primary);
-    color: var(--primary-foreground);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-color);
+    border-radius: var(--btn-default-radius);
+    border: var(--btn-default-border);
+    box-shadow: var(--btn-default-shadow);
   }
 
   .btn-variant-outline[data-theme-style*='rounded-buttons'] {
-    background: var(--background);
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: 12px;
+    background: var(--btn-outline-bg);
+    color: var(--btn-outline-color);
+    border: var(--btn-outline-border);
+    border-radius: var(--btn-outline-radius);
+  }
+
+  .btn-variant-secondary[data-theme-style*='rounded-buttons'] {
+    background: var(--btn-secondary-bg);
+    color: var(--btn-secondary-color);
+    border: var(--btn-secondary-border);
+    border-radius: var(--btn-secondary-radius);
+  }
+
+  /* Destructive button variant theme support */
+  .btn-variant-destructive[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-destructive-bg),
+      var(--btn-destructive-hover-bg)
+    );
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer'] {
+    background: var(--btn-destructive-bg);
+    border: var(--btn-destructive-border);
+    color: var(--btn-destructive-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.9;
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-destructive-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-destructive[data-theme-style*='shimmer']:hover {
+    opacity: 1;
+  }
+
+  .btn-variant-destructive[data-theme-style*='pixel-art'] {
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
+  }
+
+  .btn-variant-destructive[data-theme-style*='pixel-art']:hover {
+    transform: var(--btn-destructive-hover-transform);
+    box-shadow: var(--btn-destructive-hover-shadow);
+  }
+
+  .btn-variant-destructive[data-theme-style*='3d-effects'] {
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
+  }
+
+  .btn-variant-destructive[data-theme-style*='3d-effects']:active {
+    border-style: var(--btn-destructive-active-border-style);
+    box-shadow: var(--btn-destructive-active-shadow);
+  }
+
+  .btn-variant-destructive[data-theme-style*='rounded-buttons'] {
+    background: var(--btn-destructive-bg);
+    color: var(--btn-destructive-color);
+    border-radius: var(--btn-destructive-radius);
+    border: var(--btn-destructive-border);
+    box-shadow: var(--btn-destructive-shadow);
+  }
+
+  /* Ghost button variant theme support */
+  .btn-variant-ghost[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-ghost-bg),
+      var(--btn-ghost-hover-bg)
+    );
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer'] {
+    background: var(--btn-ghost-bg);
+    border: var(--btn-ghost-border);
+    color: var(--btn-ghost-color);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.8;
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-ghost-hover-color),
+      transparent
+    );
+    opacity: 0.2;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-ghost[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-ghost[data-theme-style*='pixel-art'] {
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+    box-shadow: var(--btn-ghost-shadow);
+  }
+
+  .btn-variant-ghost[data-theme-style*='pixel-art']:hover {
+    transform: var(--btn-ghost-hover-transform);
+    box-shadow: var(--btn-ghost-hover-shadow);
+  }
+
+  .btn-variant-ghost[data-theme-style*='3d-effects'] {
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+  }
+
+  .btn-variant-ghost[data-theme-style*='rounded-buttons'] {
+    background: var(--btn-ghost-bg);
+    color: var(--btn-ghost-color);
+    border: var(--btn-ghost-border);
+    border-radius: var(--btn-ghost-radius);
+  }
+
+  /* Link button variant theme support */
+  .btn-variant-link[data-theme-style*='gradient'] {
+    background: linear-gradient(
+      135deg,
+      var(--btn-link-bg),
+      var(--btn-link-hover-bg)
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer'] {
+    color: var(--btn-link-color);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer']::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--btn-link-hover-color),
+      transparent
+    );
+    opacity: 0.3;
+    transition: left 0.3s ease;
+  }
+
+  .btn-variant-link[data-theme-style*='shimmer']:hover::before {
+    left: 100%;
+  }
+
+  .btn-variant-link[data-theme-style*='pixel-art'] {
+    color: var(--btn-link-color);
+    text-shadow: 1px 1px 0 var(--foreground);
+  }
+
+  .btn-variant-link[data-theme-style*='3d-effects'] {
+    color: var(--btn-link-color);
+    text-shadow:
+      1px 1px 0 var(--background),
+      -1px -1px 0 var(--muted-foreground);
+  }
+
+  .btn-variant-link[data-theme-style*='rounded-buttons'] {
+    color: var(--btn-link-color);
+    padding: 4px 8px;
+    border-radius: var(--btn-link-radius);
+    background: var(--btn-link-bg);
   }
 
   /* Custom switch styling */
@@ -355,6 +776,55 @@ body {
 
   .switch-component.peer[data-state='unchecked'] {
     background-color: var(--switch-unchecked-bg) !important;
+  }
+
+  /* Alternative selectors for when data-state is on child elements */
+  .switch-component.peer:has([data-state='checked']) {
+    background-color: var(--switch-checked-bg) !important;
+  }
+
+  .switch-component.peer:has([data-state='unchecked']) {
+    background-color: var(--switch-unchecked-bg) !important;
+  }
+
+  /* Ensure switches are always visible, even with background images */
+  body.has-background-image .switch-component.peer[data-state='checked'] {
+    background-color: var(--switch-checked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image .switch-component.peer[data-state='unchecked'] {
+    background-color: var(--switch-unchecked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image .switch-component.peer:has([data-state='checked']) {
+    background-color: var(--switch-checked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  body.has-background-image
+    .switch-component.peer:has([data-state='unchecked']) {
+    background-color: var(--switch-unchecked-bg) !important;
+    opacity: 1 !important;
+  }
+
+  /* Ensure switch thumb is always visible */
+  .switch-component.peer span {
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+  }
+
+  /* Override for background image themes */
+  body.has-background-image .switch-component.peer span {
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+  }
+
+  /* Theme card isolation - prevent inheritance from ambient theme */
+  .theme-card-isolated {
+    /* Create a new stacking context to isolate CSS variables */
+    isolation: isolate;
+    /* Ensure the theme variables don't inherit from parent */
+    contain: style;
   }
 
   /* Theme-aware table styling */
@@ -371,12 +841,17 @@ body {
     border: var(--table-header-border);
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);
+    padding: var(--table-header-padding);
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr {
     background: var(--table-row-background);
     color: var(--table-row-color);
     border: var(--table-row-border);
+    backdrop-filter: var(--table-row-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-row-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr:hover {
@@ -399,6 +874,58 @@ body {
     background: var(--table-footer-background);
     color: var(--table-footer-color);
     border: var(--table-footer-border);
+    backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
+  }
+
+  /* Backdrop filter utility classes */
+  .backdrop-blur-card {
+    backdrop-filter: var(--card-backdrop-filter);
+    -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
+  }
+
+  .backdrop-blur-popover {
+    backdrop-filter: var(--popover-backdrop-filter);
+    -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
+  }
+
+  .backdrop-blur-input {
+    backdrop-filter: var(--input-backdrop-filter);
+    -webkit-backdrop-filter: var(--input-backdrop-filter-webkit);
+  }
+
+  /* Apply backdrop filters to existing components */
+  .bg-card {
+    background-color: var(--card);
+    backdrop-filter: var(--card-backdrop-filter);
+    -webkit-backdrop-filter: var(--card-backdrop-filter-webkit);
+  }
+
+  .bg-popover {
+    background-color: var(--popover);
+    backdrop-filter: var(--popover-backdrop-filter);
+    -webkit-backdrop-filter: var(--popover-backdrop-filter-webkit);
+  }
+
+  .bg-input,
+  input[type='text'],
+  input[type='password'],
+  input[type='email'],
+  input[type='number'],
+  textarea,
+  select {
+    backdrop-filter: var(--input-backdrop-filter);
+    -webkit-backdrop-filter: var(--input-backdrop-filter-webkit);
+  }
+
+  .table-theme thead th {
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+  }
+
+  .table-theme tfoot th {
+    backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
   }
 }
 

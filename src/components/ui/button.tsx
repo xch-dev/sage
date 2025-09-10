@@ -12,14 +12,14 @@ const buttonVariants = cva(
         default:
           'bg-primary text-primary-foreground shadow-button hover:bg-primary/90 btn-variant-default',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-button hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground shadow-button hover:bg-destructive/90 btn-variant-destructive',
         outline:
           'outline-btn border border-input text-foreground shadow-button hover:bg-accent hover:text-accent-foreground btn-variant-outline',
         secondary:
           'bg-secondary text-secondary-foreground shadow-button hover:bg-secondary/80 btn-variant-secondary',
         ghost:
-          'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+          'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground btn-variant-ghost',
+        link: 'text-primary underline-offset-4 hover:underline btn-variant-link',
         // Custom theme-aware variant that uses theme-specific styles
         theme: 'btn-variant-theme',
       },

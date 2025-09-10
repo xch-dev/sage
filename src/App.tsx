@@ -61,7 +61,7 @@ import Wallet from './pages/Wallet';
 function ThemeAwareToastContainer() {
   const { currentTheme } = useTheme();
 
-  const toastTheme = currentTheme?.most_like ?? 'light';
+  const toastTheme = currentTheme?.mostLike ?? 'light';
 
   return (
     <ToastContainer

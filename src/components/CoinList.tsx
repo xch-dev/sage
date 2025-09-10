@@ -130,9 +130,7 @@ const AmountHeader = ({
       setCurrentPage(0);
     }}
   >
-    <span className='text-foreground hover:underline'>
-      <Trans>Amount</Trans>
-    </span>
+    <Trans>Amount</Trans>
     {sortMode === 'amount' ? (
       sortDirection ? (
         <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />

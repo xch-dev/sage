@@ -1,14 +1,8 @@
 import { commands } from '@/bindings';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
-import {
-  type Theme,
-  applyTheme,
-  getPreviewButtonStyles,
-  getPreviewHeadingStyles,
-  getPreviewMutedTextStyles,
-  getPreviewTextStyles,
-} from '@/lib/theme';
+import { applyThemeIsolated, isUserTheme } from '@/lib/theme';
+import { Theme } from '@/lib/theme.type';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Check, Trash2 } from 'lucide-react';
@@ -53,7 +47,7 @@ export function ThemeCard({
   };
 
   const handleDeleteTheme = async () => {
-    if (theme.isUserTheme) {
+    if (isUserTheme(theme)) {
       setIsDeleting(true);
       try {
         await commands.deleteUserTheme({ nft_id: theme.name });
@@ -74,13 +68,8 @@ export function ThemeCard({
 
   useEffect(() => {
     if (cardRef.current) {
-      // Apply the theme to this specific element as a preview
-      applyTheme(theme, cardRef.current, true);
-
-      // Explicitly set the background color to ensure isolation from ambient theme
-      const cardColor =
-        theme.colors?.card || theme.colors?.background || 'hsl(0 0% 100%)';
-      cardRef.current.style.backgroundColor = cardColor;
+      // Apply the theme with complete isolation from ambient theme
+      applyThemeIsolated(theme, cardRef.current);
     }
   }, [theme]);
 
@@ -92,49 +81,6 @@ export function ThemeCard({
     : {};
 
   const renderDefaultContent = () => {
-    const buttonStyles = getPreviewButtonStyles(theme, 'default');
-    const headingStyles = getPreviewHeadingStyles(theme);
-    const mutedTextStyles = getPreviewMutedTextStyles(theme);
-    const textStyles = getPreviewTextStyles(theme);
-
-    // Add fallbacks for button styles
-    if (!buttonStyles.backgroundColor) {
-      buttonStyles.backgroundColor = 'hsl(220 13% 91%)'; // Default gray
-    }
-    if (!buttonStyles.color) {
-      buttonStyles.color = 'hsl(0 0% 0%)'; // Default black
-    }
-    if (!buttonStyles.border) {
-      buttonStyles.border = '1px solid hsl(0 0% 90%)';
-    }
-    if (!buttonStyles.borderRadius) {
-      buttonStyles.borderRadius = '0.375rem';
-    }
-    if (!buttonStyles.boxShadow) {
-      buttonStyles.boxShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
-    }
-
-    // Add fallbacks for heading styles
-    if (!headingStyles.fontFamily) {
-      headingStyles.fontFamily = 'system-ui, sans-serif';
-    }
-
-    // Add fallbacks for muted text styles
-    if (!mutedTextStyles.color) {
-      mutedTextStyles.color = 'hsl(0 0% 45%)'; // Default muted color
-    }
-    if (!mutedTextStyles.fontFamily) {
-      mutedTextStyles.fontFamily = 'inherit';
-    }
-
-    // Add fallbacks for text styles
-    if (!textStyles.color) {
-      textStyles.color = 'hsl(0 0% 0%)'; // Default black
-    }
-    if (!textStyles.fontFamily) {
-      textStyles.fontFamily = 'inherit';
-    }
-
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
       checkStyles.color = currentTheme.colors.primary;
@@ -145,12 +91,12 @@ export function ThemeCard({
     return (
       <div className='p-4'>
         <div className='flex items-center justify-between mb-3'>
-          <h3 className='font-medium text-sm' style={headingStyles}>
+          <h3 className='font-medium text-sm text-foreground font-heading'>
             {theme.displayName}
           </h3>
           <div className='flex items-center gap-2'>
             {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
-            {theme.isUserTheme && (
+            {isUserTheme(theme) && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
@@ -170,42 +116,16 @@ export function ThemeCard({
 
         {/* Theme preview */}
         <div className='space-y-2'>
-          <div className='h-8 flex items-center px-2' style={buttonStyles}>
-            <span className='text-xs font-medium' style={textStyles}>
-              Aa
-            </span>
+          <div className='h-8 flex items-center px-2 bg-primary text-primary-foreground rounded-md shadow-button'>
+            <span className='text-xs font-medium font-body'>Aa</span>
           </div>
           <div className='flex gap-1'>
-            <div
-              className='h-4 w-4'
-              style={{
-                backgroundColor: theme.colors?.primary || undefined,
-                borderRadius: theme.corners?.sm || '0.125rem',
-              }}
-            />
-            <div
-              className='h-4 w-4'
-              style={{
-                backgroundColor: theme.colors?.secondary || undefined,
-                borderRadius: theme.corners?.sm || '0.125rem',
-              }}
-            />
-            <div
-              className='h-4 w-4'
-              style={{
-                backgroundColor: theme.colors?.accent || undefined,
-                borderRadius: theme.corners?.sm || '0.125rem',
-              }}
-            />
-            <div
-              className='h-4 w-4'
-              style={{
-                backgroundColor: theme.colors?.destructive || undefined,
-                borderRadius: theme.corners?.sm || '0.125rem',
-              }}
-            />
+            <div className='h-4 w-4 bg-primary rounded-sm' />
+            <div className='h-4 w-4 bg-secondary rounded-sm' />
+            <div className='h-4 w-4 bg-accent rounded-sm' />
+            <div className='h-4 w-4 bg-destructive rounded-sm' />
           </div>
-          <div className='text-xs truncate' style={mutedTextStyles}>
+          <div className='text-xs truncate text-muted-foreground font-body'>
             {theme.fonts?.heading?.split(',')[0] || 'Default'}
           </div>
         </div>
@@ -214,13 +134,6 @@ export function ThemeCard({
   };
 
   const renderSimpleContent = () => {
-    const headingStyles = getPreviewHeadingStyles(theme);
-
-    // Add fallbacks for heading styles
-    if (!headingStyles.fontFamily) {
-      headingStyles.fontFamily = 'inherit';
-    }
-
     const checkStyles: Record<string, string | undefined> = {};
     if (currentTheme.colors?.primary) {
       checkStyles.color = currentTheme.colors.primary;
@@ -231,7 +144,7 @@ export function ThemeCard({
     return (
       <div className='p-3'>
         <div className='flex items-center justify-between mb-2'>
-          <h4 className='font-medium text-xs' style={headingStyles}>
+          <h4 className='font-medium text-xs text-foreground font-heading'>
             {theme.displayName}
           </h4>
           <div className='flex items-center gap-1'>
@@ -242,7 +155,7 @@ export function ThemeCard({
                 aria-label={t`Theme selected`}
               />
             )}
-            {theme.isUserTheme && (
+            {isUserTheme(theme) && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
@@ -261,27 +174,9 @@ export function ThemeCard({
         </div>
 
         <div className='flex gap-1'>
-          <div
-            className='h-2 w-2'
-            style={{
-              backgroundColor: theme.colors?.primary || undefined,
-              borderRadius: theme.corners?.sm || '0.125rem',
-            }}
-          />
-          <div
-            className='h-2 w-2'
-            style={{
-              backgroundColor: theme.colors?.secondary || undefined,
-              borderRadius: theme.corners?.sm || '0.125rem',
-            }}
-          />
-          <div
-            className='h-2 w-2'
-            style={{
-              backgroundColor: theme.colors?.accent || undefined,
-              borderRadius: theme.corners?.sm || '0.125rem',
-            }}
-          />
+          <div className='h-2 w-2 bg-primary rounded-sm' />
+          <div className='h-2 w-2 bg-secondary rounded-sm' />
+          <div className='h-2 w-2 bg-accent rounded-sm' />
         </div>
       </div>
     );

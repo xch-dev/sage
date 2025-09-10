@@ -22,7 +22,10 @@ export function LabeledItem({
   const contentId = useId();
 
   // Don't render if both content and children are null or empty
-  if ((!content || content.trim() === '') && !children) {
+  if (
+    (!content || (typeof content === 'string' && content.trim() === '')) &&
+    !children
+  ) {
     return null;
   }
 

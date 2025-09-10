@@ -1,0 +1,873 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "backgroundImage": {
+      "type": "string"
+    },
+    "backgroundPosition": {
+      "type": "string"
+    },
+    "backgroundRepeat": {
+      "type": "string"
+    },
+    "backgroundSize": {
+      "type": "string"
+    },
+    "buttonStyles": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "buttons": {
+      "properties": {
+        "default": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "destructive": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "ghost": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "link": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "outline": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        },
+        "secondary": {
+          "properties": {
+            "active": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "borderColor": {
+              "type": "string"
+            },
+            "borderRadius": {
+              "type": "string"
+            },
+            "borderStyle": {
+              "type": "string"
+            },
+            "borderWidth": {
+              "type": "string"
+            },
+            "boxShadow": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "borderColor": {
+                  "type": "string"
+                },
+                "borderStyle": {
+                  "type": "string"
+                },
+                "boxShadow": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "colors": {
+      "properties": {
+        "accent": {
+          "type": "string"
+        },
+        "accentForeground": {
+          "type": "string"
+        },
+        "background": {
+          "type": "string"
+        },
+        "backgroundTransparent": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "cardBackdropFilter": {
+          "type": "string"
+        },
+        "cardBackdropFilterWebkit": {
+          "type": "string"
+        },
+        "cardForeground": {
+          "type": "string"
+        },
+        "cardTransparent": {
+          "type": "string"
+        },
+        "destructive": {
+          "type": "string"
+        },
+        "destructiveForeground": {
+          "type": "string"
+        },
+        "foreground": {
+          "type": "string"
+        },
+        "input": {
+          "type": "string"
+        },
+        "inputBackdropFilter": {
+          "type": "string"
+        },
+        "inputBackdropFilterWebkit": {
+          "type": "string"
+        },
+        "inputBackground": {
+          "type": "string"
+        },
+        "muted": {
+          "type": "string"
+        },
+        "mutedForeground": {
+          "type": "string"
+        },
+        "popover": {
+          "type": "string"
+        },
+        "popoverBackdropFilter": {
+          "type": "string"
+        },
+        "popoverBackdropFilterWebkit": {
+          "type": "string"
+        },
+        "popoverForeground": {
+          "type": "string"
+        },
+        "popoverTransparent": {
+          "type": "string"
+        },
+        "primary": {
+          "type": "string"
+        },
+        "primaryForeground": {
+          "type": "string"
+        },
+        "ring": {
+          "type": "string"
+        },
+        "secondary": {
+          "type": "string"
+        },
+        "secondaryForeground": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "corners": {
+      "properties": {
+        "full": {
+          "type": "string"
+        },
+        "lg": {
+          "type": "string"
+        },
+        "md": {
+          "type": "string"
+        },
+        "none": {
+          "type": "string"
+        },
+        "sm": {
+          "type": "string"
+        },
+        "xl": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "fonts": {
+      "properties": {
+        "body": {
+          "type": "string"
+        },
+        "heading": {
+          "type": "string"
+        },
+        "mono": {
+          "type": "string"
+        },
+        "sans": {
+          "type": "string"
+        },
+        "serif": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "inherits": {
+      "type": "string"
+    },
+    "mostLike": {
+      "enum": ["dark", "light"],
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "type": "number"
+    },
+    "shadows": {
+      "properties": {
+        "button": {
+          "type": "string"
+        },
+        "card": {
+          "type": "string"
+        },
+        "dropdown": {
+          "type": "string"
+        },
+        "inner": {
+          "type": "string"
+        },
+        "lg": {
+          "type": "string"
+        },
+        "md": {
+          "type": "string"
+        },
+        "none": {
+          "type": "string"
+        },
+        "sm": {
+          "type": "string"
+        },
+        "xl": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "sidebar": {
+      "properties": {
+        "backdropFilter": {
+          "type": "string"
+        },
+        "backdropFilterWebkit": {
+          "type": "string"
+        },
+        "background": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "switches": {
+      "properties": {
+        "checked": {
+          "properties": {
+            "background": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "thumb": {
+          "properties": {
+            "background": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "unchecked": {
+          "properties": {
+            "background": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "tables": {
+      "properties": {
+        "background": {
+          "type": "string"
+        },
+        "border": {
+          "type": "string"
+        },
+        "borderRadius": {
+          "type": "string"
+        },
+        "boxShadow": {
+          "type": "string"
+        },
+        "cell": {
+          "properties": {
+            "border": {
+              "type": "string"
+            },
+            "fontSize": {
+              "type": "string"
+            },
+            "padding": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "footer": {
+          "properties": {
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "header": {
+          "properties": {
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "fontSize": {
+              "type": "string"
+            },
+            "fontWeight": {
+              "type": "string"
+            },
+            "padding": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "row": {
+          "properties": {
+            "backdropFilter": {
+              "type": "string"
+            },
+            "backdropFilterWebkit": {
+              "type": "string"
+            },
+            "background": {
+              "type": "string"
+            },
+            "border": {
+              "type": "string"
+            },
+            "color": {
+              "type": "string"
+            },
+            "hover": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            "selected": {
+              "properties": {
+                "background": {
+                  "type": "string"
+                },
+                "color": {
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          },
+          "type": "object"
+        }
+      },
+      "type": "object"
+    },
+    "tags": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": ["displayName", "name", "schemaVersion"],
+  "type": "object"
+}

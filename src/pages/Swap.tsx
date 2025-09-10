@@ -327,22 +327,20 @@ export function Swap() {
               </div>
             </div>
           </div>
-
-          <div className='flex gap-2'>
-            <Button
-              disabled={
-                payAssetId === undefined ||
-                receiveAssetId === undefined ||
-                !receiveAmount ||
-                !payAmount
-              }
-              onClick={() => setIsConfirmDialogOpen(true)}
-            >
-              <Trans>Swap</Trans>
-            </Button>
-          </div>
         </div>
-
+        <div className='mt-4'>
+          <Button
+            disabled={
+              payAssetId === undefined ||
+              receiveAssetId === undefined ||
+              !receiveAmount ||
+              !payAmount
+            }
+            onClick={() => setIsConfirmDialogOpen(true)}
+          >
+            <Trans>Swap</Trans>
+          </Button>
+        </div>
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
           onOpenChange={setIsConfirmDialogOpen}

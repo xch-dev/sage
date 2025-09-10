@@ -3,13 +3,20 @@
   "displayName": "Colorful",
   "backgroundImage": "background.jpg",
   "inherits": "light",
-  "most_like": "light",
+  "mostLike": "light",
+  "schemaVersion": 1,
   "colors": {
     "background": "hsl(280 50% 25%)",
     "secondary": "hsl(210 100% 85%)",
     "secondaryForeground": "hsl(210 50% 25%)",
     "accent": "hsl(280 100% 85%)",
-    "accentForeground": "hsl(280 50% 25%)"
+    "accentForeground": "hsl(280 50% 25%)",
+    "card": "rgba(255, 255, 255, 0.65)",
+    "cardBackdropFilter": "blur(28px) saturate(180%) brightness(1.15)",
+    "cardBackdropFilterWebkit": "blur(28px) saturate(180%) brightness(1.15)",
+    "popover": "rgba(255, 255, 255, 0.70)",
+    "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1.15)",
+    "popoverBackdropFilterWebkit": "blur(24px) saturate(170%) brightness(1.15)"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"
@@ -18,7 +25,7 @@
     "outline": {
       "background": "transparent",
       "color": "hsl(0 0% 9%)",
-      "border": "2px solid hsl(280 100% 85%)",
+      "border": "1px solid hsl(280 100% 85%)",
       "borderRadius": "0.75rem",
       "boxShadow": "none",
       "hover": {
@@ -39,13 +46,22 @@
       }
     }
   },
+  "tables": {
+    "background": "rgba(255, 255, 255, 0.12)",
+    "header": {
+      "background": "rgba(10,132,255,0.12)"
+    }
+  },
   "buttonStyles": ["shimmer"],
   "switches": {
     "checked": {
-      "background": "hsl(280 90% 85%)"
+      "background": "hsl(280 30% 60%)"
     },
     "unchecked": {
-      "background": "hsl(280 30% 85%)"
+      "background": "hsl(280 90% 85%)"
+    },
+    "thumb": {
+      "background": "hsl(0 0% 100%)"
     }
   }
 }

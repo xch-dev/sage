@@ -2,15 +2,18 @@
   "name": "circuit",
   "displayName": "Circuit Board",
   "inherits": "dark",
-  "most_like": "dark",
+  "mostLike": "dark",
   "backgroundImage": "background.jpg",
+  "schemaVersion": 1,
   "colors": {
     "background": "#0a0e1a",
     "foreground": "#e0f2fe",
     "card": "rgba(15, 23, 42, 0.9)",
     "cardForeground": "#e0f2fe",
+    "cardTransparent": "rgba(15, 23, 42, 0.9)",
     "popover": "rgba(15, 23, 42, 0.95)",
     "popoverForeground": "#e0f2fe",
+    "popoverTransparent": "rgba(15, 23, 42, 0.95)",
     "primary": "#0ea5e9",
     "primaryForeground": "#ffffff",
     "secondary": "rgba(14, 165, 233, 0.2)",
@@ -24,12 +27,7 @@
     "border": "rgba(59, 130, 246, 0.3)",
     "input": "rgba(15, 23, 42, 0.85)",
     "inputBackground": "rgba(15, 23, 42, 0.7)",
-    "ring": "#0ea5e9",
-    "chart1": "#0ea5e9",
-    "chart2": "#0284c7",
-    "chart3": "#0369a1",
-    "chart4": "#075985",
-    "chart5": "#0c4a6e"
+    "ring": "#0ea5e9"
   },
   "fonts": {
     "sans": "ui-sans-serif, system-ui, sans-serif",
@@ -56,6 +54,12 @@
     "card": "0 4px 6px -1px rgba(14, 165, 233, 0.15), 0 2px 4px -1px rgba(14, 165, 233, 0.1)",
     "button": "0 2px 4px 0 rgba(14, 165, 233, 0.2)",
     "dropdown": "0 10px 15px -3px rgba(14, 165, 233, 0.2), 0 4px 6px -2px rgba(14, 165, 233, 0.1)"
+  },
+  "sidebar": {
+    "background": "rgba(25, 15, 20, 0.35)",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(0.9)",
+    "backdropFilterWebkit": "blur(20px) saturate(180%) brightness(0.9)",
+    "border": "rgba(10,132,255,0.20)"
   },
   "tables": {
     "background": "rgba(15, 23, 42, 0.85)",
@@ -198,7 +202,7 @@
       }
     }
   },
-  "buttonStyles": ["gradient", "rounded-buttons"],
+  "buttonStyles": ["rounded-buttons"],
   "switches": {
     "checked": {
       "background": "#0ea5e9"
