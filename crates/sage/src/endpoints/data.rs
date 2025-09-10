@@ -464,7 +464,7 @@ impl Sage {
 
         let Some(row) = wallet
             .db
-            .owned_option(parse_option_id(req.option_id)?)
+            .wallet_option(parse_option_id(req.option_id)?)
             .await?
         else {
             return Ok(GetOptionResponse { option: None });
@@ -690,7 +690,7 @@ impl Sage {
 
         let nft_id = parse_nft_id(req.nft_id)?;
 
-        let Some(row) = wallet.db.owned_nft(nft_id).await? else {
+        let Some(row) = wallet.db.wallet_nft(nft_id).await? else {
             return Ok(GetNftResponse { nft: None });
         };
 
