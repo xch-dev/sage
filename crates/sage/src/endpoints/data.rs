@@ -816,7 +816,8 @@ impl Sage {
         let special_use_type =
             // this is the hash collection id for the themes collection plus the testnet minter did
             // need a mainnet collection hash too
-            if minter_did.as_deref() == Some("did:chia:1c9mxmqnyaymseunws8r0dfxwpfjxetha53lk72wm7syxkln6perqapkpzw") {
+            if minter_did.as_deref() == Some("did:chia:1c9mxmqnyaymseunws8r0dfxwpfjxetha53lk72wm7syxkln6perqapkpzw") ||
+               minter_did.as_deref() == Some("did:chia:1zd2xvqryne68j3ju38r85j4kefzr03dj4dxr0jtdh7gy2g3zpf6q49ulqs") {
                 Some(NftSpecialUseType::Theme)
             } else {
                 None
