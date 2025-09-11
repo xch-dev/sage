@@ -4,7 +4,6 @@ import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -16,6 +15,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { FileImage, FileText, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTheme } from 'theme-o-rama';
 import { commands, events, NetworkKind, NftData, NftRecord } from '../bindings';
 
 export default function Nft() {

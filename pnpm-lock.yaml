@@ -182,6 +182,9 @@ importers:
       tauri-plugin-sage:
         specifier: file:./tauri-plugin-sage
         version: tauri-plugin-sage-api@file:tauri-plugin-sage
+      theme-o-rama:
+        specifier: 0.1.0-beta.5
+        version: 0.1.0-beta.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       usehooks-ts:
         specifier: ^3.1.0
         version: 3.1.0(react@18.3.1)
@@ -3923,6 +3926,12 @@ packages:
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
+
+  theme-o-rama@0.1.0-beta.5:
+    resolution: {integrity: sha512-l18tGCKN+JgvIFANQ/uz6QCgcPCruPrfEuydO73AIBcc6ejzh7bFmNU3DXbthQ3PwKXtAU3/htnwiV2EyAGXbg==}
+    peerDependencies:
+      react: ^18.3.1
+      react-dom: ^18.3.1
 
   thenify-all@1.6.0:
     resolution: {integrity: sha512-RNxQH/qI8/t3thXJDwcstUO4zeqo64+Uy/+sNVRBx4Xn2OX+OZ9oP+iJnNFqplFra2ZUVeKCSa2oVWi3T4uVmA==}
@@ -8356,6 +8365,12 @@ snapshots:
       '@tauri-apps/api': 2.3.0
 
   text-table@0.2.0: {}
+
+  theme-o-rama@0.1.0-beta.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      usehooks-ts: 3.1.0(react@18.3.1)
 
   thenify-all@1.6.0:
     dependencies:

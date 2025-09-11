@@ -1,8 +1,7 @@
-import { useTheme } from '@/contexts/ThemeContext';
-import { isFeaturedTheme, isUserTheme } from '@/lib/theme';
-import { Theme } from '@/lib/theme.type';
+import { isFeaturedTheme, isUserTheme } from '@/lib/themes';
 import { Trans } from '@lingui/react/macro';
 import { Loader2 } from 'lucide-react';
+import { Theme, useTheme } from 'theme-o-rama';
 import { ThemeCard } from './ThemeCard';
 
 export function ThemeSelector() {

@@ -13,11 +13,11 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
 import { Info, Loader2, Palette } from 'lucide-react';
+import { useTheme } from 'theme-o-rama';
 
 // Add this interface for the demo table
 interface DemoTableData {
