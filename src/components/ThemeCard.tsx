@@ -1,13 +1,12 @@
 import { commands } from '@/bindings';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
-import { applyThemeIsolated, isUserTheme } from '@/lib/theme';
-import { Theme } from '@/lib/theme.type';
+import { isUserTheme } from '@/lib/themes';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Check, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+import { applyThemeIsolated, Theme, useTheme } from 'theme-o-rama';
 import { Button } from './ui/button';
 import {
   Dialog,
