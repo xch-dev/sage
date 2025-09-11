@@ -92,9 +92,10 @@ export function TokenSelector({
       loadedItems={filteredTokens}
       page={0}
       isDisabled={(token) => disabled.includes(token.asset_id)}
-      onSelect={(token) => {
-        onChange(token.asset_id);
+      isSelected={(token) => token.asset_id === selectedToken?.asset_id}
+      setSelected={(token) => {
         setSelectedToken(token);
+        onChange(token.asset_id);
         setSearchTerm('');
       }}
       className={className}
@@ -151,32 +152,6 @@ export function TokenSelector({
           </div>
         </div>
       )}
-    >
-      <div className='flex items-center gap-2 min-w-0'>
-        <>
-          <AssetIcon
-            asset={{
-              icon_url: selectedToken?.icon_url ?? null,
-              kind: 'token',
-              revocation_address: null,
-              // TODO: Use Asset here and use the actual revocation address
-            }}
-            size='md'
-            className='flex-shrink-0'
-          />
-          <div className='flex flex-col truncate text-left'>
-            <span className='truncate'>
-              {selectedToken
-                ? (selectedToken.name ?? t`Unknown CAT`)
-                : t`Select Token`}
-              {selectedToken?.ticker && ` (${selectedToken.ticker})`}
-            </span>
-            <span className='text-xs text-muted-foreground truncate'>
-              {selectedToken?.asset_id}
-            </span>
-          </div>
-        </>
-      </div>
-    </DropdownSelector>
+    />
   );
 }

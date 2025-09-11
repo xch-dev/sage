@@ -126,9 +126,12 @@ export function OptionSelector({
       page={page}
       setPage={setPage}
       isDisabled={(option) => disabled.includes(option.launcher_id)}
-      onSelect={(option) => {
-        onChange(option.launcher_id);
+      isSelected={(option) =>
+        option.launcher_id === selectedOption?.launcher_id
+      }
+      setSelected={(option) => {
         setSelectedOption(option);
+        onChange(option.launcher_id);
         setSearchTerm('');
       }}
       className={className}
@@ -161,22 +164,6 @@ export function OptionSelector({
           </div>
         </div>
       )}
-    >
-      <div className='flex items-center gap-2 min-w-0'>
-        <div className='flex flex-col truncate text-left'>
-          <span className='truncate' role='text'>
-            {selectedOption
-              ? (selectedOption.name ?? t`Untitled Option`)
-              : t`Select Option`}
-          </span>
-          <span
-            className='text-xs text-muted-foreground truncate'
-            aria-label='Option ID'
-          >
-            {selectedOption?.launcher_id}
-          </span>
-        </div>
-      </div>
-    </DropdownSelector>
+    />
   );
 }
