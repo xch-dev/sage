@@ -13,10 +13,8 @@
     "accentForeground": "hsl(280 50% 25%)",
     "card": "rgba(255, 255, 255, 0.65)",
     "cardBackdropFilter": "blur(28px) saturate(180%) brightness(1.15)",
-    "cardBackdropFilterWebkit": "blur(28px) saturate(180%) brightness(1.15)",
     "popover": "rgba(255, 255, 255, 0.70)",
-    "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1.15)",
-    "popoverBackdropFilterWebkit": "blur(24px) saturate(170%) brightness(1.15)"
+    "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1.15)"
   },
   "fonts": {
     "mono": "JetBrains Mono, Consolas, Monaco, monospace"

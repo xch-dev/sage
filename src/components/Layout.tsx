@@ -99,7 +99,6 @@ export function FullLayout(props: LayoutProps) {
                   borderRight: '1px solid var(--sidebar-border)',
                   background: 'var(--sidebar-background)',
                   backdropFilter: 'var(--sidebar-backdrop-filter)',
-                  WebkitBackdropFilter: 'var(--sidebar-backdrop-filter-webkit)',
                 }
               : {}
           }
