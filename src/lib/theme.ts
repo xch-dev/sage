@@ -197,6 +197,9 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     root.style.removeProperty(cssVar);
   });
 
+  // Set default table border radius if not specified by theme
+  root.style.setProperty('--table-border-radius', 'var(--radius)', 'important');
+
   applyThemeVariables(theme, root);
 
   // Apply backdrop-filter variables if defined in colors object

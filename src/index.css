@@ -249,7 +249,6 @@ body {
     /* Table styling variables with defaults */
     --table-background: transparent;
     --table-border: 1px solid var(--border);
-    --table-border-radius: var(--radius);
     --table-box-shadow: var(--shadow-sm);
     --table-header-background: transparent;
     --table-header-color: var(--muted-foreground);
@@ -833,6 +832,9 @@ body {
     border: var(--table-border);
     border-radius: var(--table-border-radius);
     box-shadow: var(--table-box-shadow);
+    overflow: hidden;
+    border-collapse: separate;
+    border-spacing: 0;
   }
 
   .table-theme thead th {

@@ -2,6 +2,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -79,77 +80,72 @@ export function DataTable<TData, TValue>({
     : t`Showing ${length} ${length !== 1 ? rowLabelPlural : rowLabel}`;
 
   return (
-    <div>
-      <div
-        className='border'
-        style={{ borderRadius: 'var(--table-border-radius, 0.375rem)' }}
-      >
-        <Table aria-label='Table'>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    role='columnheader'
-                    className={`${header.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${header.column.columnDef.meta?.className ?? ''}`}
-                    style={{ width: `${header.getSize()}px` }}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
+    <Table aria-label='Table'>
+      <TableHeader>
+        {table.getHeaderGroups().map((headerGroup) => (
+          <TableRow key={headerGroup.id}>
+            {headerGroup.headers.map((header) => (
+              <TableHead
+                key={header.id}
+                role='columnheader'
+                className={`${header.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${header.column.columnDef.meta?.className ?? ''}`}
+                style={{ width: `${header.getSize()}px` }}
+              >
+                {header.isPlaceholder
+                  ? null
+                  : flexRender(
+                      header.column.columnDef.header,
+                      header.getContext(),
+                    )}
+              </TableHead>
             ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  {...getRowStyles?.(row)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      role='cell'
-                      className={`${cell.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${cell.column.columnDef.meta?.className ?? ''}`}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
+          </TableRow>
+        ))}
+      </TableHeader>
+      <TableBody>
+        {table.getRowModel().rows?.length ? (
+          table.getRowModel().rows.map((row) => (
+            <TableRow
+              key={row.id}
+              data-state={row.getIsSelected() && 'selected'}
+              {...getRowStyles?.(row)}
+            >
+              {row.getVisibleCells().map((cell) => (
                 <TableCell
-                  colSpan={columns.length}
-                  className='h-24 text-center'
+                  key={cell.id}
                   role='cell'
+                  className={`${cell.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${cell.column.columnDef.meta?.className ?? ''}`}
                 >
-                  <Trans>No results.</Trans>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell
+              colSpan={columns.length}
+              className='h-24 text-center'
+              role='cell'
+            >
+              <Trans>No results.</Trans>
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
       {showTotalRows && (
-        <div
-          className='text-sm text-muted-foreground mt-1 mb-2'
-          aria-label={showingLabel}
-        >
-          {showingLabel}
-        </div>
+        <TableFooter>
+          <TableRow>
+            <TableCell
+              colSpan={columns.length}
+              className='text-sm text-muted-foreground'
+              aria-label={showingLabel}
+            >
+              {showingLabel}
+            </TableCell>
+          </TableRow>
+        </TableFooter>
       )}
-    </div>
+    </Table>
   );
 }
