@@ -832,7 +832,7 @@ body {
     font-size: var(--table-header-font-size);
     padding: var(--table-header-padding);
     backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr {
@@ -840,7 +840,7 @@ body {
     color: var(--table-row-color);
     border: var(--table-row-border);
     backdrop-filter: var(--table-row-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-row-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-row-backdrop-filter-webkit);
   }
 
   .table-theme tbody tr:hover {
@@ -864,7 +864,7 @@ body {
     color: var(--table-footer-color);
     border: var(--table-footer-border);
     backdrop-filter: var(--table-footer-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
   }
 
   /* Backdrop filter utility classes */
@@ -909,12 +909,13 @@ body {
 
   .table-theme thead th {
     backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
   }
 
-  .table-theme tfoot th {
+  .table-theme tfoot th,
+  .table-theme tfoot td {
     backdrop-filter: var(--table-footer-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-footer-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-footer-backdrop-filter-webkit);
   }
 }
 

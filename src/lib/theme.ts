@@ -376,6 +376,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
           if (value && typeof value === 'string') {
             const cssVar = `--${prefix}-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
             root.style.setProperty(cssVar, value, 'important');
+
+            // For backdropFilter properties, also set the webkit version
+            if (property === 'backdropFilter') {
+              const webkitCssVar = `${cssVar}-webkit`;
+              root.style.setProperty(webkitCssVar, value, 'important');
+            }
           }
         });
       }
@@ -544,9 +550,13 @@ const tableVariableNames = [
   '--table-header-font-weight',
   '--table-header-font-size',
   '--table-header-padding',
+  '--table-header-backdrop-filter',
+  '--table-header-backdrop-filter-webkit',
   '--table-row-background',
   '--table-row-color',
   '--table-row-border',
+  '--table-row-backdrop-filter',
+  '--table-row-backdrop-filter-webkit',
   '--table-row-hover-background',
   '--table-row-hover-color',
   '--table-row-selected-background',
@@ -557,6 +567,8 @@ const tableVariableNames = [
   '--table-footer-background',
   '--table-footer-color',
   '--table-footer-border',
+  '--table-footer-backdrop-filter',
+  '--table-footer-backdrop-filter-webkit',
 ];
 
 const switchVariableNames = [
