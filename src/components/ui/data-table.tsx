@@ -84,7 +84,7 @@ export function DataTable<TData, TValue>({
         className='border'
         style={{ borderRadius: 'var(--table-border-radius, 0.375rem)' }}
       >
-        <Table aria-label='Table'>
+        <Table aria-label='Table' style={{ border: 'none' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
