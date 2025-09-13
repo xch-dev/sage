@@ -196,10 +196,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   ].forEach((cssVar) => {
     root.style.removeProperty(cssVar);
   });
-
-  // Set default table border radius if not specified by theme
-  root.style.setProperty('--table-border-radius', 'var(--radius)', 'important');
-
   applyThemeVariables(theme, root);
 
   // Apply backdrop-filter variables if defined in colors object
@@ -542,7 +538,6 @@ const backgroundImageVariableNames = [
 const tableVariableNames = [
   '--table-background',
   '--table-border',
-  '--table-border-radius',
   '--table-box-shadow',
   '--table-header-background',
   '--table-header-color',

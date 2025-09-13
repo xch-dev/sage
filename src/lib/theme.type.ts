@@ -75,7 +75,6 @@ export interface Theme {
   tables?: {
     background?: string;
     border?: string;
-    borderRadius?: string;
     boxShadow?: string;
     header?: {
       background?: string;

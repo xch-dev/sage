@@ -817,7 +817,6 @@ body {
   .table-theme {
     background: var(--table-background);
     border: var(--table-border);
-    border-radius: var(--table-border-radius);
     box-shadow: var(--table-box-shadow);
     overflow: hidden;
     border-collapse: separate;
