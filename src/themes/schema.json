@@ -717,21 +717,12 @@
         "border": {
           "type": "string"
         },
-        "borderRadius": {
-          "type": "string"
-        },
         "boxShadow": {
           "type": "string"
         },
         "cell": {
           "properties": {
             "border": {
-              "type": "string"
-            },
-            "fontSize": {
-              "type": "string"
-            },
-            "padding": {
               "type": "string"
             }
           },
@@ -766,15 +757,6 @@
               "type": "string"
             },
             "color": {
-              "type": "string"
-            },
-            "fontSize": {
-              "type": "string"
-            },
-            "fontWeight": {
-              "type": "string"
-            },
-            "padding": {
               "type": "string"
             }
           },

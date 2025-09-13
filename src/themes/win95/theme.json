@@ -97,8 +97,5 @@
       "color": "hsl(240 100% 50%)",
       "textShadow": "none"
     }
-  },
-  "tables": {
-    "borderRadius": "0px"
   }
 }

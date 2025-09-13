@@ -196,10 +196,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   ].forEach((cssVar) => {
     root.style.removeProperty(cssVar);
   });
-
-  // Set default table border radius if not specified by theme
-  root.style.setProperty('--table-border-radius', 'var(--radius)', 'important');
-
   applyThemeVariables(theme, root);
 
   // Apply backdrop-filter variables if defined in colors object
@@ -332,15 +328,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       {
         obj: theme.tables.header,
         prefix: 'table-header',
-        properties: [
-          'background',
-          'color',
-          'border',
-          'fontWeight',
-          'fontSize',
-          'padding',
-          'backdropFilter',
-        ],
+        properties: ['background', 'color', 'border', 'backdropFilter'],
       },
       {
         obj: theme.tables.row,
@@ -360,7 +348,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       {
         obj: theme.tables.cell,
         prefix: 'table-cell',
-        properties: ['padding', 'border', 'fontSize'],
+        properties: ['border'],
       },
       {
         obj: theme.tables.footer,
@@ -542,14 +530,10 @@ const backgroundImageVariableNames = [
 const tableVariableNames = [
   '--table-background',
   '--table-border',
-  '--table-border-radius',
   '--table-box-shadow',
   '--table-header-background',
   '--table-header-color',
   '--table-header-border',
-  '--table-header-font-weight',
-  '--table-header-font-size',
-  '--table-header-padding',
   '--table-header-backdrop-filter',
   '--table-header-backdrop-filter-webkit',
   '--table-row-background',
@@ -561,9 +545,7 @@ const tableVariableNames = [
   '--table-row-hover-color',
   '--table-row-selected-background',
   '--table-row-selected-color',
-  '--table-cell-padding',
   '--table-cell-border',
-  '--table-cell-font-size',
   '--table-footer-background',
   '--table-footer-color',
   '--table-footer-border',
