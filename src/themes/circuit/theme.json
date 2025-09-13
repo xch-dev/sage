@@ -63,12 +63,10 @@
   "tables": {
     "background": "rgba(15, 23, 42, 0.85)",
     "border": "1px solid rgba(59, 130, 246, 0.3)",
-    "boxShadow": "0 4px 6px -1px rgba(14, 165, 233, 0.15)",
+    "boxShadow": "var(--shadow-lg)",
     "header": {
       "background": "rgba(14, 165, 233, 0.1)",
-      "color": "#e0f2fe",
-      "fontWeight": "600",
-      "fontSize": "14px"
+      "color": "#e0f2fe"
     },
     "row": {
       "background": "rgba(15, 23, 42, 0.7)",
@@ -82,9 +80,6 @@
         "background": "rgba(14, 165, 233, 0.2)",
         "color": "#ffffff"
       }
-    },
-    "cell": {
-      "fontSize": "14px"
     },
     "footer": {
       "background": "rgba(14, 165, 233, 0.05)",
@@ -200,9 +195,7 @@
       }
     }
   },
-  "buttonStyles": [
-    "rounded-buttons"
-  ],
+  "buttonStyles": ["rounded-buttons"],
   "switches": {
     "checked": {
       "background": "#0ea5e9"

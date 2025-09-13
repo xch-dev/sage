@@ -80,9 +80,6 @@ export interface Theme {
       background?: string;
       color?: string;
       border?: string;
-      fontWeight?: string;
-      fontSize?: string;
-      padding?: string;
       backdropFilter?: string;
     };
     row?: {
@@ -100,9 +97,7 @@ export interface Theme {
       };
     };
     cell?: {
-      padding?: string;
       border?: string;
-      fontSize?: string;
     };
     footer?: {
       background?: string;

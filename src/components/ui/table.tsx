@@ -15,7 +15,7 @@ const Table = React.forwardRef<
     <table
       ref={ref}
       className={cn(
-        'w-full caption-bottom text-sm table-fixed table-theme',
+        'w-full caption-bottom text-md table-fixed table-theme',
         className,
       )}
       role='table'
@@ -105,7 +105,7 @@ const TableCell = React.forwardRef<
   <td
     ref={ref}
     className={cn(
-      'py-2 px-1 md:px-2 align-middle [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] overflow-hidden',
+      'py-2 px-1 md:px-2 align-middle text-lg [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px] overflow-hidden',
       className,
     )}
     {...props}
