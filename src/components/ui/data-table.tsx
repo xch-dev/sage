@@ -80,7 +80,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div className='border rounded-md'>
+      <div className='border rounded-lg table-theme'>
         <Table aria-label='Table' style={{ border: 'none' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
