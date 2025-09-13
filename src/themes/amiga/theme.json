@@ -49,5 +49,8 @@
     "card": "inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)",
     "button": "inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)",
     "dropdown": "inset -1px -1px 0 0 rgb(85 85 85), inset 1px 1px 0 0 rgb(255 255 255)"
+  },
+  "tables": {
+    "borderRadius": "0px"
   }
 }
