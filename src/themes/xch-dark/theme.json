@@ -10,12 +10,10 @@
     "foreground": "#edffb3",
     "card": "#171d26",
     "cardForeground": "#e8f3fc",
-	"cardBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
-	"cardBackdropFilterWebkit": "blur(7px) saturate(150%) brightness(0.9)",
+    "cardBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
     "popover": "#171d26",
     "popoverForeground": "#e8f3fc",
-	"popoverBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
-	"popoverBackdropFilterWebkit": "blur(7px) saturate(150%) brightness(0.9)",
+    "popoverBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
     "primary": "#dfff75",
     "primaryForeground": "#1d2530",
     "secondary": "#222c39",
@@ -28,9 +26,18 @@
     "destructiveForeground": "#fafafa",
     "border": "#263140",
     "input": "#1d2530",
-    "ring": "#dfff75",
-  	"tableBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
-	"tableBackdropFilterWebkit": "blur(7px) saturate(150%) brightness(0.9)"
+    "ring": "#dfff75"
+  },
+  "tables": {
+    "header": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "row": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "footer": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    }
   },
   "fonts": {
     "heading": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
@@ -47,8 +54,7 @@
     "full": "9999px"
   },
   "sidebar": {
-	  "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
-	  "backdropFilterWebkit": "blur(7px) saturate(150%) brightness(0.9)"
+    "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
   },
   "buttons": {
     "outline": {

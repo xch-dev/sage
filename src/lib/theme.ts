@@ -197,6 +197,9 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     root.style.removeProperty(cssVar);
   });
 
+  // Set default table border radius if not specified by theme
+  root.style.setProperty('--table-border-radius', 'var(--radius)', 'important');
+
   applyThemeVariables(theme, root);
 
   // Apply backdrop-filter variables if defined in colors object
@@ -209,7 +212,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     ].forEach((base) => {
       const cssVar = `--${base.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
       backdropFilterMap[`${base}`] = cssVar;
-      backdropFilterMap[`${base}Webkit`] = `${cssVar}-webkit`;
     });
 
     Object.entries(backdropFilterMap).forEach(([themeKey, cssVar]) => {
@@ -248,7 +250,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       borderRadius: 'radius',
       boxShadow: 'shadow',
       backdropFilter: 'backdrop-filter',
-      backdropFilterWebkit: 'backdrop-filter-webkit',
     };
 
     Object.entries(theme.buttons).forEach(([variant, config]) => {
@@ -339,19 +340,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
           'fontSize',
           'padding',
           'backdropFilter',
-          'backdropFilterWebkit',
         ],
       },
       {
         obj: theme.tables.row,
         prefix: 'table-row',
-        properties: [
-          'background',
-          'color',
-          'border',
-          'backdropFilter',
-          'backdropFilterWebkit',
-        ],
+        properties: ['background', 'color', 'border', 'backdropFilter'],
       },
       {
         obj: theme.tables.row?.hover,
@@ -371,13 +365,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       {
         obj: theme.tables.footer,
         prefix: 'table-footer',
-        properties: [
-          'background',
-          'color',
-          'border',
-          'backdropFilter',
-          'backdropFilterWebkit',
-        ],
+        properties: ['background', 'color', 'border', 'backdropFilter'],
       },
     ];
 
@@ -388,6 +376,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
           if (value && typeof value === 'string') {
             const cssVar = `--${prefix}-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
             root.style.setProperty(cssVar, value, 'important');
+
+            // For backdropFilter properties, also set the webkit version
+            if (property === 'backdropFilter') {
+              const webkitCssVar = `${cssVar}-webkit`;
+              root.style.setProperty(webkitCssVar, value, 'important');
+            }
           }
         });
       }
@@ -395,12 +389,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   }
 
   if (theme.sidebar) {
-    const sidebarProperties = [
-      'background',
-      'backdropFilter',
-      'backdropFilterWebkit',
-      'border',
-    ];
+    const sidebarProperties = ['background', 'backdropFilter', 'border'];
 
     sidebarProperties.forEach((property) => {
       const value = (theme.sidebar as Record<string, unknown>)[property];
@@ -561,9 +550,13 @@ const tableVariableNames = [
   '--table-header-font-weight',
   '--table-header-font-size',
   '--table-header-padding',
+  '--table-header-backdrop-filter',
+  '--table-header-backdrop-filter-webkit',
   '--table-row-background',
   '--table-row-color',
   '--table-row-border',
+  '--table-row-backdrop-filter',
+  '--table-row-backdrop-filter-webkit',
   '--table-row-hover-background',
   '--table-row-hover-color',
   '--table-row-selected-background',
@@ -574,6 +567,8 @@ const tableVariableNames = [
   '--table-footer-background',
   '--table-footer-color',
   '--table-footer-border',
+  '--table-footer-backdrop-filter',
+  '--table-footer-backdrop-filter-webkit',
 ];
 
 const switchVariableNames = [
@@ -584,19 +579,12 @@ const switchVariableNames = [
 
 const backdropFilterVariableNames = [
   '--card-backdrop-filter',
-  '--card-backdrop-filter-webkit',
   '--popover-backdrop-filter',
-  '--popover-backdrop-filter-webkit',
   '--input-backdrop-filter',
-  '--input-backdrop-filter-webkit',
   '--table-header-backdrop-filter',
-  '--table-header-backdrop-filter-webkit',
   '--table-row-backdrop-filter',
-  '--table-row-backdrop-filter-webkit',
   '--table-footer-backdrop-filter',
-  '--table-footer-backdrop-filter-webkit',
   '--sidebar-backdrop-filter',
-  '--sidebar-backdrop-filter-webkit',
 ];
 
 const buttonBaseVariableNames = [
@@ -609,7 +597,6 @@ const buttonBaseVariableNames = [
   'radius',
   'shadow',
   'backdrop-filter',
-  'backdrop-filter-webkit',
   'hover-bg',
   'hover-color',
   'hover-transform',

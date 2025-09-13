@@ -49,9 +49,6 @@
             "backdropFilter": {
               "type": "string"
             },
-            "backdropFilterWebkit": {
-              "type": "string"
-            },
             "background": {
               "type": "string"
             },
@@ -128,9 +125,6 @@
               "type": "object"
             },
             "backdropFilter": {
-              "type": "string"
-            },
-            "backdropFilterWebkit": {
               "type": "string"
             },
             "background": {
@@ -211,9 +205,6 @@
             "backdropFilter": {
               "type": "string"
             },
-            "backdropFilterWebkit": {
-              "type": "string"
-            },
             "background": {
               "type": "string"
             },
@@ -290,9 +281,6 @@
               "type": "object"
             },
             "backdropFilter": {
-              "type": "string"
-            },
-            "backdropFilterWebkit": {
               "type": "string"
             },
             "background": {
@@ -373,9 +361,6 @@
             "backdropFilter": {
               "type": "string"
             },
-            "backdropFilterWebkit": {
-              "type": "string"
-            },
             "background": {
               "type": "string"
             },
@@ -454,9 +439,6 @@
             "backdropFilter": {
               "type": "string"
             },
-            "backdropFilterWebkit": {
-              "type": "string"
-            },
             "background": {
               "type": "string"
             },
@@ -533,9 +515,6 @@
         "cardBackdropFilter": {
           "type": "string"
         },
-        "cardBackdropFilterWebkit": {
-          "type": "string"
-        },
         "cardForeground": {
           "type": "string"
         },
@@ -557,9 +536,6 @@
         "inputBackdropFilter": {
           "type": "string"
         },
-        "inputBackdropFilterWebkit": {
-          "type": "string"
-        },
         "inputBackground": {
           "type": "string"
         },
@@ -573,9 +549,6 @@
           "type": "string"
         },
         "popoverBackdropFilter": {
-          "type": "string"
-        },
-        "popoverBackdropFilterWebkit": {
           "type": "string"
         },
         "popoverForeground": {
@@ -698,9 +671,6 @@
         "backdropFilter": {
           "type": "string"
         },
-        "backdropFilterWebkit": {
-          "type": "string"
-        },
         "background": {
           "type": "string"
         },
@@ -772,9 +742,6 @@
             "backdropFilter": {
               "type": "string"
             },
-            "backdropFilterWebkit": {
-              "type": "string"
-            },
             "background": {
               "type": "string"
             },
@@ -790,9 +757,6 @@
         "header": {
           "properties": {
             "backdropFilter": {
-              "type": "string"
-            },
-            "backdropFilterWebkit": {
               "type": "string"
             },
             "background": {
@@ -819,9 +783,6 @@
         "row": {
           "properties": {
             "backdropFilter": {
-              "type": "string"
-            },
-            "backdropFilterWebkit": {
               "type": "string"
             },
             "background": {
