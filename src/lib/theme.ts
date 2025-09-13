@@ -384,6 +384,11 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       if (value && typeof value === 'string') {
         const cssVar = `--sidebar-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
         root.style.setProperty(cssVar, value, 'important');
+
+        if (property === 'backdropFilter') {
+          const webkitCssVar = `${cssVar}-webkit`;
+          root.style.setProperty(webkitCssVar, value, 'important');
+        }
       }
     });
   }
