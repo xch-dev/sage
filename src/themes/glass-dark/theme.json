@@ -15,15 +15,12 @@
     "popover": "rgba(10, 10, 12, 0.40)",
     "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(0.85)",
     "popoverBorder": "1px solid rgba(10,132,255,0.30)",
-    "surface": "rgba(8, 8, 12, 0.35)",
-    "surfaceBackdropFilter": "blur(20px) saturate(160%) brightness(0.85)",
-    "surfaceBorder": "1px solid rgba(10,132,255,0.20)",
     "primary": "rgba(0,255,255,0.75)",
     "primaryForeground": "#ade1f2",
     "secondary": "rgba(202,255,250,0.8)",
     "secondaryForeground": "#cae1f2",
     "muted": "rgba(210,255,255,0.06)",
-    "mutedForeground": "rgba(210,255,255,0.3)",
+    "mutedForeground": "rgba(210,255,255,0.85)",
     "accent": "rgba(210,255,255,0.35)",
     "accentForeground": "#000000",
     "destructive": "rgba(255,69,58,0.80)",
@@ -192,21 +189,6 @@
     },
     "unchecked": {
       "background": "rgba(210,255,255,0.18)"
-    }
-  },
-  "dialogs": {
-    "overlay": {
-      "background": "rgba(0, 0, 0, 0.60)",
-      "backdropFilter": "blur(12px) saturate(140%) brightness(0.7)",
-      "backdropFilterWebkit": "blur(12px) saturate(140%) brightness(0.7)"
-    },
-    "content": {
-      "background": "rgba(12, 12, 15, 0.50)",
-      "backdropFilter": "blur(32px) saturate(180%) brightness(0.85)",
-      "backdropFilterWebkit": "blur(32px) saturate(180%) brightness(0.85)",
-      "border": "1px solid rgba(210,255,255,0.18)",
-      "borderRadius": "16px",
-      "boxShadow": "0 24px 64px rgba(0,0,0,0.50), 0 0 0 1px rgba(10,132,255,0.20), 0 0 40px rgba(10,132,255,0.12)"
     }
   }
 }
