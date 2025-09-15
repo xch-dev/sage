@@ -1,0 +1,228 @@
+{
+  "name": "color-base",
+  "displayName": "Color Base",
+  "mostLike": "dark",
+  "schemaVersion": 1,
+  "colors": {
+    "background": "hsl(55 50% 25%)",
+    "foreground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "card": "color-mix(in hsl, var(--background) 0%, white 20%)",
+    "cardForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "cardTransparent": "color-mix(in hsl, var(--background) 0%, white 20%)",
+    "popover": "color-mix(in hsl, var(--background) 0%, white 25%)",
+    "popoverForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "popoverTransparent": "color-mix(in hsl, var(--background) 0%, white 25%)",
+    "primary": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%))",
+    "primaryForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "secondary": "color-mix(in hsl, var(--background) 40%, hsl(280 100% 50%))",
+    "secondaryForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "muted": "hsl(from var(--background) h calc(s - 15%) calc(l + 10%))",
+    "mutedForeground": "color-mix(in hsl, var(--background) 0%, white 70%)",
+    "accent": "color-mix(in hsl, var(--background) 35%, hsl(320 100% 65%))",
+    "accentForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "destructive": "color-mix(in hsl, var(--background) 25%, hsl(0 100% 60%))",
+    "destructiveForeground": "color-mix(in hsl, var(--background) 0%, white 100%)",
+    "border": "color-mix(in hsl, var(--background) 0%, white 30%)",
+    "input": "color-mix(in hsl, var(--background) 0%, white 10%)",
+    "inputBackground": "color-mix(in hsl, var(--background) 0%, white 5%)",
+    "ring": "hsl(from var(--background) h calc(s + 20%) calc(l + 30%))",
+    "cardBackdropFilter": "blur(16px) saturate(180%) brightness(1.1)",
+    "popoverBackdropFilter": "blur(20px) saturate(180%) brightness(1.1)",
+    "inputBackdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+  },
+  "fonts": {
+    "sans": "ui-sans-serif, system-ui, sans-serif",
+    "serif": "ui-serif, Georgia, Cambria, serif",
+    "mono": "ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace",
+    "heading": "ui-sans-serif, system-ui, sans-serif",
+    "body": "ui-sans-serif, system-ui, sans-serif"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "4px",
+    "md": "8px",
+    "lg": "12px",
+    "xl": "16px",
+    "full": "9999px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 20%)",
+    "md": "0 4px 6px -1px color-mix(in hsl, var(--background) 0%, black 25%)",
+    "lg": "0 10px 15px -3px color-mix(in hsl, var(--background) 0%, black 30%)",
+    "xl": "0 20px 25px -5px color-mix(in hsl, var(--background) 0%, black 35%)",
+    "inner": "inset 0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 30%)",
+    "card": "0 4px 6px -1px color-mix(in hsl, var(--background) 0%, black 25%), 0 2px 4px -1px color-mix(in hsl, var(--background) 0%, black 20%)",
+    "button": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 30%)",
+    "dropdown": "0 10px 15px -3px color-mix(in hsl, var(--background) 0%, black 30%), 0 4px 6px -2px color-mix(in hsl, var(--background) 0%, black 20%)"
+  },
+  "sidebar": {
+    "background": "color-mix(in hsl, var(--background) 0%, white 5%)",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(1.1)",
+    "border": "color-mix(in hsl, var(--background) 0%, white 20%)"
+  },
+  "tables": {
+    "background": "color-mix(in hsl, var(--background) 0%, white 8%)",
+    "border": "1px solid color-mix(in hsl, var(--background) 0%, white 20%)",
+    "boxShadow": "0 4px 6px -1px color-mix(in hsl, var(--background) 0%, black 25%)",
+    "header": {
+      "background": "hsl(from var(--background) h calc(s - 10%) calc(l + 15%))",
+      "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+      "border": "1px solid color-mix(in hsl, var(--background) 0%, white 25%)",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+    },
+    "row": {
+      "background": "color-mix(in hsl, var(--background) 0%, white 5%)",
+      "color": "color-mix(in hsl, var(--background) 0%, white 90%)",
+      "border": "1px solid color-mix(in hsl, var(--background) 0%, white 10%)",
+      "backdropFilter": "blur(4px) saturate(120%) brightness(1.02)",
+      "hover": {
+        "background": "hsl(from var(--background) h calc(s - 5%) calc(l + 8%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)"
+      },
+      "selected": {
+        "background": "hsl(from var(--background) h calc(s + 10%) calc(l + 12%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)"
+      }
+    },
+    "cell": {
+      "border": "1px solid color-mix(in hsl, var(--background) 0%, white 15%)"
+    },
+    "footer": {
+      "background": "hsl(from var(--background) h calc(s - 15%) calc(l + 5%))",
+      "color": "color-mix(in hsl, var(--background) 0%, white 80%)",
+      "border": "1px solid color-mix(in hsl, var(--background) 0%, white 20%)",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.05)"
+    }
+  },
+  "buttons": {
+    "default": {
+      "background": "hsl(from var(--background) h calc(s + 20%) calc(l + 30%))",
+      "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+      "border": "1px solid hsl(from var(--background) h calc(s + 20%) calc(l + 30%))",
+      "borderRadius": "8px",
+      "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 30%)",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.1)",
+      "hover": {
+        "background": "hsl(from var(--background) h calc(s + 25%) calc(l + 35%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 4px 8px 0 color-mix(in hsl, var(--background) 0%, black 40%)"
+      },
+      "active": {
+        "background": "hsl(from var(--background) h calc(s + 15%) calc(l + 25%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 30%)"
+      }
+    },
+    "outline": {
+      "background": "transparent",
+      "color": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%))",
+      "border": "1px solid color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%))",
+      "borderRadius": "8px",
+      "boxShadow": "none",
+      "backdropFilter": "blur(4px) saturate(120%) brightness(1.02)",
+      "hover": {
+        "background": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%) / 0.1)",
+        "color": "color-mix(in hsl, var(--background) 20%, hsl(220 100% 70%))",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 20%)"
+      },
+      "active": {
+        "background": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%) / 0.2)",
+        "color": "color-mix(in hsl, var(--background) 40%, hsl(220 100% 50%))",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 15%)"
+      }
+    },
+    "secondary": {
+      "background": "color-mix(in hsl, var(--background) 40%, hsl(280 100% 50%))",
+      "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+      "border": "1px solid color-mix(in hsl, var(--background) 40%, hsl(280 100% 50%))",
+      "borderRadius": "8px",
+      "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 25%)",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.1)",
+      "hover": {
+        "background": "color-mix(in hsl, var(--background) 30%, hsl(280 100% 60%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 4px 8px 0 color-mix(in hsl, var(--background) 0%, black 35%)"
+      },
+      "active": {
+        "background": "color-mix(in hsl, var(--background) 50%, hsl(280 100% 40%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 25%)"
+      }
+    },
+    "destructive": {
+      "background": "color-mix(in hsl, var(--background) 25%, hsl(0 100% 60%))",
+      "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+      "border": "1px solid color-mix(in hsl, var(--background) 25%, hsl(0 100% 60%))",
+      "borderRadius": "8px",
+      "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 30%)",
+      "backdropFilter": "blur(8px) saturate(150%) brightness(1.1)",
+      "hover": {
+        "background": "color-mix(in hsl, var(--background) 15%, hsl(0 100% 70%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 4px 8px 0 color-mix(in hsl, var(--background) 0%, black 40%)"
+      },
+      "active": {
+        "background": "color-mix(in hsl, var(--background) 35%, hsl(0 100% 50%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 30%)"
+      }
+    },
+    "ghost": {
+      "background": "transparent",
+      "color": "color-mix(in hsl, var(--background) 0%, white 80%)",
+      "border": "1px solid transparent",
+      "borderRadius": "8px",
+      "backdropFilter": "blur(4px) saturate(120%) brightness(1.02)",
+      "hover": {
+        "background": "hsl(from var(--background) h calc(s - 5%) calc(l + 8%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 20%)"
+      },
+      "active": {
+        "background": "hsl(from var(--background) h calc(s - 10%) calc(l + 5%))",
+        "color": "color-mix(in hsl, var(--background) 0%, white 100%)",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 15%)"
+      }
+    },
+    "link": {
+      "background": "transparent",
+      "color": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%))",
+      "border": "1px solid transparent",
+      "borderRadius": "8px",
+      "backdropFilter": "blur(4px) saturate(120%) brightness(1.02)",
+      "hover": {
+        "color": "color-mix(in hsl, var(--background) 20%, hsl(220 100% 70%))",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 2px 4px 0 color-mix(in hsl, var(--background) 0%, black 20%)"
+      },
+      "active": {
+        "color": "color-mix(in hsl, var(--background) 40%, hsl(220 100% 50%))",
+        "transform": "translateY(0px)",
+        "boxShadow": "0 1px 2px 0 color-mix(in hsl, var(--background) 0%, black 15%)"
+      }
+    }
+  },
+  "switches": {
+    "checked": {
+      "background": "color-mix(in hsl, var(--background) 30%, hsl(220 100% 60%))"
+    },
+    "unchecked": {
+      "background": "hsl(from var(--background) h calc(s - 15%) calc(l + 10%))"
+    },
+    "thumb": {
+      "background": "color-mix(in hsl, var(--background) 0%, white 100%)"
+    }
+  },
+  "tags": ["hidden"]
+}

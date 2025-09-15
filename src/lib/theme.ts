@@ -2,13 +2,9 @@ import { validateTheme } from './theme-schema-validation';
 import { Theme } from './theme.type';
 import { deepMerge } from './utils';
 
-// Helper function to check if a theme is a user theme
-export function isUserTheme(theme: Theme): boolean {
-  return theme.tags?.includes('user') === true;
-}
-
-export function isFeaturedTheme(theme: Theme): boolean {
-  return theme.tags?.includes('featured') === true;
+// Helper function to check if a theme has a given tag
+export function hasTag(theme: Theme, tag: string): boolean {
+  return theme.tags?.includes(tag) === true;
 }
 
 export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
@@ -449,11 +445,11 @@ export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
   }
 
   // Set explicit background and text colors for complete isolation
-  if (theme.colors?.card) {
-    root.style.backgroundColor = theme.colors.card;
+  if (theme.colors?.background) {
+    root.style.backgroundColor = theme.colors.background;
   }
-  if (theme.colors?.cardForeground) {
-    root.style.color = theme.colors.cardForeground;
+  if (theme.colors?.foreground) {
+    root.style.color = theme.colors.foreground;
   }
 }
 
