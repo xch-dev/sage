@@ -1,6 +1,6 @@
 {
-  "name": "color-base",
-  "displayName": "Color Base",
+  "name": "color",
+  "displayName": "Color Base Theme",
   "mostLike": "dark",
   "schemaVersion": 1,
   "colors": {
@@ -224,5 +224,7 @@
       "background": "color-mix(in hsl, var(--background) 0%, white 100%)"
     }
   },
-  "tags": ["hidden"]
+  "tags": [
+    "hidden"
+  ]
 }
