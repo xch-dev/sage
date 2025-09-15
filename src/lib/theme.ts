@@ -17,7 +17,10 @@ export async function loadUserTheme(themeJson: string): Promise<Theme | null> {
         new Set<string>(),
       );
       if (inheritedTheme) {
+        // tags are not inherited
+        const tags = theme.tags || [];
         theme = deepMerge(inheritedTheme, theme);
+        theme.tags = tags;
       }
     }
 
@@ -57,7 +60,10 @@ export async function loadBuiltInTheme(
         loadedThemes,
       );
       if (inheritedTheme) {
+        // tags are not inherited
+        const tags = theme.tags || [];
         theme = deepMerge(inheritedTheme, theme);
+        theme.tags = tags;
       }
     }
 
