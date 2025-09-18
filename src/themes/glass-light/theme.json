@@ -7,10 +7,10 @@
   "schemaVersion": 1,
   "colors": {
     "background": "rgba(255, 255, 255, 0.85)",
-    "foreground": "rgba(0,0,0,0.75)",
-    "card": "rgba(12, 12, 15, 0.45)",
-    "cardBackdropFilter": "blur(28px) saturate(180%) brightness(1)",
-    "cardBackdropFilterWebkit": "blur(28px) saturate(180%) brightness(1)",
+    "foreground": "rgba(0,86,142,1)",
+    "card": "rgba(255,255,255, 0.85)",
+    "cardBackdropFilter": "blur(28px) saturate(100%) brightness(1)",
+    "cardBackdropFilterWebkit": "blur(28px) saturate(100%) brightness(1)",
     "cardBorder": "1px solid rgba(10,132,255,0.25)",
     "popover": "rgba(255, 255, 255, 0.85)",
     "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1)",
@@ -18,14 +18,14 @@
     "surface": "rgba(255, 255, 255, 0.35)",
     "surfaceBackdropFilter": "blur(20px) saturate(160%) brightness(1)",
     "surfaceBorder": "1px solid rgba(10,132,255,0.20)",
-    "primary": "rgba(0,0,0,0.55)",
-    "primaryForeground": "rgba(2552552550.75)",
+    "primary": "rgba(0,86,142,1)",
+    "primaryForeground": "rgba(255,255,255,0.75)",
     "secondary": "rgba(202,255,250,0.8)",
     "secondaryForeground": "#cae1f2",
-    "muted": "rgba(210,255,255,0.06)",
-    "mutedForeground": "rgba(210,255,255,0.85)",
+    "muted": "rgba(210,255,255,0.6)",
+    "mutedForeground": "rgba(0,86,142,0.45)",
     "accent": "rgba(210,255,255,0.35)",
-    "accentForeground": "#000000",
+    "accentForeground": "rgba(0,86,142,0.85)",
     "destructive": "rgba(255,69,58,0.80)",
     "destructiveForeground": "#ff0000",
     "border": "rgba(0,214,255,0.15)",
@@ -61,22 +61,22 @@
     "dropdown": "0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(10,132,255,0.20), 0 0 30px rgba(10,132,255,0.90)"
   },
   "tables": {
-    "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
     "border": "1px solid rgba(0,214,255,0.15)",
     "borderRadius": "12px",
     "boxShadow": "0 12px 30px rgba(0,0,0,0.30)",
-    "color": "#rgba(0,0,0,0.85)",
+    "color": "rgba(0,86,142,0.85)",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
     "header": {
-      "color": "#cae1f2",
-      "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
+      "color": "rgba(0,86,142,0.95)",
       "border": "1px solid rgba(0,214,255,0.15)",
       "fontWeight": "600",
-      "fontSize": "14px"
+      "fontSize": "14px",
+      "backdropFilter": "blur(28px) saturate(100%) brightness(1)"
     },
     "row": {
-      "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
-      "color": "rgba(0, 0, 0, 0.35)",
+      "color": "rgba(255,255,255, 0.65)",
       "border": "1px solid rgba(0,214,255,0.15)",
+      "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
       "hover": {
         "background": "rgba(210,255,255,0.10)",
         "color": "#cae1f2"
@@ -91,29 +91,28 @@
       "fontSize": "14px"
     },
     "footer": {
-      "background": "rgba(0,0,0,0.85)",
+      "background": "rgba(255,255,255, 0.85)",
       "color": "#e8e8ee",
       "border": "1px solid rgba(0,214,255,0.15)",
       "backdropFilter": "blur(14px) saturate(150%) brightness(0.9)"
     }
   },
   "sidebar": {
-    "background":  "blur(28px) saturate(180%) brightness(1)",
     "backdropFilter": "blur(28px) saturate(180%) brightness(1)",
     "border": "rgba(0,214,255,0.15)"
   },
   "buttons": {
     "default": {
-      "background": "rgba(0,255,255,0.75)",
-      "color": "rgba(0,0,0,0.85)",
-      "border": "1px solid rgba(210,255,255,0.22)",
+      "background": "rgba(255,255,255,0.55)",
+      "color": "rgba(0,86,142,1)",
+      "border": "1px solid rgba(0,0,0,0.55)",
       "borderRadius": "12px",
       "boxShadow": "0 4px 7px rgba(10,132,255,0.32)",
       "hover": {
-        "background": "rgba(0,0,0,0.85)",
-        "color": "rgba(0,255,255,0.75)",
+        "background": "rgba(0,255,255,0.85)",
+        "color": "rgba(0,0,0,0.35)",
         "transform": "translateY(-1px)",
-        "boxShadow": "0 12px 22px rgba(10,132,255,0.36)"
+        "boxShadow": "0 8px 18px rgba(10,132,255,0.28)"
       },
       "active": {
         "background": "rgba(0,255,255,0.75)",
@@ -123,13 +122,13 @@
       }
     },
     "outline": {
-      "background": "rgba(0,0,0,0.35)",
-      "color": "rgba(0,255,255,0.75)",
-      "border": "1px solid rgba(0,255,255,0.55)",
+      "background": "rgba(255,255,255,0.35)",
+      "color": "rgba(0,86,142,1)",
+      "border": "1px solid rgba(255,255,255,0.75)",
       "borderRadius": "12px",
-      "boxShadow": "0 2px 8px rgba(0,0,0,0.18)",
+      "boxShadow": "0 2px 8px rgba(0,210,210,0.35)",
       "hover": {
-        "background": "rgba(0,255,255,0.75)",
+        "background": "rgba(0,255,255,0.85)",
         "color": "rgba(0,0,0,0.35)",
         "transform": "translateY(-1px)",
         "boxShadow": "0 8px 18px rgba(10,132,255,0.28)"
@@ -142,13 +141,13 @@
       }
     },
     "destructive": {
-      "background": "rgba(255,69,58,0.40)",
+      "background": "rgba(255,69,58,0.60)",
       "color": "rgba(0,0,0,0.35)",
       "border": "1px solid rgba(210,255,255,0.18)",
       "borderRadius": "12px",
       "boxShadow": "0 8px 16px rgba(255,69,58,0.32)",
       "hover": {
-        "background": "rgba(255,59,48,0.90)",
+        "background": "rgba(255,59,48,1)",
         "color": "rgba(0,0,0,0.35)",
         "transform": "translateY(-1px)",
         "boxShadow": "0 12px 22px rgba(255,69,58,0.36)"
@@ -162,11 +161,12 @@
     },
     "ghost": {
       "background": "rgba(210,255,255,0.02)",
-      "color": "rgba(0,255,255,0.75)",
+      "color": "rgba(0,86,142,1)",
       "border": "1px solid transparent",
       "borderRadius": "12px",
       "hover": {
-        "background": "rgba(0,0,0,0.85)",
+        "background": "rgba(255,255,255, 0.85)",
+        "backdropFilter": "blur(20px) saturate(180%) brightness(0.85)",
         "color": "rgba(0,255,255,0.75)",
         "transform": "translateY(-1px)"
       },
@@ -178,7 +178,7 @@
     },
     "link": {
       "background": "transparent",
-      "color": "rgba(0,255,255,0.75)",
+      "color": "rgba(0,86,142,1)",
       "border": "1px solid transparent",
       "borderRadius": "12px",
       "hover": {
@@ -196,7 +196,7 @@
   ],
   "switches": {
     "checked": {
-      "background": "rgba(0,255,255,0.75)"
+      "background": "rgba(0,86,142,0.85)"
     },
     "unchecked": {
       "background": "rgba(210,255,255,0.18)"
@@ -204,7 +204,6 @@
   },
   "dialogs": {
     "overlay": {
-      "background": "rgba(0, 0, 0, 0.60)",
       "backdropFilter": "blur(12px) saturate(140%) brightness(0.7)",
       "backdropFilterWebkit": "blur(12px) saturate(140%) brightness(0.7)"
     },
