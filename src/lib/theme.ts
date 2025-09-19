@@ -223,7 +223,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
 
   if (theme.buttons) {
     const propertyToCssMap = {
-      background: 'bg',
+      background: 'background',
       color: 'color',
       border: 'border',
       borderStyle: 'border-style',
@@ -385,14 +385,17 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     switchStates.forEach((state) => {
       const switchConfig = theme.switches?.[state];
       if (switchConfig?.background) {
-        root.style.setProperty(`--switch-${state}-bg`, switchConfig.background);
+        root.style.setProperty(
+          `--switch-${state}-background`,
+          switchConfig.background,
+        );
       }
     });
 
     // Handle switch thumb background
     if (theme.switches.thumb?.background) {
       root.style.setProperty(
-        '--switch-thumb-bg',
+        '--switch-thumb-background',
         theme.switches.thumb.background,
       );
     }
@@ -489,8 +492,8 @@ const themeFeatureFlagVariableNames = [
 ];
 
 const navigationAndButtonVariableNames = [
-  '--outline-button-bg',
-  '--nav-active-bg',
+  '--outline-button-background',
+  '--nav-active-background',
 ];
 
 const backgroundImageVariableNames = [
@@ -527,9 +530,9 @@ const tableVariableNames = [
 ];
 
 const switchVariableNames = [
-  '--switch-checked-bg',
-  '--switch-unchecked-bg',
-  '--switch-thumb-bg',
+  '--switch-checked-background',
+  '--switch-unchecked-background',
+  '--switch-thumb-background',
 ];
 
 const backdropFilterVariableNames = [
@@ -543,7 +546,7 @@ const backdropFilterVariableNames = [
 ];
 
 const buttonBaseVariableNames = [
-  'bg',
+  'background',
   'color',
   'border',
   'border-style',
@@ -552,13 +555,13 @@ const buttonBaseVariableNames = [
   'radius',
   'shadow',
   'backdrop-filter',
-  'hover-bg',
+  'hover-background',
   'hover-color',
   'hover-transform',
   'hover-border-style',
   'hover-border-color',
   'hover-shadow',
-  'active-bg',
+  'active-background',
   'active-color',
   'active-transform',
   'active-border-style',

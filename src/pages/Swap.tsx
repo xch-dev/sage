@@ -209,7 +209,7 @@ export function Swap() {
                     setPayAssetId(value);
                     updatePayAmount(value, receiveAmount);
                   }}
-                  className='rounded-r-none'
+                  className='!rounded-r-none'
                   hideZeroBalance={true}
                   showAllCats={false}
                   includeXch={true}
@@ -220,7 +220,7 @@ export function Swap() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='underlying-amount'
-                    className='border-l-0 z-10 rounded-l-none rounded-r-none w-[150px] h-12'
+                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={payAmount}
                     onChange={(e) => {
@@ -237,7 +237,7 @@ export function Swap() {
                       <TooltipTrigger asChild>
                         <Button
                           variant='outline'
-                          className='border-l-0 rounded-l-none h-12 px-2 text-xs'
+                          className='!border-l-0 !rounded-l-none h-12 px-2 text-xs'
                           onClick={setMaxTokenAmount}
                           disabled={payAssetId === undefined}
                         >
@@ -277,7 +277,7 @@ export function Swap() {
                     setReceiveAssetId(value);
                     updateReceiveAmount(value, payAmount);
                   }}
-                  className='rounded-r-none'
+                  className='!rounded-r-none'
                   hideZeroBalance={false}
                   showAllCats={true}
                   includeXch={true}
@@ -286,7 +286,7 @@ export function Swap() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='strike-amount'
-                    className='border-l-0 z-10 rounded-l-none w-[184px] h-12'
+                    className='!border-l-0 z-10 !rounded-l-none w-[184px] h-12'
                     placeholder={t`Amount`}
                     value={receiveAmount}
                     onChange={(e) => {

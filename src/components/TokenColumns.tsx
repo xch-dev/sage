@@ -163,7 +163,7 @@ export const columns = (
           <DropdownMenuTrigger asChild>
             <Button
               variant='ghost'
-              className='h-6 w-6 p-0'
+              className='h-6 w-6 p-0 flex items-center justify-center'
               aria-label={t`Open actions menu`}
             >
               <span className='sr-only'>{t`Open menu`}</span>

@@ -10,13 +10,10 @@
     "foreground": "rgba(0,60,100,1)",
     "card": "transparent",
     "cardBackdropFilter": "blur(28px) saturate(100%) brightness(1)",
-    "cardBorder": "1px solid rgba(10,132,255,0.25)",
     "popover": "transparent",
     "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1)",
-    "popoverBorder": "1px solid rgba(10,132,255,0.25)",
     "surface": "rgba(255, 255, 255, 0.35)",
     "surfaceBackdropFilter": "blur(20px) saturate(160%) brightness(1)",
-    "surfaceBorder": "1px solid rgba(10,132,255,0.25)",
     "primary": "rgba(0,60,100,1)",
     "primaryForeground": "rgba(255,255,255,0.75)",
     "secondary": "rgba(202,255,250,0.8)",
@@ -27,9 +24,8 @@
     "accentForeground": "rgba(0,60,100,0.85)",
     "destructive": "rgba(255,69,58,0.80)",
     "destructiveForeground": "#ff0000",
-    "border": "rgba(0,214,255,0.15)",
+    "border": "transparent",
     "input": "rgba(255,255,255, 0.45)",
-    "inputBorder": "1px solid rgba(10,132,255,0.25)",
     "inputBackground": "rgba(255,255,255, 0.6)",
     "ring": "rgba(10,132,255,0.85)"
   },
@@ -60,7 +56,7 @@
     "dropdown": "0 12px 24px rgba(0,0,0,0.20), 0 0 0 1px rgba(10,132,255,0.15), 0 0 16px rgba(10,132,255,0.40)"
   },
   "tables": {
-    "border": "1px solid rgba(10,132,255,0.25)",
+    "border": "transparent",
     "borderRadius": "14px",
     "boxShadow": "0 8px 16px rgba(0,0,0,0.15), 0 0 0 1px rgba(10,132,255,0.10), 0 0 12px rgba(10,132,255,0.05)",
     "color": "rgba(0,60,100,1)",
@@ -74,7 +70,7 @@
     },
     "row": {
       "color": "rgba(0,60,100,1)",
-      "border": "1px solid rgba(10,132,255,0.25)",
+      "border": "transparent",
       "backdropFilter": "blur(28px) saturate(100%) brightness(1)",
       "hover": {
         "background": "rgba(210,255,255,0.10)",
@@ -98,13 +94,13 @@
   "sidebar": {
     "background": "transparent",
     "backdropFilter": "blur(28px) saturate(100%) brightness(1)",
-    "border": "1px solid rgba(10,132,255,0.25)"
+    "border": "transparent"
   },
   "buttons": {
     "default": {
       "background": "rgba(255,255,255,0.55)",
       "color": "rgba(0,60,100,1)",
-      "border": "1px solid rgba(10,132,255,0.25)",
+      "border": "transparent",
       "borderRadius": "12px",
       "boxShadow": "0 2px 4px rgba(10,132,255,0.15)",
       "hover": {
@@ -123,7 +119,7 @@
     "outline": {
       "background": "rgba(255,255,255,0.35)",
       "color": "rgba(0,60,100,1)",
-      "border": "1px solid rgba(10,132,255,0.25)",
+      "border": "transparent",
       "borderRadius": "12px",
       "boxShadow": "0 2px 4px rgba(0,210,210,0.15)",
       "hover": {
@@ -142,7 +138,7 @@
     "destructive": {
       "background": "rgba(255,69,58,0.60)",
       "color": "rgba(0,0,0,0.35)",
-      "border": "1px solid rgba(10,132,255,0.25)",
+      "border": "transparent",
       "borderRadius": "12px",
       "boxShadow": "0 4px 8px rgba(255,69,58,0.15)",
       "hover": {
@@ -161,7 +157,7 @@
     "ghost": {
       "background": "rgba(210,255,255,0.02)",
       "color": "rgba(0,60,100,1)",
-      "border": "1px solid transparent",
+      "border": "transparent",
       "borderRadius": "12px",
       "hover": {
         "background": "rgba(255,255,255, 0.85)",
@@ -178,7 +174,7 @@
     "link": {
       "background": "transparent",
       "color": "rgba(0,60,100,1)",
-      "border": "1px solid transparent",
+      "border": "transparent",
       "borderRadius": "12px",
       "hover": {
         "color": "rgba(0,255,255,0.3)",
@@ -206,7 +202,7 @@
     "content": {
       "background": "rgba(12, 12, 15, 0.50)",
       "backdropFilter": "blur(32px) saturate(180%) brightness(0.85)",
-      "border": "1px solid rgba(10,132,255,0.25)",
+      "border": "transparent",
       "borderRadius": "16px",
       "boxShadow": "0 12px 24px rgba(0,0,0,0.20), 0 0 0 1px rgba(10,132,255,0.15), 0 0 20px rgba(10,132,255,0.08)"
     }

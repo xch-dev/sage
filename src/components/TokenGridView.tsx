@@ -104,7 +104,7 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
     <div
       role='region'
       aria-label={t`Token Grid`}
-      className='relative w-full overflow-auto mt-4'
+      className='relative w-full mt-4'
     >
       <div className='grid gap-2 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-6'>
         {tokens.map((token) => {
