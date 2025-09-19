@@ -63,7 +63,6 @@
     "header": {
       "background": "rgba(0,0,0,0.85)",
       "color": "#cae1f2",
-      "border": "1px solid rgba(0,214,255,0.15)",
       "backdropFilter": "blur(18px) saturate(160%) brightness(0.9)"
     },
     "row": {
@@ -83,7 +82,6 @@
     "footer": {
       "background": "rgba(0,0,0,0.85)",
       "color": "#e8e8ee",
-      "border": "1px solid rgba(0,214,255,0.15)",
       "backdropFilter": "blur(14px) saturate(150%) brightness(0.9)"
     }
   },

@@ -801,15 +801,19 @@ body {
     border-spacing: 0;
   }
 
-  .table-theme thead th {
+  .table-theme thead tr {
     background: var(--table-header-background);
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+  }
+
+  .table-theme thead th {
     color: var(--table-header-color);
     border: var(--table-header-border);
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);
     padding: var(--table-header-padding);
-    backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+    background: transparent;
   }
 
   .table-theme tbody tr {
@@ -884,10 +888,7 @@ body {
     -webkit-backdrop-filter: var(--input-backdrop-filter);
   }
 
-  .table-theme thead th {
-    backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
-  }
+  /* Table header backdrop filter is now applied via thead::before */
 
   .table-theme tfoot th,
   .table-theme tfoot td {
