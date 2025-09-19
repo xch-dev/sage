@@ -186,7 +186,7 @@
       }
     }
   },
-  "buttonStyles": ["rounded-buttons"],
+  "buttonStyle": "rounded-buttons",
   "switches": {
     "checked": {
       "background": "rgba(0,60,100,0.85)"

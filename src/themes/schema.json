@@ -13,11 +13,8 @@
     "backgroundSize": {
       "type": "string"
     },
-    "buttonStyles": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
+    "buttonStyle": {
+      "type": "string"
     },
     "buttons": {
       "properties": {

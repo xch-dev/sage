@@ -111,8 +111,8 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
   root.classList.add(`theme-${theme.name}`);
 
   // Set data attributes for theme styles
-  const buttonStyles = theme.buttonStyles || [];
-  root.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  const buttonStyle = theme.buttonStyle || '';
+  root.setAttribute('data-theme-styles', buttonStyle);
 
   if (theme.backgroundImage) {
     root.style.setProperty(
@@ -275,7 +275,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     });
   }
 
-  const buttonStyles = theme.buttonStyles || [];
+  const buttonStyle = theme.buttonStyle || '';
   const buttonStyleMap = {
     gradient: 'gradient-buttons',
     shimmer: 'shimmer-effects',
@@ -288,11 +288,11 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
   Object.entries(buttonStyleMap).forEach(([style, cssName]) => {
     root.style.setProperty(
       `--theme-has-${cssName}`,
-      buttonStyles.includes(style) ? '1' : '0',
+      buttonStyle === style ? '1' : '0',
     );
   });
 
-  document.body.setAttribute('data-theme-styles', buttonStyles.join(' '));
+  document.body.setAttribute('data-theme-styles', buttonStyle);
 
   if (theme.tables) {
     const tableSections = [
