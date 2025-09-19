@@ -503,9 +503,6 @@
         "background": {
           "type": "string"
         },
-        "backgroundTransparent": {
-          "type": "string"
-        },
         "border": {
           "type": "string"
         },
@@ -516,9 +513,6 @@
           "type": "string"
         },
         "cardForeground": {
-          "type": "string"
-        },
-        "cardTransparent": {
           "type": "string"
         },
         "destructive": {
@@ -552,9 +546,6 @@
           "type": "string"
         },
         "popoverForeground": {
-          "type": "string"
-        },
-        "popoverTransparent": {
           "type": "string"
         },
         "primary": {

@@ -118,25 +118,16 @@ function applyCommonThemeProperties(theme: Theme, root: HTMLElement): void {
     root.style.setProperty(
       '--background-image',
       `url(${theme.backgroundImage})`,
-      'important',
     );
 
     const backgroundSize = theme.backgroundSize || 'cover';
-    root.style.setProperty('--background-size', backgroundSize, 'important');
+    root.style.setProperty('--background-size', backgroundSize);
 
     const backgroundPosition = theme.backgroundPosition || 'center';
-    root.style.setProperty(
-      '--background-position',
-      backgroundPosition,
-      'important',
-    );
+    root.style.setProperty('--background-position', backgroundPosition);
 
     const backgroundRepeat = theme.backgroundRepeat || 'no-repeat';
-    root.style.setProperty(
-      '--background-repeat',
-      backgroundRepeat,
-      'important',
-    );
+    root.style.setProperty('--background-repeat', backgroundRepeat);
 
     root.classList.add('has-background-image');
   } else {
@@ -166,7 +157,7 @@ function applyThemeVariables(theme: Theme, root: HTMLElement): void {
       Object.entries(themeObj).forEach(([key, value]) => {
         if (value) {
           const cssVar = transform(key);
-          root.style.setProperty(cssVar, value, 'important');
+          root.style.setProperty(cssVar, value);
         }
       });
     }
@@ -213,7 +204,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     Object.entries(backdropFilterMap).forEach(([themeKey, cssVar]) => {
       const value = theme.colors?.[themeKey as keyof typeof theme.colors];
       if (value) {
-        root.style.setProperty(cssVar, value, 'important');
+        root.style.setProperty(cssVar, value);
       }
     });
   }
@@ -223,15 +214,10 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     root.style.setProperty(
       '--input-background',
       theme.colors.inputBackground || '',
-      'important',
     );
   } else if (theme.colors?.input) {
     // For other themes, use the regular input color
-    root.style.setProperty(
-      '--input-background',
-      theme.colors.input || '',
-      'important',
-    );
+    root.style.setProperty('--input-background', theme.colors.input || '');
   }
   // If neither is defined, CSS defaults will be used
 
@@ -254,11 +240,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
         Object.entries(propertyToCssMap).forEach(([property, cssName]) => {
           const value = config[property as keyof typeof config];
           if (value && typeof value === 'string') {
-            root.style.setProperty(
-              `--btn-${variant}-${cssName}`,
-              value,
-              'important',
-            );
+            root.style.setProperty(`--btn-${variant}-${cssName}`, value);
           }
         });
 
@@ -273,11 +255,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
                 ];
                 if (value && typeof value === 'string') {
                   const cssName = `${state}-${baseCssName}`;
-                  root.style.setProperty(
-                    `--btn-${variant}-${cssName}`,
-                    value,
-                    'important',
-                  );
+                  root.style.setProperty(`--btn-${variant}-${cssName}`, value);
                 }
               },
             );
@@ -289,7 +267,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
               root.style.setProperty(
                 `--btn-${variant}-${state}-transform`,
                 transform,
-                'important',
               );
             }
           }
@@ -312,7 +289,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     root.style.setProperty(
       `--theme-has-${cssName}`,
       buttonStyles.includes(style) ? '1' : '0',
-      'important',
     );
   });
 
@@ -363,12 +339,12 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
           const value = (obj as Record<string, unknown>)[property];
           if (value && typeof value === 'string') {
             const cssVar = `--${prefix}-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-            root.style.setProperty(cssVar, value, 'important');
+            root.style.setProperty(cssVar, value);
 
             // For backdropFilter properties, also set the webkit version
             if (property === 'backdropFilter') {
               const webkitCssVar = `${cssVar}-webkit`;
-              root.style.setProperty(webkitCssVar, value, 'important');
+              root.style.setProperty(webkitCssVar, value);
             }
           }
         });
@@ -383,11 +359,11 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       const value = (theme.sidebar as Record<string, unknown>)[property];
       if (value && typeof value === 'string') {
         const cssVar = `--sidebar-${property.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
-        root.style.setProperty(cssVar, value, 'important');
+        root.style.setProperty(cssVar, value);
 
         if (property === 'backdropFilter') {
           const webkitCssVar = `${cssVar}-webkit`;
-          root.style.setProperty(webkitCssVar, value, 'important');
+          root.style.setProperty(webkitCssVar, value);
         }
       }
     });
@@ -409,11 +385,7 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
     switchStates.forEach((state) => {
       const switchConfig = theme.switches?.[state];
       if (switchConfig?.background) {
-        root.style.setProperty(
-          `--switch-${state}-bg`,
-          switchConfig.background,
-          'important',
-        );
+        root.style.setProperty(`--switch-${state}-bg`, switchConfig.background);
       }
     });
 
@@ -422,7 +394,6 @@ export function applyTheme(theme: Theme, root: HTMLElement) {
       root.style.setProperty(
         '--switch-thumb-bg',
         theme.switches.thumb.background,
-        'important',
       );
     }
   }
@@ -459,13 +430,10 @@ export function applyThemeIsolated(theme: Theme, root: HTMLElement): void {
 
 const colorVariableNames = [
   '--background',
-  '--background-transparent',
   '--foreground',
   '--card',
   '--card-foreground',
-  '--card-transparent',
   '--popover',
-  '--popover-transparent',
   '--popover-foreground',
   '--primary',
   '--primary-foreground',

@@ -14,11 +14,11 @@ body {
 @layer base {
   :root {
     /* Default light theme - these will be overridden by the theme system */
-    --background: hsl(0 0% 100%);
+    --background: transparent;
     --foreground: hsl(0 0% 3.9%);
-    --card: hsl(0 0% 98%);
+    --card: transparent;
     --card-foreground: hsl(0 0% 3.9%);
-    --popover: hsl(0 0% 100%);
+    --popover: transparent;
     --popover-foreground: hsl(0 0% 3.9%);
     --primary: hsl(0 0% 9%);
     --primary-foreground: hsl(0 0% 98%);
@@ -35,11 +35,6 @@ body {
     --input-background: hsl(0 0% 100%);
     --ring: hsl(0 0% 3.9%);
     --radius: 0.5rem;
-
-    /* Safe defaults for transparency variables used with !important */
-    --background-transparent: transparent;
-    --card-transparent: transparent;
-    --popover-transparent: transparent;
 
     /* Default font families */
     --font-sans: Inter, system-ui, sans-serif;
@@ -276,23 +271,6 @@ body {
     background-position: var(--background-position, center);
     background-repeat: var(--background-repeat, no-repeat);
     background-attachment: fixed;
-  }
-
-  /* Make backgrounds semi-transparent when background image is present */
-  body.has-background-image {
-    background-color: var(--background-transparent);
-  }
-
-  body.has-background-image .bg-card {
-    background-color: var(--card-transparent) !important;
-  }
-
-  body.has-background-image .bg-background {
-    background-color: var(--background-transparent) !important;
-  }
-
-  body.has-background-image .bg-popover {
-    background-color: var(--popover-transparent) !important;
   }
 
   /* Theme cards with background images */
@@ -757,52 +735,52 @@ body {
 
   /* Custom switch styling */
   .switch-component.peer[data-state='checked'] {
-    background-color: var(--switch-checked-bg) !important;
+    background-color: var(--switch-checked-bg);
   }
 
   .switch-component.peer[data-state='unchecked'] {
-    background-color: var(--switch-unchecked-bg) !important;
+    background-color: var(--switch-unchecked-bg);
   }
 
   /* Alternative selectors for when data-state is on child elements */
   .switch-component.peer:has([data-state='checked']) {
-    background-color: var(--switch-checked-bg) !important;
+    background-color: var(--switch-checked-bg);
   }
 
   .switch-component.peer:has([data-state='unchecked']) {
-    background-color: var(--switch-unchecked-bg) !important;
+    background-color: var(--switch-unchecked-bg);
   }
 
   /* Ensure switches are always visible, even with background images */
   body.has-background-image .switch-component.peer[data-state='checked'] {
-    background-color: var(--switch-checked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-checked-bg);
+    opacity: 1;
   }
 
   body.has-background-image .switch-component.peer[data-state='unchecked'] {
-    background-color: var(--switch-unchecked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-unchecked-bg);
+    opacity: 1;
   }
 
   body.has-background-image .switch-component.peer:has([data-state='checked']) {
-    background-color: var(--switch-checked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-checked-bg);
+    opacity: 1;
   }
 
   body.has-background-image
     .switch-component.peer:has([data-state='unchecked']) {
-    background-color: var(--switch-unchecked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-unchecked-bg);
+    opacity: 1;
   }
 
   /* Ensure switch thumb is always visible */
   .switch-component.peer span {
-    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%));
   }
 
   /* Override for background image themes */
   body.has-background-image .switch-component.peer span {
-    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+    background-color: var(--switch-thumb-bg, hsl(0 0% 100%));
   }
 
   /* Theme card isolation - prevent inheritance from ambient theme */
