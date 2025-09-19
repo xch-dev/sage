@@ -272,7 +272,7 @@ export interface Theme {
     };
   };
   // Button style flags for dynamic CSS application
-  buttonStyles?: string[];
+  buttonStyle?: string;
   // Optional theme-specific switch configurations
   switches?: {
     checked?: {

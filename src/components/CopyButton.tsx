@@ -30,7 +30,7 @@ export function CopyButton({
   return (
     <Button
       size='icon'
-      variant='ghost'
+      variant='outline'
       onClick={copyAddress}
       className={className}
       aria-label={ariaLabel || (copied ? t`Copied!` : t`Copy ${value}`)}

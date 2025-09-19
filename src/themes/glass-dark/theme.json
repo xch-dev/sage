@@ -6,15 +6,12 @@
   "backgroundImage": "background.jpg",
   "schemaVersion": 1,
   "colors": {
-    "background": "rgba(0, 0, 0, 0.85)",
+    "background": "transparent",
     "foreground": "rgba(0,255,255,0.75)",
-    "card": "rgba(12, 12, 15, 0.45)",
+    "card": "transparent",
     "cardBackdropFilter": "blur(28px) saturate(180%) brightness(0.35)",
-    "cardBackdropFilterWebkit": "blur(28px) saturate(180%) brightness(0.85)",
-    "cardBorder": "1px solid rgba(10,132,255,0.25)",
-    "popover": "rgba(10, 10, 12, 0.40)",
+    "popover": "transparent",
     "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(0.85)",
-    "popoverBorder": "1px solid rgba(10,132,255,0.30)",
     "primary": "rgba(0,255,255,0.75)",
     "primaryForeground": "#ade1f2",
     "secondary": "rgba(202,255,250,0.8)",
@@ -26,8 +23,7 @@
     "destructive": "rgba(255,69,58,0.80)",
     "destructiveForeground": "#ff0000",
     "border": "rgba(0,214,255,0.15)",
-    "input": "rgba(8, 8, 12, 0.45)",
-    "inputBorder": "1px solid rgba(10,132,255,0.25)",
+    "input": "rgba(0,214,255,0.15)",
     "inputBackground": "rgba(0,0,0, 0.6)",
     "ring": "rgba(10,132,255,0.85)"
   },
@@ -64,7 +60,6 @@
     "header": {
       "background": "rgba(0,0,0,0.85)",
       "color": "#cae1f2",
-      "border": "1px solid rgba(0,214,255,0.15)",
       "backdropFilter": "blur(18px) saturate(160%) brightness(0.9)"
     },
     "row": {
@@ -84,7 +79,6 @@
     "footer": {
       "background": "rgba(0,0,0,0.85)",
       "color": "#e8e8ee",
-      "border": "1px solid rgba(0,214,255,0.15)",
       "backdropFilter": "blur(14px) saturate(150%) brightness(0.9)"
     }
   },
@@ -116,7 +110,7 @@
     "outline": {
       "background": "rgba(0,0,0,0.35)",
       "color": "rgba(0,255,255,0.75)",
-      "border": "1px solid rgba(0,255,255,0.55)",
+      "border": "rgba(0,214,255,0.15)",
       "borderRadius": "12px",
       "boxShadow": "0 2px 8px rgba(0,0,0,0.18)",
       "hover": {
@@ -134,19 +128,19 @@
     },
     "destructive": {
       "background": "rgba(255,69,58,0.40)",
-      "color": "rgba(0,0,0,0.35)",
+      "color": "rgba(255,255,255,0.65)",
       "border": "1px solid rgba(210,255,255,0.18)",
       "borderRadius": "12px",
       "boxShadow": "0 8px 16px rgba(255,69,58,0.32)",
       "hover": {
         "background": "rgba(255,59,48,0.90)",
-        "color": "rgba(0,0,0,0.35)",
+        "color": "rgba(255,255,255,0.65)",
         "transform": "translateY(-1px)",
         "boxShadow": "0 12px 22px rgba(255,69,58,0.36)"
       },
       "active": {
         "background": "rgba(215,0,21,0.90)",
-        "color": "rgba(0,0,0,0.35)",
+        "color": "rgba(255,255,255,0.65)",
         "transform": "translateY(0)",
         "boxShadow": "0 4px 10px rgba(215,0,21,0.28)"
       }
@@ -182,7 +176,7 @@
       }
     }
   },
-  "buttonStyles": ["rounded-buttons"],
+  "buttonStyle": "rounded-buttons",
   "switches": {
     "checked": {
       "background": "rgba(0,255,255,0.75)"

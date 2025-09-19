@@ -13,11 +13,8 @@
     "backgroundSize": {
       "type": "string"
     },
-    "buttonStyles": {
-      "items": {
-        "type": "string"
-      },
-      "type": "array"
+    "buttonStyle": {
+      "type": "string"
     },
     "buttons": {
       "properties": {
@@ -503,9 +500,6 @@
         "background": {
           "type": "string"
         },
-        "backgroundTransparent": {
-          "type": "string"
-        },
         "border": {
           "type": "string"
         },
@@ -516,9 +510,6 @@
           "type": "string"
         },
         "cardForeground": {
-          "type": "string"
-        },
-        "cardTransparent": {
           "type": "string"
         },
         "destructive": {
@@ -552,9 +543,6 @@
           "type": "string"
         },
         "popoverForeground": {
-          "type": "string"
-        },
-        "popoverTransparent": {
           "type": "string"
         },
         "primary": {

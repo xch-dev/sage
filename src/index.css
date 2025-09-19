@@ -14,11 +14,11 @@ body {
 @layer base {
   :root {
     /* Default light theme - these will be overridden by the theme system */
-    --background: hsl(0 0% 100%);
+    --background: transparent;
     --foreground: hsl(0 0% 3.9%);
-    --card: hsl(0 0% 98%);
+    --card: transparent;
     --card-foreground: hsl(0 0% 3.9%);
-    --popover: hsl(0 0% 100%);
+    --popover: transparent;
     --popover-foreground: hsl(0 0% 3.9%);
     --primary: hsl(0 0% 9%);
     --primary-foreground: hsl(0 0% 98%);
@@ -35,11 +35,6 @@ body {
     --input-background: hsl(0 0% 100%);
     --ring: hsl(0 0% 3.9%);
     --radius: 0.5rem;
-
-    /* Safe defaults for transparency variables used with !important */
-    --background-transparent: transparent;
-    --card-transparent: transparent;
-    --popover-transparent: transparent;
 
     /* Default font families */
     --font-sans: Inter, system-ui, sans-serif;
@@ -81,7 +76,7 @@ body {
     --table-footer-backdrop-filter: none;
 
     /* Button-specific CSS variables with defaults */
-    --btn-default-bg: var(--primary);
+    --btn-default-background: var(--primary);
     --btn-default-color: var(--primary-foreground);
     --btn-default-border: none;
     --btn-default-border-style: solid;
@@ -90,20 +85,20 @@ body {
     --btn-default-radius: var(--radius);
     --btn-default-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --btn-default-backdrop-filter: none;
-    --btn-default-hover-bg: var(--primary);
+    --btn-default-hover-background: var(--primary);
     --btn-default-hover-color: var(--primary-foreground);
     --btn-default-hover-transform: none;
     --btn-default-hover-border-style: solid;
     --btn-default-hover-border-color: transparent;
     --btn-default-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-default-active-bg: var(--primary);
+    --btn-default-active-background: var(--primary);
     --btn-default-active-color: var(--primary-foreground);
     --btn-default-active-transform: none;
     --btn-default-active-border-style: solid;
     --btn-default-active-border-color: transparent;
     --btn-default-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-    --btn-outline-bg: transparent;
+    --btn-outline-background: transparent;
     --btn-outline-color: var(--foreground);
     --btn-outline-border: 1px solid var(--border);
     --btn-outline-border-style: solid;
@@ -112,20 +107,20 @@ body {
     --btn-outline-radius: var(--radius);
     --btn-outline-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --btn-outline-backdrop-filter: none;
-    --btn-outline-hover-bg: var(--accent);
+    --btn-outline-hover-background: var(--accent);
     --btn-outline-hover-color: var(--accent-foreground);
     --btn-outline-hover-transform: none;
     --btn-outline-hover-border-style: solid;
     --btn-outline-hover-border-color: var(--border);
     --btn-outline-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-outline-active-bg: var(--accent);
+    --btn-outline-active-background: var(--accent);
     --btn-outline-active-color: var(--accent-foreground);
     --btn-outline-active-transform: none;
     --btn-outline-active-border-style: solid;
     --btn-outline-active-border-color: var(--border);
     --btn-outline-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-    --btn-secondary-bg: var(--secondary);
+    --btn-secondary-background: var(--secondary);
     --btn-secondary-color: var(--secondary-foreground);
     --btn-secondary-border: none;
     --btn-secondary-border-style: solid;
@@ -134,20 +129,20 @@ body {
     --btn-secondary-radius: var(--radius);
     --btn-secondary-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --btn-secondary-backdrop-filter: none;
-    --btn-secondary-hover-bg: var(--secondary);
+    --btn-secondary-hover-background: var(--secondary);
     --btn-secondary-hover-color: var(--secondary-foreground);
     --btn-secondary-hover-transform: none;
     --btn-secondary-hover-border-style: solid;
     --btn-secondary-hover-border-color: transparent;
     --btn-secondary-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-secondary-active-bg: var(--secondary);
+    --btn-secondary-active-background: var(--secondary);
     --btn-secondary-active-color: var(--secondary-foreground);
     --btn-secondary-active-transform: none;
     --btn-secondary-active-border-style: solid;
     --btn-secondary-active-border-color: transparent;
     --btn-secondary-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-    --btn-destructive-bg: var(--destructive);
+    --btn-destructive-background: var(--destructive);
     --btn-destructive-color: var(--destructive-foreground);
     --btn-destructive-border: none;
     --btn-destructive-border-style: solid;
@@ -155,20 +150,20 @@ body {
     --btn-destructive-border-color: transparent;
     --btn-destructive-radius: var(--radius);
     --btn-destructive-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-destructive-hover-bg: var(--destructive);
+    --btn-destructive-hover-background: var(--destructive);
     --btn-destructive-hover-color: var(--destructive-foreground);
     --btn-destructive-hover-transform: none;
     --btn-destructive-hover-border-style: solid;
     --btn-destructive-hover-border-color: transparent;
     --btn-destructive-hover-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --btn-destructive-active-bg: var(--destructive);
+    --btn-destructive-active-background: var(--destructive);
     --btn-destructive-active-color: var(--destructive-foreground);
     --btn-destructive-active-transform: none;
     --btn-destructive-active-border-style: solid;
     --btn-destructive-active-border-color: transparent;
     --btn-destructive-active-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 
-    --btn-ghost-bg: transparent;
+    --btn-ghost-background: transparent;
     --btn-ghost-color: var(--foreground);
     --btn-ghost-border: none;
     --btn-ghost-border-style: solid;
@@ -176,20 +171,20 @@ body {
     --btn-ghost-border-color: transparent;
     --btn-ghost-radius: var(--radius);
     --btn-ghost-shadow: none;
-    --btn-ghost-hover-bg: var(--accent);
+    --btn-ghost-hover-background: var(--accent);
     --btn-ghost-hover-color: var(--accent-foreground);
     --btn-ghost-hover-transform: none;
     --btn-ghost-hover-border-style: solid;
     --btn-ghost-hover-border-color: transparent;
     --btn-ghost-hover-shadow: none;
-    --btn-ghost-active-bg: var(--accent);
+    --btn-ghost-active-background: var(--accent);
     --btn-ghost-active-color: var(--accent-foreground);
     --btn-ghost-active-transform: none;
     --btn-ghost-active-border-style: solid;
     --btn-ghost-active-border-color: transparent;
     --btn-ghost-active-shadow: none;
 
-    --btn-link-bg: transparent;
+    --btn-link-background: transparent;
     --btn-link-color: var(--primary);
     --btn-link-border: none;
     --btn-link-border-style: solid;
@@ -197,13 +192,13 @@ body {
     --btn-link-border-color: transparent;
     --btn-link-radius: var(--radius);
     --btn-link-shadow: none;
-    --btn-link-hover-bg: transparent;
+    --btn-link-hover-background: transparent;
     --btn-link-hover-color: var(--primary);
     --btn-link-hover-transform: none;
     --btn-link-hover-border-style: solid;
     --btn-link-hover-border-color: transparent;
     --btn-link-hover-shadow: none;
-    --btn-link-active-bg: transparent;
+    --btn-link-active-background: transparent;
     --btn-link-active-color: var(--primary);
     --btn-link-active-transform: none;
     --btn-link-active-border-style: solid;
@@ -221,12 +216,12 @@ body {
     --theme-has-rounded-buttons: 0;
 
     /* Navigation active background */
-    --nav-active-bg: color-mix(
+    --nav-active-background: color-mix(
       in srgb,
       var(--primary, hsl(0 0% 9%)) 10%,
       transparent
     );
-    --outline-button-bg: transparent;
+    --outline-button-background: transparent;
 
     /* Sidebar styling variables with defaults */
     --sidebar-background: transparent;
@@ -257,9 +252,9 @@ body {
     --table-footer-border: 1px solid var(--border);
 
     /* Switch styling variables with defaults */
-    --switch-checked-bg: var(--primary);
-    --switch-unchecked-bg: var(--input);
-    --switch-thumb-bg: hsl(0 0% 100%);
+    --switch-checked-background: var(--primary);
+    --switch-unchecked-background: var(--input);
+    --switch-thumb-background: hsl(0 0% 100%);
   }
 }
 
@@ -278,23 +273,6 @@ body {
     background-attachment: fixed;
   }
 
-  /* Make backgrounds semi-transparent when background image is present */
-  body.has-background-image {
-    background-color: var(--background-transparent);
-  }
-
-  body.has-background-image .bg-card {
-    background-color: var(--card-transparent) !important;
-  }
-
-  body.has-background-image .bg-background {
-    background-color: var(--background-transparent) !important;
-  }
-
-  body.has-background-image .bg-popover {
-    background-color: var(--popover-transparent) !important;
-  }
-
   /* Theme cards with background images */
   .has-background-image.bg-card {
     background-color: var(--card);
@@ -302,49 +280,18 @@ body {
 
   /* Dynamic outline button styling for all themes */
   .outline-btn {
-    background-color: var(--outline-button-bg);
+    background-color: var(--outline-button-background);
   }
 }
 
 /* Dynamic theme-specific button variant overrides */
 @layer components {
-  /* Theme-aware button variant that uses CSS variables */
-  .btn-variant-theme {
-    background: var(--btn-default-bg);
-    color: var(--btn-default-color);
-    border: var(--btn-default-border-width) var(--btn-default-border-style)
-      var(--btn-default-border-color);
-    border-radius: var(--btn-default-radius);
-    box-shadow: var(--btn-default-shadow);
-    backdrop-filter: var(--btn-default-backdrop-filter);
-    -webkit-backdrop-filter: var(--btn-default-backdrop-filter);
-    transition: all 0.2s ease;
-  }
-
-  .btn-variant-theme:hover {
-    background: var(--btn-default-hover-bg);
-    color: var(--btn-default-hover-color);
-    transform: var(--btn-default-hover-transform);
-    border-style: var(--btn-default-hover-border-style);
-    border-color: var(--btn-default-hover-border-color);
-    box-shadow: var(--btn-default-hover-shadow);
-  }
-
-  .btn-variant-theme:active {
-    background: var(--btn-default-active-bg);
-    color: var(--btn-default-active-color);
-    transform: var(--btn-default-active-transform);
-    border-style: var(--btn-default-active-border-style);
-    border-color: var(--btn-default-active-border-color);
-    box-shadow: var(--btn-default-active-shadow);
-  }
-
   /* Gradient buttons - applied when theme has gradient flag */
   .btn-variant-default[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-default-bg),
-      var(--btn-default-hover-bg)
+      var(--btn-default-background),
+      var(--btn-default-hover-background)
     );
     color: var(--btn-default-color);
     border: var(--btn-default-border);
@@ -353,8 +300,8 @@ body {
   .btn-variant-outline[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-outline-bg),
-      var(--btn-outline-hover-bg)
+      var(--btn-outline-background),
+      var(--btn-outline-hover-background)
     );
     color: var(--btn-outline-color);
     border: var(--btn-outline-border);
@@ -363,8 +310,8 @@ body {
   .btn-variant-secondary[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-secondary-bg),
-      var(--btn-secondary-hover-bg)
+      var(--btn-secondary-background),
+      var(--btn-secondary-hover-background)
     );
     color: var(--btn-secondary-color);
     border: var(--btn-secondary-border);
@@ -372,7 +319,7 @@ body {
 
   /* Shimmer effects - applied when theme has shimmer flag */
   .btn-variant-default[data-theme-style*='shimmer'] {
-    background: var(--btn-default-bg);
+    background: var(--btn-default-background);
     border: var(--btn-default-border);
     color: var(--btn-default-color);
     position: relative;
@@ -381,7 +328,7 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='shimmer'] {
-    background: var(--btn-outline-bg);
+    background: var(--btn-outline-background);
     border: var(--btn-outline-border);
     color: var(--btn-outline-color);
     position: relative;
@@ -390,7 +337,7 @@ body {
   }
 
   .btn-variant-secondary[data-theme-style*='shimmer'] {
-    background: var(--btn-secondary-bg);
+    background: var(--btn-secondary-background);
     border: var(--btn-secondary-border);
     color: var(--btn-secondary-color);
     position: relative;
@@ -469,7 +416,7 @@ body {
 
   /* Pixel art style - applied when theme has pixel-art flag */
   .btn-variant-default[data-theme-style*='pixel-art'] {
-    background: var(--btn-default-bg);
+    background: var(--btn-default-background);
     color: var(--btn-default-color);
     border: var(--btn-default-border);
     box-shadow: var(--btn-default-shadow);
@@ -481,14 +428,14 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='pixel-art'] {
-    background: var(--btn-outline-bg);
+    background: var(--btn-outline-background);
     border: var(--btn-outline-border);
     color: var(--btn-outline-color);
     box-shadow: var(--btn-outline-shadow);
   }
 
   .btn-variant-secondary[data-theme-style*='pixel-art'] {
-    background: var(--btn-secondary-bg);
+    background: var(--btn-secondary-background);
     border: var(--btn-secondary-border);
     color: var(--btn-secondary-color);
     box-shadow: var(--btn-secondary-shadow);
@@ -496,7 +443,7 @@ body {
 
   /* 3D effects - applied when theme has 3d-effects flag */
   .btn-variant-default[data-theme-style*='3d-effects'] {
-    background: var(--btn-default-bg);
+    background: var(--btn-default-background);
     color: var(--btn-default-color);
     border: var(--btn-default-border);
     box-shadow: var(--btn-default-shadow);
@@ -508,19 +455,19 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='3d-effects'] {
-    background: var(--btn-outline-bg);
+    background: var(--btn-outline-background);
     border: var(--btn-outline-border);
     color: var(--btn-outline-color);
   }
 
   .btn-variant-secondary[data-theme-style*='3d-effects'] {
-    background: var(--btn-secondary-bg);
+    background: var(--btn-secondary-background);
     border: var(--btn-secondary-border);
     color: var(--btn-secondary-color);
   }
 
   .btn-variant-primary[data-theme-style*='3d-effects'] {
-    background: var(--btn-primary-bg);
+    background: var(--btn-primary-background);
     color: var(--btn-primary-color);
     border: var(--btn-primary-border);
     box-shadow: var(--btn-primary-shadow);
@@ -533,7 +480,7 @@ body {
 
   /* Rounded buttons - applied when theme has rounded-buttons flag */
   .btn-variant-default[data-theme-style*='rounded-buttons'] {
-    background: var(--btn-default-bg);
+    background: var(--btn-default-background);
     color: var(--btn-default-color);
     border-radius: var(--btn-default-radius);
     border: var(--btn-default-border);
@@ -541,14 +488,14 @@ body {
   }
 
   .btn-variant-outline[data-theme-style*='rounded-buttons'] {
-    background: var(--btn-outline-bg);
+    background: var(--btn-outline-background);
     color: var(--btn-outline-color);
     border: var(--btn-outline-border);
     border-radius: var(--btn-outline-radius);
   }
 
   .btn-variant-secondary[data-theme-style*='rounded-buttons'] {
-    background: var(--btn-secondary-bg);
+    background: var(--btn-secondary-background);
     color: var(--btn-secondary-color);
     border: var(--btn-secondary-border);
     border-radius: var(--btn-secondary-radius);
@@ -558,15 +505,15 @@ body {
   .btn-variant-destructive[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-destructive-bg),
-      var(--btn-destructive-hover-bg)
+      var(--btn-destructive-background),
+      var(--btn-destructive-hover-background)
     );
     color: var(--btn-destructive-color);
     border: var(--btn-destructive-border);
   }
 
   .btn-variant-destructive[data-theme-style*='shimmer'] {
-    background: var(--btn-destructive-bg);
+    background: var(--btn-destructive-background);
     border: var(--btn-destructive-border);
     color: var(--btn-destructive-color);
     position: relative;
@@ -600,7 +547,7 @@ body {
   }
 
   .btn-variant-destructive[data-theme-style*='pixel-art'] {
-    background: var(--btn-destructive-bg);
+    background: var(--btn-destructive-background);
     color: var(--btn-destructive-color);
     border: var(--btn-destructive-border);
     box-shadow: var(--btn-destructive-shadow);
@@ -612,7 +559,7 @@ body {
   }
 
   .btn-variant-destructive[data-theme-style*='3d-effects'] {
-    background: var(--btn-destructive-bg);
+    background: var(--btn-destructive-background);
     color: var(--btn-destructive-color);
     border: var(--btn-destructive-border);
     box-shadow: var(--btn-destructive-shadow);
@@ -624,7 +571,7 @@ body {
   }
 
   .btn-variant-destructive[data-theme-style*='rounded-buttons'] {
-    background: var(--btn-destructive-bg);
+    background: var(--btn-destructive-background);
     color: var(--btn-destructive-color);
     border-radius: var(--btn-destructive-radius);
     border: var(--btn-destructive-border);
@@ -635,15 +582,15 @@ body {
   .btn-variant-ghost[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-ghost-bg),
-      var(--btn-ghost-hover-bg)
+      var(--btn-ghost-background),
+      var(--btn-ghost-hover-background)
     );
     color: var(--btn-ghost-color);
     border: var(--btn-ghost-border);
   }
 
   .btn-variant-ghost[data-theme-style*='shimmer'] {
-    background: var(--btn-ghost-bg);
+    background: var(--btn-ghost-background);
     border: var(--btn-ghost-border);
     color: var(--btn-ghost-color);
     position: relative;
@@ -673,7 +620,7 @@ body {
   }
 
   .btn-variant-ghost[data-theme-style*='pixel-art'] {
-    background: var(--btn-ghost-bg);
+    background: var(--btn-ghost-background);
     color: var(--btn-ghost-color);
     border: var(--btn-ghost-border);
     box-shadow: var(--btn-ghost-shadow);
@@ -685,13 +632,13 @@ body {
   }
 
   .btn-variant-ghost[data-theme-style*='3d-effects'] {
-    background: var(--btn-ghost-bg);
+    background: var(--btn-ghost-background);
     color: var(--btn-ghost-color);
     border: var(--btn-ghost-border);
   }
 
   .btn-variant-ghost[data-theme-style*='rounded-buttons'] {
-    background: var(--btn-ghost-bg);
+    background: var(--btn-ghost-background);
     color: var(--btn-ghost-color);
     border: var(--btn-ghost-border);
     border-radius: var(--btn-ghost-radius);
@@ -701,8 +648,8 @@ body {
   .btn-variant-link[data-theme-style*='gradient'] {
     background: linear-gradient(
       135deg,
-      var(--btn-link-bg),
-      var(--btn-link-hover-bg)
+      var(--btn-link-background),
+      var(--btn-link-hover-background)
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -752,57 +699,57 @@ body {
     color: var(--btn-link-color);
     padding: 4px 8px;
     border-radius: var(--btn-link-radius);
-    background: var(--btn-link-bg);
+    background: var(--btn-link-background);
   }
 
   /* Custom switch styling */
   .switch-component.peer[data-state='checked'] {
-    background-color: var(--switch-checked-bg) !important;
+    background-color: var(--switch-checked-background);
   }
 
   .switch-component.peer[data-state='unchecked'] {
-    background-color: var(--switch-unchecked-bg) !important;
+    background-color: var(--switch-unchecked-background);
   }
 
   /* Alternative selectors for when data-state is on child elements */
   .switch-component.peer:has([data-state='checked']) {
-    background-color: var(--switch-checked-bg) !important;
+    background-color: var(--switch-checked-background);
   }
 
   .switch-component.peer:has([data-state='unchecked']) {
-    background-color: var(--switch-unchecked-bg) !important;
+    background-color: var(--switch-unchecked-background);
   }
 
   /* Ensure switches are always visible, even with background images */
   body.has-background-image .switch-component.peer[data-state='checked'] {
-    background-color: var(--switch-checked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-checked-background);
+    opacity: 1;
   }
 
   body.has-background-image .switch-component.peer[data-state='unchecked'] {
-    background-color: var(--switch-unchecked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-unchecked-background);
+    opacity: 1;
   }
 
   body.has-background-image .switch-component.peer:has([data-state='checked']) {
-    background-color: var(--switch-checked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-checked-background);
+    opacity: 1;
   }
 
   body.has-background-image
     .switch-component.peer:has([data-state='unchecked']) {
-    background-color: var(--switch-unchecked-bg) !important;
-    opacity: 1 !important;
+    background-color: var(--switch-unchecked-background);
+    opacity: 1;
   }
 
   /* Ensure switch thumb is always visible */
   .switch-component.peer span {
-    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+    background-color: var(--switch-thumb-background, hsl(0 0% 100%));
   }
 
   /* Override for background image themes */
   body.has-background-image .switch-component.peer span {
-    background-color: var(--switch-thumb-bg, hsl(0 0% 100%)) !important;
+    background-color: var(--switch-thumb-background, hsl(0 0% 100%));
   }
 
   /* Theme card isolation - prevent inheritance from ambient theme */
@@ -823,15 +770,19 @@ body {
     border-spacing: 0;
   }
 
-  .table-theme thead th {
+  .table-theme thead tr {
     background: var(--table-header-background);
+    backdrop-filter: var(--table-header-backdrop-filter);
+    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+  }
+
+  .table-theme thead th {
     color: var(--table-header-color);
     border: var(--table-header-border);
     font-weight: var(--table-header-font-weight);
     font-size: var(--table-header-font-size);
     padding: var(--table-header-padding);
-    backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
+    background: transparent;
   }
 
   .table-theme tbody tr {
@@ -906,10 +857,7 @@ body {
     -webkit-backdrop-filter: var(--input-backdrop-filter);
   }
 
-  .table-theme thead th {
-    backdrop-filter: var(--table-header-backdrop-filter);
-    -webkit-backdrop-filter: var(--table-header-backdrop-filter-webkit);
-  }
+  /* Table header backdrop filter is now applied via thead::before */
 
   .table-theme tfoot th,
   .table-theme tfoot td {

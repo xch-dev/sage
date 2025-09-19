@@ -6,14 +6,14 @@
   "mostLike": "light",
   "schemaVersion": 1,
   "colors": {
-    "background": "hsl(280 50% 25%)",
+    "background": "transparent",
     "secondary": "hsl(210 100% 85%)",
     "secondaryForeground": "hsl(210 50% 25%)",
     "accent": "hsl(280 100% 85%)",
     "accentForeground": "hsl(280 50% 25%)",
-    "card": "rgba(255, 255, 255, 0.65)",
+    "card": "transparent",
     "cardBackdropFilter": "blur(28px) saturate(180%) brightness(1.15)",
-    "popover": "rgba(255, 255, 255, 0.70)",
+    "popover": "transparent",
     "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(1.15)"
   },
   "fonts": {
@@ -50,7 +50,7 @@
       "background": "rgba(10,132,255,0.12)"
     }
   },
-  "buttonStyles": ["shimmer"],
+  "buttonStyle": "shimmer",
   "switches": {
     "checked": {
       "background": "hsl(280 30% 60%)"

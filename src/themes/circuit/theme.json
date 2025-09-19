@@ -6,14 +6,12 @@
   "backgroundImage": "background.png",
   "schemaVersion": 1,
   "colors": {
-    "background": "#0a0e1a",
+    "background": "transparent",
     "foreground": "#e0f2fe",
-    "card": "rgba(15, 23, 42, 0.9)",
+    "card": "rgba(25, 15, 20, 0.4)",
     "cardForeground": "#e0f2fe",
-    "cardTransparent": "rgba(15, 23, 42, 0.9)",
-    "popover": "rgba(15, 23, 42, 0.95)",
+    "popover": "rgba(15, 23, 42, 1)",
     "popoverForeground": "#e0f2fe",
-    "popoverTransparent": "rgba(15, 23, 42, 0.95)",
     "primary": "#0ea5e9",
     "primaryForeground": "#ffffff",
     "secondary": "rgba(14, 165, 233, 0.2)",
@@ -25,8 +23,8 @@
     "destructive": "#ef4444",
     "destructiveForeground": "#ffffff",
     "border": "rgba(59, 130, 246, 0.3)",
-    "input": "rgba(15, 23, 42, 0.85)",
-    "inputBackground": "rgba(15, 23, 42, 0.7)",
+    "input": "#0ea5e9",
+    "inputBackground": "rgba(14, 165, 233, 0.2)",
     "ring": "#0ea5e9"
   },
   "fonts": {
@@ -56,24 +54,23 @@
     "dropdown": "0 10px 15px -3px rgba(14, 165, 233, 0.2), 0 4px 6px -2px rgba(14, 165, 233, 0.1)"
   },
   "sidebar": {
-    "background": "rgba(25, 15, 20, 0.35)",
-    "backdropFilter": "blur(20px) saturate(180%) brightness(0.9)",
+    "background": "rgba(25, 15, 20, 0.4)",
     "border": "rgba(10,132,255,0.20)"
   },
   "tables": {
-    "background": "rgba(15, 23, 42, 0.85)",
+    "background": "transparent",
     "border": "1px solid rgba(59, 130, 246, 0.3)",
     "boxShadow": "var(--shadow-lg)",
     "header": {
-      "background": "rgba(14, 165, 233, 0.1)",
+      "background": "rgba(14, 46, 84, 0.5)",
       "color": "#e0f2fe"
     },
     "row": {
-      "background": "rgba(15, 23, 42, 0.7)",
+      "background": "rgba(15, 23, 42, 0.5)",
       "color": "#e0f2fe",
       "border": "1px solid rgba(59, 130, 246, 0.1)",
       "hover": {
-        "background": "rgba(14, 165, 233, 0.1)",
+        "background": "rgba(14, 46, 84, 0.5)",
         "color": "#ffffff"
       },
       "selected": {
@@ -108,7 +105,7 @@
       }
     },
     "outline": {
-      "background": "rgba(14, 165, 233, 0.1)",
+      "background": "rgba(14, 165, 233, 0.2)",
       "color": "#0ea5e9",
       "border": "1px solid #0ea5e9",
       "borderRadius": "6px",
@@ -195,7 +192,7 @@
       }
     }
   },
-  "buttonStyles": ["rounded-buttons"],
+  "buttonStyle": "rounded-buttons",
   "switches": {
     "checked": {
       "background": "#0ea5e9"
