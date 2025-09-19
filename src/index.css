@@ -286,37 +286,6 @@ body {
 
 /* Dynamic theme-specific button variant overrides */
 @layer components {
-  /* Theme-aware button variant that uses CSS variables */
-  .btn-variant-theme {
-    background: var(--btn-default-background);
-    color: var(--btn-default-color);
-    border: var(--btn-default-border-width) var(--btn-default-border-style)
-      var(--btn-default-border-color);
-    border-radius: var(--btn-default-radius);
-    box-shadow: var(--btn-default-shadow);
-    backdrop-filter: var(--btn-default-backdrop-filter);
-    -webkit-backdrop-filter: var(--btn-default-backdrop-filter);
-    transition: all 0.2s ease;
-  }
-
-  .btn-variant-theme:hover {
-    background: var(--btn-default-hover-background);
-    color: var(--btn-default-hover-color);
-    transform: var(--btn-default-hover-transform);
-    border-style: var(--btn-default-hover-border-style);
-    border-color: var(--btn-default-hover-border-color);
-    box-shadow: var(--btn-default-hover-shadow);
-  }
-
-  .btn-variant-theme:active {
-    background: var(--btn-default-active-background);
-    color: var(--btn-default-active-color);
-    transform: var(--btn-default-active-transform);
-    border-style: var(--btn-default-active-border-style);
-    border-color: var(--btn-default-active-border-color);
-    box-shadow: var(--btn-default-active-shadow);
-  }
-
   /* Gradient buttons - applied when theme has gradient flag */
   .btn-variant-default[data-theme-style*='gradient'] {
     background: linear-gradient(

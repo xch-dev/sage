@@ -20,8 +20,6 @@ const buttonVariants = cva(
         ghost:
           'bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground btn-variant-ghost',
         link: 'text-primary underline-offset-4 hover:underline btn-variant-link',
-        // Custom theme-aware variant that uses theme-specific styles
-        theme: 'btn-variant-theme',
       },
       size: {
         default: 'h-9 px-4 py-2',
