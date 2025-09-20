@@ -1,0 +1,113 @@
+{
+  "name": "xch-light",
+  "displayName": "🌱 XCH Light",
+  "schemaVersion": 1,
+  "backgroundImage": "background.png",
+  "inherits": "light",
+  "mostLike": "light",
+  "colors": {
+    "background": "rgba(255, 255, 255, 0.2)",
+    "foreground": "#2C323C",
+    "card": "rgba(255, 255, 255, 0.1)",
+    "cardForeground": "#2C323C",
+    "cardBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
+    "popover": "rgba(255, 255, 255, 0.1)",
+    "popoverForeground": "#2C323C",
+    "popoverBackdropFilter": "blur(7px) saturate(150%) brightness(0.9)",
+    "primary": "#324053",
+    "primaryForeground": "#dfff75",
+    "secondary": "#b4bfdf",
+    "secondaryForeground": "#2C323C",
+    "muted": "#dbecfb",
+    "mutedForeground": "#2C323C",
+    "accent": "#dfff75",
+    "accentForeground": "#2C323C",
+    "destructive": "#ef4343",
+    "destructiveForeground": "#fafafa",
+    "border": "#c9d2e8",
+    "input": "#edf6fd",
+    "ring": "#dfff75"
+  },
+  "tables": {
+    "header": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "row": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "footer": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    }
+  },
+  "fonts": {
+    "heading": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "body": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "mono": "JetBrains Mono, 'SF Mono', Monaco, Inconsolata, 'Roboto Mono', 'Source Code Pro', monospace"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "0.125rem",
+    "md": "0.375rem",
+    "lg": "0.5rem",
+    "xl": "0.75rem",
+    "2xl": "1rem",
+    "full": "9999px"
+  },
+  "sidebar": {
+    "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+  },
+  "buttons": {
+    "outline": {
+      "background": "transparent",
+      "color": "#324053",
+      "border": "2px solid #dfff75",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 1px 3px rgba(223, 255, 117, 0.2)",
+      "hover": {
+        "background": "rgba(223, 255, 117, 0.1)",
+        "color": "#212a36",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 2px 6px rgba(223, 255, 117, 0.3)"
+      }
+    },
+    "secondary": {
+      "background": "#b4bfdf",
+      "color": "#212a36",
+      "border": "1px solid #b4bfdf",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 1px 3px rgba(180, 191, 223, 0.4)",
+      "hover": {
+        "background": "#a6b3d9",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 2px 6px rgba(180, 191, 223, 0.5)"
+      }
+    },
+    "primary": {
+      "background": "#324053",
+      "color": "#dfff75",
+      "border": "1px solid #324053",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 2px 4px rgba(50, 64, 83, 0.3)",
+      "hover": {
+        "background": "#2a3646",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 4px 8px rgba(50, 64, 83, 0.4)"
+      }
+    }
+  },
+  "switches": {
+    "checked": {
+      "background": "#dfff75",
+      "thumbColor": "#324053"
+    },
+    "unchecked": {
+      "background": "#c9d2e8",
+      "thumbColor": "#ffffff"
+    }
+  },
+  "shadows": {
+    "card": "0 4px 6px -1px rgba(187, 220, 247, 0.1), 0 2px 4px -1px rgba(187, 220, 247, 0.06)",
+    "button": "0 1px 3px rgba(223, 255, 117, 0.2)",
+    "input": "0 1px 2px rgba(201, 210, 232, 0.1)"
+  }
+}

@@ -68,7 +68,7 @@ impl Database {
         .await
     }
 
-    pub async fn owned_option(&self, launcher_id: Bytes32) -> Result<Option<OptionRow>> {
+    pub async fn wallet_option(&self, launcher_id: Bytes32) -> Result<Option<OptionRow>> {
         let launcher_id_ref = launcher_id.as_ref();
 
         query!(
@@ -76,8 +76,8 @@ impl Database {
             SELECT
                 asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
                 asset_description, asset_is_visible, asset_is_sensitive_content,
-                asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,
-                owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
+                asset_hidden_puzzle_hash, wallet_coins.created_height, wallet_coins.spent_height,
+                wallet_coins.parent_coin_hash, wallet_coins.puzzle_hash, wallet_coins.amount, wallet_coins.p2_puzzle_hash,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS 'clawback_timestamp?',
                 p2_options.expiration_seconds AS option_expiration_seconds,
@@ -97,8 +97,8 @@ impl Database {
                 strike_amount, 
                 underlying_coin.amount AS underlying_amount,
                 underlying_coin.hash AS underlying_coin_id
-            FROM owned_coins
-            INNER JOIN options ON options.asset_id = owned_coins.asset_id
+            FROM wallet_coins
+            INNER JOIN options ON options.asset_id = wallet_coins.asset_id
             INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id
             INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id
             INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id

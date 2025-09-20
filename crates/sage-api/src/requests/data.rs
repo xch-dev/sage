@@ -421,3 +421,15 @@ pub struct GetNftData {
 pub struct GetNftDataResponse {
     pub data: Option<NftData>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct IsAssetOwned {
+    pub asset_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct IsAssetOwnedResponse {
+    pub owned: bool,
+}

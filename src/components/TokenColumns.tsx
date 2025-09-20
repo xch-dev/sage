@@ -27,7 +27,6 @@ import { AssetIcon } from './AssetIcon';
 import { NumberFormat } from './NumberFormat';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
-// Add new interface for token action handlers
 export interface TokenActionHandlers {
   onRefreshInfo?: (assetId: string) => void;
   onToggleVisibility?: (asset: PricedTokenRecord) => void;
@@ -80,7 +79,9 @@ export const columns = (
                 <CircleAlertIcon className='h-4 w-4 text-yellow-600 dark:text-yellow-200' />
               </TooltipTrigger>
               <TooltipContent>
-                <p>Asset can be revoked by the issuer</p>
+                <p>
+                  <Trans>Asset can be revoked by the issuer</Trans>
+                </p>
               </TooltipContent>
             </Tooltip>
           )}
@@ -150,6 +151,9 @@ export const columns = (
     id: 'actions',
     enableSorting: false,
     size: 44,
+    meta: {
+      cellClassName: 'px-2',
+    },
     cell: ({ row }) => {
       const record = row.original;
       const balance = toDecimal(record.balance, record.precision);
@@ -159,7 +163,7 @@ export const columns = (
           <DropdownMenuTrigger asChild>
             <Button
               variant='ghost'
-              className='h-6 w-6 p-0'
+              className='h-6 w-6 p-0 flex items-center justify-center'
               aria-label={t`Open actions menu`}
             >
               <span className='sr-only'>{t`Open menu`}</span>

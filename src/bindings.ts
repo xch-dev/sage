@@ -349,6 +349,9 @@ async downloadCniOffercode(code: string) : Promise<string> {
 },
 async getLogs() : Promise<LogFile[]> {
     return await TAURI_INVOKE("get_logs");
+},
+async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
+    return await TAURI_INVOKE("is_asset_owned", { req });
 }
 }
 
@@ -495,6 +498,8 @@ export type ImportOfferResponse = { offer_id: string }
 export type IncreaseDerivationIndex = { hardened?: boolean | null; unhardened?: boolean | null; index: number }
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"
+export type IsAssetOwned = { asset_id: string }
+export type IsAssetOwnedResponse = { owned: boolean }
 export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
 export type KeyKind = "bls"

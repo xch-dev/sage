@@ -1,6 +1,7 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -8,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useTheme } from 'theme-o-rama';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
@@ -75,7 +77,7 @@ export default function Header(
         <SheetContent
           side='left'
           isMobile={isMobile}
-          className='flex flex-col'
+          className={`flex flex-col p-0 border-0 ${currentTheme?.backgroundImage ? 'bg-transparent' : ''}`}
           role='dialog'
           aria-label={t`Navigation menu`}
           style={{
@@ -99,37 +101,54 @@ export default function Header(
             }),
           }}
         >
-          <div className='mt-4'>
-            <Link
-              to='/wallet'
-              className='flex items-center gap-2 font-semibold font-heading'
-              aria-label={t`Go to wallet`}
-            >
-              {wallet?.emoji ? (
-                <span
-                  className='text-xl'
-                  role='img'
-                  aria-label='Wallet emoji'
-                  aria-hidden='true'
-                >
-                  {wallet.emoji}
-                </span>
-              ) : (
-                <img
-                  src={currentTheme?.icon_path}
-                  className='h-6 w-6'
-                  alt={t`Wallet icon`}
-                  aria-hidden='true'
-                />
-              )}
-              <span className='text-lg'>{wallet?.name}</span>
-            </Link>
-          </div>
-          <TopNav />
           <div
-            className={`mt-auto grid gap-1 text-md font-medium font-body ${!isMobile ? 'pb-4' : ''}`}
+            className={`flex flex-col h-full p-6 ${currentTheme?.sidebar ? '' : 'bg-muted/40'}`}
+            style={
+              currentTheme?.sidebar
+                ? {
+                    borderRight: '1px solid var(--sidebar-border)',
+                    background: 'var(--sidebar-background)',
+                    backdropFilter: 'var(--sidebar-backdrop-filter)',
+                    WebkitBackdropFilter:
+                      'var(--sidebar-backdrop-filter-webkit)',
+                  }
+                : {}
+            }
           >
-            <BottomNav />
+            <div className='mt-4'>
+              <Link
+                to='/wallet'
+                className='flex items-center gap-2 font-semibold font-heading'
+                aria-label={t`Go to wallet`}
+              >
+                {wallet?.emoji ? (
+                  <span
+                    className='text-xl'
+                    role='img'
+                    aria-label='Wallet emoji'
+                    aria-hidden='true'
+                  >
+                    {wallet.emoji}
+                  </span>
+                ) : (
+                  <img
+                    src={
+                      currentTheme?.mostLike === 'light' ? iconDark : iconLight
+                    }
+                    className='h-6 w-6'
+                    alt={t`Wallet icon`}
+                    aria-hidden='true'
+                  />
+                )}
+                <span className='text-lg'>{wallet?.name}</span>
+              </Link>
+            </div>
+            <TopNav />
+            <div
+              className={`mt-auto grid gap-1 text-md font-medium font-body ${!isMobile ? 'pb-4' : ''}`}
+            >
+              <BottomNav />
+            </div>
           </div>
         </SheetContent>
       </Sheet>

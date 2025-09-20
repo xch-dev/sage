@@ -110,7 +110,11 @@ export default function IssueToken() {
                     </FormLabel>
                     <FormControl>
                       <div className='relative'>
-                        <TokenAmountInput {...field} className='pr-12' />
+                        <TokenAmountInput
+                          {...field}
+                          className='pr-12'
+                          precision={3}
+                        />
                         <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
                           <span className='text-muted-foreground text-sm'>
                             CAT

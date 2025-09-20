@@ -95,5 +95,6 @@
   "update_nft": true,
   "update_nft_collection": true,
   "redownload_nft": true,
-  "increase_derivation_index": true
+  "increase_derivation_index": true,
+  "is_asset_owned": true
 }

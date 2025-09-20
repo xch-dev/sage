@@ -30,6 +30,7 @@ import {
   NftRecord,
   OfferRecord,
 } from '../bindings';
+import { useTheme } from 'theme-o-rama';
 
 export default function Nft() {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export default function Nft() {
   const { addError } = useErrors();
   const { reloadThemes } = useTheme();
   const [nft, setNft] = useState<NftRecord | null>(null);
+  const [nftIsOwned, setNftIsOwned] = useState<boolean>(false);
   const [data, setData] = useState<NftData | null>(null);
   const [themeExists, setThemeExists] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
@@ -77,7 +79,6 @@ export default function Nft() {
         const response = await commands.getUserTheme({ nft_id: launcherId });
         setThemeExists(response.theme !== null);
       } catch {
-        // If theme doesn't exist, that's expected - just set to false
         setThemeExists(false);
       }
     }
@@ -85,10 +86,16 @@ export default function Nft() {
 
   const updateNft = useMemo(
     () => () => {
-      commands
-        .getNft({ nft_id: launcherId ?? '' })
-        .then((data) => setNft(data.nft))
-        .catch(addError);
+      if (launcherId) {
+        commands
+          .getNft({ nft_id: launcherId })
+          .then((data) => setNft(data.nft))
+          .catch(addError);
+        commands
+          .isAssetOwned({ asset_id: launcherId })
+          .then((data) => setNftIsOwned(data.owned))
+          .catch(addError);
+      }
     },
     [launcherId, addError],
   );
@@ -112,7 +119,6 @@ export default function Nft() {
     };
   }, [updateNft]);
 
-  // Check if theme exists when NFT data changes
   useEffect(() => {
     checkThemeExists();
   }, [checkThemeExists]);
@@ -172,8 +178,6 @@ export default function Nft() {
     getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
   }, [nft?.owner_did]);
 
-  console.log(metadata);
-
   return (
     <>
       <Header title={nft?.name ?? t`Unknown NFT`} />
@@ -225,7 +229,7 @@ export default function Nft() {
                   />
                 )}
 
-                {nft?.special_use_type === 'theme' && (
+                {nft?.special_use_type === 'theme' && nftIsOwned && (
                   <Button
                     variant='outline'
                     className='w-full mt-3'
@@ -239,7 +243,6 @@ export default function Nft() {
                           });
                           await checkThemeExists();
                           await reloadThemes();
-                          console.log('Theme saved successfully');
                         } catch (error) {
                           addError({
                             kind: 'internal',
@@ -256,10 +259,10 @@ export default function Nft() {
                   >
                     <Trans>
                       {themeExists
-                        ? 'Theme Saved'
+                        ? t`Theme Saved`
                         : isSaving
-                          ? 'Saving...'
-                          : 'Save Theme'}
+                          ? t`Saving...`
+                          : t`Save Theme`}
                     </Trans>
                   </Button>
                 )}
