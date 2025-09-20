@@ -4,7 +4,6 @@ import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useErrors } from '@/hooks/useErrors';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { getMintGardenProfile } from '@/lib/marketplaces';
@@ -47,14 +46,15 @@ export default function Nft() {
   const [requestedOffers, setRequestedOffers] = useState<DexieOffer[]>([]);
   const [offeredOffers, setOfferedOffers] = useState<DexieOffer[]>([]);
   const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
+  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   // Check for open offers when NFT loads
   useEffect(() => {
     if (nft?.launcher_id) {
       // Fetch both requested and offered offers
       Promise.all([
-        fetchRequestedDexieOffersFromNftId(nft.launcher_id),
-        fetchOfferedDexieOffersFromNftId(nft.launcher_id),
+        fetchRequestedDexieOffersFromNftId(nft.launcher_id, network),
+        fetchOfferedDexieOffersFromNftId(nft.launcher_id, network),
       ])
         .then(([requested, offered]) => {
           setRequestedOffers(requested);
@@ -71,7 +71,7 @@ export default function Nft() {
           setOffersForAsset(response.offers);
         });
     }
-  }, [nft?.launcher_id]);
+  }, [nft?.launcher_id, network]);
 
   const checkThemeExists = useCallback(async () => {
     if (launcherId && nft?.special_use_type === 'theme') {
@@ -138,8 +138,6 @@ export default function Nft() {
       return {};
     }
   }, [data?.metadata_json, nft]);
-
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   useEffect(() => {
     commands
@@ -491,7 +489,7 @@ export default function Nft() {
                                 size='sm'
                                 onClick={() => {
                                   openUrl(
-                                    `https://dexie.space/offers/${offer.id}`,
+                                    `https://${network === 'testnet' ? 'testnet.' : ''}dexie.space/offers/${offer.id}`,
                                   );
                                 }}
                               >
@@ -545,7 +543,7 @@ export default function Nft() {
                                 size='sm'
                                 onClick={() => {
                                   openUrl(
-                                    `https://dexie.space/offers/${offer.id}`,
+                                    `https://${network === 'testnet' ? 'testnet.' : ''}dexie.space/offers/${offer.id}`,
                                   );
                                 }}
                               >
@@ -606,7 +604,8 @@ export default function Nft() {
                                   );
                                 }}
                               >
-                                <Trans>View Local Offer</Trans>
+                                <HandCoins className='h-4 w-4 mr-2' />
+                                <Trans>View Offer</Trans>{' '}
                               </Button>
                             </div>
                           </div>

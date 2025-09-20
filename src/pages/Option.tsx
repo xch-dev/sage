@@ -62,7 +62,7 @@ export default function Option() {
       .getNetwork({})
       .then((data) => setNetwork(data.kind))
       .catch((error) => console.error('Failed to get network:', error));
-  }, []);
+  }, [setNetwork]);
 
   // Check for local offers when option loads
   useEffect(() => {
