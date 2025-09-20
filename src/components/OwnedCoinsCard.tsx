@@ -20,7 +20,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { fromMojos, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -397,6 +397,17 @@ export function OwnedCoinsCard({
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
 
+  // Calculate total value of selected coins
+  const selectedCoinsTotal = useMemo(() => {
+    if (selectedCoinRecords.length === 0) return '0';
+    
+    const totalMojos = selectedCoinRecords.reduce((sum, coin) => {
+      return sum.plus(coin.amount);
+    }, new BigNumber(0));
+    
+    return fromMojos(totalMojos, asset.precision).toString();
+  }, [selectedCoinRecords, asset.precision]);
+
   return (
     <Card className='max-w-full overflow-auto'>
       <CardHeader>
@@ -428,7 +439,7 @@ export function OwnedCoinsCard({
                 disabled={!canSplit}
                 onClick={() => setSplitOpen(true)}
               >
-                <SplitIcon className='mr-2 h-4 w-4' /> <Trans>Split</Trans>
+                <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' /> <Trans>Split</Trans>
               </Button>
               <Button
                 variant='outline'
@@ -441,7 +452,7 @@ export function OwnedCoinsCard({
                   }
                 }}
               >
-                <MergeIcon className='mr-2 h-4 w-4' />
+                <MergeIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                 {!canCombine && canAutoCombine ? (
                   <Trans>Sweep</Trans>
                 ) : (
@@ -454,13 +465,13 @@ export function OwnedCoinsCard({
         {selectedCoinCount > 0 && (
           <div className='flex items-center gap-2 mt-2'>
             <Button variant='outline' onClick={() => setSelectedCoins({})}>
-              <XIcon className='h-4 w-4 mr-2' />
+              <XIcon className='h-4 w-4 mr-2' aria-hidden='true' />
               <Trans>Clear Selection</Trans>
             </Button>
 
             <span className='text-muted-foreground text-sm flex items-center'>
               <Trans>
-                {selectedCoinCount} {selectedCoinLabel} selected
+                {selectedCoinCount} {selectedCoinLabel} selected ({selectedCoinsTotal} {asset.ticker})
               </Trans>
             </span>
           </div>
