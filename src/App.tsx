@@ -1,3 +1,4 @@
+import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
 import { useEffect, useState } from 'react';
@@ -9,6 +10,7 @@ import {
 } from 'react-router-dom';
 import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { ThemeProvider, useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { ErrorProvider } from './contexts/ErrorContext';
@@ -21,7 +23,6 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
@@ -61,7 +62,7 @@ import Wallet from './pages/Wallet';
 function ThemeAwareToastContainer() {
   const { currentTheme } = useTheme();
 
-  const toastTheme = currentTheme?.most_like ?? 'light';
+  const toastTheme = currentTheme?.mostLike ?? 'light';
 
   return (
     <ToastContainer
@@ -151,7 +152,10 @@ export default function App() {
 
   return (
     <LanguageProvider locale={locale} setLocale={setLocale}>
-      <ThemeProvider>
+      <ThemeProvider
+        discoverThemes={discoverThemes}
+        imageResolver={resolveThemeImage}
+      >
         <SafeAreaProvider>
           <ErrorProvider>
             <BiometricProvider>

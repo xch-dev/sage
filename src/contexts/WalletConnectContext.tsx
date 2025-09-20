@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
@@ -45,6 +44,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useTheme } from 'theme-o-rama';
 import { formatNumber } from '../i18n';
 
 export interface WalletConnectContextType {

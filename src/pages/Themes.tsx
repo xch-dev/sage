@@ -13,11 +13,11 @@ import {
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useTheme } from '@/contexts/ThemeContext';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { ColumnDef } from '@tanstack/react-table';
 import { Info, Loader2, Palette } from 'lucide-react';
+import { useTheme } from 'theme-o-rama';
 
 // Add this interface for the demo table
 interface DemoTableData {
@@ -155,49 +155,25 @@ export default function Themes() {
                       <Label>
                         <Trans>Primary</Trans>
                       </Label>
-                      <div
-                        className='h-12 rounded-md border'
-                        style={{
-                          backgroundColor:
-                            currentTheme.colors?.primary || undefined,
-                        }}
-                      />
+                      <div className='h-12 rounded-md border bg-primary' />
                     </div>
                     <div className='space-y-2'>
                       <Label>
                         <Trans>Secondary</Trans>
                       </Label>
-                      <div
-                        className='h-12 rounded-md border'
-                        style={{
-                          backgroundColor:
-                            currentTheme.colors?.secondary || undefined,
-                        }}
-                      />
+                      <div className='h-12 rounded-md border bg-secondary' />
                     </div>
                     <div className='space-y-2'>
                       <Label>
                         <Trans>Accent</Trans>
                       </Label>
-                      <div
-                        className='h-12 rounded-md border'
-                        style={{
-                          backgroundColor:
-                            currentTheme.colors?.accent || undefined,
-                        }}
-                      />
+                      <div className='h-12 rounded-md border bg-accent' />
                     </div>
                     <div className='space-y-2'>
                       <Label>
                         <Trans>Destructive</Trans>
                       </Label>
-                      <div
-                        className='h-12 rounded-md border'
-                        style={{
-                          backgroundColor:
-                            currentTheme.colors?.destructive || undefined,
-                        }}
-                      />
+                      <div className='h-12 rounded-md border bg-destructive' />
                     </div>
                   </div>
                 </div>
@@ -210,40 +186,12 @@ export default function Themes() {
                   <div className='space-y-4'>
                     <div>
                       <Trans>Border Radius</Trans>:{' '}
-                      {currentTheme.corners?.lg || 'Default'}
                       <div className='mt-2 flex gap-2'>
-                        <div
-                          className='w-8 h-8 bg-primary'
-                          style={{
-                            borderRadius: currentTheme.corners?.none || '0px',
-                          }}
-                        />
-                        <div
-                          className='w-8 h-8 bg-primary'
-                          style={{
-                            borderRadius:
-                              currentTheme.corners?.sm || '0.125rem',
-                          }}
-                        />
-                        <div
-                          className='w-8 h-8 bg-primary'
-                          style={{
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        />
-                        <div
-                          className='w-8 h-8 bg-primary'
-                          style={{
-                            borderRadius: currentTheme.corners?.lg || '0.5rem',
-                          }}
-                        />
-                        <div
-                          className='w-8 h-8 bg-primary'
-                          style={{
-                            borderRadius: currentTheme.corners?.xl || '0.75rem',
-                          }}
-                        />
+                        <div className='w-8 h-8 bg-primary rounded-none' />
+                        <div className='w-8 h-8 bg-primary rounded-sm' />
+                        <div className='w-8 h-8 bg-primary rounded-md' />
+                        <div className='w-8 h-8 bg-primary rounded-lg' />
+                        <div className='w-8 h-8 bg-primary rounded-xl' />
                       </div>
                     </div>
                   </div>
@@ -254,128 +202,43 @@ export default function Themes() {
                     <Trans>Component Examples</Trans>
                   </Label>
                   <div className='space-y-4'>
-                    <div
-                      className='p-4 border rounded-lg'
-                      style={{
-                        backgroundColor: currentTheme.colors?.card
-                          ? `hsl(${currentTheme.colors.card})`
-                          : undefined,
-                        color: currentTheme.colors?.cardForeground
-                          ? `hsl(${currentTheme.colors.cardForeground})`
-                          : undefined,
-                        borderColor: currentTheme.colors?.border
-                          ? `hsl(${currentTheme.colors.border})`
-                          : undefined,
-                        borderRadius: currentTheme.corners?.lg || '0.5rem',
-                        boxShadow: currentTheme.shadows?.card || undefined,
-                      }}
-                    >
-                      <h3
-                        className='text-lg font-semibold mb-2'
-                        style={{
-                          fontFamily: currentTheme.fonts?.heading || 'inherit',
-                        }}
-                      >
-                        <Trans>Card Component</Trans>
-                      </h3>
-                      <p
-                        style={{
-                          fontFamily: currentTheme.fonts?.body || 'inherit',
-                        }}
-                      >
-                        <Trans>
-                          This is how a card component looks with the current
-                          theme.
-                        </Trans>
-                      </p>
-                      <div className='mt-4'>
-                        <Input
-                          placeholder={t`Input field example`}
-                          style={{
-                            backgroundColor:
-                              currentTheme.colors?.input || undefined,
-                            borderColor:
-                              currentTheme.colors?.border || undefined,
-                            color: currentTheme.colors?.foreground || undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        />
-                      </div>
-                    </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>
+                          <Trans>Card Component</Trans>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p>
+                          <Trans>
+                            This is how a card component looks with the current
+                            theme.
+                          </Trans>
+                        </p>
+                        <div className='mt-4'>
+                          <Input placeholder={t`Input field example`} />
+                        </div>
+                      </CardContent>
+                    </Card>
 
                     <div className='space-y-4'>
                       <Label className='text-base font-semibold block'>
                         <Trans>Buttons</Trans>
                       </Label>
                       <div className='flex flex-col sm:flex-row gap-2 flex-wrap'>
-                        <Button
-                          style={{
-                            backgroundColor:
-                              currentTheme.colors?.primary || undefined,
-                            color:
-                              currentTheme.colors?.primaryForeground ||
-                              undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                            boxShadow:
-                              currentTheme.shadows?.button || undefined,
-                          }}
-                        >
+                        <Button>
                           <Trans>Primary</Trans>
                         </Button>
-                        <Button
-                          variant='outline'
-                          style={{
-                            borderColor:
-                              currentTheme.colors?.border || undefined,
-                            color: currentTheme.colors?.foreground || undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        >
+                        <Button variant='outline'>
                           <Trans>Outline</Trans>
                         </Button>
-                        <Button
-                          variant='destructive'
-                          style={{
-                            borderColor:
-                              currentTheme.colors?.border || undefined,
-                            color: currentTheme.colors?.foreground || undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        >
+                        <Button variant='destructive'>
                           <Trans>Destructive</Trans>
                         </Button>
-                        <Button
-                          variant='ghost'
-                          style={{
-                            borderColor:
-                              currentTheme.colors?.border || undefined,
-                            color: currentTheme.colors?.foreground || undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        >
+                        <Button variant='ghost'>
                           <Trans>Ghost</Trans>
                         </Button>
-                        <Button
-                          variant='link'
-                          style={{
-                            borderColor:
-                              currentTheme.colors?.border || undefined,
-                            color: currentTheme.colors?.foreground || undefined,
-                            fontFamily: currentTheme.fonts?.body || 'inherit',
-                            borderRadius:
-                              currentTheme.corners?.md || '0.375rem',
-                          }}
-                        >
+                        <Button variant='link'>
                           <Trans>Link</Trans>
                         </Button>
                       </div>
@@ -385,14 +248,12 @@ export default function Themes() {
                       <Label className='text-base font-semibold block'>
                         <Trans>Tables</Trans>
                       </Label>
-                      <div className='rounded-md border'>
-                        <DataTable
-                          columns={demoColumns}
-                          data={demoTableData}
-                          rowLabel='item'
-                          rowLabelPlural='items'
-                        />
-                      </div>
+                      <DataTable
+                        columns={demoColumns}
+                        data={demoTableData}
+                        rowLabel='item'
+                        rowLabelPlural='items'
+                      />
                     </div>
                   </div>
                 </div>

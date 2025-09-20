@@ -76,17 +76,12 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
 
       return (
         <div className='flex items-center gap-3'>
-          <div
-            className='w-6 h-6 flex-shrink-0'
-            role='img'
-            aria-label={`${displayName} icon`}
-          >
+          <div className='w-6 h-6 flex-shrink-0' role='img' aria-hidden='true'>
             <AssetIcon
               asset={{
                 icon_url: row.original.iconUrl ?? null,
                 kind: row.original.type,
                 revocation_address: null,
-                // TODO: Use Asset here and use the actual revocation address
               }}
               size='sm'
             />
@@ -138,6 +133,9 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     id: 'actions',
     enableSorting: false,
     size: 50,
+    meta: {
+      cellClassName: 'px-2',
+    },
     cell: ({ row }) => {
       const txCoin = row.original;
 

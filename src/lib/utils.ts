@@ -172,14 +172,17 @@ export function isValidAddress(address: string, prefix: string): boolean {
 
 export function isValidUrl(str: string) {
   try {
-    const url = new URL(str);
-    // since this is used for nft links, we don't want to allow file:, localhost,
-    // or 127.0.0.1 to prevent links to local resources
-    return (
-      url.protocol.toLowerCase() !== 'file:' &&
-      url.hostname.toLowerCase() !== 'localhost' &&
-      url.hostname !== '127.0.0.1'
-    );
+    // only allow http(s) schemes, not file, ftp, wss etc
+    const trimmed = str.trimStart().toLowerCase();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      const url = new URL(str);
+      // since this is used for nft links, we don't want to allow localhost,
+      // or 127.0.0.1 to prevent links to local resources
+      return (
+        url.hostname.toLowerCase() !== 'localhost' &&
+        url.hostname !== '127.0.0.1'
+      );
+    }
   } catch {
     return false;
   }

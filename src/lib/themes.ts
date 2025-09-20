@@ -1,63 +1,56 @@
-import { commands } from '../bindings';
-import { type Theme, loadBuiltInTheme, loadUserTheme } from './theme';
+import { Theme } from 'theme-o-rama';
+
+export function hasTag(theme: Theme, tag: string): boolean {
+  return theme.tags?.includes(tag) === true;
+}
 
 // Dynamically discover theme folders by scanning the themes directory
-async function discoverThemeFolders(): Promise<string[]> {
+export async function discoverThemes(): Promise<Theme[]> {
   try {
     // Use dynamic imports to discover available themes
     const themeModules = import.meta.glob('../themes/*/theme.json', {
-      eager: false,
+      eager: true,
     });
 
-    // Extract theme names from the module paths
-    const themeNames = Object.keys(themeModules)
-      .map((path) => {
+    // Extract theme JSON contents from the module paths
+    const themeContents = Object.entries(themeModules)
+      .map(([path, module]) => {
         // Path format: "../themes/themeName/theme.json"
         const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
-        return match ? match[1] : null;
+        if (match) {
+          return module as Theme;
+        }
+        return null;
       })
-      .filter((name): name is string => name !== null);
+      .filter((theme): theme is Theme => theme !== null);
 
-    // Sort theme names alphabetically
-    return themeNames.sort();
+    return themeContents;
   } catch (error) {
     console.warn('Could not discover theme folders:', error);
     return [];
   }
 }
 
-export async function loadThemes(): Promise<Theme[]> {
-  return discoverThemeFolders()
-    .then((themeFolders) =>
-      Promise.all(themeFolders.map((themeName) => loadBuiltInTheme(themeName))),
-    )
-    .then((themes) => {
-      // Filter out null themes (themes that failed to load)
-      const defaultThemes = themes.filter(
-        (theme): theme is Theme => theme !== null,
-      );
-      return defaultThemes;
-    })
-    .then(async (defaultThemes) => {
-      const userThemes = await getUserThemes();
-      return [...(defaultThemes || []), ...userThemes];
-    })
-    .catch((error) => {
-      console.error('Error loading themes:', error);
-      return [];
-    });
-}
+export function resolveThemeImage(
+  themeName: string,
+  imagePath: string,
+): string {
+  // Check for sentinel value to return uploaded background image
+  if (imagePath === '{NEED_DATA_URL_BACKGROUND_IMAGE}') {
+    return localStorage.getItem('background-image') ?? '';
+  }
 
-async function getUserThemes(): Promise<Theme[]> {
-  const response = await commands.getUserThemes({});
-  const themePromises = response.themes.map(
-    async (theme) => await loadUserTheme(theme),
+  // Use static glob import to avoid dynamic import warnings for local files
+  const imageModules = import.meta.glob(
+    '../themes/*/*.{jpg,jpeg,png,gif,webp}',
+    { eager: true },
   );
-  const themes = await Promise.all(themePromises);
-  return themes.filter((theme): theme is Theme => theme !== null);
-}
+  const resolvedPath = `../themes/${themeName}/${imagePath}`;
+  const imageModule = imageModules[resolvedPath];
 
-export async function getThemeByName(name: string): Promise<Theme | undefined> {
-  const themes = await loadThemes();
-  return themes.find((theme) => theme.name === name);
+  if (imageModule) {
+    return (imageModule as { default: string }).default;
+  }
+
+  return `../themes/${themeName}/${imagePath}`;
 }

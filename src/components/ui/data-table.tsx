@@ -25,6 +25,7 @@ declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
     className?: string;
+    cellClassName?: string;
   }
 }
 
@@ -79,11 +80,8 @@ export function DataTable<TData, TValue>({
 
   return (
     <div>
-      <div
-        className='border'
-        style={{ borderRadius: 'var(--table-border-radius, 0.375rem)' }}
-      >
-        <Table aria-label='Table'>
+      <div className='border rounded-lg table-theme'>
+        <Table aria-label='Table' style={{ border: 'none' }}>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -91,7 +89,7 @@ export function DataTable<TData, TValue>({
                   <TableHead
                     key={header.id}
                     role='columnheader'
-                    className={`truncate px-2 ${header.column.columnDef.meta?.className ?? ''}`}
+                    className={`${header.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${header.column.columnDef.meta?.className ?? ''}`}
                     style={{ width: `${header.getSize()}px` }}
                   >
                     {header.isPlaceholder
@@ -117,7 +115,7 @@ export function DataTable<TData, TValue>({
                     <TableCell
                       key={cell.id}
                       role='cell'
-                      className={`truncate px-2 ${cell.column.columnDef.meta?.className ?? ''}`}
+                      className={`${cell.column.columnDef.meta?.cellClassName ?? 'truncate px-2'} ${cell.column.columnDef.meta?.className ?? ''}`}
                     >
                       {flexRender(
                         cell.column.columnDef.cell,

@@ -300,7 +300,10 @@ export default function Send() {
                         <TokenAmountInput
                           {...field}
                           ticker={asset?.ticker}
-                          className='pr-12 rounded-r-none z-10'
+                          precision={
+                            asset?.precision ?? (assetId === null ? 12 : 3)
+                          }
+                          className='pr-12 !rounded-r-none z-10'
                         />
                         <TooltipProvider>
                           <Tooltip>
@@ -309,7 +312,7 @@ export default function Send() {
                                 variant='outline'
                                 size='icon'
                                 type='button'
-                                className='border-l-0 rounded-l-none flex-shrink-0'
+                                className='!border-l-0 !rounded-l-none flex-shrink-0'
                                 onClick={() => {
                                   if (asset) {
                                     const maxAmount = fromMojos(

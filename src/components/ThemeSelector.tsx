@@ -1,6 +1,7 @@
-import { useTheme } from '@/contexts/ThemeContext';
+import { hasTag } from '@/lib/themes';
 import { Trans } from '@lingui/react/macro';
 import { Loader2 } from 'lucide-react';
+import { Theme, useTheme } from 'theme-o-rama';
 import { ThemeCard } from './ThemeCard';
 
 export function ThemeSelector() {
@@ -36,17 +37,46 @@ export function ThemeSelector() {
     );
   }
 
-  // Group themes by isUserTheme and sort alphabetically within each group
+  // Group themes by isUserTheme and isFeatured, sort alphabetically within each group
+  const featuredThemes: Theme[] = availableThemes
+    .filter((theme) => !hasTag(theme, 'user') && hasTag(theme, 'featured'))
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+
   const defaultThemes = availableThemes
-    .filter((theme) => !theme.isUserTheme)
+    .filter(
+      (theme) =>
+        !hasTag(theme, 'user') &&
+        !hasTag(theme, 'featured') &&
+        !hasTag(theme, 'hidden'),
+    )
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   const userThemes = availableThemes
-    .filter((theme) => theme.isUserTheme)
+    .filter((theme) => hasTag(theme, 'user'))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 
   return (
     <div className='space-y-8'>
+      {/* Featured Themes */}
+      {featuredThemes.length > 0 && (
+        <div>
+          <h3 className='text-lg font-semibold mb-4'>
+            <Trans>Featured Themes</Trans>
+          </h3>
+          <div className='grid grid-cols-2 md:grid-cols-3 gap-4'>
+            {featuredThemes.map((theme) => (
+              <ThemeCard
+                key={theme.name}
+                theme={theme}
+                currentTheme={currentTheme}
+                isSelected={currentTheme.name === theme.name}
+                onSelect={setTheme}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Default Themes */}
       {defaultThemes.length > 0 && (
         <div>

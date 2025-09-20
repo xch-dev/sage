@@ -63,7 +63,7 @@ const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
       (table.getIsSomePageRowsSelected() && 'indeterminate')
     }
     onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-    aria-label='Select all'
+    aria-label={t`Select all`}
   />
 );
 
@@ -72,7 +72,7 @@ const SelectRowCell = ({ row }: { row: Row<PeerRecord> }) => (
     className='mx-2'
     checked={row.getIsSelected()}
     onCheckedChange={(value) => row.toggleSelected(!!value)}
-    aria-label='Select row'
+    aria-label={t`Select row`}
   />
 );
 
@@ -120,7 +120,7 @@ const ActionsCell = ({
 }) => (
   <div className='text-center'>
     <Button size='icon' variant='ghost' onClick={() => onDelete(row.original)}>
-      <BanIcon className='h-4 w-4' />
+      <BanIcon className='h-4 w-4' aria-hidden='true' />
     </Button>
   </div>
 );
@@ -208,14 +208,21 @@ const MobileRow = ({
   return (
     <div className='relative overflow-hidden border-b last:border-b-0'>
       <div className='absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center'>
-        <Trash2Icon className='h-5 w-5 text-white' />
+        <Trash2Icon className='h-5 w-5 text-white' aria-hidden='true' />
       </div>
 
       <animated.div
         {...bind()}
         {...longPressHandlers}
-        style={{ x }}
-        className='relative bg-background p-4 touch-pan-y select-none'
+        style={{
+          x,
+          // this removes transparency of the secondary color
+          backgroundColor:
+            // because otherwise the trashcan shows through when there is
+            //transparency or a background image set
+            'color-mix(in srgb, var(--secondary) 100%, transparent)',
+        }}
+        className='relative p-4 touch-pan-y select-none'
       >
         <div className='flex items-center space-x-3'>
           {selectionMode && (
@@ -230,9 +237,15 @@ const MobileRow = ({
             <Tooltip>
               <TooltipTrigger>
                 {peer.user_managed ? (
-                  <UserIcon className='h-4 w-4 text-muted-foreground' />
+                  <UserIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-label={t`Manually added peer`}
+                  />
                 ) : (
-                  <CableIcon className='h-4 w-4 text-muted-foreground' />
+                  <CableIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-label={t`Auto-discovered peer`}
+                  />
                 )}
               </TooltipTrigger>
               <TooltipContent>
@@ -293,6 +306,9 @@ export default function PeerList() {
       {
         id: 'select',
         header: SelectAllHeader,
+        meta: {
+          cellClassName: 'px-2',
+        },
         cell: SelectRowCell,
         size: 40,
       },
@@ -300,16 +316,19 @@ export default function PeerList() {
         accessorKey: 'ip_addr',
         header: IPAddressHeader,
         size: 150,
+        enableSorting: false,
       },
       {
         accessorKey: 'port',
         header: PortHeader,
         size: 100,
+        enableSorting: false,
       },
       {
         accessorKey: 'peak_height',
         header: HeightHeader,
         size: 120,
+        enableSorting: false,
       },
       {
         id: 'type',
@@ -501,7 +520,7 @@ export default function PeerList() {
                       onClick={handleBatchDelete}
                       disabled={Object.keys(rowSelection).length === 0}
                     >
-                      <Trash2Icon className='h-5 w-5' />
+                      <Trash2Icon className='h-5 w-5' aria-hidden='true' />
                     </Button>
                   )}
                 </Dialog>
@@ -631,7 +650,10 @@ export default function PeerList() {
               </Label>
               <Popover>
                 <PopoverTrigger>
-                  <HelpCircleIcon className='h-4 w-4 text-muted-foreground' />
+                  <HelpCircleIcon
+                    className='h-4 w-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
                 </PopoverTrigger>
                 <PopoverContent className='text-sm'>
                   <Plural

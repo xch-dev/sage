@@ -214,7 +214,7 @@ export function AssetSelector({
                 disabled={assets.tokens
                   .filter((t, idx) => t.asset_id !== '' && idx !== i)
                   .map((t) => t.asset_id)}
-                className='rounded-r-none'
+                className='rounded-r-!none'
                 hideZeroBalance={offering === true}
                 showAllCats={offering !== true}
                 includeXch={true}
@@ -222,12 +222,13 @@ export function AssetSelector({
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
-                  className='border-l-0 z-10 rounded-l-none rounded-r-none w-[150px] h-12'
+                  className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
                   placeholder={t`Amount`}
                   value={amount}
                   onValueChange={(values) =>
                     updateToken(i, 'amount', values.value)
                   }
+                  precision={assetId === null ? 12 : 3}
                 />
                 {offering && (
                   <TooltipProvider>
@@ -235,7 +236,7 @@ export function AssetSelector({
                       <TooltipTrigger asChild>
                         <Button
                           variant='outline'
-                          className='border-l-0 rounded-none h-12 px-2 text-xs'
+                          className='!border-l-0 rounded-none h-12 px-2 text-xs'
                           onClick={() => setMaxTokenAmount(i, assetId)}
                         >
                           <ArrowUpToLine className='h-3 w-3 mr-1' />
@@ -249,7 +250,7 @@ export function AssetSelector({
                 )}
                 <Button
                   variant='outline'
-                  className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                  className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                   onClick={() => removeToken(i)}
                 >
                   <TrashIcon className='h-4 w-4' aria-hidden='true' />
@@ -291,11 +292,11 @@ export function AssetSelector({
                   disabled={assets.nfts.filter(
                     (id, idx) => id !== '' && idx !== i,
                   )}
-                  className='rounded-r-none'
+                  className='!rounded-r-none'
                 />
               ) : (
                 <Input
-                  className='flex-grow rounded-r-none h-12 z-10'
+                  className='flex-grow !rounded-r-none h-12 z-10'
                   placeholder='Enter NFT id'
                   value={nft}
                   onChange={(e) => updateNft(i, e.target.value)}
@@ -303,7 +304,7 @@ export function AssetSelector({
               )}
               <Button
                 variant='outline'
-                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                 onClick={() => removeNft(i)}
               >
                 <TrashIcon className='h-4 w-4' aria-hidden='true' />
@@ -332,11 +333,11 @@ export function AssetSelector({
                   disabled={assets.options.filter(
                     (id, idx) => id !== '' && idx !== i,
                   )}
-                  className='rounded-r-none'
+                  className='!rounded-r-none'
                 />
               ) : (
                 <Input
-                  className='flex-grow rounded-r-none h-12 z-10'
+                  className='flex-grow !rounded-r-none h-12 z-10'
                   placeholder='Enter option id'
                   value={option}
                   onChange={(e) => updateOption(i, e.target.value)}
@@ -344,7 +345,7 @@ export function AssetSelector({
               )}
               <Button
                 variant='outline'
-                className='border-l-0 rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                 onClick={() => removeOption(i)}
               >
                 <TrashIcon className='h-4 w-4' aria-hidden='true' />

@@ -1,0 +1,188 @@
+{
+  "name": "glass-dark",
+  "displayName": "Glass Dark",
+  "inherits": "dark",
+  "mostLike": "dark",
+  "backgroundImage": "background.jpg",
+  "schemaVersion": 1,
+  "colors": {
+    "background": "transparent",
+    "foreground": "rgba(0,255,255,0.75)",
+    "card": "transparent",
+    "cardBackdropFilter": "blur(28px) saturate(180%) brightness(0.35)",
+    "popover": "transparent",
+    "popoverBackdropFilter": "blur(24px) saturate(170%) brightness(0.85)",
+    "primary": "rgba(0,255,255,0.75)",
+    "primaryForeground": "#ade1f2",
+    "secondary": "rgba(202,255,250,0.8)",
+    "secondaryForeground": "#cae1f2",
+    "muted": "rgba(210,255,255,0.06)",
+    "mutedForeground": "rgba(210,255,255,0.85)",
+    "accent": "rgba(210,255,255,0.35)",
+    "accentForeground": "#000000",
+    "destructive": "rgba(255,69,58,0.80)",
+    "destructiveForeground": "#ff0000",
+    "border": "rgba(0,214,255,0.15)",
+    "input": "rgba(0,214,255,0.15)",
+    "inputBackground": "rgba(0,0,0, 0.6)",
+    "ring": "rgba(10,132,255,0.85)"
+  },
+  "fonts": {
+    "sans": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif",
+    "serif": "ui-serif, Georgia, Cambria, serif",
+    "mono": "'SF Mono', ui-monospace, Menlo, Consolas, 'Liberation Mono', monospace",
+    "heading": "-apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif",
+    "body": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "8px",
+    "md": "12px",
+    "lg": "14px",
+    "xl": "18px",
+    "full": "9999px"
+  },
+  "shadows": {
+    "none": "none",
+    "sm": "0 1px 2px rgba(0,0,0,0.20)",
+    "md": "0 8px 24px rgba(0,0,0,0.28)",
+    "lg": "0 18px 44px rgba(0,0,0,0.34)",
+    "xl": "0 28px 80px rgba(0,0,0,0.40)",
+    "inner": "inset 0 1px 0 rgba(210,255,255,0.08), inset 0 0 0 1px rgba(210,255,255,0.04)",
+    "card": "0 12px 36px rgba(0,0,0,0.40), 0 0 0 1px rgba(10,132,255,0.15), 0 0 20px rgba(10,132,255,0.08)",
+    "button": "0 1px 0 rgba(210,255,255,0.10), 0 8px 16px rgba(0,0,0,0.24), 0 0 0 1px rgba(10,132,255,0.20)",
+    "dropdown": "0 24px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(10,132,255,0.20), 0 0 30px rgba(10,132,255,0.90)"
+  },
+  "tables": {
+    "background": "rgba(8, 8, 12, 0.25)",
+    "border": "1px solid rgba(0,214,255,0.15)",
+    "boxShadow": "0 12px 30px rgba(0,0,0,0.30)",
+    "header": {
+      "background": "rgba(0,0,0,0.85)",
+      "color": "#cae1f2",
+      "backdropFilter": "blur(18px) saturate(160%) brightness(0.9)"
+    },
+    "row": {
+      "background": "rgba(0, 0, 0, 0.35)",
+      "color": "#cae1f2",
+      "border": "1px solid rgba(0,214,255,0.15)",
+      "backdropFilter": "blur(16px) saturate(150%) brightness(0.9)",
+      "hover": {
+        "background": "rgba(210,255,255,0.10)",
+        "color": "#cae1f2"
+      },
+      "selected": {
+        "background": "rgba(10,132,255,0.20)",
+        "color": "#cae1f2"
+      }
+    },
+    "footer": {
+      "background": "rgba(0,0,0,0.85)",
+      "color": "#e8e8ee",
+      "backdropFilter": "blur(14px) saturate(150%) brightness(0.9)"
+    }
+  },
+  "sidebar": {
+    "background": "rgba(25, 15, 20, 0.385)",
+    "backdropFilter": "blur(20px) saturate(180%) brightness(0.35)",
+    "border": "rgba(0,214,255,0.15)"
+  },
+  "buttons": {
+    "default": {
+      "background": "rgba(0,255,255,0.75)",
+      "color": "rgba(0,0,0,0.85)",
+      "border": "1px solid rgba(210,255,255,0.22)",
+      "borderRadius": "12px",
+      "boxShadow": "0 4px 7px rgba(10,132,255,0.32)",
+      "hover": {
+        "background": "rgba(0,0,0,0.85)",
+        "color": "rgba(0,255,255,0.75)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 12px 22px rgba(10,132,255,0.36)"
+      },
+      "active": {
+        "background": "rgba(0,255,255,0.75)",
+        "color": "rgba(0,0,0,0.85",
+        "transform": "translateY(0)",
+        "boxShadow": "0 4px 10px rgba(10,132,255,0.28)"
+      }
+    },
+    "outline": {
+      "background": "rgba(0,0,0,0.35)",
+      "color": "rgba(0,255,255,0.75)",
+      "border": "rgba(0,214,255,0.15)",
+      "borderRadius": "12px",
+      "boxShadow": "0 2px 8px rgba(0,0,0,0.18)",
+      "hover": {
+        "background": "rgba(0,255,255,0.75)",
+        "color": "rgba(0,0,0,0.35)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 8px 18px rgba(10,132,255,0.28)"
+      },
+      "active": {
+        "background": "rgba(0,255,255,0.75)",
+        "color": "rgba(0,0,0,0.35)",
+        "transform": "translateY(0)",
+        "boxShadow": "0 2px 8px rgba(0,0,0,0.2)"
+      }
+    },
+    "destructive": {
+      "background": "rgba(255,69,58,0.40)",
+      "color": "rgba(255,255,255,0.65)",
+      "border": "1px solid rgba(210,255,255,0.18)",
+      "borderRadius": "12px",
+      "boxShadow": "0 8px 16px rgba(255,69,58,0.32)",
+      "hover": {
+        "background": "rgba(255,59,48,0.90)",
+        "color": "rgba(255,255,255,0.65)",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 12px 22px rgba(255,69,58,0.36)"
+      },
+      "active": {
+        "background": "rgba(215,0,21,0.90)",
+        "color": "rgba(255,255,255,0.65)",
+        "transform": "translateY(0)",
+        "boxShadow": "0 4px 10px rgba(215,0,21,0.28)"
+      }
+    },
+    "ghost": {
+      "background": "rgba(210,255,255,0.02)",
+      "color": "rgba(0,255,255,0.75)",
+      "border": "1px solid transparent",
+      "borderRadius": "12px",
+      "hover": {
+        "background": "rgba(0,0,0,0.85)",
+        "color": "rgba(0,255,255,0.75)",
+        "transform": "translateY(-1px)"
+      },
+      "active": {
+        "background": "rgba(210,255,255,0.10)",
+        "color": "#f5f5f7",
+        "transform": "translateY(0)"
+      }
+    },
+    "link": {
+      "background": "transparent",
+      "color": "rgba(0,255,255,0.75)",
+      "border": "1px solid transparent",
+      "borderRadius": "12px",
+      "hover": {
+        "color": "rgba(0,255,255,0.3)",
+        "transform": "translateY(-1px)"
+      },
+      "active": {
+        "color": "rgba(0,255,255,0.75)",
+        "transform": "translateY(0)"
+      }
+    }
+  },
+  "buttonStyle": "rounded-buttons",
+  "switches": {
+    "checked": {
+      "background": "rgba(0,255,255,0.75)"
+    },
+    "unchecked": {
+      "background": "rgba(210,255,255,0.18)"
+    }
+  }
+}

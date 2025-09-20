@@ -5,14 +5,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-
 import { useInsets } from '@/contexts/SafeAreaContext';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useWallet } from '@/contexts/WalletContext';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 
@@ -44,7 +45,7 @@ export function FullLayout(props: LayoutProps) {
         </span>
       ) : (
         <img
-          src={currentTheme?.icon_path}
+          src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
           className='h-6 w-6'
           alt={t`Wallet icon`}
         />
@@ -72,7 +73,7 @@ export function FullLayout(props: LayoutProps) {
             </span>
           ) : (
             <img
-              src={currentTheme?.icon_path}
+              src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
               className='h-6 w-6'
               alt={t`Wallet icon`}
             />
@@ -89,9 +90,19 @@ export function FullLayout(props: LayoutProps) {
     <TooltipProvider>
       <div className='grid h-screen w-screen md:grid-cols-[auto_1fr]'>
         <div
-          className={`hidden border-r bg-muted/40 md:flex flex-col transition-all duration-300 ${
+          className={`hidden md:flex flex-col transition-all duration-300 ${
             isCollapsed ? 'w-[60px]' : 'w-[250px]'
-          }`}
+          } ${currentTheme?.sidebar ? '' : 'border-r bg-muted/40'}`}
+          style={
+            currentTheme?.sidebar
+              ? {
+                  borderRight: '1px solid var(--sidebar-border)',
+                  background: 'var(--sidebar-background)',
+                  backdropFilter: 'var(--sidebar-backdrop-filter)',
+                  WebkitBackdropFilter: 'var(--sidebar-backdrop-filter-webkit)',
+                }
+              : {}
+          }
           role='complementary'
           aria-label={t`Sidebar navigation`}
         >
@@ -108,7 +119,7 @@ export function FullLayout(props: LayoutProps) {
                       aria-label={t`Expand sidebar - ${wallet.name}`}
                       aria-expanded={!isCollapsed}
                     >
-                      <span role='img' aria-label='Wallet emoji'>
+                      <span role='img' aria-label={t`Wallet emoji`}>
                         {wallet.emoji}
                       </span>
                     </button>
