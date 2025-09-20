@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useTheme } from '@/contexts/ThemeContext';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useSortable } from '@dnd-kit/sortable';
@@ -44,6 +43,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Spoiler } from 'spoiled';
+import { useTheme } from 'theme-o-rama';
 import { commands, KeyInfo, SecretKeyInfo } from '../bindings';
 import { CustomError } from '../contexts/ErrorContext';
 import { useWallet } from '../contexts/WalletContext';
