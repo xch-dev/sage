@@ -1,4 +1,5 @@
 import { Theme } from 'theme-o-rama';
+import { commands } from '../bindings';
 
 export function hasTag(theme: Theme, tag: string): boolean {
   return theme.tags?.includes(tag) === true;
@@ -13,7 +14,7 @@ export async function discoverThemes(): Promise<Theme[]> {
     });
 
     // Extract theme JSON contents from the module paths
-    const themeContents = Object.entries(themeModules)
+    const appThemes = Object.entries(themeModules)
       .map(([path, module]) => {
         // Path format: "../themes/themeName/theme.json"
         const match = path.match(/\.\.\/themes\/([^/]+)\/theme\.json$/);
@@ -24,7 +25,9 @@ export async function discoverThemes(): Promise<Theme[]> {
       })
       .filter((theme): theme is Theme => theme !== null);
 
-    return themeContents;
+    const userThemes = await getUserThemes();
+
+    return [...appThemes, ...userThemes];
   } catch (error) {
     console.warn('Could not discover theme folders:', error);
     return [];
@@ -53,4 +56,19 @@ export function resolveThemeImage(
   }
 
   return `../themes/${themeName}/${imagePath}`;
+}
+
+async function getUserThemes(): Promise<Theme[]> {
+  const response = await commands.getUserThemes({});
+  return response.themes
+    .map((theme) => {
+      try {
+        const t = JSON.parse(theme) as Theme;
+        t.tags = ['user'];
+        return t;
+      } catch {
+        return null;
+      }
+    })
+    .filter((theme): theme is Theme => theme !== null);
 }
