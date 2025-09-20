@@ -3,6 +3,28 @@ import { CustomError } from '@/contexts/ErrorContext';
 
 const CNI_NFC_PREFIX = 'DT001';
 
+export interface DexieAsset {
+  id: string;
+  name: string;
+  amount: number;
+  code: string;
+}
+
+export interface DexieOffer {
+  id: string;
+  offer: string;
+  requested: DexieAsset[];
+  offered: DexieAsset[];
+}
+
+interface DexieOfferResponse {
+  success: boolean;
+  count: number;
+  page: number;
+  page_size: number;
+  offers: DexieOffer[];
+}
+
 export async function resolveOfferData(text: string): Promise<string> {
   try {
     if (isValidHostname(text, 'dexie.space')) {
@@ -92,6 +114,54 @@ async function fetchChiaOfferComOffer(id: string): Promise<string> {
   } as CustomError;
 }
 
+export async function fetchOfferedDexieOffersFromNftId(
+  id: string,
+  network: string | null,
+): Promise<DexieOffer[]> {
+  return await fetchDexieOffersFromNftId(
+    id,
+    'offered',
+    'price',
+    network || 'mainnet',
+  ); // lowest price first
+}
+
+export async function fetchRequestedDexieOffersFromNftId(
+  id: string,
+  network: string | null,
+): Promise<DexieOffer[]> {
+  return await fetchDexieOffersFromNftId(
+    id,
+    'requested',
+    'price_desc',
+    network || 'mainnet',
+  ); // highest price first
+}
+
+async function fetchDexieOffersFromNftId(
+  id: string,
+  type: string,
+  sort: string,
+  network: string,
+): Promise<DexieOffer[]> {
+  // this will only get a single page of offers (20 by default) which is fine
+  const response = await fetch(
+    `https://${network ? 'api-testnet' : 'api'}.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`,
+  );
+  const data = (await response.json()) as DexieOfferResponse;
+  if (!data) {
+    throw {
+      kind: 'api',
+      reason: 'Failed to fetch nft offers from Dexie: Invalid response data',
+    } as CustomError;
+  }
+
+  if (data.success && data?.offers) {
+    return data.offers;
+  }
+
+  return [];
+}
 async function fetchDexieOffer(id: string): Promise<string> {
   const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
   const data = await response.json();
