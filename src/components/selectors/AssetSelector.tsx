@@ -25,7 +25,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { OptionSelector } from './OptionSelector';
 
 interface AssetSelectorProps {
@@ -62,7 +62,7 @@ export function AssetSelector({
   }, [offering]);
 
   // Generate unique IDs for new items
-  const generateId = () => Date.now() + Math.random();
+  const generateId = useCallback(() => Date.now() + Math.random(), []);
 
   const addToken = () => {
     const newId = generateId();
@@ -149,7 +149,7 @@ export function AssetSelector({
       );
       setTokenIds(newTokenIds);
     }
-  }, [assets.tokens.length, tokenIds.length]);
+  }, [assets.tokens.length, tokenIds.length, generateId]);
 
   useEffect(() => {
     if (nftIds.length !== assets.nfts.length) {
@@ -158,7 +158,7 @@ export function AssetSelector({
       );
       setNftIds(newNftIds);
     }
-  }, [assets.nfts.length, nftIds.length]);
+  }, [assets.nfts.length, nftIds.length, generateId]);
 
   useEffect(() => {
     if (optionIds.length !== assets.options.length) {
@@ -167,22 +167,25 @@ export function AssetSelector({
       );
       setOptionIds(newOptionIds);
     }
-  }, [assets.options.length, optionIds.length]);
+  }, [assets.options.length, optionIds.length, generateId]);
 
   return (
     <>
       <div className='mt-4 flex gap-2 w-full items-center'>
         <Button variant='outline' className='flex-grow' onClick={addToken}>
-          <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>Token</Trans>
+          <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
+          <Trans>Token</Trans>
         </Button>
 
         <Button variant='outline' className='flex-grow' onClick={addNft}>
-          <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>NFT</Trans>
+          <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
+          <Trans>NFT</Trans>
         </Button>
 
         {!isIos && (
           <Button variant='outline' className='flex-grow' onClick={addOption}>
-            <PlusIcon className='mr-0.5 h-3 w-3' /> <Trans>Option</Trans>
+            <PlusIcon className='mr-0.5 h-3 w-3' aria-hidden='true' />{' '}
+            <Trans>Option</Trans>
           </Button>
         )}
       </div>
@@ -190,12 +193,12 @@ export function AssetSelector({
       {assets.tokens.length > 0 && (
         <div className='flex flex-col mt-4'>
           <Label className='flex items-center gap-1 mb-2'>
-            <HandCoins className='h-4 w-4' />
+            <HandCoins className='h-4 w-4' aria-hidden='true' />
             <span>Tokens</span>
           </Label>
           {assets.tokens.map(({ asset_id: assetId, amount }, i) => (
             <div
-              key={tokenIds[i]}
+              key={tokenIds[i] || `token-${i}`}
               style={{
                 zIndex:
                   assets.tokens.length -
@@ -250,7 +253,7 @@ export function AssetSelector({
                   className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                   onClick={() => removeToken(i)}
                 >
-                  <TrashIcon className='h-4 w-4' />
+                  <TrashIcon className='h-4 w-4' aria-hidden='true' />
                 </Button>
               </div>
             </div>
@@ -261,7 +264,7 @@ export function AssetSelector({
       {assets.nfts.length > 0 && (
         <div className='flex flex-col mt-4'>
           <Label className='flex items-center gap-1 mb-2'>
-            <ImageIcon className='h-4 w-4' />
+            <ImageIcon className='h-4 w-4' aria-hidden='true' />
             <span>NFTs</span>
           </Label>
           {offering && assets.nfts.filter((n) => n).length > 1 && (
@@ -278,7 +281,7 @@ export function AssetSelector({
           )}
           {assets.nfts.map((nft, i) => (
             <div
-              key={nftIds[i]}
+              key={nftIds[i] || `nft-${i}`}
               style={{ zIndex: assets.nfts.length - i + assets.options.length }}
               className='flex h-14 mb-1 relative'
             >
@@ -304,7 +307,7 @@ export function AssetSelector({
                 className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                 onClick={() => removeNft(i)}
               >
-                <TrashIcon className='h-4 w-4' />
+                <TrashIcon className='h-4 w-4' aria-hidden='true' />
               </Button>
             </div>
           ))}
@@ -314,12 +317,12 @@ export function AssetSelector({
       {assets.options.length > 0 && (
         <div className='flex flex-col mt-4'>
           <Label className='flex items-center gap-1 mb-2'>
-            <FilePenLine className='h-4 w-4' />
+            <FilePenLine className='h-4 w-4' aria-hidden='true' />
             <span>Options</span>
           </Label>
           {assets.options.map((option, i) => (
             <div
-              key={optionIds[i]}
+              key={optionIds[i] || `option-${i}`}
               style={{ zIndex: assets.options.length - i }}
               className='flex h-14 mb-1 relative'
             >
@@ -345,7 +348,7 @@ export function AssetSelector({
                 className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
                 onClick={() => removeOption(i)}
               >
-                <TrashIcon className='h-4 w-4' />
+                <TrashIcon className='h-4 w-4' aria-hidden='true' />
               </Button>
             </div>
           ))}

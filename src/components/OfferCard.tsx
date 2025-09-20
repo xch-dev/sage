@@ -101,7 +101,7 @@ export function OfferCard({
         <CardHeader className='pb-2'>
           <CardTitle className='flex items-center justify-between'>
             <div className='flex items-center gap-2'>
-              <InfoIcon className='h-5 w-5' />
+              <InfoIcon className='h-5 w-5' aria-hidden='true' />
               <Trans>Offer Details</Trans>
             </div>
             {offer && (
@@ -158,7 +158,10 @@ export function OfferCard({
           <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
             {creationTimestamp && (
               <div className='flex items-center gap-2'>
-                <Calendar className='h-4 w-4 text-muted-foreground' />
+                <Calendar
+                  className='h-4 w-4 text-muted-foreground'
+                  aria-hidden='true'
+                />
                 <LabeledItem
                   label={t`Created`}
                   content={formatTimestamp(creationTimestamp, 'short', 'short')}
@@ -169,7 +172,10 @@ export function OfferCard({
             {(offerSummary.expiration_timestamp ||
               offerSummary.expiration_height) && (
               <div className='flex items-center gap-2'>
-                <Clock className='h-4 w-4 text-muted-foreground' />
+                <Clock
+                  className='h-4 w-4 text-muted-foreground'
+                  aria-hidden='true'
+                />
                 <LabeledItem
                   label={t`Expires`}
                   content={
@@ -226,7 +232,7 @@ export function OfferCard({
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <HandCoinsIcon className='mr-2 h-5 w-5' />
+              <HandCoinsIcon className='mr-2 h-5 w-5' aria-hidden='true' />
               <Trans>Offered</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>
@@ -243,7 +249,7 @@ export function OfferCard({
         <Card>
           <CardHeader className='pb-2'>
             <CardTitle className='text-lg font-medium flex items-center'>
-              <Tags className='mr-2 h-5 w-5' />
+              <Tags className='mr-2 h-5 w-5' aria-hidden='true' />
               <Trans>Marketplaces</Trans>
             </CardTitle>
             <p className='text-sm text-muted-foreground'>
