@@ -1,11 +1,7 @@
 import { Theme } from 'theme-o-rama';
 
-export function isUserTheme(theme: Theme): boolean {
-  return theme.tags?.includes('user') === true;
-}
-
-export function isFeaturedTheme(theme: Theme): boolean {
-  return theme.tags?.includes('featured') === true;
+export function hasTag(theme: Theme, tag: string): boolean {
+  return theme.tags?.includes(tag) === true;
 }
 
 // Dynamically discover theme folders by scanning the themes directory

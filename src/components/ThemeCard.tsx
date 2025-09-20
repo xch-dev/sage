@@ -1,6 +1,6 @@
 import { commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
-import { isUserTheme } from '@/lib/themes';
+import { hasTag } from '@/lib/themes';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { Check, Trash2 } from 'lucide-react';
@@ -46,7 +46,7 @@ export function ThemeCard({
   };
 
   const handleDeleteTheme = async () => {
-    if (isUserTheme(theme)) {
+    if (hasTag(theme, 'user')) {
       setIsDeleting(true);
       try {
         await commands.deleteUserTheme({ nft_id: theme.name });
@@ -95,7 +95,7 @@ export function ThemeCard({
           </h3>
           <div className='flex items-center gap-2'>
             {isSelected && <Check className='h-4 w-4' style={checkStyles} />}
-            {isUserTheme(theme) && (
+            {hasTag(theme, 'user') && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
@@ -154,7 +154,7 @@ export function ThemeCard({
                 aria-label={t`Theme selected`}
               />
             )}
-            {isUserTheme(theme) && (
+            {hasTag(theme, 'user') && (
               <Button
                 onClick={handleDeleteClick}
                 disabled={isDeleting}
