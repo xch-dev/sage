@@ -248,14 +248,12 @@ export default function Themes() {
                       <Label className='text-base font-semibold block'>
                         <Trans>Tables</Trans>
                       </Label>
-                      <div className='rounded-md border'>
-                        <DataTable
-                          columns={demoColumns}
-                          data={demoTableData}
-                          rowLabel='item'
-                          rowLabelPlural='items'
-                        />
-                      </div>
+                      <DataTable
+                        columns={demoColumns}
+                        data={demoTableData}
+                        rowLabel='item'
+                        rowLabelPlural='items'
+                      />
                     </div>
                   </div>
                 </div>

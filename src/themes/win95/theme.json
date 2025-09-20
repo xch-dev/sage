@@ -51,7 +51,7 @@
     "button": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)",
     "dropdown": "inset -2px -2px 0 0 rgb(128 128 128), inset 2px 2px 0 0 rgb(255 255 255)"
   },
-  "buttonStyles": ["3d-effects"],
+  "buttonStyle": "3d-effects",
   "buttons": {
     "default": {
       "borderStyle": "outset",
@@ -97,8 +97,5 @@
       "color": "hsl(240 100% 50%)",
       "textShadow": "none"
     }
-  },
-  "tables": {
-    "borderRadius": "0px"
   }
 }

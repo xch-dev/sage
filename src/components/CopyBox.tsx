@@ -109,7 +109,7 @@ export function CopyBox(props: CopyBoxProps) {
         aria-label={props['aria-label'] || props.title}
         aria-describedby={props['aria-describedby']}
         className={cn(
-          'rounded-r-none border-r-0 font-mono tracking-tight',
+          '!rounded-r-none !border-r-0 font-mono tracking-tight',
           truncate && !truncateMiddle && 'truncate',
           props.inputClassName,
         )}
@@ -117,7 +117,7 @@ export function CopyBox(props: CopyBoxProps) {
       <CopyButton
         value={props.value}
         onCopy={props.onCopy}
-        className='relative rounded-none -ml-px inline-flex items-center justify-center h-9 w-9 rounded-r-md border border-input bg-background text-foreground shadow-button hover:bg-accent hover:text-accent-foreground '
+        className='relative !rounded-l-none !border-l-0 -ml-px inline-flex items-center justify-center h-9 w-9 rounded-r-md border border-input bg-background text-foreground shadow-button hover:bg-accent hover:text-accent-foreground '
         aria-label={t`Copy ${props.value}`}
       />
     </div>

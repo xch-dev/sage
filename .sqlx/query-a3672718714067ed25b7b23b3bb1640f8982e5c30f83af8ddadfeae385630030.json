@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT COUNT(*) AS count FROM owned_coins \n            INNER JOIN assets ON assets.id = owned_coins.asset_id\n            WHERE assets.hash = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "count",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a3672718714067ed25b7b23b3bb1640f8982e5c30f83af8ddadfeae385630030"
+}
