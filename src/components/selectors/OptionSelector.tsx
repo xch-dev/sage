@@ -30,6 +30,13 @@ export function OptionSelector({
 
   const pageSize = 8;
 
+  // Initialize searchTerm when value is provided
+  useEffect(() => {
+    if (value && value !== '' && !searchTerm) {
+      setSearchTerm(value);
+    }
+  }, [value, searchTerm]);
+
   const isValidOptionId = useMemo(() => {
     return isValidAddress(searchTerm, 'option');
   }, [searchTerm]);

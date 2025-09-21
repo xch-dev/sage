@@ -32,6 +32,13 @@ export function NftSelector({
 
   const pageSize = 8;
 
+  // Initialize searchTerm when value is provided
+  useEffect(() => {
+    if (value && value !== '' && !searchTerm) {
+      setSearchTerm(value);
+    }
+  }, [value, searchTerm]);
+
   const isValidNftId = useMemo(() => {
     return isValidAddress(searchTerm, 'nft');
   }, [searchTerm]);
