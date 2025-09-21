@@ -252,7 +252,7 @@ export function AssetSelector({
                 disabled={assets.tokens
                   .filter((t, idx) => t.asset_id !== '' && idx !== i)
                   .map((t) => t.asset_id)}
-                className='rounded-r-!none'
+                className='!rounded-r-none'
                 hideZeroBalance={offering === true}
                 showAllCats={offering !== true}
                 includeXch={true}
@@ -274,7 +274,7 @@ export function AssetSelector({
                       <TooltipTrigger asChild>
                         <Button
                           variant='outline'
-                          className='!border-l-0 rounded-none h-12 px-2 text-xs'
+                          className='!border-l-0 !rounded-none h-12 px-2 text-xs'
                           onClick={() => setMaxTokenAmount(i, assetId)}
                         >
                           <ArrowUpToLine className='h-3 w-3 mr-1' />

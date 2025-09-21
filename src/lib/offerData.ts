@@ -146,7 +146,7 @@ async function fetchDexieOffersFromNftId(
 ): Promise<DexieOffer[]> {
   // this will only get a single page of offers (20 by default) which is fine
   const response = await fetch(
-    `https://${network ? 'api-testnet' : 'api'}.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`,
+    `https://${network !== 'mainnet' ? 'api-testnet' : 'api'}.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`,
   );
   const data = (await response.json()) as DexieOfferResponse;
   if (!data) {
