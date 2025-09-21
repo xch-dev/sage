@@ -21,6 +21,7 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 import { FileImage, FileText, HandCoins, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTheme } from 'theme-o-rama';
 import {
   commands,
   events,
@@ -29,7 +30,6 @@ import {
   NftRecord,
   OfferRecord,
 } from '../bindings';
-import { useTheme } from 'theme-o-rama';
 
 export default function Nft() {
   const navigate = useNavigate();
@@ -498,7 +498,7 @@ export default function Nft() {
                                   className='h-4 w-4 mr-2'
                                   alt='Dexie.space logo'
                                 />
-                                <Trans>View Offer on Dexie</Trans>
+                                <Trans>Dexie</Trans>
                               </Button>
                             </div>
                           </div>
@@ -552,7 +552,7 @@ export default function Nft() {
                                   className='h-4 w-4 mr-2'
                                   alt='Dexie.space logo'
                                 />
-                                <Trans>View Offer on Dexie</Trans>
+                                <Trans>Dexie</Trans>
                               </Button>
                             </div>
                           </div>

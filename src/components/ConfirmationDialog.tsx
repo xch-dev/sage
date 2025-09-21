@@ -177,7 +177,7 @@ export default function ConfirmationDialog({
 
   return (
     <Dialog open={!!response} onOpenChange={reset}>
-      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border rounded-none md:rounded-lg'>
+      <DialogContent className='max-w-none w-full h-full md:max-w-[500px] md:h-[80vh] flex flex-col p-2.5 md:p-6 border-0 md:border !rounded-none md:rounded-lg'>
         <DialogHeader className='flex-shrink-0 mt-12 sm:mt-0'>
           <DialogTitle className='text-xl font-semibold'>
             <Trans>Confirm Transaction</Trans>
