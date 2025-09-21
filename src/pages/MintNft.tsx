@@ -55,12 +55,16 @@ export default function MintNft() {
     metadataUris: z.string(),
     licenseUris: z.string().optional(),
     editionCount: z.number().min(1).default(1),
+    editionStart: z.number().min(1).default(1),
+    editionTotal: z.number().min(1).optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       editionCount: 1,
+      editionStart: 1,
+      editionTotal: undefined,
     },
   });
 
@@ -112,8 +116,8 @@ export default function MintNft() {
     const mints =
       values.editionCount > 1
         ? Array.from({ length: values.editionCount }, (_, i) => ({
-            edition_number: i + 1,
-            edition_total: values.editionCount,
+            edition_number: i + values.editionStart,
+            edition_total: values.editionTotal ?? values.editionCount,
             royalty_address: values.royaltyAddress || null,
             royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
             data_uris: mintDetails.data_uris,
@@ -320,6 +324,54 @@ export default function MintNft() {
                       <IntegerInput
                         min={1}
                         placeholder={t`Enter count`}
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className='grid sm:grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='editionStart'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Edition Start</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <IntegerInput
+                        min={1}
+                        placeholder={t`Enter start`}
+                        {...field}
+                        onChange={(e) =>
+                          field.onChange(parseInt(e.target.value, 10))
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='editionTotal'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Edition Total</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <IntegerInput
+                        min={1}
+                        placeholder={t`Enter total (defaults to count)`}
                         {...field}
                         onChange={(e) =>
                           field.onChange(parseInt(e.target.value, 10))
