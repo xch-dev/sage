@@ -30,6 +30,13 @@ export function OptionSelector({
 
   const pageSize = 8;
 
+  // Initialize searchTerm when value is provided
+  useEffect(() => {
+    if (value && value !== '' && !searchTerm) {
+      setSearchTerm(value);
+    }
+  }, [value, searchTerm]);
+
   const isValidOptionId = useMemo(() => {
     return isValidAddress(searchTerm, 'option');
   }, [searchTerm]);
@@ -51,20 +58,28 @@ export function OptionSelector({
       commands
         .getOption({ option_id: searchTerm })
         .then((data) => {
-          setSelectedOption(data.option);
-          onChange(searchTerm);
+          // Only set the option if it's not expired
+          if (
+            data.option &&
+            data.option.expiration_seconds * 1000 >= Date.now()
+          ) {
+            setSelectedOption(data.option);
+          } else {
+            // Clear the selection if the option is expired
+            setSelectedOption(null);
+          }
         })
         .catch(addError);
     }
-  }, [isValidOptionId, searchTerm, onChange, addError]);
+  }, [isValidOptionId, searchTerm, addError]);
 
   // Load option record when a value is provided but not found in current options list
   useEffect(() => {
     if (
       value &&
       value !== '' &&
-      !selectedOption &&
-      !options.find((option) => option.launcher_id === value)
+      !options.find((option) => option.launcher_id === value) &&
+      (!selectedOption || selectedOption.launcher_id !== value)
     ) {
       try {
         // Validate the Option ID format
@@ -72,7 +87,16 @@ export function OptionSelector({
           commands
             .getOption({ option_id: value })
             .then((data) => {
-              setSelectedOption(data.option);
+              // Only set the option if it's not expired
+              if (
+                data.option &&
+                data.option.expiration_seconds * 1000 >= Date.now()
+              ) {
+                setSelectedOption(data.option);
+              } else {
+                // Clear the selection if the option is expired
+                setSelectedOption(null);
+              }
             })
             .catch(addError);
         }
@@ -93,21 +117,24 @@ export function OptionSelector({
     return options
       .filter(
         (option) =>
-          option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.ticker
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.underlying_asset.asset_id === searchTerm ||
-          option.strike_asset.name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.strike_asset.ticker
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          option.strike_asset.asset_id === searchTerm,
+          // Filter out expired options
+          option.expiration_seconds * 1000 >= Date.now() &&
+          (option.launcher_id === searchTerm ||
+            option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.ticker
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.underlying_asset.asset_id === searchTerm ||
+            option.strike_asset.name
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.strike_asset.ticker
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            option.strike_asset.asset_id === searchTerm),
       )
       .sort(
         (a, b) =>
@@ -132,7 +159,10 @@ export function OptionSelector({
       setSelected={(option) => {
         setSelectedOption(option);
         onChange(option.launcher_id);
-        setSearchTerm('');
+        // Only clear search term if it's not a valid Option ID (i.e., user clicked on an item from the list)
+        if (!isValidAddress(searchTerm, 'option')) {
+          setSearchTerm('');
+        }
       }}
       className={className}
       manualInput={

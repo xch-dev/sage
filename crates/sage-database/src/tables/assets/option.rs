@@ -2,7 +2,10 @@ use chia::protocol::{Bytes32, Coin};
 use chia_wallet_sdk::driver::{OptionType, OptionUnderlying};
 use sqlx::{query, Row, SqliteExecutor};
 
-use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
+use crate::{
+    is_valid_asset_id, puzzle_hash_from_address, Asset, AssetKind, CoinKind, CoinRow, Convert,
+    Database, DatabaseTx, Result,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OptionSortMode {
@@ -416,16 +419,26 @@ async fn owned_options(
         query.push_bind(format!("%{find_value}%"));
 
         // If find_value looks like a valid asset ID (64 hex chars), search by asset hash
-        if find_value.len() == 64 && find_value.chars().all(|c| c.is_ascii_hexdigit()) {
+        if is_valid_asset_id(&find_value) {
             query.push(" OR asset_hash = X'");
             query.push(find_value.clone());
             query.push("' OR underlying_asset.hash = X'");
             query.push(find_value.clone());
             query.push("' OR strike_asset.hash = X'");
-            query.push(find_value);
+            query.push(find_value.clone());
             query.push("'");
         }
 
+        // If find_value looks like a valid address, search by puzzle hash
+        if let Some(puzzle_hash) = puzzle_hash_from_address(&find_value) {
+            query.push(" OR asset_hash = X'");
+            query.push(puzzle_hash.clone());
+            query.push("' OR underlying_asset.hash = X'");
+            query.push(puzzle_hash.clone());
+            query.push("' OR strike_asset.hash = X'");
+            query.push(puzzle_hash);
+            query.push("'");
+        }
         query.push(")");
     }
 

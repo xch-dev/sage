@@ -75,7 +75,25 @@ export function Offer() {
   };
 
   const take = async () => {
-    if (!resolvedOffer) return;
+    if (!resolvedOffer || !summary) return;
+
+    // Check for expired options in the offered side (maker)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const expiredOptions = summary.maker
+      .filter((asset) => asset.option_assets)
+      .filter(
+        (asset) =>
+          asset.option_assets &&
+          asset.option_assets.expiration_seconds < currentTime,
+      );
+
+    if (expiredOptions.length > 0) {
+      addError({
+        kind: 'internal',
+        reason: t`This offer contains expired options and cannot be taken.`,
+      });
+      return;
+    }
 
     try {
       const result = await commands.takeOffer({
