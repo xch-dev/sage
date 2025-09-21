@@ -168,6 +168,7 @@ export function NftSelector({
       isSelected={(nft) => nft.launcher_id === selectedNft?.launcher_id}
       setSelected={(nft) => {
         setSelectedNft(nft);
+        onChange(nft.launcher_id);
         // Only clear search term if it's not a valid NFT ID (i.e., user clicked on an item from the list)
         if (!isValidAddress(searchTerm, 'nft')) {
           setSearchTerm('');

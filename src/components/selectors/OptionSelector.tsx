@@ -151,6 +151,7 @@ export function OptionSelector({
       }
       setSelected={(option) => {
         setSelectedOption(option);
+        onChange(option.launcher_id);
         // Only clear search term if it's not a valid Option ID (i.e., user clicked on an item from the list)
         if (!isValidAddress(searchTerm, 'option')) {
           setSearchTerm('');
