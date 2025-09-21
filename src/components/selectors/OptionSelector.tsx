@@ -71,8 +71,8 @@ export function OptionSelector({
     if (
       value &&
       value !== '' &&
-      !selectedOption &&
-      !options.find((option) => option.launcher_id === value)
+      !options.find((option) => option.launcher_id === value) &&
+      (!selectedOption || selectedOption.launcher_id !== value)
     ) {
       try {
         // Validate the Option ID format

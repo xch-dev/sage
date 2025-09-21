@@ -131,8 +131,8 @@ export function NftSelector({
     if (
       value &&
       value !== '' &&
-      !selectedNft &&
-      !nfts.find((nft) => nft.launcher_id === value)
+      !nfts.find((nft) => nft.launcher_id === value) &&
+      (!selectedNft || selectedNft.launcher_id !== value)
     ) {
       try {
         // Validate the NFT ID format
