@@ -101,7 +101,14 @@ export function DropdownSelector({
             </div>
           )}
           {manualInput && (
-            <div className='min-w-0 max-w-full truncate'>{manualInput}</div>
+            <div
+              className='min-w-0 max-w-full truncate'
+              onKeyDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              {manualInput}
+            </div>
           )}
           {(!!setPage || manualInput) && <hr className='my-2' />}
         </div>

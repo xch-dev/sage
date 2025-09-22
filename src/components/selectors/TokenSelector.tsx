@@ -2,7 +2,7 @@ import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AssetIcon } from '../AssetIcon';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
@@ -75,23 +75,27 @@ export function TokenSelector({
   }, [addError, includeXch, showAllCats]);
 
   // Filter tokens based on search term or show all if it's a valid asset ID
-  const filteredTokenIds = Object.values(tokens)
-    .filter((token) => {
-      if (!token.visible) return false;
-      if (hideZeroBalance && token.balance === 0) return false;
-      if (!searchTerm) return true;
+  const filteredTokenIds = useMemo(
+    () =>
+      Object.values(tokens)
+        .filter((token) => {
+          if (!token.visible) return false;
+          if (hideZeroBalance && token.balance === 0) return false;
+          if (!searchTerm) return true;
 
-      if (isValidAssetId(searchTerm)) {
-        return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
-      }
+          if (isValidAssetId(searchTerm)) {
+            return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
+          }
 
-      // Search by name and ticker
-      return (
-        token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    })
-    .map((token) => token.asset_id ?? 'xch');
+          // Search by name and ticker
+          return (
+            token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        })
+        .map((token) => token.asset_id ?? 'xch'),
+    [tokens, hideZeroBalance, searchTerm],
+  );
 
   return (
     <DropdownSelector
@@ -100,7 +104,10 @@ export function TokenSelector({
       value={value === null ? 'xch' : value}
       setValue={(assetId) => {
         onChange(assetId === 'xch' ? null : assetId);
-        setSearchTerm('');
+        // Only clear search term if it's not a valid asset ID
+        if (!/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
+          setSearchTerm('');
+        }
       }}
       isDisabled={(token) => disabled.includes(token)}
       className={className}
@@ -125,8 +132,7 @@ export function TokenSelector({
             asset={{
               icon_url: tokens[assetId]?.icon_url ?? null,
               kind: 'token',
-              revocation_address: null,
-              // TODO: Use Asset here and use the actual revocation address
+              revocation_address: tokens[assetId]?.revocation_address ?? null,
             }}
             size='md'
             className='flex-shrink-0'
