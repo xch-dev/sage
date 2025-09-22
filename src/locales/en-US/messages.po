@@ -126,7 +126,7 @@ msgstr "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from
 msgid "{selectedCoinCount} {selectedCoinLabel} selected"
 msgstr "{selectedCoinCount} {selectedCoinLabel} selected"
 
-#: src/components/OwnedCoinsCard.tsx:473
+#: src/components/OwnedCoinsCard.tsx:474
 msgid "{selectedCoinCount} {selectedCoinLabel} selected ({selectedCoinsTotal} {0})"
 msgstr "{selectedCoinCount} {selectedCoinLabel} selected ({selectedCoinsTotal} {0})"
 
@@ -450,7 +450,7 @@ msgstr "Assign profile for {nftName}"
 msgid "Attributes"
 msgstr "Attributes"
 
-#: src/components/OwnedCoinsCard.tsx:602
+#: src/components/OwnedCoinsCard.tsx:604
 msgid "Auto Combine {0}"
 msgstr "Auto Combine {0}"
 
@@ -612,9 +612,9 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 #: src/components/TransferDialog.tsx:119
 #: src/components/TokenCard.tsx:263
 #: src/components/ThemeCard.tsx:215
-#: src/components/OwnedCoinsCard.tsx:519
-#: src/components/OwnedCoinsCard.tsx:587
-#: src/components/OwnedCoinsCard.tsx:670
+#: src/components/OwnedCoinsCard.tsx:521
+#: src/components/OwnedCoinsCard.tsx:589
+#: src/components/OwnedCoinsCard.tsx:672
 #: src/components/OfferRowCard.tsx:129
 #: src/components/NftCard.tsx:668
 #: src/components/FeeOnlyDialog.tsx:92
@@ -765,7 +765,7 @@ msgstr "Clawback Expiration"
 msgid "Clear search"
 msgstr "Clear search"
 
-#: src/components/OwnedCoinsCard.tsx:469
+#: src/components/OwnedCoinsCard.tsx:470
 #: src/components/ClawbackCoinsCard.tsx:287
 msgid "Clear Selection"
 msgstr "Clear Selection"
@@ -882,13 +882,13 @@ msgstr "Collections"
 msgid "Colors"
 msgstr "Colors"
 
-#: src/components/OwnedCoinsCard.tsx:459
-#: src/components/OwnedCoinsCard.tsx:522
-#: src/components/OwnedCoinsCard.tsx:673
+#: src/components/OwnedCoinsCard.tsx:460
+#: src/components/OwnedCoinsCard.tsx:524
+#: src/components/OwnedCoinsCard.tsx:675
 msgid "Combine"
 msgstr "Combine"
 
-#: src/components/OwnedCoinsCard.tsx:485
+#: src/components/OwnedCoinsCard.tsx:487
 msgid "Combine {0}"
 msgstr "Combine {0}"
 
@@ -2239,11 +2239,11 @@ msgstr "Manually added peer"
 msgid "Marketplaces"
 msgstr "Marketplaces"
 
-#: src/components/OwnedCoinsCard.tsx:652
+#: src/components/OwnedCoinsCard.tsx:654
 msgid "Maximum Coin Amount"
 msgstr "Maximum Coin Amount"
 
-#: src/components/OwnedCoinsCard.tsx:637
+#: src/components/OwnedCoinsCard.tsx:639
 msgid "Maximum Number of Coins"
 msgstr "Maximum Number of Coins"
 
@@ -2395,9 +2395,9 @@ msgstr "Network"
 #: src/pages/IssueToken.tsx:136
 #: src/pages/CreateProfile.tsx:87
 #: src/components/TransferDialog.tsx:104
-#: src/components/OwnedCoinsCard.tsx:504
-#: src/components/OwnedCoinsCard.tsx:572
-#: src/components/OwnedCoinsCard.tsx:622
+#: src/components/OwnedCoinsCard.tsx:506
+#: src/components/OwnedCoinsCard.tsx:574
+#: src/components/OwnedCoinsCard.tsx:624
 #: src/components/NftCard.tsx:652
 #: src/components/FeeOnlyDialog.tsx:77
 #: src/components/ClawbackCoinsCard.tsx:320
@@ -2840,7 +2840,7 @@ msgstr "Options for {nftName}"
 msgid "Outline"
 msgstr "Outline"
 
-#: src/components/OwnedCoinsCard.tsx:551
+#: src/components/OwnedCoinsCard.tsx:553
 #: src/components/confirmations/TokenConfirmation.tsx:202
 msgid "Output Count"
 msgstr "Output Count"
@@ -3748,12 +3748,12 @@ msgstr "Spent"
 msgid "Spent Coins"
 msgstr "Spent Coins"
 
-#: src/components/OwnedCoinsCard.tsx:442
-#: src/components/OwnedCoinsCard.tsx:590
+#: src/components/OwnedCoinsCard.tsx:443
+#: src/components/OwnedCoinsCard.tsx:592
 msgid "Split"
 msgstr "Split"
 
-#: src/components/OwnedCoinsCard.tsx:534
+#: src/components/OwnedCoinsCard.tsx:536
 msgid "Split {0}"
 msgstr "Split {0}"
 
@@ -3833,7 +3833,7 @@ msgstr "Support for Clawback v2 is limited at this time. Please make sure the re
 msgid "Swap"
 msgstr "Swap"
 
-#: src/components/OwnedCoinsCard.tsx:457
+#: src/components/OwnedCoinsCard.tsx:458
 msgid "Sweep"
 msgstr "Sweep"
 
@@ -4206,11 +4206,11 @@ msgstr "This will cancel the offer on-chain with a transaction, preventing it fr
 msgid "This will claw back all of the selected coins."
 msgstr "This will claw back all of the selected coins."
 
-#: src/components/OwnedCoinsCard.tsx:488
+#: src/components/OwnedCoinsCard.tsx:490
 msgid "This will combine all of the selected coins into one."
 msgstr "This will combine all of the selected coins into one."
 
-#: src/components/OwnedCoinsCard.tsx:605
+#: src/components/OwnedCoinsCard.tsx:607
 msgid "This will combine small enough coins automatically, so you don't have to manually select them."
 msgstr "This will combine small enough coins automatically, so you don't have to manually select them."
 
@@ -4266,7 +4266,7 @@ msgstr "This will send the option to the provided address."
 msgid "This will send the profile to the provided address."
 msgstr "This will send the profile to the provided address."
 
-#: src/components/OwnedCoinsCard.tsx:537
+#: src/components/OwnedCoinsCard.tsx:539
 msgid "This will split all of the selected coins."
 msgstr "This will split all of the selected coins."
 

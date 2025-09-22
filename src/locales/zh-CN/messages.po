@@ -126,7 +126,7 @@ msgstr "{peersToDeleteCount, plural, one {将暂时阻止与该节点的连接.}
 msgid "{selectedCoinCount} {selectedCoinLabel} selected"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:473
+#: src/components/OwnedCoinsCard.tsx:474
 msgid "{selectedCoinCount} {selectedCoinLabel} selected ({selectedCoinsTotal} {0})"
 msgstr ""
 
@@ -450,7 +450,7 @@ msgstr ""
 msgid "Attributes"
 msgstr "属性"
 
-#: src/components/OwnedCoinsCard.tsx:602
+#: src/components/OwnedCoinsCard.tsx:604
 msgid "Auto Combine {0}"
 msgstr ""
 
@@ -612,9 +612,9 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/components/TransferDialog.tsx:119
 #: src/components/TokenCard.tsx:263
 #: src/components/ThemeCard.tsx:215
-#: src/components/OwnedCoinsCard.tsx:519
-#: src/components/OwnedCoinsCard.tsx:587
-#: src/components/OwnedCoinsCard.tsx:670
+#: src/components/OwnedCoinsCard.tsx:521
+#: src/components/OwnedCoinsCard.tsx:589
+#: src/components/OwnedCoinsCard.tsx:672
 #: src/components/OfferRowCard.tsx:129
 #: src/components/NftCard.tsx:668
 #: src/components/FeeOnlyDialog.tsx:92
@@ -765,7 +765,7 @@ msgstr ""
 msgid "Clear search"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:469
+#: src/components/OwnedCoinsCard.tsx:470
 #: src/components/ClawbackCoinsCard.tsx:287
 msgid "Clear Selection"
 msgstr ""
@@ -882,13 +882,13 @@ msgstr ""
 msgid "Colors"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:459
-#: src/components/OwnedCoinsCard.tsx:522
-#: src/components/OwnedCoinsCard.tsx:673
+#: src/components/OwnedCoinsCard.tsx:460
+#: src/components/OwnedCoinsCard.tsx:524
+#: src/components/OwnedCoinsCard.tsx:675
 msgid "Combine"
 msgstr "合并"
 
-#: src/components/OwnedCoinsCard.tsx:485
+#: src/components/OwnedCoinsCard.tsx:487
 msgid "Combine {0}"
 msgstr ""
 
@@ -2239,11 +2239,11 @@ msgstr ""
 msgid "Marketplaces"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:652
+#: src/components/OwnedCoinsCard.tsx:654
 msgid "Maximum Coin Amount"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:637
+#: src/components/OwnedCoinsCard.tsx:639
 msgid "Maximum Number of Coins"
 msgstr ""
 
@@ -2395,9 +2395,9 @@ msgstr "网络"
 #: src/pages/IssueToken.tsx:136
 #: src/pages/CreateProfile.tsx:87
 #: src/components/TransferDialog.tsx:104
-#: src/components/OwnedCoinsCard.tsx:504
-#: src/components/OwnedCoinsCard.tsx:572
-#: src/components/OwnedCoinsCard.tsx:622
+#: src/components/OwnedCoinsCard.tsx:506
+#: src/components/OwnedCoinsCard.tsx:574
+#: src/components/OwnedCoinsCard.tsx:624
 #: src/components/NftCard.tsx:652
 #: src/components/FeeOnlyDialog.tsx:77
 #: src/components/ClawbackCoinsCard.tsx:320
@@ -2840,7 +2840,7 @@ msgstr ""
 msgid "Outline"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:551
+#: src/components/OwnedCoinsCard.tsx:553
 #: src/components/confirmations/TokenConfirmation.tsx:202
 msgid "Output Count"
 msgstr "转出数量"
@@ -3748,12 +3748,12 @@ msgstr "已经花费"
 msgid "Spent Coins"
 msgstr "已花费硬币"
 
-#: src/components/OwnedCoinsCard.tsx:442
-#: src/components/OwnedCoinsCard.tsx:590
+#: src/components/OwnedCoinsCard.tsx:443
+#: src/components/OwnedCoinsCard.tsx:592
 msgid "Split"
 msgstr "拆分"
 
-#: src/components/OwnedCoinsCard.tsx:534
+#: src/components/OwnedCoinsCard.tsx:536
 msgid "Split {0}"
 msgstr ""
 
@@ -3833,7 +3833,7 @@ msgstr ""
 msgid "Swap"
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:457
+#: src/components/OwnedCoinsCard.tsx:458
 msgid "Sweep"
 msgstr ""
 
@@ -4205,11 +4205,11 @@ msgstr ""
 msgid "This will claw back all of the selected coins."
 msgstr ""
 
-#: src/components/OwnedCoinsCard.tsx:488
+#: src/components/OwnedCoinsCard.tsx:490
 msgid "This will combine all of the selected coins into one."
 msgstr "这将把所有选中的币合并为一个."
 
-#: src/components/OwnedCoinsCard.tsx:605
+#: src/components/OwnedCoinsCard.tsx:607
 msgid "This will combine small enough coins automatically, so you don't have to manually select them."
 msgstr ""
 
@@ -4265,7 +4265,7 @@ msgstr ""
 msgid "This will send the profile to the provided address."
 msgstr "这将把个人资料发送到提供的地址."
 
-#: src/components/OwnedCoinsCard.tsx:537
+#: src/components/OwnedCoinsCard.tsx:539
 msgid "This will split all of the selected coins."
 msgstr "这将拆分所有选定的硬币."
 
