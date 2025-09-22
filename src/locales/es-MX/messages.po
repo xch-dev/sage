@@ -408,7 +408,7 @@ msgstr ""
 #~ msgstr "Asset Icon"
 
 #: src/components/AssetCoin.tsx:76
-#: src/components/selectors/TokenSelector.tsx:148
+#: src/components/selectors/TokenSelector.tsx:145
 msgid "Asset ID"
 msgstr "ID de activo"
 
@@ -629,16 +629,16 @@ msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad 
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: src/pages/Offers.tsx:312
+#: src/pages/Offers.tsx:313
 msgid "Cancel All Active"
 msgstr ""
 
-#: src/pages/Offers.tsx:317
-#: src/pages/Offers.tsx:396
+#: src/pages/Offers.tsx:318
+#: src/pages/Offers.tsx:397
 msgid "Cancel All Active Offers"
 msgstr ""
 
-#: src/pages/Offers.tsx:375
+#: src/pages/Offers.tsx:376
 msgid "Cancel all active offers?"
 msgstr ""
 
@@ -1093,7 +1093,7 @@ msgstr ""
 msgid "Create"
 msgstr "Crear"
 
-#: src/pages/Offers.tsx:244
+#: src/pages/Offers.tsx:245
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Crea una nueva oferta para empezar con el comercio entre nodos."
 
@@ -1113,7 +1113,7 @@ msgstr ""
 msgid "Create new NFT"
 msgstr "Crear nuevo NFT"
 
-#: src/pages/Offers.tsx:270
+#: src/pages/Offers.tsx:271
 #: src/pages/MakeOffer.tsx:296
 msgid "Create Offer"
 msgstr "Crear Oferta"
@@ -1269,7 +1269,7 @@ msgstr ""
 msgid "Delete {selectedPeersCount}"
 msgstr "Eliminar {selectedPeersCount}"
 
-#: src/pages/Offers.tsx:334
+#: src/pages/Offers.tsx:335
 #: src/components/dialogs/DeleteOfferDialog.tsx:61
 msgid "Delete All"
 msgstr ""
@@ -1278,7 +1278,7 @@ msgstr ""
 msgid "Delete all cached data"
 msgstr ""
 
-#: src/pages/Offers.tsx:339
+#: src/pages/Offers.tsx:340
 msgid "Delete All Filtered Offers"
 msgstr ""
 
@@ -2225,7 +2225,7 @@ msgstr "Asegúrate de haber guardado tu mnemotécnico. No podrás acceder a él 
 msgid "Maker Fee"
 msgstr "Tarifa del creador"
 
-#: src/pages/Offers.tsx:238
+#: src/pages/Offers.tsx:239
 msgid "Manage offers"
 msgstr "Gestionar ofertas"
 
@@ -2406,7 +2406,7 @@ msgstr "Red"
 msgid "Network Fee"
 msgstr "Tarifa de red"
 
-#: src/pages/Offers.tsx:384
+#: src/pages/Offers.tsx:385
 msgid "Network Fee (per offer)"
 msgstr ""
 
@@ -2565,7 +2565,7 @@ msgstr ""
 msgid "No NFTs to export"
 msgstr ""
 
-#: src/pages/Offers.tsx:240
+#: src/pages/Offers.tsx:241
 msgid "No offers yet"
 msgstr "No hay ofertas aún"
 
@@ -2698,7 +2698,7 @@ msgstr ""
 msgid "Offering"
 msgstr ""
 
-#: src/pages/Offers.tsx:211
+#: src/pages/Offers.tsx:212
 #: src/components/Nav.tsx:84
 msgid "Offers"
 msgstr "Ofertas"
@@ -3336,11 +3336,11 @@ msgstr "Escanea el código QR"
 #~ msgid "Scan this QR code to view the offer"
 #~ msgstr "Escanea este código QR para ver la oferta"
 
-#: src/components/selectors/NftSelector.tsx:187
+#: src/components/selectors/NftSelector.tsx:150
 msgid "Search by name or enter NFT ID"
 msgstr "Buscar por nombre o introducir ID de NFT"
 
-#: src/components/selectors/OptionSelector.tsx:170
+#: src/components/selectors/OptionSelector.tsx:161
 msgid "Search by name or enter Option ID"
 msgstr ""
 
@@ -3376,7 +3376,7 @@ msgstr "Buscar NFTs..."
 msgid "Search options..."
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:104
+#: src/components/selectors/TokenSelector.tsx:110
 msgid "Search or enter asset id"
 msgstr "Buscar o introducir id de activo"
 
@@ -3416,8 +3416,8 @@ msgstr ""
 msgid "Select all coins"
 msgstr "Seleccionar todas las monedas"
 
-#: src/components/selectors/DropdownSelector.tsx:52
-#: src/components/selectors/DropdownSelector.tsx:56
+#: src/components/selectors/DropdownSelector.tsx:46
+#: src/components/selectors/DropdownSelector.tsx:53
 msgid "Select asset"
 msgstr ""
 
@@ -4194,7 +4194,7 @@ msgstr "Esto transferirá por lotes {selectedCount} NFT a otra billetera. ¿Est�
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "Esto desasignará en masa los NFT de sus perfiles."
 
-#: src/pages/Offers.tsx:377
+#: src/pages/Offers.tsx:378
 msgid "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 msgstr ""
 
@@ -4778,7 +4778,7 @@ msgstr ""
 msgid "View Metadata"
 msgstr "Ver metadatos"
 
-#: src/pages/Offers.tsx:257
+#: src/pages/Offers.tsx:258
 #: src/pages/Nft.tsx:485
 #: src/pages/Nft.tsx:608
 #: src/components/dialogs/ViewOfferDialog.tsx:49
@@ -4980,7 +4980,7 @@ msgstr ""
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr "Estás dividiendo monedas en múltiples monedas de igual valor. Esto puede ayudar con transacciones paralelas y la creación de ofertas."
 
-#: src/pages/Offers.tsx:249
+#: src/pages/Offers.tsx:250
 msgid "You can also paste an offer using"
 msgstr "También puedes pegar una oferta utilizando"
 
