@@ -1,6 +1,5 @@
 import { t } from '@lingui/core/macro';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMemo } from 'react';
 import { Button } from '../ui/button';
 import {
   Select,
@@ -10,41 +9,36 @@ import {
   SelectValue,
 } from '../ui/select';
 
-export interface DropdownSelectorProps<T> {
-  loadedItems: T[];
+export interface DropdownSelectorProps {
+  loadedItems: string[];
   page: number;
   setPage?: (page: number) => void;
-  renderItem: (item: T) => React.ReactNode;
-  isSelected: (item: T) => boolean;
-  setSelected: (item: T) => void;
-  isDisabled?: (item: T) => boolean;
+  renderItem: (item: string) => React.ReactNode;
+  value: string | undefined;
+  setValue: (item: string) => void;
+  isDisabled?: (item: string) => boolean;
   pageSize?: number;
   className?: string;
   manualInput?: React.ReactNode;
 }
 
-export function DropdownSelector<T>({
+export function DropdownSelector({
   loadedItems,
   page,
   setPage,
   renderItem,
-  isSelected,
-  setSelected,
+  value,
+  setValue,
   isDisabled,
   pageSize = 8,
   className,
   manualInput,
-}: DropdownSelectorProps<T>) {
-  const foundIndex = useMemo(
-    () => loadedItems.findIndex((item) => isSelected(item)),
-    [loadedItems, isSelected],
-  );
-
+}: DropdownSelectorProps) {
   return (
     <Select
-      value={foundIndex === -1 ? undefined : foundIndex.toString()}
+      value={value}
       onValueChange={(value) => {
-        setSelected(loadedItems[parseInt(value, 10)]);
+        setValue(value);
       }}
     >
       <SelectTrigger
@@ -53,7 +47,11 @@ export function DropdownSelector<T>({
         className={`flex h-12 max-w-full items-center justify-between rounded-md border border-input bg-input-background px-3 ring-offset-background truncate ${className ?? ''}`}
       >
         <div className='flex items-center h-full text-left truncate'>
-          <SelectValue placeholder={t`Select asset`} />
+          {value ? (
+            renderItem(value)
+          ) : (
+            <SelectValue placeholder={t`Select asset`} />
+          )}
         </div>
       </SelectTrigger>
       <SelectContent
@@ -112,23 +110,17 @@ export function DropdownSelector<T>({
             No items available
           </div>
         ) : (
-          loadedItems.map((item, i) => {
+          loadedItems.map((item) => {
             const disabled = isDisabled?.(item) ?? false;
             return (
               <SelectItem
-                value={i.toString()}
-                // eslint-disable-next-line react/no-array-index-key
-                key={i}
+                value={item}
+                key={item}
                 role='option'
-                aria-selected={i === foundIndex}
+                aria-selected={item === value}
                 aria-disabled={disabled}
-                className={`px-2 py-1.5 text-sm rounded-sm truncate ${
-                  disabled
-                    ? 'opacity-50 cursor-not-allowed'
-                    : i === foundIndex
-                      ? 'bg-accent cursor-pointer'
-                      : 'hover:bg-accent cursor-pointer'
-                }`}
+                disabled={disabled}
+                className={'px-2 py-1.5 text-sm rounded-sm truncate'}
               >
                 {renderItem(item)}
               </SelectItem>

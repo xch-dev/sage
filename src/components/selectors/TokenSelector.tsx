@@ -1,9 +1,8 @@
 import { TokenRecord, commands } from '@/bindings';
-import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AssetIcon } from '../AssetIcon';
 import { Input } from '../ui/input';
 import { DropdownSelector } from './DropdownSelector';
@@ -29,78 +28,85 @@ export function TokenSelector({
 }: TokenSelectorProps) {
   const { addError } = useErrors();
 
-  const [tokens, setTokens] = useState<TokenRecord[]>([]);
-  const [selectedToken, setSelectedToken] = useState<TokenRecord | null>(null);
+  const [tokens, setTokens] = useState<Record<string, TokenRecord>>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const updateCats = useCallback(async () => {
-    try {
-      const data = await (showAllCats
-        ? commands.getAllCats({})
-        : commands.getCats({}));
-
-      const allTokens = data.cats;
-
-      // Sort by name (nulls last)
-      allTokens.sort((a, b) => {
-        if (!a.name && !b.name) return 0;
-        if (!a.name) return 1;
-        if (!b.name) return -1;
-        return a.name.localeCompare(b.name);
-      });
-
-      if (includeXch) {
-        const xch = await commands.getToken({ asset_id: null });
-        if (xch.token) allTokens.unshift(xch.token);
-      }
-
-      setTokens(allTokens);
-
-      if (value !== undefined && !selectedToken) {
-        setSelectedToken(
-          allTokens.find((token) => token.asset_id === value) ?? null,
-        );
-      }
-    } catch (error) {
-      addError(error as CustomError);
+  // Restore focus after token list updates
+  useEffect(() => {
+    if (searchTerm && inputRef.current) {
+      inputRef.current.focus();
     }
-  }, [addError, value, selectedToken, showAllCats, includeXch]);
+  }, [tokens, searchTerm]);
 
   useEffect(() => {
-    updateCats();
-  }, [updateCats]);
+    const fetchTokens = async () => {
+      const tokens: Record<string, TokenRecord> = {};
+
+      const getCats = showAllCats
+        ? commands.getAllCats({})
+        : commands.getCats({});
+
+      await getCats
+        .then(async (data) => {
+          // Sort by name (nulls last)
+          data.cats.sort((a, b) => {
+            if (!a.name && !b.name) return 0;
+            if (!a.name) return 1;
+            if (!b.name) return -1;
+            return a.name.localeCompare(b.name);
+          });
+
+          if (includeXch) {
+            const xch = await commands.getToken({ asset_id: null });
+            if (xch.token) data.cats.unshift(xch.token);
+          }
+
+          for (const cat of data.cats) {
+            tokens[cat.asset_id ?? 'xch'] = cat;
+          }
+        })
+        .catch(addError);
+
+      setTokens(tokens);
+    };
+
+    fetchTokens();
+  }, [addError, includeXch, showAllCats]);
 
   // Filter tokens based on search term or show all if it's a valid asset ID
-  const filteredTokens = tokens.filter((token) => {
-    if (!token.visible) return false;
-    if (hideZeroBalance && token.balance === 0) return false;
-    if (!searchTerm) return true;
+  const filteredTokenIds = Object.values(tokens)
+    .filter((token) => {
+      if (!token.visible) return false;
+      if (hideZeroBalance && token.balance === 0) return false;
+      if (!searchTerm) return true;
 
-    if (isValidAssetId(searchTerm)) {
-      return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
-    }
+      if (isValidAssetId(searchTerm)) {
+        return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
+      }
 
-    // Search by name and ticker
-    return (
-      token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
+      // Search by name and ticker
+      return (
+        token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    })
+    .map((token) => token.asset_id ?? 'xch');
 
   return (
     <DropdownSelector
-      loadedItems={filteredTokens}
+      loadedItems={filteredTokenIds}
       page={0}
-      isDisabled={(token) => disabled.includes(token.asset_id)}
-      isSelected={(token) => token.asset_id === selectedToken?.asset_id}
-      setSelected={(token) => {
-        setSelectedToken(token);
-        onChange(token.asset_id);
+      value={value === null ? 'xch' : value}
+      setValue={(assetId) => {
+        onChange(assetId === 'xch' ? null : assetId);
         setSearchTerm('');
       }}
+      isDisabled={(token) => disabled.includes(token)}
       className={className}
       manualInput={
         <Input
+          ref={inputRef}
           placeholder={t`Search or enter asset id`}
           value={searchTerm}
           onChange={(e) => {
@@ -109,28 +115,15 @@ export function TokenSelector({
 
             if (/^[a-fA-F0-9]{64}$/.test(newValue)) {
               onChange(newValue);
-              setSelectedToken(
-                tokens.find((token) => token.asset_id === newValue) ?? {
-                  name: 'Unknown',
-                  asset_id: newValue,
-                  icon_url: null,
-                  balance: 0,
-                  ticker: null,
-                  description: null,
-                  visible: true,
-                  precision: 3,
-                  revocation_address: null,
-                },
-              );
             }
           }}
         />
       }
-      renderItem={(token) => (
+      renderItem={(assetId) => (
         <div className='flex items-center gap-2 w-full'>
           <AssetIcon
             asset={{
-              icon_url: token.icon_url ?? null,
+              icon_url: tokens[assetId]?.icon_url ?? null,
               kind: 'token',
               revocation_address: null,
               // TODO: Use Asset here and use the actual revocation address
@@ -140,14 +133,18 @@ export function TokenSelector({
           />
           <div className='flex flex-col truncate'>
             <span className='flex-grow truncate' role='text'>
-              {getAssetDisplayName(token.name, token.ticker, 'token')}
-              {token.ticker && ` (${token.ticker})`}{' '}
+              {getAssetDisplayName(
+                tokens[assetId]?.name,
+                tokens[assetId]?.ticker,
+                'token',
+              )}
+              {tokens[assetId]?.ticker && ` (${tokens[assetId]?.ticker})`}{' '}
             </span>
             <span
               className='text-xs text-muted-foreground truncate'
               aria-label={t`Asset ID`}
             >
-              {token.asset_id}
+              {assetId === 'xch' ? null : assetId}
             </span>
           </div>
         </div>
