@@ -400,11 +400,11 @@ export function OwnedCoinsCard({
   // Calculate total value of selected coins
   const selectedCoinsTotal = useMemo(() => {
     if (selectedCoinRecords.length === 0) return '0';
-    
+
     const totalMojos = selectedCoinRecords.reduce((sum, coin) => {
       return sum.plus(coin.amount);
     }, new BigNumber(0));
-    
+
     return fromMojos(totalMojos, asset.precision).toString();
   }, [selectedCoinRecords, asset.precision]);
 
@@ -439,7 +439,8 @@ export function OwnedCoinsCard({
                 disabled={!canSplit}
                 onClick={() => setSplitOpen(true)}
               >
-                <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' /> <Trans>Split</Trans>
+                <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
+                <Trans>Split</Trans>
               </Button>
               <Button
                 variant='outline'
@@ -471,7 +472,8 @@ export function OwnedCoinsCard({
 
             <span className='text-muted-foreground text-sm flex items-center'>
               <Trans>
-                {selectedCoinCount} {selectedCoinLabel} selected ({selectedCoinsTotal} {asset.ticker})
+                {selectedCoinCount} {selectedCoinLabel} selected (
+                {selectedCoinsTotal} {asset.ticker})
               </Trans>
             </span>
           </div>
