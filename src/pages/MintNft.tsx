@@ -56,7 +56,7 @@ export default function MintNft() {
     licenseUris: z.string().optional(),
     editionCount: z.number().min(1).default(1),
     editionStart: z.number().min(1).default(1),
-    editionTotal: z.number().min(1).optional(),
+    editionTotal: z.number().min(0).optional(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -370,7 +370,7 @@ export default function MintNft() {
                     </FormLabel>
                     <FormControl>
                       <IntegerInput
-                        min={1}
+                        min={0}
                         placeholder={t`Enter total (defaults to count)`}
                         {...field}
                         onChange={(e) =>
