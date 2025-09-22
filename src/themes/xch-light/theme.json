@@ -6,7 +6,7 @@
   "inherits": "light",
   "mostLike": "light",
   "colors": {
-    "background": "rgba(255, 255, 255, 0.2)",
+    "background": "rgba(255, 255, 255, 0.1)",
     "foreground": "#2C323C",
     "card": "rgba(255, 255, 255, 0.1)",
     "cardForeground": "#2C323C",
