@@ -140,6 +140,7 @@ export function Offers() {
   };
 
   useEffect(() => {
+    if (platform() !== 'ios' && platform() !== 'android') return;
     isNdefAvailable().then(setIsNfcAvailable);
   }, [addError]);
 
