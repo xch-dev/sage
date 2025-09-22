@@ -37,7 +37,7 @@ export function TopNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-1' : ''}`}
       role='navigation'
       aria-label={t`Main navigation`}
     >
@@ -148,7 +148,7 @@ export function BottomNav({ isCollapsed }: NavProps) {
 
   return (
     <nav
-      className={`grid font-medium font-body ${isCollapsed ? 'gap-2' : ''}`}
+      className={`grid font-medium font-body ${isCollapsed ? 'gap-1' : ''}`}
       role='navigation'
       aria-label={t`Secondary navigation`}
     >
@@ -245,8 +245,8 @@ function NavLink({
     (location.pathname === url ||
       (url !== '/' && location.pathname.startsWith(url)));
 
-  const baseClassName = `flex items-center gap-3 rounded-lg py-1.5 transition-all ${
-    isCollapsed ? 'justify-center' : 'px-2'
+  const baseClassName = `flex items-center gap-3 transition-all ${
+    isCollapsed ? 'justify-center p-2 rounded-full' : 'px-2 rounded-lg py-1.5'
   } text-lg md:text-base`;
 
   const className = isActive
