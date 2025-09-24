@@ -2,6 +2,7 @@ import { commands, TransactionRecord } from '@/bindings';
 import { t } from '@lingui/core/macro';
 import { toast } from 'react-toastify';
 import { exportText } from './exportText';
+import { fromMojos } from './utils';
 
 interface TransactionQueryParams {
   search: string | null;
@@ -39,7 +40,7 @@ export async function exportTransactions(params: TransactionQueryParams) {
       'Height',
       'Timestamp (UTC)',
       'Type',
-      'Amount',
+      'Absolute Amount',
       'Signed Amount',
       'Address',
       'Coin ID',
@@ -65,8 +66,13 @@ export async function exportTransactions(params: TransactionQueryParams) {
             tx.height,
             timestamp.replace(/,/g, ''),
             'Sent',
-            coin.amount.toString(),
-            '-' + coin.amount.toString(),
+            coin.asset.kind === 'token'
+              ? fromMojos(coin.amount, coin.asset.precision)
+              : coin.amount.toString(),
+            '-' +
+              (coin.asset.kind === 'token'
+                ? fromMojos(coin.amount, coin.asset.precision)
+                : coin.amount.toString()),
             coin.address || '',
             coin.coin_id,
             type.toUpperCase(),
@@ -85,8 +91,12 @@ export async function exportTransactions(params: TransactionQueryParams) {
             tx.height,
             timestamp.replace(/,/g, ''),
             'Received',
-            coin.amount.toString(),
-            coin.amount.toString(),
+            coin.asset.kind === 'token'
+              ? fromMojos(coin.amount, coin.asset.precision)
+              : coin.amount.toString(),
+            coin.asset.kind === 'token'
+              ? fromMojos(coin.amount, coin.asset.precision)
+              : coin.amount.toString(),
             coin.address || '',
             coin.coin_id,
             type.toUpperCase(),

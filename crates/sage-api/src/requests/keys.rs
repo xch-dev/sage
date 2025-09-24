@@ -62,6 +62,10 @@ pub struct ImportKey {
     pub key: String,
     #[serde(default)]
     pub derivation_index: u32,
+    #[serde(default)]
+    pub hardened: Option<bool>,
+    #[serde(default)]
+    pub unhardened: Option<bool>,
     #[serde(default = "yes")]
     pub save_secrets: bool,
     #[serde(default = "yes")]

@@ -173,42 +173,46 @@ impl Sage {
 
         let mut tx = db.tx().await?;
 
-        let intermediate_unhardened_pk = master_to_wallet_unhardened_intermediate(&master_pk);
-
-        for index in 0..req.derivation_index {
-            let synthetic_key = intermediate_unhardened_pk
-                .derive_unhardened(index)
-                .derive_synthetic();
-            let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_custody_p2_puzzle(
-                p2_puzzle_hash,
-                synthetic_key,
-                Derivation {
-                    derivation_index: index,
-                    is_hardened: false,
-                },
-            )
-            .await?;
-        }
-
-        if let Some(master_sk) = master_sk {
-            let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
+        if req.unhardened.unwrap_or(true) {
+            let intermediate_unhardened_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
             for index in 0..req.derivation_index {
-                let synthetic_key = intermediate_hardened_sk
-                    .derive_hardened(index)
-                    .derive_synthetic()
-                    .public_key();
+                let synthetic_key = intermediate_unhardened_pk
+                    .derive_unhardened(index)
+                    .derive_synthetic();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
                 tx.insert_custody_p2_puzzle(
                     p2_puzzle_hash,
                     synthetic_key,
                     Derivation {
                         derivation_index: index,
-                        is_hardened: true,
+                        is_hardened: false,
                     },
                 )
                 .await?;
+            }
+        }
+
+        if req.hardened.unwrap_or(true) {
+            if let Some(master_sk) = master_sk {
+                let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
+
+                for index in 0..req.derivation_index {
+                    let synthetic_key = intermediate_hardened_sk
+                        .derive_hardened(index)
+                        .derive_synthetic()
+                        .public_key();
+                    let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+                    tx.insert_custody_p2_puzzle(
+                        p2_puzzle_hash,
+                        synthetic_key,
+                        Derivation {
+                            derivation_index: index,
+                            is_hardened: true,
+                        },
+                    )
+                    .await?;
+                }
             }
         }
 

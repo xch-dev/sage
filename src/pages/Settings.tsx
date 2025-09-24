@@ -1037,6 +1037,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [maintenanceResults, setMaintenanceResults] =
     useState<PerformDatabaseMaintenanceResponse | null>(null);
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
+  const [unhardened, setUnhardened] = useState(true);
+  const [hardened, setHardened] = useState(true);
 
   const saveChangeAddress = (address: string) => {
     const trimmedAddress = address.trim();
@@ -1192,7 +1194,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     commands
       .increaseDerivationIndex({
         index: parseInt(values.index),
-        hardened: key?.has_secrets,
+        hardened: key?.has_secrets && hardened,
+        unhardened,
       })
       .then(() => {
         setDeriveOpen(false);
@@ -1460,6 +1463,35 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                   </FormItem>
                 )}
               />
+
+              <div className='flex items-center gap-2 my-4'>
+                <label
+                  htmlFor='unhardened'
+                  className='text-sm text-muted-foreground'
+                >
+                  <Trans>Unhardened Keys</Trans>
+                </label>
+                <Switch
+                  id='unhardened'
+                  checked={unhardened}
+                  onCheckedChange={(value) => setUnhardened(value)}
+                />
+              </div>
+
+              <div className='flex items-center gap-2 my-4'>
+                <label
+                  htmlFor='hardened'
+                  className='text-sm text-muted-foreground'
+                >
+                  <Trans>Hardened Keys</Trans>
+                </label>
+                <Switch
+                  id='hardened'
+                  checked={hardened}
+                  onCheckedChange={(value) => setHardened(value)}
+                />
+              </div>
+
               <DialogFooter className='gap-2'>
                 <Button
                   type='button'
