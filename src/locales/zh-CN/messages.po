@@ -319,7 +319,7 @@ msgstr "高级"
 msgid "Advanced Feature"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:163
+#: src/pages/ImportWallet.tsx:167
 msgid "Advanced options"
 msgstr ""
 
@@ -352,7 +352,7 @@ msgstr ""
 msgid "Amount includes"
 msgstr "金额包括"
 
-#: src/pages/Settings.tsx:1529
+#: src/pages/Settings.tsx:1561
 msgid "Analyze Duration"
 msgstr ""
 
@@ -408,7 +408,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/AssetCoin.tsx:76
-#: src/components/selectors/TokenSelector.tsx:145
+#: src/components/selectors/TokenSelector.tsx:151
 msgid "Asset ID"
 msgstr ""
 
@@ -600,7 +600,7 @@ msgstr ""
 msgid "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交易. 需要将助记词保存在其他地方."
 
-#: src/pages/Settings.tsx:1469
+#: src/pages/Settings.tsx:1501
 #: src/pages/PeerList.tsx:431
 #: src/pages/PeerList.tsx:487
 #: src/pages/PeerList.tsx:677
@@ -659,7 +659,7 @@ msgstr ""
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/pages/Settings.tsx:1147
+#: src/pages/Settings.tsx:1149
 msgid "Cannot send change to external address. Setting not updated."
 msgstr ""
 
@@ -682,7 +682,7 @@ msgstr ""
 msgid "Change"
 msgstr "修改"
 
-#: src/pages/Settings.tsx:1280
+#: src/pages/Settings.tsx:1283
 msgid "Change Address"
 msgstr ""
 
@@ -702,12 +702,12 @@ msgstr ""
 msgid "Chia"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:123
+#: src/pages/ImportWallet.tsx:127
 #: src/pages/CreateWallet.tsx:157
 msgid "Choose an emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:128
+#: src/pages/ImportWallet.tsx:132
 #: src/pages/CreateWallet.tsx:162
 msgid "Choose an emoji to easily identify your wallet"
 msgstr ""
@@ -775,7 +775,7 @@ msgstr ""
 msgid "Click here to go to offer."
 msgstr ""
 
-#: src/pages/Settings.tsx:1564
+#: src/pages/Settings.tsx:1596
 msgid "Close"
 msgstr ""
 
@@ -910,11 +910,11 @@ msgstr ""
 msgid "Combined Swap"
 msgstr ""
 
-#: src/pages/Settings.tsx:1400
+#: src/pages/Settings.tsx:1403
 msgid "Compactable Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1383
+#: src/pages/Settings.tsx:1386
 msgid "Compactable Space"
 msgstr ""
 
@@ -1157,7 +1157,7 @@ msgstr ""
 msgid "Currency Symbol"
 msgstr "货币符号"
 
-#: src/pages/Settings.tsx:1334
+#: src/pages/Settings.tsx:1337
 msgid "Current database statistics and health information"
 msgstr ""
 
@@ -1205,7 +1205,7 @@ msgstr "数据URI"
 msgid "Data URLs"
 msgstr "数据URL"
 
-#: src/pages/Settings.tsx:1502
+#: src/pages/Settings.tsx:1534
 msgid "Database Maintenance Complete"
 msgstr ""
 
@@ -1213,15 +1213,15 @@ msgstr ""
 msgid "Database Migration Required"
 msgstr ""
 
-#: src/pages/Settings.tsx:1505
+#: src/pages/Settings.tsx:1537
 msgid "Database optimization has completed successfully."
 msgstr ""
 
-#: src/pages/Settings.tsx:1375
+#: src/pages/Settings.tsx:1378
 msgid "Database Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1333
+#: src/pages/Settings.tsx:1336
 msgid "Database Stats"
 msgstr ""
 
@@ -1282,7 +1282,7 @@ msgstr ""
 msgid "Delete All Filtered Offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1318
+#: src/pages/Settings.tsx:1321
 msgid "Delete and redownload coin data from the network"
 msgstr ""
 
@@ -1329,12 +1329,12 @@ msgstr ""
 msgid "Delta Sync"
 msgstr ""
 
-#: src/pages/Settings.tsx:1456
+#: src/pages/Settings.tsx:1459
 msgid "Derivation index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1300
-#: src/pages/Settings.tsx:1450
+#: src/pages/Settings.tsx:1303
+#: src/pages/Settings.tsx:1453
 msgid "Derivation Index"
 msgstr ""
 
@@ -1492,7 +1492,7 @@ msgstr "输入地址"
 #~ msgid "Enter amount"
 #~ msgstr "输入金额"
 
-#: src/pages/Settings.tsx:1286
+#: src/pages/Settings.tsx:1289
 msgid "Enter change address"
 msgstr ""
 
@@ -1506,7 +1506,7 @@ msgstr "请输入以逗号分隔的网址"
 msgid "Enter count"
 msgstr ""
 
-#: src/pages/Settings.tsx:1455
+#: src/pages/Settings.tsx:1458
 msgid "Enter derivation index"
 msgstr ""
 
@@ -1582,7 +1582,7 @@ msgstr ""
 msgid "Enter URL"
 msgstr "输入网址"
 
-#: src/pages/ImportWallet.tsx:150
+#: src/pages/ImportWallet.tsx:154
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr ""
 
@@ -1787,7 +1787,7 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: src/pages/Settings.tsx:1481
+#: src/pages/Settings.tsx:1513
 msgid "Generate"
 msgstr ""
 
@@ -1799,7 +1799,7 @@ msgstr ""
 #~ msgid "Generate addresses automatically"
 #~ msgstr "自动生成地址"
 
-#: src/pages/Settings.tsx:1479
+#: src/pages/Settings.tsx:1511
 msgid "Generating"
 msgstr ""
 
@@ -1807,7 +1807,7 @@ msgstr ""
 msgid "Ghost"
 msgstr ""
 
-#: src/pages/Settings.tsx:1210
+#: src/pages/Settings.tsx:1213
 msgid "Give your wallet a memorable name"
 msgstr ""
 
@@ -1862,6 +1862,11 @@ msgstr ""
 #: src/pages/Addresses.tsx:228
 #~ msgid "Hardened addresses"
 #~ msgstr ""
+
+#: src/pages/Settings.tsx:1486
+#: src/pages/ImportWallet.tsx:221
+msgid "Hardened Keys"
+msgstr ""
 
 #: src/pages/Themes.tsx:182
 #~ msgid "Heading Font"
@@ -1965,7 +1970,7 @@ msgid "ID: {cardId}"
 msgstr ""
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:204
+#: src/pages/ImportWallet.tsx:238
 msgid "Import"
 msgstr "导入"
 
@@ -1974,11 +1979,11 @@ msgid "Import Offer"
 msgstr ""
 
 #: src/pages/Login.tsx:217
-#: src/pages/ImportWallet.tsx:86
+#: src/pages/ImportWallet.tsx:90
 msgid "Import Wallet"
 msgstr "导入钱包"
 
-#: src/pages/ImportWallet.tsx:201
+#: src/pages/ImportWallet.tsx:235
 msgid "Importing"
 msgstr ""
 
@@ -1990,15 +1995,15 @@ msgstr ""
 msgid "Includes a 1% swap fee"
 msgstr ""
 
-#: src/pages/Settings.tsx:1310
+#: src/pages/Settings.tsx:1313
 msgid "Increase"
 msgstr ""
 
-#: src/pages/Settings.tsx:1432
+#: src/pages/Settings.tsx:1435
 msgid "Increase Derivation Index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1435
+#: src/pages/Settings.tsx:1438
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr ""
 
@@ -2006,7 +2011,7 @@ msgstr ""
 msgid "Index"
 msgstr "索引"
 
-#: src/pages/ImportWallet.tsx:179
+#: src/pages/ImportWallet.tsx:184
 msgid "Initial Addresses"
 msgstr ""
 
@@ -2180,7 +2185,7 @@ msgstr ""
 #~ msgid "Loading XCH details..."
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1362
+#: src/pages/Settings.tsx:1365
 msgid "Loading..."
 msgstr ""
 
@@ -2741,11 +2746,11 @@ msgstr ""
 msgid "Open menu"
 msgstr ""
 
-#: src/pages/Settings.tsx:1349
+#: src/pages/Settings.tsx:1352
 msgid "Optimize"
 msgstr ""
 
-#: src/pages/Settings.tsx:1347
+#: src/pages/Settings.tsx:1350
 msgid "Optimizing..."
 msgstr ""
 
@@ -2849,11 +2854,11 @@ msgstr "转出数量"
 #~ msgid "Override Delta Sync"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1237
+#: src/pages/Settings.tsx:1240
 msgid "Override Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:1238
+#: src/pages/Settings.tsx:1241
 msgid "Override the default network for this wallet"
 msgstr ""
 
@@ -2898,11 +2903,11 @@ msgstr ""
 #~ msgid "Page size"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1408
+#: src/pages/Settings.tsx:1411
 msgid "Page Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1521
+#: src/pages/Settings.tsx:1553
 msgid "Pages Vacuumed"
 msgstr ""
 
@@ -3166,7 +3171,7 @@ msgstr ""
 #~ msgid "Redownloading NFT data"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1364
+#: src/pages/Settings.tsx:1367
 msgid "Refresh"
 msgstr ""
 
@@ -3229,8 +3234,8 @@ msgstr ""
 msgid "Result"
 msgstr ""
 
-#: src/pages/Settings.tsx:1317
-#: src/pages/Settings.tsx:1325
+#: src/pages/Settings.tsx:1320
+#: src/pages/Settings.tsx:1328
 #: src/components/dialogs/ResyncDialog.tsx:46
 #: src/components/dialogs/ResyncDialog.tsx:116
 msgid "Resync"
@@ -3376,7 +3381,7 @@ msgstr ""
 msgid "Search options..."
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:110
+#: src/components/selectors/TokenSelector.tsx:117
 msgid "Search or enter asset id"
 msgstr ""
 
@@ -3439,7 +3444,7 @@ msgid "Select log file"
 msgstr ""
 
 #: src/pages/Settings.tsx:597
-#: src/pages/Settings.tsx:1265
+#: src/pages/Settings.tsx:1268
 msgid "Select network"
 msgstr "选择网络"
 
@@ -3554,7 +3559,7 @@ msgstr ""
 msgid "Set a default expiration time for new offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1281
+#: src/pages/Settings.tsx:1284
 msgid "Set a specific address to send change to"
 msgstr ""
 
@@ -3774,7 +3779,7 @@ msgstr ""
 msgid "Start"
 msgstr ""
 
-#: src/pages/Settings.tsx:1331
+#: src/pages/Settings.tsx:1334
 #: src/components/OptionColumns.tsx:141
 #: src/components/confirmations/CancelOfferConfirmation.tsx:75
 msgid "Status"
@@ -3881,7 +3886,7 @@ msgstr ""
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1298
+#: src/pages/Settings.tsx:1301
 msgid "Syncing"
 msgstr ""
 
@@ -3967,7 +3972,7 @@ msgstr ""
 msgid "The default fee to use for transactions"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:185
+#: src/pages/ImportWallet.tsx:190
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr ""
 
@@ -3979,7 +3984,7 @@ msgstr ""
 #~ msgid "The network which this wallet will use"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1301
+#: src/pages/Settings.tsx:1304
 msgid "The number of addresses managed by this wallet"
 msgstr ""
 
@@ -4363,7 +4368,7 @@ msgstr ""
 msgid "Total Amount"
 msgstr ""
 
-#: src/pages/Settings.tsx:1513
+#: src/pages/Settings.tsx:1545
 msgid "Total Duration"
 msgstr ""
 
@@ -4379,7 +4384,7 @@ msgstr ""
 msgid "Total items: {total}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1392
+#: src/pages/Settings.tsx:1395
 msgid "Total Pages"
 msgstr ""
 
@@ -4541,6 +4546,11 @@ msgstr ""
 
 #: src/components/confirmations/MintOptionConfirmation.tsx.tsx:63
 msgid "Underlying Asset (Locked)"
+msgstr ""
+
+#: src/pages/Settings.tsx:1472
+#: src/pages/ImportWallet.tsx:207
+msgid "Unhardened Keys"
 msgstr ""
 
 #: src/components/OptionColumns.tsx:72
@@ -4722,7 +4732,7 @@ msgstr ""
 msgid "Use this address to receive {name}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1553
+#: src/pages/Settings.tsx:1585
 msgid "Vacuum Duration"
 msgstr ""
 
@@ -4820,20 +4830,20 @@ msgstr ""
 #~ msgid "View Unknown CAT token details"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1537
+#: src/pages/Settings.tsx:1569
 msgid "WAL Checkpoint Duration"
 msgstr ""
 
-#: src/pages/Settings.tsx:1416
+#: src/pages/Settings.tsx:1419
 msgid "WAL Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1545
+#: src/pages/Settings.tsx:1577
 msgid "WAL Pages Checkpointed"
 msgstr ""
 
 #: src/pages/Settings.tsx:142
-#: src/pages/Settings.tsx:1207
+#: src/pages/Settings.tsx:1210
 #: src/pages/Login.tsx:205
 #: src/components/Nav.tsx:49
 #: src/components/Layout.tsx:58
@@ -4849,7 +4859,7 @@ msgstr "钱包详情"
 msgid "Wallet emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:116
+#: src/pages/ImportWallet.tsx:120
 #: src/pages/CreateWallet.tsx:150
 msgid "Wallet Emoji (Optional)"
 msgstr ""
@@ -4860,12 +4870,12 @@ msgstr ""
 msgid "Wallet icon"
 msgstr "钱包硬币"
 
-#: src/pages/ImportWallet.tsx:144
+#: src/pages/ImportWallet.tsx:148
 msgid "Wallet Key"
 msgstr "钱包密钥"
 
-#: src/pages/Settings.tsx:1209
-#: src/pages/ImportWallet.tsx:99
+#: src/pages/Settings.tsx:1212
+#: src/pages/ImportWallet.tsx:103
 #: src/pages/CreateWallet.tsx:133
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"

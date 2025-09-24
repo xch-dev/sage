@@ -48,7 +48,7 @@ pub async fn sync_wallet(
     )
     .await?;
 
-    for batch in p2_puzzle_hashes.chunks(500) {
+    for batch in p2_puzzle_hashes.chunks(1000) {
         sync_puzzle_hashes(
             &wallet,
             &peer,
@@ -78,7 +78,7 @@ pub async fn sync_wallet(
             .await
             .ok();
 
-        for batch in derivations.chunks(500) {
+        for batch in derivations.chunks(1000) {
             sync_puzzle_hashes(
                 &wallet,
                 &peer,
@@ -319,28 +319,32 @@ pub async fn add_new_subscriptions(
     sync_sender: mpsc::Sender<SyncEvent>,
     command_sender: mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
-    sync_coin_ids(
-        wallet,
-        peer,
-        None,
-        wallet.genesis_challenge,
-        coin_ids,
-        sync_sender.clone(),
-        command_sender.clone(),
-        true,
-    )
-    .await?;
+    for batch in coin_ids.chunks(1000) {
+        sync_coin_ids(
+            wallet,
+            peer,
+            None,
+            wallet.genesis_challenge,
+            batch.to_vec(),
+            sync_sender.clone(),
+            command_sender.clone(),
+            true,
+        )
+        .await?;
+    }
 
-    sync_puzzle_hashes(
-        wallet,
-        peer,
-        None,
-        wallet.genesis_challenge,
-        &puzzle_hashes,
-        sync_sender.clone(),
-        command_sender.clone(),
-    )
-    .await?;
+    for batch in puzzle_hashes.chunks(1000) {
+        sync_puzzle_hashes(
+            wallet,
+            peer,
+            None,
+            wallet.genesis_challenge,
+            batch,
+            sync_sender.clone(),
+            command_sender.clone(),
+        )
+        .await?;
+    }
 
     Ok(())
 }
