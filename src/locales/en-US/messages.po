@@ -1720,7 +1720,7 @@ msgstr "Failed to export options: {error}"
 msgid "Failed to export tokens: {error}"
 msgstr "Failed to export tokens: {error}"
 
-#: src/lib/exportTransactions.ts:113
+#: src/lib/exportTransactions.ts:123
 msgid "Failed to export transactions: {error}"
 msgstr "Failed to export transactions: {error}"
 
@@ -1767,7 +1767,7 @@ msgstr "Fetching NFTs..."
 msgid "Fetching offer details..."
 msgstr "Fetching offer details..."
 
-#: src/lib/exportTransactions.ts:29
+#: src/lib/exportTransactions.ts:30
 msgid "Fetching transactions..."
 msgstr "Fetching transactions..."
 
@@ -4459,7 +4459,7 @@ msgstr "Transaction submitted successfully"
 msgid "Transactions"
 msgstr "Transactions"
 
-#: src/lib/exportTransactions.ts:108
+#: src/lib/exportTransactions.ts:118
 msgid "Transactions exported successfully"
 msgstr "Transactions exported successfully"
 

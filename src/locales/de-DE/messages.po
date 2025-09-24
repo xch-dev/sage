@@ -1720,7 +1720,7 @@ msgstr ""
 msgid "Failed to export tokens: {error}"
 msgstr ""
 
-#: src/lib/exportTransactions.ts:113
+#: src/lib/exportTransactions.ts:123
 msgid "Failed to export transactions: {error}"
 msgstr ""
 
@@ -1767,7 +1767,7 @@ msgstr ""
 msgid "Fetching offer details..."
 msgstr ""
 
-#: src/lib/exportTransactions.ts:29
+#: src/lib/exportTransactions.ts:30
 msgid "Fetching transactions..."
 msgstr ""
 
@@ -4459,7 +4459,7 @@ msgstr ""
 msgid "Transactions"
 msgstr "Transaktionen"
 
-#: src/lib/exportTransactions.ts:108
+#: src/lib/exportTransactions.ts:118
 msgid "Transactions exported successfully"
 msgstr ""
 
