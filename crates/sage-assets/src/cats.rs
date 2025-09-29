@@ -10,6 +10,7 @@ pub struct DexieCat {
     pub icon_url: Option<String>,
     pub description: Option<String>,
     pub ticker: Option<String>,
+    pub hidden_puzzle_hash: Option<Bytes32>,
 }
 
 impl DexieCat {
@@ -41,6 +42,7 @@ impl DexieCat {
                     )),
                     description: asset.description,
                     ticker: asset.code,
+                    hidden_puzzle_hash: asset.hidden_puzzle_hash,
                 });
             }
 
@@ -72,6 +74,7 @@ impl DexieCat {
             icon_url,
             description: asset.description,
             ticker: asset.code,
+            hidden_puzzle_hash: asset.hidden_puzzle_hash,
         })
     }
 }
@@ -87,6 +90,8 @@ struct AssetData {
     name: Option<String>,
     code: Option<String>,
     description: Option<String>,
+    #[serde(default)]
+    hidden_puzzle_hash: Option<Bytes32>,
 }
 
 fn dexie_base_url(testnet: bool) -> &'static str {

@@ -17,8 +17,8 @@ use sage_api::{
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
 use sage_wallet::{
-    aggregate_offers, insert_transaction, sort_offer, Offered, Requested, SyncCommand, Transaction,
-    Wallet, WalletError,
+    aggregate_offers, insert_transaction, sort_offer, Offered, Requested, RequestedCat,
+    SyncCommand, Transaction, Wallet, WalletError,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::timeout;
@@ -93,7 +93,17 @@ impl Sage {
 
             if let Some(asset_id) = asset_id {
                 if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
-                    *requested.cats.entry(asset_id).or_insert(0) += amount;
+                    let hidden_puzzle_hash =
+                        wallet.fetch_offer_cat_hidden_puzzle_hash(asset_id).await?;
+
+                    requested
+                        .cats
+                        .entry(asset_id)
+                        .or_insert(RequestedCat {
+                            amount: 0,
+                            hidden_puzzle_hash,
+                        })
+                        .amount += amount;
                 } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
                     if amount != 1 {
                         return Err(Error::InvalidAmount(raw_amount.to_string()));

@@ -19,7 +19,7 @@ mod tests {
     use sage_database::NftOfferInfo;
     use test_log::test;
 
-    use crate::{Offered, Requested, TestWallet, WalletNftMint};
+    use crate::{Offered, Requested, RequestedCat, TestWallet, WalletNftMint};
 
     use super::aggregate_offers;
 
@@ -43,7 +43,7 @@ mod tests {
                     ..Default::default()
                 },
                 Requested {
-                    cats: indexmap! { asset_id => 1000 },
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
                     ..Default::default()
                 },
                 None,
@@ -354,7 +354,7 @@ mod tests {
                     ..Default::default()
                 },
                 Requested {
-                    cats: indexmap! { asset_id => 1000 },
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
                     ..Default::default()
                 },
                 None,

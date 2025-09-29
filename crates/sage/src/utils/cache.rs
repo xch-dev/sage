@@ -35,7 +35,7 @@ impl Sage {
                 description: asset.description,
                 is_sensitive_content: false,
                 is_visible: true,
-                hidden_puzzle_hash,
+                hidden_puzzle_hash: asset.hidden_puzzle_hash.or(hidden_puzzle_hash),
                 kind: AssetKind::Token,
             }
         } else {
@@ -58,7 +58,7 @@ impl Sage {
         let mut tx = wallet.db.tx().await?;
 
         if tx.existing_hidden_puzzle_hash(asset_id).await?.is_none() {
-            tx.update_hidden_puzzle_hash(asset_id, hidden_puzzle_hash)
+            tx.update_hidden_puzzle_hash(asset_id, asset.hidden_puzzle_hash.or(hidden_puzzle_hash))
                 .await?;
         }
 
