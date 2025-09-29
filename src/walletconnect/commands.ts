@@ -21,6 +21,7 @@ const safeAmount = z.number().or(z.string());
 
 const assetAmount = z.object({
   assetId: z.string(),
+  hiddenPuzzleHash: z.string().optional(),
   amount: safeAmount,
 });
 

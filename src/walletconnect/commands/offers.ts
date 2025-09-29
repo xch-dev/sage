@@ -14,10 +14,12 @@ export async function handleCreateOffer(
     fee: params.fee ?? 0,
     offered_assets: params.offerAssets.map((asset) => ({
       asset_id: asset.assetId === '' ? null : asset.assetId,
+      hidden_puzzle_hash: asset.hiddenPuzzleHash,
       amount: asset.amount,
     })),
     requested_assets: params.requestAssets.map((asset) => ({
       asset_id: asset.assetId === '' ? null : asset.assetId,
+      hidden_puzzle_hash: asset.hiddenPuzzleHash,
       amount: asset.amount,
     })),
     expires_at_second: null,
