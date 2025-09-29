@@ -36,6 +36,7 @@ import { getCurrentWindow, UserAttentionType } from '@tauri-apps/api/window';
 import { platform } from '@tauri-apps/plugin-os';
 import SignClient from '@walletconnect/sign-client';
 import { SessionTypes, SignClientTypes } from '@walletconnect/types';
+import { AlertTriangleIcon } from 'lucide-react';
 import {
   createContext,
   ReactNode,
@@ -500,9 +501,30 @@ function TakeOfferDialog({ params }: CommandDialogProps<'chia_takeOffer'>) {
 
 function CreateOfferDialog({ params }: CommandDialogProps<'chia_createOffer'>) {
   const walletState = useWalletState();
+  // Check if any requested assets are revocable
+  const hasRevocableAssets = params.requestAssets?.some(
+    (asset) => asset.hiddenPuzzleHash,
+  );
 
   return (
     <div className='space-y-4 p-4'>
+      {hasRevocableAssets && (
+        <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+          <div className='flex items-start gap-3'>
+            <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+            <div>
+              <h4 className='font-medium text-amber-800 dark:text-amber-200'>
+                Warning: Revocable Assets
+              </h4>
+              <p className='text-sm text-amber-700 dark:text-amber-300 mt-1'>
+                One or more assets being requested are revocable. These assets
+                can be revoked by their issuer at any time. Please verify the
+                validity of these assets before proceeding.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div>
         <div className='font-medium mb-2'>Offering</div>
         <ul className='list-disc list-inside space-y-1'>

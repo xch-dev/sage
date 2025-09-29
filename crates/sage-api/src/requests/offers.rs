@@ -23,14 +23,10 @@ pub struct MakeOffer {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct OfferAmount {
+    #[serde(default)]
     pub asset_id: Option<String>,
-    pub amount: Amount,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(feature = "tauri", derive(specta::Type))]
-pub struct CatAmount {
-    pub asset_id: String,
+    #[serde(default)]
+    pub hidden_puzzle_hash: Option<String>,
     pub amount: Amount,
 }
 

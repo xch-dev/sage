@@ -16,6 +16,17 @@ use crate::{
 };
 
 impl Wallet {
+    pub async fn fetch_offer_cat_hidden_puzzle_hash(
+        &self,
+        asset_id: Bytes32,
+    ) -> Result<Option<Bytes32>, WalletError> {
+        Ok(self
+            .db
+            .asset(asset_id)
+            .await?
+            .and_then(|asset| asset.hidden_puzzle_hash))
+    }
+
     pub async fn fetch_offer_nft_info(
         &self,
         peer: Option<&WalletPeer>,
