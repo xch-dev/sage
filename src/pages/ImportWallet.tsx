@@ -35,6 +35,8 @@ export default function ImportWallet() {
 
   const [advanced, setAdvanced] = useState(false);
   const [pending, setPending] = useState(false);
+  const [hardened, setHardened] = useState(true);
+  const [unhardened, setUnhardened] = useState(true);
 
   const formSchema = z.object({
     name: z.string(),
@@ -47,7 +49,7 @@ export default function ImportWallet() {
         Math.floor(num) === num &&
         !isNaN(num) &&
         num >= 0 &&
-        num <= 100000
+        num <= 200000
       );
     }),
     emoji: z.string().nullable().optional(),
@@ -68,6 +70,8 @@ export default function ImportWallet() {
         name: values.name,
         key: values.key,
         derivation_index: parseInt(values.addresses),
+        hardened,
+        unhardened,
         emoji: values.emoji || null,
       })
       .then(fetchState)
@@ -170,29 +174,59 @@ export default function ImportWallet() {
             </div>
 
             {advanced && (
-              <FormField
-                control={form.control}
-                name='addresses'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Initial Addresses</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <Input required {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      <Trans>
-                        The initial derivation index to sync to (both hardened
-                        and unhardened keys). This is primarily applicable to
-                        legacy wallets with either hardened keys or gaps in
-                        addresses used.
-                      </Trans>
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <>
+                <FormField
+                  control={form.control}
+                  name='addresses'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        <Trans>Initial Addresses</Trans>
+                      </FormLabel>
+                      <FormControl>
+                        <Input required {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        <Trans>
+                          The initial derivation index to sync to (both hardened
+                          and unhardened keys). This is primarily applicable to
+                          legacy wallets with either hardened keys or gaps in
+                          addresses used.
+                        </Trans>
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className='flex items-center gap-2 my-4'>
+                  <label
+                    htmlFor='unhardened'
+                    className='text-sm text-muted-foreground'
+                  >
+                    <Trans>Unhardened Keys</Trans>
+                  </label>
+                  <Switch
+                    id='unhardened'
+                    checked={unhardened}
+                    onCheckedChange={(value) => setUnhardened(value)}
+                  />
+                </div>
+
+                <div className='flex items-center gap-2 my-4'>
+                  <label
+                    htmlFor='hardened'
+                    className='text-sm text-muted-foreground'
+                  >
+                    <Trans>Hardened Keys</Trans>
+                  </label>
+                  <Switch
+                    id='hardened'
+                    checked={hardened}
+                    onCheckedChange={(value) => setHardened(value)}
+                  />
+                </div>
+              </>
             )}
 
             <LoadingButton
