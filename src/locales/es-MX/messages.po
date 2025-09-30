@@ -356,11 +356,11 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:778
+#: src/contexts/WalletConnectContext.tsx:800
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:768
+#: src/contexts/WalletConnectContext.tsx:790
 msgid "Approving"
 msgstr ""
 
@@ -408,7 +408,7 @@ msgstr ""
 #~ msgstr "Asset Icon"
 
 #: src/components/AssetCoin.tsx:76
-#: src/components/selectors/TokenSelector.tsx:145
+#: src/components/selectors/TokenSelector.tsx:151
 msgid "Asset ID"
 msgstr "ID de activo"
 
@@ -2145,7 +2145,7 @@ msgstr "Cargando Colección..."
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:496
+#: src/contexts/WalletConnectContext.tsx:497
 msgid "Loading offer details..."
 msgstr ""
 
@@ -3376,7 +3376,7 @@ msgstr "Buscar NFTs..."
 msgid "Search options..."
 msgstr ""
 
-#: src/components/selectors/TokenSelector.tsx:110
+#: src/components/selectors/TokenSelector.tsx:117
 msgid "Search or enter asset id"
 msgstr "Buscar o introducir id de activo"
 

@@ -356,11 +356,11 @@ msgstr "Amount includes"
 msgid "Analyze Duration"
 msgstr "Analyze Duration"
 
-#: src/contexts/WalletConnectContext.tsx:778
+#: src/contexts/WalletConnectContext.tsx:800
 msgid "Approve"
 msgstr "Approve"
 
-#: src/contexts/WalletConnectContext.tsx:768
+#: src/contexts/WalletConnectContext.tsx:790
 msgid "Approving"
 msgstr "Approving"
 
@@ -408,7 +408,7 @@ msgstr "Asset can be revoked by the issuer"
 #~ msgstr "Asset Icon"
 
 #: src/components/AssetCoin.tsx:76
-#: src/components/selectors/TokenSelector.tsx:145
+#: src/components/selectors/TokenSelector.tsx:151
 msgid "Asset ID"
 msgstr "Asset ID"
 
@@ -2145,7 +2145,7 @@ msgstr "Loading Collection..."
 msgid "Loading NFT details..."
 msgstr "Loading NFT details..."
 
-#: src/contexts/WalletConnectContext.tsx:496
+#: src/contexts/WalletConnectContext.tsx:497
 msgid "Loading offer details..."
 msgstr "Loading offer details..."
 
@@ -3376,7 +3376,7 @@ msgstr "Search NFTs..."
 msgid "Search options..."
 msgstr "Search options..."
 
-#: src/components/selectors/TokenSelector.tsx:110
+#: src/components/selectors/TokenSelector.tsx:117
 msgid "Search or enter asset id"
 msgstr "Search or enter asset id"
 
