@@ -69,13 +69,23 @@ export default function ImportWallet() {
     },
   });
 
+  function cleanKey(key: string) {
+    return key
+      .trim()
+      .replace(/[^a-z]/gi, ' ')
+      .split(/\s+/)
+      .filter((item) => item.length > 0)
+      .join(' ')
+      .toLowerCase();
+  }
+
   const submit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
 
     commands
       .importKey({
         name: values.name,
-        key: values.key,
+        key: cleanKey(values.key),
         derivation_index: parseInt(values.addresses),
         hardened,
         unhardened,
