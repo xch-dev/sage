@@ -1,0 +1,120 @@
+{
+  "name": "zombie",
+  "displayName": "🎃 Zombie",
+  "schemaVersion": 1,
+  "backgroundImage": "background.gif",
+  "inherits": "dark",
+  "mostLike": "dark",
+  "author": "steppsr",
+  "colors": {
+    "background": "rgba(0, 0, 0, 0.1)",
+    "foreground": "#EFEFEF",
+    "card": "rgba(0, 0, 0, 0.35)",
+    "cardForeground": "#E8E8E8",
+    "cardBackdropFilter": "blur(7px) saturate(150%) brightness(0.75)",
+    "primary": "#F56F27",
+    "primaryForeground": "#292E36",
+    "secondary": "#2D343F",
+    "secondaryForeground": "#CFCFD1",
+    "accent": "#E599FF",
+    "accentForeground": "#292E36",
+    "destructive": "#F26685",
+    "destructiveForeground": "#EFEFEF",
+    "muted": "#292E36",
+    "mutedForeground": "#A6A6AC",
+    "border": "#333A45",
+    "input": "#292E36",
+    "ring": "#F56F27"
+  },
+  "tables": {
+    "header": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "row": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    },
+    "footer": {
+      "backdropFilter": "blur(7px) saturate(150%) brightness(0.9)"
+    }
+  },
+  "fonts": {
+    "heading": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "body": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "mono": "JetBrains Mono, Fira Code, Consolas, Monaco, monospace"
+  },
+  "corners": {
+    "none": "0px",
+    "sm": "0.25rem",
+    "md": "0.5rem",
+    "lg": "0.75rem",
+    "xl": "1rem"
+  },
+  "sidebar": {
+    "backdropFilter": "blur(7px) saturate(150%) brightness(0.7)"
+  },
+  "buttons": {
+    "primary": {
+      "background": "#F56F27",
+      "color": "#292E36",
+      "border": "1px solid #F56F27",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 4px 16px #F56F274D, 0 0 8px #F56F2733",
+      "hover": {
+        "background": "#FFF1A3",
+        "transform": "translateY(-1px)",
+        "boxShadow": "0 6px 20px #F56F2766"
+      }
+    },
+    "outline": {
+      "background": "transparent",
+      "color": "#F56F27",
+      "border": "2px solid #F56F27",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 0 8px #F56F271A",
+      "hover": {
+        "background": "#F56F271A",
+        "color": "#FFF1A3",
+        "transform": "scale(1.02)",
+        "boxShadow": "0 0 12px #F56F2733"
+      }
+    },
+    "secondary": {
+      "background": "#2D343F",
+      "color": "#CFCFD1",
+      "border": "1px solid #333A45",
+      "borderRadius": "0.5rem",
+      "boxShadow": "0 4px 12px #141A234D",
+      "hover": {
+        "background": "#38414F",
+        "transform": "translateY(-1px)"
+      }
+    },
+    "ghost": {
+      "background": "transparent",
+      "color": "#E8EAF1",
+      "border": "none",
+      "borderRadius": "0.75rem",
+      "hover": {
+        "background": "#33CCFF1A",
+        "color": "#66D6FF"
+      }
+    }
+  },
+  "switches": {
+    "checked": {
+      "background": "#F56F27",
+      "thumbColor": "#171A21",
+      "boxShadow": "0 0 15px #33CCFF4D"
+    },
+    "unchecked": {
+      "background": "#292E36",
+      "thumbColor": "#80A3BF",
+      "border": "1px solid #2E7585"
+    }
+  },
+  "shadows": {
+    "card": "0 10px 40px #0D0F1266, 0 0 20px #F56F270D",
+    "button": "0 4px 16px #F56F2733",
+    "input": "inset 0 0 10px #33CCFF1A"
+  }
+}
