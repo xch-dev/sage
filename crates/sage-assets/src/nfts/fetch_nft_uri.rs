@@ -21,7 +21,7 @@ pub struct Data {
     pub thumbnail: Option<Thumbnail>,
 }
 
-pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
+pub async fn fetch_uri(uri: String, testnet: bool) -> Result<Data, UriError> {
     let response = reqwest::get(&uri).await?;
 
     let mime_type = match response.headers().get(CONTENT_TYPE) {
@@ -49,7 +49,7 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
     hasher.update(&blob);
     let hash = Bytes32::new(hasher.finalize());
 
-    let mut thumbnail = match mintgarden_thumbnail(hash).await {
+    let mut thumbnail = match mintgarden_thumbnail(hash, testnet).await {
         Ok(thumbnail) => thumbnail,
         Err(error) => {
             debug!("Failed to fetch MintGarden thumbnail for {uri}: {error}");
@@ -91,11 +91,11 @@ pub async fn fetch_uri(uri: String) -> Result<Data, UriError> {
     })
 }
 
-pub async fn fetch_uris_without_hash(uris: Vec<String>) -> Result<Data, UriError> {
+pub async fn fetch_uris_without_hash(uris: Vec<String>, testnet: bool) -> Result<Data, UriError> {
     let mut futures = FuturesUnordered::new();
 
     for uri in uris {
-        futures.push(fetch_uri(uri));
+        futures.push(fetch_uri(uri, testnet));
     }
 
     let mut data = None;
@@ -128,11 +128,11 @@ pub async fn fetch_uris_without_hash(uris: Vec<String>) -> Result<Data, UriError
     data.ok_or(UriError::NoUris)
 }
 
-pub async fn fetch_uris_with_hash(uris: Vec<String>, hash: Bytes32) -> Option<Data> {
+pub async fn fetch_uris_with_hash(uris: Vec<String>, hash: Bytes32, testnet: bool) -> Option<Data> {
     let mut futures = FuturesUnordered::new();
 
     for uri in uris {
-        futures.push(async move { (uri.clone(), fetch_uri(uri).await) });
+        futures.push(async move { (uri.clone(), fetch_uri(uri, testnet).await) });
     }
 
     while let Some((uri, result)) = futures.next().await {
@@ -151,8 +151,14 @@ pub async fn fetch_uris_with_hash(uris: Vec<String>, hash: Bytes32) -> Option<Da
     None
 }
 
-pub async fn mintgarden_thumbnail(data_hash: Bytes32) -> Result<Option<Thumbnail>, UriError> {
-    let url = format!("https://assets.mainnet.mintgarden.io/thumbnails/{data_hash}_512.webp");
+pub async fn mintgarden_thumbnail(
+    data_hash: Bytes32,
+    testnet: bool,
+) -> Result<Option<Thumbnail>, UriError> {
+    let url = format!(
+        "https://assets.{}.mintgarden.io/thumbnails/{data_hash}_512.webp",
+        if testnet { "testnet" } else { "mainnet" }
+    );
 
     let response = reqwest::get(&url).await?;
 

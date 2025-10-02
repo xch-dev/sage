@@ -3,6 +3,7 @@ use chia::puzzles::nft::NftMetadata;
 use chia_wallet_sdk::{
     driver::{decode_offer, encode_offer, DriverError, Offer, SpendContext},
     signer::AggSigConstants,
+    types::TESTNET11_CONSTANTS,
     utils::Address,
 };
 use itertools::Itertools;
@@ -304,6 +305,8 @@ impl Sage {
             });
         }
 
+        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+
         for nft in offer.offered_coins().nfts.values() {
             let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
                 let mut confirmation_info = ConfirmationInfo::default();
@@ -311,7 +314,7 @@ impl Sage {
                 if let Some(hash) = metadata.data_hash {
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash),
+                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                     {
@@ -322,7 +325,7 @@ impl Sage {
                 if let Some(hash) = metadata.metadata_hash {
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
+                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                     {
@@ -395,7 +398,7 @@ impl Sage {
                 if let Some(hash) = metadata.data_hash {
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash),
+                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                     {
@@ -406,7 +409,7 @@ impl Sage {
                 if let Some(hash) = metadata.metadata_hash {
                     if let Ok(Some(data)) = timeout(
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash),
+                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                     {
