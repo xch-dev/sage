@@ -11,16 +11,22 @@ use tokio::{
 use tracing::{debug, info, warn};
 
 use crate::{compute_nft_info, SyncEvent, WalletError};
-
+use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
+use sage_config::Network;
 #[derive(Debug)]
 pub struct NftUriQueue {
     db: Database,
     sync_sender: mpsc::Sender<SyncEvent>,
+    network: Network,
 }
 
 impl NftUriQueue {
-    pub fn new(db: Database, sync_sender: mpsc::Sender<SyncEvent>) -> Self {
-        Self { db, sync_sender }
+    pub fn new(db: Database, sync_sender: mpsc::Sender<SyncEvent>, network: Network) -> Self {
+        Self {
+            db,
+            sync_sender,
+            network,
+        }
     }
 
     pub async fn start(self, delay: Duration) -> Result<(), WalletError> {
@@ -40,10 +46,14 @@ impl NftUriQueue {
         info!("Processing batch of {} NFT URIs", batch.len());
 
         let mut futures = FuturesUnordered::new();
-
+        let testnet = self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
         for item in batch {
             futures.push(async move {
-                let result = timeout(Duration::from_secs(15), fetch_uri(item.uri.clone())).await;
+                let result = timeout(
+                    Duration::from_secs(15),
+                    fetch_uri(item.uri.clone(), testnet),
+                )
+                .await;
                 (item, result)
             });
         }
