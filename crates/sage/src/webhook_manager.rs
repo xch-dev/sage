@@ -23,7 +23,7 @@ pub struct WebhookEventPayload {
 }
 
 // Webhook manager
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WebhookManager {
     webhooks: Arc<RwLock<HashMap<String, WebhookConfig>>>,
     client: Client,

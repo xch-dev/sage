@@ -11,6 +11,9 @@ const https = require('https');
 const fs = require('fs');
 var indexRouter = require('./routes/index');
 
+// Store SSE connections for broadcasting webhook events
+const sseConnections = new Set();
+
 var app = express();
 
 // view engine setup
@@ -27,8 +30,67 @@ app.use('/', indexRouter);
 
 app.post('/sage_hook', (req, res) => {
   console.log(req.body);
+
+  // Broadcast the webhook event to all SSE connections
+  const eventData = {
+    id: Date.now(),
+    event: 'webhook',
+    data: JSON.stringify({
+      timestamp: new Date().toISOString(),
+      body: req.body,
+    }),
+  };
+
+  broadcastSSEEvent(eventData);
+
   res.status(200).end();
 });
+
+// SSE endpoint for webhook events
+app.get('/events', (req, res) => {
+  // Set SSE headers
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control',
+  });
+
+  // Send initial connection event
+  res.write(
+    `data: ${JSON.stringify({
+      id: Date.now(),
+      event: 'connected',
+      data: 'Connected to webhook event stream',
+    })}\n\n`,
+  );
+
+  // Add this connection to our set
+  sseConnections.add(res);
+
+  // Handle client disconnect
+  req.on('close', () => {
+    sseConnections.delete(res);
+    console.log('SSE client disconnected');
+  });
+
+  console.log('SSE client connected');
+});
+
+// Function to broadcast events to all SSE connections
+function broadcastSSEEvent(eventData) {
+  const message = `id: ${eventData.id}\nevent: ${eventData.event}\ndata: ${eventData.data}\n\n`;
+
+  sseConnections.forEach((res) => {
+    try {
+      res.write(message);
+    } catch (error) {
+      console.error('Error sending SSE message:', error);
+      sseConnections.delete(res);
+    }
+  });
+}
 
 // Helper function to create mTLS agent
 function createMTLSAgent() {

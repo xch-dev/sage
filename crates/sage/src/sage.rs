@@ -240,7 +240,86 @@ impl Sage {
         tokio::spawn(sync_manager.sync());
         self.command_sender = command_sender;
 
-        Ok(receiver)
+        // Create a broadcast channel to split events between Tauri app and webhook consumer
+        let (tx, _rx) = tokio::sync::broadcast::channel(100);
+
+        // Create a receiver for the Tauri app before we move tx
+        let tauri_receiver = tx.subscribe();
+
+        // Spawn a task that forwards events from the sync manager to the broadcast channel
+        let webhook_manager = self.webhook_manager.clone();
+        tokio::spawn(async move {
+            let mut receiver = receiver;
+            while let Some(event) = receiver.recv().await {
+                // Send to broadcast channel (for Tauri app)
+                let _ = tx.send(event.clone());
+
+                // Also handle for webhooks directly
+                Self::handle_sync_event_for_webhooks(&webhook_manager, event).await;
+            }
+        });
+
+        // Convert broadcast receiver to mpsc receiver for compatibility
+        let (tauri_tx, tauri_rx) = mpsc::channel(100);
+        tokio::spawn(async move {
+            let mut tauri_receiver = tauri_receiver;
+            while let Ok(event) = tauri_receiver.recv().await {
+                let _ = tauri_tx.send(event).await;
+            }
+        });
+
+        Ok(tauri_rx)
+    }
+
+    async fn handle_sync_event_for_webhooks(webhook_manager: &WebhookManager, event: SyncEvent) {
+        let (event_type, data) = match event {
+            SyncEvent::Start(ip) => (
+                "start",
+                serde_json::json!({
+                    "ip": ip.to_string()
+                }),
+            ),
+            SyncEvent::Stop => ("stop", serde_json::json!({})),
+            SyncEvent::Subscribed => ("subscribed", serde_json::json!({})),
+            SyncEvent::DerivationIndex { next_index } => (
+                "derivation_index",
+                serde_json::json!({
+                    "next_index": next_index
+                }),
+            ),
+            SyncEvent::CoinsUpdated => ("coin_state", serde_json::json!({})),
+            SyncEvent::TransactionUpdated { transaction_id } => (
+                "transaction_updated",
+                serde_json::json!({
+                    "transaction_id": transaction_id.to_string()
+                }),
+            ),
+            SyncEvent::TransactionFailed {
+                transaction_id,
+                error,
+            } => (
+                "transaction_failed",
+                serde_json::json!({
+                    "transaction_id": transaction_id.to_string(),
+                    "error": error
+                }),
+            ),
+            SyncEvent::OfferUpdated { offer_id, status } => (
+                "offer_updated",
+                serde_json::json!({
+                    "offer_id": offer_id.to_string(),
+                    "status": format!("{:?}", status)
+                }),
+            ),
+            SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
+            SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
+            SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
+            SyncEvent::NftData => ("nft_data", serde_json::json!({})),
+        };
+
+        webhook_manager
+            .send_event(event_type.to_string(), data)
+            .await;
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {

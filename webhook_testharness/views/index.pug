@@ -9,6 +9,9 @@ block content
   h2 Response:
   pre#response-display No response yet
 
+  h2 Live Webhook Events:
+  pre#webhook-events No webhook events yet
+
   script.
     let webhookId = null;
 
@@ -28,7 +31,7 @@ block content
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url: 'http://localhost:3000/sage_hook', event_types:['coin_state','puzzle_batch_synced','nft_data'] }),
+        body: JSON.stringify({ url: 'http://localhost:3000/sage_hook', event_types:['start', 'stop', 'subscribed', 'derivation', 'coin_state','puzzle_batch_synced','nft_data'] }),
       })
       .then(response => response.json())
       .then(data => {
@@ -69,6 +72,92 @@ block content
       });
     }
 
+    let eventSource = null;
+    let webhookEventCount = 0;
+
+    function setupEventSource() {
+      // Create EventSource connection to receive webhook events
+      eventSource = new EventSource('/events');
+      
+      eventSource.onopen = function(event) {
+        console.log('SSE connection opened');
+        $('#webhook-events').text('Connected to webhook event stream. Waiting for events...');
+      };
+
+      eventSource.onmessage = function(event) {
+        console.log('SSE message received:', event);
+        try {
+          const data = JSON.parse(event.data);
+          displayWebhookEvent(data);
+        } catch (error) {
+          console.error('Error parsing SSE data:', error);
+        }
+      };
+
+      eventSource.addEventListener('webhook', function(event) {
+        console.log('Webhook event received:', event);
+        try {
+          const data = JSON.parse(event.data);
+          displayWebhookEvent(data);
+        } catch (error) {
+          console.error('Error parsing webhook event:', error);
+        }
+      });
+
+      eventSource.addEventListener('connected', function(event) {
+        console.log('SSE connected:', event);
+        displayWebhookEvent({
+          event: 'connected',
+          data: event.data,
+          timestamp: new Date().toISOString()
+        });
+      });
+
+      eventSource.onerror = function(event) {
+        console.error('SSE error:', event);
+        $('#webhook-events').append('\n[ERROR] Connection lost. Attempting to reconnect...');
+        
+        // Close current connection
+        if (eventSource) {
+          eventSource.close();
+        }
+        
+        // Attempt to reconnect after 3 seconds
+        setTimeout(function() {
+          setupEventSource();
+        }, 3000);
+      };
+    }
+
+    function displayWebhookEvent(eventData) {
+      webhookEventCount++;
+      const timestamp = new Date().toLocaleTimeString();
+      
+      const eventHeader = `[${timestamp}] Event #${webhookEventCount} (${eventData.event}):`;
+      const eventJson = JSON.stringify(eventData, null, 2);
+      const eventDisplay = eventHeader + '\n' + eventJson + '\n\n';
+      
+      // Append new event to the display
+      const currentContent = $('#webhook-events').text();
+      if (currentContent === 'No webhook events yet' || currentContent === 'Connected to webhook event stream. Waiting for events...') {
+        $('#webhook-events').text(eventDisplay);
+      } else {
+        $('#webhook-events').append(eventDisplay);
+      }
+      
+      // Scroll to bottom of the pre element
+      const preElement = document.getElementById('webhook-events');
+      preElement.scrollTop = preElement.scrollHeight;
+    }
+
     $(document).ready(function() {
       updateButtonStates();
+      setupEventSource();
+    });
+
+    // Clean up EventSource connection when page is unloaded
+    window.addEventListener('beforeunload', function() {
+      if (eventSource) {
+        eventSource.close();
+      }
     });
