@@ -32,7 +32,7 @@ use tracing_subscriber::{
     filter::filter_fn, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry,
 };
 
-use crate::{peers::Peers, Error, Result};
+use crate::{peers::Peers, webhook_manager::WebhookManager, Error, Result};
 
 #[derive(Debug)]
 pub struct Sage {
@@ -45,6 +45,7 @@ pub struct Sage {
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
+    pub webhook_manager: WebhookManager,
 }
 
 impl Sage {
@@ -59,6 +60,7 @@ impl Sage {
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
+            webhook_manager: WebhookManager::new(),
         }
     }
 

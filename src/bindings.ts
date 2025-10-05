@@ -352,6 +352,12 @@ async getLogs() : Promise<LogFile[]> {
 },
 async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
     return await TAURI_INVOKE("is_asset_owned", { req });
+},
+async registerWebhook(req: RegisterWebhook) : Promise<RegisterWebhookResponse> {
+    return await TAURI_INVOKE("register_webhook", { req });
+},
+async unregisterWebhook(req: UnregisterWebhook) : Promise<UnregisterWebhookResponse> {
+    return await TAURI_INVOKE("unregister_webhook", { req });
 }
 }
 
@@ -541,6 +547,8 @@ export type PerformDatabaseMaintenance = { force_vacuum: boolean }
 export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; analyze_duration_ms: number; wal_checkpoint_duration_ms: number; total_duration_ms: number; pages_vacuumed: number; wal_pages_checkpointed: number }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
+export type RegisterWebhook = { url: string; event_types: string[]; secret: string | null }
+export type RegisterWebhookResponse = { webhook_id: string }
 export type RemovePeer = { ip: string; ban: boolean }
 export type RenameKey = { fingerprint: number; name: string }
 export type RenameKeyResponse = Record<string, never>
@@ -590,6 +598,8 @@ export type TransferDids = { did_ids: string[]; address: string; fee: Amount; cl
 export type TransferNfts = { nft_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type TransferOptions = { option_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type Unit = { ticker: string; precision: number }
+export type UnregisterWebhook = { webhook_id: string }
+export type UnregisterWebhookResponse = Record<string, never>
 export type UpdateCat = { record: TokenRecord }
 export type UpdateCatResponse = Record<string, never>
 export type UpdateDid = { did_id: string; name: string | null; visible: boolean }

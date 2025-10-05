@@ -96,5 +96,7 @@
   "update_nft_collection": true,
   "redownload_nft": true,
   "increase_derivation_index": true,
-  "is_asset_owned": true
+  "is_asset_owned": true,
+  "register_webhook": true,
+  "unregister_webhook": true
 }

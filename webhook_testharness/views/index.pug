@@ -1,0 +1,74 @@
+extends layout
+
+block content
+  h1= title
+
+  button#register-btn(onclick="registerWebhook()") Register Webhook
+  button#unregister-btn(onclick="unregisterWebhook()" style="display: none;") Unregister Webhook
+
+  h2 Response:
+  pre#response-display No response yet
+
+  script.
+    let webhookId = null;
+
+    function updateButtonStates() {
+      if (webhookId) {
+        $('#register-btn').hide();
+        $('#unregister-btn').show();
+      } else {
+        $('#register-btn').show();
+        $('#unregister-btn').hide();
+      }
+    }
+
+    function registerWebhook() {
+      fetch('/proxy/register_webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ url: 'http://localhost:3000/sage_hook', event_types:['coin_state','puzzle_batch_synced','nft_data'] }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.webhook_id) {
+          webhookId = data.webhook_id;
+          updateButtonStates();
+        }
+        $('#response-display').text(JSON.stringify(data, null, 2));
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        $('#response-display').text('Error: ' + error.message);
+      });
+    }
+
+    function unregisterWebhook() {
+      if (!webhookId) {
+        $('#response-display').text('Error: No webhook_id available. Please register a webhook first.');
+        return;
+      }
+
+      fetch('/proxy/unregister_webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ webhook_id: webhookId }),
+      })
+      .then(response => response.json())
+      .then(data => {
+        webhookId = null;
+        updateButtonStates();
+        $('#response-display').text(JSON.stringify(data, null, 2));
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        $('#response-display').text('Error: ' + error.message);
+      });
+    }
+
+    $(document).ready(function() {
+      updateButtonStates();
+    });

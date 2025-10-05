@@ -105,6 +105,10 @@ futures-util = "0.3.30"
 futures-lite = "2.3.0"
 sqlx = "0.8.0"
 reqwest = { version = "0.12.22", default-features = false }
+uuid = { version = "1.10.0", features = ["v4", "serde"] }
+chrono = { version = "0.4.38", features = ["serde"] }
+hmac = "0.12.1"
+sha2 = "0.10.8"
 
 # Utilities
 indexmap = "2.3.0"
