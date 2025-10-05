@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct RegisterWebhook {
     pub url: String,
-    pub event_types: Vec<String>,
+    pub event_types: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

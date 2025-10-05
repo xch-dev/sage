@@ -5,15 +5,15 @@ block content
 
   button#register-btn(onclick="registerWebhook()") Register Webhook
   button#unregister-btn(onclick="unregisterWebhook()" style="display: none;") Unregister Webhook
+  
+  article
+    h2 Registration:
+    pre#response-display Hook not registered
 
-  h2 Response:
-  pre#response-display Hook not registered
-
-  h2 Live Webhook Events:
-  pre#webhook-events No webhook events yet
+    h2 Live Webhook Events:
+    pre#webhook-events No webhook events yet
 
   script.
-    // Cookie helper functions
     function setCookie(name, value, days = 365) {
       const expires = new Date(Date.now() + days * 864e5).toUTCString();
       document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
@@ -30,7 +30,6 @@ block content
       document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
     }
 
-    // Load webhook ID from cookie on startup
     let webhookId = getCookie('webhookId');
 
     function updateButtonStates() {
@@ -50,7 +49,6 @@ block content
     }
 
     function registerWebhook() {
-      // Clear the webhook events display when registering
       clearWebhookEvents();
       
       fetch('/proxy/register_webhook', {
@@ -58,7 +56,7 @@ block content
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ url: 'http://localhost:3000/sage_hook', event_types:['start', 'stop', 'subscribed', 'derivation', 'coin_state','puzzle_batch_synced','nft_data'] }),
+        body: JSON.stringify({ url: 'http://localhost:3000/sage_hook' }),
       })
       .then(response => response.json())
       .then(data => {
@@ -81,7 +79,6 @@ block content
         return;
       }
 
-      // Clear the webhook events display when unregistering
       clearWebhookEvents();
 
       fetch('/proxy/unregister_webhook', {
@@ -112,12 +109,10 @@ block content
       eventSource = new EventSource('/events');
       
       eventSource.onopen = function(event) {
-        console.log('SSE connection opened');
         $('#webhook-events').text('Connected to webhook event stream. Waiting for events...');
       };
 
       eventSource.onmessage = function(event) {
-        console.log('SSE message received:', event);
         try {
           const data = JSON.parse(event.data);
           displayWebhookEvent(data);
@@ -127,9 +122,9 @@ block content
       };
 
       eventSource.addEventListener('webhook', function(event) {
-        console.log('Webhook event received:', event);
         try {
           const data = JSON.parse(event.data);
+          data.event = data.event || 'webhook';
           displayWebhookEvent(data);
         } catch (error) {
           console.error('Error parsing webhook event:', error);
@@ -137,7 +132,6 @@ block content
       });
 
       eventSource.addEventListener('connected', function(event) {
-        console.log('SSE connected:', event);
         displayWebhookEvent({
           event: 'connected',
           data: event.data,
@@ -149,12 +143,10 @@ block content
         console.error('SSE error:', event);
         $('#webhook-events').append('\n[ERROR] Connection lost. Attempting to reconnect...');
         
-        // Close current connection
         if (eventSource) {
           eventSource.close();
         }
         
-        // Attempt to reconnect after 3 seconds
         setTimeout(function() {
           setupEventSource();
         }, 3000);

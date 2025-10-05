@@ -83,6 +83,7 @@ pub struct WebhookConfig {
 pub struct WebhookEntry {
     pub id: String,
     pub url: String,
-    pub events: Vec<String>,
+    /// None means "all events, including future ones"
+    pub events: Option<Vec<String>>,
     pub enabled: bool,
 }

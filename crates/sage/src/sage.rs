@@ -610,7 +610,7 @@ impl Sage {
     }
 
     async fn setup_webhooks(&mut self) -> Result<()> {
-        let entries: Vec<(String, String, Vec<String>, bool)> = self
+        let entries: Vec<(String, String, Option<Vec<String>>, bool)> = self
             .config
             .webhooks
             .webhooks

@@ -9,7 +9,8 @@ use uuid::Uuid;
 pub struct WebhookConfig {
     pub id: String,
     pub url: String,
-    pub events: Vec<String>,
+    /// None means "all events, including future ones"
+    pub events: Option<Vec<String>>,
     pub active: bool,
 }
 
@@ -46,7 +47,7 @@ impl WebhookManager {
     }
 
     // Register a new webhook
-    pub async fn register_webhook(&self, url: String, events: Vec<String>) -> String {
+    pub async fn register_webhook(&self, url: String, events: Option<Vec<String>>) -> String {
         let id = Uuid::new_v4().to_string();
         let config = WebhookConfig {
             id: id.clone(),
@@ -86,7 +87,13 @@ impl WebhookManager {
         let webhooks = self.webhooks.read().await;
         let interested_webhooks: Vec<WebhookConfig> = webhooks
             .values()
-            .filter(|w| w.active && w.events.contains(&event_type))
+            .filter(|w| {
+                w.active
+                    && match &w.events {
+                        None => true, // None means all events
+                        Some(events) => events.contains(&event_type),
+                    }
+            })
             .cloned()
             .collect();
 
@@ -104,7 +111,7 @@ impl WebhookManager {
 
         for attempt in 0..MAX_RETRIES {
             match Self::send_webhook_request(&client, &webhook, &event).await {
-                Ok(_) => {
+                Ok(()) => {
                     println!("✓ Webhook delivered to {}", webhook.url);
                     return;
                 }
@@ -148,7 +155,7 @@ impl WebhookManager {
     }
 
     // Load webhooks from config entries
-    pub async fn load_webhooks(&self, entries: Vec<(String, String, Vec<String>, bool)>) {
+    pub async fn load_webhooks(&self, entries: Vec<(String, String, Option<Vec<String>>, bool)>) {
         let mut webhooks = self.webhooks.write().await;
         for (id, url, events, enabled) in entries {
             let config = WebhookConfig {
@@ -162,7 +169,7 @@ impl WebhookManager {
     }
 
     // Get webhooks in a format suitable for saving to config
-    pub async fn get_webhook_entries(&self) -> Vec<(String, String, Vec<String>, bool)> {
+    pub async fn get_webhook_entries(&self) -> Vec<(String, String, Option<Vec<String>>, bool)> {
         let webhooks = self.webhooks.read().await;
         webhooks
             .values()
