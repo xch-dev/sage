@@ -8,6 +8,7 @@ pub struct Config {
     pub global: GlobalConfig,
     pub network: NetworkConfig,
     pub rpc: RpcConfig,
+    pub webhooks: WebhookConfig,
 }
 
 impl Default for Config {
@@ -17,6 +18,7 @@ impl Default for Config {
             global: GlobalConfig::default(),
             network: NetworkConfig::default(),
             rpc: RpcConfig::default(),
+            webhooks: WebhookConfig::default(),
         }
     }
 }
@@ -69,4 +71,18 @@ impl Default for RpcConfig {
             port: 9257,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(default)]
+pub struct WebhookConfig {
+    pub webhooks: Vec<WebhookEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+pub struct WebhookEntry {
+    pub id: String,
+    pub url: String,
+    pub events: Vec<String>,
+    pub enabled: bool,
 }

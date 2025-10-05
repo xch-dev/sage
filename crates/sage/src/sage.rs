@@ -70,6 +70,7 @@ impl Sage {
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_logging()?;
+        self.setup_webhooks().await?;
 
         let receiver = self.setup_sync_manager()?;
         self.setup_peers().await?;
@@ -587,6 +588,44 @@ impl Sage {
 
     pub fn save_keychain(&self) -> Result<()> {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
+        Ok(())
+    }
+
+    pub async fn save_webhooks_config(&mut self) -> Result<()> {
+        use sage_config::WebhookEntry;
+
+        let entries = self.webhook_manager.get_webhook_entries().await;
+        self.config.webhooks.webhooks = entries
+            .into_iter()
+            .map(|(id, url, events, enabled)| WebhookEntry {
+                id,
+                url,
+                events,
+                enabled,
+            })
+            .collect();
+
+        self.save_config()?;
+        Ok(())
+    }
+
+    async fn setup_webhooks(&mut self) -> Result<()> {
+        let entries: Vec<(String, String, Vec<String>, bool)> = self
+            .config
+            .webhooks
+            .webhooks
+            .iter()
+            .map(|w| (w.id.clone(), w.url.clone(), w.events.clone(), w.enabled))
+            .collect();
+
+        if !entries.is_empty() {
+            self.webhook_manager.load_webhooks(entries).await;
+            info!(
+                "Loaded {} webhooks from config",
+                self.config.webhooks.webhooks.len()
+            );
+        }
+
         Ok(())
     }
 }

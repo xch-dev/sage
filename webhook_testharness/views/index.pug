@@ -7,25 +7,52 @@ block content
   button#unregister-btn(onclick="unregisterWebhook()" style="display: none;") Unregister Webhook
 
   h2 Response:
-  pre#response-display No response yet
+  pre#response-display Hook not registered
 
   h2 Live Webhook Events:
   pre#webhook-events No webhook events yet
 
   script.
-    let webhookId = null;
+    // Cookie helper functions
+    function setCookie(name, value, days = 365) {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+    }
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+      return null;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    }
+
+    // Load webhook ID from cookie on startup
+    let webhookId = getCookie('webhookId');
 
     function updateButtonStates() {
       if (webhookId) {
         $('#register-btn').hide();
         $('#unregister-btn').show();
+        $('#response-display').text(`Webhook registered (ID: ${webhookId})`);
       } else {
         $('#register-btn').show();
         $('#unregister-btn').hide();
       }
     }
 
+    function clearWebhookEvents() {
+      $('#webhook-events').text('Webhook events cleared. Waiting for new events...');
+      webhookEventCount = 0;
+    }
+
     function registerWebhook() {
+      // Clear the webhook events display when registering
+      clearWebhookEvents();
+      
       fetch('/proxy/register_webhook', {
         method: 'POST',
         headers: {
@@ -37,6 +64,7 @@ block content
       .then(data => {
         if (data.webhook_id) {
           webhookId = data.webhook_id;
+          setCookie('webhookId', webhookId);
           updateButtonStates();
         }
         $('#response-display').text(JSON.stringify(data, null, 2));
@@ -53,6 +81,9 @@ block content
         return;
       }
 
+      // Clear the webhook events display when unregistering
+      clearWebhookEvents();
+
       fetch('/proxy/unregister_webhook', {
         method: 'POST',
         headers: {
@@ -63,6 +94,7 @@ block content
       .then(response => response.json())
       .then(data => {
         webhookId = null;
+        deleteCookie('webhookId');
         updateButtonStates();
         $('#response-display').text(JSON.stringify(data, null, 2));
       })
