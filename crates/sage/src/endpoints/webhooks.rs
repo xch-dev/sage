@@ -13,7 +13,7 @@ impl Sage {
     ) -> Result<RegisterWebhookResponse> {
         let webhook_id = self
             .webhook_manager
-            .register_webhook(req.url, req.event_types)
+            .register_webhook(req.url, req.event_types, req.secret)
             .await;
 
         self.save_webhooks_config().await?;
@@ -44,6 +44,7 @@ impl Sage {
                     url: w.url,
                     events: w.events,
                     enabled: w.active,
+                    secret: None, // Don't expose secret in API responses
                     last_delivered_at: w.last_delivered_at,
                     last_delivery_attempt_at: w.last_delivery_attempt_at,
                 })

@@ -555,7 +555,11 @@ export type PerformDatabaseMaintenance = { force_vacuum: boolean }
 export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; analyze_duration_ms: number; wal_checkpoint_duration_ms: number; total_duration_ms: number; pages_vacuumed: number; wal_pages_checkpointed: number }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
-export type RegisterWebhook = { url: string; event_types: string[] | null }
+export type RegisterWebhook = { url: string; event_types: string[] | null; 
+/**
+ * Optional secret for HMAC-SHA256 signature verification
+ */
+secret: string | null }
 export type RegisterWebhookResponse = { webhook_id: string }
 export type RemovePeer = { ip: string; ban: boolean }
 export type RenameKey = { fingerprint: number; name: string }
@@ -630,7 +634,11 @@ export type WebhookEntry = { id: string; url: string;
 /**
  * None means "all events, including future ones"
  */
-events: string[] | null; enabled: boolean; last_delivered_at: number | null; last_delivery_attempt_at: number | null }
+events: string[] | null; enabled: boolean; 
+/**
+ * Optional secret for HMAC-SHA256 signature verification
+ */
+secret?: string | null; last_delivered_at: number | null; last_delivery_attempt_at: number | null }
 
 /** tauri-specta globals **/
 

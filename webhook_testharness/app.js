@@ -1,4 +1,3 @@
-// Load environment variables from .env file
 require('dotenv').config();
 
 var createError = require('http-errors');
@@ -9,42 +8,117 @@ var logger = require('morgan');
 const bodyParser = require('body-parser');
 const https = require('https');
 const fs = require('fs');
+const crypto = require('crypto');
 var indexRouter = require('./routes/index');
 
-// Store SSE connections for broadcasting webhook events
 const sseConnections = new Set();
+
+let webhookSecret = null;
 
 var app = express();
 
-// view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger('dev'));
-app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Webhook endpoint with HMAC verification (must be before bodyParser.json())
+app.post(
+  '/sage_hook',
+  bodyParser.raw({ type: 'application/json' }),
+  (req, res) => {
+    const signature = req.headers['x-webhook-signature'];
+    let verificationStatus = 'No signature required';
+    let isValid = true;
+
+    // Verify HMAC signature if secret is configured
+    if (webhookSecret) {
+      if (!signature) {
+        verificationStatus = '❌ FAILED: Missing signature header';
+        isValid = false;
+        console.error('Webhook verification failed: Missing signature');
+      } else {
+        try {
+          // Extract the signature from "sha256=<hex>" format
+          const signatureParts = signature.split('=');
+          if (signatureParts.length !== 2 || signatureParts[0] !== 'sha256') {
+            verificationStatus = '❌ FAILED: Invalid signature format';
+            isValid = false;
+            console.error('Invalid signature format:', signature);
+          } else {
+            const receivedSignature = signatureParts[1];
+
+            const hmac = crypto.createHmac('sha256', webhookSecret);
+            hmac.update(req.body);
+            const expectedSignature = hmac.digest('hex');
+
+            if (
+              crypto.timingSafeEqual(
+                Buffer.from(receivedSignature),
+                Buffer.from(expectedSignature),
+              )
+            ) {
+              verificationStatus = '✅ VERIFIED';
+              console.log('Webhook signature verified successfully');
+            } else {
+              verificationStatus = '❌ FAILED: Signature mismatch';
+              isValid = false;
+              console.error('Webhook verification failed: Signature mismatch');
+              console.error('Expected:', expectedSignature);
+              console.error('Received:', receivedSignature);
+            }
+          }
+        } catch (error) {
+          verificationStatus = `❌ FAILED: ${error.message}`;
+          isValid = false;
+          console.error('Webhook verification error:', error);
+        }
+      }
+    }
+
+    const parsedBody = JSON.parse(req.body.toString());
+    console.log('Webhook received:', parsedBody);
+    console.log('Verification status:', verificationStatus);
+
+    const eventData = {
+      id: Date.now(),
+      event: 'webhook',
+      data: JSON.stringify({
+        timestamp: new Date().toISOString(),
+        body: parsedBody,
+        verification: verificationStatus,
+        signature: signature || 'none',
+      }),
+    };
+
+    broadcastSSEEvent(eventData);
+
+    if (isValid) {
+      res.status(200).end();
+    } else {
+      res.status(401).json({ error: 'Signature verification failed' });
+    }
+  },
+);
+
+// Endpoint to sync secret from browser cookie to server memory
+// don't do this in production - for deomnstration purposes on ly
+app.post('/sync_secret', bodyParser.json(), (req, res) => {
+  const { secret } = req.body;
+  if (secret) {
+    webhookSecret = secret;
+    res.json({ status: 'ok', message: 'Secret synced' });
+  } else {
+    webhookSecret = null;
+    res.json({ status: 'ok', message: 'Secret cleared' });
+  }
+});
+
 app.use(bodyParser.json());
 app.use('/', indexRouter);
-
-app.post('/sage_hook', (req, res) => {
-  console.log(req.body);
-
-  // Broadcast the webhook event to all SSE connections
-  const eventData = {
-    id: Date.now(),
-    event: 'webhook',
-    data: JSON.stringify({
-      timestamp: new Date().toISOString(),
-      body: req.body,
-    }),
-  };
-
-  broadcastSSEEvent(eventData);
-
-  res.status(200).end();
-});
 
 // SSE endpoint for webhook events
 app.get('/events', (req, res) => {
@@ -66,7 +140,6 @@ app.get('/events', (req, res) => {
     })}\n\n`,
   );
 
-  // Add this connection to our set
   sseConnections.add(res);
 
   // Handle client disconnect
@@ -78,7 +151,6 @@ app.get('/events', (req, res) => {
   console.log('SSE client connected');
 });
 
-// Function to broadcast events to all SSE connections
 function broadcastSSEEvent(eventData) {
   const message = `id: ${eventData.id}\nevent: ${eventData.event}\ndata: ${eventData.data}\n\n`;
 
@@ -92,7 +164,6 @@ function broadcastSSEEvent(eventData) {
   });
 }
 
-// Helper function to create mTLS agent
 function createMTLSAgent() {
   const certPath = process.env.CLIENT_CERT_PATH;
   const keyPath = process.env.CLIENT_KEY_PATH;
@@ -102,7 +173,6 @@ function createMTLSAgent() {
   let certData, keyData;
 
   if (certPath && keyPath) {
-    // Read from files
     try {
       certData = fs.readFileSync(certPath, 'utf8');
       keyData = fs.readFileSync(keyPath, 'utf8');
@@ -129,6 +199,15 @@ function createMTLSAgent() {
 // Proxy endpoint for registering webhook with mTLS
 app.post('/proxy/register_webhook', (req, res) => {
   const agent = createMTLSAgent();
+
+  // Store the secret if provided
+  if (req.body.secret) {
+    webhookSecret = req.body.secret;
+    console.log('Webhook secret stored for verification');
+  } else {
+    webhookSecret = null;
+    console.log('No webhook secret provided');
+  }
 
   const postData = JSON.stringify(req.body);
 
@@ -175,6 +254,9 @@ app.post('/proxy/register_webhook', (req, res) => {
 // Proxy endpoint for unregistering webhook with mTLS
 app.post('/proxy/unregister_webhook', (req, res) => {
   const agent = createMTLSAgent();
+
+  webhookSecret = null;
+  console.log('Webhook secret cleared');
 
   const postData = JSON.stringify(req.body);
 

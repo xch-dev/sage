@@ -86,6 +86,9 @@ pub struct WebhookEntry {
     /// None means "all events, including future ones"
     pub events: Option<Vec<String>>,
     pub enabled: bool,
+    /// Optional secret for HMAC-SHA256 signature verification
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
     pub last_delivered_at: Option<i64>,
     pub last_delivery_attempt_at: Option<i64>,
 }

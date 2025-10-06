@@ -1,10 +1,17 @@
+use hmac::{Hmac, Mac};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error};
 use uuid::Uuid;
+
+type HmacSha256 = Hmac<Sha256>;
+
+/// Webhook entry tuple: (id, url, events, enabled, secret)
+type WebhookEntryTuple = (String, String, Option<Vec<String>>, bool, Option<String>);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookConfig {
@@ -13,6 +20,8 @@ pub struct WebhookConfig {
     /// None means "all events, including future ones"
     pub events: Option<Vec<String>>,
     pub active: bool,
+    /// Optional secret for HMAC-SHA256 signature verification
+    pub secret: Option<String>,
     pub last_delivered_at: Option<i64>,
     pub last_delivery_attempt_at: Option<i64>,
 }
@@ -63,13 +72,19 @@ impl WebhookManager {
         *self.network.write().await = network;
     }
 
-    pub async fn register_webhook(&self, url: String, events: Option<Vec<String>>) -> String {
+    pub async fn register_webhook(
+        &self,
+        url: String,
+        events: Option<Vec<String>>,
+        secret: Option<String>,
+    ) -> String {
         let id = Uuid::new_v4().to_string();
         let config = WebhookConfig {
             id: id.clone(),
             url,
             events,
             active: true,
+            secret,
             last_delivered_at: None,
             last_delivery_attempt_at: None,
         };
@@ -184,8 +199,29 @@ impl WebhookManager {
         webhook: &WebhookConfig,
         event: &WebhookEventPayload,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let request = client.post(&webhook.url).json(event);
-        let response = request.send().await?;
+        // Serialize the event payload
+        let body = serde_json::to_vec(event)?;
+
+        // Build the request
+        let mut request_builder = client
+            .post(&webhook.url)
+            .header("Content-Type", "application/json")
+            .body(body.clone());
+
+        // Compute HMAC signature if secret is provided
+        if let Some(secret) = &webhook.secret {
+            let mut mac = HmacSha256::new_from_slice(secret.as_bytes())
+                .map_err(|e| format!("Invalid HMAC key: {e}"))?;
+            mac.update(&body);
+            let signature = mac.finalize();
+            let signature_hex = hex::encode(signature.into_bytes());
+
+            // Add signature header in format: sha256=<hex>
+            request_builder =
+                request_builder.header("X-Webhook-Signature", format!("sha256={signature_hex}"));
+        }
+
+        let response = request_builder.send().await?;
 
         if response.status().is_success() {
             Ok(())
@@ -199,14 +235,15 @@ impl WebhookManager {
         webhooks.values().cloned().collect()
     }
 
-    pub async fn load_webhooks(&self, entries: Vec<(String, String, Option<Vec<String>>, bool)>) {
+    pub async fn load_webhooks(&self, entries: Vec<WebhookEntryTuple>) {
         let mut webhooks = self.webhooks.write().await;
-        for (id, url, events, enabled) in entries {
+        for (id, url, events, enabled, secret) in entries {
             let config = WebhookConfig {
                 id: id.clone(),
                 url,
                 events,
                 active: enabled,
+                secret,
                 last_delivered_at: None,
                 last_delivery_attempt_at: None,
             };
@@ -215,11 +252,19 @@ impl WebhookManager {
     }
 
     // Get webhooks in a format suitable for saving to config
-    pub async fn get_webhook_entries(&self) -> Vec<(String, String, Option<Vec<String>>, bool)> {
+    pub async fn get_webhook_entries(&self) -> Vec<WebhookEntryTuple> {
         let webhooks = self.webhooks.read().await;
         webhooks
             .values()
-            .map(|w| (w.id.clone(), w.url.clone(), w.events.clone(), w.active))
+            .map(|w| {
+                (
+                    w.id.clone(),
+                    w.url.clone(),
+                    w.events.clone(),
+                    w.active,
+                    w.secret.clone(),
+                )
+            })
             .collect()
     }
 }

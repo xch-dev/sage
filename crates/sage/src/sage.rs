@@ -279,6 +279,8 @@ impl Sage {
     }
 
     async fn handle_sync_event_for_webhooks(webhook_manager: &WebhookManager, event: SyncEvent) {
+        // Convert wallet SyncEvent to API SyncEvent format
+        // Extract event type and data separately (no redundant type in data)
         let (event_type, data) = match event {
             SyncEvent::Start(ip) => (
                 "start",
@@ -288,19 +290,7 @@ impl Sage {
             ),
             SyncEvent::Stop => ("stop", serde_json::json!({})),
             SyncEvent::Subscribed => ("subscribed", serde_json::json!({})),
-            SyncEvent::DerivationIndex { next_index } => (
-                "derivation_index",
-                serde_json::json!({
-                    "next_index": next_index
-                }),
-            ),
-            SyncEvent::CoinsUpdated => ("coin_state", serde_json::json!({})),
-            SyncEvent::TransactionUpdated { transaction_id } => (
-                "transaction_updated",
-                serde_json::json!({
-                    "transaction_id": transaction_id.to_string()
-                }),
-            ),
+            SyncEvent::DerivationIndex { .. } => ("derivation", serde_json::json!({})),
             SyncEvent::TransactionFailed {
                 transaction_id,
                 error,
@@ -311,13 +301,9 @@ impl Sage {
                     "error": error
                 }),
             ),
-            SyncEvent::OfferUpdated { offer_id, status } => (
-                "offer_updated",
-                serde_json::json!({
-                    "offer_id": offer_id.to_string(),
-                    "status": format!("{:?}", status)
-                }),
-            ),
+            SyncEvent::CoinsUpdated
+            | SyncEvent::TransactionUpdated { .. }
+            | SyncEvent::OfferUpdated { .. } => ("coin_state", serde_json::json!({})),
             SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
             SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
             SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
@@ -609,11 +595,12 @@ impl Sage {
         let entries = self.webhook_manager.get_webhook_entries().await;
         self.config.webhooks.webhooks = entries
             .into_iter()
-            .map(|(id, url, events, enabled)| WebhookEntry {
+            .map(|(id, url, events, enabled, secret)| WebhookEntry {
                 id,
                 url,
                 events,
                 enabled,
+                secret,
                 last_delivered_at: None,
                 last_delivery_attempt_at: None,
             })
@@ -624,12 +611,21 @@ impl Sage {
     }
 
     async fn setup_webhooks(&mut self) -> Result<()> {
-        let entries: Vec<(String, String, Option<Vec<String>>, bool)> = self
+        type WebhookTuple = (String, String, Option<Vec<String>>, bool, Option<String>);
+        let entries: Vec<WebhookTuple> = self
             .config
             .webhooks
             .webhooks
             .iter()
-            .map(|w| (w.id.clone(), w.url.clone(), w.events.clone(), w.enabled))
+            .map(|w| {
+                (
+                    w.id.clone(),
+                    w.url.clone(),
+                    w.events.clone(),
+                    w.enabled,
+                    w.secret.clone(),
+                )
+            })
             .collect();
 
         if !entries.is_empty() {
