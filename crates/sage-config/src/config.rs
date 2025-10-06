@@ -86,4 +86,6 @@ pub struct WebhookEntry {
     /// None means "all events, including future ones"
     pub events: Option<Vec<String>>,
     pub enabled: bool,
+    pub last_delivered_at: Option<i64>,
+    pub last_delivery_attempt_at: Option<i64>,
 }

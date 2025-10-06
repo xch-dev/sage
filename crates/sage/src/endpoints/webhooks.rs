@@ -44,6 +44,8 @@ impl Sage {
                     url: w.url,
                     events: w.events,
                     enabled: w.active,
+                    last_delivered_at: w.last_delivered_at,
+                    last_delivery_attempt_at: w.last_delivery_attempt_at,
                 })
                 .collect(),
         })

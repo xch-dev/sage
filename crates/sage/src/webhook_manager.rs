@@ -13,6 +13,8 @@ pub struct WebhookConfig {
     /// None means "all events, including future ones"
     pub events: Option<Vec<String>>,
     pub active: bool,
+    pub last_delivered_at: Option<i64>,
+    pub last_delivery_attempt_at: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,6 +70,8 @@ impl WebhookManager {
             url,
             events,
             active: true,
+            last_delivered_at: None,
+            last_delivery_attempt_at: None,
         };
 
         let mut webhooks = self.webhooks.write().await;
@@ -118,20 +122,41 @@ impl WebhookManager {
         for webhook in interested_webhooks {
             let client = self.client.clone();
             let event = event.clone();
+            let webhooks = self.webhooks.clone();
             tokio::spawn(async move {
-                Self::deliver_webhook(client, webhook, event).await;
+                Self::deliver_webhook(client, webhooks, webhook, event).await;
             });
         }
     }
 
-    async fn deliver_webhook(client: Client, webhook: WebhookConfig, event: WebhookEventPayload) {
+    async fn deliver_webhook(
+        client: Client,
+        webhooks: Arc<RwLock<HashMap<String, WebhookConfig>>>,
+        webhook: WebhookConfig,
+        event: WebhookEventPayload,
+    ) {
         const MAX_RETRIES: u32 = 3;
 
         for attempt in 0..MAX_RETRIES {
+            let now = chrono::Utc::now().timestamp();
+
+            // block scope to ensure the lock is released
+            {
+                let mut webhooks_lock = webhooks.write().await;
+                if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
+                    w.last_delivery_attempt_at = Some(now);
+                }
+            }
+
             match Self::send_webhook_request(&client, &webhook, &event).await {
                 Ok(()) => {
                     let timestamp = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S%.3f UTC");
                     debug!("[{}] Webhook delivered to {}", timestamp, webhook.url);
+
+                    let mut webhooks_lock = webhooks.write().await;
+                    if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
+                        w.last_delivered_at = Some(now);
+                    }
                     return;
                 }
                 Err(e) => {
@@ -182,6 +207,8 @@ impl WebhookManager {
                 url,
                 events,
                 active: enabled,
+                last_delivered_at: None,
+                last_delivery_attempt_at: None,
             };
             webhooks.insert(id, config);
         }

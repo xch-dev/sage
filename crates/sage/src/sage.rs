@@ -614,6 +614,8 @@ impl Sage {
                 url,
                 events,
                 enabled,
+                last_delivered_at: None,
+                last_delivery_attempt_at: None,
             })
             .collect();
 

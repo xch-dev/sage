@@ -630,7 +630,7 @@ export type WebhookEntry = { id: string; url: string;
 /**
  * None means "all events, including future ones"
  */
-events: string[] | null; enabled: boolean }
+events: string[] | null; enabled: boolean; last_delivered_at: number | null; last_delivery_attempt_at: number | null }
 
 /** tauri-specta globals **/
 

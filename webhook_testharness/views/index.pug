@@ -1,17 +1,18 @@
 extends layout
 
 block content
-  h1= title
+  h2= title
 
   button#register-btn(onclick="registerWebhook()") Register Webhook
   button#unregister-btn(onclick="unregisterWebhook()" style="display: none;") Unregister Webhook
   
-  article
-    h2 Registration:
+  article.small
+    h3 Registration:
     pre#response-display Hook not registered
 
-    h2 Live Webhook Events:
-    pre#webhook-events No webhook events yet
+    h3 Live Webhook Events:
+    div.small
+      pre#webhook-events.small No webhook events yet
 
   script.
     function setCookie(name, value, days = 365) {

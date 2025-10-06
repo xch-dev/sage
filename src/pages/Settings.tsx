@@ -78,6 +78,7 @@ import {
   PerformDatabaseMaintenanceResponse,
   Wallet,
   WalletDefaults,
+  WebhookEntry,
 } from '../bindings';
 
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
@@ -155,6 +156,13 @@ export default function Settings() {
                   >
                     <Trans>Advanced</Trans>
                   </TabsTrigger>
+
+                  <TabsTrigger
+                    value='webhooks'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Webhooks</Trans>
+                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -200,6 +208,12 @@ export default function Settings() {
                 <div className='grid gap-4'>
                   {!isMobile && <RpcSettings />}
                   <LogViewer />
+                </div>
+              </TabsContent>
+
+              <TabsContent value='webhooks'>
+                <div className='grid gap-4'>
+                  <WebhooksSettings />
                 </div>
               </TabsContent>
             </div>
@@ -1599,5 +1613,179 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function WebhooksSettings() {
+  const { addError } = useErrors();
+  const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadWebhooks = useCallback(() => {
+    setLoading(true);
+    commands
+      .getWebhooks({})
+      .then((response) => {
+        setWebhooks(response.webhooks);
+      })
+      .catch(addError)
+      .finally(() => setLoading(false));
+  }, [addError]);
+
+  useEffect(() => {
+    loadWebhooks();
+  }, [loadWebhooks]);
+
+  if (loading) {
+    return (
+      <SettingsSection title={t`Webhooks`}>
+        <div className='p-8 flex items-center justify-center'>
+          <LoaderCircleIcon className='h-6 w-6 animate-spin text-muted-foreground' />
+        </div>
+      </SettingsSection>
+    );
+  }
+
+  if (webhooks.length === 0) {
+    return (
+      <SettingsSection title={t`Webhooks`}>
+        <div className='p-8 text-center'>
+          <div className='text-muted-foreground mb-2'>
+            <Trans>No webhooks registered</Trans>
+          </div>
+          <div className='text-sm text-muted-foreground'>
+            <Trans>
+              Register webhooks via the API to receive real-time notifications
+              about wallet events
+            </Trans>
+          </div>
+        </div>
+      </SettingsSection>
+    );
+  }
+
+  return (
+    <SettingsSection title={t`Webhooks`}>
+      {webhooks.map((webhook, index) => {
+        // Determine status color and label
+        let statusColor = 'bg-gray-400';
+        let statusLabel = <Trans>Disabled</Trans>;
+
+        if (webhook.enabled) {
+          // Check health based on delivery attempts
+          if (
+            webhook.last_delivered_at === null &&
+            webhook.last_delivery_attempt_at !== null
+          ) {
+            // Never successfully delivered, but attempts have been made
+            statusColor = 'bg-red-500';
+            statusLabel = <Trans>Failing</Trans>;
+          } else if (
+            webhook.last_delivery_attempt_at !== null &&
+            webhook.last_delivered_at !== null &&
+            webhook.last_delivery_attempt_at > webhook.last_delivered_at
+          ) {
+            // Most recent attempt failed
+            statusColor = 'bg-yellow-500';
+            statusLabel = <Trans>Warning</Trans>;
+          } else {
+            // Enabled and healthy
+            statusColor = 'bg-green-500';
+            statusLabel = <Trans>Enabled</Trans>;
+          }
+        }
+
+        return (
+          <div key={webhook.id} className='p-3'>
+            <div className='space-y-3'>
+              {/* Header with ID and Status */}
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center gap-3'>
+                  <div className={`h-3 w-3 rounded-full ${statusColor}`} />
+                  <div>
+                    <div className='font-medium text-sm'>{statusLabel}</div>
+                    <div className='text-xs text-muted-foreground font-mono'>
+                      {webhook.id}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* URL */}
+              <div className='space-y-1'>
+                <Label className='text-xs font-medium text-muted-foreground'>
+                  <Trans>URL</Trans>
+                </Label>
+                <div className='text-sm break-all font-mono bg-muted px-2 py-1 rounded'>
+                  {webhook.url}
+                </div>
+              </div>
+
+              {/* Events */}
+              <div className='space-y-1'>
+                <Label className='text-xs font-medium text-muted-foreground'>
+                  <Trans>Events</Trans>
+                </Label>
+                <div className='text-sm'>
+                  {webhook.events === null ? (
+                    <span className='text-muted-foreground italic'>
+                      <Trans>All events</Trans>
+                    </span>
+                  ) : webhook.events.length === 0 ? (
+                    <span className='text-muted-foreground italic'>
+                      <Trans>No events</Trans>
+                    </span>
+                  ) : (
+                    <div className='flex flex-wrap gap-1'>
+                      {webhook.events.map((event) => (
+                        <span
+                          key={event}
+                          className='inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-mono'
+                        >
+                          {event}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Last Delivered */}
+              {webhook.last_delivered_at && (
+                <div className='space-y-1'>
+                  <Label className='text-xs font-medium text-muted-foreground'>
+                    <Trans>Last Delivered</Trans>
+                  </Label>
+                  <div className='text-sm text-muted-foreground'>
+                    {new Date(
+                      webhook.last_delivered_at * 1000,
+                    ).toLocaleString()}
+                  </div>
+                </div>
+              )}
+
+              {/* Last Attempt */}
+              {webhook.last_delivery_attempt_at && (
+                <div className='space-y-1'>
+                  <Label className='text-xs font-medium text-muted-foreground'>
+                    <Trans>Last Delivery Attempt</Trans>
+                  </Label>
+                  <div className='text-sm text-muted-foreground'>
+                    {new Date(
+                      webhook.last_delivery_attempt_at * 1000,
+                    ).toLocaleString()}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Divider between webhooks, but not after the last one */}
+            {index < webhooks.length - 1 && (
+              <div className='mt-3 border-t border-border' />
+            )}
+          </div>
+        );
+      })}
+    </SettingsSection>
   );
 }
