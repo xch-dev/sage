@@ -98,5 +98,7 @@
   "increase_derivation_index": true,
   "is_asset_owned": true,
   "register_webhook": true,
-  "unregister_webhook": true
+  "unregister_webhook": true,
+  "get_webhooks": true,
+  "update_webhook": true
 }

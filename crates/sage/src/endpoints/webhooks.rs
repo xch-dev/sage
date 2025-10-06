@@ -1,6 +1,8 @@
 use sage_api::{
-    RegisterWebhook, RegisterWebhookResponse, UnregisterWebhook, UnregisterWebhookResponse,
+    GetWebhooks, GetWebhooksResponse, RegisterWebhook, RegisterWebhookResponse, UnregisterWebhook,
+    UnregisterWebhookResponse, UpdateWebhook, UpdateWebhookResponse,
 };
+use sage_config::WebhookEntry;
 
 use crate::{Result, Sage};
 
@@ -14,7 +16,6 @@ impl Sage {
             .register_webhook(req.url, req.event_types)
             .await;
 
-        // Save to config
         self.save_webhooks_config().await?;
 
         Ok(RegisterWebhookResponse { webhook_id })
@@ -28,9 +29,33 @@ impl Sage {
             .unregister_webhook(&req.webhook_id)
             .await;
 
-        // Save to config
         self.save_webhooks_config().await?;
 
         Ok(UnregisterWebhookResponse {})
+    }
+
+    pub async fn get_webhooks(&mut self, _req: GetWebhooks) -> Result<GetWebhooksResponse> {
+        let webhooks = self.webhook_manager.list_webhooks().await;
+        Ok(GetWebhooksResponse {
+            webhooks: webhooks
+                .into_iter()
+                .map(|w| WebhookEntry {
+                    id: w.id,
+                    url: w.url,
+                    events: w.events,
+                    enabled: w.active,
+                })
+                .collect(),
+        })
+    }
+
+    pub async fn update_webhook(&mut self, req: UpdateWebhook) -> Result<UpdateWebhookResponse> {
+        self.webhook_manager
+            .update_webhook(&req.webhook_id, req.enabled)
+            .await;
+
+        self.save_webhooks_config().await?;
+
+        Ok(UpdateWebhookResponse {})
     }
 }

@@ -141,6 +141,8 @@ pub fn run() {
             commands::is_asset_owned,
             commands::register_webhook,
             commands::unregister_webhook,
+            commands::get_webhooks,
+            commands::update_webhook,
         ])
         .events(collect_events![SyncEvent]);
 

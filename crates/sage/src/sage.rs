@@ -72,6 +72,12 @@ impl Sage {
         self.setup_logging()?;
         self.setup_webhooks().await?;
 
+        // Initialize webhook manager with current fingerprint and network
+        self.webhook_manager
+            .set_fingerprint(self.config.global.fingerprint)
+            .await;
+        self.webhook_manager.set_network(self.network_id()).await;
+
         let receiver = self.setup_sync_manager()?;
         self.setup_peers().await?;
 
@@ -324,6 +330,8 @@ impl Sage {
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
+        self.webhook_manager.set_network(self.network_id()).await;
+
         self.command_sender
             .send(SyncCommand::SwitchNetwork(self.network().clone()))
             .await?;
@@ -336,6 +344,7 @@ impl Sage {
 
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
+            self.webhook_manager.set_fingerprint(None).await;
 
             self.command_sender
                 .send(SyncCommand::SwitchWallet {
@@ -380,6 +389,9 @@ impl Sage {
             ticker: self.network().ticker.clone(),
             precision: self.network().precision,
         };
+        self.webhook_manager
+            .set_fingerprint(Some(fingerprint))
+            .await;
 
         self.command_sender
             .send(SyncCommand::SwitchWallet {
