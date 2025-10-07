@@ -20,7 +20,6 @@ pub struct WebhookConfig {
     /// None means "all events, including future ones"
     pub events: Option<Vec<String>>,
     pub active: bool,
-    /// Optional secret for HMAC-SHA256 signature verification
     pub secret: Option<String>,
     pub last_delivered_at: Option<i64>,
     pub last_delivery_attempt_at: Option<i64>,
@@ -199,10 +198,8 @@ impl WebhookManager {
         webhook: &WebhookConfig,
         event: &WebhookEventPayload,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Serialize the event payload
         let body = serde_json::to_vec(event)?;
 
-        // Build the request
         let mut request_builder = client
             .post(&webhook.url)
             .header("Content-Type", "application/json")
@@ -216,7 +213,6 @@ impl WebhookManager {
             let signature = mac.finalize();
             let signature_hex = hex::encode(signature.into_bytes());
 
-            // Add signature header in format: sha256=<hex>
             request_builder =
                 request_builder.header("X-Webhook-Signature", format!("sha256={signature_hex}"));
         }
@@ -251,7 +247,6 @@ impl WebhookManager {
         }
     }
 
-    // Get webhooks in a format suitable for saving to config
     pub async fn get_webhook_entries(&self) -> Vec<WebhookEntryTuple> {
         let webhooks = self.webhooks.read().await;
         webhooks

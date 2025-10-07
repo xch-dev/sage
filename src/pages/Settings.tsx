@@ -156,13 +156,6 @@ export default function Settings() {
                   >
                     <Trans>Advanced</Trans>
                   </TabsTrigger>
-
-                  <TabsTrigger
-                    value='webhooks'
-                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
-                  >
-                    <Trans>Webhooks</Trans>
-                  </TabsTrigger>
                 </TabsList>
               </div>
             </div>
@@ -207,13 +200,8 @@ export default function Settings() {
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
                   {!isMobile && <RpcSettings />}
-                  <LogViewer />
-                </div>
-              </TabsContent>
-
-              <TabsContent value='webhooks'>
-                <div className='grid gap-4'>
                   <WebhooksSettings />
+                  <LogViewer />
                 </div>
               </TabsContent>
             </div>
@@ -1639,8 +1627,8 @@ function WebhooksSettings() {
   if (loading) {
     return (
       <SettingsSection title={t`Webhooks`}>
-        <div className='p-8 flex items-center justify-center'>
-          <LoaderCircleIcon className='h-6 w-6 animate-spin text-muted-foreground' />
+        <div className='p-4 flex items-center justify-center'>
+          <LoaderCircleIcon className='h-5 w-5 animate-spin text-muted-foreground' />
         </div>
       </SettingsSection>
     );
@@ -1649,11 +1637,11 @@ function WebhooksSettings() {
   if (webhooks.length === 0) {
     return (
       <SettingsSection title={t`Webhooks`}>
-        <div className='p-8 text-center'>
-          <div className='text-muted-foreground mb-2'>
+        <div className='p-4 text-center'>
+          <div className='text-sm text-muted-foreground'>
             <Trans>No webhooks registered</Trans>
           </div>
-          <div className='text-sm text-muted-foreground'>
+          <div className='text-xs text-muted-foreground mt-1'>
             <Trans>
               Register webhooks via the API to receive real-time notifications
               about wallet events
@@ -1696,37 +1684,33 @@ function WebhooksSettings() {
         }
 
         return (
-          <div key={webhook.id} className='p-3'>
-            <div className='space-y-3'>
-              {/* Header with ID and Status */}
-              <div className='flex items-center justify-between'>
-                <div className='flex items-center gap-3'>
-                  <div className={`h-3 w-3 rounded-full ${statusColor}`} />
-                  <div>
-                    <div className='font-medium text-sm'>{statusLabel}</div>
-                    <div className='text-xs text-muted-foreground font-mono'>
-                      {webhook.id}
-                    </div>
-                  </div>
+          <div key={webhook.id} className='p-4'>
+            <div className='space-y-2'>
+              {/* Header with Status and ID on same line */}
+              <div className='flex items-center gap-2'>
+                <div className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
+                <div className='font-medium text-sm'>{statusLabel}</div>
+                <div className='text-xs text-muted-foreground font-mono'>
+                  {webhook.id}
                 </div>
               </div>
 
               {/* URL */}
-              <div className='space-y-1'>
-                <Label className='text-xs font-medium text-muted-foreground'>
+              <div>
+                <Label className='text-xs text-muted-foreground'>
                   <Trans>URL</Trans>
                 </Label>
-                <div className='text-sm break-all font-mono bg-muted px-2 py-1 rounded'>
+                <div className='text-xs break-all font-mono bg-muted px-1.5 py-0.5 rounded mt-0.5'>
                   {webhook.url}
                 </div>
               </div>
 
               {/* Events */}
-              <div className='space-y-1'>
-                <Label className='text-xs font-medium text-muted-foreground'>
+              <div>
+                <Label className='text-xs text-muted-foreground'>
                   <Trans>Events</Trans>
                 </Label>
-                <div className='text-sm'>
+                <div className='text-xs mt-0.5'>
                   {webhook.events === null ? (
                     <span className='text-muted-foreground italic'>
                       <Trans>All events</Trans>
@@ -1740,7 +1724,7 @@ function WebhooksSettings() {
                       {webhook.events.map((event) => (
                         <span
                           key={event}
-                          className='inline-flex items-center px-2 py-1 rounded-md bg-muted text-xs font-mono'
+                          className='inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-xs font-mono'
                         >
                           {event}
                         </span>
@@ -1750,38 +1734,41 @@ function WebhooksSettings() {
                 </div>
               </div>
 
-              {/* Last Delivered */}
-              {webhook.last_delivered_at && (
-                <div className='space-y-1'>
-                  <Label className='text-xs font-medium text-muted-foreground'>
-                    <Trans>Last Delivered</Trans>
-                  </Label>
-                  <div className='text-sm text-muted-foreground'>
-                    {new Date(
-                      webhook.last_delivered_at * 1000,
-                    ).toLocaleString()}
-                  </div>
-                </div>
-              )}
-
-              {/* Last Attempt */}
-              {webhook.last_delivery_attempt_at && (
-                <div className='space-y-1'>
-                  <Label className='text-xs font-medium text-muted-foreground'>
-                    <Trans>Last Delivery Attempt</Trans>
-                  </Label>
-                  <div className='text-sm text-muted-foreground'>
-                    {new Date(
-                      webhook.last_delivery_attempt_at * 1000,
-                    ).toLocaleString()}
-                  </div>
+              {/* Delivery timestamps in a grid */}
+              {(webhook.last_delivered_at ||
+                webhook.last_delivery_attempt_at) && (
+                <div className='grid grid-cols-2 gap-2'>
+                  {webhook.last_delivered_at && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Last Delivered</Trans>
+                      </Label>
+                      <div className='text-xs text-muted-foreground mt-0.5'>
+                        {new Date(
+                          webhook.last_delivered_at * 1000,
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {webhook.last_delivery_attempt_at && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Last Attempt</Trans>
+                      </Label>
+                      <div className='text-xs text-muted-foreground mt-0.5'>
+                        {new Date(
+                          webhook.last_delivery_attempt_at * 1000,
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Divider between webhooks, but not after the last one */}
             {index < webhooks.length - 1 && (
-              <div className='mt-3 border-t border-border' />
+              <div className='mt-2 border-t border-border' />
             )}
           </div>
         );

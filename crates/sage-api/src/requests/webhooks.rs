@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize};
 pub struct RegisterWebhook {
     pub url: String,
     pub event_types: Option<Vec<String>>,
-    /// Optional secret for HMAC-SHA256 signature verification
     pub secret: Option<String>,
 }
 

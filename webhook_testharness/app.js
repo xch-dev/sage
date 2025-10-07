@@ -105,7 +105,7 @@ app.post(
 );
 
 // Endpoint to sync secret from browser cookie to server memory
-// don't do this in production - for deomnstration purposes on ly
+//for demonstration purposes only
 app.post('/sync_secret', bodyParser.json(), (req, res) => {
   const { secret } = req.body;
   if (secret) {
