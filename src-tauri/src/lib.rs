@@ -139,6 +139,10 @@ pub fn run() {
             commands::download_cni_offercode,
             commands::get_logs,
             commands::is_asset_owned,
+            commands::register_webhook,
+            commands::unregister_webhook,
+            commands::get_webhooks,
+            commands::update_webhook,
         ])
         .events(collect_events![SyncEvent]);
 

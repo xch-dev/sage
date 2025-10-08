@@ -1491,8 +1491,10 @@ checksum = "1a7964611d71df112cb1730f2ee67324fcf4d0fc6606acbbe9bfe06df124637c"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
+ "js-sys",
  "num-traits",
  "serde",
+ "wasm-bindgen",
  "windows-link",
 ]
 
@@ -5802,13 +5804,16 @@ dependencies = [
  "chia",
  "chia-puzzles",
  "chia-wallet-sdk",
+ "chrono",
  "clvmr",
  "hex",
+ "hmac",
  "indexmap 2.11.4",
  "itertools 0.13.0",
  "log",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "reqwest",
  "sage-api",
  "sage-assets",
  "sage-config",
@@ -5817,6 +5822,7 @@ dependencies = [
  "sage-wallet",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "sqlx",
  "thiserror 1.0.69",
  "tokio",
@@ -5824,6 +5830,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
@@ -5832,6 +5839,7 @@ version = "0.12.4"
 dependencies = [
  "sage-config",
  "serde",
+ "serde_json",
  "specta",
  "tauri-specta",
 ]

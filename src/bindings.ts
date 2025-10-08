@@ -352,6 +352,18 @@ async getLogs() : Promise<LogFile[]> {
 },
 async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
     return await TAURI_INVOKE("is_asset_owned", { req });
+},
+async registerWebhook(req: RegisterWebhook) : Promise<RegisterWebhookResponse> {
+    return await TAURI_INVOKE("register_webhook", { req });
+},
+async unregisterWebhook(req: UnregisterWebhook) : Promise<UnregisterWebhookResponse> {
+    return await TAURI_INVOKE("unregister_webhook", { req });
+},
+async getWebhooks(req: GetWebhooks) : Promise<GetWebhooksResponse> {
+    return await TAURI_INVOKE("get_webhooks", { req });
+},
+async updateWebhook(req: UpdateWebhook) : Promise<UpdateWebhookResponse> {
+    return await TAURI_INVOKE("update_webhook", { req });
 }
 }
 
@@ -491,6 +503,8 @@ export type GetUserThemes = Record<string, never>
 export type GetUserThemesResponse = { themes: string[] }
 export type GetVersion = Record<string, never>
 export type GetVersionResponse = { version: string }
+export type GetWebhooks = Record<string, never>
+export type GetWebhooksResponse = { webhooks: WebhookEntry[] }
 export type ImportKey = { name: string; key: string; derivation_index?: number; hardened?: boolean | null; unhardened?: boolean | null; save_secrets?: boolean; login?: boolean; emoji?: string | null }
 export type ImportKeyResponse = { fingerprint: number }
 export type ImportOffer = { offer: string }
@@ -541,6 +555,8 @@ export type PerformDatabaseMaintenance = { force_vacuum: boolean }
 export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; analyze_duration_ms: number; wal_checkpoint_duration_ms: number; total_duration_ms: number; pages_vacuumed: number; wal_pages_checkpointed: number }
 export type RedownloadNft = { nft_id: string }
 export type RedownloadNftResponse = Record<string, never>
+export type RegisterWebhook = { url: string; event_types: string[] | null; secret: string | null }
+export type RegisterWebhookResponse = { webhook_id: string }
 export type RemovePeer = { ip: string; ban: boolean }
 export type RenameKey = { fingerprint: number; name: string }
 export type RenameKeyResponse = Record<string, never>
@@ -590,6 +606,8 @@ export type TransferDids = { did_ids: string[]; address: string; fee: Amount; cl
 export type TransferNfts = { nft_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type TransferOptions = { option_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
 export type Unit = { ticker: string; precision: number }
+export type UnregisterWebhook = { webhook_id: string }
+export type UnregisterWebhookResponse = Record<string, never>
 export type UpdateCat = { record: TokenRecord }
 export type UpdateCatResponse = Record<string, never>
 export type UpdateDid = { did_id: string; name: string | null; visible: boolean }
@@ -600,12 +618,23 @@ export type UpdateNftCollectionResponse = Record<string, never>
 export type UpdateNftResponse = Record<string, never>
 export type UpdateOption = { option_id: string; visible: boolean }
 export type UpdateOptionResponse = Record<string, never>
+export type UpdateWebhook = { webhook_id: string; enabled: boolean }
+export type UpdateWebhookResponse = Record<string, never>
 export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
 export type ViewCoinSpendsResponse = { summary: TransactionSummary }
 export type ViewOffer = { offer: string }
 export type ViewOfferResponse = { offer: OfferSummary; status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
+export type WebhookEntry = { id: string; url: string; 
+/**
+ * None means "all events, including future ones"
+ */
+events: string[] | null; enabled: boolean; 
+/**
+ * Optional secret for HMAC-SHA256 signature verification
+ */
+secret?: string | null; last_delivered_at: number | null; last_delivery_attempt_at: number | null }
 
 /** tauri-specta globals **/
 

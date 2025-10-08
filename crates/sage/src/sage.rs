@@ -32,7 +32,7 @@ use tracing_subscriber::{
     filter::filter_fn, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry,
 };
 
-use crate::{peers::Peers, Error, Result};
+use crate::{peers::Peers, webhook_manager::WebhookManager, Error, Result};
 
 #[derive(Debug)]
 pub struct Sage {
@@ -45,6 +45,7 @@ pub struct Sage {
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
+    pub webhook_manager: WebhookManager,
 }
 
 impl Sage {
@@ -59,6 +60,7 @@ impl Sage {
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
+            webhook_manager: WebhookManager::new(),
         }
     }
 
@@ -68,6 +70,13 @@ impl Sage {
         self.setup_keys()?;
         self.setup_config()?;
         self.setup_logging()?;
+        self.setup_webhooks().await?;
+
+        // Initialize webhook manager with current fingerprint and network
+        self.webhook_manager
+            .set_fingerprint(self.config.global.fingerprint)
+            .await;
+        self.webhook_manager.set_network(self.network_id()).await;
 
         let receiver = self.setup_sync_manager()?;
         self.setup_peers().await?;
@@ -238,10 +247,77 @@ impl Sage {
         tokio::spawn(sync_manager.sync());
         self.command_sender = command_sender;
 
-        Ok(receiver)
+        // Create a broadcast channel to split events between Tauri app and webhook consumer
+        let (tx, _rx) = tokio::sync::broadcast::channel(100);
+
+        // Create a receiver for the Tauri app before we move tx
+        let tauri_receiver = tx.subscribe();
+
+        // Spawn a task that forwards events from the sync manager to the broadcast channel
+        let webhook_manager = self.webhook_manager.clone();
+        tokio::spawn(async move {
+            let mut receiver = receiver;
+            while let Some(event) = receiver.recv().await {
+                // Send to broadcast channel (for Tauri app)
+                let _ = tx.send(event.clone());
+
+                // Also handle for webhooks directly
+                Self::handle_sync_event_for_webhooks(&webhook_manager, event).await;
+            }
+        });
+
+        // Convert broadcast receiver to mpsc receiver for compatibility
+        let (tauri_tx, tauri_rx) = mpsc::channel(100);
+        tokio::spawn(async move {
+            let mut tauri_receiver = tauri_receiver;
+            while let Ok(event) = tauri_receiver.recv().await {
+                let _ = tauri_tx.send(event).await;
+            }
+        });
+
+        Ok(tauri_rx)
+    }
+
+    async fn handle_sync_event_for_webhooks(webhook_manager: &WebhookManager, event: SyncEvent) {
+        // Convert wallet SyncEvent to API SyncEvent format
+        // Extract event type and data separately (no redundant type in data)
+        let (event_type, data) = match event {
+            SyncEvent::Start(ip) => (
+                "start",
+                serde_json::json!({
+                    "ip": ip.to_string()
+                }),
+            ),
+            SyncEvent::Stop => ("stop", serde_json::json!({})),
+            SyncEvent::Subscribed => ("subscribed", serde_json::json!({})),
+            SyncEvent::DerivationIndex { .. } => ("derivation", serde_json::json!({})),
+            SyncEvent::TransactionFailed {
+                transaction_id,
+                error,
+            } => (
+                "transaction_failed",
+                serde_json::json!({
+                    "transaction_id": transaction_id.to_string(),
+                    "error": error
+                }),
+            ),
+            SyncEvent::CoinsUpdated
+            | SyncEvent::TransactionUpdated { .. }
+            | SyncEvent::OfferUpdated { .. } => ("coin_state", serde_json::json!({})),
+            SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
+            SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
+            SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
+            SyncEvent::NftData => ("nft_data", serde_json::json!({})),
+        };
+
+        webhook_manager
+            .send_event(event_type.to_string(), data)
+            .await;
     }
 
     pub async fn switch_network(&mut self) -> Result<()> {
+        self.webhook_manager.set_network(self.network_id()).await;
+
         self.command_sender
             .send(SyncCommand::SwitchNetwork(self.network().clone()))
             .await?;
@@ -254,6 +330,7 @@ impl Sage {
 
         let Some(fingerprint) = self.config.global.fingerprint else {
             self.wallet = None;
+            self.webhook_manager.set_fingerprint(None).await;
 
             self.command_sender
                 .send(SyncCommand::SwitchWallet {
@@ -298,6 +375,9 @@ impl Sage {
             ticker: self.network().ticker.clone(),
             precision: self.network().precision,
         };
+        self.webhook_manager
+            .set_fingerprint(Some(fingerprint))
+            .await;
 
         self.command_sender
             .send(SyncCommand::SwitchWallet {
@@ -506,6 +586,56 @@ impl Sage {
 
     pub fn save_keychain(&self) -> Result<()> {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
+        Ok(())
+    }
+
+    pub async fn save_webhooks_config(&mut self) -> Result<()> {
+        use sage_config::WebhookEntry;
+
+        let entries = self.webhook_manager.get_webhook_entries().await;
+        self.config.webhooks.webhooks = entries
+            .into_iter()
+            .map(|(id, url, events, enabled, secret)| WebhookEntry {
+                id,
+                url,
+                events,
+                enabled,
+                secret,
+                last_delivered_at: None,
+                last_delivery_attempt_at: None,
+            })
+            .collect();
+
+        self.save_config()?;
+        Ok(())
+    }
+
+    async fn setup_webhooks(&mut self) -> Result<()> {
+        type WebhookTuple = (String, String, Option<Vec<String>>, bool, Option<String>);
+        let entries: Vec<WebhookTuple> = self
+            .config
+            .webhooks
+            .webhooks
+            .iter()
+            .map(|w| {
+                (
+                    w.id.clone(),
+                    w.url.clone(),
+                    w.events.clone(),
+                    w.enabled,
+                    w.secret.clone(),
+                )
+            })
+            .collect();
+
+        if !entries.is_empty() {
+            self.webhook_manager.load_webhooks(entries).await;
+            info!(
+                "Loaded {} webhooks from config",
+                self.config.webhooks.webhooks.len()
+            );
+        }
+
         Ok(())
     }
 }
