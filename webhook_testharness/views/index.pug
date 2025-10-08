@@ -237,7 +237,7 @@ block content
       if (currentContent === 'No webhook events yet' || currentContent === 'Connected to webhook event stream. Waiting for events...') {
         $('#webhook-events').text(eventDisplay);
       } else {
-        $('#webhook-events').append(eventDisplay);
+        $('#webhook-events').prepend(eventDisplay);
       }
       
       // Scroll to bottom of the pre element
