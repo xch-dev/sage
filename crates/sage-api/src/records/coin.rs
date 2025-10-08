@@ -4,6 +4,7 @@ use crate::Amount;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CoinRecord {
     pub coin_id: String,
     pub address: String,

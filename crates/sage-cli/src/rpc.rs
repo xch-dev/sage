@@ -14,6 +14,12 @@ impl_endpoints! {
     #[clap(rename_all = "snake_case")]
     pub enum RpcCommand {
         Start,
+        /// Generate OpenAPI specification to stdout or file
+        GenerateOpenapi {
+            /// Optional output file path (prints to stdout if not provided)
+            #[clap(short, long)]
+            output: Option<std::path::PathBuf>,
+        },
         (repeat Endpoint { #[clap(value_parser = parse_with_serde::<sage_api::Endpoint>)] body: sage_api::Endpoint } ,)
     }
 
@@ -26,6 +32,17 @@ impl_endpoints! {
                     sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
                     start_rpc(Arc::new(Mutex::new(sage))).await
+                },
+                Self::GenerateOpenapi { output } => {
+                    let openapi = sage_rpc::generate_openapi_spec();
+                    let json = serde_json::to_string_pretty(&openapi)?;
+
+                    if let Some(path) = output {
+                        std::fs::write(path, json)?;
+                    } else {
+                        println!("{json}");
+                    }
+                    Ok(())
                 },
                 (repeat Self::Endpoint { body } => {
                     let client = Client::new()?;

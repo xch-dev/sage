@@ -4,6 +4,7 @@ use crate::{AddressKind, Amount, Asset};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionRecord {
     pub height: u32,
     pub timestamp: Option<u64>,
@@ -13,6 +14,7 @@ pub struct TransactionRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionCoinRecord {
     pub coin_id: String,
     pub amount: Amount,
