@@ -4,6 +4,7 @@ use crate::{Amount, Asset};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionSummary {
     pub fee: Amount,
     pub inputs: Vec<TransactionInput>,
@@ -11,6 +12,7 @@ pub struct TransactionSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SpendBundleJson {
     pub coin_spends: Vec<CoinSpendJson>,
     pub aggregated_signature: String,
@@ -18,6 +20,7 @@ pub struct SpendBundleJson {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CoinSpendJson {
     pub coin: CoinJson,
     pub puzzle_reveal: String,
@@ -26,6 +29,7 @@ pub struct CoinSpendJson {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct CoinJson {
     pub parent_coin_info: String,
     pub puzzle_hash: String,
@@ -34,6 +38,7 @@ pub struct CoinJson {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionInput {
     pub coin_id: String,
     pub amount: Amount,
@@ -44,6 +49,7 @@ pub struct TransactionInput {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct TransactionOutput {
     pub coin_id: String,
     pub amount: Amount,

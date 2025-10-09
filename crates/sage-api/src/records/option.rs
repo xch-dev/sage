@@ -4,6 +4,7 @@ use crate::{Amount, Asset};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OptionRecord {
     pub launcher_id: String,
     pub name: Option<String>,
