@@ -34,28 +34,38 @@ pub fn openapi(args: TokenStream, input: TokenStream) -> TokenStream {
     openapi::impl_openapi_metadata(&args, &input).into()
 }
 
-/// Generates all `OpenAPI` registration code from just the input type names
+/// Generates schema registrations from endpoints.json
 ///
-/// Leverages the enforced pattern:
-/// - Input: `Login` → endpoint: `login`, response: `LoginResponse`
-///
-/// Generates:
-/// - Component registrations
-/// - Metadata match arms
-/// - Request schema match arms
-/// - Response schema match arms
-///
-/// Usage:
-/// ```
-/// register_openapi_types! {
-///     Login,
-///     Logout,
-///     GenerateMnemonic,
-/// }
-/// ```
+/// Automatically reads endpoints.json and generates `.schema_from::<Type>()`
+/// calls for all endpoint request/response types.
 #[proc_macro]
 pub fn register_openapi_types(input: TokenStream) -> TokenStream {
     openapi::impl_openapi_registration(input)
+}
+
+/// Generates endpoint metadata match arms from endpoints.json
+///
+/// Automatically generates match arms that retrieve tag and description
+/// from `OpenApiMetadata` trait implementations.
+#[proc_macro]
+pub fn endpoint_metadata(input: TokenStream) -> TokenStream {
+    openapi::impl_endpoint_metadata(input)
+}
+
+/// Generates request schema match arms from endpoints.json
+///
+/// Automatically generates match arms mapping endpoints to their request schemas.
+#[proc_macro]
+pub fn request_schemas(input: TokenStream) -> TokenStream {
+    openapi::impl_request_schemas(input)
+}
+
+/// Generates response schema match arms from endpoints.json
+///
+/// Automatically generates match arms mapping endpoints to their response schemas.
+#[proc_macro]
+pub fn response_schemas(input: TokenStream) -> TokenStream {
+    openapi::impl_response_schemas(input)
 }
 
 fn generate(input: &TokenStream, tauri: bool) -> TokenStream {

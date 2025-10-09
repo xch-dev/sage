@@ -771,7 +771,14 @@ offer_id: string }
  * Response for offer deletion
  */
 export type DeleteOfferResponse = Record<string, never>
-export type DeleteUserTheme = { nft_id: string }
+/**
+ * Delete a theme NFT from the wallet
+ */
+export type DeleteUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
 export type DeleteUserThemeResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
@@ -1518,10 +1525,28 @@ transactions: TransactionRecord[];
  * Total number of transactions
  */
 total: number }
-export type GetUserTheme = { nft_id: string }
-export type GetUserThemeResponse = { theme: string | null }
+/**
+ * Get a specific theme NFT
+ */
+export type GetUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
+export type GetUserThemeResponse = { 
+/**
+ * Theme data if found
+ */
+theme: string | null }
+/**
+ * List all custom theme NFTs
+ */
 export type GetUserThemes = Record<string, never>
-export type GetUserThemesResponse = { themes: string[] }
+export type GetUserThemesResponse = { 
+/**
+ * List of theme NFT IDs
+ */
+themes: string[] }
 /**
  * Get the wallet version
  */
@@ -2013,7 +2038,14 @@ export type ResyncCatResponse = Record<string, never>
  * Response from resynchronizing the wallet
  */
 export type ResyncResponse = Record<string, never>
-export type SaveUserTheme = { nft_id: string }
+/**
+ * Save a theme NFT to the wallet
+ */
+export type SaveUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
 export type SaveUserThemeResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
 /**

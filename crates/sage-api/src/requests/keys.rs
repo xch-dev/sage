@@ -398,44 +398,90 @@ pub struct GetSecretKeyResponse {
     pub secrets: Option<SecretKeyInfo>,
 }
 
+/// List all custom theme NFTs
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "List all custom theme NFTs in the wallet."
+    )
+)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetUserThemes {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetUserThemesResponse {
+    /// List of theme NFT IDs
     pub themes: Vec<String>,
 }
 
+/// Get a specific theme NFT
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "Retrieve a specific custom theme NFT by its ID."
+    )
+)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetUserTheme {
+    /// NFT ID of the theme
     pub nft_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetUserThemeResponse {
+    /// Theme data if found
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub theme: Option<String>,
 }
 
+/// Save a theme NFT to the wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "Save a custom theme NFT to the wallet for use in the UI."
+    )
+)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SaveUserTheme {
+    /// NFT ID of the theme
     pub nft_id: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct SaveUserThemeResponse {}
 
+/// Delete a theme NFT from the wallet
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Themes",
+        description = "Remove a custom theme NFT from the wallet."
+    )
+)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteUserTheme {
+    /// NFT ID of the theme
     pub nft_id: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteUserThemeResponse {}
