@@ -287,7 +287,8 @@ pub struct DeleteOfferResponse {}
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel an offer by spending the offered coins on-chain."
+        description = "Cancel an offer by spending the offered coins on-chain.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -311,7 +312,8 @@ pub type CancelOfferResponse = TransactionResponse;
     feature = "openapi",
     crate::openapi_attr(
         tag = "Offers",
-        description = "Cancel multiple offers in a single transaction."
+        description = "Cancel multiple offers in a single transaction.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]

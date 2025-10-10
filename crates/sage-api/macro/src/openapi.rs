@@ -7,12 +7,14 @@ use syn::{parse::Parse, parse::ParseStream, LitStr, Token};
 pub struct OpenApiArgs {
     pub tag: String,
     pub description: Option<String>,
+    pub response_type: Option<String>,
 }
 
 impl Parse for OpenApiArgs {
     fn parse(input: ParseStream<'_>) -> syn::Result<Self> {
         let mut tag = None;
         let mut description = None;
+        let mut response_type = None;
 
         while !input.is_empty() {
             let key: syn::Ident = input.parse()?;
@@ -22,6 +24,7 @@ impl Parse for OpenApiArgs {
             match key.to_string().as_str() {
                 "tag" => tag = Some(value.value()),
                 "description" => description = Some(value.value()),
+                "response_type" => response_type = Some(value.value()),
                 _ => return Err(syn::Error::new(key.span(), "unknown attribute key")),
             }
 
@@ -33,6 +36,7 @@ impl Parse for OpenApiArgs {
         Ok(OpenApiArgs {
             tag: tag.ok_or_else(|| input.error("missing required `tag` attribute"))?,
             description,
+            response_type,
         })
     }
 }
@@ -48,6 +52,14 @@ pub fn impl_openapi_metadata(args: &OpenApiArgs, input: &syn::DeriveInput) -> To
         }
     });
 
+    let response_type = args.response_type.as_ref().map(|resp| {
+        quote! {
+            fn openapi_response_type() -> Option<&'static str> {
+                Some(#resp)
+            }
+        }
+    });
+
     quote! {
         #input
 
@@ -58,6 +70,7 @@ pub fn impl_openapi_metadata(args: &OpenApiArgs, input: &syn::DeriveInput) -> To
             }
 
             #description
+            #response_type
         }
     }
 }
@@ -200,41 +213,6 @@ pub fn impl_response_schemas(_input: TokenStream1) -> TokenStream1 {
         ),
     ];
 
-    // Shared transaction response endpoints
-    let transaction_response_endpoints = [
-        "send_xch",
-        "bulk_send_xch",
-        "combine",
-        "split",
-        "issue_cat",
-        "send_cat",
-        "bulk_send_cat",
-        "multi_send",
-        "create_did",
-        "transfer_nfts",
-        "add_nft_uri",
-        "assign_nfts_to_did",
-        "transfer_dids",
-        "normalize_dids",
-        "exercise_options",
-        "transfer_options",
-        "cancel_offer",
-        "cancel_offers",
-    ];
-
-    // Shared empty response endpoints
-    let empty_response_endpoints = [
-        "remove_peer",
-        "add_peer",
-        "set_discover_peers",
-        "set_target_peers",
-        "set_network",
-        "set_network_override",
-        "set_delta_sync",
-        "set_delta_sync_override",
-        "set_change_address",
-    ];
-
     let match_arms = endpoints.keys().map(|endpoint_name| {
         // Check if this is a special case
         if let Some((_, handler)) = special_responses
@@ -249,38 +227,33 @@ pub fn impl_response_schemas(_input: TokenStream1) -> TokenStream1 {
             };
         }
 
-        // Check if this uses TransactionResponse
-        if transaction_response_endpoints.contains(&endpoint_name.as_str()) {
-            return quote! {
-                #endpoint_name => RefOr::Ref(utoipa::openapi::Ref::new(
-                    "#/components/schemas/TransactionResponse"
-                ))
-            };
-        }
-
-        // Check if this uses EmptyResponse
-        if empty_response_endpoints.contains(&endpoint_name.as_str()) {
-            return quote! {
-                #endpoint_name => RefOr::Ref(utoipa::openapi::Ref::new(
-                    "#/components/schemas/EmptyResponse"
-                ))
-            };
-        }
-
-        // Standard case: endpoint + "Response"
+        // Generate the request type identifier to check for custom response type
         let type_name = endpoint_name.to_case(Case::Pascal);
+        let type_ident = Ident2::new(&type_name, proc_macro2::Span::call_site());
         let response_name = format!("{type_name}Response");
 
+        // Generate code that checks the response_type attribute at runtime
         quote! {
-            #endpoint_name => RefOr::Ref(utoipa::openapi::Ref::new(
-                concat!("#/components/schemas/", #response_name)
-            ))
+            #endpoint_name => {
+                // Check if the request type specifies a custom response type
+                if let Some(response_type) = sage_api::#type_ident::openapi_response_type() {
+                    RefOr::Ref(utoipa::openapi::Ref::new(
+                        format!("#/components/schemas/{}", response_type)
+                    ))
+                } else {
+                    // Standard case: endpoint + "Response"
+                    RefOr::Ref(utoipa::openapi::Ref::new(
+                        concat!("#/components/schemas/", #response_name)
+                    ))
+                }
+            }
         }
     });
 
     quote! {
         {
             use utoipa::openapi::{RefOr, schema::Schema};
+            use sage_api::OpenApiMetadata;
             match endpoint {
                 #(#match_arms,)*
                 _ => create_generic_schema(&format!("Response data for {endpoint} endpoint")),
