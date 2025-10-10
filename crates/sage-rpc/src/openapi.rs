@@ -1,9 +1,11 @@
 use indexmap::IndexMap;
+use std::collections::BTreeSet;
 use utoipa::openapi::{
     path::{HttpMethod, OperationBuilder, PathItemBuilder},
     request_body::RequestBodyBuilder,
     response::ResponseBuilder,
     schema::{ObjectBuilder, Schema, SchemaType, Type},
+    tag::TagBuilder,
     ComponentsBuilder, ContentBuilder, InfoBuilder, OpenApi, PathsBuilder, RefOr, ResponsesBuilder,
 };
 
@@ -14,6 +16,13 @@ pub fn generate_openapi() -> OpenApi {
     let endpoints: IndexMap<String, bool> =
         serde_json::from_str(include_str!("../../sage-api/endpoints.json"))
             .expect("Failed to parse endpoints.json");
+
+    // Collect unique tags from all endpoints (BTreeSet keeps them sorted)
+    let mut tags = BTreeSet::new();
+    for endpoint in endpoints.keys() {
+        let (tag, _) = get_endpoint_metadata(endpoint);
+        tags.insert(tag);
+    }
 
     let mut paths_builder = PathsBuilder::new();
 
@@ -32,6 +41,13 @@ pub fn generate_openapi() -> OpenApi {
             ))
             .build(),
         paths_builder.build(),
+    );
+
+    // Add alphabetically sorted tags to the OpenAPI spec
+    openapi.tags = Some(
+        tags.into_iter()
+            .map(|tag| TagBuilder::new().name(tag).build())
+            .collect(),
     );
 
     // Add schemas for documented types
