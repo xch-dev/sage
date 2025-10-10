@@ -10,4 +10,9 @@ pub trait OpenApiMetadata {
     fn openapi_description() -> Option<&'static str> {
         None
     }
+
+    /// Optional: The response type for this endpoint that does not match the type's name
+    fn openapi_response_type() -> Option<&'static str> {
+        None
+    }
 }

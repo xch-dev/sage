@@ -7,7 +7,8 @@ use crate::{Amount, CoinSpendJson, SpendBundleJson, TransactionSummary};
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCH Transactions",
-        description = "Send XCH to a recipient address with optional fee and memos."
+        description = "Send XCH to a recipient address with optional fee and memos.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,7 +40,8 @@ pub struct SendXch {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCH Transactions",
-        description = "Send XCH to multiple addresses in a single transaction."
+        description = "Send XCH to multiple addresses in a single transaction.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -66,7 +68,8 @@ pub struct BulkSendXch {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCH Transactions",
-        description = "Combine multiple small coins into a single larger coin to reduce coin count."
+        description = "Combine multiple small coins into a single larger coin to reduce coin count.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -88,7 +91,8 @@ pub struct Combine {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCH Transactions",
-        description = "Split a large coin into multiple smaller coins of specified amounts."
+        description = "Split a large coin into multiple smaller coins of specified amounts.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -192,7 +196,8 @@ pub struct AutoCombineCatResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "CAT Tokens",
-        description = "Issue (mint) a new CAT token with a specified supply."
+        description = "Issue (mint) a new CAT token with a specified supply.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -218,7 +223,8 @@ pub struct IssueCat {
     feature = "openapi",
     crate::openapi_attr(
         tag = "CAT Tokens",
-        description = "Send CAT tokens to a recipient address."
+        description = "Send CAT tokens to a recipient address.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -255,7 +261,8 @@ pub struct SendCat {
     feature = "openapi",
     crate::openapi_attr(
         tag = "CAT Tokens",
-        description = "Send CAT tokens to multiple addresses in a single transaction."
+        description = "Send CAT tokens to multiple addresses in a single transaction.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -292,7 +299,8 @@ fn yes() -> bool {
     feature = "openapi",
     crate::openapi_attr(
         tag = "XCH Transactions",
-        description = "Send multiple different assets (XCH, CATs, NFTs) in a single transaction."
+        description = "Send multiple different assets (XCH, CATs, NFTs) in a single transaction.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -333,7 +341,8 @@ pub struct Payment {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Create a new DID (Decentralized Identifier) for identity and NFT minting."
+        description = "Create a new DID (Decentralized Identifier) for identity and NFT minting.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -441,7 +450,8 @@ pub struct NftMint {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Transfer one or more NFTs to a new owner address."
+        description = "Transfer one or more NFTs to a new owner address.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -469,7 +479,8 @@ pub struct TransferNfts {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Add a new URI to an NFT's metadata (for updated content or mirrors)."
+        description = "Add a new URI to an NFT's metadata (for updated content or mirrors.).",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -507,7 +518,8 @@ pub enum NftUriKind {
     feature = "openapi",
     crate::openapi_attr(
         tag = "NFTs",
-        description = "Assign NFTs to a DID for identity-based ownership tracking."
+        description = "Assign NFTs to a DID for identity-based ownership tracking.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -530,7 +542,11 @@ pub struct AssignNftsToDid {
 /// Transfer DIDs to a new address
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "DIDs", description = "Transfer DID ownership to a new address.")
+    crate::openapi_attr(
+        tag = "DIDs",
+        description = "Transfer DID ownership to a new address.",
+        response_type = "TransactionResponse"
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -557,7 +573,8 @@ pub struct TransferDids {
     feature = "openapi",
     crate::openapi_attr(
         tag = "DIDs",
-        description = "Update DID records to their latest on-chain state."
+        description = "Update DID records to their latest on-chain state.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -632,7 +649,8 @@ pub struct MintOptionResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Options",
-        description = "Exercise options that are in-the-money and not expired."
+        description = "Exercise options that are in-the-money and not expired.",
+        response_type = "TransactionResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -652,7 +670,11 @@ pub struct ExerciseOptions {
 /// Transfer options to another address
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(tag = "Options", description = "Transfer options to another address.")
+    crate::openapi_attr(
+        tag = "Options",
+        description = "Transfer options to another address.",
+        response_type = "TransactionResponse"
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]

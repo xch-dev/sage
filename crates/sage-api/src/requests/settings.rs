@@ -31,7 +31,8 @@ pub struct GetPeersResponse {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Peers",
-        description = "Remove a specific peer from the connection list."
+        description = "Remove a specific peer from the connection list.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,7 +52,8 @@ pub struct RemovePeer {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Peers",
-        description = "Add a new peer to connect to by host and port."
+        description = "Add a new peer to connect to by host and port.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,7 +70,8 @@ pub struct AddPeer {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Peers",
-        description = "Enable or disable automatic peer discovery via DNS."
+        description = "Enable or disable automatic peer discovery via DNS.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -85,7 +88,8 @@ pub struct SetDiscoverPeers {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Peers",
-        description = "Set the target number of peers to maintain connections with."
+        description = "Set the target number of peers to maintain connections with.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -102,7 +106,8 @@ pub struct SetTargetPeers {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Network Settings",
-        description = "Set the active network (mainnet, testnet, etc.)."
+        description = "Set the active network (mainnet, testnet, etc.).",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -119,7 +124,8 @@ pub struct SetNetwork {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Network Settings",
-        description = "Override network settings with custom values."
+        description = "Override network settings with custom values.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -188,7 +194,8 @@ pub enum NetworkKind {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Network Settings",
-        description = "Enable or disable delta sync mode for faster synchronization."
+        description = "Enable or disable delta sync mode for faster synchronization.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -205,7 +212,8 @@ pub struct SetDeltaSync {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Network Settings",
-        description = "Override delta sync settings with custom configuration."
+        description = "Override delta sync settings with custom configuration.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -224,7 +232,8 @@ pub struct SetDeltaSyncOverride {
     feature = "openapi",
     crate::openapi_attr(
         tag = "Addresses",
-        description = "Set a custom change address for transaction outputs."
+        description = "Set a custom change address for transaction outputs.",
+        response_type = "EmptyResponse"
     )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
