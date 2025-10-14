@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 3);\n\n        INSERT OR IGNORE INTO p2_arbor (p2_puzzle_id, key)\n        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?);\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3d10c346c9307a0fb2f71cadcf04881e163e2bf96d5c54b475dedcf8c981dcbc"
+}
