@@ -11,7 +11,7 @@ use chia::{
 };
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
-    driver::{DidInfo, NftInfo, OptionInfo, OptionMetadata, Puzzle},
+    driver::{Layer, NftInfo, OptionInfo, OptionMetadata, Puzzle, SingletonLayer},
     prelude::CreateCoin,
     types::{run_puzzle, Condition, Conditions},
 };
@@ -62,7 +62,7 @@ pub async fn fetch_minter_hash(
     genesis_challenge: Bytes32,
     launcher_id: Bytes32,
 ) -> Result<Option<Bytes32>, WalletError> {
-    let mut did_id = None::<Bytes32>;
+    let mut minter_hash = None::<Bytes32>;
     let mut parent_id = launcher_id;
 
     for _ in 0..5 {
@@ -78,8 +78,11 @@ pub async fn fetch_minter_hash(
         let puzzle_reveal = parent_spend.puzzle_reveal.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
-        if let Some((did, _)) = DidInfo::parse(&allocator, puzzle).ok().flatten() {
-            did_id = Some(did.launcher_id);
+        if let Some(singleton) = SingletonLayer::<Puzzle>::parse_puzzle(&allocator, puzzle)
+            .ok()
+            .flatten()
+        {
+            minter_hash = Some(singleton.launcher_id);
             break;
         }
 
@@ -88,7 +91,7 @@ pub async fn fetch_minter_hash(
         sleep(Duration::from_secs(1)).await;
     }
 
-    if did_id.is_none() {
+    if minter_hash.is_none() {
         let coin_spend = {
             let child = peer.fetch_singleton_child(launcher_id).await?;
             let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
@@ -113,7 +116,7 @@ pub async fn fetch_minter_hash(
 
                 if let Ok(output) = run_puzzle(&mut allocator, p2_puzzle.ptr(), p2_solution) {
                     if let Ok(conditions) = Conditions::<NodePtr>::from_clvm(&allocator, output) {
-                        did_id = conditions.into_iter().find_map(|cond| match cond {
+                        minter_hash = conditions.into_iter().find_map(|cond| match cond {
                             Condition::TransferNft(transfer) => transfer.launcher_id,
                             _ => None,
                         });
@@ -123,7 +126,7 @@ pub async fn fetch_minter_hash(
         }
     }
 
-    Ok(did_id)
+    Ok(minter_hash)
 }
 
 #[derive(Debug, Clone)]
