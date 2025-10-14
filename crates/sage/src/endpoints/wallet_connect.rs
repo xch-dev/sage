@@ -6,7 +6,9 @@ use chia::{
     protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
     puzzles::{DeriveSynthetic, Proof},
 };
-use chia_wallet_sdk::driver::{ClawbackV2, Layer, OptionUnderlying, SpendContext, StandardLayer};
+use chia_wallet_sdk::driver::{
+    ClawbackV2, Layer, OptionUnderlying, P2DelegatedConditionsLayer, SpendContext, StandardLayer,
+};
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
     GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
@@ -103,6 +105,9 @@ impl Sage {
                         underlying.strike_type,
                     );
                     underlying.into_1_of_n().construct_puzzle(&mut ctx)?
+                }
+                P2Puzzle::Arbor(key) => {
+                    P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
                 }
             };
 
