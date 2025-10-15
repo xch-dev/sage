@@ -19,7 +19,7 @@ pub fn impl_endpoints_tauri(input: TokenStream) -> TokenStream {
 /// Attribute macro for `OpenAPI` metadata
 ///
 /// Usage:
-/// ```
+/// ```ignore
 /// #[openapi(
 ///     tag = "Authentication & Keys",
 ///     description = "Authenticate and log into a wallet..."
