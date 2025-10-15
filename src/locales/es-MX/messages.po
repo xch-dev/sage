@@ -319,7 +319,7 @@ msgstr "Avanzado"
 msgid "Advanced Feature"
 msgstr "Característica Avanzada"
 
-#: src/pages/ImportWallet.tsx:167
+#: src/pages/ImportWallet.tsx:199
 msgid "Advanced options"
 msgstr "Opciones avanzadas"
 
@@ -356,11 +356,11 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:800
+#: src/contexts/WalletConnectContext.tsx:803
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:790
+#: src/contexts/WalletConnectContext.tsx:793
 msgid "Approving"
 msgstr ""
 
@@ -596,7 +596,7 @@ msgstr "Perfil de Quemado"
 msgid "Buttons"
 msgstr ""
 
-#: src/pages/CreateWallet.tsx:209
+#: src/pages/CreateWallet.tsx:233
 msgid "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad para firmar transacciones. La mnemónica deberá guardarse en otro lugar."
 
@@ -605,7 +605,7 @@ msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad 
 #: src/pages/PeerList.tsx:487
 #: src/pages/PeerList.tsx:677
 #: src/pages/DidList.tsx:365
-#: src/pages/CreateWallet.tsx:287
+#: src/pages/CreateWallet.tsx:315
 #: src/components/WalletCard.tsx:393
 #: src/components/WalletCard.tsx:443
 #: src/components/WalletCard.tsx:544
@@ -702,13 +702,13 @@ msgstr "Comprueba si una dirección es propiedad de esta billetera."
 msgid "Chia"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:127
-#: src/pages/CreateWallet.tsx:157
+#: src/pages/ImportWallet.tsx:159
+#: src/pages/CreateWallet.tsx:178
 msgid "Choose an emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:132
-#: src/pages/CreateWallet.tsx:162
+#: src/pages/ImportWallet.tsx:164
+#: src/pages/CreateWallet.tsx:183
 msgid "Choose an emoji to easily identify your wallet"
 msgstr ""
 
@@ -934,7 +934,7 @@ msgstr ""
 msgid "Conceal Hidden Tokens"
 msgstr "Ocultar tokens ocultos"
 
-#: src/pages/CreateWallet.tsx:295
+#: src/pages/CreateWallet.tsx:323
 msgid "Confirm"
 msgstr "Confirmar"
 
@@ -1125,7 +1125,7 @@ msgid "Create Profile"
 msgstr "Crear Perfil"
 
 #: src/pages/Login.tsx:220
-#: src/pages/CreateWallet.tsx:65
+#: src/pages/CreateWallet.tsx:72
 msgid "Create Wallet"
 msgstr "Crear billetera"
 
@@ -1392,7 +1392,7 @@ msgstr "DID ID"
 msgid "DID ID copied to clipboard"
 msgstr "DID ID copiado al portapapeles"
 
-#: src/pages/CreateWallet.tsx:275
+#: src/pages/CreateWallet.tsx:302
 msgid "Did you save your mnemonic?"
 msgstr "¿Guardaste tu mnemónico?"
 
@@ -1582,7 +1582,7 @@ msgstr ""
 msgid "Enter URL"
 msgstr "Introducir URL"
 
-#: src/pages/ImportWallet.tsx:154
+#: src/pages/ImportWallet.tsx:186
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr "Introduzca su mnemotécnico, clave privada o clave pública arriba. Si es una clave pública, se importará como una billetera fría de solo lectura."
 
@@ -1864,7 +1864,7 @@ msgstr "Opciones de grupo: actualmente agrupadas por {groupMode}"
 #~ msgstr "Direcciones protegidas"
 
 #: src/pages/Settings.tsx:1486
-#: src/pages/ImportWallet.tsx:221
+#: src/pages/ImportWallet.tsx:253
 msgid "Hardened Keys"
 msgstr ""
 
@@ -1970,20 +1970,24 @@ msgid "ID: {cardId}"
 msgstr "ID: {cardId}"
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:238
+#: src/pages/ImportWallet.tsx:270
 msgid "Import"
 msgstr "Importar"
+
+#: src/pages/ImportWallet.tsx:113
+msgid "Import Existing Wallet"
+msgstr ""
 
 #: src/pages/Offer.tsx:144
 msgid "Import Offer"
 msgstr ""
 
 #: src/pages/Login.tsx:217
-#: src/pages/ImportWallet.tsx:90
+#: src/pages/ImportWallet.tsx:107
 msgid "Import Wallet"
 msgstr "Importar billetera"
 
-#: src/pages/ImportWallet.tsx:235
+#: src/pages/ImportWallet.tsx:267
 msgid "Importing"
 msgstr "Importando"
 
@@ -2011,7 +2015,7 @@ msgstr "Aumenta el índice de derivación para generar nuevas direcciones. Confi
 msgid "Index"
 msgstr "Índice"
 
-#: src/pages/ImportWallet.tsx:184
+#: src/pages/ImportWallet.tsx:216
 msgid "Initial Addresses"
 msgstr "Direcciones iniciales"
 
@@ -2222,7 +2226,7 @@ msgstr "Cerrar sesión"
 msgid "Main navigation"
 msgstr "Navegación principal"
 
-#: src/pages/CreateWallet.tsx:278
+#: src/pages/CreateWallet.tsx:305
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr "Asegúrate de haber guardado tu mnemotécnico. No podrás acceder a él más adelante, ya que no estará guardado en la billetera. Tampoco podrás realizar transacciones con esta billetera."
 
@@ -2342,7 +2346,7 @@ msgstr "Minting"
 msgid "Minutes"
 msgstr "Minutos"
 
-#: src/pages/CreateWallet.tsx:230
+#: src/pages/CreateWallet.tsx:254
 #: src/components/WalletCard.tsx:494
 msgid "Mnemonic"
 msgstr "Mnemotécnico"
@@ -2435,6 +2439,10 @@ msgstr ""
 #: src/pages/MakeOffer.tsx:110
 msgid "New Offer"
 msgstr "Nueva Oferta"
+
+#: src/pages/CreateWallet.tsx:133
+msgid "New Wallet"
+msgstr ""
 
 #: src/pages/OptionList.tsx:173
 msgid "Next"
@@ -3237,7 +3245,7 @@ msgstr "Resultado"
 #: src/pages/Settings.tsx:1320
 #: src/pages/Settings.tsx:1328
 #: src/components/dialogs/ResyncDialog.tsx:46
-#: src/components/dialogs/ResyncDialog.tsx:116
+#: src/components/dialogs/ResyncDialog.tsx:117
 msgid "Resync"
 msgstr "Sincronizar nuevamente"
 
@@ -3317,7 +3325,7 @@ msgstr "Ejecutar al inicio"
 msgid "Running"
 msgstr "Ejecutando"
 
-#: src/pages/CreateWallet.tsx:206
+#: src/pages/CreateWallet.tsx:230
 msgid "Save mnemonic"
 msgstr "Guardar mnemónico"
 
@@ -3810,7 +3818,7 @@ msgstr ""
 msgid "Strike Price"
 msgstr ""
 
-#: src/pages/CreateWallet.tsx:268
+#: src/pages/CreateWallet.tsx:292
 #: src/components/ConfirmationDialog.tsx:658
 #: src/components/dialogs/CancelOfferDialog.tsx:82
 msgid "Submit"
@@ -3972,7 +3980,7 @@ msgstr "Los activos que recibirás."
 msgid "The default fee to use for transactions"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:190
+#: src/pages/ImportWallet.tsx:222
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr "El índice de derivación inicial para sincronizar (tanto claves protegidas como no protegidas). Esto es principalmente aplicable a monederos legados con claves protegidas o espacios en las direcciones utilizadas."
 
@@ -4551,7 +4559,7 @@ msgid "Underlying Asset (Locked)"
 msgstr ""
 
 #: src/pages/Settings.tsx:1472
-#: src/pages/ImportWallet.tsx:207
+#: src/pages/ImportWallet.tsx:239
 msgid "Unhardened Keys"
 msgstr ""
 
@@ -4602,6 +4610,14 @@ msgstr "NFT desconocido"
 #: src/components/selectors/TokenSelector.tsx:106
 #~ msgid "Unknown token"
 #~ msgstr "Token desconocido"
+
+#: src/pages/CreateWallet.tsx:136
+msgid "Unless you create it as a cold wallet, your seed phrase will be viewable from the wallet card on the login screen."
+msgstr ""
+
+#: src/pages/ImportWallet.tsx:116
+msgid "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
+msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:214
 #: src/components/AdvancedTransactionSummary.tsx:228
@@ -4716,7 +4732,7 @@ msgstr "La URL es obligatoria"
 msgid "USD Value: "
 msgstr ""
 
-#: src/pages/CreateWallet.tsx:178
+#: src/pages/CreateWallet.tsx:201
 msgid "Use 24 words"
 msgstr "Usar 24 palabras"
 
@@ -4861,8 +4877,8 @@ msgstr "Detalles de la billetera"
 msgid "Wallet emoji"
 msgstr ""
 
-#: src/pages/ImportWallet.tsx:120
-#: src/pages/CreateWallet.tsx:150
+#: src/pages/ImportWallet.tsx:152
+#: src/pages/CreateWallet.tsx:171
 msgid "Wallet Emoji (Optional)"
 msgstr ""
 
@@ -4872,13 +4888,13 @@ msgstr ""
 msgid "Wallet icon"
 msgstr "Icono de billetera"
 
-#: src/pages/ImportWallet.tsx:148
+#: src/pages/ImportWallet.tsx:180
 msgid "Wallet Key"
 msgstr "Llave de la billetera"
 
 #: src/pages/Settings.tsx:1212
-#: src/pages/ImportWallet.tsx:103
-#: src/pages/CreateWallet.tsx:133
+#: src/pages/ImportWallet.tsx:135
+#: src/pages/CreateWallet.tsx:154
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"
 msgstr "Nombre de la billetera"
@@ -4909,7 +4925,7 @@ msgstr ""
 #~ msgid "Whether to skip syncing older blocks"
 #~ msgstr ""
 
-#: src/pages/CreateWallet.tsx:181
+#: src/pages/CreateWallet.tsx:204
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "Si bien los mnemotécnicos de 12 palabras son lo suficientemente difíciles de crackear, puedes optar por usar 24 para aumentar la seguridad."
 
