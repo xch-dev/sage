@@ -433,8 +433,12 @@ impl SyncManager {
 
             if self.nft_uri_queue_task.is_none() && !self.options.testing {
                 let task = tokio::spawn(
-                    NftUriQueue::new(wallet.db.clone(), self.event_sender.clone())
-                        .start(self.options.timeouts.nft_uri_delay),
+                    NftUriQueue::new(
+                        wallet.db.clone(),
+                        self.event_sender.clone(),
+                        self.network.clone(),
+                    )
+                    .start(self.options.timeouts.nft_uri_delay),
                 );
                 self.nft_uri_queue_task = Some(task);
             }

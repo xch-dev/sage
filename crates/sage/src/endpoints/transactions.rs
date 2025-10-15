@@ -6,6 +6,7 @@ use chia::{
 };
 use chia_wallet_sdk::{
     driver::{MetadataUpdate, OptionType},
+    types::TESTNET11_CONSTANTS,
     utils::Address,
 };
 use itertools::Itertools;
@@ -285,6 +286,7 @@ impl Sage {
 
         let mut mints = Vec::with_capacity(req.mints.len());
         let mut info = ConfirmationInfo::default();
+        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for item in req.mints {
             let royalty_puzzle_hash = item
@@ -301,7 +303,7 @@ impl Sage {
             } else {
                 let data = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.data_uris.clone()),
+                    fetch_uris_without_hash(item.data_uris.clone(), testnet),
                 )
                 .await??;
 
@@ -318,7 +320,7 @@ impl Sage {
             } else {
                 let metadata = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.metadata_uris.clone()),
+                    fetch_uris_without_hash(item.metadata_uris.clone(), testnet),
                 )
                 .await??;
 
@@ -335,7 +337,7 @@ impl Sage {
             } else {
                 let data = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.license_uris.clone()),
+                    fetch_uris_without_hash(item.license_uris.clone(), testnet),
                 )
                 .await??;
 
