@@ -4,6 +4,13 @@ import SafeAreaView from '@/components/SafeAreaView';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -119,155 +126,175 @@ function CreateForm(props: {
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(confirmAndSubmit)}
-        className='space-y-4 max-w-xl mx-auto py-0'
-      >
-        <FormField
-          control={form.control}
-          name='walletName'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>
-                <Trans>Wallet Name</Trans>
-              </FormLabel>
-              <FormControl>
-                <Input placeholder='' required {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <>
+      <Card className='mx-8'>
+        <CardHeader className='text-center'>
+          <CardTitle>
+            <Trans>New Wallet</Trans>
+          </CardTitle>
+          <CardDescription>
+            <Trans>
+              Unless you create it as a cold wallet, your seed phrase will be
+              viewable from the wallet card on the login screen.
+            </Trans>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(confirmAndSubmit)}
+              className='space-y-4 max-w-xl mx-auto py-0'
+            >
+              <FormField
+                control={form.control}
+                name='walletName'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Wallet Name</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder='' required {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <FormField
-          control={form.control}
-          name='emoji'
-          render={({ field }) => (
-            <FormItem>
-              <label htmlFor='emoji' className='space-y-0.5'>
-                <FormLabel>
-                  <Trans>Wallet Emoji (Optional)</Trans>
-                </FormLabel>
-                <FormControl>
-                  <div className='flex items-center gap-2'>
-                    <EmojiPicker
-                      value={field.value}
-                      onChange={field.onChange}
-                      placeholder={t`Choose an emoji`}
-                    />
+              <FormField
+                control={form.control}
+                name='emoji'
+                render={({ field }) => (
+                  <FormItem>
+                    <label htmlFor='emoji' className='space-y-0.5'>
+                      <FormLabel>
+                        <Trans>Wallet Emoji (Optional)</Trans>
+                      </FormLabel>
+                      <FormControl>
+                        <div className='flex items-center gap-2'>
+                          <EmojiPicker
+                            value={field.value}
+                            onChange={field.onChange}
+                            placeholder={t`Choose an emoji`}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        <Trans>
+                          Choose an emoji to easily identify your wallet
+                        </Trans>
+                      </FormDescription>
+                    </label>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='use24Words'
+                defaultValue={true}
+                render={({ field }) => (
+                  <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
+                    <label htmlFor='use24Words' className='space-y-0.5'>
+                      <FormLabel>
+                        <Trans>Use 24 words</Trans>
+                      </FormLabel>
+                      <FormDescription>
+                        <Trans>
+                          While 12 word mnemonics are sufficiently hard to
+                          crack, you can choose to use 24 instead to increase
+                          security.
+                        </Trans>
+                      </FormDescription>
+                    </label>
+                    <FormControl>
+                      <Switch
+                        id='use24Words'
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='saveMnemonic'
+                defaultValue={true}
+                render={({ field }) => (
+                  <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
+                    <label htmlFor='saveMnemonic' className='space-y-0.5'>
+                      <FormLabel>
+                        <Trans>Save mnemonic</Trans>
+                      </FormLabel>
+                      <FormDescription>
+                        <Trans>
+                          By disabling this you are creating a cold wallet, with
+                          no ability to sign transactions. The mnemonic will
+                          need to be saved elsewhere.
+                        </Trans>
+                      </FormDescription>
+                    </label>
+                    <FormControl>
+                      <Switch
+                        id='saveMnemonic'
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <div className='mt-3'>
+                <div className='flex justify-between items-center mb-2'>
+                  <Label>
+                    <Trans>Mnemonic</Trans>
+                  </Label>
+                  <div>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      onClick={loadMnemonic}
+                    >
+                      <RefreshCwIcon className='h-4 w-4' />
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      onClick={copyMnemonic}
+                    >
+                      <CopyIcon className='h-4 w-4' />
+                    </Button>
                   </div>
-                </FormControl>
-                <FormDescription>
-                  <Trans>Choose an emoji to easily identify your wallet</Trans>
-                </FormDescription>
-              </label>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                </div>
+                <div className='flex flex-wrap'>
+                  {form
+                    .watch('mnemonic')
+                    ?.split(' ')
+                    .map((word) => (
+                      <Badge
+                        key={word}
+                        variant='outline'
+                        className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
+                      >
+                        {word}
+                      </Badge>
+                    ))}
+                </div>
+              </div>
 
-        <FormField
-          control={form.control}
-          name='use24Words'
-          defaultValue={true}
-          render={({ field }) => (
-            <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
-              <label htmlFor='use24Words' className='space-y-0.5'>
-                <FormLabel>
-                  <Trans>Use 24 words</Trans>
-                </FormLabel>
-                <FormDescription>
-                  <Trans>
-                    While 12 word mnemonics are sufficiently hard to crack, you
-                    can choose to use 24 instead to increase security.
-                  </Trans>
-                </FormDescription>
-              </label>
-              <FormControl>
-                <Switch
-                  id='use24Words'
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name='saveMnemonic'
-          defaultValue={true}
-          render={({ field }) => (
-            <FormItem className='flex flex-row items-center justify-between rounded-lg border p-4 gap-2'>
-              <label htmlFor='saveMnemonic' className='space-y-0.5'>
-                <FormLabel>
-                  <Trans>Save mnemonic</Trans>
-                </FormLabel>
-                <FormDescription>
-                  <Trans>
-                    By disabling this you are creating a cold wallet, with no
-                    ability to sign transactions. The mnemonic will need to be
-                    saved elsewhere.
-                  </Trans>
-                </FormDescription>
-              </label>
-              <FormControl>
-                <Switch
-                  id='saveMnemonic'
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <div className='mt-3'>
-          <div className='flex justify-between items-center mb-2'>
-            <Label>
-              <Trans>Mnemonic</Trans>
-            </Label>
-            <div>
-              <Button
-                type='button'
-                variant='ghost'
-                size='sm'
-                onClick={loadMnemonic}
-              >
-                <RefreshCwIcon className='h-4 w-4' />
+              <Button type='submit'>
+                <Trans>Submit</Trans>
               </Button>
-              <Button
-                type='button'
-                variant='ghost'
-                size='sm'
-                onClick={copyMnemonic}
-              >
-                <CopyIcon className='h-4 w-4' />
-              </Button>
-            </div>
-          </div>
-          <div className='flex flex-wrap'>
-            {form
-              .watch('mnemonic')
-              ?.split(' ')
-              .map((word) => (
-                <Badge
-                  key={word}
-                  variant='outline'
-                  className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
-                >
-                  {word}
-                </Badge>
-              ))}
-          </div>
-        </div>
-
-        <Button type='submit'>
-          <Trans>Submit</Trans>
-        </Button>
-      </form>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
         <DialogContent>
           <DialogHeader>
@@ -282,6 +309,7 @@ function CreateForm(props: {
               </Trans>
             </DialogDescription>
           </DialogHeader>
+
           <DialogFooter>
             <Button variant='outline' onClick={() => setIsConfirmOpen(false)}>
               <Trans>Cancel</Trans>
@@ -297,6 +325,6 @@ function CreateForm(props: {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Form>
+    </>
   );
 }
