@@ -157,7 +157,7 @@ jobs:
         if: matrix.platform_name == 'iOS'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 26.0.0
+          xcode-version: 16.4.0
 
       - name: Download iOS platform
         if: matrix.platform_name == 'iOS'
