@@ -100,7 +100,8 @@ export function ResyncDialog({
               submit({
                 delete_coins: deleteCoins,
                 delete_offers: deleteOffers,
-                delete_addresses: deleteCache,
+                // This will reset the derivation index, so we don't want to do this
+                delete_addresses: false,
                 delete_assets: deleteCache,
                 delete_files: deleteCache,
                 delete_blocks: deleteCache,

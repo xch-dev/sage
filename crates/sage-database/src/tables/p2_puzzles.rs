@@ -1,5 +1,8 @@
 use chia::{bls::PublicKey, clvm_utils::ToTreeHash, protocol::Bytes32};
-use chia_wallet_sdk::driver::{ClawbackV2, OptionType, OptionUnderlying};
+use chia_wallet_sdk::{
+    driver::{ClawbackV2, OptionType, OptionUnderlying},
+    types::{puzzles::P2DelegatedConditionsArgs, Mod},
+};
 use sqlx::{query, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -9,6 +12,7 @@ pub enum P2PuzzleKind {
     PublicKey,
     Clawback,
     Option,
+    Arbor,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -16,6 +20,7 @@ pub enum P2Puzzle {
     PublicKey(PublicKey),
     Clawback(Clawback),
     Option(Underlying),
+    Arbor(PublicKey),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -100,6 +105,13 @@ impl Database {
                     strike_type: underlying.strike_type,
                 }))
             }
+            P2PuzzleKind::Arbor => {
+                let Some(key) = arbor_key(&self.pool, puzzle_hash).await? else {
+                    return Err(DatabaseError::PublicKeyNotFound);
+                };
+
+                Ok(P2Puzzle::Arbor(key))
+            }
         }
     }
 
@@ -162,10 +174,14 @@ impl DatabaseTx<'_> {
     pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
         insert_option_p2_puzzle(&mut *self.tx, underlying).await
     }
+
+    pub async fn insert_arbor_p2_puzzle(&mut self, key: PublicKey) -> Result<()> {
+        insert_arbor_p2_puzzle(&mut *self.tx, key).await
+    }
 }
 
 async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind = 0")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3)")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -200,7 +216,7 @@ async fn is_custody_p2_puzzle_hash(
     let puzzle_hash = puzzle_hash.as_ref();
 
     Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind = 0",
+        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3)",
         puzzle_hash
     )
     .fetch_one(conn)
@@ -405,6 +421,30 @@ async fn insert_option_p2_puzzle(
     Ok(())
 }
 
+async fn insert_arbor_p2_puzzle(conn: impl SqliteExecutor<'_>, key: PublicKey) -> Result<()> {
+    let p2_puzzle_hash = P2DelegatedConditionsArgs::new(key)
+        .curry_tree_hash()
+        .to_vec();
+    let key = key.to_bytes();
+    let key = key.as_ref();
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 3);
+
+        INSERT OR IGNORE INTO p2_arbor (p2_puzzle_id, key)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        key,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn p2_puzzle_kind(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
@@ -419,6 +459,7 @@ async fn p2_puzzle_kind(
         0 => P2PuzzleKind::PublicKey,
         1 => P2PuzzleKind::Clawback,
         2 => P2PuzzleKind::Option,
+        3 => P2PuzzleKind::Arbor,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }
@@ -494,6 +535,27 @@ async fn underlying_launcher_id(
     .await?
     .launcher_id
     .convert()
+}
+
+async fn arbor_key(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Option<PublicKey>> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    let row = query!(
+        "
+        SELECT key
+        FROM p2_puzzles
+        INNER JOIN p2_arbor ON p2_arbor.p2_puzzle_id = p2_puzzles.id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_optional(conn)
+    .await?;
+
+    row.map(|row| row.key.convert()).transpose()
 }
 
 async fn derivation(

@@ -216,6 +216,8 @@ impl Sage {
             }
         }
 
+        tx.insert_arbor_p2_puzzle(master_pk).await?;
+
         tx.commit().await?;
 
         if req.login {

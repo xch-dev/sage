@@ -44,10 +44,7 @@ impl Wallet {
                 continue;
             };
             let Some(derivation) = self.db.derivation(required.public_key).await? else {
-                if partial {
-                    continue;
-                }
-                return Err(WalletError::UnknownPublicKey);
+                continue;
             };
             derivations.insert(required.public_key, derivation);
         }
@@ -75,9 +72,18 @@ impl Wallet {
             let RequiredSignature::Bls(required) = required else {
                 continue;
             };
-            let Some(sk) = secret_keys.get(&required.public_key).cloned() else {
-                continue;
+
+            let sk = if required.public_key == master_sk.public_key() {
+                master_sk.clone()
+            } else if let Some(sk) = secret_keys.get(&required.public_key).cloned() {
+                sk
+            } else {
+                if partial {
+                    continue;
+                }
+                return Err(WalletError::UnknownPublicKey);
             };
+
             aggregated_signature += &sign(&sk, required.message());
         }
 
