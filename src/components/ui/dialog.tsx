@@ -47,6 +47,14 @@ const DialogContent = React.forwardRef<
     backgroundRepeat: currentTheme?.backgroundImage ? 'no-repeat' : undefined,
   };
 
+  if (currentTheme?.backgroundImage) {
+    themeStyles.backgroundColor =
+      currentTheme?.inherits === 'dark'
+        ? 'rgba(0, 0, 0, 0.5)'
+        : 'rgba(255, 255, 255, 0.5)';
+    themeStyles.backgroundBlendMode = 'overlay';
+  }
+
   // Merge theme styles with any custom styles passed as props
   const mergedStyles = { ...themeStyles, ...style };
 
