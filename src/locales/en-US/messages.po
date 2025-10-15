@@ -319,7 +319,7 @@ msgstr "Advanced"
 msgid "Advanced Feature"
 msgstr "Advanced Feature"
 
-#: src/pages/ImportWallet.tsx:199
+#: src/pages/ImportWallet.tsx:198
 msgid "Advanced options"
 msgstr "Advanced options"
 
@@ -702,12 +702,12 @@ msgstr "Check if an address is owned by this wallet."
 msgid "Chia"
 msgstr "Chia"
 
-#: src/pages/ImportWallet.tsx:159
+#: src/pages/ImportWallet.tsx:158
 #: src/pages/CreateWallet.tsx:178
 msgid "Choose an emoji"
 msgstr "Choose an emoji"
 
-#: src/pages/ImportWallet.tsx:164
+#: src/pages/ImportWallet.tsx:163
 #: src/pages/CreateWallet.tsx:183
 msgid "Choose an emoji to easily identify your wallet"
 msgstr "Choose an emoji to easily identify your wallet"
@@ -1582,7 +1582,7 @@ msgstr "Enter total (defaults to count)"
 msgid "Enter URL"
 msgstr "Enter URL"
 
-#: src/pages/ImportWallet.tsx:186
+#: src/pages/ImportWallet.tsx:185
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 
@@ -1864,7 +1864,7 @@ msgstr "Group options: currently grouped by {groupMode}"
 #~ msgstr "Hardened addresses"
 
 #: src/pages/Settings.tsx:1486
-#: src/pages/ImportWallet.tsx:253
+#: src/pages/ImportWallet.tsx:252
 msgid "Hardened Keys"
 msgstr "Hardened Keys"
 
@@ -1970,11 +1970,11 @@ msgid "ID: {cardId}"
 msgstr "ID: {cardId}"
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:270
+#: src/pages/ImportWallet.tsx:269
 msgid "Import"
 msgstr "Import"
 
-#: src/pages/ImportWallet.tsx:113
+#: src/pages/ImportWallet.tsx:112
 msgid "Import Existing Wallet"
 msgstr "Import Existing Wallet"
 
@@ -1987,7 +1987,7 @@ msgstr "Import Offer"
 msgid "Import Wallet"
 msgstr "Import Wallet"
 
-#: src/pages/ImportWallet.tsx:267
+#: src/pages/ImportWallet.tsx:266
 msgid "Importing"
 msgstr "Importing"
 
@@ -2015,7 +2015,7 @@ msgstr "Increase the derivation index to generate new addresses. Setting this to
 msgid "Index"
 msgstr "Index"
 
-#: src/pages/ImportWallet.tsx:216
+#: src/pages/ImportWallet.tsx:215
 msgid "Initial Addresses"
 msgstr "Initial Addresses"
 
@@ -3980,7 +3980,7 @@ msgstr "The assets you will receive."
 msgid "The default fee to use for transactions"
 msgstr "The default fee to use for transactions"
 
-#: src/pages/ImportWallet.tsx:222
+#: src/pages/ImportWallet.tsx:221
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 
@@ -4559,7 +4559,7 @@ msgid "Underlying Asset (Locked)"
 msgstr "Underlying Asset (Locked)"
 
 #: src/pages/Settings.tsx:1472
-#: src/pages/ImportWallet.tsx:239
+#: src/pages/ImportWallet.tsx:238
 msgid "Unhardened Keys"
 msgstr "Unhardened Keys"
 
@@ -4615,7 +4615,7 @@ msgstr "Unknown NFT"
 msgid "Unless you create it as a cold wallet, your seed phrase will be viewable from the wallet card on the login screen."
 msgstr "Unless you create it as a cold wallet, your seed phrase will be viewable from the wallet card on the login screen."
 
-#: src/pages/ImportWallet.tsx:116
+#: src/pages/ImportWallet.tsx:115
 msgid "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
 msgstr "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
 
@@ -4877,7 +4877,7 @@ msgstr "Wallet Details"
 msgid "Wallet emoji"
 msgstr "Wallet emoji"
 
-#: src/pages/ImportWallet.tsx:152
+#: src/pages/ImportWallet.tsx:151
 #: src/pages/CreateWallet.tsx:171
 msgid "Wallet Emoji (Optional)"
 msgstr "Wallet Emoji (Optional)"
@@ -4888,12 +4888,12 @@ msgstr "Wallet Emoji (Optional)"
 msgid "Wallet icon"
 msgstr "Wallet icon"
 
-#: src/pages/ImportWallet.tsx:180
+#: src/pages/ImportWallet.tsx:179
 msgid "Wallet Key"
 msgstr "Wallet Key"
 
 #: src/pages/Settings.tsx:1212
-#: src/pages/ImportWallet.tsx:135
+#: src/pages/ImportWallet.tsx:134
 #: src/pages/CreateWallet.tsx:154
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"
