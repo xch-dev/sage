@@ -5793,7 +5793,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "sage"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -5828,7 +5828,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "sage-api-macro",
  "sage-config",
@@ -5840,7 +5840,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api-macro"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "convert_case 0.8.0",
  "indexmap 2.11.4",
@@ -5852,7 +5852,7 @@ dependencies = [
 
 [[package]]
 name = "sage-assets"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "base64 0.22.1",
  "chia",
@@ -5872,7 +5872,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "clap",
@@ -5890,7 +5890,7 @@ dependencies = [
 
 [[package]]
 name = "sage-client"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "dirs 5.0.1",
  "reqwest",
@@ -5905,7 +5905,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5921,7 +5921,7 @@ dependencies = [
 
 [[package]]
 name = "sage-database"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5933,7 +5933,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -5949,7 +5949,7 @@ dependencies = [
 
 [[package]]
 name = "sage-rpc"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "axum",
@@ -5969,7 +5969,7 @@ dependencies = [
 
 [[package]]
 name = "sage-tauri"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -6007,7 +6007,7 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.12.4"
+version = "0.12.5"
 dependencies = [
  "anyhow",
  "chia",

@@ -204,7 +204,7 @@ pub struct GetVersion {}
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetVersionResponse {
     /// Semantic version string
-    #[cfg_attr(feature = "openapi", schema(example = "0.12.4"))]
+    #[cfg_attr(feature = "openapi", schema(example = "0.12.5"))]
     pub version: String,
 }
 

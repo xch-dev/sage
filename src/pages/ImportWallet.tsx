@@ -106,8 +106,7 @@ export default function ImportWallet() {
     <SafeAreaView>
       <Header title={t`Import Wallet`} back={() => navigate('/')} />
       <Container>
-        {' '}
-        <Card className='mx-8'>
+        <Card className='max-w-xl mx-auto'>
           <CardHeader className='text-center'>
             <CardTitle>
               <Trans>Import Existing Wallet</Trans>
@@ -124,7 +123,7 @@ export default function ImportWallet() {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(submit)}
-                className='space-y-4 max-w-xl mx-auto py-4'
+                className='space-y-4 py-4'
               >
                 <FormField
                   control={form.control}

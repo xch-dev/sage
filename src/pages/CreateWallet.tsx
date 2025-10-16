@@ -127,7 +127,7 @@ function CreateForm(props: {
 
   return (
     <>
-      <Card className='mx-8'>
+      <Card className='max-w-xl mx-auto'>
         <CardHeader className='text-center'>
           <CardTitle>
             <Trans>New Wallet</Trans>
@@ -143,7 +143,7 @@ function CreateForm(props: {
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(confirmAndSubmit)}
-              className='space-y-4 max-w-xl mx-auto py-0'
+              className='space-y-4 py-0'
             >
               <FormField
                 control={form.control}
