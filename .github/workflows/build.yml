@@ -159,12 +159,6 @@ jobs:
         with:
           xcode-version: 16.4.0
 
-      - name: Download iOS platform
-        if: matrix.platform_name == 'iOS'
-        run: |
-          xcodebuild -version
-          xcodebuild -downloadPlatform iOS
-
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
