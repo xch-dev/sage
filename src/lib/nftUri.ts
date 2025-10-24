@@ -1,5 +1,5 @@
-import invalid from '@/images/invalid.png';
-import missing from '@/images/missing.png';
+import invalid from '@/images/invalid_FF.png';
+import missing from '@/images/missing_FF.png';
 
 const imageTypes = [
   'image/png',
