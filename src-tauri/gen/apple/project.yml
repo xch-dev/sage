@@ -52,8 +52,8 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        CFBundleShortVersionString: 0.12.5
-        CFBundleVersion: 0.12.5
+        CFBundleShortVersionString: 0.12.6
+        CFBundleVersion: 0.12.6
     entitlements:
       path: sage-tauri_iOS/sage-tauri_iOS.entitlements
     scheme:
