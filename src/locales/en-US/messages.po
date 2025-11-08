@@ -629,16 +629,16 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/pages/Offers.tsx:313
+#: src/pages/Offers.tsx:324
 msgid "Cancel All Active"
 msgstr "Cancel All Active"
 
-#: src/pages/Offers.tsx:318
-#: src/pages/Offers.tsx:397
+#: src/pages/Offers.tsx:329
+#: src/pages/Offers.tsx:412
 msgid "Cancel All Active Offers"
 msgstr "Cancel All Active Offers"
 
-#: src/pages/Offers.tsx:376
+#: src/pages/Offers.tsx:391
 msgid "Cancel all active offers?"
 msgstr "Cancel all active offers?"
 
@@ -1093,7 +1093,7 @@ msgstr "Copy offer"
 msgid "Create"
 msgstr "Create"
 
-#: src/pages/Offers.tsx:245
+#: src/pages/Offers.tsx:247
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Create a new offer to get started with peer-to-peer trading."
 
@@ -1113,7 +1113,7 @@ msgstr "Create individual offers for each NFT"
 msgid "Create new NFT"
 msgstr "Create new NFT"
 
-#: src/pages/Offers.tsx:271
+#: src/pages/Offers.tsx:276
 #: src/pages/MakeOffer.tsx:296
 msgid "Create Offer"
 msgstr "Create Offer"
@@ -1269,7 +1269,7 @@ msgstr "Delete {offerCount} offer records?"
 msgid "Delete {selectedPeersCount}"
 msgstr "Delete {selectedPeersCount}"
 
-#: src/pages/Offers.tsx:335
+#: src/pages/Offers.tsx:349
 #: src/components/dialogs/DeleteOfferDialog.tsx:61
 msgid "Delete All"
 msgstr "Delete All"
@@ -1278,7 +1278,7 @@ msgstr "Delete All"
 msgid "Delete all cached data"
 msgstr "Delete all cached data"
 
-#: src/pages/Offers.tsx:340
+#: src/pages/Offers.tsx:354
 msgid "Delete All Filtered Offers"
 msgstr "Delete All Filtered Offers"
 
@@ -2234,7 +2234,7 @@ msgstr "Make sure you have saved your mnemonic. You will not be able to access i
 msgid "Maker Fee"
 msgstr "Maker Fee"
 
-#: src/pages/Offers.tsx:239
+#: src/pages/Offers.tsx:241
 msgid "Manage offers"
 msgstr "Manage offers"
 
@@ -2415,7 +2415,7 @@ msgstr "Network"
 msgid "Network Fee"
 msgstr "Network Fee"
 
-#: src/pages/Offers.tsx:385
+#: src/pages/Offers.tsx:400
 msgid "Network Fee (per offer)"
 msgstr "Network Fee (per offer)"
 
@@ -2578,7 +2578,7 @@ msgstr "No NFTs requested or details unavailable."
 msgid "No NFTs to export"
 msgstr "No NFTs to export"
 
-#: src/pages/Offers.tsx:241
+#: src/pages/Offers.tsx:243
 msgid "No offers yet"
 msgstr "No offers yet"
 
@@ -2624,7 +2624,7 @@ msgstr "Normalize Profile"
 msgid "Normalize Profiles"
 msgstr "Normalize Profiles"
 
-#: src/pages/Offers.tsx:75
+#: src/pages/Offers.tsx:76
 #: src/components/TransferDialog.tsx:51
 #: src/components/OwnedCoinsCard.tsx:243
 #: src/components/OwnedCoinsCard.tsx:288
@@ -2711,7 +2711,7 @@ msgstr "Offered in exchange:"
 msgid "Offering"
 msgstr "Offering"
 
-#: src/pages/Offers.tsx:212
+#: src/pages/Offers.tsx:213
 #: src/components/Nav.tsx:84
 msgid "Offers"
 msgstr "Offers"
@@ -4207,7 +4207,7 @@ msgstr "This will bulk transfer {selectedCount} NFTs to another wallet. Are you 
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "This will bulk unassign the NFTs from their profiles."
 
-#: src/pages/Offers.tsx:378
+#: src/pages/Offers.tsx:393
 msgid "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 msgstr "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 
@@ -4804,7 +4804,7 @@ msgstr "View Local Offer"
 msgid "View Metadata"
 msgstr "View Metadata"
 
-#: src/pages/Offers.tsx:258
+#: src/pages/Offers.tsx:263
 #: src/pages/Nft.tsx:485
 #: src/pages/Nft.tsx:608
 #: src/components/dialogs/ViewOfferDialog.tsx:49
@@ -5006,7 +5006,7 @@ msgstr "You Are Requesting"
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 
-#: src/pages/Offers.tsx:250
+#: src/pages/Offers.tsx:252
 msgid "You can also paste an offer using"
 msgstr "You can also paste an offer using"
 
