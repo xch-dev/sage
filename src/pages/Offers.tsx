@@ -9,6 +9,7 @@ import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { OfferRowCard } from '@/components/OfferRowCard';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
   Select,
@@ -227,136 +228,150 @@ export function Offers() {
         }
       />
       <Container>
-        <div className='flex flex-col gap-10'>
-          <div className='flex flex-col items-center justify-center pt-10 text-center gap-4'>
-            <HandCoins
-              className='h-12 w-12 text-muted-foreground'
-              aria-hidden='true'
-            />
-            <div>
-              <h2 className='text-lg font-semibold'>
-                {offers.length > 0 ? (
-                  <Trans>Manage offers</Trans>
-                ) : (
-                  <Trans>No offers yet</Trans>
-                )}
-              </h2>
-              <p className='mt-2 text-sm text-muted-foreground'>
-                <Trans>
-                  Create a new offer to get started with peer-to-peer trading.
-                </Trans>
-              </p>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                <Trans>You can also paste an offer using</Trans>{' '}
-                <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
-              </p>
-            </div>
-            <div className='flex gap-2'>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant='outline' className='flex items-center gap-1'>
-                    <Trans>View Offer</Trans>
+        <Card className='p-6'>
+          <div className='flex flex-col gap-10'>
+            <div className='flex flex-col items-center justify-center pt-4 text-center gap-4'>
+              <HandCoins
+                className='h-12 w-12 text-muted-foreground'
+                aria-hidden='true'
+              />
+              <div>
+                <h2 className='text-lg font-semibold'>
+                  {offers.length > 0 ? (
+                    <Trans>Manage offers</Trans>
+                  ) : (
+                    <Trans>No offers yet</Trans>
+                  )}
+                </h2>
+                <p className='mt-2 text-sm text-muted-foreground'>
+                  <Trans>
+                    Create a new offer to get started with peer-to-peer trading.
+                  </Trans>
+                </p>
+                <p className='mt-1 text-sm text-muted-foreground'>
+                  <Trans>You can also paste an offer using</Trans>{' '}
+                  <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
+                </p>
+              </div>
+              <div className='flex gap-2'>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant='outline'
+                      className='flex items-center gap-1'
+                    >
+                      <Trans>View Offer</Trans>
+                    </Button>
+                  </DialogTrigger>
+                  <ViewOfferDialog
+                    open={dialogOpen}
+                    onOpenChange={setDialogOpen}
+                    offerString={offerString}
+                    setOfferString={setOfferString}
+                    onSubmit={handleViewOffer}
+                  />
+                </Dialog>
+                <Link to='/offers/make' replace={true}>
+                  <Button>
+                    <Trans>Create Offer</Trans>
                   </Button>
-                </DialogTrigger>
-                <ViewOfferDialog
-                  open={dialogOpen}
-                  onOpenChange={setDialogOpen}
-                  offerString={offerString}
-                  setOfferString={setOfferString}
-                  onSubmit={handleViewOffer}
-                />
-              </Dialog>
-              <Link to='/offers/make' replace={true}>
-                <Button>
-                  <Trans>Create Offer</Trans>
-                </Button>
-              </Link>
+                </Link>
+              </div>
             </div>
+
+            {offers.length > 0 && (
+              <div className='flex flex-col gap-4'>
+                <div className='flex flex-row items-center justify-between gap-4'>
+                  <div className='flex items-center gap-2'>
+                    <FilterIcon
+                      className='h-4 w-4 text-muted-foreground'
+                      aria-hidden='true'
+                    />
+                    <Select
+                      value={statusFilter}
+                      onValueChange={setStatusFilter}
+                    >
+                      <SelectTrigger className='w-[180px]'>
+                        <SelectValue placeholder='Filter by status' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value='all'>All Offers</SelectItem>
+                        <SelectItem value='active'>Active</SelectItem>
+                        <SelectItem value='completed'>Completed</SelectItem>
+                        <SelectItem value='cancelled'>Cancelled</SelectItem>
+                        <SelectItem value='expired'>Expired</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className='flex items-center gap-2 min-w-fit'>
+                    {filteredOffers.some(
+                      (offer) => offer.status === 'active',
+                    ) && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              className='flex items-center gap-1'
+                              onClick={() => setIsCancelAllOpen(true)}
+                            >
+                              <CircleOff
+                                className='h-4 w-4'
+                                aria-hidden='true'
+                              />
+                              <span className='hidden sm:inline'>
+                                <Trans>Cancel All Active</Trans>
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <Trans>Cancel All Active Offers</Trans>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                    {filteredOffers.length > 0 && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='destructive'
+                              size='sm'
+                              className='flex items-center gap-1'
+                              onClick={() => setIsDeleteAllOpen(true)}
+                            >
+                              <TrashIcon
+                                className='h-4 w-4'
+                                aria-hidden='true'
+                              />
+                              <span className='hidden sm:inline'>
+                                <Trans>Delete All</Trans>
+                              </span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <Trans>Delete All Filtered Offers</Trans>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </div>
+
+                <div className='flex flex-col gap-2'>
+                  {filteredOffers.map((record) => (
+                    <OfferRowCard
+                      record={record}
+                      key={record.offer_id}
+                      refresh={updateOffers}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          {offers.length > 0 && (
-            <div className='flex flex-col gap-4'>
-              <div className='flex flex-row items-center justify-between gap-4'>
-                <div className='flex items-center gap-2'>
-                  <FilterIcon
-                    className='h-4 w-4 text-muted-foreground'
-                    aria-hidden='true'
-                  />
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className='w-[180px]'>
-                      <SelectValue placeholder='Filter by status' />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value='all'>All Offers</SelectItem>
-                      <SelectItem value='active'>Active</SelectItem>
-                      <SelectItem value='completed'>Completed</SelectItem>
-                      <SelectItem value='cancelled'>Cancelled</SelectItem>
-                      <SelectItem value='expired'>Expired</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className='flex items-center gap-2 min-w-fit'>
-                  {filteredOffers.some(
-                    (offer) => offer.status === 'active',
-                  ) && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            className='flex items-center gap-1'
-                            onClick={() => setIsCancelAllOpen(true)}
-                          >
-                            <CircleOff className='h-4 w-4' aria-hidden='true' />
-                            <span className='hidden sm:inline'>
-                              <Trans>Cancel All Active</Trans>
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <Trans>Cancel All Active Offers</Trans>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  {filteredOffers.length > 0 && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant='destructive'
-                            size='sm'
-                            className='flex items-center gap-1'
-                            onClick={() => setIsDeleteAllOpen(true)}
-                          >
-                            <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                            <span className='hidden sm:inline'>
-                              <Trans>Delete All</Trans>
-                            </span>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <Trans>Delete All Filtered Offers</Trans>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                </div>
-              </div>
-
-              <div className='flex flex-col gap-2'>
-                {filteredOffers.map((record) => (
-                  <OfferRowCard
-                    record={record}
-                    key={record.offer_id}
-                    refresh={updateOffers}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        </Card>
       </Container>
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
