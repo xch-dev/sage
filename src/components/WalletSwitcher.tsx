@@ -116,19 +116,21 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
             key={wallet.fingerprint}
             onClick={() => handleSwitchWallet(wallet.fingerprint)}
             disabled={currentWallet?.fingerprint === wallet.fingerprint}
-            className='flex items-center gap-2'
+            className='grid grid-cols-[auto_1fr_auto] items-center gap-3'
           >
-            {wallet.emoji ? (
-              <span className='text-sm' role='img' aria-label='Wallet emoji'>
-                {wallet.emoji}
-              </span>
-            ) : (
-              <WalletIcon
-                className='h-5 w-5 text-muted-foreground'
-                aria-hidden='true'
-              />
-            )}
-            <span className='flex-1'>{wallet.name}</span>
+            <div className='w-6 flex items-center justify-center'>
+              {wallet.emoji ? (
+                <span className='text-lg' role='img' aria-label='Wallet emoji'>
+                  {wallet.emoji}
+                </span>
+              ) : (
+                <WalletIcon
+                  className='h-5 w-5 text-muted-foreground'
+                  aria-hidden='true'
+                />
+              )}
+            </div>
+            <span className='truncate'>{wallet.name}</span>
             {currentWallet?.fingerprint === wallet.fingerprint && (
               <span className='text-xs text-muted-foreground'>
                 <Trans>(current)</Trans>
