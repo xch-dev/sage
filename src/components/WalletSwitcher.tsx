@@ -119,12 +119,12 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
             className='flex items-center gap-2'
           >
             {wallet.emoji ? (
-              <span className='text-lg' role='img' aria-label='Wallet emoji'>
+              <span className='text-sm' role='img' aria-label='Wallet emoji'>
                 {wallet.emoji}
               </span>
             ) : (
               <WalletIcon
-                className='h-4 w-4 text-muted-foreground'
+                className='h-5 w-5 text-muted-foreground'
                 aria-hidden='true'
               />
             )}
