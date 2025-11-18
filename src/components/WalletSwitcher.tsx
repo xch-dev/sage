@@ -15,7 +15,7 @@ import {
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { loginAndUpdateState } from '@/state';
+import { loginAndUpdateState, clearState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LogOut, WalletIcon } from 'lucide-react';
@@ -29,7 +29,7 @@ interface WalletSwitcherProps {
 
 export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
   const navigate = useNavigate();
-  const { wallet: currentWallet, setWallet } = useWallet();
+  const { wallet: currentWallet, setWallet, setIsSwitching } = useWallet();
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<
     { name: string; fingerprint: number; emoji: string | null }[]
@@ -61,11 +61,29 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
 
   const handleSwitchWallet = async (fingerprint: number) => {
     try {
+      // Start switching: clear wallet, state, and set switching state
+      setIsSwitching(true);
+      setWallet(null);
+      clearState();
+
+      // Wait for fade-out transition to complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Load new wallet data while still blurred
       await loginAndUpdateState(fingerprint);
       const data = await commands.getKey({});
+
+      // Set new wallet data while still blurred
       setWallet(data.key);
+
+      // Wait a moment for the new data to be set, then fade in
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      // Now fade in the new wallet
+      setIsSwitching(false);
       navigate('/wallet');
     } catch (error) {
+      setIsSwitching(false);
       if (
         typeof error === 'object' &&
         error !== null &&

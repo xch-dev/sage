@@ -17,6 +17,26 @@ import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 
+function WalletTransitionWrapper({ children }: PropsWithChildren) {
+  const { isSwitching, wallet } = useWallet();
+
+  // Only show content if we have a wallet or we're not switching
+  // This prevents old wallet data from showing during transition
+  const shouldShow = wallet !== null || !isSwitching;
+
+  return (
+    <div
+      className={`transition-all duration-300 ${
+        isSwitching || !shouldShow
+          ? 'opacity-0 blur-sm pointer-events-none'
+          : 'opacity-100 blur-0'
+      }`}
+    >
+      {shouldShow ? children : null}
+    </div>
+  );
+}
+
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
@@ -183,27 +203,29 @@ export function FullLayout(props: LayoutProps) {
             </div>
           </div>
         </div>
-        <div
-          className={`flex flex-col h-screen overflow-hidden ${
-            props.transparentBackground ? 'bg-transparent' : 'bg-background'
-          }`}
-          style={{
-            paddingBottom: insets.bottom
-              ? `${insets.bottom}px`
-              : 'env(safe-area-inset-bottom)',
-          }}
-        >
+        <WalletTransitionWrapper>
           <div
-            className='bg-background'
+            className={`flex flex-col h-screen overflow-hidden ${
+              props.transparentBackground ? 'bg-transparent' : 'bg-background'
+            }`}
             style={{
-              height:
-                insets.top !== 0
-                  ? `${insets.top + 8}px`
-                  : 'env(safe-area-inset-top)',
+              paddingBottom: insets.bottom
+                ? `${insets.bottom}px`
+                : 'env(safe-area-inset-bottom)',
             }}
-          />
-          {props.children}
-        </div>
+          >
+            <div
+              className='bg-background'
+              style={{
+                height:
+                  insets.top !== 0
+                    ? `${insets.top + 8}px`
+                    : 'env(safe-area-inset-top)',
+              }}
+            />
+            {props.children}
+          </div>
+        </WalletTransitionWrapper>
       </div>
     </TooltipProvider>
   );

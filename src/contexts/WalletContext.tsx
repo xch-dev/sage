@@ -1,12 +1,14 @@
 import { KeyInfo, commands } from '@/bindings';
-import { useErrors } from '@/hooks/useErrors';
-import { createContext, useContext, useEffect, useState } from 'react';
-import { initializeWalletState, fetchState } from '@/state';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useErrors } from '@/hooks/useErrors';
+import { fetchState, initializeWalletState } from '@/state';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface WalletContextType {
   wallet: KeyInfo | null;
   setWallet: (wallet: KeyInfo | null) => void;
+  isSwitching: boolean;
+  setIsSwitching: (isSwitching: boolean) => void;
 }
 
 export const WalletContext = createContext<WalletContextType | undefined>(
@@ -15,6 +17,7 @@ export const WalletContext = createContext<WalletContextType | undefined>(
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<KeyInfo | null>(null);
+  const [isSwitching, setIsSwitching] = useState(false);
   const { addError } = useErrors();
 
   useEffect(() => {
@@ -33,7 +36,9 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   }, [addError]);
 
   return (
-    <WalletContext.Provider value={{ wallet, setWallet }}>
+    <WalletContext.Provider
+      value={{ wallet, setWallet, isSwitching, setIsSwitching }}
+    >
       {children}
     </WalletContext.Provider>
   );
