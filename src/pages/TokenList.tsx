@@ -258,7 +258,7 @@ export function TokenList() {
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              <span className='text-primary-foreground'>
+              <span className='foreground'>
                 <NumberFormat
                   value={totalUsdBalance}
                   style='currency'
