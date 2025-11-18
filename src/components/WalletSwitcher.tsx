@@ -41,11 +41,13 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
       try {
         const data = await commands.getKeys({});
         setWallets(
-          data.keys.map((key) => ({
-            name: key.name,
-            fingerprint: key.fingerprint,
-            emoji: key.emoji,
-          })),
+          data.keys
+            .map((key) => ({
+              name: key.name,
+              fingerprint: key.fingerprint,
+              emoji: key.emoji,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
         );
       } catch (error) {
         addError(error as CustomError);
