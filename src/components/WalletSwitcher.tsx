@@ -95,6 +95,7 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
       } else {
         addError(error as CustomError);
       }
+      navigate('/');
     }
   };
 
