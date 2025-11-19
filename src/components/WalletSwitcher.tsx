@@ -84,17 +84,7 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
       navigate('/wallet');
     } catch (error) {
       setIsSwitching(false);
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'kind' in error &&
-        error.kind === 'database_migration'
-      ) {
-        // Handle migration error if needed
-        addError(error as CustomError);
-      } else {
-        addError(error as CustomError);
-      }
+      addError(error as CustomError);
       navigate('/');
     }
   };
