@@ -137,7 +137,9 @@ export function FullLayout(props: LayoutProps) {
                       onClick={() => setIsCollapsed(!isCollapsed)}
                       className='text-2xl hover:scale-110 transition-transform cursor-pointer'
                       aria-label={t`Expand sidebar - ${wallet.name}`}
-                      aria-expanded={!isCollapsed}
+                      {...(isCollapsed
+                        ? { 'aria-expanded': false }
+                        : { 'aria-expanded': true })}
                     >
                       <span role='img' aria-label={t`Wallet emoji`}>
                         {wallet.emoji}
@@ -160,7 +162,9 @@ export function FullLayout(props: LayoutProps) {
                         aria-label={
                           isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
                         }
-                        aria-expanded={!isCollapsed}
+                        {...(isCollapsed
+                          ? { 'aria-expanded': false }
+                          : { 'aria-expanded': true })}
                       >
                         {isCollapsed ? (
                           <PanelLeft className='h-5 w-5' aria-hidden='true' />
