@@ -27,7 +27,7 @@ function WalletTransitionWrapper({ children }: PropsWithChildren) {
   return (
     <div
       className={`transition-all duration-300 ${
-        isSwitching || !shouldShow
+        !shouldShow
           ? 'opacity-0 blur-sm pointer-events-none'
           : 'opacity-100 blur-0'
       }`}
