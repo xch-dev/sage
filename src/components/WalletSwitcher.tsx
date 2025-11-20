@@ -15,7 +15,7 @@ import {
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { loginAndUpdateState, clearState } from '@/state';
+import { clearState, loginAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { LogOut, WalletIcon } from 'lucide-react';
@@ -29,7 +29,12 @@ interface WalletSwitcherProps {
 
 export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
   const navigate = useNavigate();
-  const { wallet: currentWallet, setWallet, setIsSwitching } = useWallet();
+  const {
+    wallet: currentWallet,
+    setWallet,
+    setIsSwitching,
+    isSwitching,
+  } = useWallet();
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<
     { name: string; fingerprint: number; emoji: string | null }[]
@@ -60,6 +65,10 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
   }, [addError]);
 
   const handleSwitchWallet = async (fingerprint: number) => {
+    if (isSwitching) {
+      return;
+    }
+
     try {
       // Start switching: clear wallet, state, and set switching state
       setIsSwitching(true);
@@ -124,7 +133,9 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
           <DropdownMenuItem
             key={wallet.fingerprint}
             onClick={() => handleSwitchWallet(wallet.fingerprint)}
-            disabled={currentWallet?.fingerprint === wallet.fingerprint}
+            disabled={
+              isSwitching || currentWallet?.fingerprint === wallet.fingerprint
+            }
             className='grid grid-cols-[auto_1fr_auto] items-center gap-3'
           >
             <div className='w-6 flex items-center justify-center'>
@@ -151,6 +162,7 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
       <DropdownMenuSeparator />
       <DropdownMenuItem
         onClick={logout}
+        disabled={isSwitching}
         className='text-destructive focus:text-destructive'
       >
         <LogOut className={className} aria-hidden='true' />
