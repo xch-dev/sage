@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                wallet_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?',\n                asset_hidden_puzzle_hash\n            FROM wallet_nfts\n            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id\n            WHERE wallet_nfts.asset_hash = ?\n            ",
+  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                wallet_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version,\n                asset_hidden_puzzle_hash\n            FROM wallet_nfts\n            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id\n            WHERE wallet_nfts.asset_hash = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -159,8 +159,13 @@
         "type_info": "Integer"
       },
       {
-        "name": "asset_hidden_puzzle_hash",
+        "name": "clawback_version",
         "ordinal": 31,
+        "type_info": "Integer"
+      },
+      {
+        "name": "asset_hidden_puzzle_hash",
+        "ordinal": 32,
         "type_info": "Blob"
       }
     ],
@@ -199,8 +204,9 @@
       true,
       true,
       false,
+      false,
       true
     ]
   },
-  "hash": "1d264b22cae8e365f00a041988df0741ad16cd1f12dc1ac4c9ce2c2e0af033ca"
+  "hash": "9b53619eb618aa2f278efad7c538e4113b5e397979bceccfe58eaecb4f434910"
 }

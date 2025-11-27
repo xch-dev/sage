@@ -244,10 +244,52 @@ const ClawbackHeader = ({
   </Button>
 );
 
+const ClawbackVersionHeader = ({
+  sortMode,
+  sortDirection,
+  onSortModeChange,
+  onSortDirectionChange,
+  setCurrentPage,
+}: {
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  setCurrentPage: (page: number) => void;
+}) => (
+  <Button
+    className='px-0'
+    variant='link'
+    onClick={() => {
+      if (sortMode === 'clawback_version') {
+        onSortDirectionChange(!sortDirection);
+      } else {
+        onSortModeChange('clawback_version');
+        onSortDirectionChange(false);
+      }
+      setCurrentPage(0);
+    }}
+  >
+    <Trans>Clawback Version</Trans>
+    {sortMode === 'clawback_version' ? (
+      sortDirection ? (
+        <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+      ) : (
+        <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+      )
+    ) : (
+      <span className='ml-2 w-4 h-4' />
+    )}
+  </Button>
+);
+
 const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
   row.original.clawback_timestamp
     ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
     : t`No expiration`;
+
+const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
+  row.original.clawback_version;
 
 const SpentHeader = ({
   sortMode,
@@ -382,6 +424,16 @@ const ClawbackHeaderWrapper = (props: CoinListProps) => (
   />
 );
 
+const ClawbackVersionHeaderWrapper = (props: CoinListProps) => (
+  <ClawbackVersionHeader
+    sortMode={props.sortMode}
+    sortDirection={props.sortDirection}
+    onSortModeChange={props.onSortModeChange}
+    onSortDirectionChange={props.onSortDirectionChange}
+    setCurrentPage={props.setCurrentPage}
+  />
+);
+
 const AmountCellWrapper = ({
   row,
   precision,
@@ -432,6 +484,14 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
         size: 120,
         cell: SpentCell,
       },
+  ...(props.clawback && props.clawback_version == 1
+    ? [{
+        accessorKey: 'clawback_version',
+        header: () => <ClawbackVersionHeaderWrapper {...props} />,
+        size: 120,
+        cell: ClawbackVersionCell,
+      }]
+      : []),
 ];
 
 export interface CoinListProps {
@@ -453,6 +513,7 @@ export interface CoinListProps {
   onSortDirectionChange: (ascending: boolean) => void;
   onIncludeSpentCoinsChange: (include: boolean) => void;
   clawback: boolean;
+  clawback_version: number;
 }
 
 export default function CoinList(props: CoinListProps) {

@@ -149,6 +149,7 @@ CREATE TABLE clawbacks (
   sender_puzzle_hash BLOB NOT NULL,
   receiver_puzzle_hash BLOB NOT NULL,
   expiration_seconds INTEGER NOT NULL,
+  version INTEGER NOT NULL,
   FOREIGN KEY (p2_puzzle_id) REFERENCES p2_puzzles(id) ON DELETE CASCADE
 );
 
@@ -320,6 +321,7 @@ CREATE INDEX idx_assets_ticker ON assets(ticker);
 CREATE INDEX idx_clawbacks_sender_puzzle_hash ON clawbacks(sender_puzzle_hash);
 CREATE INDEX idx_clawbacks_receiver_puzzle_hash ON clawbacks(receiver_puzzle_hash);
 CREATE INDEX idx_clawbacks_expiration_seconds ON clawbacks(expiration_seconds);
+CREATE INDEX idx_clawbacks_version ON clawbacks(version);
 CREATE INDEX idx_nfts_minter_hash ON nfts(minter_hash);
 CREATE INDEX idx_nfts_owner_hash ON nfts(owner_hash);
 CREATE INDEX idx_nfts_edition_number ON nfts(edition_number ASC);
@@ -352,6 +354,7 @@ SELECT
   clawbacks.sender_puzzle_hash AS clawback_sender_puzzle_hash,
   clawbacks.receiver_puzzle_hash AS clawback_receiver_puzzle_hash,
   clawbacks.expiration_seconds AS clawback_expiration_seconds,
+  clawbacks.version AS clawback_version,
   sender_p2_puzzle.id AS clawback_sender_p2_puzzle_id,
   receiver_p2_puzzle.id AS clawback_receiver_p2_puzzle_id,
   created_blocks.timestamp AS created_timestamp,

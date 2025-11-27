@@ -26,6 +26,7 @@ pub enum CoinSortMode {
     CreatedHeight,
     SpentHeight,
     ClawbackTimestamp,
+    ClawbackVersion,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -52,6 +53,7 @@ pub struct CoinRow {
     pub mempool_item_hash: Option<Bytes32>,
     pub offer_hash: Option<Bytes32>,
     pub clawback_timestamp: Option<u64>,
+    pub clawback_version: Option<u8>,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
     pub created_timestamp: Option<u64>,
@@ -575,7 +577,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         "
        SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
-            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
+            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp, clawback_version
         FROM wallet_coins
         WHERE coin_hash IN (",
     );
@@ -608,6 +610,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                     .transpose()?,
                 kind: CoinKind::Xch,
                 clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
+                clawback_version: row.get::<Option<u8>, _>("clawback_version"),
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
@@ -643,6 +646,7 @@ async fn coin_records(
             spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
             clawback_expiration_seconds AS clawback_timestamp,
+            clawback_version,
             COUNT(*) OVER () AS total_count
         FROM {table}
         ",
@@ -673,6 +677,8 @@ async fn coin_records(
         CoinSortMode::SpentHeight => query.push("spent_height DESC NULLS FIRST"),
         CoinSortMode::ClawbackTimestamp if ascending => query.push("clawback_timestamp ASC"),
         CoinSortMode::ClawbackTimestamp => query.push("clawback_timestamp DESC"),
+        CoinSortMode::ClawbackVersion if ascending => query.push("clawback_version ASC"),
+        CoinSortMode::ClawbackVersion => query.push("clawback_version DESC"),
     };
 
     query.push(" LIMIT ");
@@ -704,6 +710,7 @@ async fn coin_records(
                     .transpose()?,
                 kind: CoinKind::Xch,
                 clawback_timestamp: row.get::<Option<i64>, _>("clawback_timestamp").convert()?,
+                clawback_version: row.get::<Option<u8>, _>("clawback_version"),
                 created_height: row.get::<Option<u32>, _>("created_height"),
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row
