@@ -51,13 +51,41 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   const qrCode = useRef<QRCodeStyling | null>(null);
   const imageSrcRef = useRef<string>('');
   const prevRestKeyRef = useRef<string>('');
+  const prevQrOptionsKeyRef = useRef<string>('');
+  const prevImageOptionsKeyRef = useRef<string>('');
+  const prevDotsOptionsKeyRef = useRef<string>('');
+  const prevBackgroundOptionsKeyRef = useRef<string>('');
 
-  // Create a stable key for rest props - only change when content actually changes
+  // Create stable keys for object props - only change when content actually changes
   const currentRestKey = JSON.stringify(rest);
   const restKey =
     prevRestKeyRef.current !== currentRestKey
       ? (prevRestKeyRef.current = currentRestKey)
       : prevRestKeyRef.current;
+
+  const currentQrOptionsKey = JSON.stringify(qrOptions);
+  const qrOptionsKey =
+    prevQrOptionsKeyRef.current !== currentQrOptionsKey
+      ? (prevQrOptionsKeyRef.current = currentQrOptionsKey)
+      : prevQrOptionsKeyRef.current;
+
+  const currentImageOptionsKey = JSON.stringify(imageOptions);
+  const imageOptionsKey =
+    prevImageOptionsKeyRef.current !== currentImageOptionsKey
+      ? (prevImageOptionsKeyRef.current = currentImageOptionsKey)
+      : prevImageOptionsKeyRef.current;
+
+  const currentDotsOptionsKey = JSON.stringify(dotsOptions);
+  const dotsOptionsKey =
+    prevDotsOptionsKeyRef.current !== currentDotsOptionsKey
+      ? (prevDotsOptionsKeyRef.current = currentDotsOptionsKey)
+      : prevDotsOptionsKeyRef.current;
+
+  const currentBackgroundOptionsKey = JSON.stringify(backgroundOptions);
+  const backgroundOptionsKey =
+    prevBackgroundOptionsKeyRef.current !== currentBackgroundOptionsKey
+      ? (prevBackgroundOptionsKeyRef.current = currentBackgroundOptionsKey)
+      : prevBackgroundOptionsKeyRef.current;
 
   const mimeType = useMemo(
     () => (type === 'svg' ? 'image/svg+xml' : 'image/png'),
@@ -104,8 +132,23 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
         imageSrcRef.current = '';
       }
     };
+    // Using stable keys (qrOptionsKey, imageOptionsKey, etc.) instead of the objects
+    // themselves to prevent infinite loops when parent components pass new object references
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, shape, width, height, margin, data, restKey, mimeType]);
+  }, [
+    type,
+    shape,
+    width,
+    height,
+    margin,
+    data,
+    qrOptionsKey,
+    imageOptionsKey,
+    dotsOptionsKey,
+    backgroundOptionsKey,
+    restKey,
+    mimeType,
+  ]);
 
   useEffect(() => {
     if (download && qrCode.current) {
