@@ -131,6 +131,10 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
 
     return () => {
       cancelled = true;
+      if (imageSrcRef.current) {
+        URL.revokeObjectURL(imageSrcRef.current);
+        imageSrcRef.current = '';
+      }
     };
     // Using stable keys (qrOptionsKey, imageOptionsKey, etc.) instead of the objects
     // themselves to prevent infinite loops when parent components pass new object references
