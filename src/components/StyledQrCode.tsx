@@ -1,19 +1,16 @@
 import QRCodeStyling, { Options } from 'qr-code-styling';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
-// Make all properties optional and add React-specific props
 type StyledQRCodeProps = Partial<Options> & {
   className?: string;
   download?: boolean;
 };
 
-// Helper function to convert Blob or Buffer to object URL
 const blobToUrl = (blob: Blob | Buffer, mimeType: string): string => {
   if (blob instanceof Blob) {
     return URL.createObjectURL(blob);
   }
 
-  // Convert Buffer to Blob - Buffer is a Uint8Array, so we can use it directly
   const uint8Array = new Uint8Array(blob);
   const blobObj = new Blob([uint8Array], { type: mimeType });
   return URL.createObjectURL(blobObj);
@@ -62,7 +59,6 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
       ? (prevRestKeyRef.current = currentRestKey)
       : prevRestKeyRef.current;
 
-  // Memoize the mime type
   const mimeType = useMemo(
     () => (type === 'svg' ? 'image/svg+xml' : 'image/png'),
     [type],
@@ -89,7 +85,6 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
       qrCode.current.update(options);
     }
 
-    // Get the data URL and set it as the image source
     let cancelled = false;
     qrCode.current.getRawData(type === 'svg' ? 'svg' : 'png').then((blob) => {
       if (blob && !cancelled) {
@@ -109,8 +104,6 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
         imageSrcRef.current = '';
       }
     };
-    // Note: qrOptions, imageOptions, dotsOptions, backgroundOptions are intentionally
-    // not in deps to avoid loops. They're included in options object which is used.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, shape, width, height, margin, data, restKey, mimeType]);
 
