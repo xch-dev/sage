@@ -159,6 +159,8 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     }
   }, [download, type]);
 
+  if (!imageSrc) return null;
+
   return (
     <img
       src={imageSrc}
