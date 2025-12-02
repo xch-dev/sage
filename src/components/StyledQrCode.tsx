@@ -1,10 +1,22 @@
-import React, { useEffect, useRef } from 'react';
 import QRCodeStyling, { Options } from 'qr-code-styling';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 // Make all properties optional and add React-specific props
 type StyledQRCodeProps = Partial<Options> & {
   className?: string;
   download?: boolean;
+};
+
+// Helper function to convert Blob or Buffer to object URL
+const blobToUrl = (blob: Blob | Buffer, mimeType: string): string => {
+  if (blob instanceof Blob) {
+    return URL.createObjectURL(blob);
+  }
+
+  // Convert Buffer to Blob - Buffer is a Uint8Array, so we can use it directly
+  const uint8Array = new Uint8Array(blob);
+  const blobObj = new Blob([uint8Array], { type: mimeType });
+  return URL.createObjectURL(blobObj);
 };
 
 const StyledQRCode: React.FC<StyledQRCodeProps> = ({
@@ -38,12 +50,25 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   },
   ...rest
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const [imageSrc, setImageSrc] = useState<string>('');
   const qrCode = useRef<QRCodeStyling | null>(null);
+  const imageSrcRef = useRef<string>('');
+  const prevRestKeyRef = useRef<string>('');
+
+  // Create a stable key for rest props - only change when content actually changes
+  const currentRestKey = JSON.stringify(rest);
+  const restKey =
+    prevRestKeyRef.current !== currentRestKey
+      ? (prevRestKeyRef.current = currentRestKey)
+      : prevRestKeyRef.current;
+
+  // Memoize the mime type
+  const mimeType = useMemo(
+    () => (type === 'svg' ? 'image/svg+xml' : 'image/png'),
+    [type],
+  );
 
   useEffect(() => {
-    if (!ref.current) return;
-
     const options: Options = {
       type,
       shape,
@@ -58,60 +83,36 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
       ...rest,
     };
 
-    qrCode.current = new QRCodeStyling(options);
-    qrCode.current.append(ref.current);
+    if (!qrCode.current) {
+      qrCode.current = new QRCodeStyling(options);
+    } else {
+      qrCode.current.update(options);
+    }
 
-    const currentRef = ref.current;
+    // Get the data URL and set it as the image source
+    let cancelled = false;
+    qrCode.current.getRawData(type === 'svg' ? 'svg' : 'png').then((blob) => {
+      if (blob && !cancelled) {
+        if (imageSrcRef.current) {
+          URL.revokeObjectURL(imageSrcRef.current);
+        }
+        const url = blobToUrl(blob, mimeType);
+        imageSrcRef.current = url;
+        setImageSrc(url);
+      }
+    });
+
     return () => {
-      if (currentRef) {
-        currentRef.innerHTML = '';
+      cancelled = true;
+      if (imageSrcRef.current) {
+        URL.revokeObjectURL(imageSrcRef.current);
+        imageSrcRef.current = '';
       }
     };
-  }, [
-    type,
-    shape,
-    width,
-    height,
-    margin,
-    data,
-    qrOptions,
-    imageOptions,
-    dotsOptions,
-    backgroundOptions,
-    rest,
-  ]);
-
-  useEffect(() => {
-    if (!qrCode.current) return;
-
-    const updateOptions: Partial<Options> = {
-      type,
-      shape,
-      width,
-      height,
-      margin,
-      data,
-      qrOptions,
-      imageOptions,
-      dotsOptions,
-      backgroundOptions,
-      ...rest,
-    };
-
-    qrCode.current.update(updateOptions);
-  }, [
-    type,
-    shape,
-    width,
-    height,
-    margin,
-    data,
-    qrOptions,
-    imageOptions,
-    dotsOptions,
-    backgroundOptions,
-    rest,
-  ]);
+    // Note: qrOptions, imageOptions, dotsOptions, backgroundOptions are intentionally
+    // not in deps to avoid loops. They're included in options object which is used.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, shape, width, height, margin, data, restKey, mimeType]);
 
   useEffect(() => {
     if (download && qrCode.current) {
@@ -122,7 +123,13 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     }
   }, [download, type]);
 
-  return <div ref={ref} className={`w-full h-full ${className}`} />;
+  return (
+    <img
+      src={imageSrc}
+      alt='QR Code'
+      className={`w-full h-full ${className}`}
+    />
+  );
 };
 
 export default StyledQRCode;
