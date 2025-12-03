@@ -1,15 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import { t } from '@lingui/core/macro';
 import QRCodeStyling, { Options } from 'qr-code-styling';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 // Make all properties optional and add React-specific props
 type StyledQRCodeProps = Partial<Options> & {
   className?: string;
-  download?: boolean;
 };
 
 const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   className = '',
-  download = false,
   type = 'svg',
   shape = 'square',
   width = 300,
@@ -38,8 +37,35 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   },
   ...rest
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLImageElement>(null);
   const qrCode = useRef<QRCodeStyling | null>(null);
+
+  const updateImageSrc = useCallback(async () => {
+    if (!qrCode.current || !ref.current) return;
+
+    try {
+      const rawData = await qrCode.current.getRawData('svg');
+      if (rawData instanceof Blob) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (ref.current) {
+              resolve(reader.result as string);
+            } else {
+              reject(new Error('Component unmounted'));
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(rawData);
+        });
+        if (ref.current) {
+          ref.current.src = dataUrl;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get QR code data:', error);
+    }
+  }, []);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -59,14 +85,7 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     };
 
     qrCode.current = new QRCodeStyling(options);
-    qrCode.current.append(ref.current);
-
-    const currentRef = ref.current;
-    return () => {
-      if (currentRef) {
-        currentRef.innerHTML = '';
-      }
-    };
+    updateImageSrc();
   }, [
     type,
     shape,
@@ -79,6 +98,7 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     dotsOptions,
     backgroundOptions,
     rest,
+    updateImageSrc,
   ]);
 
   useEffect(() => {
@@ -99,6 +119,7 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     };
 
     qrCode.current.update(updateOptions);
+    updateImageSrc();
   }, [
     type,
     shape,
@@ -111,18 +132,12 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     dotsOptions,
     backgroundOptions,
     rest,
+    updateImageSrc,
   ]);
 
-  useEffect(() => {
-    if (download && qrCode.current) {
-      qrCode.current.download({
-        extension: type === 'svg' ? 'svg' : 'png',
-        name: 'qr-code',
-      });
-    }
-  }, [download, type]);
-
-  return <div ref={ref} className={`w-full h-full ${className}`} />;
+  return (
+    <img ref={ref} className={`w-full h-full ${className}`} alt={t`QR Code`} />
+  );
 };
 
 export default StyledQRCode;
