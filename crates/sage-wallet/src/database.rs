@@ -82,6 +82,18 @@ pub async fn insert_puzzle(
             tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
                 .await?;
         }
+        ChildKind::ClawbackV1 { info } => {
+            if underlying_p2_puzzle_hash.is_some() {
+                warn!("Deleting underlying coin {coin_id} because clawbacks are unsupported");
+                tx.delete_coin(coin_id).await?;
+                return Ok(false);
+            }
+
+            tx.insert_clawbackv1_p2_puzzle(info).await?;
+
+            tx.update_coin(coin_id, Bytes32::default(), info.tree_hash().into())
+                .await?;
+        }
         ChildKind::Cat {
             info,
             lineage_proof,

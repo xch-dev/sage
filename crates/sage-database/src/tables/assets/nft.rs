@@ -74,7 +74,7 @@ impl Database {
                 edition_number, edition_total,
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
-                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version,
+                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
                 asset_hidden_puzzle_hash
             FROM wallet_nfts
             LEFT JOIN collections ON collections.id = wallet_nfts.collection_id

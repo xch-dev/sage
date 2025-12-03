@@ -1,3 +1,5 @@
+use std::ptr::null;
+
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     clvm_utils::ToTreeHash,
@@ -7,11 +9,11 @@ use chia::{
 use chia_puzzles::SINGLETON_LAUNCHER_HASH;
 use chia_wallet_sdk::{
     driver::{
-        Cat, CatInfo, ClawbackV2, Did, DidInfo, Nft, OptionContract, OptionInfo, Puzzle,
+        Cat, CatInfo, Clawback as ClawbackV1, ClawbackV2, Did, DidInfo, Nft, OptionContract, OptionInfo, Puzzle,
         SingletonInfo,
     },
-    prelude::CreateCoin,
-    types::{run_puzzle, Condition},
+    prelude::{CreateCoin, Remark},
+    types::{Condition, run_puzzle},
 };
 use clvmr::{Allocator, NodePtr};
 use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
@@ -26,6 +28,9 @@ pub enum ChildKind {
     Launcher,
     Clawback {
         info: ClawbackV2,
+    },
+    ClawbackV1 {
+        info: ClawbackV1,
     },
     Cat {
         info: CatInfo,
@@ -328,6 +333,12 @@ impl ChildKind {
             return Ok(Self::Clawback { info: clawback });
         }
 
+        if let Some(clawback) = parse_clawbackv1_unchecked(allocator, &create_coin, false)
+            .filter(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
+        {
+            return Ok(Self::ClawbackV1 { info: clawback });
+        }
+
         Ok(Self::Unknown)
     }
 
@@ -336,6 +347,7 @@ impl ChildKind {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
+            Self::ClawbackV1 { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat {
                 info: CatInfo { p2_puzzle_hash, .. },
                 clawback,
@@ -365,6 +377,7 @@ impl ChildKind {
         match self {
             Self::Launcher | Self::Unknown => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
+            Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
                 .map_or(Some(info.p2_puzzle_hash), |clawback| {
                     Some(clawback.receiver_puzzle_hash)
@@ -388,6 +401,7 @@ impl ChildKind {
         matches!(
             self,
             Self::Clawback { .. }
+                | Self::ClawbackV1 { .. }
                 | Self::Cat { .. }
                 | Self::Did { .. }
                 | Self::Nft { .. }
@@ -411,6 +425,26 @@ fn parse_clawback_unchecked(
     clawback_from_memo_unchecked(allocator, clawback_memo, hint, create_coin.amount, hinted)
 }
 
+fn parse_clawbackv1_unchecked(
+    allocator: &Allocator,
+    create_coin: &CreateCoin<NodePtr>,
+    hinted: bool,
+) -> Option<ClawbackV1> {
+    let Memos::Some(memos) = create_coin.memos else {
+        return None;
+    };
+
+    // Prepare remarks.
+    let clawback_remark  = NodePtr::NIL;
+
+    let (hint, (clawback_memo, _)) =
+        <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
+
+    // Do something here to parse the remarks.
+
+    clawback_from_remark_unchecked(allocator, clawback_remark, hint, create_coin.amount, hinted)
+}
+
 pub fn clawback_from_memo_unchecked(
     allocator: &Allocator,
     memo: NodePtr,
@@ -427,6 +461,27 @@ pub fn clawback_from_memo_unchecked(
         seconds,
         amount,
         hinted,
+    };
+
+    Some(clawback)
+}
+
+pub fn clawback_from_remark_unchecked(
+    allocator: &Allocator,
+    remark: NodePtr,
+    receiver_puzzle_hash: Bytes32,
+    amount: u64,
+    hinted: bool,
+) -> Option<ClawbackV1> {
+    let (sender_puzzle_hash, (timelock, ())) =
+        <(Bytes32, (u64, ()))>::from_clvm(allocator, remark).ok()?;
+
+    let clawback = ClawbackV1 {
+        timelock,
+        sender_puzzle_hash,
+        receiver_puzzle_hash,
+        /*amount,
+        hinted,*/
     };
 
     Some(clawback)

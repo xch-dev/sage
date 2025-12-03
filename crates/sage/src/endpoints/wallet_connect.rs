@@ -7,7 +7,7 @@ use chia::{
     puzzles::{DeriveSynthetic, Proof},
 };
 use chia_wallet_sdk::driver::{
-    ClawbackV2, Layer, OptionUnderlying, P2DelegatedConditionsLayer, SpendContext, StandardLayer,
+    Clawback as ClawbackV1, ClawbackV2, Layer, OptionUnderlying, P2DelegatedConditionsLayer, SpendContext, StandardLayer,
 };
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
@@ -87,13 +87,22 @@ impl Sage {
             let p2_puzzle = match wallet.db.p2_puzzle(row.p2_puzzle_hash).await? {
                 P2Puzzle::PublicKey(key) => StandardLayer::new(key).construct_puzzle(&mut ctx)?,
                 P2Puzzle::Clawback(clawback) => {
-                    let clawback = ClawbackV2::new(
-                        clawback.sender_puzzle_hash,
-                        clawback.receiver_puzzle_hash,
-                        clawback.seconds,
-                        row.coin.amount,
-                        true,
-                    );
+                    let clawback = match clawback.version {
+                        1 => ClawbackV1::new(
+                                clawback.seconds,
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                                /*row.coin.amount,
+                                true,*/
+                            ),
+                        _ => ClawbackV2::new(
+                                clawback.sender_puzzle_hash,
+                                clawback.receiver_puzzle_hash,
+                                clawback.seconds,
+                                row.coin.amount,
+                                true,
+                            ),
+                    };
                     clawback.into_1_of_n().construct_puzzle(&mut ctx)?
                 }
                 P2Puzzle::Option(underlying) => {

@@ -82,7 +82,7 @@ impl Database {
                 asset_hidden_puzzle_hash, wallet_coins.created_height, wallet_coins.spent_height,
                 wallet_coins.parent_coin_hash, wallet_coins.puzzle_hash, wallet_coins.amount, wallet_coins.p2_puzzle_hash,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
-                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version,
+                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
                 p2_options.expiration_seconds AS option_expiration_seconds,
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,

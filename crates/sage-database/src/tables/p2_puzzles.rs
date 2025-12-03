@@ -1,6 +1,6 @@
 use chia::{bls::PublicKey, clvm_utils::ToTreeHash, protocol::Bytes32};
 use chia_wallet_sdk::{
-    driver::{ClawbackV2, OptionType, OptionUnderlying},
+    driver::{Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying},
     types::{puzzles::P2DelegatedConditionsArgs, Mod},
 };
 use sqlx::{query, SqliteExecutor};
@@ -29,6 +29,7 @@ pub struct Clawback {
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
+    pub version: u8
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -169,6 +170,10 @@ impl DatabaseTx<'_> {
 
     pub async fn insert_clawback_p2_puzzle(&mut self, clawback: ClawbackV2) -> Result<()> {
         insert_clawback_p2_puzzle(&mut *self.tx, clawback).await
+    }
+
+    pub async fn insert_clawbackv1_p2_puzzle(&mut self, clawback: ClawbackV1) -> Result<()> {
+        insert_clawbackv1_p2_puzzle(&mut *self.tx, clawback).await
     }
 
     pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
@@ -368,6 +373,7 @@ async fn insert_clawback_p2_puzzle(
     let sender_puzzle_hash = clawback.sender_puzzle_hash.as_ref();
     let receiver_puzzle_hash = clawback.receiver_puzzle_hash.as_ref();
     let seconds: i64 = clawback.seconds.try_into()?;
+    let version: i64 = 2;
 
     query!(
         "
@@ -381,6 +387,36 @@ async fn insert_clawback_p2_puzzle(
         sender_puzzle_hash,
         receiver_puzzle_hash,
         seconds,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_clawbackv1_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    clawback: ClawbackV1,
+) -> Result<()> {
+    let p2_puzzle_hash = clawback.tree_hash().to_vec();
+    let sender_puzzle_hash = clawback.sender_puzzle_hash.as_ref();
+    let receiver_puzzle_hash = clawback.receiver_puzzle_hash.as_ref();
+    let seconds: i64 = clawback.timelock.try_into()?;
+    let version: i64 = 1;
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 1);
+
+        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        sender_puzzle_hash,
+        receiver_puzzle_hash,
+        seconds,
+        version,
     )
     .execute(conn)
     .await?;
@@ -490,7 +526,7 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
 
     let row = query!(
         "
-        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds
+        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version
         FROM p2_puzzles
         INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
         LEFT JOIN public_keys ON public_keys.p2_puzzle_id IN (
@@ -511,6 +547,7 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
         sender_puzzle_hash: row.sender_puzzle_hash.convert()?,
         receiver_puzzle_hash: row.receiver_puzzle_hash.convert()?,
         seconds: row.expiration_seconds.convert()?,
+        version: row.version.convert()?,
     })
 }
 

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM coins",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "70b797f774d0016a26c6d0668c75562ebdfec282146ec1759e53c5ed0986e3bc"
+}
