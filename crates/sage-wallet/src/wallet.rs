@@ -309,7 +309,11 @@ impl Wallet {
                         P2Puzzle::PublicKey(public_key) => StandardLayer::new(*public_key)
                             .spend_with_conditions(ctx, spend.finish()),
                         P2Puzzle::Clawback(clawback) => {
-                            let custody = StandardLayer::new(clawback.public_key);
+                            let Some(public_key) = clawback.public_key else {
+                                return Err(DriverError::MissingKey);
+                            };
+
+                            let custody = StandardLayer::new(public_key);
                             let spend = custody.spend_with_conditions(ctx, spend.finish())?;
 
                             let clawback = ClawbackV2::new(
