@@ -9,7 +9,13 @@ import { formatNumber } from '../../i18n';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
-type TokenOperationType = 'split' | 'combine' | 'issue' | 'send' | 'clawback';
+type TokenOperationType =
+  | 'split'
+  | 'combine'
+  | 'issue'
+  | 'send'
+  | 'clawback'
+  | 'finalize_clawback';
 
 interface TokenConfirmationProps {
   type: TokenOperationType;
@@ -83,6 +89,18 @@ export function TokenConfirmation({
       variant: 'info' as const,
       message: null,
     },
+    finalize_clawback: {
+      icon: CoinsIcon,
+      title: <Trans>Finalize Clawback</Trans>,
+      variant: 'info' as const,
+      message: (
+        <Trans>
+          You are about to finalize the clawback transaction. This will send the
+          funds to the original recipient (even if the recipient wallet does not
+          support clawbacks).
+        </Trans>
+      ),
+    },
   };
 
   const { icon: Icon, title, variant, message } = config[type];
@@ -150,7 +168,10 @@ export function TokenConfirmation({
         </ConfirmationCard>
       )}
 
-      {(type === 'split' || type === 'combine' || type === 'clawback') &&
+      {(type === 'split' ||
+        type === 'combine' ||
+        type === 'clawback' ||
+        type === 'finalize_clawback') &&
         coins && (
           <>
             <ConfirmationCard
@@ -160,7 +181,9 @@ export function TokenConfirmation({
                     ? 'Split'
                     : type === 'combine'
                       ? 'Combine'
-                      : 'Claw back'}{' '}
+                      : type === 'clawback'
+                        ? 'Claw back'
+                        : 'Finalize clawback'}{' '}
                   {coins.length} coin{coins.length === 1 ? '' : 's'}
                 </Trans>
               }
@@ -209,12 +232,17 @@ export function TokenConfirmation({
                       <Trans>{outputCount} coins</Trans>
                     ) : type === 'combine' ? (
                       <Trans>1 combined coin</Trans>
-                    ) : (
+                    ) : type === 'clawback' ? (
                       <Trans>
-                        {coins.length} clawed back coin {coins.length} coin
+                        {coins.length} clawed back coin
                         {coins.length === 1 ? '' : 's'}
                       </Trans>
-                    )}
+                    ) : type === 'finalize_clawback' ? (
+                      <Trans>
+                        {coins.length} finalized clawback
+                        {coins.length === 1 ? '' : 's'}
+                      </Trans>
+                    ) : null}
                   </div>
                 </div>
               </div>
