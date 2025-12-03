@@ -25,7 +25,7 @@ pub enum P2Puzzle {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Clawback {
-    pub public_key: PublicKey,
+    pub public_key: Option<PublicKey>,
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
@@ -490,10 +490,10 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
 
     let row = query!(
         "
-        SELECT key, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds
+        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds
         FROM p2_puzzles
         INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
-        INNER JOIN public_keys ON public_keys.p2_puzzle_id IN (
+        LEFT JOIN public_keys ON public_keys.p2_puzzle_id IN (
             SELECT id FROM p2_puzzles
             WHERE (hash = sender_puzzle_hash AND unixepoch() < expiration_seconds)
             OR (hash = receiver_puzzle_hash AND unixepoch() >= expiration_seconds)
