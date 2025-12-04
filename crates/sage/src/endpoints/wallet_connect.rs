@@ -92,8 +92,6 @@ impl Sage {
                             clawback.seconds,
                             clawback.sender_puzzle_hash,
                             clawback.receiver_puzzle_hash,
-                            /*row.coin.amount,
-                            true,*/
                         );
                         v1.into_1_of_n().construct_puzzle(&mut ctx)?
                     } else {

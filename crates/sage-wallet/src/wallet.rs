@@ -325,9 +325,7 @@ impl Wallet {
                                     clawback.seconds,
                                     clawback.sender_puzzle_hash,
                                     clawback.receiver_puzzle_hash,
-                                    //asset.coin().amount,
                                     // @TODO: Make work with remarks.
-                                    // !matches!(asset, SpendableAsset::Xch(..)),
                                 );
                                 if is_sender {
                                     // Sending not supported. V1 senders can clawback indefinitely.
