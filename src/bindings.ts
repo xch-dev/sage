@@ -104,6 +104,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
 },
+async claimClawback(req: ClaimClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("claim_clawback", { req });
+},
 async signCoinSpends(req: SignCoinSpends) : Promise<SignCoinSpendsResponse> {
     return await TAURI_INVOKE("sign_coin_spends", { req });
 },
@@ -650,6 +653,22 @@ export type CheckAddressResponse = {
  */
 valid: boolean }
 /**
+ * Claim a coin from a early clawback version
+ */
+export type ClaimClawback = { 
+/**
+ * The clawback coins to claim
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
  * Coin structure
  */
 export type Coin = { 
@@ -821,7 +840,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Send CAT tokens to an address
+ * Finalize a clawback
  */
 export type FinalizeClawback = { 
 /**

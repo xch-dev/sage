@@ -379,14 +379,15 @@ async fn insert_clawback_p2_puzzle(
         "
         INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 1);
 
-        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds)
-        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?);
+        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?);
         ",
         p2_puzzle_hash,
         p2_puzzle_hash,
         sender_puzzle_hash,
         receiver_puzzle_hash,
         seconds,
+        version
     )
     .execute(conn)
     .await?;

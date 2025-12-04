@@ -12,7 +12,7 @@ use chia::{
 use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{
-        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
+        Action, Cat, Clawback as ClawbackV1, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
         P2DelegatedConditionsLayer, Relation, SettlementLayer, SpendContext, SpendKind,
         SpendWithConditions, SpendableAsset, Spends, StandardLayer,
     },
@@ -315,30 +315,54 @@ impl Wallet {
 
                             let custody = StandardLayer::new(public_key);
                             let spend = custody.spend_with_conditions(ctx, spend.finish())?;
-
-                            let clawback = ClawbackV2::new(
-                                clawback.sender_puzzle_hash,
-                                clawback.receiver_puzzle_hash,
-                                clawback.seconds,
-                                asset.coin().amount,
-                                !matches!(asset, SpendableAsset::Xch(..)),
-                            );
-
                             let is_receiver =
                                 custody.tree_hash() == clawback.receiver_puzzle_hash.into();
                             let is_sender =
                                 custody.tree_hash() == clawback.sender_puzzle_hash.into();
-
-                            if is_sender && timestamp < clawback.seconds {
-                                clawback.sender_spend(ctx, spend)
-                            } else if is_receiver && timestamp >= clawback.seconds {
-                                clawback.receiver_spend(ctx, spend)
-                            } else if is_sender || is_receiver {
-                                Err(DriverError::Custom(
-                                    "Cannot fulfill clawback spend".to_string(),
-                                ))
+                            
+                            if clawback.version == 1 {
+                                let v1 = ClawbackV1::new(
+                                    clawback.seconds,
+                                    clawback.sender_puzzle_hash,
+                                    clawback.receiver_puzzle_hash,
+                                    //asset.coin().amount,
+                                    // @TODO: Make work with remarks.
+                                    // !matches!(asset, SpendableAsset::Xch(..)),
+                                );
+                                if is_sender {
+                                    // Sending not supported. V1 senders can clawback indefinitely.
+                                    Err(DriverError::Custom(
+                                        "Cannot fulfill clawback spend. Support is not implemented for sending for V1 clawbacks".to_string(),
+                                    ))
+                                } else if is_receiver && timestamp >= clawback.seconds {
+                                    v1.receiver_spend(ctx, spend)
+                                } else if is_receiver {
+                                    Err(DriverError::Custom(
+                                        "Cannot fulfill clawback spend".to_string(),
+                                    ))
+                                } else {
+                                    Err(DriverError::MissingKey)
+                                }
                             } else {
-                                Err(DriverError::MissingKey)
+                                let v2 = ClawbackV2::new(
+                                    clawback.sender_puzzle_hash,
+                                    clawback.receiver_puzzle_hash,
+                                    clawback.seconds,
+                                    asset.coin().amount,
+                                    !matches!(asset, SpendableAsset::Xch(..)),
+                                );
+
+                                if is_sender && timestamp < clawback.seconds {
+                                    v2.sender_spend(ctx, spend)
+                                } else if is_receiver && timestamp >= clawback.seconds {
+                                    v2.receiver_spend(ctx, spend)
+                                } else if is_sender || is_receiver {
+                                    Err(DriverError::Custom(
+                                        "Cannot fulfill clawback spend".to_string(),
+                                    ))
+                                } else {
+                                    Err(DriverError::MissingKey)
+                                }
                             }
                         }
                         P2Puzzle::Option(underlying) => {

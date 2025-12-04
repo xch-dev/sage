@@ -420,7 +420,21 @@ SELECT *
 FROM wallet_coins
 WHERE 1=1
   AND spent_height IS NULL
-  AND unixepoch() < clawback_expiration_seconds;
+  AND (
+    (
+      clawback_version = 2
+      AND unixepoch() < clawback_expiration_seconds
+    )
+    OR (
+      clawback_version = 1
+      AND unixepoch() >= clawback_expiration_seconds
+    )
+  );
+
+CREATE VIEW claimable_clawback_coins AS
+SELECT *
+FROM clawback_coins
+WHERE clawback_version = 1;
 
 CREATE VIEW spendable_coins AS
 SELECT *

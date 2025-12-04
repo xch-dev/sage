@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT key, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version\n        FROM p2_puzzles\n        INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id\n        INNER JOIN public_keys ON public_keys.p2_puzzle_id IN (\n            SELECT id FROM p2_puzzles\n            WHERE (hash = sender_puzzle_hash AND unixepoch() < expiration_seconds)\n            OR (hash = receiver_puzzle_hash AND unixepoch() >= expiration_seconds)\n            LIMIT 1\n        )\n        WHERE p2_puzzles.hash = ?\n        ",
+  "query": "\n        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version\n        FROM p2_puzzles\n        INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id\n        LEFT JOIN public_keys ON public_keys.p2_puzzle_id IN (\n            SELECT id FROM p2_puzzles\n            WHERE (hash = sender_puzzle_hash AND unixepoch() < expiration_seconds)\n            OR (hash = receiver_puzzle_hash AND unixepoch() >= expiration_seconds)\n            LIMIT 1\n        )\n        WHERE p2_puzzles.hash = ?\n        ",
   "describe": {
     "columns": [
       {
-        "name": "key",
+        "name": "key?",
         "ordinal": 0,
         "type_info": "Blob"
       },
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "56d901844d2d2baa544137d90d8122d50b618d91dabeca55d4f70fe6917c8b13"
+  "hash": "47452145799fab92a51f918de70122a581e74dd0c10e5bdbcf48831d4d7af479"
 }

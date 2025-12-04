@@ -244,6 +244,7 @@ const ClawbackHeader = ({
   </Button>
 );
 
+// @TODO: Consider whether this is needed.
 const ClawbackVersionHeader = ({
   sortMode,
   sortDirection,

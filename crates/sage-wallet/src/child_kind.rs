@@ -1,5 +1,3 @@
-use std::ptr::null;
-
 use chia::{
     clvm_traits::{FromClvm, ToClvm},
     clvm_utils::ToTreeHash,
@@ -437,10 +435,10 @@ fn parse_clawbackv1_unchecked(
     // Prepare remarks.
     let clawback_remark  = NodePtr::NIL;
 
+    // @TODO:Rework this to parse the remarks. Do we also need to handle any hinting?
+
     let (hint, (clawback_memo, _)) =
         <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
-
-    // Do something here to parse the remarks.
 
     clawback_from_remark_unchecked(allocator, clawback_remark, hint, create_coin.amount, hinted)
 }
@@ -466,6 +464,7 @@ pub fn clawback_from_memo_unchecked(
     Some(clawback)
 }
 
+// @TODO:Rework this to parse the remarks.
 pub fn clawback_from_remark_unchecked(
     allocator: &Allocator,
     remark: NodePtr,

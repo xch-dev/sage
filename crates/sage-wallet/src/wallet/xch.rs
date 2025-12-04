@@ -3,7 +3,7 @@ use chia::{
     protocol::{Bytes, Bytes32, CoinSpend},
 };
 use chia_wallet_sdk::{
-    driver::{Action, Cat, CatSpend, ClawbackV2, Id, SpendContext},
+    driver::{Action, Cat, CatSpend, Clawback as ClawbackV1, ClawbackV2, Id, SpendContext},
     prelude::AssertConcurrentSpend,
 };
 use sage_database::{CoinKind, P2Puzzle};
@@ -80,7 +80,10 @@ impl Wallet {
                     else {
                         return Err(WalletError::MissingClawbackInfo(coin_id));
                     };
-
+                    if clawback.version == 1 {
+                        // Finalizing a V1 clawback is not supported.
+                        return Err(WalletError::UnsupportedClawbackCoinKind(coin_kind));
+                    }
                     let clawback = ClawbackV2::new(
                         clawback.sender_puzzle_hash,
                         clawback.receiver_puzzle_hash,
@@ -112,6 +115,70 @@ impl Wallet {
 
                     let spend = clawback.push_through_spend(&mut ctx)?;
                     Cat::spend_all(&mut ctx, &[CatSpend::new(cat, spend)])?;
+                }
+                _ => {
+                    return Err(WalletError::UnsupportedClawbackCoinKind(coin_kind));
+                }
+            }
+        }
+
+        if fee > 0 {
+            let actions = [Action::fee(fee)];
+
+            let mut spends = self.prepare_spends(&mut ctx, vec![], &actions).await?;
+
+            for &coin_id in &coin_ids {
+                spends
+                    .conditions
+                    .required
+                    .push(AssertConcurrentSpend::new(coin_id));
+            }
+
+            let deltas = spends.apply(&mut ctx, &actions)?;
+            self.complete_spends(&mut ctx, &deltas, spends).await?;
+        }
+
+        Ok(ctx.take())
+    }
+    
+    pub async fn claim_clawback(
+        &self,
+        coin_ids: Vec<Bytes32>,
+        fee: u64,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
+        let mut ctx = SpendContext::new();
+
+        for &coin_id in &coin_ids {
+            let Some(coin_kind) = self.db.coin_kind(coin_id).await? else {
+                return Err(WalletError::MissingCoin(coin_id));
+            };
+
+            // @TODO: Make sure this actually works.
+            match coin_kind {
+                CoinKind::Xch => {
+                    let Some(coin) = self.db.xch_coin(coin_id).await? else {
+                        return Err(WalletError::MissingXchCoin(coin_id));
+                    };
+
+                    let P2Puzzle::Clawback(clawback) = self.db.p2_puzzle(coin.puzzle_hash).await?
+                    else {
+                        return Err(WalletError::MissingClawbackInfo(coin_id));
+                    };
+                    if clawback.version == 2 {
+                        // Claiming a V2 clawback is not supported.
+                        return Err(WalletError::UnsupportedClawbackCoinKind(coin_kind));
+                    }
+                    let clawback = ClawbackV1::new(
+                        clawback.seconds,
+                        clawback.sender_puzzle_hash,
+                        clawback.receiver_puzzle_hash,
+                    );
+
+                    /*let bob_p2 = StandardLayer::new(bob.pk);
+                    let clawback_puzzle_hash = clawback.tree_hash().into();
+                    let bob_inner = bob_p2.spend_with_conditions(ctx, Conditions::new().reserve_fee(1))?;
+                    let receiver_spend = clawback.receiver_spend(ctx, bob_inner)?;
+                    ctx.spend(clawback_coin, receiver_spend)?;*/
                 }
                 _ => {
                     return Err(WalletError::UnsupportedClawbackCoinKind(coin_kind));
