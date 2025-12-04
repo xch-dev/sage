@@ -1,3 +1,7 @@
+ALTER TABLE clawbacks ADD version INTEGER NOT NULL;
+
+CREATE INDEX idx_clawbacks_version ON clawbacks(version);
+
 DROP VIEW wallet_coins;
 DROP VIEW selectable_coins;
 DROP VIEW owned_coins;
