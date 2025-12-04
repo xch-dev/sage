@@ -67,17 +67,17 @@ hex = "0.4.3"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.9.4"
-tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-opener = "2.5.2"
-tauri-plugin-os = "2.3.2"
+tauri = "2.5.1"
+tauri-plugin-clipboard-manager = "2.2.2"
+tauri-plugin-opener = "2.2.6"
+tauri-plugin-os = "2.2.1"
 tauri-plugin-window-state = "2.2.2"
-tauri-plugin-barcode-scanner = "2.4.2"
-tauri-plugin-biometric = "2.3.2"
+tauri-plugin-barcode-scanner = "2.2.0"
+tauri-plugin-biometric = "2.2.1"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
-tauri-build = "2.5.3"
-tauri-plugin = "2.5.2"
+tauri-build = "2.2.0"
+tauri-plugin = "2.2.0"
 
 # Specta
 specta = "2.0.0-rc.20"

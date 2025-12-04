@@ -40,6 +40,12 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Read QR codes</string>
+	<key>NFCReaderUsageDescription</key>
+	<string>Read NFC tags</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Authenticate with biometric</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app needs access to save images to your photo library.</string>
 </dict>
