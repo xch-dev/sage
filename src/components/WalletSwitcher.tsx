@@ -18,8 +18,9 @@ import { useErrors } from '@/hooks/useErrors';
 import { clearState, loginAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { platform } from '@tauri-apps/plugin-os';
 import { LogOut, WalletIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 interface WalletSwitcherProps {
@@ -40,6 +41,10 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
     { name: string; fingerprint: number; emoji: string | null }[]
   >([]);
   const [loading, setLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     const fetchWallets = async () => {
@@ -63,6 +68,14 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
 
     fetchWallets();
   }, [addError]);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleSwitchWallet = async (fingerprint: number) => {
     if (isSwitching) {
@@ -98,24 +111,71 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
     }
   };
 
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setIsHovering(true);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    timeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 150);
+  };
+
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
   const baseClassName = `flex items-center gap-3 transition-all ${
     isCollapsed ? 'justify-center p-2 rounded-full' : 'px-2 rounded-lg py-1.5'
   } text-lg md:text-base text-muted-foreground hover:text-primary`;
+
+  // If only one wallet, show simple logout button
+  if (!loading && wallets.length <= 1) {
+    return (
+      <button
+        type='button'
+        className={baseClassName}
+        onClick={logout}
+        disabled={isSwitching}
+        aria-label={isCollapsed ? t`Logout` : undefined}
+      >
+        <LogOut className={className} aria-hidden='true' />
+        {!isCollapsed && <Trans>Logout</Trans>}
+      </button>
+    );
+  }
 
   const trigger = (
     <button
       type='button'
       className={baseClassName}
       aria-label={isCollapsed ? t`Wallet switcher` : undefined}
+      {...(isMobile
+        ? {}
+        : {
+            onMouseEnter: handleMouseEnter,
+            onMouseLeave: handleMouseLeave,
+          })}
     >
       <LogOut className={className} aria-hidden='true' />
-      {!isCollapsed && <Trans>Logout</Trans>}
+      {!isCollapsed && <Trans>Wallets</Trans>}
     </button>
   );
 
   const dropdownContent = (
-    <DropdownMenuContent align='end' className='w-56'>
+    <DropdownMenuContent
+      align='end'
+      className='w-56'
+      {...(isMobile
+        ? {}
+        : {
+            onMouseEnter: handleMouseEnter,
+            onMouseLeave: handleMouseLeave,
+          })}
+    >
       <DropdownMenuLabel>
         <Trans>Switch Wallet</Trans>
       </DropdownMenuLabel>
@@ -171,9 +231,11 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
     </DropdownMenuContent>
   );
 
+  // If multiple wallets, show dropdown menu
+  // On mobile, use click to open/close. On desktop, use hover.
   const dropdown = (
-    <DropdownMenu>
-      <Tooltip>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+      <Tooltip open={isCollapsed && !isHovering && !isOpen ? undefined : false}>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
         </TooltipTrigger>
