@@ -34,10 +34,10 @@ export async function discoverThemes(): Promise<Theme[]> {
   }
 }
 
-export async function resolveThemeImage(
+export function resolveThemeImage(
   themeName: string,
   imagePath: string,
-): Promise<string> {
+): string {
   // Check for sentinel value to return uploaded background image
   if (imagePath === '{NEED_DATA_URL_BACKGROUND_IMAGE}') {
     return localStorage.getItem('background-image') ?? '';
