@@ -51,6 +51,7 @@ tauri-plugin-fs = "2"
 tauri-plugin-biometric = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }
+tauri-plugin-secure-element = { workspace = true }
 tauri-plugin-sage = { workspace = true }
 
 [build-dependencies]
