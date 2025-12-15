@@ -73,10 +73,25 @@ if [ -f "$CLANG_BIN" ]; then
     echo "Configured x86_64-linux-android: $CLANG_BIN"
 fi
 
-# Set bindgen to use the NDK's sysroot
+# Set bindgen to use the NDK's sysroot and include paths
 # This is critical for aws-lc-sys which uses bindgen to generate bindings
-export BINDGEN_EXTRA_CLANG_ARGS="--sysroot=$SYSROOT"
-echo "Configured bindgen sysroot: $SYSROOT"
+SYSROOT_INCLUDE="$SYSROOT/usr/include"
+BINDGEN_ARGS="--sysroot=$SYSROOT -I$SYSROOT_INCLUDE"
+
+# Add arch-specific include directory if it exists
+ARCH_INCLUDE="$SYSROOT/usr/include/aarch64-linux-android"
+if [ -d "$ARCH_INCLUDE" ]; then
+    BINDGEN_ARGS="$BINDGEN_ARGS -I$ARCH_INCLUDE"
+fi
+
+# Add C++ include directory if it exists
+CPP_INCLUDE="$SYSROOT_INCLUDE/c++/v1"
+if [ -d "$CPP_INCLUDE" ]; then
+    BINDGEN_ARGS="$BINDGEN_ARGS -I$CPP_INCLUDE"
+fi
+
+export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_ARGS"
+echo "Configured bindgen: $BINDGEN_EXTRA_CLANG_ARGS"
 
 echo "Android NDK environment configured:"
 echo "  ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
