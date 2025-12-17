@@ -43,6 +43,7 @@ import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { useSecureElement } from '@/hooks/useSecureElement';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { exportText, ExportType } from '@/lib/exportText';
 import {
@@ -59,7 +60,10 @@ import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   DownloadIcon,
+  KeyIcon,
   LoaderCircleIcon,
+  PlusIcon,
+  SearchIcon,
   TrashIcon,
   WalletIcon,
 } from 'lucide-react';
@@ -67,17 +71,18 @@ import prettyBytes from 'pretty-bytes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { KeyInfo } from 'tauri-plugin-secure-element-api';
 import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
-  KeyInfo,
   LogFile,
   Network,
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
   WalletDefaults,
+  KeyInfo as WalletKeyInfo,
 } from '../bindings';
 
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
@@ -150,6 +155,13 @@ export default function Settings() {
                   </TabsTrigger>
 
                   <TabsTrigger
+                    value='device-keys'
+                    className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
+                  >
+                    <Trans>Device Keys</Trans>
+                  </TabsTrigger>
+
+                  <TabsTrigger
                     value='advanced'
                     className='flex-1 md:flex-none rounded-md px-3 py-1 text-sm font-medium'
                   >
@@ -194,6 +206,10 @@ export default function Settings() {
 
               <TabsContent value='network'>
                 <NetworkSettings />
+              </TabsContent>
+
+              <TabsContent value='device-keys'>
+                <DeviceKeysSettings />
               </TabsContent>
 
               <TabsContent value='advanced'>
@@ -1023,7 +1039,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
-  const [key, setKey] = useState<KeyInfo | null>(null);
+  const [key, setKey] = useState<WalletKeyInfo | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
@@ -1594,6 +1610,348 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           <DialogFooter>
             <Button onClick={() => setMaintenanceOpen(false)}>
               <Trans>Close</Trans>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DeviceKeysSettings() {
+  const { addError } = useErrors();
+  const { isSupported, keys, isLoading, createKey, deleteKey, refreshKeys } =
+    useSecureElement();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [keyToDelete, setKeyToDelete] = useState<KeyInfo | null>(null);
+  const [pending, setPending] = useState(false);
+
+  const schema = z.object({
+    name: z
+      .string()
+      .min(1, t`Key name is required`)
+      .max(100, t`Key name must be less than 100 characters`),
+    authMode: z.enum(['none', 'pinOrBiometric', 'biometricOnly']),
+  });
+
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      name: '',
+      authMode: 'pinOrBiometric',
+    },
+  });
+
+  // Filter keys based on search query
+  const filteredKeys = keys.filter((key) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      key.keyName.toLowerCase().includes(query) ||
+      key.publicKey.toLowerCase().includes(query)
+    );
+  });
+
+  const handleCreate = async (values: z.infer<typeof schema>) => {
+    try {
+      setPending(true);
+      await createKey(values.name, values.authMode);
+      setIsCreateOpen(false);
+      form.reset();
+      await refreshKeys();
+    } catch (error) {
+      addError(error as CustomError);
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleDeleteClick = (key: KeyInfo) => {
+    setKeyToDelete(key);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!keyToDelete) return;
+
+    try {
+      setIsDeleting(keyToDelete.keyName);
+      await deleteKey(keyToDelete.keyName);
+      await refreshKeys();
+      setKeyToDelete(null);
+    } catch (error) {
+      addError(error as CustomError);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  useEffect(() => {
+    if (isSupported) {
+      refreshKeys().catch(addError);
+    }
+  }, [isSupported, refreshKeys, addError]);
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className='flex flex-col items-center justify-center gap-4 py-12'>
+          <LoaderCircleIcon className='h-6 w-6 animate-spin text-muted-foreground' />
+          <div className='text-sm text-muted-foreground'>
+            <Trans>Checking secure element support...</Trans>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!isSupported) {
+    return (
+      <Card>
+        <CardContent className='flex flex-col items-center justify-center gap-4 py-12'>
+          <div className='rounded-full bg-muted p-3'>
+            <KeyIcon className='h-6 w-6 text-muted-foreground' />
+          </div>
+          <div className='text-center'>
+            <h3 className='font-medium'>
+              <Trans>Secure Element Not Supported</Trans>
+            </h3>
+            <p className='text-sm text-muted-foreground'>
+              <Trans>
+                This device does not support secure key storage. Secure keys
+                require either a Secure Element or TEE (Trusted Execution
+                Environment).
+              </Trans>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className='flex flex-col gap-4'>
+      <SettingsSection title={t`Device Keys`}>
+        <SettingItem
+          label={t`Search Keys`}
+          description={t`Search by key name or public key`}
+          control={
+            <div className='relative w-full sm:w-[300px]'>
+              <SearchIcon className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+              <Input
+                type='text'
+                placeholder={t`Search...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='pl-9'
+              />
+            </div>
+          }
+        />
+
+        <SettingItem
+          label={t`Manage Keys`}
+          description={t`Create and manage secure device keys`}
+          control={
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => setIsCreateOpen(true)}
+            >
+              <PlusIcon className='mr-2 h-4 w-4' />
+              <Trans>Create Key</Trans>
+            </Button>
+          }
+        >
+          {filteredKeys.length === 0 ? (
+            <div className='mt-3 text-center py-8 text-sm text-muted-foreground'>
+              {searchQuery ? (
+                <Trans>No keys found matching your search</Trans>
+              ) : (
+                <Trans>No keys created yet</Trans>
+              )}
+            </div>
+          ) : (
+            <div className='mt-3 space-y-2'>
+              {filteredKeys.map((key) => (
+                <div
+                  key={key.keyName}
+                  className='flex items-start gap-2 rounded-md bg-muted p-3'
+                >
+                  <div className='min-w-0 flex-1 space-y-1'>
+                    <div className='flex items-center gap-2'>
+                      <span className='text-sm font-medium'>{key.keyName}</span>
+                      {key.requiresAuthentication && (
+                        <span className='text-xs text-muted-foreground'>
+                          (Auth Required)
+                        </span>
+                      )}
+                    </div>
+                    <pre className='text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere text-muted-foreground'>
+                      {key.publicKey}
+                    </pre>
+                  </div>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='shrink-0 h-8 w-8 text-destructive hover:text-destructive'
+                    onClick={() => handleDeleteClick(key)}
+                    disabled={isDeleting === key.keyName}
+                    aria-label={t`Delete key ${key.keyName}`}
+                  >
+                    {isDeleting === key.keyName ? (
+                      <LoaderCircleIcon className='h-4 w-4 animate-spin' />
+                    ) : (
+                      <TrashIcon className='h-4 w-4 text-destructive' />
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </SettingItem>
+      </SettingsSection>
+
+      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Create Device Key</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Create a new secure device key. The key will be stored securely
+                in the device&apos;s secure element or TEE.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(handleCreate)}
+              className='space-y-4'
+            >
+              <FormField
+                control={form.control}
+                name='name'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Key Name</Trans>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder={t`Enter a name for this key`}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name='authMode'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      <Trans>Authentication Mode</Trans>
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={t`Select authentication mode`}
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value='none'>
+                          <Trans>None</Trans>
+                        </SelectItem>
+                        <SelectItem value='pinOrBiometric'>
+                          <Trans>PIN or Biometric</Trans>
+                        </SelectItem>
+                        <SelectItem value='biometricOnly'>
+                          <Trans>Biometric Only</Trans>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className='gap-2'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={() => {
+                    setIsCreateOpen(false);
+                    form.reset();
+                  }}
+                >
+                  <Trans>Cancel</Trans>
+                </Button>
+                <Button
+                  type='submit'
+                  disabled={pending || !form.formState.isValid}
+                >
+                  {pending && (
+                    <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+                  )}
+                  {pending ? <Trans>Creating...</Trans> : <Trans>Create</Trans>}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!keyToDelete}
+        onOpenChange={(open) => !open && setKeyToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <Trans>Permanently Delete Device Key</Trans>
+            </DialogTitle>
+            <DialogDescription>
+              <Trans>
+                Are you sure you want to delete the key &quot;
+                {keyToDelete?.keyName}&quot;? This action cannot be undone. The
+                key will be permanently removed from the secure element and
+                cannot be recovered.
+              </Trans>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant='outline'
+              onClick={() => setKeyToDelete(null)}
+              disabled={isDeleting === keyToDelete?.keyName}
+            >
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant='destructive'
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting === keyToDelete?.keyName}
+              autoFocus
+            >
+              {isDeleting === keyToDelete?.keyName ? (
+                <>
+                  <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
+                  <Trans>Deleting...</Trans>
+                </>
+              ) : (
+                <Trans>Delete</Trans>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
