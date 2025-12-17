@@ -3,7 +3,7 @@ use std::env;
 use std::path::PathBuf;
 
 /// Finds the Android NDK path from environment variables or common locations.
-/// Used by the x86_64 Android workaround.
+/// Used by the ``x86_64`` Android workaround.
 fn find_android_ndk() -> Option<PathBuf> {
     // Try environment variables first
     if let Ok(ndk_home) = env::var("ANDROID_NDK_HOME") {
@@ -43,7 +43,7 @@ fn find_android_ndk() -> Option<PathBuf> {
 }
 
 /// Adds a temporary workaround for an issue with the Rust compiler and Android
-/// on x86_64 devices: <https://github.com/rust-lang/rust/issues/109717>.
+/// on ``x86_64`` devices: <https://github.com/rust-lang/rust/issues/109717>.
 /// The workaround comes from: <https://github.com/nicholascz/cargo-ndk/issues/22>
 ///
 /// This is needed until the Rust compiler fixes the upstream issue.
