@@ -16,3 +16,4 @@ fi
 pnpm tauri android dev "$@"
 
 
+
