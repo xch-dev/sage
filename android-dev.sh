@@ -12,11 +12,6 @@ else
     exit 1
 fi
 
-# Verify BINDGEN_EXTRA_CLANG_ARGS is set
-if [ -z "$BINDGEN_EXTRA_CLANG_ARGS" ]; then
-    echo "Warning: BINDGEN_EXTRA_CLANG_ARGS is not set after sourcing setup script"
-fi
-
 # Run the tauri android dev command
 pnpm tauri android dev "$@"
 

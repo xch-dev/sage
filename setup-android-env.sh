@@ -23,8 +23,19 @@ fi
 export ANDROID_NDK="$ANDROID_NDK_HOME"
 export NDK_HOME="$ANDROID_NDK_HOME"
 
+# Detect host OS for NDK prebuilt path
+case "$(uname -s)" in
+    Linux*)  HOST_TAG="linux-x86_64" ;;
+    Darwin*) HOST_TAG="darwin-x86_64" ;;
+    MINGW*|MSYS*|CYGWIN*) HOST_TAG="windows-x86_64" ;;
+    *)
+        echo "Error: Unsupported host OS: $(uname -s)"
+        return 1
+        ;;
+esac
+
 # Add NDK toolchain to PATH
-NDK_BIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/bin"
+NDK_BIN="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/$HOST_TAG/bin"
 if [ -d "$NDK_BIN" ]; then
     export PATH="$NDK_BIN:$PATH"
     echo "Added NDK toolchain to PATH: $NDK_BIN"
@@ -32,11 +43,18 @@ else
     echo "Warning: NDK toolchain bin directory not found: $NDK_BIN"
 fi
 
-# Find the highest API level clang for bindgen
-# NDK 29 uses versioned clang binaries (e.g., aarch64-linux-android34-clang)
-# We'll use API level 34 (Android 14) as default
-API_LEVEL=34
-SYSROOT="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+# Auto-detect API level from available clang binaries
+# Look for the highest available API level (e.g., aarch64-linux-android35-clang)
+API_LEVEL=$(ls "$NDK_BIN"/aarch64-linux-android*-clang 2>/dev/null | \
+    sed -n 's/.*android\([0-9]*\)-clang$/\1/p' | \
+    sort -n | tail -1)
+
+if [ -z "$API_LEVEL" ]; then
+    echo "Warning: Could not auto-detect API level, defaulting to 34"
+    API_LEVEL=34
+else
+    echo "Auto-detected API level: $API_LEVEL"
+fi
 
 # Configure CC for all Android targets
 # aarch64-linux-android
@@ -73,25 +91,8 @@ if [ -f "$CLANG_BIN" ]; then
     echo "Configured x86_64-linux-android: $CLANG_BIN"
 fi
 
-# Set bindgen to use the NDK's sysroot and include paths
-# This is critical for aws-lc-sys which uses bindgen to generate bindings
-SYSROOT_INCLUDE="$SYSROOT/usr/include"
-BINDGEN_ARGS="--sysroot=$SYSROOT -I$SYSROOT_INCLUDE"
-
-# Add arch-specific include directory if it exists
-ARCH_INCLUDE="$SYSROOT/usr/include/aarch64-linux-android"
-if [ -d "$ARCH_INCLUDE" ]; then
-    BINDGEN_ARGS="$BINDGEN_ARGS -I$ARCH_INCLUDE"
-fi
-
-# Add C++ include directory if it exists
-CPP_INCLUDE="$SYSROOT_INCLUDE/c++/v1"
-if [ -d "$CPP_INCLUDE" ]; then
-    BINDGEN_ARGS="$BINDGEN_ARGS -I$CPP_INCLUDE"
-fi
-
-export BINDGEN_EXTRA_CLANG_ARGS="$BINDGEN_ARGS"
-echo "Configured bindgen: $BINDGEN_EXTRA_CLANG_ARGS"
+# Note: BINDGEN_EXTRA_CLANG_ARGS is configured automatically by build.rs
+# during the cargo build process. It handles architecture detection dynamically.
 
 echo "Android NDK environment configured:"
 echo "  ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
