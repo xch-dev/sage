@@ -1,4 +1,5 @@
 import Container from '@/components/Container';
+import { CopyButton } from '@/components/CopyButton';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
@@ -1782,30 +1783,31 @@ function DeviceKeysSettings() {
                   <div className='min-w-0 flex-1 space-y-1'>
                     <div className='flex items-center gap-2'>
                       <span className='text-sm font-medium'>{key.keyName}</span>
-                      {key.requiresAuthentication && (
-                        <span className='text-xs text-muted-foreground'>
-                          (Auth Required)
-                        </span>
-                      )}
                     </div>
                     <pre className='text-xs whitespace-pre-wrap break-words overflow-wrap-anywhere text-muted-foreground'>
                       {key.publicKey}
                     </pre>
                   </div>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='shrink-0 h-8 w-8 text-destructive hover:text-destructive'
-                    onClick={() => handleDeleteClick(key)}
-                    disabled={isDeleting === key.keyName}
-                    aria-label={t`Delete key ${key.keyName}`}
-                  >
-                    {isDeleting === key.keyName ? (
-                      <LoaderCircleIcon className='h-4 w-4 animate-spin' />
-                    ) : (
-                      <TrashIcon className='h-4 w-4 text-destructive' />
-                    )}
-                  </Button>
+                  <div className='flex flex-col items-end justify-between shrink-0 self-stretch'>
+                    <CopyButton
+                      value={key.publicKey}
+                      aria-label={t`Copy public key for ${key.keyName}`}
+                    />
+                    <Button
+                      variant='outline'
+                      size='icon'
+                      className='h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10'
+                      onClick={() => handleDeleteClick(key)}
+                      disabled={isDeleting === key.keyName}
+                      aria-label={t`Delete key ${key.keyName}`}
+                    >
+                      {isDeleting === key.keyName ? (
+                        <LoaderCircleIcon className='h-4 w-4 animate-spin' />
+                      ) : (
+                        <TrashIcon className='h-4 w-4 text-destructive' />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

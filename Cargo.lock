@@ -7328,9 +7328,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-secure-element"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "31658ab09e22a566cb79a75cb7bfa5f9e4b8f9d72d9c59ff2cba4f1877e134b1"
+checksum = "001dba2998688f5c73909dc1ba297483b846b739a9160a6cda456ec0220b1bf2"
 dependencies = [
  "hex",
  "rand 0.8.5",
