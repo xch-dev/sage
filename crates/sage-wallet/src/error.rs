@@ -117,6 +117,12 @@ pub enum WalletError {
     #[error("Unsupported underlying coin kind: {0:?}")]
     UnsupportedUnderlyingCoinKind(CoinKind),
 
+    #[error("Unsupported clawback coin kind: {0:?}")]
+    UnsupportedClawbackCoinKind(CoinKind),
+
+    #[error("Cannot find clawback info for coin with id {0}")]
+    MissingClawbackInfo(Bytes32),
+
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
 }

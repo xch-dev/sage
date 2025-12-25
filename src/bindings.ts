@@ -101,6 +101,9 @@ async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
 async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("assign_nfts_to_did", { req });
 },
+async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("finalize_clawback", { req });
+},
 async signCoinSpends(req: SignCoinSpends) : Promise<SignCoinSpendsResponse> {
     return await TAURI_INVOKE("sign_coin_spends", { req });
 },
@@ -817,6 +820,22 @@ export type FilterUnlockedCoinsResponse = {
  * List of unlocked coin IDs
  */
 coin_ids: string[] }
+/**
+ * Send CAT tokens to an address
+ */
+export type FinalizeClawback = { 
+/**
+ * The coins to finalize the clawback for
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Generate a new mnemonic phrase for wallet creation
  */
