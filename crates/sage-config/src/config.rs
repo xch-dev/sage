@@ -91,4 +91,6 @@ pub struct WebhookEntry {
     pub secret: Option<String>,
     pub last_delivered_at: Option<i64>,
     pub last_delivery_attempt_at: Option<i64>,
+    #[serde(default)]
+    pub consecutive_failures: u32,
 }

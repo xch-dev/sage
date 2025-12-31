@@ -52,6 +52,7 @@ impl Sage {
                     secret: None, // Don't expose secret in API responses
                     last_delivered_at: w.last_delivered_at,
                     last_delivery_attempt_at: w.last_delivery_attempt_at,
+                    consecutive_failures: w.consecutive_failures,
                 })
                 .collect(),
         })

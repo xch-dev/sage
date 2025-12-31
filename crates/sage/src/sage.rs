@@ -595,15 +595,29 @@ impl Sage {
         let entries = self.webhook_manager.get_webhook_entries().await;
         self.config.webhooks.webhooks = entries
             .into_iter()
-            .map(|(id, url, events, enabled, secret)| WebhookEntry {
-                id,
-                url,
-                events,
-                enabled,
-                secret,
-                last_delivered_at: None,
-                last_delivery_attempt_at: None,
-            })
+            .map(
+                |(
+                    id,
+                    url,
+                    events,
+                    enabled,
+                    secret,
+                    last_delivered_at,
+                    last_delivery_attempt_at,
+                    consecutive_failures,
+                )| {
+                    WebhookEntry {
+                        id,
+                        url,
+                        events,
+                        enabled,
+                        secret,
+                        last_delivered_at,
+                        last_delivery_attempt_at,
+                        consecutive_failures,
+                    }
+                },
+            )
             .collect();
 
         self.save_config()?;
@@ -611,8 +625,9 @@ impl Sage {
     }
 
     async fn setup_webhooks(&mut self) -> Result<()> {
-        type WebhookTuple = (String, String, Option<Vec<String>>, bool, Option<String>);
-        let entries: Vec<WebhookTuple> = self
+        use crate::webhook_manager::WebhookEntryTuple;
+
+        let entries: Vec<WebhookEntryTuple> = self
             .config
             .webhooks
             .webhooks
@@ -624,6 +639,9 @@ impl Sage {
                     w.events.clone(),
                     w.enabled,
                     w.secret.clone(),
+                    w.last_delivered_at,
+                    w.last_delivery_attempt_at,
+                    w.consecutive_failures,
                 )
             })
             .collect();

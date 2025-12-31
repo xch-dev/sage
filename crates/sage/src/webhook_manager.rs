@@ -5,13 +5,22 @@ use sha2::Sha256;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 use uuid::Uuid;
 
 type HmacSha256 = Hmac<Sha256>;
 
-/// Webhook entry tuple: (id, url, events, enabled, secret)
-type WebhookEntryTuple = (String, String, Option<Vec<String>>, bool, Option<String>);
+/// Webhook entry tuple: (id, url, events, enabled, secret, last_delivered_at, last_delivery_attempt_at, consecutive_failures)
+pub type WebhookEntryTuple = (
+    String,
+    String,
+    Option<Vec<String>>,
+    bool,
+    Option<String>,
+    Option<i64>,
+    Option<i64>,
+    u32,
+);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookConfig {
@@ -23,6 +32,7 @@ pub struct WebhookConfig {
     pub secret: Option<String>,
     pub last_delivered_at: Option<i64>,
     pub last_delivery_attempt_at: Option<i64>,
+    pub consecutive_failures: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,7 +59,7 @@ impl Default for WebhookManager {
         Self {
             webhooks: Arc::new(RwLock::new(HashMap::new())),
             client: Client::builder()
-                .timeout(std::time::Duration::from_secs(10))
+                .timeout(std::time::Duration::from_secs(5))
                 .build()
                 .expect("Failed to create HTTP client"),
             fingerprint: Arc::new(RwLock::new(None)),
@@ -86,6 +96,7 @@ impl WebhookManager {
             secret,
             last_delivered_at: None,
             last_delivery_attempt_at: None,
+            consecutive_failures: 0,
         };
 
         let mut webhooks = self.webhooks.write().await;
@@ -150,6 +161,7 @@ impl WebhookManager {
         event: WebhookEventPayload,
     ) {
         const MAX_RETRIES: u32 = 3;
+        const MAX_CONSECUTIVE_FAILURES: u32 = 5;
 
         for attempt in 0..MAX_RETRIES {
             let now = chrono::Utc::now().timestamp();
@@ -170,6 +182,7 @@ impl WebhookManager {
                     let mut webhooks_lock = webhooks.write().await;
                     if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
                         w.last_delivered_at = Some(now);
+                        w.consecutive_failures = 0;
                     }
                     return;
                 }
@@ -189,6 +202,19 @@ impl WebhookManager {
                         tokio::time::sleep(delay).await;
                     }
                 }
+            }
+        }
+
+        // All retries exhausted - increment failure count and potentially disable
+        let mut webhooks_lock = webhooks.write().await;
+        if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
+            w.consecutive_failures += 1;
+            if w.consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
+                w.active = false;
+                warn!(
+                    "Webhook {} auto-disabled after {} consecutive failures",
+                    webhook.url, w.consecutive_failures
+                );
             }
         }
     }
@@ -233,15 +259,26 @@ impl WebhookManager {
 
     pub async fn load_webhooks(&self, entries: Vec<WebhookEntryTuple>) {
         let mut webhooks = self.webhooks.write().await;
-        for (id, url, events, enabled, secret) in entries {
+        for (
+            id,
+            url,
+            events,
+            enabled,
+            secret,
+            last_delivered_at,
+            last_delivery_attempt_at,
+            consecutive_failures,
+        ) in entries
+        {
             let config = WebhookConfig {
                 id: id.clone(),
                 url,
                 events,
                 active: enabled,
                 secret,
-                last_delivered_at: None,
-                last_delivery_attempt_at: None,
+                last_delivered_at,
+                last_delivery_attempt_at,
+                consecutive_failures,
             };
             webhooks.insert(id, config);
         }
@@ -258,6 +295,9 @@ impl WebhookManager {
                     w.events.clone(),
                     w.active,
                     w.secret.clone(),
+                    w.last_delivered_at,
+                    w.last_delivery_attempt_at,
+                    w.consecutive_failures,
                 )
             })
             .collect()

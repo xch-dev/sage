@@ -634,7 +634,7 @@ events: string[] | null; enabled: boolean;
 /**
  * Optional secret for HMAC-SHA256 signature verification
  */
-secret?: string | null; last_delivered_at: number | null; last_delivery_attempt_at: number | null }
+secret?: string | null; last_delivered_at: number | null; last_delivery_attempt_at: number | null; consecutive_failures?: number }
 
 /** tauri-specta globals **/
 
