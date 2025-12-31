@@ -25,16 +25,6 @@ pub struct UnregisterWebhook {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct UnregisterWebhookResponse {}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WebhookEvent {
-    pub id: String,
-    pub fingerprint: Option<u32>,
-    pub network: String,
-    pub event_type: String,
-    pub timestamp: i64,
-    pub data: serde_json::Value,
-}
-
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetWebhooks {}
