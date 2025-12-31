@@ -4,6 +4,7 @@ use sage_api::{
 };
 use sage_config::WebhookEntry;
 use sage_wallet::SyncEvent;
+use url::Url;
 
 use crate::{Error, Result, Sage};
 
@@ -12,6 +13,20 @@ impl Sage {
         &mut self,
         req: RegisterWebhook,
     ) -> Result<RegisterWebhookResponse> {
+        // Validate URL before registering
+        let parsed_url =
+            Url::parse(&req.url).map_err(|e| Error::InvalidWebhookUrl(e.to_string()))?;
+
+        if !matches!(parsed_url.scheme(), "http" | "https") {
+            return Err(Error::InvalidWebhookUrl(
+                "scheme must be http or https".to_string(),
+            ));
+        }
+
+        if parsed_url.host().is_none() {
+            return Err(Error::InvalidWebhookUrl("missing host".to_string()));
+        }
+
         let webhook_id = self
             .webhook_manager
             .register_webhook(req.url, req.event_types, req.secret)

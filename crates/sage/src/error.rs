@@ -118,6 +118,9 @@ pub enum Error {
     #[error("Unknown webhook: {0}")]
     UnknownWebhook(String),
 
+    #[error("Invalid webhook URL: {0}")]
+    InvalidWebhookUrl(String),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -309,7 +312,8 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::InvalidWebhookUrl(..) => ErrorKind::Api,
         }
     }
 }

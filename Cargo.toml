@@ -111,6 +111,7 @@ hmac = "0.12.1"
 sha2 = "0.10.8"
 
 # Utilities
+url = "2.5.4"
 indexmap = "2.3.0"
 itertools = "0.13.0"
 anyhow = "1.0.86"

@@ -49,3 +49,4 @@ uuid = { workspace = true }
 chrono = { workspace = true }
 hmac = { workspace = true }
 sha2 = { workspace = true }
+url = { workspace = true }
