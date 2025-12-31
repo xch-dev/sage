@@ -70,6 +70,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
+  events,
   GetDatabaseStatsResponse,
   KeyInfo,
   LogFile,
@@ -1637,6 +1638,23 @@ function WebhooksSettings() {
 
   useEffect(() => {
     loadWebhooks();
+  }, [loadWebhooks]);
+
+  // Refresh webhooks when webhook-specific events occur
+  useEffect(() => {
+    const unlisten = events.syncEvent.listen((event) => {
+      // Only refresh on webhook-related events
+      if (
+        event.payload.type === 'webhooks_changed' ||
+        event.payload.type === 'webhook_invoked'
+      ) {
+        loadWebhooks();
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, [loadWebhooks]);
 
   if (loading) {

@@ -3,6 +3,7 @@ use sage_api::{
     UnregisterWebhookResponse, UpdateWebhook, UpdateWebhookResponse,
 };
 use sage_config::WebhookEntry;
+use sage_wallet::SyncEvent;
 
 use crate::{Error, Result, Sage};
 
@@ -17,6 +18,7 @@ impl Sage {
             .await;
 
         self.save_webhooks_config().await?;
+        self.send_webhook_event(SyncEvent::WebhooksChanged).await;
 
         Ok(RegisterWebhookResponse { webhook_id })
     }
@@ -35,6 +37,7 @@ impl Sage {
         }
 
         self.save_webhooks_config().await?;
+        self.send_webhook_event(SyncEvent::WebhooksChanged).await;
 
         Ok(UnregisterWebhookResponse {})
     }
@@ -69,7 +72,12 @@ impl Sage {
         }
 
         self.save_webhooks_config().await?;
+        self.send_webhook_event(SyncEvent::WebhooksChanged).await;
 
         Ok(UpdateWebhookResponse {})
+    }
+
+    async fn send_webhook_event(&self, event: SyncEvent) {
+        self.webhook_manager.send_sync_event(event).await;
     }
 }

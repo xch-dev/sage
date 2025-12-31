@@ -268,6 +268,16 @@ impl Sage {
 
         // Convert broadcast receiver to mpsc receiver for compatibility
         let (tauri_tx, tauri_rx) = mpsc::channel(100);
+
+        // Give webhook manager access to the event sender for internal webhook events
+        let webhook_manager_for_sender = self.webhook_manager.clone();
+        let event_sender = tauri_tx.clone();
+        tokio::spawn(async move {
+            webhook_manager_for_sender
+                .set_event_sender(event_sender)
+                .await;
+        });
+
         tokio::spawn(async move {
             let mut tauri_receiver = tauri_receiver;
             while let Ok(event) = tauri_receiver.recv().await {
@@ -280,6 +290,7 @@ impl Sage {
 
     async fn handle_sync_event_for_webhooks(webhook_manager: &WebhookManager, event: SyncEvent) {
         // Convert wallet SyncEvent to webhook payload
+        // Skip internal webhook events - they should not be sent over webhooks
         let (event_type, data) = match event {
             SyncEvent::Start(ip) => (
                 "start",
@@ -323,6 +334,8 @@ impl Sage {
             SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
             SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
             SyncEvent::NftData => ("nft_data", serde_json::json!({})),
+            // Internal webhook notifications - do not send over webhooks
+            SyncEvent::WebhooksChanged | SyncEvent::WebhookInvoked => return,
         };
 
         webhook_manager

@@ -37,6 +37,8 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                 SyncEvent::CatInfo => ApiEvent::CatInfo,
                 SyncEvent::DidInfo => ApiEvent::DidInfo,
                 SyncEvent::NftData => ApiEvent::NftData,
+                SyncEvent::WebhooksChanged => ApiEvent::WebhooksChanged,
+                SyncEvent::WebhookInvoked => ApiEvent::WebhookInvoked,
             };
             if app_handle.emit("sync-event", event).is_err() {
                 break;

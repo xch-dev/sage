@@ -1,10 +1,11 @@
 use hmac::{Hmac, Mac};
 use reqwest::Client;
+use sage_wallet::SyncEvent;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tokio::sync::{mpsc, RwLock};
 use tracing::{debug, error, warn};
 use uuid::Uuid;
 
@@ -45,13 +46,13 @@ pub struct WebhookEventPayload {
     pub data: serde_json::Value,
 }
 
-// Webhook manager
 #[derive(Debug, Clone)]
 pub struct WebhookManager {
     webhooks: Arc<RwLock<HashMap<String, WebhookConfig>>>,
     client: Client,
     fingerprint: Arc<RwLock<Option<u32>>>,
     network: Arc<RwLock<String>>,
+    event_sender: Arc<RwLock<Option<mpsc::Sender<SyncEvent>>>>,
 }
 
 impl Default for WebhookManager {
@@ -64,6 +65,7 @@ impl Default for WebhookManager {
                 .expect("Failed to create HTTP client"),
             fingerprint: Arc::new(RwLock::new(None)),
             network: Arc::new(RwLock::new(String::new())),
+            event_sender: Arc::new(RwLock::new(None)),
         }
     }
 }
@@ -79,6 +81,16 @@ impl WebhookManager {
 
     pub async fn set_network(&self, network: String) {
         *self.network.write().await = network;
+    }
+
+    pub async fn set_event_sender(&self, sender: mpsc::Sender<SyncEvent>) {
+        *self.event_sender.write().await = Some(sender);
+    }
+
+    pub async fn send_sync_event(&self, event: SyncEvent) {
+        if let Some(sender) = self.event_sender.read().await.as_ref() {
+            let _ = sender.send(event).await;
+        }
     }
 
     pub async fn register_webhook(
@@ -148,12 +160,15 @@ impl WebhookManager {
             .cloned()
             .collect();
 
+        let event_sender = self.event_sender.read().await.clone();
+
         for webhook in interested_webhooks {
             let client = self.client.clone();
             let event = event.clone();
             let webhooks = self.webhooks.clone();
+            let event_sender = event_sender.clone();
             tokio::spawn(async move {
-                Self::deliver_webhook(client, webhooks, webhook, event).await;
+                Self::deliver_webhook(client, webhooks, webhook, event, event_sender).await;
             });
         }
     }
@@ -163,6 +178,7 @@ impl WebhookManager {
         webhooks: Arc<RwLock<HashMap<String, WebhookConfig>>>,
         webhook: WebhookConfig,
         event: WebhookEventPayload,
+        event_sender: Option<mpsc::Sender<SyncEvent>>,
     ) {
         const MAX_RETRIES: u32 = 3;
         const MAX_CONSECUTIVE_FAILURES: u32 = 5;
@@ -187,6 +203,10 @@ impl WebhookManager {
                     if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
                         w.last_delivered_at = Some(now);
                         w.consecutive_failures = 0;
+                    }
+
+                    if let Some(sender) = &event_sender {
+                        let _ = sender.send(SyncEvent::WebhookInvoked).await;
                     }
                     return;
                 }
@@ -220,6 +240,10 @@ impl WebhookManager {
                     webhook.url, w.consecutive_failures
                 );
             }
+        }
+
+        if let Some(sender) = &event_sender {
+            let _ = sender.send(SyncEvent::WebhookInvoked).await;
         }
     }
 
