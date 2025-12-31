@@ -113,6 +113,10 @@ impl WebhookManager {
         let mut webhooks = self.webhooks.write().await;
         if let Some(webhook) = webhooks.get_mut(id) {
             webhook.active = active;
+            // Reset failure count when re-enabling to give the webhook a fresh start
+            if active {
+                webhook.consecutive_failures = 0;
+            }
             true
         } else {
             false

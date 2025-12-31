@@ -1608,6 +1608,7 @@ function WebhooksSettings() {
   const { addError } = useErrors();
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const loadWebhooks = useCallback(() => {
     setLoading(true);
@@ -1619,6 +1620,20 @@ function WebhooksSettings() {
       .catch(addError)
       .finally(() => setLoading(false));
   }, [addError]);
+
+  const handleToggle = useCallback(
+    (webhookId: string, enabled: boolean) => {
+      setUpdatingId(webhookId);
+      commands
+        .updateWebhook({ webhook_id: webhookId, enabled })
+        .then(() => {
+          loadWebhooks();
+        })
+        .catch(addError)
+        .finally(() => setUpdatingId(null));
+    },
+    [addError, loadWebhooks],
+  );
 
   useEffect(() => {
     loadWebhooks();
@@ -1658,8 +1673,13 @@ function WebhooksSettings() {
         // Determine status color and label
         let statusColor = 'bg-gray-400';
         let statusLabel = <Trans>Disabled</Trans>;
+        const failures = webhook.consecutive_failures ?? 0;
 
-        if (webhook.enabled) {
+        if (!webhook.enabled && failures >= 5) {
+          // Auto-disabled due to consecutive failures
+          statusColor = 'bg-red-500';
+          statusLabel = <Trans>Auto-disabled</Trans>;
+        } else if (webhook.enabled) {
           // Check health based on delivery attempts
           if (
             webhook.last_delivered_at === null &&
@@ -1686,13 +1706,20 @@ function WebhooksSettings() {
         return (
           <div key={webhook.id} className='p-4'>
             <div className='space-y-2'>
-              {/* Header with Status and ID on same line */}
+              {/* Header with Status, ID, and Toggle */}
               <div className='flex items-center gap-2'>
                 <div className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
                 <div className='font-medium text-sm'>{statusLabel}</div>
-                <div className='text-xs text-muted-foreground font-mono'>
+                <div className='text-xs text-muted-foreground font-mono flex-1'>
                   {webhook.id}
                 </div>
+                <Switch
+                  checked={webhook.enabled}
+                  disabled={updatingId === webhook.id}
+                  onCheckedChange={(checked) =>
+                    handleToggle(webhook.id, checked)
+                  }
+                />
               </div>
 
               {/* URL */}
@@ -1734,9 +1761,10 @@ function WebhooksSettings() {
                 </div>
               </div>
 
-              {/* Delivery timestamps in a grid */}
+              {/* Delivery timestamps and failure count */}
               {(webhook.last_delivered_at ||
-                webhook.last_delivery_attempt_at) && (
+                webhook.last_delivery_attempt_at ||
+                failures > 0) && (
                 <div className='grid grid-cols-2 gap-2'>
                   {webhook.last_delivered_at && (
                     <div>
@@ -1759,6 +1787,23 @@ function WebhooksSettings() {
                         {new Date(
                           webhook.last_delivery_attempt_at * 1000,
                         ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {failures > 0 && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Consecutive Failures</Trans>
+                      </Label>
+                      <div
+                        className={`text-xs mt-0.5 ${failures >= 5 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
+                      >
+                        {failures}
+                        {failures >= 5 && (
+                          <span className='ml-1'>
+                            (<Trans>auto-disabled at 5</Trans>)
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
