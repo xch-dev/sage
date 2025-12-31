@@ -329,11 +329,39 @@ impl Sage {
                     "status": format!("{:?}", status)
                 }),
             ),
-            SyncEvent::CoinsUpdated => ("coins_updated", serde_json::json!({})),
+            SyncEvent::CoinsUpdated { coin_states } => (
+                "coins_updated",
+                serde_json::json!({
+                    "coin_states": coin_states.iter().map(|cs| {
+                        serde_json::json!({
+                            "coin_id": cs.coin_id.to_string(),
+                            "puzzle_hash": cs.puzzle_hash.to_string(),
+                            "amount": cs.amount,
+                            "created_height": cs.created_height,
+                            "spent_height": cs.spent_height,
+                        })
+                    }).collect::<Vec<_>>()
+                }),
+            ),
             SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
-            SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
-            SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
-            SyncEvent::NftData => ("nft_data", serde_json::json!({})),
+            SyncEvent::CatInfo { asset_ids } => (
+                "cat_info",
+                serde_json::json!({
+                    "asset_ids": asset_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                }),
+            ),
+            SyncEvent::DidInfo { launcher_id } => (
+                "did_info",
+                serde_json::json!({
+                    "launcher_id": launcher_id.to_string()
+                }),
+            ),
+            SyncEvent::NftData { launcher_ids } => (
+                "nft_data",
+                serde_json::json!({
+                    "launcher_ids": launcher_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                }),
+            ),
             // Internal webhook notifications - do not send over webhooks
             SyncEvent::WebhooksChanged | SyncEvent::WebhookInvoked => return,
         };

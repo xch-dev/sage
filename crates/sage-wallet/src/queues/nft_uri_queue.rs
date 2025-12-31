@@ -1,5 +1,6 @@
-use std::time::Duration;
+use std::{collections::HashSet, time::Duration};
 
+use chia::protocol::Bytes32;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use sage_assets::{base64_data_uri, fetch_uri};
@@ -48,6 +49,8 @@ impl NftUriQueue {
             });
         }
 
+        let mut updated_launcher_ids: HashSet<Bytes32> = HashSet::new();
+
         while let Some((item, result)) = futures.next().await {
             let mut tx = self.db.tx().await?;
 
@@ -90,6 +93,8 @@ impl NftUriQueue {
                             },
                         )
                         .await?;
+
+                        updated_launcher_ids.insert(nft.hash);
                     }
 
                     tx.update_file(item.hash, data.blob, data.mime_type, is_hash_match)
@@ -122,7 +127,11 @@ impl NftUriQueue {
             tx.commit().await?;
         }
 
-        self.sync_sender.send(SyncEvent::NftData).await.ok();
+        let launcher_ids: Vec<Bytes32> = updated_launcher_ids.into_iter().collect();
+        self.sync_sender
+            .send(SyncEvent::NftData { launcher_ids })
+            .await
+            .ok();
 
         Ok(())
     }
