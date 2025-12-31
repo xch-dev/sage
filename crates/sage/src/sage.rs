@@ -279,8 +279,7 @@ impl Sage {
     }
 
     async fn handle_sync_event_for_webhooks(webhook_manager: &WebhookManager, event: SyncEvent) {
-        // Convert wallet SyncEvent to API SyncEvent format
-        // Extract event type and data separately (no redundant type in data)
+        // Convert wallet SyncEvent to webhook payload
         let (event_type, data) = match event {
             SyncEvent::Start(ip) => (
                 "start",
@@ -290,7 +289,18 @@ impl Sage {
             ),
             SyncEvent::Stop => ("stop", serde_json::json!({})),
             SyncEvent::Subscribed => ("subscribed", serde_json::json!({})),
-            SyncEvent::DerivationIndex { .. } => ("derivation", serde_json::json!({})),
+            SyncEvent::DerivationIndex { next_index } => (
+                "derivation",
+                serde_json::json!({
+                    "next_index": next_index
+                }),
+            ),
+            SyncEvent::TransactionUpdated { transaction_id } => (
+                "transaction_updated",
+                serde_json::json!({
+                    "transaction_id": transaction_id.to_string()
+                }),
+            ),
             SyncEvent::TransactionFailed {
                 transaction_id,
                 error,
@@ -301,9 +311,14 @@ impl Sage {
                     "error": error
                 }),
             ),
-            SyncEvent::CoinsUpdated
-            | SyncEvent::TransactionUpdated { .. }
-            | SyncEvent::OfferUpdated { .. } => ("coin_state", serde_json::json!({})),
+            SyncEvent::OfferUpdated { offer_id, status } => (
+                "offer_updated",
+                serde_json::json!({
+                    "offer_id": offer_id.to_string(),
+                    "status": format!("{:?}", status)
+                }),
+            ),
+            SyncEvent::CoinsUpdated => ("coins_updated", serde_json::json!({})),
             SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
             SyncEvent::CatInfo => ("cat_info", serde_json::json!({})),
             SyncEvent::DidInfo => ("did_info", serde_json::json!({})),
