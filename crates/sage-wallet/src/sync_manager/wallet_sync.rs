@@ -254,8 +254,8 @@ pub async fn incremental_sync(
         }
     }
 
-    for mempool_item_id in confirmed_transactions {
-        tx.remove_mempool_item(mempool_item_id).await?;
+    for mempool_item_id in &confirmed_transactions {
+        tx.remove_mempool_item(*mempool_item_id).await?;
     }
 
     let mut new_derivations = Vec::new();
@@ -273,6 +273,13 @@ pub async fn incremental_sync(
             .send(SyncEvent::CoinsUpdated {
                 coin_ids: coin_states.iter().map(|cs| cs.coin.coin_id()).collect(),
             })
+            .await
+            .ok();
+    }
+
+    for transaction_id in confirmed_transactions {
+        sync_sender
+            .send(SyncEvent::TransactionConfirmed { transaction_id })
             .await
             .ok();
     }

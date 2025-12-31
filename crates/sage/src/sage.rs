@@ -312,6 +312,12 @@ impl Sage {
                     "transaction_id": transaction_id.to_string()
                 }),
             ),
+            SyncEvent::TransactionConfirmed { transaction_id } => (
+                "transaction_confirmed",
+                serde_json::json!({
+                    "transaction_id": transaction_id.to_string()
+                }),
+            ),
             SyncEvent::TransactionFailed {
                 transaction_id,
                 error,
@@ -336,7 +342,7 @@ impl Sage {
                 (
                     "coins_updated",
                     serde_json::json!({
-                        "coin_ids": coin_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                        "coin_ids": coin_ids.iter().map(ToString::to_string).collect::<Vec<_>>()
                     }),
                 )
             }
@@ -344,7 +350,7 @@ impl Sage {
             SyncEvent::CatInfo { asset_ids } => (
                 "cat_info",
                 serde_json::json!({
-                    "asset_ids": asset_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                    "asset_ids": asset_ids.iter().map(ToString::to_string).collect::<Vec<_>>()
                 }),
             ),
             SyncEvent::DidInfo { launcher_id } => (
@@ -356,7 +362,7 @@ impl Sage {
             SyncEvent::NftData { launcher_ids } => (
                 "nft_data",
                 serde_json::json!({
-                    "launcher_ids": launcher_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                    "launcher_ids": launcher_ids.iter().map(ToString::to_string).collect::<Vec<_>>()
                 }),
             ),
             // Internal webhook notifications - do not send over webhooks

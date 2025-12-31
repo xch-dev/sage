@@ -16,6 +16,9 @@ pub enum SyncEvent {
     TransactionUpdated {
         transaction_id: Bytes32,
     },
+    TransactionConfirmed {
+        transaction_id: Bytes32,
+    },
     TransactionFailed {
         transaction_id: Bytes32,
         error: Option<String>,
