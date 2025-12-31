@@ -115,6 +115,9 @@ pub enum Error {
     #[error("Unknown fingerprint")]
     UnknownFingerprint,
 
+    #[error("Unknown webhook: {0}")]
+    UnknownWebhook(String),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -266,6 +269,7 @@ impl Error {
             | Self::Timeout(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
+            | Self::UnknownWebhook(..)
             | Self::MissingCoin(..)
             | Self::MissingCatCoin(..)
             | Self::MissingDidCoin(..)

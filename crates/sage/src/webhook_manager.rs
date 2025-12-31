@@ -17,7 +17,7 @@ type WebhookEntryTuple = (String, String, Option<Vec<String>>, bool, Option<Stri
 pub struct WebhookConfig {
     pub id: String,
     pub url: String,
-    /// None means "all events, including future ones"
+    /// None means "all events, including those not yet defined"
     pub events: Option<Vec<String>>,
     pub active: bool,
     pub secret: Option<String>,

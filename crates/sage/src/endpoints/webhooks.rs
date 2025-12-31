@@ -4,7 +4,7 @@ use sage_api::{
 };
 use sage_config::WebhookEntry;
 
-use crate::{Result, Sage};
+use crate::{Error, Result, Sage};
 
 impl Sage {
     pub async fn register_webhook(
@@ -25,9 +25,14 @@ impl Sage {
         &mut self,
         req: UnregisterWebhook,
     ) -> Result<UnregisterWebhookResponse> {
-        self.webhook_manager
+        let removed = self
+            .webhook_manager
             .unregister_webhook(&req.webhook_id)
             .await;
+
+        if !removed {
+            return Err(Error::UnknownWebhook(req.webhook_id));
+        }
 
         self.save_webhooks_config().await?;
 
@@ -53,9 +58,14 @@ impl Sage {
     }
 
     pub async fn update_webhook(&mut self, req: UpdateWebhook) -> Result<UpdateWebhookResponse> {
-        self.webhook_manager
+        let updated = self
+            .webhook_manager
             .update_webhook(&req.webhook_id, req.enabled)
             .await;
+
+        if !updated {
+            return Err(Error::UnknownWebhook(req.webhook_id));
+        }
 
         self.save_webhooks_config().await?;
 
