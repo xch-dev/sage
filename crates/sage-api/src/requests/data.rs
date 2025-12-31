@@ -315,6 +315,29 @@ pub struct GetTransactionsResponse {
     pub total: u32,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionById {
+    pub transaction_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct TransactionHistoryRecord {
+    pub transaction_id: String,
+    pub height: u32,
+    pub fee: Amount,
+    pub confirmed_at: u64,
+    pub input_coin_ids: Vec<String>,
+    pub output_coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetTransactionByIdResponse {
+    pub transaction: Option<TransactionHistoryRecord>,
+}
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetNftCollections {

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT coin_id, is_input\n        FROM transaction_history_coins\n        WHERE transaction_history_id = (SELECT id FROM transaction_history WHERE hash = ?)\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_input",
+        "ordinal": 1,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "603b847cf399d14db60cb5ec3e9af45505d6b0b3e431bd279cb6bdf8660893c9"
+}

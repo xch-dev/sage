@@ -160,6 +160,9 @@ pub enum Error {
     #[error("Invalid offer id: {0}")]
     InvalidOfferId(String),
 
+    #[error("Invalid transaction id: {0}")]
+    InvalidTransactionId(String),
+
     #[error("Invalid percentage: {0}")]
     InvalidPercentage(String),
 
@@ -300,6 +303,7 @@ impl Error {
             | Self::InvalidHash(..)
             | Self::InvalidAssetId(..)
             | Self::InvalidOfferId(..)
+            | Self::InvalidTransactionId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
             | Self::InvalidPublicKey(..)

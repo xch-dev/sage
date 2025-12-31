@@ -364,6 +364,9 @@ async getWebhooks(req: GetWebhooks) : Promise<GetWebhooksResponse> {
 },
 async updateWebhook(req: UpdateWebhook) : Promise<UpdateWebhookResponse> {
     return await TAURI_INVOKE("update_webhook", { req });
+},
+async getTransactionById(req: GetTransactionById) : Promise<GetTransactionByIdResponse> {
+    return await TAURI_INVOKE("get_transaction_by_id", { req });
 }
 }
 
@@ -494,6 +497,8 @@ export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins:
 export type GetToken = { asset_id: string | null }
 export type GetTokenResponse = { token: TokenRecord | null }
 export type GetTransaction = { height: number }
+export type GetTransactionById = { transaction_id: string }
+export type GetTransactionByIdResponse = { transaction: TransactionHistoryRecord | null }
 export type GetTransactionResponse = { transaction: TransactionRecord | null }
 export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
 export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
@@ -597,6 +602,7 @@ export type TakeOffer = { offer: string; fee: Amount; auto_submit?: boolean }
 export type TakeOfferResponse = { summary: TransactionSummary; spend_bundle: SpendBundleJson; transaction_id: string }
 export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; revocation_address: string | null }
 export type TransactionCoinRecord = { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind; asset: Asset }
+export type TransactionHistoryRecord = { transaction_id: string; height: number; fee: Amount; confirmed_at: number; input_coin_ids: string[]; output_coin_ids: string[] }
 export type TransactionInput = { coin_id: string; amount: Amount; address: string; asset: Asset | null; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type TransactionRecord = { height: number; timestamp: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }

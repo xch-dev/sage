@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT fee FROM mempool_items WHERE hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "fee",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "89b67bc2f03e7eeca58cfbf09c0cabb242c37bcc32fd09db167a425bbaddce35"
+}

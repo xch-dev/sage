@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::Arc, time::Duration};
+use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
 use sage_database::DatabaseTx;
@@ -216,7 +216,8 @@ pub async fn incremental_sync(
     command_sender: &mpsc::Sender<SyncCommand>,
 ) -> Result<(), WalletError> {
     let mut tx = wallet.db.tx().await?;
-    let mut confirmed_transactions = HashSet::new();
+    // Map transaction_id -> confirmation height
+    let mut confirmed_transactions: HashMap<Bytes32, u32> = HashMap::new();
 
     for &coin_state in &coin_states {
         if let Some(height) = coin_state.created_height {
@@ -241,20 +242,50 @@ pub async fn incremental_sync(
             .await?;
         }
 
-        confirmed_transactions.extend(
-            tx.mempool_items_for_output(coin_state.coin.coin_id())
-                .await?,
-        );
+        // For outputs, use created_height as confirmation height
+        if let Some(height) = coin_state.created_height {
+            for tx_id in tx
+                .mempool_items_for_output(coin_state.coin.coin_id())
+                .await?
+            {
+                confirmed_transactions.insert(tx_id, height);
+            }
+        }
 
-        if coin_state.spent_height.is_some() {
-            confirmed_transactions.extend(
-                tx.mempool_items_for_input(coin_state.coin.coin_id())
-                    .await?,
-            );
+        // For inputs, use spent_height as confirmation height
+        if let Some(height) = coin_state.spent_height {
+            for tx_id in tx
+                .mempool_items_for_input(coin_state.coin.coin_id())
+                .await?
+            {
+                confirmed_transactions.insert(tx_id, height);
+            }
         }
     }
 
-    for mempool_item_id in &confirmed_transactions {
+    // Persist transaction history before removing mempool items
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    for (&transaction_id, &height) in &confirmed_transactions {
+        // Get fee and coin_ids before deletion
+        let fee = tx.mempool_item_fee(transaction_id).await?.unwrap_or(0);
+        let coin_ids = tx.mempool_coin_ids(transaction_id).await?;
+
+        // Insert transaction history
+        tx.insert_transaction_history(transaction_id, height, fee, now)
+            .await?;
+
+        // Insert associated coins
+        for (coin_id, is_input) in coin_ids {
+            tx.insert_transaction_history_coin(transaction_id, coin_id, is_input)
+                .await?;
+        }
+    }
+
+    for mempool_item_id in confirmed_transactions.keys() {
         tx.remove_mempool_item(*mempool_item_id).await?;
     }
 
@@ -277,9 +308,12 @@ pub async fn incremental_sync(
             .ok();
     }
 
-    for transaction_id in confirmed_transactions {
+    for (transaction_id, height) in confirmed_transactions {
         sync_sender
-            .send(SyncEvent::TransactionConfirmed { transaction_id })
+            .send(SyncEvent::TransactionConfirmed {
+                transaction_id,
+                height,
+            })
             .await
             .ok();
     }

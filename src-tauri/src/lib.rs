@@ -143,6 +143,7 @@ pub fn run() {
             commands::unregister_webhook,
             commands::get_webhooks,
             commands::update_webhook,
+            commands::get_transaction_by_id,
         ])
         .events(collect_events![SyncEvent]);
 

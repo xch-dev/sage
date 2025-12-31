@@ -312,10 +312,14 @@ impl Sage {
                     "transaction_id": transaction_id.to_string()
                 }),
             ),
-            SyncEvent::TransactionConfirmed { transaction_id } => (
+            SyncEvent::TransactionConfirmed {
+                transaction_id,
+                height,
+            } => (
                 "transaction_confirmed",
                 serde_json::json!({
-                    "transaction_id": transaction_id.to_string()
+                    "transaction_id": transaction_id.to_string(),
+                    "height": height
                 }),
             ),
             SyncEvent::TransactionFailed {

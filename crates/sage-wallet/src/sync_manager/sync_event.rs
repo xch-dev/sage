@@ -18,6 +18,7 @@ pub enum SyncEvent {
     },
     TransactionConfirmed {
         transaction_id: Bytes32,
+        height: u32,
     },
     TransactionFailed {
         transaction_id: Bytes32,

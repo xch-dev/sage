@@ -100,5 +100,6 @@
   "register_webhook": true,
   "unregister_webhook": true,
   "get_webhooks": true,
-  "update_webhook": true
+  "update_webhook": true,
+  "get_transaction_by_id": true
 }

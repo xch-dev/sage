@@ -6,6 +6,7 @@ mod files;
 mod mempool_items;
 mod offers;
 mod p2_puzzles;
+mod transaction_history;
 mod transactions;
 
 pub use assets::*;
@@ -15,4 +16,5 @@ pub use files::*;
 pub use mempool_items::*;
 pub use offers::*;
 pub use p2_puzzles::*;
+pub use transaction_history::*;
 pub use transactions::*;

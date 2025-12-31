@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT OR IGNORE INTO transaction_history (hash, height, fee, confirmed_timestamp)\n        VALUES (?, ?, ?, ?)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "c733f2fa758291143cd5bff21af79d285eb7bf04591725d3f9893b473f4bc5de"
+}

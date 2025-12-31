@@ -22,12 +22,13 @@ use sage_api::{
     GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
     GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
     GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
-    GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse,
-    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType,
-    OptionRecord, OptionSortMode as ApiOptionSortMode, PendingTransactionRecord,
-    PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
-    TransactionCoinRecord, TransactionRecord,
+    GetTokenResponse, GetTransaction, GetTransactionById, GetTransactionByIdResponse,
+    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse, NftCollectionRecord, NftData,
+    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
+    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
+    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord,
+    TransactionHistoryRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
@@ -546,6 +547,42 @@ impl Sage {
             transactions,
             total,
         })
+    }
+
+    pub async fn get_transaction_by_id(
+        &self,
+        req: GetTransactionById,
+    ) -> Result<GetTransactionByIdResponse> {
+        let wallet = self.wallet()?;
+
+        let transaction_id: Bytes32 = hex::decode(&req.transaction_id)
+            .map_err(|_| Error::InvalidTransactionId(req.transaction_id.clone()))?
+            .try_into()
+            .map_err(|_| Error::InvalidTransactionId(req.transaction_id.clone()))?;
+
+        let history = wallet.db.transaction_history_by_id(transaction_id).await?;
+
+        let transaction = history.map(|h| {
+            let (input_coin_ids, output_coin_ids): (Vec<_>, Vec<_>) =
+                h.coins.into_iter().partition(|c| c.is_input);
+
+            TransactionHistoryRecord {
+                transaction_id: hex::encode(h.hash),
+                height: h.height,
+                fee: Amount::u64(h.fee),
+                confirmed_at: h.confirmed_timestamp,
+                input_coin_ids: input_coin_ids
+                    .into_iter()
+                    .map(|c| hex::encode(c.coin_id))
+                    .collect(),
+                output_coin_ids: output_coin_ids
+                    .into_iter()
+                    .map(|c| hex::encode(c.coin_id))
+                    .collect(),
+            }
+        });
+
+        Ok(GetTransactionByIdResponse { transaction })
     }
 
     pub async fn get_nft_collections(
