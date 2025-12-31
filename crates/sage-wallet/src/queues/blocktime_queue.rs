@@ -71,7 +71,7 @@ impl BlockTimeQueue {
 
         self.sync_sender
             .send(SyncEvent::CoinsUpdated {
-                coin_states: Vec::new(),
+                coin_ids: Vec::new(),
             })
             .await
             .ok();

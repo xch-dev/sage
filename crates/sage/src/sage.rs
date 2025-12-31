@@ -329,20 +329,17 @@ impl Sage {
                     "status": format!("{:?}", status)
                 }),
             ),
-            SyncEvent::CoinsUpdated { coin_states } => (
-                "coins_updated",
-                serde_json::json!({
-                    "coin_states": coin_states.iter().map(|cs| {
-                        serde_json::json!({
-                            "coin_id": cs.coin_id.to_string(),
-                            "puzzle_hash": cs.puzzle_hash.to_string(),
-                            "amount": cs.amount,
-                            "created_height": cs.created_height,
-                            "spent_height": cs.spent_height,
-                        })
-                    }).collect::<Vec<_>>()
-                }),
-            ),
+            SyncEvent::CoinsUpdated { coin_ids } => {
+                if coin_ids.is_empty() {
+                    return;
+                }
+                (
+                    "coins_updated",
+                    serde_json::json!({
+                        "coin_ids": coin_ids.iter().map(|id| id.to_string()).collect::<Vec<_>>()
+                    }),
+                )
+            }
             SyncEvent::PuzzleBatchSynced => ("puzzle_batch_synced", serde_json::json!({})),
             SyncEvent::CatInfo { asset_ids } => (
                 "cat_info",

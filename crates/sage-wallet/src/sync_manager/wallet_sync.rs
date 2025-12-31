@@ -10,7 +10,7 @@ use tracing::{info, warn};
 
 use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
 
-use super::{CoinStateInfo, PeerState, SyncEvent};
+use super::{PeerState, SyncEvent};
 
 pub async fn sync_wallet(
     wallet: Arc<Wallet>,
@@ -271,10 +271,7 @@ pub async fn incremental_sync(
     if !coin_states.is_empty() {
         sync_sender
             .send(SyncEvent::CoinsUpdated {
-                coin_states: coin_states
-                    .iter()
-                    .map(CoinStateInfo::from_coin_state)
-                    .collect(),
+                coin_ids: coin_states.iter().map(|cs| cs.coin.coin_id()).collect(),
             })
             .await
             .ok();
