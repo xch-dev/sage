@@ -1610,6 +1610,7 @@ function WebhooksSettings() {
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadWebhooks = useCallback(() => {
     setLoading(true);
@@ -1632,6 +1633,20 @@ function WebhooksSettings() {
         })
         .catch(addError)
         .finally(() => setUpdatingId(null));
+    },
+    [addError, loadWebhooks],
+  );
+
+  const handleDelete = useCallback(
+    (webhookId: string) => {
+      setDeletingId(webhookId);
+      commands
+        .unregisterWebhook({ webhook_id: webhookId })
+        .then(() => {
+          loadWebhooks();
+        })
+        .catch(addError)
+        .finally(() => setDeletingId(null));
     },
     [addError, loadWebhooks],
   );
@@ -1733,11 +1748,24 @@ function WebhooksSettings() {
                 </div>
                 <Switch
                   checked={webhook.enabled}
-                  disabled={updatingId === webhook.id}
+                  disabled={updatingId === webhook.id || deletingId === webhook.id}
                   onCheckedChange={(checked) =>
                     handleToggle(webhook.id, checked)
                   }
                 />
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                  disabled={deletingId === webhook.id}
+                  onClick={() => handleDelete(webhook.id)}
+                >
+                  {deletingId === webhook.id ? (
+                    <LoaderCircleIcon className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <TrashIcon className='h-4 w-4' />
+                  )}
+                </Button>
               </div>
 
               {/* URL */}
