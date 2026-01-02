@@ -56,6 +56,7 @@ pub struct CoinRow {
     pub spent_height: Option<u32>,
     pub created_timestamp: Option<u64>,
     pub spent_timestamp: Option<u64>,
+    pub asset_hash: Option<Bytes32>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -576,7 +577,8 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
        SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
-        FROM wallet_coins
+            assets.hash AS asset_hash
+        FROM wallet_coins LEFT JOIN assets ON assets.id = asset_id
         WHERE coin_hash IN (",
     );
     let mut separated = query.separated(", ");
@@ -612,6 +614,10 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
                 spent_height: row.get::<Option<u32>, _>("spent_height"),
                 created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
                 spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
+                asset_hash: row
+                    .get::<Option<Vec<u8>>, _>("asset_hash")
+                    .map(Convert::convert)
+                    .transpose()?,
             })
         })
         .collect::<Result<Vec<_>>>()?;
@@ -643,8 +649,10 @@ async fn coin_records(
             spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
             clawback_expiration_seconds AS clawback_timestamp,
+            assets.hash AS asset_hash,
             COUNT(*) OVER () AS total_count
         FROM {table}
+        LEFT JOIN assets ON assets.id = asset_id
         ",
     ));
 
@@ -713,6 +721,10 @@ async fn coin_records(
                 spent_timestamp: row
                     .get::<Option<i64>, _>("spent_timestamp")
                     .map(TryInto::try_into)
+                    .transpose()?,
+                asset_hash: row
+                    .get::<Option<Vec<u8>>, _>("asset_hash")
+                    .map(Convert::convert)
                     .transpose()?,
             })
         })

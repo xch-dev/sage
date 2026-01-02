@@ -76,7 +76,7 @@ impl Database {
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?',
                 asset_hidden_puzzle_hash
             FROM wallet_nfts
-            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id
+            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id            
             WHERE wallet_nfts.asset_hash = ?
             ",
             hash
@@ -84,9 +84,10 @@ impl Database {
         .fetch_optional(&self.pool)
         .await?
         .map(|row| {
+            let asset_hash = row.asset_hash.convert()?;
             Ok(NftRow {
                 asset: Asset {
-                    hash: row.asset_hash.convert()?,
+                    hash: asset_hash,
                     name: row.asset_name,
                     ticker: row.asset_ticker,
                     precision: row.asset_precision.convert()?,
@@ -127,6 +128,7 @@ impl Database {
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
                     spent_timestamp: row.spent_timestamp.convert()?,
+                    asset_hash: Some(asset_hash),
                 },
             })
         })
@@ -154,8 +156,10 @@ impl Database {
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
                 created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS clawback_timestamp, COUNT(*) OVER() as total_count
+                assets.hash AS asset_hash
             FROM owned_nfts
             LEFT JOIN collections ON collections.id = owned_nfts.collection_id
+            LEFT JOIN assets ON assets.id = owned_nfts.asset_id
             WHERE 1=1
             ",
         );
@@ -278,6 +282,7 @@ impl Database {
                             .get::<Option<i64>, _>("created_timestamp")
                             .convert()?,
                         spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
+                        asset_hash: row.get::<Option<Vec<u8>>, _>("asset_hash").convert()?,
                     },
                 })
             })
