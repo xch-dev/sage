@@ -1635,6 +1635,7 @@ function DeviceKeysSettings() {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [keyToDelete, setKeyToDelete] = useState<KeyInfo | null>(null);
   const [pending, setPending] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const schema = z.object({
     name: z
@@ -1667,12 +1668,28 @@ function DeviceKeysSettings() {
   const handleCreate = async (values: z.infer<typeof schema>) => {
     try {
       setPending(true);
+      setCreateError(null);
       await createKey(values.name, values.authMode);
       setIsCreateOpen(false);
       form.reset();
       await refreshKeys();
     } catch (error) {
-      addError(error);
+      // Extract error message from various error formats
+      let errorMessage = 'Failed to create key';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      } else if (error && typeof error === 'object') {
+        if ('message' in error) {
+          errorMessage = String((error as { message: unknown }).message);
+        } else if ('reason' in error) {
+          errorMessage = String((error as { reason: unknown }).reason);
+        }
+      }
+      
+      setCreateError(errorMessage);
     } finally {
       setPending(false);
     }
@@ -1824,7 +1841,16 @@ function DeviceKeysSettings() {
         </SettingItem>
       </SettingsSection>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      <Dialog
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) {
+            setCreateError(null);
+            form.reset();
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -1842,6 +1868,11 @@ function DeviceKeysSettings() {
               onSubmit={form.handleSubmit(handleCreate)}
               className='space-y-4'
             >
+              {createError && (
+                <div className='rounded-md bg-destructive/10 p-3 text-sm text-destructive'>
+                  {createError}
+                </div>
+              )}
               <FormField
                 control={form.control}
                 name='name'
