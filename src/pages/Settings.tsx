@@ -1621,8 +1621,15 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
 function DeviceKeysSettings() {
   const { addError } = useErrors();
-  const { isSupported, keys, isLoading, createKey, deleteKey, refreshKeys } =
-    useSecureElement();
+  const {
+    isSupported,
+    canEnforceBiometricOnly,
+    keys,
+    isLoading,
+    createKey,
+    deleteKey,
+    refreshKeys,
+  } = useSecureElement();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
@@ -1634,7 +1641,9 @@ function DeviceKeysSettings() {
       .string()
       .min(1, t`Key name is required`)
       .max(100, t`Key name must be less than 100 characters`),
-    authMode: z.enum(['none', 'pinOrBiometric', 'biometricOnly']),
+    authMode: canEnforceBiometricOnly
+      ? z.enum(['none', 'pinOrBiometric', 'biometricOnly'])
+      : z.enum(['none', 'pinOrBiometric']),
   });
 
   const form = useForm<z.infer<typeof schema>>({
@@ -1663,7 +1672,7 @@ function DeviceKeysSettings() {
       form.reset();
       await refreshKeys();
     } catch (error) {
-      addError(error as CustomError);
+      addError(error);
     } finally {
       setPending(false);
     }
@@ -1682,7 +1691,7 @@ function DeviceKeysSettings() {
       await refreshKeys();
       setKeyToDelete(null);
     } catch (error) {
-      addError(error as CustomError);
+      addError(error);
     } finally {
       setIsDeleting(null);
     }
@@ -1878,9 +1887,11 @@ function DeviceKeysSettings() {
                         <SelectItem value='pinOrBiometric'>
                           <Trans>PIN or Biometric</Trans>
                         </SelectItem>
-                        <SelectItem value='biometricOnly'>
-                          <Trans>Biometric Only</Trans>
-                        </SelectItem>
+                        {canEnforceBiometricOnly && (
+                          <SelectItem value='biometricOnly'>
+                            <Trans>Biometric Only</Trans>
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

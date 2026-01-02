@@ -17,6 +17,7 @@ export type AuthenticationMode = 'none' | 'pinOrBiometric' | 'biometricOnly';
 
 export interface SecureElementContextType {
   isSupported: boolean;
+  canEnforceBiometricOnly: boolean;
   keys: KeyInfo[];
   selectedKey: KeyInfo | null;
   isLoading: boolean;
@@ -33,6 +34,7 @@ export const SecureElementContext = createContext<
 
 export function SecureElementProvider({ children }: { children: ReactNode }) {
   const [isSupported, setIsSupported] = useState(false);
+  const [canEnforceBiometricOnly, setCanEnforceBiometricOnly] = useState(false);
   const [keys, setKeys] = useState<KeyInfo[]>([]);
   const [selectedKey, setSelectedKey] = useState<KeyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,7 +52,7 @@ export function SecureElementProvider({ children }: { children: ReactNode }) {
         const supported =
           support.secureElementSupported || support.teeSupported;
         setIsSupported(supported);
-
+        setCanEnforceBiometricOnly(support.canEnforceBiometricOnly);
         // Load keys if supported
         if (supported) {
           const keyList = await listKeys();
@@ -189,6 +191,7 @@ export function SecureElementProvider({ children }: { children: ReactNode }) {
     <SecureElementContext.Provider
       value={{
         isSupported,
+        canEnforceBiometricOnly,
         keys,
         selectedKey,
         isLoading,

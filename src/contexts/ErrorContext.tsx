@@ -17,7 +17,49 @@ export interface CustomError {
 
 export interface ErrorContextType {
   errors: CustomError[];
-  addError: (error: CustomError) => void;
+  addError: (error: CustomError | unknown) => void;
+}
+
+export function toCustomError(error: unknown): CustomError {
+  // If it's already a CustomError, return as-is
+  if (
+    error &&
+    typeof error === 'object' &&
+    'kind' in error &&
+    'reason' in error
+  ) {
+    return error as CustomError;
+  }
+
+  // If it's a standard Error object
+  if (error instanceof Error) {
+    return {
+      kind: 'internal',
+      reason: error.message || 'An error occurred',
+    };
+  }
+
+  // If it's a string
+  if (typeof error === 'string') {
+    return {
+      kind: 'internal',
+      reason: error,
+    };
+  }
+
+  // Check for objects with a message property (common in many error types)
+  if (error && typeof error === 'object' && 'message' in error) {
+    return {
+      kind: 'internal',
+      reason: String((error as { message: unknown }).message),
+    };
+  }
+
+  // Fallback for unknown error types
+  return {
+    kind: 'internal',
+    reason: 'An unknown error occurred',
+  };
 }
 
 export const ErrorContext = createContext<ErrorContextType | undefined>(
@@ -27,8 +69,9 @@ export const ErrorContext = createContext<ErrorContextType | undefined>(
 export function ErrorProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<CustomError[]>([]);
 
-  const addError = useCallback((error: CustomError) => {
-    setErrors((prevErrors) => [...prevErrors, error]);
+  const addError = useCallback((error: CustomError | unknown) => {
+    const customError = toCustomError(error);
+    setErrors((prevErrors) => [...prevErrors, customError]);
   }, []);
 
   return (

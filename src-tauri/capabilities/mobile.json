@@ -8,7 +8,6 @@
     "barcode-scanner:default",
     "biometric:default",
     "sage:default",
-    "sharesheet:allow-share-text",
-    "secure-element:default"
+    "sharesheet:allow-share-text"
   ]
 }
