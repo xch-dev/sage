@@ -137,6 +137,9 @@ async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCo
 async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
     return await TAURI_INVOKE("get_coins_by_ids", { req });
 },
+async getAssetsByIds(req: GetAssetsByIds) : Promise<GetAssetsByIdsResponse> {
+    return await TAURI_INVOKE("get_assets_by_ids", { req });
+},
 async getCoins(req: GetCoins) : Promise<GetCoinsResponse> {
     return await TAURI_INVOKE("get_coins", { req });
 },
@@ -439,6 +442,8 @@ export type GetAllCatsResponse = { cats: TokenRecord[] }
 export type GetAreCoinsSpendable = { coin_ids: string[] }
 export type GetAreCoinsSpendableResponse = { spendable: boolean }
 export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
+export type GetAssetsByIds = { asset_ids: string[] }
+export type GetAssetsByIdsResponse = { assets: Asset[] }
 export type GetCats = Record<string, never>
 export type GetCatsResponse = { cats: TokenRecord[] }
 export type GetCoins = { asset_id?: string | null; offset: number; limit: number; sort_mode?: CoinSortMode; filter_mode?: CoinFilterMode; ascending?: boolean }

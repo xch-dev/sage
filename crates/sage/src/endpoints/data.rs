@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
-    Error, Result, Sage,
+    address_kind, encode_asset_kind, parse_asset_id, parse_collection_id, parse_did_id,
+    parse_nft_id, parse_option_id, Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -13,16 +13,16 @@ use clvmr::Allocator;
 use sage_api::{
     Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
-    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCats, GetCatsResponse, GetCoins,
-    GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDatabaseStats,
-    GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
-    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
-    GetTokenResponse, GetTransaction, GetTransactionById, GetTransactionByIdResponse,
+    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetAssetsByIds, GetAssetsByIdsResponse,
+    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
+    GetDatabaseStats, GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids,
+    GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
+    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
+    GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
+    GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetOption, GetOptionResponse, GetOptions,
+    GetOptionsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
+    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetToken, GetTokenResponse, GetTransaction, GetTransactionById, GetTransactionByIdResponse,
     GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
     GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse, NftCollectionRecord, NftData,
     NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
@@ -260,6 +260,30 @@ impl Sage {
         }
 
         Ok(GetCoinsResponse { coins, total })
+    }
+
+    pub async fn get_assets_by_ids(&self, req: GetAssetsByIds) -> Result<GetAssetsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.assets_by_ids(&req.asset_ids).await?;
+        let mut assets = Vec::new();
+        for row in rows {
+            assets.push(sage_api::Asset {
+                asset_id: Some(hex::encode(row.hash)),
+                name: row.name,
+                ticker: row.ticker,
+                precision: row.precision,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_sensitive_content: row.is_sensitive_content,
+                is_visible: row.is_visible,
+                revocation_address: row
+                    .hidden_puzzle_hash
+                    .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
+                    .transpose()?,
+                kind: encode_asset_kind(row.kind),
+            });
+        }
+        Ok(GetAssetsByIdsResponse { assets })
     }
 
     pub async fn get_all_cats(&self, _req: GetAllCats) -> Result<GetAllCatsResponse> {
