@@ -1748,7 +1748,9 @@ function WebhooksSettings() {
                 </div>
                 <Switch
                   checked={webhook.enabled}
-                  disabled={updatingId === webhook.id || deletingId === webhook.id}
+                  disabled={
+                    updatingId === webhook.id || deletingId === webhook.id
+                  }
                   onCheckedChange={(checked) =>
                     handleToggle(webhook.id, checked)
                   }

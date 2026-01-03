@@ -180,6 +180,18 @@ pub struct GetCoinsByIdsResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftsByIds {
+    pub launcher_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+pub struct GetNftsByIdsResponse {
+    pub nfts: Vec<NftRecord>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
 pub struct GetAssetsByIds {
     pub asset_ids: Vec<String>,
 }

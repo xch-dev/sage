@@ -137,6 +137,9 @@ async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCo
 async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
     return await TAURI_INVOKE("get_coins_by_ids", { req });
 },
+async getNftsByIds(req: GetNftsByIds) : Promise<GetNftsByIdsResponse> {
+    return await TAURI_INVOKE("get_nfts_by_ids", { req });
+},
 async getAssetsByIds(req: GetAssetsByIds) : Promise<GetAssetsByIdsResponse> {
     return await TAURI_INVOKE("get_assets_by_ids", { req });
 },
@@ -478,6 +481,8 @@ export type GetNftResponse = { nft: NftRecord | null }
 export type GetNftThumbnail = { nft_id: string }
 export type GetNftThumbnailResponse = { thumbnail: string | null }
 export type GetNfts = { collection_id?: string | null; minter_did_id?: string | null; owner_did_id?: string | null; name?: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+export type GetNftsByIds = { launcher_ids: string[] }
+export type GetNftsByIdsResponse = { nfts: NftRecord[] }
 export type GetNftsResponse = { nfts: NftRecord[]; total: number }
 export type GetOffer = { offer_id: string }
 export type GetOfferResponse = { offer: OfferRecord }

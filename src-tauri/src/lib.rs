@@ -67,6 +67,7 @@ pub fn run() {
             commands::get_are_coins_spendable,
             commands::get_spendable_coin_count,
             commands::get_coins_by_ids,
+            commands::get_nfts_by_ids,
             commands::get_assets_by_ids,
             commands::get_coins,
             commands::get_cats,

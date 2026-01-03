@@ -19,16 +19,16 @@ use sage_api::{
     GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
     GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
     GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
-    GetNftThumbnailResponse, GetNfts, GetNftsResponse, GetOption, GetOptionResponse, GetOptions,
-    GetOptionsResponse, GetPendingTransactions, GetPendingTransactionsResponse,
-    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
-    GetToken, GetTokenResponse, GetTransaction, GetTransactionById, GetTransactionByIdResponse,
-    GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
-    GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse, NftCollectionRecord, NftData,
-    NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType, OptionRecord,
-    OptionSortMode as ApiOptionSortMode, PendingTransactionRecord, PerformDatabaseMaintenance,
-    PerformDatabaseMaintenanceResponse, TokenRecord, TransactionCoinRecord,
-    TransactionHistoryRecord, TransactionRecord,
+    GetNftThumbnailResponse, GetNfts, GetNftsByIds, GetNftsByIdsResponse, GetNftsResponse,
+    GetOption, GetOptionResponse, GetOptions, GetOptionsResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
+    GetSyncStatus, GetSyncStatusResponse, GetToken, GetTokenResponse, GetTransaction,
+    GetTransactionById, GetTransactionByIdResponse, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse,
+    NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType,
+    OptionRecord, OptionSortMode as ApiOptionSortMode, PendingTransactionRecord,
+    PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
+    TransactionCoinRecord, TransactionHistoryRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
@@ -314,6 +314,16 @@ impl Sage {
         }
 
         Ok(GetAllCatsResponse { cats: records })
+    }
+
+    pub async fn get_nfts_by_ids(&self, req: GetNftsByIds) -> Result<GetNftsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.nfts_by_ids(&req.launcher_ids).await?;
+        let mut nfts = Vec::new();
+        for row in rows {
+            nfts.push(self.nft_record(row)?);
+        }
+        Ok(GetNftsByIdsResponse { nfts })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {

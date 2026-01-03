@@ -20,6 +20,7 @@
   "get_are_coins_spendable": true,
   "get_spendable_coin_count": true,
   "get_coins_by_ids": true,
+  "get_nfts_by_ids": true,
   "get_assets_by_ids": true,
   "get_coins": true,
   "get_cats": true,
