@@ -181,7 +181,6 @@ impl WebhookManager {
         event_sender: Option<mpsc::Sender<SyncEvent>>,
     ) {
         const MAX_RETRIES: u32 = 3;
-        const MAX_CONSECUTIVE_FAILURES: u32 = 5;
 
         for attempt in 0..MAX_RETRIES {
             let now = chrono::Utc::now().timestamp();
@@ -229,17 +228,14 @@ impl WebhookManager {
             }
         }
 
-        // All retries exhausted - increment failure count and potentially disable
+        // All retries exhausted - increment failure count for monitoring
         let mut webhooks_lock = webhooks.write().await;
         if let Some(w) = webhooks_lock.get_mut(&webhook.id) {
             w.consecutive_failures += 1;
-            if w.consecutive_failures >= MAX_CONSECUTIVE_FAILURES {
-                w.active = false;
-                warn!(
-                    "Webhook {} auto-disabled after {} consecutive failures",
-                    webhook.url, w.consecutive_failures
-                );
-            }
+            warn!(
+                "Webhook {} failed after {} retries (total consecutive failures: {})",
+                webhook.url, MAX_RETRIES, w.consecutive_failures
+            );
         }
 
         if let Some(sender) = &event_sender {

@@ -1706,13 +1706,8 @@ function WebhooksSettings() {
         // Determine status color and label
         let statusColor = 'bg-gray-400';
         let statusLabel = <Trans>Disabled</Trans>;
-        const failures = webhook.consecutive_failures ?? 0;
 
-        if (!webhook.enabled && failures >= 5) {
-          // Auto-disabled due to consecutive failures
-          statusColor = 'bg-red-500';
-          statusLabel = <Trans>Auto-disabled</Trans>;
-        } else if (webhook.enabled) {
+        if (webhook.enabled) {
           // Check health based on delivery attempts
           if (
             webhook.last_delivered_at === null &&
@@ -1843,15 +1838,8 @@ function WebhooksSettings() {
                       <Label className='text-xs text-muted-foreground'>
                         <Trans>Consecutive Failures</Trans>
                       </Label>
-                      <div
-                        className={`text-xs mt-0.5 ${failures >= 5 ? 'text-red-500 font-medium' : 'text-muted-foreground'}`}
-                      >
+                      <div className='text-xs mt-0.5 text-muted-foreground'>
                         {failures}
-                        {failures >= 5 && (
-                          <span className='ml-1'>
-                            (<Trans>auto-disabled at 5</Trans>)
-                          </span>
-                        )}
                       </div>
                     </div>
                   )}
