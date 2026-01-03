@@ -156,7 +156,6 @@ impl Database {
                 parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
                 created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
                 clawback_expiration_seconds AS clawback_timestamp, COUNT(*) OVER() as total_count
-                assets.hash AS asset_hash
             FROM owned_nfts
             LEFT JOIN collections ON collections.id = owned_nfts.collection_id
             LEFT JOIN assets ON assets.id = owned_nfts.asset_id
@@ -224,9 +223,10 @@ impl Database {
         let nfts = rows
             .into_iter()
             .map(|row| {
+                let asset_hash = row.get::<Vec<u8>, _>("asset_hash").convert()?;
                 Ok(NftRow {
                     asset: Asset {
-                        hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
+                        hash: asset_hash,
                         name: row.get::<Option<String>, _>("asset_name"),
                         ticker: row.get::<Option<String>, _>("asset_ticker"),
                         precision: row.get::<i64, _>("asset_precision").convert()?,
@@ -282,7 +282,7 @@ impl Database {
                             .get::<Option<i64>, _>("created_timestamp")
                             .convert()?,
                         spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
-                        asset_hash: row.get::<Option<Vec<u8>>, _>("asset_hash").convert()?,
+                        asset_hash: Some(asset_hash),
                     },
                 })
             })

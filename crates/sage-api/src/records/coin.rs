@@ -15,4 +15,5 @@ pub struct CoinRecord {
     pub spent_height: Option<u32>,
     pub spent_timestamp: Option<u64>,
     pub created_timestamp: Option<u64>,
+    pub asset_hash: Option<String>,
 }

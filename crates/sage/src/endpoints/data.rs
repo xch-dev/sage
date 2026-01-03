@@ -205,6 +205,7 @@ impl Sage {
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
+                asset_hash: row.asset_hash.map(hex::encode),
             });
         }
         Ok(GetCoinsByIdsResponse { coins })
@@ -256,6 +257,7 @@ impl Sage {
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
+                asset_hash: row.asset_hash.map(hex::encode),
             });
         }
 

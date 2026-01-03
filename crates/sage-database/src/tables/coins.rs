@@ -576,7 +576,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
         "
        SELECT
             parent_coin_hash, puzzle_hash, amount, spent_height, created_height, p2_puzzle_hash,
-            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp
+            mempool_item_hash, offer_hash, created_timestamp, spent_timestamp, clawback_expiration_seconds AS clawback_timestamp,
             assets.hash AS asset_hash
         FROM wallet_coins LEFT JOIN assets ON assets.id = asset_id
         WHERE coin_hash IN (",
@@ -648,8 +648,7 @@ async fn coin_records(
             parent_coin_hash, puzzle_hash, amount,
             spent_height, created_height, p2_puzzle_hash,
             mempool_item_hash, offer_hash, created_timestamp, spent_timestamp,
-            clawback_expiration_seconds AS clawback_timestamp,
-            assets.hash AS asset_hash,
+            clawback_expiration_seconds AS clawback_timestamp, assets.hash AS asset_hash,            
             COUNT(*) OVER () AS total_count
         FROM {table}
         LEFT JOIN assets ON assets.id = asset_id
