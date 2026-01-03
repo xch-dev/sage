@@ -16,12 +16,13 @@ workspace = true
 
 [features]
 tauri = ["dep:tauri-specta", "dep:specta"]
-openapi = ["dep:utoipa", "dep:sage-api-macro"]
+openapi = ["dep:utoipa", "dep:sage-api-macro", "sage-config/openapi"]
 
 [dependencies]
 sage-config = { workspace = true }
 sage-api-macro = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 tauri-specta = { workspace = true, features = ["derive"], optional = true }
 specta = { workspace = true, features = ["derive", "bigdecimal"], optional = true }
 utoipa = { workspace = true, optional = true }

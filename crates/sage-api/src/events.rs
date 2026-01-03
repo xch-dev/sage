@@ -19,4 +19,6 @@ pub enum SyncEvent {
     CatInfo,
     DidInfo,
     NftData,
+    WebhooksChanged,
+    WebhookInvoked,
 }

@@ -244,7 +244,7 @@ impl TestWallet {
     }
 
     pub async fn wait_for_coins(&mut self) {
-        self.consume_until(|event| matches!(event, SyncEvent::CoinsUpdated))
+        self.consume_until(|event| matches!(event, SyncEvent::CoinsUpdated { .. }))
             .await;
     }
 

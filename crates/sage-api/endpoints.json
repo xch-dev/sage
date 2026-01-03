@@ -20,6 +20,8 @@
   "get_are_coins_spendable": true,
   "get_spendable_coin_count": true,
   "get_coins_by_ids": true,
+  "get_nfts_by_ids": true,
+  "get_assets_by_ids": true,
   "get_coins": true,
   "get_cats": true,
   "get_all_cats": true,
@@ -97,5 +99,10 @@
   "update_nft_collection": true,
   "redownload_nft": true,
   "increase_derivation_index": true,
-  "is_asset_owned": true
+  "is_asset_owned": true,
+  "register_webhook": true,
+  "unregister_webhook": true,
+  "get_webhooks": true,
+  "update_webhook": true,
+  "get_transaction_by_id": true
 }

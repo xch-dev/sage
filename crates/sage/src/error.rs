@@ -115,6 +115,12 @@ pub enum Error {
     #[error("Unknown fingerprint")]
     UnknownFingerprint,
 
+    #[error("Unknown webhook: {0}")]
+    UnknownWebhook(String),
+
+    #[error("Invalid webhook URL: {0}")]
+    InvalidWebhookUrl(String),
+
     #[error("Not logged in")]
     NotLoggedIn,
 
@@ -153,6 +159,9 @@ pub enum Error {
 
     #[error("Invalid offer id: {0}")]
     InvalidOfferId(String),
+
+    #[error("Invalid transaction id: {0}")]
+    InvalidTransactionId(String),
 
     #[error("Invalid percentage: {0}")]
     InvalidPercentage(String),
@@ -266,6 +275,7 @@ impl Error {
             | Self::Timeout(..) => ErrorKind::Internal,
             Self::UnknownFingerprint
             | Self::UnknownNetwork
+            | Self::UnknownWebhook(..)
             | Self::MissingCoin(..)
             | Self::MissingCatCoin(..)
             | Self::MissingDidCoin(..)
@@ -293,6 +303,7 @@ impl Error {
             | Self::InvalidHash(..)
             | Self::InvalidAssetId(..)
             | Self::InvalidOfferId(..)
+            | Self::InvalidTransactionId(..)
             | Self::InvalidPercentage(..)
             | Self::InvalidSignature(..)
             | Self::InvalidPublicKey(..)
@@ -305,7 +316,8 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::InvalidWebhookUrl(..) => ErrorKind::Api,
         }
     }
 }

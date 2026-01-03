@@ -42,7 +42,10 @@ impl CatQueue {
 
         let mut tx = self.db.tx().await?;
 
+        let mut asset_ids = Vec::with_capacity(cats.len());
+
         for cat in cats {
+            asset_ids.push(cat.hash);
             tx.insert_asset(Asset {
                 hash: cat.hash,
                 name: cat.name,
@@ -60,7 +63,10 @@ impl CatQueue {
 
         tx.commit().await?;
 
-        self.sync_sender.send(SyncEvent::CatInfo).await.ok();
+        self.sync_sender
+            .send(SyncEvent::CatInfo { asset_ids })
+            .await
+            .ok();
 
         Ok(())
     }

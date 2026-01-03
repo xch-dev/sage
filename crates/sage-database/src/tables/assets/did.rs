@@ -38,9 +38,10 @@ impl Database {
         .await?
         .into_iter()
         .map(|row| {
+            let asset_hash = row.asset_hash.convert()?;
             Ok(DidRow {
                 asset: Asset {
-                    hash: row.asset_hash.convert()?,
+                    hash: asset_hash,
                     name: row.asset_name,
                     ticker: row.asset_ticker,
                     precision: row.asset_precision.convert()?,
@@ -71,6 +72,7 @@ impl Database {
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
                     spent_timestamp: row.spent_timestamp.convert()?,
+                    asset_hash: Some(asset_hash),
                 },
             })
         })

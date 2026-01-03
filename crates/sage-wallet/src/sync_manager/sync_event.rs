@@ -10,9 +10,15 @@ pub enum SyncEvent {
     DerivationIndex {
         next_index: u32,
     },
-    CoinsUpdated,
+    CoinsUpdated {
+        coin_ids: Vec<Bytes32>,
+    },
     TransactionUpdated {
         transaction_id: Bytes32,
+    },
+    TransactionConfirmed {
+        transaction_id: Bytes32,
+        height: u32,
     },
     TransactionFailed {
         transaction_id: Bytes32,
@@ -23,7 +29,15 @@ pub enum SyncEvent {
         status: OfferStatus,
     },
     PuzzleBatchSynced,
-    CatInfo,
-    DidInfo,
-    NftData,
+    CatInfo {
+        asset_ids: Vec<Bytes32>,
+    },
+    DidInfo {
+        launcher_id: Bytes32,
+    },
+    NftData {
+        launcher_ids: Vec<Bytes32>,
+    },
+    WebhooksChanged,
+    WebhookInvoked,
 }

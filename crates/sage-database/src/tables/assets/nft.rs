@@ -1,5 +1,5 @@
 use chia::protocol::{Bytes32, Coin, Program};
-use sqlx::{query, Row};
+use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
 
@@ -60,6 +60,10 @@ pub struct NftOfferInfo {
 }
 
 impl Database {
+    pub async fn nfts_by_ids(&self, ids: &[String]) -> Result<Vec<NftRow>> {
+        nfts_by_ids(&self.pool, ids).await
+    }
+
     pub async fn wallet_nft(&self, hash: Bytes32) -> Result<Option<NftRow>> {
         let hash = hash.as_ref();
 
@@ -76,7 +80,7 @@ impl Database {
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp, clawback_expiration_seconds AS 'clawback_timestamp?',
                 asset_hidden_puzzle_hash
             FROM wallet_nfts
-            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id
+            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id            
             WHERE wallet_nfts.asset_hash = ?
             ",
             hash
@@ -84,9 +88,10 @@ impl Database {
         .fetch_optional(&self.pool)
         .await?
         .map(|row| {
+            let asset_hash = row.asset_hash.convert()?;
             Ok(NftRow {
                 asset: Asset {
-                    hash: row.asset_hash.convert()?,
+                    hash: asset_hash,
                     name: row.asset_name,
                     ticker: row.asset_ticker,
                     precision: row.asset_precision.convert()?,
@@ -127,6 +132,7 @@ impl Database {
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
                     spent_timestamp: row.spent_timestamp.convert()?,
+                    asset_hash: Some(asset_hash),
                 },
             })
         })
@@ -156,6 +162,7 @@ impl Database {
                 clawback_expiration_seconds AS clawback_timestamp, COUNT(*) OVER() as total_count
             FROM owned_nfts
             LEFT JOIN collections ON collections.id = owned_nfts.collection_id
+            LEFT JOIN assets ON assets.id = owned_nfts.asset_id
             WHERE 1=1
             ",
         );
@@ -220,9 +227,10 @@ impl Database {
         let nfts = rows
             .into_iter()
             .map(|row| {
+                let asset_hash = row.get::<Vec<u8>, _>("asset_hash").convert()?;
                 Ok(NftRow {
                     asset: Asset {
-                        hash: row.get::<Vec<u8>, _>("asset_hash").convert()?,
+                        hash: asset_hash,
                         name: row.get::<Option<String>, _>("asset_name"),
                         ticker: row.get::<Option<String>, _>("asset_ticker"),
                         precision: row.get::<i64, _>("asset_precision").convert()?,
@@ -278,6 +286,7 @@ impl Database {
                             .get::<Option<i64>, _>("created_timestamp")
                             .convert()?,
                         spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
+                        asset_hash: Some(asset_hash),
                     },
                 })
             })
@@ -514,4 +523,97 @@ impl DatabaseTx<'_> {
 
         Ok(())
     }
+}
+
+async fn nfts_by_ids(conn: impl SqliteExecutor<'_>, ids: &[String]) -> Result<Vec<NftRow>> {
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT        
+            asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,
+            asset_description, asset_is_sensitive_content, asset_hidden_puzzle_hash,
+            asset_is_visible AND (collections.id IS NULL OR collections.is_visible) as is_visible,
+            collections.hash AS collection_hash, collections.name AS collection_name, 
+            owned_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,
+            royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,                
+            parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, edition_number, edition_total,
+            created_height, spent_height, offer_hash, created_timestamp, spent_timestamp,
+            clawback_expiration_seconds AS clawback_timestamp, COUNT(*) OVER() as total_count
+        FROM owned_nfts
+        LEFT JOIN collections ON collections.id = owned_nfts.collection_id
+        LEFT JOIN assets ON assets.id = owned_nfts.asset_id
+        WHERE 1=1 AND asset_hash IN (",
+    );
+
+    let mut separated = query.separated(", ");
+
+    for id in ids {
+        separated.push(format!("X'{id}'"));
+    }
+    separated.push_unseparated(")");
+
+    let rows = query.build().fetch_all(conn).await?;
+
+    let nfts = rows
+        .into_iter()
+        .map(|row| {
+            let asset_hash = row.get::<Vec<u8>, _>("asset_hash").convert()?;
+            Ok(NftRow {
+                asset: Asset {
+                    hash: asset_hash,
+                    name: row.get::<Option<String>, _>("asset_name"),
+                    ticker: row.get::<Option<String>, _>("asset_ticker"),
+                    precision: row.get::<i64, _>("asset_precision").convert()?,
+                    icon_url: row.get::<Option<String>, _>("asset_icon_url"),
+                    description: row.get::<Option<String>, _>("asset_description"),
+                    is_visible: row.get::<bool, _>("is_visible"),
+                    is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
+                    hidden_puzzle_hash: row
+                        .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
+                        .convert()?,
+                    kind: AssetKind::Nft,
+                },
+                nft_info: NftCoinInfo {
+                    collection_hash: row
+                        .get::<Option<Vec<u8>>, _>("collection_hash")
+                        .convert()?
+                        .unwrap_or_default(),
+                    collection_name: row.get::<Option<String>, _>("collection_name"),
+                    minter_hash: row.get::<Option<Vec<u8>>, _>("minter_hash").convert()?,
+                    owner_hash: row.get::<Option<Vec<u8>>, _>("owner_hash").convert()?,
+                    metadata: row.get::<Vec<u8>, _>("metadata").into(),
+                    metadata_updater_puzzle_hash: row
+                        .get::<Vec<u8>, _>("metadata_updater_puzzle_hash")
+                        .convert()?,
+                    royalty_puzzle_hash: row.get::<Vec<u8>, _>("royalty_puzzle_hash").convert()?,
+                    royalty_basis_points: row.get::<i64, _>("royalty_basis_points").convert()?,
+                    data_hash: row.get::<Option<Vec<u8>>, _>("data_hash").convert()?,
+                    metadata_hash: row.get::<Option<Vec<u8>>, _>("metadata_hash").convert()?,
+                    license_hash: row.get::<Option<Vec<u8>>, _>("license_hash").convert()?,
+                    edition_number: row.get::<Option<i64>, _>("edition_number").convert()?,
+                    edition_total: row.get::<Option<i64>, _>("edition_total").convert()?,
+                },
+                coin_row: CoinRow {
+                    coin: Coin::new(
+                        row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
+                        row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
+                        row.get::<Vec<u8>, _>("amount").convert()?,
+                    ),
+                    p2_puzzle_hash: row.get::<Vec<u8>, _>("p2_puzzle_hash").convert()?,
+                    kind: CoinKind::Nft,
+                    mempool_item_hash: None,
+                    offer_hash: row.get::<Option<Vec<u8>>, _>("offer_hash").convert()?,
+                    clawback_timestamp: row
+                        .get::<Option<i64>, _>("clawback_timestamp")
+                        .convert()?,
+                    created_height: row.get::<Option<i64>, _>("created_height").convert()?,
+                    spent_height: row.get::<Option<i64>, _>("spent_height").convert()?,
+                    created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,
+                    spent_timestamp: row.get::<Option<i64>, _>("spent_timestamp").convert()?,
+                    asset_hash: Some(asset_hash),
+                },
+            })
+        })
+        .collect::<Result<Vec<NftRow>>>()?;
+
+    Ok(nfts)
 }

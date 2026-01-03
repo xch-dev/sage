@@ -8,6 +8,7 @@ pub struct Config {
     pub global: GlobalConfig,
     pub network: NetworkConfig,
     pub rpc: RpcConfig,
+    pub webhooks: WebhookConfig,
 }
 
 impl Default for Config {
@@ -17,6 +18,7 @@ impl Default for Config {
             global: GlobalConfig::default(),
             network: NetworkConfig::default(),
             rpc: RpcConfig::default(),
+            webhooks: WebhookConfig::default(),
         }
     }
 }
@@ -69,4 +71,27 @@ impl Default for RpcConfig {
             port: 9257,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize, Type)]
+#[serde(default)]
+pub struct WebhookConfig {
+    pub webhooks: Vec<WebhookEntry>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct WebhookEntry {
+    pub id: String,
+    pub url: String,
+    /// None means "all events, including future ones"
+    pub events: Option<Vec<String>>,
+    pub enabled: bool,
+    /// Optional secret for HMAC-SHA256 signature verification
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret: Option<String>,
+    pub last_delivered_at: Option<i64>,
+    pub last_delivery_attempt_at: Option<i64>,
+    #[serde(default)]
+    pub consecutive_failures: u32,
 }

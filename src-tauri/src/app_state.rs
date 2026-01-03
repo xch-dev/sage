@@ -30,13 +30,16 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                     error,
                 },
                 // TODO: New event?
-                SyncEvent::CoinsUpdated
+                SyncEvent::CoinsUpdated { .. }
                 | SyncEvent::TransactionUpdated { .. }
+                | SyncEvent::TransactionConfirmed { .. }
                 | SyncEvent::OfferUpdated { .. } => ApiEvent::CoinState,
                 SyncEvent::PuzzleBatchSynced => ApiEvent::PuzzleBatchSynced,
-                SyncEvent::CatInfo => ApiEvent::CatInfo,
-                SyncEvent::DidInfo => ApiEvent::DidInfo,
-                SyncEvent::NftData => ApiEvent::NftData,
+                SyncEvent::CatInfo { .. } => ApiEvent::CatInfo,
+                SyncEvent::DidInfo { .. } => ApiEvent::DidInfo,
+                SyncEvent::NftData { .. } => ApiEvent::NftData,
+                SyncEvent::WebhooksChanged => ApiEvent::WebhooksChanged,
+                SyncEvent::WebhookInvoked => ApiEvent::WebhookInvoked,
             };
             if app_handle.emit("sync-event", event).is_err() {
                 break;

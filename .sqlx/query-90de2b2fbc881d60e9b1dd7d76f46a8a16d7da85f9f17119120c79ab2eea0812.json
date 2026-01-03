@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT coins.hash AS coin_id, mempool_coins.is_input\n        FROM mempool_coins\n        INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id\n        INNER JOIN coins ON coins.id = mempool_coins.coin_id\n        WHERE mempool_items.hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "coin_id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_input",
+        "ordinal": 1,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "90de2b2fbc881d60e9b1dd7d76f46a8a16d7da85f9f17119120c79ab2eea0812"
+}

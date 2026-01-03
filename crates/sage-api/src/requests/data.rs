@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData, NftRecord,
-    OptionRecord, PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
+    Amount, Asset, CoinRecord, DerivationRecord, DidRecord, NftCollectionRecord, NftData,
+    NftRecord, OptionRecord, PendingTransactionRecord, TokenRecord, TransactionRecord, Unit,
 };
 
 /// Validate and check an address
@@ -360,6 +360,62 @@ pub struct GetCoinsByIdsResponse {
     pub coins: Vec<CoinRecord>,
 }
 
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "NFTs",
+        description = "Retrieve specific NFTs by their launcher IDs."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetNftsByIds {
+    pub launcher_ids: Vec<String>,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "NFTs",
+        description = "Retrieve specific NFTs by their launcher IDs."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetNftsByIdsResponse {
+    pub nfts: Vec<NftRecord>,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Assets",
+        description = "Retrieve specific assets by their asset IDs."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetAssetsByIds {
+    pub asset_ids: Vec<String>,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Assets",
+        description = "Retrieve specific assets by their asset IDs."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetAssetsByIdsResponse {
+    pub assets: Vec<Asset>,
+}
+
 /// Get all known CAT tokens
 #[cfg_attr(
     feature = "openapi",
@@ -658,6 +714,46 @@ pub struct GetTransactionsResponse {
     pub transactions: Vec<TransactionRecord>,
     /// Total number of transactions
     pub total: u32,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Transactions",
+        description = "Get detailed information about a specific transaction by ID."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetTransactionById {
+    pub transaction_id: String,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Transactions",
+        description = "Get detailed information about a specific transaction by ID."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct TransactionHistoryRecord {
+    pub transaction_id: String,
+    pub height: u32,
+    pub fee: Amount,
+    pub confirmed_at: u64,
+    pub input_coin_ids: Vec<String>,
+    pub output_coin_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetTransactionByIdResponse {
+    pub transaction: Option<TransactionHistoryRecord>,
 }
 
 /// List NFT collections

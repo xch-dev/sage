@@ -70,6 +70,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import {
   commands,
+  events,
   GetDatabaseStatsResponse,
   KeyInfo,
   LogFile,
@@ -78,6 +79,7 @@ import {
   PerformDatabaseMaintenanceResponse,
   Wallet,
   WalletDefaults,
+  WebhookEntry,
 } from '../bindings';
 
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
@@ -199,6 +201,7 @@ export default function Settings() {
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
                   {!isMobile && <RpcSettings />}
+                  <WebhooksSettings />
                   <LogViewer />
                 </div>
               </TabsContent>
@@ -1599,5 +1602,258 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function WebhooksSettings() {
+  const { addError } = useErrors();
+  const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const loadWebhooks = useCallback(() => {
+    setLoading(true);
+    commands
+      .getWebhooks({})
+      .then((response) => {
+        setWebhooks(response.webhooks);
+      })
+      .catch(addError)
+      .finally(() => setLoading(false));
+  }, [addError]);
+
+  const handleToggle = useCallback(
+    (webhookId: string, enabled: boolean) => {
+      setUpdatingId(webhookId);
+      commands
+        .updateWebhook({ webhook_id: webhookId, enabled })
+        .then(() => {
+          loadWebhooks();
+        })
+        .catch(addError)
+        .finally(() => setUpdatingId(null));
+    },
+    [addError, loadWebhooks],
+  );
+
+  const handleDelete = useCallback(
+    (webhookId: string) => {
+      setDeletingId(webhookId);
+      commands
+        .unregisterWebhook({ webhook_id: webhookId })
+        .then(() => {
+          loadWebhooks();
+        })
+        .catch(addError)
+        .finally(() => setDeletingId(null));
+    },
+    [addError, loadWebhooks],
+  );
+
+  useEffect(() => {
+    loadWebhooks();
+  }, [loadWebhooks]);
+
+  // Refresh webhooks when webhook-specific events occur
+  useEffect(() => {
+    const unlisten = events.syncEvent.listen((event) => {
+      // Only refresh on webhook-related events
+      if (
+        event.payload.type === 'webhooks_changed' ||
+        event.payload.type === 'webhook_invoked'
+      ) {
+        loadWebhooks();
+      }
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [loadWebhooks]);
+
+  if (loading) {
+    return (
+      <SettingsSection title={t`Webhooks`}>
+        <div className='p-4 flex items-center justify-center'>
+          <LoaderCircleIcon className='h-5 w-5 animate-spin text-muted-foreground' />
+        </div>
+      </SettingsSection>
+    );
+  }
+
+  if (webhooks.length === 0) {
+    return (
+      <SettingsSection title={t`Webhooks`}>
+        <div className='p-4 text-center'>
+          <div className='text-sm text-muted-foreground'>
+            <Trans>No webhooks registered</Trans>
+          </div>
+          <div className='text-xs text-muted-foreground mt-1'>
+            <Trans>
+              Register webhooks via the API to receive real-time notifications
+              about wallet events
+            </Trans>
+          </div>
+        </div>
+      </SettingsSection>
+    );
+  }
+
+  return (
+    <SettingsSection title={t`Webhooks`}>
+      {webhooks.map((webhook, index) => {
+        // Determine status color and label
+        let statusColor = 'bg-gray-400';
+        let statusLabel = <Trans>Disabled</Trans>;
+
+        if (webhook.enabled) {
+          // Check health based on delivery attempts
+          if (
+            webhook.last_delivered_at === null &&
+            webhook.last_delivery_attempt_at !== null
+          ) {
+            // Never successfully delivered, but attempts have been made
+            statusColor = 'bg-red-500';
+            statusLabel = <Trans>Failing</Trans>;
+          } else if (
+            webhook.last_delivery_attempt_at !== null &&
+            webhook.last_delivered_at !== null &&
+            webhook.last_delivery_attempt_at > webhook.last_delivered_at
+          ) {
+            // Most recent attempt failed
+            statusColor = 'bg-yellow-500';
+            statusLabel = <Trans>Warning</Trans>;
+          } else {
+            // Enabled and healthy
+            statusColor = 'bg-green-500';
+            statusLabel = <Trans>Enabled</Trans>;
+          }
+        }
+
+        return (
+          <div key={webhook.id} className='p-4'>
+            <div className='space-y-2'>
+              {/* Header with Status, ID, and Toggle */}
+              <div className='flex items-center gap-2'>
+                <div className={`h-2.5 w-2.5 rounded-full ${statusColor}`} />
+                <div className='font-medium text-sm'>{statusLabel}</div>
+                <div className='text-xs text-muted-foreground font-mono flex-1'>
+                  {webhook.id}
+                </div>
+                <Switch
+                  checked={webhook.enabled}
+                  disabled={
+                    updatingId === webhook.id || deletingId === webhook.id
+                  }
+                  onCheckedChange={(checked) =>
+                    handleToggle(webhook.id, checked)
+                  }
+                />
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-8 w-8 text-muted-foreground hover:text-destructive'
+                  disabled={deletingId === webhook.id}
+                  onClick={() => handleDelete(webhook.id)}
+                >
+                  {deletingId === webhook.id ? (
+                    <LoaderCircleIcon className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <TrashIcon className='h-4 w-4' />
+                  )}
+                </Button>
+              </div>
+
+              {/* URL */}
+              <div>
+                <Label className='text-xs text-muted-foreground'>
+                  <Trans>URL</Trans>
+                </Label>
+                <div className='text-xs break-all font-mono bg-muted px-1.5 py-0.5 rounded mt-0.5'>
+                  {webhook.url}
+                </div>
+              </div>
+
+              {/* Events */}
+              <div>
+                <Label className='text-xs text-muted-foreground'>
+                  <Trans>Events</Trans>
+                </Label>
+                <div className='text-xs mt-0.5'>
+                  {webhook.events === null ? (
+                    <span className='text-muted-foreground italic'>
+                      <Trans>All events</Trans>
+                    </span>
+                  ) : webhook.events.length === 0 ? (
+                    <span className='text-muted-foreground italic'>
+                      <Trans>No events</Trans>
+                    </span>
+                  ) : (
+                    <div className='flex flex-wrap gap-1'>
+                      {webhook.events.map((event) => (
+                        <span
+                          key={event}
+                          className='inline-flex items-center px-1.5 py-0.5 rounded-md bg-muted text-xs font-mono'
+                        >
+                          {event}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Delivery timestamps and failure count */}
+              {(webhook.last_delivered_at ||
+                webhook.last_delivery_attempt_at ||
+                failures > 0) && (
+                <div className='grid grid-cols-2 gap-2'>
+                  {webhook.last_delivered_at && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Last Delivered</Trans>
+                      </Label>
+                      <div className='text-xs text-muted-foreground mt-0.5'>
+                        {new Date(
+                          webhook.last_delivered_at * 1000,
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {webhook.last_delivery_attempt_at && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Last Attempt</Trans>
+                      </Label>
+                      <div className='text-xs text-muted-foreground mt-0.5'>
+                        {new Date(
+                          webhook.last_delivery_attempt_at * 1000,
+                        ).toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                  {failures > 0 && (
+                    <div>
+                      <Label className='text-xs text-muted-foreground'>
+                        <Trans>Consecutive Failures</Trans>
+                      </Label>
+                      <div className='text-xs mt-0.5 text-muted-foreground'>
+                        {failures}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Divider between webhooks, but not after the last one */}
+            {index < webhooks.length - 1 && (
+              <div className='mt-2 border-t border-border' />
+            )}
+          </div>
+        );
+      })}
+    </SettingsSection>
   );
 }

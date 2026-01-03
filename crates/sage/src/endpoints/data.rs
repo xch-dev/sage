@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
-    Error, Result, Sage,
+    address_kind, encode_asset_kind, parse_asset_id, parse_collection_id, parse_did_id,
+    parse_nft_id, parse_option_id, Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia::{
@@ -13,21 +13,22 @@ use clvmr::Allocator;
 use sage_api::{
     Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
-    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetCats, GetCatsResponse, GetCoins,
-    GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDatabaseStats,
-    GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids, GetDidsResponse,
-    GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection, GetNftCollectionResponse,
-    GetNftCollections, GetNftCollectionsResponse, GetNftData, GetNftDataResponse, GetNftIcon,
-    GetNftIconResponse, GetNftResponse, GetNftThumbnail, GetNftThumbnailResponse, GetNfts,
-    GetNftsResponse, GetOption, GetOptionResponse, GetOptions, GetOptionsResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSpendableCoinCount,
-    GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetToken,
-    GetTokenResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetAreCoinsSpendable, GetAreCoinsSpendableResponse, GetAssetsByIds, GetAssetsByIdsResponse,
+    GetCats, GetCatsResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse,
+    GetDatabaseStats, GetDatabaseStatsResponse, GetDerivations, GetDerivationsResponse, GetDids,
+    GetDidsResponse, GetMinterDidIds, GetMinterDidIdsResponse, GetNft, GetNftCollection,
+    GetNftCollectionResponse, GetNftCollections, GetNftCollectionsResponse, GetNftData,
+    GetNftDataResponse, GetNftIcon, GetNftIconResponse, GetNftResponse, GetNftThumbnail,
+    GetNftThumbnailResponse, GetNfts, GetNftsByIds, GetNftsByIdsResponse, GetNftsResponse,
+    GetOption, GetOptionResponse, GetOptions, GetOptionsResponse, GetPendingTransactions,
+    GetPendingTransactionsResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse,
+    GetSyncStatus, GetSyncStatusResponse, GetToken, GetTokenResponse, GetTransaction,
+    GetTransactionById, GetTransactionByIdResponse, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, IsAssetOwned, IsAssetOwnedResponse,
     NftCollectionRecord, NftData, NftRecord, NftSortMode as ApiNftSortMode, NftSpecialUseType,
     OptionRecord, OptionSortMode as ApiOptionSortMode, PendingTransactionRecord,
     PerformDatabaseMaintenance, PerformDatabaseMaintenanceResponse, TokenRecord,
-    TransactionCoinRecord, TransactionRecord,
+    TransactionCoinRecord, TransactionHistoryRecord, TransactionRecord,
 };
 use sage_database::{
     AssetFilter, CoinFilterMode, CoinSortMode, NftGroupSearch, NftRow, NftSortMode, OptionSortMode,
@@ -204,6 +205,7 @@ impl Sage {
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
+                asset_hash: row.asset_hash.map(hex::encode),
             });
         }
         Ok(GetCoinsByIdsResponse { coins })
@@ -255,10 +257,35 @@ impl Sage {
                 spent_height: row.spent_height,
                 created_timestamp: row.created_timestamp,
                 spent_timestamp: row.spent_timestamp,
+                asset_hash: row.asset_hash.map(hex::encode),
             });
         }
 
         Ok(GetCoinsResponse { coins, total })
+    }
+
+    pub async fn get_assets_by_ids(&self, req: GetAssetsByIds) -> Result<GetAssetsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.assets_by_ids(&req.asset_ids).await?;
+        let mut assets = Vec::new();
+        for row in rows {
+            assets.push(sage_api::Asset {
+                asset_id: Some(hex::encode(row.hash)),
+                name: row.name,
+                ticker: row.ticker,
+                precision: row.precision,
+                icon_url: row.icon_url,
+                description: row.description,
+                is_sensitive_content: row.is_sensitive_content,
+                is_visible: row.is_visible,
+                revocation_address: row
+                    .hidden_puzzle_hash
+                    .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
+                    .transpose()?,
+                kind: encode_asset_kind(row.kind),
+            });
+        }
+        Ok(GetAssetsByIdsResponse { assets })
     }
 
     pub async fn get_all_cats(&self, _req: GetAllCats) -> Result<GetAllCatsResponse> {
@@ -287,6 +314,16 @@ impl Sage {
         }
 
         Ok(GetAllCatsResponse { cats: records })
+    }
+
+    pub async fn get_nfts_by_ids(&self, req: GetNftsByIds) -> Result<GetNftsByIdsResponse> {
+        let wallet = self.wallet()?;
+        let rows = wallet.db.nfts_by_ids(&req.launcher_ids).await?;
+        let mut nfts = Vec::new();
+        for row in rows {
+            nfts.push(self.nft_record(row)?);
+        }
+        Ok(GetNftsByIdsResponse { nfts })
     }
 
     pub async fn get_cats(&self, _req: GetCats) -> Result<GetCatsResponse> {
@@ -546,6 +583,42 @@ impl Sage {
             transactions,
             total,
         })
+    }
+
+    pub async fn get_transaction_by_id(
+        &self,
+        req: GetTransactionById,
+    ) -> Result<GetTransactionByIdResponse> {
+        let wallet = self.wallet()?;
+
+        let transaction_id: Bytes32 = hex::decode(&req.transaction_id)
+            .map_err(|_| Error::InvalidTransactionId(req.transaction_id.clone()))?
+            .try_into()
+            .map_err(|_| Error::InvalidTransactionId(req.transaction_id.clone()))?;
+
+        let history = wallet.db.transaction_history_by_id(transaction_id).await?;
+
+        let transaction = history.map(|h| {
+            let (input_coin_ids, output_coin_ids): (Vec<_>, Vec<_>) =
+                h.coins.into_iter().partition(|c| c.is_input);
+
+            TransactionHistoryRecord {
+                transaction_id: hex::encode(h.hash),
+                height: h.height,
+                fee: Amount::u64(h.fee),
+                confirmed_at: h.confirmed_timestamp,
+                input_coin_ids: input_coin_ids
+                    .into_iter()
+                    .map(|c| hex::encode(c.coin_id))
+                    .collect(),
+                output_coin_ids: output_coin_ids
+                    .into_iter()
+                    .map(|c| hex::encode(c.coin_id))
+                    .collect(),
+            }
+        });
+
+        Ok(GetTransactionByIdResponse { transaction })
     }
 
     pub async fn get_nft_collections(

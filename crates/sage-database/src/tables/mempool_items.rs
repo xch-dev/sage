@@ -235,11 +235,11 @@ async fn mempool_items_for_input(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_input = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ? AND mempool_coins.is_input = TRUE
         ",
         coin_id
     )
@@ -258,11 +258,11 @@ async fn mempool_items_for_output(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_output = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ? AND mempool_coins.is_output = TRUE
         ",
         coin_id
     )

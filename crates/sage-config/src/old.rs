@@ -8,7 +8,7 @@ use specta::Type;
 
 use crate::{
     Config, GlobalConfig, InheritedNetwork, Network, NetworkConfig, NetworkList, RpcConfig, Wallet,
-    WalletConfig, WalletDefaults,
+    WalletConfig, WalletDefaults, WebhookConfig,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Type)]
@@ -140,6 +140,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             enabled: old.rpc.run_on_startup,
             port: old.rpc.server_port,
         },
+        webhooks: WebhookConfig::default(),
     };
 
     let mut wallet_config = WalletConfig {

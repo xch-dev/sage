@@ -140,6 +140,12 @@ async getSpendableCoinCount(req: GetSpendableCoinCount) : Promise<GetSpendableCo
 async getCoinsByIds(req: GetCoinsByIds) : Promise<GetCoinsByIdsResponse> {
     return await TAURI_INVOKE("get_coins_by_ids", { req });
 },
+async getNftsByIds(req: GetNftsByIds) : Promise<GetNftsByIdsResponse> {
+    return await TAURI_INVOKE("get_nfts_by_ids", { req });
+},
+async getAssetsByIds(req: GetAssetsByIds) : Promise<GetAssetsByIdsResponse> {
+    return await TAURI_INVOKE("get_assets_by_ids", { req });
+},
 async getCoins(req: GetCoins) : Promise<GetCoinsResponse> {
     return await TAURI_INVOKE("get_coins", { req });
 },
@@ -355,6 +361,21 @@ async getLogs() : Promise<LogFile[]> {
 },
 async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
     return await TAURI_INVOKE("is_asset_owned", { req });
+},
+async registerWebhook(req: RegisterWebhook) : Promise<RegisterWebhookResponse> {
+    return await TAURI_INVOKE("register_webhook", { req });
+},
+async unregisterWebhook(req: UnregisterWebhook) : Promise<UnregisterWebhookResponse> {
+    return await TAURI_INVOKE("unregister_webhook", { req });
+},
+async getWebhooks(req: GetWebhooks) : Promise<GetWebhooksResponse> {
+    return await TAURI_INVOKE("get_webhooks", { req });
+},
+async updateWebhook(req: UpdateWebhook) : Promise<UpdateWebhookResponse> {
+    return await TAURI_INVOKE("update_webhook", { req });
+},
+async getTransactionById(req: GetTransactionById) : Promise<GetTransactionByIdResponse> {
+    return await TAURI_INVOKE("get_transaction_by_id", { req });
 }
 }
 
@@ -667,7 +688,7 @@ puzzle_hash: string;
 amount: number }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null; asset_hash: string | null }
 export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
 /**
  * Coin spend structure
@@ -904,6 +925,8 @@ offset?: number | null;
  * Number of results to return
  */
 limit?: number | null }
+export type GetAssetsByIds = { asset_ids: string[] }
+export type GetAssetsByIdsResponse = { assets: Asset[] }
 /**
  * Get CAT tokens in wallet
  */
@@ -1260,6 +1283,8 @@ sort_mode: NftSortMode;
  * Include hidden NFTs
  */
 include_hidden: boolean }
+export type GetNftsByIds = { launcher_ids: string[] }
+export type GetNftsByIdsResponse = { nfts: NftRecord[] }
 /**
  * Response with NFTs list
  */
@@ -1504,6 +1529,8 @@ export type GetTransaction = {
  * Transaction height/ID
  */
 height: number }
+export type GetTransactionById = { transaction_id: string }
+export type GetTransactionByIdResponse = { transaction: TransactionHistoryRecord | null }
 /**
  * Response with transaction details
  */
@@ -1578,6 +1605,8 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+export type GetWebhooks = Record<string, never>
+export type GetWebhooksResponse = { webhooks: WebhookEntry[] }
 /**
  * Import a wallet key
  */
@@ -1981,6 +2010,8 @@ nft_id: string }
  * Response after re-downloading an `NFT`
  */
 export type RedownloadNftResponse = Record<string, never>
+export type RegisterWebhook = { url: string; event_types: string[] | null; secret: string | null }
+export type RegisterWebhookResponse = { webhook_id: string }
 /**
  * Remove a peer from the connection list
  */
@@ -2376,7 +2407,7 @@ spend_bundle: SpendBundleJson }
  * Response for transaction submission
  */
 export type SubmitTransactionResponse = Record<string, never>
-export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
+export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" } | { type: "webhooks_changed" } | { type: "webhook_invoked" }
 /**
  * Accept an offer
  */
@@ -2411,6 +2442,7 @@ spend_bundle: SpendBundleJson;
 transaction_id: string }
 export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; revocation_address: string | null }
 export type TransactionCoinRecord = { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind; asset: Asset }
+export type TransactionHistoryRecord = { transaction_id: string; height: number; fee: Amount; confirmed_at: number; input_coin_ids: string[]; output_coin_ids: string[] }
 export type TransactionInput = { coin_id: string; amount: Amount; address: string; asset: Asset | null; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type TransactionRecord = { height: number; timestamp: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
@@ -2500,6 +2532,8 @@ clawback?: number | null;
  */
 auto_submit?: boolean }
 export type Unit = { ticker: string; precision: number }
+export type UnregisterWebhook = { webhook_id: string }
+export type UnregisterWebhookResponse = Record<string, never>
 /**
  * Update a `CAT` token's metadata and visibility
  */
@@ -2580,6 +2614,8 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
+export type UpdateWebhook = { webhook_id: string; enabled: boolean }
+export type UpdateWebhookResponse = Record<string, never>
 /**
  * View coin spends without signing
  */
@@ -2618,6 +2654,15 @@ offer: OfferSummary;
 status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
+export type WebhookEntry = { id: string; url: string; 
+/**
+ * None means "all events, including future ones"
+ */
+events: string[] | null; enabled: boolean; 
+/**
+ * Optional secret for HMAC-SHA256 signature verification
+ */
+secret?: string | null; last_delivered_at: number | null; last_delivery_attempt_at: number | null; consecutive_failures?: number }
 
 /** tauri-specta globals **/
 

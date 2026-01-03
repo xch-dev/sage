@@ -1,5 +1,5 @@
 use chia::protocol::Bytes32;
-use sqlx::{query, SqliteExecutor};
+use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
@@ -38,6 +38,10 @@ pub struct Asset {
 }
 
 impl Database {
+    pub async fn assets_by_ids(&self, asset_ids: &[String]) -> Result<Vec<Asset>> {
+        assets_by_ids(&self.pool, asset_ids).await
+    }
+
     pub async fn is_asset_owned(&self, hash: Bytes32) -> Result<bool> {
         let hash = hash.as_ref();
 
@@ -255,4 +259,47 @@ async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<As
         })
     })
     .transpose()
+}
+
+async fn assets_by_ids(conn: impl SqliteExecutor<'_>, asset_ids: &[String]) -> Result<Vec<Asset>> {
+    let mut query = sqlx::QueryBuilder::new(
+        "
+        SELECT
+            hash, name, kind, ticker, precision, icon_url, description, is_sensitive_content, is_visible, hidden_puzzle_hash
+        FROM assets
+        WHERE hash IN (",
+    );
+
+    let mut separated = query.separated(", ");
+
+    for asset_id in asset_ids {
+        separated.push(format!("X'{asset_id}'"));
+    }
+    separated.push_unseparated(")");
+
+    let rows = query.build().fetch_all(conn).await?;
+    let assets = rows
+        .into_iter()
+        .map(|row| {
+            Ok(Asset {
+                hash: row.get::<Vec<u8>, _>("hash").convert()?,
+                name: row.get::<Option<String>, _>("name"),
+                ticker: row.get::<Option<String>, _>("ticker"),
+                precision: row
+                    .get::<Option<i64>, _>("precision")
+                    .map_or(0, |p| p as u8),
+                icon_url: row.get::<Option<String>, _>("icon_url"),
+                description: row.get::<Option<String>, _>("description"),
+                is_sensitive_content: row.get::<bool, _>("is_sensitive_content"),
+                is_visible: row.get::<bool, _>("is_visible"),
+                hidden_puzzle_hash: row
+                    .get::<Option<Vec<u8>>, _>("hidden_puzzle_hash")
+                    .map(Convert::convert)
+                    .transpose()?,
+                kind: row.get::<i64, _>("kind").convert()?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(assets)
 }

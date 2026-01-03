@@ -68,6 +68,8 @@ pub fn run() {
             commands::get_are_coins_spendable,
             commands::get_spendable_coin_count,
             commands::get_coins_by_ids,
+            commands::get_nfts_by_ids,
+            commands::get_assets_by_ids,
             commands::get_coins,
             commands::get_cats,
             commands::get_all_cats,
@@ -140,6 +142,11 @@ pub fn run() {
             commands::download_cni_offercode,
             commands::get_logs,
             commands::is_asset_owned,
+            commands::register_webhook,
+            commands::unregister_webhook,
+            commands::get_webhooks,
+            commands::update_webhook,
+            commands::get_transaction_by_id,
         ])
         .events(collect_events![SyncEvent]);
 
