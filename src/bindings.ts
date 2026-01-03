@@ -101,6 +101,9 @@ async addNftUri(req: AddNftUri) : Promise<TransactionResponse> {
 async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("assign_nfts_to_did", { req });
 },
+async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("finalize_clawback", { req });
+},
 async signCoinSpends(req: SignCoinSpends) : Promise<SignCoinSpendsResponse> {
     return await TAURI_INVOKE("sign_coin_spends", { req });
 },
@@ -391,255 +394,2264 @@ syncEvent: "sync-event"
 
 /** user-defined types **/
 
-export type AddNftUri = { nft_id: string; uri: string; fee: Amount; kind: NftUriKind; auto_submit?: boolean }
-export type AddPeer = { ip: string }
+/**
+ * Add a URI to an NFT
+ */
+export type AddNftUri = { 
+/**
+ * NFT ID
+ */
+nft_id: string; 
+/**
+ * URI to add
+ */
+uri: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Type of URI
+ */
+kind: NftUriKind; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Add a new peer to connect to
+ */
+export type AddPeer = { 
+/**
+ * IP address or hostname with port
+ */
+ip: string }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
+/**
+ * Type of asset coin
+ */
 export type AssetCoinType = "cat" | "did" | "nft"
 export type AssetKind = "token" | "nft" | "did" | "option"
-export type AssignNftsToDid = { nft_ids: string[]; did_id: string | null; fee: Amount; auto_submit?: boolean }
-export type AutoCombineCat = { asset_id: string; max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
-export type AutoCombineCatResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
-export type AutoCombineXch = { max_coins: number; max_coin_amount: Amount | null; fee: Amount; auto_submit?: boolean }
-export type AutoCombineXchResponse = { coin_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
-export type BulkMintNfts = { mints: NftMint[]; did_id: string; fee: Amount; auto_submit?: boolean }
-export type BulkMintNftsResponse = { nft_ids: string[]; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
-export type BulkSendCat = { asset_id: string; addresses: string[]; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[]; auto_submit?: boolean }
-export type BulkSendXch = { addresses: string[]; amount: Amount; fee: Amount; memos?: string[]; auto_submit?: boolean }
-export type CancelOffer = { offer_id: string; fee: Amount; auto_submit?: boolean }
-export type CancelOffers = { offer_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type CheckAddress = { address: string }
-export type CheckAddressResponse = { valid: boolean }
-export type Coin = { parent_coin_info: string; puzzle_hash: string; amount: number }
+/**
+ * Assign NFTs to a DID
+ */
+export type AssignNftsToDid = { 
+/**
+ * NFT IDs to assign
+ */
+nft_ids: string[]; 
+/**
+ * DID ID (null to unassign)
+ */
+did_id: string | null; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Automatically combine CAT coins
+ */
+export type AutoCombineCat = { 
+/**
+ * Asset ID of the CAT
+ */
+asset_id: string; 
+/**
+ * Maximum number of coins to combine
+ */
+max_coins: number; 
+/**
+ * Optional maximum amount per coin
+ */
+max_coin_amount: Amount | null; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response for auto-combine CAT
+ */
+export type AutoCombineCatResponse = { 
+/**
+ * Combined coin IDs
+ */
+coin_ids: string[]; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
+/**
+ * Automatically combine XCH coins
+ */
+export type AutoCombineXch = { 
+/**
+ * Maximum number of coins to combine
+ */
+max_coins: number; 
+/**
+ * Optional maximum amount per coin
+ */
+max_coin_amount: Amount | null; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response for auto-combine XCH
+ */
+export type AutoCombineXchResponse = { 
+/**
+ * Combined coin IDs
+ */
+coin_ids: string[]; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
+/**
+ * Mint multiple NFTs in one transaction
+ */
+export type BulkMintNfts = { 
+/**
+ * List of NFTs to mint
+ */
+mints: NftMint[]; 
+/**
+ * DID ID for the NFT collection
+ */
+did_id: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response for bulk NFT minting
+ */
+export type BulkMintNftsResponse = { 
+/**
+ * List of minted NFT IDs
+ */
+nft_ids: string[]; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
+/**
+ * Send CAT tokens to multiple addresses
+ */
+export type BulkSendCat = { 
+/**
+ * Asset ID of the CAT
+ */
+asset_id: string; 
+/**
+ * List of recipient addresses
+ */
+addresses: string[]; 
+/**
+ * Amount to send to each address
+ */
+amount: Amount; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to include the CAT hint
+ */
+include_hint?: boolean; 
+/**
+ * Optional memos
+ */
+memos?: string[]; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Send XCH to multiple addresses
+ */
+export type BulkSendXch = { 
+/**
+ * List of recipient addresses
+ */
+addresses: string[]; 
+/**
+ * Amount to send to each address
+ */
+amount: Amount; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional memos
+ */
+memos?: string[]; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Cancel an offer on-chain
+ */
+export type CancelOffer = { 
+/**
+ * Offer ID to cancel
+ */
+offer_id: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Cancel multiple offers
+ */
+export type CancelOffers = { 
+/**
+ * Offer IDs to cancel
+ */
+offer_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Validate and check an address
+ */
+export type CheckAddress = { 
+/**
+ * Address to validate
+ */
+address: string }
+/**
+ * Response with address validation result
+ */
+export type CheckAddressResponse = { 
+/**
+ * Whether the address is valid and belongs to this wallet
+ */
+valid: boolean }
+/**
+ * Coin structure
+ */
+export type Coin = { 
+/**
+ * Parent coin info
+ */
+parent_coin_info: string; 
+/**
+ * Puzzle hash
+ */
+puzzle_hash: string; 
+/**
+ * Amount in mojos
+ */
+amount: number }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null; asset_hash: string | null }
 export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
-export type CoinSpend = { coin: Coin; puzzle_reveal: string; solution: string }
+/**
+ * Coin spend structure
+ */
+export type CoinSpend = { 
+/**
+ * Coin being spent
+ */
+coin: Coin; 
+/**
+ * Puzzle reveal
+ */
+puzzle_reveal: string; 
+/**
+ * Solution
+ */
+solution: string }
 export type CoinSpendJson = { coin: CoinJson; puzzle_reveal: string; solution: string }
-export type Combine = { coin_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type CombineOffers = { offers: string[] }
-export type CombineOffersResponse = { offer: string }
-export type CreateDid = { name: string; fee: Amount; auto_submit?: boolean }
-export type DeleteDatabase = { fingerprint: number; network: string }
+/**
+ * Combine multiple coins into one
+ */
+export type Combine = { 
+/**
+ * Coin IDs to combine
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Combine multiple offers
+ */
+export type CombineOffers = { 
+/**
+ * Offer strings to combine
+ */
+offers: string[] }
+/**
+ * Response with combined offer
+ */
+export type CombineOffersResponse = { 
+/**
+ * Combined offer string
+ */
+offer: string }
+/**
+ * Create a new DID
+ */
+export type CreateDid = { 
+/**
+ * DID name
+ */
+name: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Delete a wallet database
+ */
+export type DeleteDatabase = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Network name
+ */
+network: string }
+/**
+ * Response for database deletion
+ */
 export type DeleteDatabaseResponse = Record<string, never>
-export type DeleteKey = { fingerprint: number }
+/**
+ * Delete a wallet key
+ */
+export type DeleteKey = { 
+/**
+ * Wallet fingerprint to delete
+ */
+fingerprint: number }
+/**
+ * Response for key deletion
+ */
 export type DeleteKeyResponse = Record<string, never>
-export type DeleteOffer = { offer_id: string }
+/**
+ * Delete an offer
+ */
+export type DeleteOffer = { 
+/**
+ * Offer ID to delete
+ */
+offer_id: string }
+/**
+ * Response for offer deletion
+ */
 export type DeleteOfferResponse = Record<string, never>
-export type DeleteUserTheme = { nft_id: string }
+/**
+ * Delete a theme NFT from the wallet
+ */
+export type DeleteUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
 export type DeleteUserThemeResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
-export type ExerciseOptions = { option_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type FilterUnlockedCoins = { coin_ids: string[] }
-export type FilterUnlockedCoinsResponse = { coin_ids: string[] }
-export type GenerateMnemonic = { use_24_words: boolean }
-export type GenerateMnemonicResponse = { mnemonic: string }
+/**
+ * Exercise options
+ */
+export type ExerciseOptions = { 
+/**
+ * Option IDs to exercise
+ */
+option_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Filter unlocked coins from a list
+ */
+export type FilterUnlockedCoins = { 
+/**
+ * Coin IDs to filter
+ */
+coin_ids: string[] }
+/**
+ * Response with unlocked coin IDs
+ */
+export type FilterUnlockedCoinsResponse = { 
+/**
+ * List of unlocked coin IDs
+ */
+coin_ids: string[] }
+/**
+ * Send CAT tokens to an address
+ */
+export type FinalizeClawback = { 
+/**
+ * The coins to finalize the clawback for
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Generate a new mnemonic phrase for wallet creation
+ */
+export type GenerateMnemonic = { 
+/**
+ * Whether to generate a 24-word mnemonic instead of 12-word
+ */
+use_24_words: boolean }
+/**
+ * Response containing the generated mnemonic phrase
+ */
+export type GenerateMnemonicResponse = { 
+/**
+ * The generated BIP-39 mnemonic phrase
+ */
+mnemonic: string }
+/**
+ * Get all known CAT tokens
+ */
 export type GetAllCats = Record<string, never>
-export type GetAllCatsResponse = { cats: TokenRecord[] }
-export type GetAreCoinsSpendable = { coin_ids: string[] }
-export type GetAreCoinsSpendableResponse = { spendable: boolean }
-export type GetAssetCoins = { type?: AssetCoinType | null; assetId?: string | null; includedLocked?: boolean | null; offset?: number | null; limit?: number | null }
+/**
+ * Response with all known CAT tokens
+ */
+export type GetAllCatsResponse = { 
+/**
+ * List of all CAT tokens
+ */
+cats: TokenRecord[] }
+/**
+ * Check if specific coins are spendable
+ */
+export type GetAreCoinsSpendable = { 
+/**
+ * List of coin IDs to check
+ */
+coin_ids: string[] }
+/**
+ * Response with spendability status
+ */
+export type GetAreCoinsSpendableResponse = { 
+/**
+ * Whether all coins are spendable
+ */
+spendable: boolean }
+/**
+ * Get spendable coins for an asset
+ */
+export type GetAssetCoins = { 
+/**
+ * Type of asset coin
+ */
+type?: AssetCoinType | null; 
+/**
+ * Asset ID to filter by
+ */
+assetId?: string | null; 
+/**
+ * Whether to include locked coins
+ */
+includedLocked?: boolean | null; 
+/**
+ * Pagination offset
+ */
+offset?: number | null; 
+/**
+ * Number of results to return
+ */
+limit?: number | null }
 export type GetAssetsByIds = { asset_ids: string[] }
 export type GetAssetsByIdsResponse = { assets: Asset[] }
+/**
+ * Get CAT tokens in wallet
+ */
 export type GetCats = Record<string, never>
+/**
+ * Response with CAT tokens
+ */
 export type GetCatsResponse = { cats: TokenRecord[] }
-export type GetCoins = { asset_id?: string | null; offset: number; limit: number; sort_mode?: CoinSortMode; filter_mode?: CoinFilterMode; ascending?: boolean }
-export type GetCoinsByIds = { coin_ids: string[] }
-export type GetCoinsByIdsResponse = { coins: CoinRecord[] }
-export type GetCoinsResponse = { coins: CoinRecord[]; total: number }
+/**
+ * List coins with filtering and pagination
+ */
+export type GetCoins = { 
+/**
+ * Optional asset ID to filter by
+ */
+asset_id?: string | null; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of coins to return
+ */
+limit: number; 
+/**
+ * Sort mode
+ */
+sort_mode?: CoinSortMode; 
+/**
+ * Filter mode
+ */
+filter_mode?: CoinFilterMode; 
+/**
+ * Sort in ascending order
+ */
+ascending?: boolean }
+/**
+ * Retrieve specific coins by their IDs
+ */
+export type GetCoinsByIds = { 
+/**
+ * List of coin IDs to retrieve
+ */
+coin_ids: string[] }
+/**
+ * Response with requested coins
+ */
+export type GetCoinsByIdsResponse = { 
+/**
+ * List of coins matching the requested IDs
+ */
+coins: CoinRecord[] }
+/**
+ * Response with coin list
+ */
+export type GetCoinsResponse = { 
+/**
+ * List of coins
+ */
+coins: CoinRecord[]; 
+/**
+ * Total number of coins available
+ */
+total: number }
+/**
+ * Retrieve database statistics
+ */
 export type GetDatabaseStats = Record<string, never>
-export type GetDatabaseStatsResponse = { total_pages: number; free_pages: number; free_percentage: number; page_size: number; database_size_bytes: number; free_space_bytes: number; wal_pages: number }
-export type GetDerivations = { hardened?: boolean; offset: number; limit: number }
-export type GetDerivationsResponse = { derivations: DerivationRecord[]; total: number }
+/**
+ * Response with database statistics
+ */
+export type GetDatabaseStatsResponse = { 
+/**
+ * Total pages in database
+ */
+total_pages: number; 
+/**
+ * Number of free pages
+ */
+free_pages: number; 
+/**
+ * Percentage of free space
+ */
+free_percentage: number; 
+/**
+ * Size of each page in bytes
+ */
+page_size: number; 
+/**
+ * Total database size in bytes
+ */
+database_size_bytes: number; 
+/**
+ * Free space in bytes
+ */
+free_space_bytes: number; 
+/**
+ * Number of WAL pages
+ */
+wal_pages: number }
+/**
+ * Get address derivation information
+ */
+export type GetDerivations = { 
+/**
+ * Whether to retrieve hardened derivations
+ */
+hardened?: boolean; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of derivations to return
+ */
+limit: number }
+/**
+ * Response with derivation records
+ */
+export type GetDerivationsResponse = { 
+/**
+ * List of address derivations
+ */
+derivations: DerivationRecord[]; 
+/**
+ * Total number of derivations available
+ */
+total: number }
+/**
+ * List all DIDs in the wallet
+ */
 export type GetDids = Record<string, never>
-export type GetDidsResponse = { dids: DidRecord[] }
-export type GetKey = { fingerprint?: number | null }
-export type GetKeyResponse = { key: KeyInfo | null }
+/**
+ * Response with DID list
+ */
+export type GetDidsResponse = { 
+/**
+ * List of DIDs
+ */
+dids: DidRecord[] }
+/**
+ * Get a specific wallet key
+ */
+export type GetKey = { 
+/**
+ * Wallet fingerprint (uses currently logged in if null)
+ */
+fingerprint?: number | null }
+/**
+ * Response with key information
+ */
+export type GetKeyResponse = { 
+/**
+ * Key information if found
+ */
+key: KeyInfo | null }
+/**
+ * List all wallet keys
+ */
 export type GetKeys = Record<string, never>
-export type GetKeysResponse = { keys: KeyInfo[] }
-export type GetMinterDidIds = { offset: number; limit: number }
-export type GetMinterDidIdsResponse = { did_ids: string[]; total: number }
+/**
+ * Response with all wallet keys
+ */
+export type GetKeysResponse = { 
+/**
+ * List of wallet keys
+ */
+keys: KeyInfo[] }
+/**
+ * Get minter DIDs with pagination
+ */
+export type GetMinterDidIds = { 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of DID IDs to return
+ */
+limit: number }
+/**
+ * Response with minter DID IDs
+ */
+export type GetMinterDidIdsResponse = { 
+/**
+ * List of minter DID IDs
+ */
+did_ids: string[]; 
+/**
+ * Total number of minter DIDs
+ */
+total: number }
+/**
+ * Get current network information
+ */
 export type GetNetwork = Record<string, never>
-export type GetNetworkResponse = { network: Network; kind: NetworkKind }
+/**
+ * Response containing current network information
+ */
+export type GetNetworkResponse = { 
+/**
+ * Current network configuration
+ */
+network: Network; 
+/**
+ * Network type classification
+ */
+kind: NetworkKind }
+/**
+ * List available networks
+ */
 export type GetNetworks = Record<string, never>
-export type GetNft = { nft_id: string }
-export type GetNftCollection = { collection_id: string | null }
-export type GetNftCollectionResponse = { collection: NftCollectionRecord | null }
-export type GetNftCollections = { offset: number; limit: number; include_hidden: boolean }
-export type GetNftCollectionsResponse = { collections: NftCollectionRecord[]; total: number }
-export type GetNftData = { nft_id: string }
-export type GetNftDataResponse = { data: NftData | null }
-export type GetNftIcon = { nft_id: string }
-export type GetNftIconResponse = { icon: string | null }
-export type GetNftResponse = { nft: NftRecord | null }
-export type GetNftThumbnail = { nft_id: string }
-export type GetNftThumbnailResponse = { thumbnail: string | null }
-export type GetNfts = { collection_id?: string | null; minter_did_id?: string | null; owner_did_id?: string | null; name?: string | null; offset: number; limit: number; sort_mode: NftSortMode; include_hidden: boolean }
+/**
+ * Get a specific NFT
+ */
+export type GetNft = { 
+/**
+ * NFT coin ID
+ */
+nft_id: string }
+/**
+ * Get a specific NFT collection
+ */
+export type GetNftCollection = { 
+/**
+ * Collection ID (null for uncollected NFTs)
+ */
+collection_id: string | null }
+/**
+ * Response with NFT collection details
+ */
+export type GetNftCollectionResponse = { 
+/**
+ * Collection if found
+ */
+collection: NftCollectionRecord | null }
+/**
+ * List NFT collections
+ */
+export type GetNftCollections = { 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of collections to return
+ */
+limit: number; 
+/**
+ * Include hidden collections
+ */
+include_hidden: boolean }
+/**
+ * Response with NFT collections
+ */
+export type GetNftCollectionsResponse = { 
+/**
+ * List of NFT collections
+ */
+collections: NftCollectionRecord[]; 
+/**
+ * Total number of collections
+ */
+total: number }
+/**
+ * Get NFT data file
+ */
+export type GetNftData = { 
+/**
+ * NFT coin ID
+ */
+nft_id: string }
+/**
+ * Response with NFT data
+ */
+export type GetNftDataResponse = { 
+/**
+ * NFT data if available
+ */
+data: NftData | null }
+/**
+ * Get NFT icon image
+ */
+export type GetNftIcon = { 
+/**
+ * NFT coin ID
+ */
+nft_id: string }
+/**
+ * Response with NFT icon
+ */
+export type GetNftIconResponse = { 
+/**
+ * Base64-encoded icon image
+ */
+icon: string | null }
+/**
+ * Response with NFT details
+ */
+export type GetNftResponse = { 
+/**
+ * NFT if found
+ */
+nft: NftRecord | null }
+/**
+ * Get NFT thumbnail image
+ */
+export type GetNftThumbnail = { 
+/**
+ * NFT coin ID
+ */
+nft_id: string }
+/**
+ * Response with NFT thumbnail
+ */
+export type GetNftThumbnailResponse = { 
+/**
+ * Base64-encoded thumbnail image
+ */
+thumbnail: string | null }
+/**
+ * List NFTs with filtering
+ */
+export type GetNfts = { 
+/**
+ * Filter by collection ID
+ */
+collection_id?: string | null; 
+/**
+ * Filter by minter DID
+ */
+minter_did_id?: string | null; 
+/**
+ * Filter by owner DID
+ */
+owner_did_id?: string | null; 
+/**
+ * Filter by name search
+ */
+name?: string | null; 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of NFTs to return
+ */
+limit: number; 
+/**
+ * Sort mode
+ */
+sort_mode: NftSortMode; 
+/**
+ * Include hidden NFTs
+ */
+include_hidden: boolean }
 export type GetNftsByIds = { launcher_ids: string[] }
 export type GetNftsByIdsResponse = { nfts: NftRecord[] }
-export type GetNftsResponse = { nfts: NftRecord[]; total: number }
-export type GetOffer = { offer_id: string }
-export type GetOfferResponse = { offer: OfferRecord }
+/**
+ * Response with NFTs list
+ */
+export type GetNftsResponse = { 
+/**
+ * List of NFTs
+ */
+nfts: NftRecord[]; 
+/**
+ * Total number of NFTs
+ */
+total: number }
+/**
+ * Get a specific offer
+ */
+export type GetOffer = { 
+/**
+ * Offer ID
+ */
+offer_id: string }
+/**
+ * Response with offer details
+ */
+export type GetOfferResponse = { 
+/**
+ * Offer details
+ */
+offer: OfferRecord }
+/**
+ * List all offers
+ */
 export type GetOffers = Record<string, never>
-export type GetOffersForAsset = { asset_id: string }
-export type GetOffersForAssetResponse = { offers: OfferRecord[] }
-export type GetOffersResponse = { offers: OfferRecord[] }
-export type GetOption = { option_id: string }
-export type GetOptionResponse = { option: OptionRecord | null }
-export type GetOptions = { offset: number; limit: number; sort_mode?: OptionSortMode; ascending?: boolean; find_value: string | null; include_hidden?: boolean }
-export type GetOptionsResponse = { options: OptionRecord[]; total: number }
+/**
+ * Get offers for a specific asset
+ */
+export type GetOffersForAsset = { 
+/**
+ * Asset ID to filter by
+ */
+asset_id: string }
+/**
+ * Response with offers for asset
+ */
+export type GetOffersForAssetResponse = { 
+/**
+ * List of offers involving the asset
+ */
+offers: OfferRecord[] }
+/**
+ * Response with list of offers
+ */
+export type GetOffersResponse = { 
+/**
+ * List of offers
+ */
+offers: OfferRecord[] }
+/**
+ * Get a specific option
+ */
+export type GetOption = { 
+/**
+ * Option ID
+ */
+option_id: string }
+/**
+ * Response with option details
+ */
+export type GetOptionResponse = { 
+/**
+ * Option information if found
+ */
+option: OptionRecord | null }
+/**
+ * List options with filtering
+ */
+export type GetOptions = { 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of options to return
+ */
+limit: number; 
+/**
+ * Sort mode
+ */
+sort_mode?: OptionSortMode; 
+/**
+ * Sort in ascending order
+ */
+ascending?: boolean; 
+/**
+ * Optional search value
+ */
+find_value: string | null; 
+/**
+ * Include hidden options
+ */
+include_hidden?: boolean }
+/**
+ * Response with options list
+ */
+export type GetOptionsResponse = { 
+/**
+ * List of options
+ */
+options: OptionRecord[]; 
+/**
+ * Total number of options
+ */
+total: number }
+/**
+ * List all network peers
+ */
 export type GetPeers = Record<string, never>
-export type GetPeersResponse = { peers: PeerRecord[] }
+/**
+ * Response containing peer list
+ */
+export type GetPeersResponse = { 
+/**
+ * List of connected peers
+ */
+peers: PeerRecord[] }
+/**
+ * Get pending transactions
+ */
 export type GetPendingTransactions = Record<string, never>
-export type GetPendingTransactionsResponse = { transactions: PendingTransactionRecord[] }
-export type GetSecretKey = { fingerprint: number }
-export type GetSecretKeyResponse = { secrets: SecretKeyInfo | null }
-export type GetSpendableCoinCount = { asset_id: string | null }
-export type GetSpendableCoinCountResponse = { count: number }
+/**
+ * Response with pending transactions
+ */
+export type GetPendingTransactionsResponse = { 
+/**
+ * List of pending transactions
+ */
+transactions: PendingTransactionRecord[] }
+/**
+ * Get wallet secret key
+ */
+export type GetSecretKey = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number }
+/**
+ * Response with secret key information
+ */
+export type GetSecretKeyResponse = { 
+/**
+ * Secret key information if authorized
+ */
+secrets: SecretKeyInfo | null }
+/**
+ * Get the count of spendable coins
+ */
+export type GetSpendableCoinCount = { 
+/**
+ * Optional asset ID to filter by (null for XCH)
+ */
+asset_id: string | null }
+/**
+ * Response with coin count
+ */
+export type GetSpendableCoinCountResponse = { 
+/**
+ * Number of spendable coins
+ */
+count: number }
+/**
+ * Get the current synchronization status
+ */
 export type GetSyncStatus = Record<string, never>
-export type GetSyncStatusResponse = { balance: Amount; unit: Unit; synced_coins: number; total_coins: number; receive_address: string; burn_address: string; unhardened_derivation_index: number; hardened_derivation_index: number; checked_files: number; total_files: number; database_size: number }
-export type GetToken = { asset_id: string | null }
-export type GetTokenResponse = { token: TokenRecord | null }
-export type GetTransaction = { height: number }
+/**
+ * Response with detailed sync status
+ */
+export type GetSyncStatusResponse = { 
+/**
+ * Current wallet balance
+ */
+balance: Amount; 
+/**
+ * Unit for balance display
+ */
+unit: Unit; 
+/**
+ * Number of coins synced
+ */
+synced_coins: number; 
+/**
+ * Total coins to sync
+ */
+total_coins: number; 
+/**
+ * Current receive address
+ */
+receive_address: string; 
+/**
+ * Burn address for the wallet
+ */
+burn_address: string; 
+/**
+ * Unhardened derivation index
+ */
+unhardened_derivation_index: number; 
+/**
+ * Hardened derivation index
+ */
+hardened_derivation_index: number; 
+/**
+ * Number of NFT files checked
+ */
+checked_files: number; 
+/**
+ * Total NFT files to check
+ */
+total_files: number; 
+/**
+ * Database size in bytes
+ */
+database_size: number }
+/**
+ * Get detailed token information
+ */
+export type GetToken = { 
+/**
+ * Asset ID of the token (null for XCH)
+ */
+asset_id: string | null }
+/**
+ * Response with token details
+ */
+export type GetTokenResponse = { 
+/**
+ * Token information if found
+ */
+token: TokenRecord | null }
+/**
+ * Get a specific transaction by height
+ */
+export type GetTransaction = { 
+/**
+ * Transaction height/ID
+ */
+height: number }
 export type GetTransactionById = { transaction_id: string }
 export type GetTransactionByIdResponse = { transaction: TransactionHistoryRecord | null }
-export type GetTransactionResponse = { transaction: TransactionRecord | null }
-export type GetTransactions = { offset: number; limit: number; ascending: boolean; find_value: string | null }
-export type GetTransactionsResponse = { transactions: TransactionRecord[]; total: number }
-export type GetUserTheme = { nft_id: string }
-export type GetUserThemeResponse = { theme: string | null }
+/**
+ * Response with transaction details
+ */
+export type GetTransactionResponse = { 
+/**
+ * Transaction if found
+ */
+transaction: TransactionRecord | null }
+/**
+ * List transactions with filtering
+ */
+export type GetTransactions = { 
+/**
+ * Starting offset for pagination
+ */
+offset: number; 
+/**
+ * Number of transactions to return
+ */
+limit: number; 
+/**
+ * Sort in ascending order
+ */
+ascending: boolean; 
+/**
+ * Optional search value
+ */
+find_value: string | null }
+/**
+ * Response with transactions list
+ */
+export type GetTransactionsResponse = { 
+/**
+ * List of transactions
+ */
+transactions: TransactionRecord[]; 
+/**
+ * Total number of transactions
+ */
+total: number }
+/**
+ * Get a specific theme NFT
+ */
+export type GetUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
+export type GetUserThemeResponse = { 
+/**
+ * Theme data if found
+ */
+theme: string | null }
+/**
+ * List all custom theme NFTs
+ */
 export type GetUserThemes = Record<string, never>
-export type GetUserThemesResponse = { themes: string[] }
+export type GetUserThemesResponse = { 
+/**
+ * List of theme NFT IDs
+ */
+themes: string[] }
+/**
+ * Get the wallet version
+ */
 export type GetVersion = Record<string, never>
-export type GetVersionResponse = { version: string }
+/**
+ * Response with version information
+ */
+export type GetVersionResponse = { 
+/**
+ * Semantic version string
+ */
+version: string }
 export type GetWebhooks = Record<string, never>
 export type GetWebhooksResponse = { webhooks: WebhookEntry[] }
-export type ImportKey = { name: string; key: string; derivation_index?: number; hardened?: boolean | null; unhardened?: boolean | null; save_secrets?: boolean; login?: boolean; emoji?: string | null }
-export type ImportKeyResponse = { fingerprint: number }
-export type ImportOffer = { offer: string }
-export type ImportOfferResponse = { offer_id: string }
-export type IncreaseDerivationIndex = { hardened?: boolean | null; unhardened?: boolean | null; index: number }
+/**
+ * Import a wallet key
+ */
+export type ImportKey = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * Mnemonic phrase or private key
+ */
+key: string; 
+/**
+ * Starting derivation index
+ */
+derivation_index?: number; 
+/**
+ * Optional hardened derivation count
+ */
+hardened?: boolean | null; 
+/**
+ * Optional unhardened derivation count
+ */
+unhardened?: boolean | null; 
+/**
+ * Whether to save secrets to keychain
+ */
+save_secrets?: boolean; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with imported key fingerprint
+ */
+export type ImportKeyResponse = { 
+/**
+ * Fingerprint of the imported key
+ */
+fingerprint: number }
+/**
+ * Import an offer
+ */
+export type ImportOffer = { 
+/**
+ * Offer string to import
+ */
+offer: string }
+/**
+ * Response with imported offer ID
+ */
+export type ImportOfferResponse = { 
+/**
+ * ID of the imported offer
+ */
+offer_id: string }
+/**
+ * Increase the derivation index to generate more addresses
+ */
+export type IncreaseDerivationIndex = { 
+/**
+ * Whether to derive hardened addresses (defaults to true if not specified)
+ */
+hardened?: boolean | null; 
+/**
+ * Whether to derive unhardened addresses (defaults to true if not specified)
+ */
+unhardened?: boolean | null; 
+/**
+ * The target derivation index to increase to
+ */
+index: number }
+/**
+ * Response after increasing the derivation index
+ */
 export type IncreaseDerivationIndexResponse = Record<string, never>
 export type InheritedNetwork = "mainnet" | "testnet11"
-export type IsAssetOwned = { asset_id: string }
-export type IsAssetOwnedResponse = { owned: boolean }
-export type IssueCat = { name: string; ticker: string; amount: Amount; fee: Amount; auto_submit?: boolean }
+/**
+ * Check if an asset is owned
+ */
+export type IsAssetOwned = { 
+/**
+ * Asset ID to check
+ */
+asset_id: string }
+/**
+ * Response with asset ownership status
+ */
+export type IsAssetOwnedResponse = { 
+/**
+ * Whether the asset is owned by this wallet
+ */
+owned: boolean }
+/**
+ * Issue a new CAT token
+ */
+export type IssueCat = { 
+/**
+ * Token name
+ */
+name: string; 
+/**
+ * Token ticker symbol
+ */
+ticker: string; 
+/**
+ * Initial supply amount
+ */
+amount: Amount; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
 export type KeyKind = "bls"
-export type LineageProof = { parentName: string | null; innerPuzzleHash: string | null; amount: number | null }
+/**
+ * Lineage proof for CAT coins
+ */
+export type LineageProof = { 
+/**
+ * Parent coin name
+ */
+parentName: string | null; 
+/**
+ * Inner puzzle hash
+ */
+innerPuzzleHash: string | null; 
+/**
+ * Amount
+ */
+amount: number | null }
 export type LogFile = { name: string; text: string }
-export type Login = { fingerprint: number }
+/**
+ * Login to a wallet using a fingerprint
+ */
+export type Login = { 
+/**
+ * The unique fingerprint identifier of the wallet to authenticate with. This is a 32-bit unsigned integer that uniquely identifies each wallet key in the system.
+ */
+fingerprint: number }
+/**
+ * Response from logging into a wallet
+ */
 export type LoginResponse = Record<string, never>
+/**
+ * Log out of the current wallet session
+ */
 export type Logout = Record<string, never>
+/**
+ * Response from logging out of a wallet
+ */
 export type LogoutResponse = Record<string, never>
-export type MakeOffer = { requested_assets: OfferAmount[]; offered_assets: OfferAmount[]; fee: Amount; receive_address?: string | null; expires_at_second?: number | null; auto_import?: boolean }
-export type MakeOfferResponse = { offer: string; offer_id: string }
-export type MintOption = { expiration_seconds: number; underlying: OptionAsset; strike: OptionAsset; fee: Amount; auto_submit?: boolean }
-export type MintOptionResponse = { option_id: string; summary: TransactionSummary; coin_spends: CoinSpendJson[] }
+/**
+ * Create a new offer
+ */
+export type MakeOffer = { 
+/**
+ * Assets requested in the offer
+ */
+requested_assets: OfferAmount[]; 
+/**
+ * Assets offered in exchange
+ */
+offered_assets: OfferAmount[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional receive address
+ */
+receive_address?: string | null; 
+/**
+ * Optional expiration timestamp
+ */
+expires_at_second?: number | null; 
+/**
+ * Whether to automatically import the offer
+ */
+auto_import?: boolean }
+/**
+ * Response with created offer
+ */
+export type MakeOfferResponse = { 
+/**
+ * Offer string (bech32 encoded)
+ */
+offer: string; 
+/**
+ * Offer ID
+ */
+offer_id: string }
+/**
+ * Mint a new option
+ */
+export type MintOption = { 
+/**
+ * Expiration time in seconds
+ */
+expiration_seconds: number; 
+/**
+ * Underlying asset
+ */
+underlying: OptionAsset; 
+/**
+ * Strike price asset
+ */
+strike: OptionAsset; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response for minting an option
+ */
+export type MintOptionResponse = { 
+/**
+ * ID of the minted option
+ */
+option_id: string; 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
 export type Network = { name: string; ticker: string; prefix?: string | null; precision: number; network_id?: string | null; default_port: number; genesis_challenge: string; agg_sig_me?: string | null; dns_introducers: string[]; peer_introducers: string[]; inherit?: InheritedNetwork | null }
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
-export type NftMint = { address?: string | null; edition_number?: number | null; edition_total?: number | null; data_hash?: string | null; data_uris?: string[]; metadata_hash?: string | null; metadata_uris?: string[]; license_hash?: string | null; license_uris?: string[]; royalty_address?: string | null; royalty_ten_thousandths?: number }
+/**
+ * Individual NFT to mint
+ */
+export type NftMint = { 
+/**
+ * Optional target address
+ */
+address?: string | null; 
+/**
+ * Edition number
+ */
+edition_number?: number | null; 
+/**
+ * Total editions
+ */
+edition_total?: number | null; 
+/**
+ * Data hash
+ */
+data_hash?: string | null; 
+/**
+ * Data URIs
+ */
+data_uris?: string[]; 
+/**
+ * Metadata hash
+ */
+metadata_hash?: string | null; 
+/**
+ * Metadata URIs
+ */
+metadata_uris?: string[]; 
+/**
+ * License hash
+ */
+license_hash?: string | null; 
+/**
+ * License URIs
+ */
+license_uris?: string[]; 
+/**
+ * Royalty payment address
+ */
+royalty_address?: string | null; 
+/**
+ * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
+ */
+royalty_ten_thousandths?: number }
 export type NftRecord = { launcher_id: string; collection_id: string | null; collection_name: string | null; minter_did: string | null; owner_did: string | null; visible: boolean; sensitive_content: boolean; name: string | null; created_height: number | null; coin_id: string; address: string; royalty_address: string; royalty_ten_thousandths: number; data_uris: string[]; data_hash: string | null; metadata_uris: string[]; metadata_hash: string | null; license_uris: string[]; license_hash: string | null; edition_number: number | null; edition_total: number | null; icon_url: string | null; created_timestamp: number | null; special_use_type: NftSpecialUseType | null }
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
+/**
+ * Type of NFT URI
+ */
 export type NftUriKind = "data" | "metadata" | "license"
-export type NormalizeDids = { did_ids: string[]; fee: Amount; auto_submit?: boolean }
-export type OfferAmount = { asset_id?: string | null; hidden_puzzle_hash?: string | null; amount: Amount }
+/**
+ * Normalize DIDs to latest state
+ */
+export type NormalizeDids = { 
+/**
+ * DID IDs to normalize
+ */
+did_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Asset amount in an offer
+ */
+export type OfferAmount = { 
+/**
+ * Optional asset ID (null for XCH)
+ */
+asset_id?: string | null; 
+/**
+ * Optional hidden puzzle hash for privacy
+ */
+hidden_puzzle_hash?: string | null; 
+/**
+ * Amount of the asset
+ */
+amount: Amount }
 export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null }
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
-export type OptionAsset = { asset_id: string | null; amount: Amount }
+/**
+ * Asset specification for options
+ */
+export type OptionAsset = { 
+/**
+ * Asset ID (null for XCH)
+ */
+asset_id: string | null; 
+/**
+ * Amount
+ */
+amount: Amount }
 export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number }
 export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null }
-export type PerformDatabaseMaintenance = { force_vacuum: boolean }
-export type PerformDatabaseMaintenanceResponse = { vacuum_duration_ms: number; analyze_duration_ms: number; wal_checkpoint_duration_ms: number; total_duration_ms: number; pages_vacuumed: number; wal_pages_checkpointed: number }
-export type RedownloadNft = { nft_id: string }
+/**
+ * Perform database maintenance operations
+ */
+export type PerformDatabaseMaintenance = { 
+/**
+ * Whether to force a full vacuum (may take longer)
+ */
+force_vacuum: boolean }
+/**
+ * Response with maintenance operation statistics
+ */
+export type PerformDatabaseMaintenanceResponse = { 
+/**
+ * Time spent vacuuming in milliseconds
+ */
+vacuum_duration_ms: number; 
+/**
+ * Time spent analyzing in milliseconds
+ */
+analyze_duration_ms: number; 
+/**
+ * Time spent checkpointing WAL in milliseconds
+ */
+wal_checkpoint_duration_ms: number; 
+/**
+ * Total maintenance duration in milliseconds
+ */
+total_duration_ms: number; 
+/**
+ * Number of pages reclaimed by vacuum
+ */
+pages_vacuumed: number; 
+/**
+ * Number of WAL pages checkpointed
+ */
+wal_pages_checkpointed: number }
+/**
+ * Re-download an `NFT`'s data and metadata from its URIs
+ */
+export type RedownloadNft = { 
+/**
+ * The `NFT` ID to re-download
+ */
+nft_id: string }
+/**
+ * Response after re-downloading an `NFT`
+ */
 export type RedownloadNftResponse = Record<string, never>
 export type RegisterWebhook = { url: string; event_types: string[] | null; secret: string | null }
 export type RegisterWebhookResponse = { webhook_id: string }
-export type RemovePeer = { ip: string; ban: boolean }
-export type RenameKey = { fingerprint: number; name: string }
+/**
+ * Remove a peer from the connection list
+ */
+export type RemovePeer = { 
+/**
+ * IP address or hostname of the peer
+ */
+ip: string; 
+/**
+ * Whether to ban the peer from reconnecting
+ */
+ban: boolean }
+/**
+ * Rename a wallet key
+ */
+export type RenameKey = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * New display name
+ */
+name: string }
+/**
+ * Response for key rename
+ */
 export type RenameKeyResponse = Record<string, never>
-export type Resync = { fingerprint: number; delete_coins?: boolean; delete_assets?: boolean; delete_files?: boolean; delete_offers?: boolean; delete_addresses?: boolean; delete_blocks?: boolean }
-export type ResyncCat = { asset_id: string }
+/**
+ * Resynchronize wallet data with the blockchain
+ */
+export type Resync = { 
+/**
+ * The fingerprint of the wallet to resync
+ */
+fingerprint: number; 
+/**
+ * Delete all coin records during resync
+ */
+delete_coins?: boolean; 
+/**
+ * Delete all asset records during resync
+ */
+delete_assets?: boolean; 
+/**
+ * Delete all file records during resync
+ */
+delete_files?: boolean; 
+/**
+ * Delete all offer records during resync
+ */
+delete_offers?: boolean; 
+/**
+ * Delete all address records during resync
+ */
+delete_addresses?: boolean; 
+/**
+ * Delete all block records during resync
+ */
+delete_blocks?: boolean }
+/**
+ * Resynchronize a `CAT` token's metadata from an external source
+ */
+export type ResyncCat = { 
+/**
+ * The asset ID of the `CAT` token to resynchronize
+ */
+asset_id: string }
+/**
+ * Response after resynchronizing a `CAT` token
+ */
 export type ResyncCatResponse = Record<string, never>
+/**
+ * Response from resynchronizing the wallet
+ */
 export type ResyncResponse = Record<string, never>
-export type SaveUserTheme = { nft_id: string }
+/**
+ * Save a theme NFT to the wallet
+ */
+export type SaveUserTheme = { 
+/**
+ * NFT ID of the theme
+ */
+nft_id: string }
 export type SaveUserThemeResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
-export type SendCat = { asset_id: string; address: string; amount: Amount; fee: Amount; include_hint?: boolean; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
-export type SendTransactionImmediately = { spend_bundle: SpendBundle }
-export type SendTransactionImmediatelyResponse = { status: number; error: string | null }
-export type SendXch = { address: string; amount: Amount; fee: Amount; memos?: string[]; clawback?: number | null; auto_submit?: boolean }
-export type SetChangeAddress = { fingerprint: number; change_address: string | null }
-export type SetDeltaSync = { delta_sync: boolean }
-export type SetDeltaSyncOverride = { fingerprint: number; delta_sync: boolean | null }
-export type SetDiscoverPeers = { discover_peers: boolean }
-export type SetNetwork = { name: string }
-export type SetNetworkOverride = { fingerprint: number; name: string | null }
-export type SetTargetPeers = { target_peers: number }
-export type SetWalletEmoji = { fingerprint: number; emoji: string | null }
+/**
+ * Send CAT tokens to an address
+ */
+export type SendCat = { 
+/**
+ * Asset ID of the CAT
+ */
+asset_id: string; 
+/**
+ * Recipient address
+ */
+address: string; 
+/**
+ * Amount to send
+ */
+amount: Amount; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to include the CAT hint
+ */
+include_hint?: boolean; 
+/**
+ * Optional memos
+ */
+memos?: string[]; 
+/**
+ * Optional clawback timestamp
+ */
+clawback?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Send a transaction immediately
+ */
+export type SendTransactionImmediately = { 
+/**
+ * Spend bundle to send
+ */
+spend_bundle: SpendBundle }
+/**
+ * Response with transaction status
+ */
+export type SendTransactionImmediatelyResponse = { 
+/**
+ * Status code
+ */
+status: number; 
+/**
+ * Optional error message
+ */
+error: string | null }
+/**
+ * Send XCH to an address
+ */
+export type SendXch = { 
+/**
+ * Recipient address
+ */
+address: string; 
+/**
+ * Amount to send
+ */
+amount: Amount; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional memos
+ */
+memos?: string[]; 
+/**
+ * Optional clawback timestamp (seconds since epoch)
+ */
+clawback?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Set the change address for transactions
+ */
+export type SetChangeAddress = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Change address (null to use default derivation)
+ */
+change_address: string | null }
+/**
+ * Enable or disable delta sync
+ */
+export type SetDeltaSync = { 
+/**
+ * Whether to enable delta sync
+ */
+delta_sync: boolean }
+/**
+ * Override delta sync settings for a specific wallet
+ */
+export type SetDeltaSyncOverride = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Delta sync setting (null to use default)
+ */
+delta_sync: boolean | null }
+/**
+ * Enable or disable automatic peer discovery
+ */
+export type SetDiscoverPeers = { 
+/**
+ * Whether to enable peer discovery
+ */
+discover_peers: boolean }
+/**
+ * Set the active network
+ */
+export type SetNetwork = { 
+/**
+ * Network name to switch to
+ */
+name: string }
+/**
+ * Override network settings for a specific wallet
+ */
+export type SetNetworkOverride = { 
+/**
+ * Wallet fingerprint to override network for
+ */
+fingerprint: number; 
+/**
+ * Network name (null to reset to default)
+ */
+name: string | null }
+/**
+ * Set target number of peers to maintain
+ */
+export type SetTargetPeers = { 
+/**
+ * Target number of peer connections
+ */
+target_peers: number }
+/**
+ * Set wallet emoji
+ */
+export type SetWalletEmoji = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Emoji character (null to remove)
+ */
+emoji: string | null }
+/**
+ * Response for emoji update
+ */
 export type SetWalletEmojiResponse = Record<string, never>
-export type SignCoinSpends = { coin_spends: CoinSpendJson[]; auto_submit?: boolean; partial?: boolean }
-export type SignCoinSpendsResponse = { spend_bundle: SpendBundleJson }
-export type SignMessageByAddress = { message: string; address: string }
-export type SignMessageByAddressResponse = { publicKey: string; signature: string }
-export type SignMessageWithPublicKey = { message: string; publicKey: string }
-export type SignMessageWithPublicKeyResponse = { signature: string }
-export type SpendBundle = { coin_spends: CoinSpend[]; aggregated_signature: string }
+/**
+ * Sign coin spends to create a transaction
+ */
+export type SignCoinSpends = { 
+/**
+ * Coin spends to sign
+ */
+coin_spends: CoinSpendJson[]; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean; 
+/**
+ * Whether to partially sign (for multi-signature)
+ */
+partial?: boolean }
+/**
+ * Response with signed spend bundle
+ */
+export type SignCoinSpendsResponse = { 
+/**
+ * Signed spend bundle
+ */
+spend_bundle: SpendBundleJson }
+/**
+ * Sign a message by address
+ */
+export type SignMessageByAddress = { 
+/**
+ * Message to sign
+ */
+message: string; 
+/**
+ * Address whose key to use
+ */
+address: string }
+/**
+ * Response with signed message
+ */
+export type SignMessageByAddressResponse = { 
+/**
+ * Public key used
+ */
+publicKey: string; 
+/**
+ * Signature
+ */
+signature: string }
+/**
+ * Sign a message with a public key
+ */
+export type SignMessageWithPublicKey = { 
+/**
+ * Message to sign
+ */
+message: string; 
+/**
+ * Public key to use for signing
+ */
+publicKey: string }
+/**
+ * Response with message signature
+ */
+export type SignMessageWithPublicKeyResponse = { 
+/**
+ * Signature
+ */
+signature: string }
+/**
+ * Spend bundle structure
+ */
+export type SpendBundle = { 
+/**
+ * Coin spends in the bundle
+ */
+coin_spends: CoinSpend[]; 
+/**
+ * Aggregated signature
+ */
+aggregated_signature: string }
 export type SpendBundleJson = { coin_spends: CoinSpendJson[]; aggregated_signature: string }
-export type SpendableCoin = { coin: Coin; coinName: string; puzzle: string; confirmedBlockIndex: number; locked: boolean; lineageProof: LineageProof | null }
-export type Split = { coin_ids: string[]; output_count: number; fee: Amount; auto_submit?: boolean }
-export type SubmitTransaction = { spend_bundle: SpendBundleJson }
+/**
+ * Spendable coin details
+ */
+export type SpendableCoin = { 
+/**
+ * Coin information
+ */
+coin: Coin; 
+/**
+ * Coin name (ID)
+ */
+coinName: string; 
+/**
+ * Puzzle reveal
+ */
+puzzle: string; 
+/**
+ * Block height where coin was confirmed
+ */
+confirmedBlockIndex: number; 
+/**
+ * Whether the coin is locked
+ */
+locked: boolean; 
+/**
+ * Optional lineage proof for CAT coins
+ */
+lineageProof: LineageProof | null }
+/**
+ * Split coins into multiple smaller coins
+ */
+export type Split = { 
+/**
+ * Coin IDs to split
+ */
+coin_ids: string[]; 
+/**
+ * Number of output coins
+ */
+output_count: number; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Submit a transaction to the network
+ */
+export type SubmitTransaction = { 
+/**
+ * Spend bundle to submit
+ */
+spend_bundle: SpendBundleJson }
+/**
+ * Response for transaction submission
+ */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" } | { type: "webhooks_changed" } | { type: "webhook_invoked" }
-export type TakeOffer = { offer: string; fee: Amount; auto_submit?: boolean }
-export type TakeOfferResponse = { summary: TransactionSummary; spend_bundle: SpendBundleJson; transaction_id: string }
+/**
+ * Accept an offer
+ */
+export type TakeOffer = { 
+/**
+ * Offer string to accept
+ */
+offer: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Response with accepted offer details
+ */
+export type TakeOfferResponse = { 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Spend bundle
+ */
+spend_bundle: SpendBundleJson; 
+/**
+ * Transaction ID
+ */
+transaction_id: string }
 export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; revocation_address: string | null }
 export type TransactionCoinRecord = { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind; asset: Asset }
 export type TransactionHistoryRecord = { transaction_id: string; height: number; fee: Amount; confirmed_at: number; input_coin_ids: string[]; output_coin_ids: string[] }
 export type TransactionInput = { coin_id: string; amount: Amount; address: string; asset: Asset | null; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
 export type TransactionRecord = { height: number; timestamp: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
-export type TransactionResponse = { summary: TransactionSummary; coin_spends: CoinSpendJson[] }
+/**
+ * Standard transaction response
+ */
+export type TransactionResponse = { 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary; 
+/**
+ * Coin spends in the transaction
+ */
+coin_spends: CoinSpendJson[] }
 export type TransactionSummary = { fee: Amount; inputs: TransactionInput[] }
-export type TransferDids = { did_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
-export type TransferNfts = { nft_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
-export type TransferOptions = { option_ids: string[]; address: string; fee: Amount; clawback?: number | null; auto_submit?: boolean }
+/**
+ * Transfer DIDs to a new address
+ */
+export type TransferDids = { 
+/**
+ * DID IDs to transfer
+ */
+did_ids: string[]; 
+/**
+ * Recipient address
+ */
+address: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional clawback timestamp
+ */
+clawback?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Transfer NFTs to a new owner
+ */
+export type TransferNfts = { 
+/**
+ * NFT IDs to transfer
+ */
+nft_ids: string[]; 
+/**
+ * Recipient address
+ */
+address: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional clawback timestamp
+ */
+clawback?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
+/**
+ * Transfer options to another address
+ */
+export type TransferOptions = { 
+/**
+ * Option IDs to transfer
+ */
+option_ids: string[]; 
+/**
+ * Recipient address
+ */
+address: string; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Optional clawback timestamp
+ */
+clawback?: number | null; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 export type Unit = { ticker: string; precision: number }
 export type UnregisterWebhook = { webhook_id: string }
 export type UnregisterWebhookResponse = Record<string, never>
-export type UpdateCat = { record: TokenRecord }
+/**
+ * Update a `CAT` token's metadata and visibility
+ */
+export type UpdateCat = { 
+/**
+ * The token record containing updated metadata
+ */
+record: TokenRecord }
+/**
+ * Response after updating a `CAT` token
+ */
 export type UpdateCatResponse = Record<string, never>
-export type UpdateDid = { did_id: string; name: string | null; visible: boolean }
+/**
+ * Update a `DID`'s name and visibility settings
+ */
+export type UpdateDid = { 
+/**
+ * The `DID` ID to update
+ */
+did_id: string; 
+/**
+ * Optional new name for the `DID`
+ */
+name: string | null; 
+/**
+ * Whether the `DID` should be visible in the UI
+ */
+visible: boolean }
+/**
+ * Response after updating a `DID`
+ */
 export type UpdateDidResponse = Record<string, never>
-export type UpdateNft = { nft_id: string; visible: boolean }
-export type UpdateNftCollection = { collection_id: string; visible: boolean }
+/**
+ * Update an `NFT`'s visibility settings
+ */
+export type UpdateNft = { 
+/**
+ * The `NFT` ID to update
+ */
+nft_id: string; 
+/**
+ * Whether the `NFT` should be visible in the UI
+ */
+visible: boolean }
+/**
+ * Update an `NFT` collection's visibility settings
+ */
+export type UpdateNftCollection = { 
+/**
+ * The collection ID to update
+ */
+collection_id: string; 
+/**
+ * Whether the collection should be visible in the UI
+ */
+visible: boolean }
+/**
+ * Response after updating an `NFT` collection
+ */
 export type UpdateNftCollectionResponse = Record<string, never>
+/**
+ * Response after updating an `NFT`
+ */
 export type UpdateNftResponse = Record<string, never>
-export type UpdateOption = { option_id: string; visible: boolean }
+/**
+ * Update an option's visibility settings
+ */
+export type UpdateOption = { 
+/**
+ * The option ID to update
+ */
+option_id: string; 
+/**
+ * Whether the option should be visible in the UI
+ */
+visible: boolean }
+/**
+ * Response after updating an option
+ */
 export type UpdateOptionResponse = Record<string, never>
 export type UpdateWebhook = { webhook_id: string; enabled: boolean }
 export type UpdateWebhookResponse = Record<string, never>
-export type ViewCoinSpends = { coin_spends: CoinSpendJson[] }
-export type ViewCoinSpendsResponse = { summary: TransactionSummary }
-export type ViewOffer = { offer: string }
-export type ViewOfferResponse = { offer: OfferSummary; status: OfferRecordStatus }
+/**
+ * View coin spends without signing
+ */
+export type ViewCoinSpends = { 
+/**
+ * Coin spends to view
+ */
+coin_spends: CoinSpendJson[] }
+/**
+ * Response with transaction summary
+ */
+export type ViewCoinSpendsResponse = { 
+/**
+ * Transaction summary
+ */
+summary: TransactionSummary }
+/**
+ * View an offer without accepting
+ */
+export type ViewOffer = { 
+/**
+ * Offer string to view
+ */
+offer: string }
+/**
+ * Response with offer details
+ */
+export type ViewOfferResponse = { 
+/**
+ * Offer summary
+ */
+offer: OfferSummary; 
+/**
+ * Offer status
+ */
+status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WebhookEntry = { id: string; url: string; 

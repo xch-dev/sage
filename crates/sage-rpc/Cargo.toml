@@ -1,6 +1,6 @@
 [package]
 name = "sage-rpc"
-version = "0.12.4"
+version = "0.12.7"
 edition = "2021"
 license = "Apache-2.0"
 description = "An RPC server for Sage wallet."
@@ -16,7 +16,7 @@ workspace = true
 
 [dependencies]
 sage = { workspace = true }
-sage-api = { workspace = true }
+sage-api = { workspace = true, features = ["openapi"] }
 sage-api-macro = { workspace = true }
 axum = { workspace = true }
 axum-server = { workspace = true, features = ["tls-rustls"] }
@@ -26,3 +26,6 @@ tracing = { workspace = true }
 serde = { workspace = true }
 rustls = { workspace = true }
 rustls-pemfile = { workspace = true }
+utoipa = "5.2.0"
+serde_json = { workspace = true }
+indexmap = { workspace = true }

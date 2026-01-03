@@ -55,6 +55,7 @@ pub fn run() {
             commands::exercise_options,
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
+            commands::finalize_clawback,
             commands::sign_coin_spends,
             commands::view_coin_spends,
             commands::submit_transaction,

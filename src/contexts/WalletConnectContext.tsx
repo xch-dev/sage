@@ -748,23 +748,26 @@ function RequestDialog({
     return null;
   }
 
+  const style: React.CSSProperties = {
+    backgroundImage: currentTheme?.backgroundImage
+      ? `url(${currentTheme.backgroundImage})`
+      : undefined,
+    backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
+    backgroundPosition: currentTheme?.backgroundImage ? 'center' : undefined,
+    backgroundRepeat: currentTheme?.backgroundImage ? 'no-repeat' : undefined,
+  };
+
+  if (currentTheme?.backgroundImage) {
+    style.backgroundColor =
+      currentTheme?.inherits === 'dark'
+        ? 'rgba(0, 0, 0, 0.5)'
+        : 'rgba(255, 255, 255, 0.5)';
+    style.backgroundBlendMode = 'overlay';
+  }
+
   return (
     <Dialog open={true} onOpenChange={(open) => !open && reject(request)}>
-      <DialogContent
-        className='max-w-2xl'
-        style={{
-          backgroundImage: currentTheme?.backgroundImage
-            ? `url(${currentTheme.backgroundImage})`
-            : undefined,
-          backgroundSize: currentTheme?.backgroundImage ? 'cover' : undefined,
-          backgroundPosition: currentTheme?.backgroundImage
-            ? 'center'
-            : undefined,
-          backgroundRepeat: currentTheme?.backgroundImage
-            ? 'no-repeat'
-            : undefined,
-        }}
-      >
+      <DialogContent className='max-w-2xl' style={style}>
         <DialogHeader>
           {peerMetadata && (
             <div className='text-sm text-muted-foreground mb-4'>

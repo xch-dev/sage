@@ -84,6 +84,9 @@ specta = "2.0.0-rc.20"
 specta-typescript = "0.0.7"
 tauri-specta = "2.0.0-rc.20"
 
+# OpenAPI
+utoipa = "5.2.0"
+
 # Chia
 chia = "0.26.0"
 chia_streamable_macro = "0.26.0"
@@ -128,6 +131,7 @@ expect-test = "1.5.1"
 convert_case = "0.8.0"
 quote = "1.0.38"
 proc-macro2 = "1.0.93"
+syn = "2.0"
 
 # Tracing
 tracing = "0.1.40"

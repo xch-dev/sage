@@ -13,10 +13,11 @@ use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
     driver::{
         Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
-        Relation, SettlementLayer, SpendContext, SpendKind, SpendWithConditions, SpendableAsset,
-        Spends, StandardLayer,
+        P2DelegatedConditionsLayer, Relation, SettlementLayer, SpendContext, SpendKind,
+        SpendWithConditions, SpendableAsset, Spends, StandardLayer,
     },
     signer::AggSigConstants,
+    types::puzzles::P2DelegatedConditionsSolution,
     utils::select_coins,
 };
 use indexmap::IndexMap;
@@ -308,7 +309,11 @@ impl Wallet {
                         P2Puzzle::PublicKey(public_key) => StandardLayer::new(*public_key)
                             .spend_with_conditions(ctx, spend.finish()),
                         P2Puzzle::Clawback(clawback) => {
-                            let custody = StandardLayer::new(clawback.public_key);
+                            let Some(public_key) = clawback.public_key else {
+                                return Err(DriverError::MissingKey);
+                            };
+
+                            let custody = StandardLayer::new(public_key);
                             let spend = custody.spend_with_conditions(ctx, spend.finish())?;
 
                             let clawback = ClawbackV2::new(
@@ -354,6 +359,13 @@ impl Wallet {
 
                             underlying.clawback_spend(ctx, spend)
                         }
+                        P2Puzzle::Arbor(key) => P2DelegatedConditionsLayer::new(*key)
+                            .construct_spend(
+                                ctx,
+                                P2DelegatedConditionsSolution::new(
+                                    spend.finish().into_iter().collect(),
+                                ),
+                            ),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer

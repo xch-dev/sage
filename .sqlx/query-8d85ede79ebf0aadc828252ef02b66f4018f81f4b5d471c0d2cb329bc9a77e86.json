@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT hash FROM p2_puzzles WHERE kind = 0",
+  "query": "SELECT hash FROM p2_puzzles WHERE kind IN (0, 3)",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "23a3a5e21db7039a455a7fae4ad0a5eb866a5176fb5df024ac8b0897f82d3008"
+  "hash": "8d85ede79ebf0aadc828252ef02b66f4018f81f4b5d471c0d2cb329bc9a77e86"
 }

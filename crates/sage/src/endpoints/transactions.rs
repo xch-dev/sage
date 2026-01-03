@@ -6,16 +6,18 @@ use chia::{
 };
 use chia_wallet_sdk::{
     driver::{MetadataUpdate, OptionType},
+    types::TESTNET11_CONSTANTS,
     utils::Address,
 };
 use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
     AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, Combine,
-    CreateDid, ExerciseOptions, IssueCat, MintOption, MintOptionResponse, MultiSend, NftUriKind,
-    NormalizeDids, OptionAsset, SendCat, SendXch, SignCoinSpends, SignCoinSpendsResponse, Split,
-    SubmitTransaction, SubmitTransactionResponse, TransactionResponse, TransferDids, TransferNfts,
-    TransferOptions, ViewCoinSpends, ViewCoinSpendsResponse,
+    CreateDid, ExerciseOptions, FinalizeClawback, IssueCat, MintOption, MintOptionResponse,
+    MultiSend, NftUriKind, NormalizeDids, OptionAsset, SendCat, SendXch, SignCoinSpends,
+    SignCoinSpendsResponse, Split, SubmitTransaction, SubmitTransactionResponse,
+    TransactionResponse, TransferDids, TransferNfts, TransferOptions, ViewCoinSpends,
+    ViewCoinSpendsResponse,
 };
 use sage_assets::fetch_uris_without_hash;
 use sage_database::{Asset, AssetKind};
@@ -285,6 +287,7 @@ impl Sage {
 
         let mut mints = Vec::with_capacity(req.mints.len());
         let mut info = ConfirmationInfo::default();
+        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for item in req.mints {
             let royalty_puzzle_hash = item
@@ -301,7 +304,7 @@ impl Sage {
             } else {
                 let data = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.data_uris.clone()),
+                    fetch_uris_without_hash(item.data_uris.clone(), testnet),
                 )
                 .await??;
 
@@ -318,7 +321,7 @@ impl Sage {
             } else {
                 let metadata = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.metadata_uris.clone()),
+                    fetch_uris_without_hash(item.metadata_uris.clone(), testnet),
                 )
                 .await??;
 
@@ -335,7 +338,7 @@ impl Sage {
             } else {
                 let data = timeout(
                     Duration::from_secs(10),
-                    fetch_uris_without_hash(item.license_uris.clone()),
+                    fetch_uris_without_hash(item.license_uris.clone(), testnet),
                 )
                 .await??;
 
@@ -547,6 +550,15 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.exercise_options(option_ids, fee).await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn finalize_clawback(&self, req: FinalizeClawback) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.finalize_clawback(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

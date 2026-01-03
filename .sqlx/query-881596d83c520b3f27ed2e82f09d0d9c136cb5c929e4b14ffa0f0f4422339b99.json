@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind = 0",
+  "query": "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3)",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "91054392bb590bd729d257989bee20e41f5e7b40a1434df439f0ccca126ee8ac"
+  "hash": "881596d83c520b3f27ed2e82f09d0d9c136cb5c929e4b14ffa0f0f4422339b99"
 }

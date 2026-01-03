@@ -1,6 +1,6 @@
 [package]
 name = "sage-config"
-version = "0.12.4"
+version = "0.12.7"
 edition = "2021"
 license = "Apache-2.0"
 description = "Configuration for the Sage wallet."
@@ -14,6 +14,9 @@ categories = { workspace = true }
 [lints]
 workspace = true
 
+[features]
+openapi = ["dep:utoipa"]
+
 [dependencies]
 chia-wallet-sdk = { workspace = true }
 chia = { workspace = true }
@@ -22,6 +25,7 @@ serde_with = { workspace = true, features = ["hex"] }
 indexmap = { workspace = true, features = ["serde"] }
 specta = { workspace = true, features = ["derive", "indexmap"] }
 hex = { workspace = true }
+utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }

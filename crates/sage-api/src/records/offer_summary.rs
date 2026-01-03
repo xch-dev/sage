@@ -4,6 +4,7 @@ use crate::{Amount, Asset};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OfferSummary {
     pub fee: Amount,
     pub maker: Vec<OfferAsset>,
@@ -14,6 +15,7 @@ pub struct OfferSummary {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OfferAsset {
     pub asset: Asset,
     pub amount: Amount,
@@ -24,6 +26,7 @@ pub struct OfferAsset {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct NftRoyalty {
     pub royalty_address: String,
     pub royalty_basis_points: u16,
@@ -31,6 +34,7 @@ pub struct NftRoyalty {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct OptionAssets {
     pub underlying_asset: Asset,
     pub underlying_amount: Amount,

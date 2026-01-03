@@ -41,13 +41,21 @@ msgstr "{0, plural, one {You do not currently have any option contracts. Would y
 msgid "{0}"
 msgstr "{0}"
 
-#: src/components/confirmations/TokenConfirmation.tsx:158
+#: src/components/confirmations/TokenConfirmation.tsx:179
 msgid "{0} {1} coin{2}"
 msgstr "{0} {1} coin{2}"
 
 #: src/components/confirmations/TokenConfirmation.tsx:213
-msgid "{0} clawed back coin {1} coin{2}"
-msgstr "{0} clawed back coin {1} coin{2}"
+#~ msgid "{0} clawed back coin {1} coin{2}"
+#~ msgstr "{0} clawed back coin {1} coin{2}"
+
+#: src/components/confirmations/TokenConfirmation.tsx:236
+msgid "{0} clawed back coin{1}"
+msgstr "{0} clawed back coin{1}"
+
+#: src/components/confirmations/TokenConfirmation.tsx:241
+msgid "{0} finalized clawback{1}"
+msgstr "{0} finalized clawback{1}"
 
 #: src/components/MarketplaceCard.tsx:107
 msgid "{0} link"
@@ -89,7 +97,7 @@ msgstr "{label}: {content} (navigate within app)"
 msgid "{label}: {content} (opens in external application)"
 msgstr "{label}: {content} (opens in external application)"
 
-#: src/components/confirmations/TokenConfirmation.tsx:209
+#: src/components/confirmations/TokenConfirmation.tsx:232
 msgid "{outputCount} coins"
 msgstr "{outputCount} coins"
 
@@ -122,7 +130,7 @@ msgstr "{peersToDeleteCount, plural, one {This will remove the peer from your co
 msgid "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from being connected to.} other {Will temporarily prevent the peers from being connected to.}}"
 msgstr "{peersToDeleteCount, plural, one {Will temporarily prevent the peer from being connected to.} other {Will temporarily prevent the peers from being connected to.}}"
 
-#: src/components/ClawbackCoinsCard.tsx:291
+#: src/components/ClawbackCoinsCard.tsx:346
 msgid "{selectedCoinCount} {selectedCoinLabel} selected"
 msgstr "{selectedCoinCount} {selectedCoinLabel} selected"
 
@@ -150,7 +158,7 @@ msgstr "{selectedCount} selected"
 #~ msgid "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 #~ msgstr "{transactionSpentCount} inputs, {transactionCreatedCount} outputs"
 
-#: src/components/confirmations/TokenConfirmation.tsx:211
+#: src/components/confirmations/TokenConfirmation.tsx:234
 msgid "1 combined coin"
 msgstr "1 combined coin"
 
@@ -319,7 +327,7 @@ msgstr "Advanced"
 msgid "Advanced Feature"
 msgstr "Advanced Feature"
 
-#: src/pages/ImportWallet.tsx:167
+#: src/pages/ImportWallet.tsx:198
 msgid "Advanced options"
 msgstr "Advanced options"
 
@@ -340,7 +348,7 @@ msgstr "All Levels"
 #: src/components/TransactionColumns.tsx:104
 #: src/components/CoinList.tsx:133
 #: src/components/selectors/AssetSelector.tsx:264
-#: src/components/confirmations/TokenConfirmation.tsx:137
+#: src/components/confirmations/TokenConfirmation.tsx:155
 msgid "Amount"
 msgstr "Amount"
 
@@ -356,11 +364,11 @@ msgstr "Amount includes"
 msgid "Analyze Duration"
 msgstr "Analyze Duration"
 
-#: src/contexts/WalletConnectContext.tsx:800
+#: src/contexts/WalletConnectContext.tsx:803
 msgid "Approve"
 msgstr "Approve"
 
-#: src/contexts/WalletConnectContext.tsx:790
+#: src/contexts/WalletConnectContext.tsx:793
 msgid "Approving"
 msgstr "Approving"
 
@@ -412,7 +420,7 @@ msgstr "Asset can be revoked by the issuer"
 msgid "Asset ID"
 msgstr "Asset ID"
 
-#: src/pages/Token.tsx:190
+#: src/pages/Token.tsx:202
 #: src/components/TokenGridView.tsx:81
 #: src/components/TokenColumns.tsx:219
 #: src/components/AssetCoin.tsx:77
@@ -596,7 +604,7 @@ msgstr "Burn Profile"
 msgid "Buttons"
 msgstr "Buttons"
 
-#: src/pages/CreateWallet.tsx:209
+#: src/pages/CreateWallet.tsx:233
 msgid "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 msgstr "By disabling this you are creating a cold wallet, with no ability to sign transactions. The mnemonic will need to be saved elsewhere."
 
@@ -605,7 +613,7 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 #: src/pages/PeerList.tsx:487
 #: src/pages/PeerList.tsx:677
 #: src/pages/DidList.tsx:365
-#: src/pages/CreateWallet.tsx:287
+#: src/pages/CreateWallet.tsx:315
 #: src/components/WalletCard.tsx:393
 #: src/components/WalletCard.tsx:443
 #: src/components/WalletCard.tsx:544
@@ -619,7 +627,8 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 #: src/components/NftCard.tsx:668
 #: src/components/FeeOnlyDialog.tsx:92
 #: src/components/ConfirmationDialog.tsx:607
-#: src/components/ClawbackCoinsCard.tsx:335
+#: src/components/ClawbackCoinsCard.tsx:390
+#: src/components/ClawbackCoinsCard.tsx:441
 #: src/components/AssignNftDialog.tsx:144
 #: src/components/dialogs/ResyncDialog.tsx:92
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:317
@@ -629,16 +638,16 @@ msgstr "By disabling this you are creating a cold wallet, with no ability to sig
 msgid "Cancel"
 msgstr "Cancel"
 
-#: src/pages/Offers.tsx:313
+#: src/pages/Offers.tsx:324
 msgid "Cancel All Active"
 msgstr "Cancel All Active"
 
-#: src/pages/Offers.tsx:318
-#: src/pages/Offers.tsx:397
+#: src/pages/Offers.tsx:329
+#: src/pages/Offers.tsx:412
 msgid "Cancel All Active Offers"
 msgstr "Cancel All Active Offers"
 
-#: src/pages/Offers.tsx:376
+#: src/pages/Offers.tsx:391
 msgid "Cancel all active offers?"
 msgstr "Cancel all active offers?"
 
@@ -702,13 +711,13 @@ msgstr "Check if an address is owned by this wallet."
 msgid "Chia"
 msgstr "Chia"
 
-#: src/pages/ImportWallet.tsx:127
-#: src/pages/CreateWallet.tsx:157
+#: src/pages/ImportWallet.tsx:158
+#: src/pages/CreateWallet.tsx:178
 msgid "Choose an emoji"
 msgstr "Choose an emoji"
 
-#: src/pages/ImportWallet.tsx:132
-#: src/pages/CreateWallet.tsx:162
+#: src/pages/ImportWallet.tsx:163
+#: src/pages/CreateWallet.tsx:183
 msgid "Choose an emoji to easily identify your wallet"
 msgstr "Choose an emoji to easily identify your wallet"
 
@@ -728,25 +737,26 @@ msgstr "Choose your preferred theme"
 msgid "Choose Your Theme"
 msgstr "Choose Your Theme"
 
-#: src/components/ClawbackCoinsCard.tsx:278
-#: src/components/ClawbackCoinsCard.tsx:338
-#: src/components/confirmations/TokenConfirmation.tsx:71
+#: src/components/ClawbackCoinsCard.tsx:322
+#: src/components/ClawbackCoinsCard.tsx:393
+#: src/components/confirmations/TokenConfirmation.tsx:77
 msgid "Claw Back"
 msgstr "Claw Back"
 
-#: src/components/ClawbackCoinsCard.tsx:303
+#: src/components/ClawbackCoinsCard.tsx:358
 msgid "Claw Back {0}"
 msgstr "Claw Back {0}"
 
 #: src/components/ClawbackCoinsCard.tsx:222
-msgid "Claw back Details"
-msgstr "Claw back Details"
+#~ msgid "Claw back Details"
+#~ msgstr "Claw back Details"
 
 #: src/pages/Token.tsx:155
+#: src/components/ClawbackCoinsCard.tsx:222
 msgid "Claw Back Details"
 msgstr "Claw Back Details"
 
-#: src/components/ClawbackCoinsCard.tsx:248
+#: src/components/ClawbackCoinsCard.tsx:292
 msgid "Clawback Coins"
 msgstr "Clawback Coins"
 
@@ -766,7 +776,7 @@ msgid "Clear search"
 msgstr "Clear search"
 
 #: src/components/OwnedCoinsCard.tsx:470
-#: src/components/ClawbackCoinsCard.tsx:287
+#: src/components/ClawbackCoinsCard.tsx:342
 msgid "Clear Selection"
 msgstr "Clear Selection"
 
@@ -781,7 +791,7 @@ msgstr "Close"
 
 #: src/components/OwnedCoinsCard.tsx:398
 #: src/components/CoinList.tsx:526
-#: src/components/ClawbackCoinsCard.tsx:240
+#: src/components/ClawbackCoinsCard.tsx:284
 msgid "coin"
 msgstr "coin"
 
@@ -812,7 +822,7 @@ msgstr "Coin ID copied to clipboard"
 
 #: src/components/OwnedCoinsCard.tsx:398
 #: src/components/CoinList.tsx:527
-#: src/components/ClawbackCoinsCard.tsx:240
+#: src/components/ClawbackCoinsCard.tsx:284
 msgid "coins"
 msgstr "coins"
 
@@ -897,7 +907,7 @@ msgstr "Combine {0}"
 #~ msgstr "Combine {ticker}"
 
 #: src/pages/Token.tsx:143
-#: src/components/confirmations/TokenConfirmation.tsx:49
+#: src/components/confirmations/TokenConfirmation.tsx:55
 msgid "Combine Coins"
 msgstr "Combine Coins"
 
@@ -934,7 +944,7 @@ msgstr "Conceal Hidden Options"
 msgid "Conceal Hidden Tokens"
 msgstr "Conceal Hidden Tokens"
 
-#: src/pages/CreateWallet.tsx:295
+#: src/pages/CreateWallet.tsx:323
 msgid "Confirm"
 msgstr "Confirm"
 
@@ -1093,7 +1103,7 @@ msgstr "Copy offer"
 msgid "Create"
 msgstr "Create"
 
-#: src/pages/Offers.tsx:245
+#: src/pages/Offers.tsx:247
 msgid "Create a new offer to get started with peer-to-peer trading."
 msgstr "Create a new offer to get started with peer-to-peer trading."
 
@@ -1113,7 +1123,7 @@ msgstr "Create individual offers for each NFT"
 msgid "Create new NFT"
 msgstr "Create new NFT"
 
-#: src/pages/Offers.tsx:271
+#: src/pages/Offers.tsx:276
 #: src/pages/MakeOffer.tsx:296
 msgid "Create Offer"
 msgstr "Create Offer"
@@ -1125,7 +1135,7 @@ msgid "Create Profile"
 msgstr "Create Profile"
 
 #: src/pages/Login.tsx:220
-#: src/pages/CreateWallet.tsx:65
+#: src/pages/CreateWallet.tsx:72
 msgid "Create Wallet"
 msgstr "Create Wallet"
 
@@ -1185,7 +1195,7 @@ msgstr "Data"
 msgid "Data and License Details"
 msgstr "Data and License Details"
 
-#: src/components/confirmations/TokenConfirmation.tsx:116
+#: src/components/confirmations/TokenConfirmation.tsx:134
 msgid "Data copied to clipboard"
 msgstr "Data copied to clipboard"
 
@@ -1269,7 +1279,7 @@ msgstr "Delete {offerCount} offer records?"
 msgid "Delete {selectedPeersCount}"
 msgstr "Delete {selectedPeersCount}"
 
-#: src/pages/Offers.tsx:335
+#: src/pages/Offers.tsx:349
 #: src/components/dialogs/DeleteOfferDialog.tsx:61
 msgid "Delete All"
 msgstr "Delete All"
@@ -1278,7 +1288,7 @@ msgstr "Delete All"
 msgid "Delete all cached data"
 msgstr "Delete all cached data"
 
-#: src/pages/Offers.tsx:340
+#: src/pages/Offers.tsx:354
 msgid "Delete All Filtered Offers"
 msgstr "Delete All Filtered Offers"
 
@@ -1392,7 +1402,7 @@ msgstr "DID ID"
 msgid "DID ID copied to clipboard"
 msgstr "DID ID copied to clipboard"
 
-#: src/pages/CreateWallet.tsx:275
+#: src/pages/CreateWallet.tsx:302
 msgid "Did you save your mnemonic?"
 msgstr "Did you save your mnemonic?"
 
@@ -1582,7 +1592,7 @@ msgstr "Enter total (defaults to count)"
 msgid "Enter URL"
 msgstr "Enter URL"
 
-#: src/pages/ImportWallet.tsx:154
+#: src/pages/ImportWallet.tsx:185
 msgid "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 msgstr "Enter your mnemonic, private key, or public key above. If it's a public key, it will be imported as a read-only cold wallet."
 
@@ -1775,6 +1785,24 @@ msgstr "Fetching transactions..."
 msgid "Files Processed"
 msgstr "Files Processed"
 
+#: src/components/ClawbackCoinsCard.tsx:333
+#: src/components/ClawbackCoinsCard.tsx:444
+msgid "Finalize"
+msgstr "Finalize"
+
+#: src/components/ClawbackCoinsCard.tsx:405
+msgid "Finalize {0} Clawback"
+msgstr "Finalize {0} Clawback"
+
+#: src/components/confirmations/TokenConfirmation.tsx:94
+msgid "Finalize Clawback"
+msgstr "Finalize Clawback"
+
+#: src/pages/Token.tsx:167
+#: src/components/ClawbackCoinsCard.tsx:266
+msgid "Finalize Clawback Details"
+msgstr "Finalize Clawback Details"
+
 #: src/pages/Addresses.tsx:75
 msgid "Fresh Address"
 msgstr "Fresh Address"
@@ -1864,7 +1892,7 @@ msgstr "Group options: currently grouped by {groupMode}"
 #~ msgstr "Hardened addresses"
 
 #: src/pages/Settings.tsx:1486
-#: src/pages/ImportWallet.tsx:221
+#: src/pages/ImportWallet.tsx:252
 msgid "Hardened Keys"
 msgstr "Hardened Keys"
 
@@ -1970,20 +1998,24 @@ msgid "ID: {cardId}"
 msgstr "ID: {cardId}"
 
 #: src/pages/Login.tsx:121
-#: src/pages/ImportWallet.tsx:238
+#: src/pages/ImportWallet.tsx:269
 msgid "Import"
 msgstr "Import"
+
+#: src/pages/ImportWallet.tsx:112
+msgid "Import Existing Wallet"
+msgstr "Import Existing Wallet"
 
 #: src/pages/Offer.tsx:144
 msgid "Import Offer"
 msgstr "Import Offer"
 
 #: src/pages/Login.tsx:217
-#: src/pages/ImportWallet.tsx:90
+#: src/pages/ImportWallet.tsx:107
 msgid "Import Wallet"
 msgstr "Import Wallet"
 
-#: src/pages/ImportWallet.tsx:235
+#: src/pages/ImportWallet.tsx:266
 msgid "Importing"
 msgstr "Importing"
 
@@ -2011,7 +2043,7 @@ msgstr "Increase the derivation index to generate new addresses. Setting this to
 msgid "Index"
 msgstr "Index"
 
-#: src/pages/ImportWallet.tsx:184
+#: src/pages/ImportWallet.tsx:215
 msgid "Initial Addresses"
 msgstr "Initial Addresses"
 
@@ -2222,7 +2254,7 @@ msgstr "Logout"
 msgid "Main navigation"
 msgstr "Main navigation"
 
-#: src/pages/CreateWallet.tsx:278
+#: src/pages/CreateWallet.tsx:305
 msgid "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 msgstr "Make sure you have saved your mnemonic. You will not be able to access it later, since it will not be saved in the wallet. You will also not be able to make transactions with this wallet."
 
@@ -2230,7 +2262,7 @@ msgstr "Make sure you have saved your mnemonic. You will not be able to access i
 msgid "Maker Fee"
 msgstr "Maker Fee"
 
-#: src/pages/Offers.tsx:239
+#: src/pages/Offers.tsx:241
 msgid "Manage offers"
 msgstr "Manage offers"
 
@@ -2342,7 +2374,7 @@ msgstr "Minting"
 msgid "Minutes"
 msgstr "Minutes"
 
-#: src/pages/CreateWallet.tsx:230
+#: src/pages/CreateWallet.tsx:254
 #: src/components/WalletCard.tsx:494
 msgid "Mnemonic"
 msgstr "Mnemonic"
@@ -2405,13 +2437,14 @@ msgstr "Network"
 #: src/components/OwnedCoinsCard.tsx:624
 #: src/components/NftCard.tsx:652
 #: src/components/FeeOnlyDialog.tsx:77
-#: src/components/ClawbackCoinsCard.tsx:320
+#: src/components/ClawbackCoinsCard.tsx:375
+#: src/components/ClawbackCoinsCard.tsx:426
 #: src/components/AssignNftDialog.tsx:129
 #: src/components/dialogs/CancelOfferDialog.tsx:64
 msgid "Network Fee"
 msgstr "Network Fee"
 
-#: src/pages/Offers.tsx:385
+#: src/pages/Offers.tsx:400
 msgid "Network Fee (per offer)"
 msgstr "Network Fee (per offer)"
 
@@ -2435,6 +2468,10 @@ msgstr "Network Fee:"
 #: src/pages/MakeOffer.tsx:110
 msgid "New Offer"
 msgstr "New Offer"
+
+#: src/pages/CreateWallet.tsx:133
+msgid "New Wallet"
+msgstr "New Wallet"
 
 #: src/pages/OptionList.tsx:173
 msgid "Next"
@@ -2570,7 +2607,7 @@ msgstr "No NFTs requested or details unavailable."
 msgid "No NFTs to export"
 msgstr "No NFTs to export"
 
-#: src/pages/Offers.tsx:241
+#: src/pages/Offers.tsx:243
 msgid "No offers yet"
 msgstr "No offers yet"
 
@@ -2616,7 +2653,7 @@ msgstr "Normalize Profile"
 msgid "Normalize Profiles"
 msgstr "Normalize Profiles"
 
-#: src/pages/Offers.tsx:75
+#: src/pages/Offers.tsx:76
 #: src/components/TransferDialog.tsx:51
 #: src/components/OwnedCoinsCard.tsx:243
 #: src/components/OwnedCoinsCard.tsx:288
@@ -2625,6 +2662,7 @@ msgstr "Normalize Profiles"
 #: src/components/NftCard.tsx:218
 #: src/components/FeeOnlyDialog.tsx:50
 #: src/components/ClawbackCoinsCard.tsx:197
+#: src/components/ClawbackCoinsCard.tsx:241
 #: src/components/AssignNftDialog.tsx:58
 msgid "Not enough funds to cover the fee"
 msgstr "Not enough funds to cover the fee"
@@ -2703,7 +2741,7 @@ msgstr "Offered in exchange:"
 msgid "Offering"
 msgstr "Offering"
 
-#: src/pages/Offers.tsx:212
+#: src/pages/Offers.tsx:213
 #: src/components/Nav.tsx:84
 msgid "Offers"
 msgstr "Offers"
@@ -2724,7 +2762,7 @@ msgstr "Offers Requesting This NFT"
 msgid "OK"
 msgstr "OK"
 
-#: src/components/confirmations/TokenConfirmation.tsx:227
+#: src/components/confirmations/TokenConfirmation.tsx:255
 msgid "Once issued, this token will appear in your wallet. You can then send it to other addresses or create offers to trade it."
 msgstr "Once issued, this token will appear in your wallet. You can then send it to other addresses or create offers to trade it."
 
@@ -2846,7 +2884,7 @@ msgid "Outline"
 msgstr "Outline"
 
 #: src/components/OwnedCoinsCard.tsx:553
-#: src/components/confirmations/TokenConfirmation.tsx:202
+#: src/components/confirmations/TokenConfirmation.tsx:225
 msgid "Output Count"
 msgstr "Output Count"
 
@@ -3230,14 +3268,14 @@ msgstr "Requesting in exchange:"
 msgid "Require biometrics for sensitive actions"
 msgstr "Require biometrics for sensitive actions"
 
-#: src/components/confirmations/TokenConfirmation.tsx:204
+#: src/components/confirmations/TokenConfirmation.tsx:227
 msgid "Result"
 msgstr "Result"
 
 #: src/pages/Settings.tsx:1320
 #: src/pages/Settings.tsx:1328
 #: src/components/dialogs/ResyncDialog.tsx:46
-#: src/components/dialogs/ResyncDialog.tsx:116
+#: src/components/dialogs/ResyncDialog.tsx:117
 msgid "Resync"
 msgstr "Resync"
 
@@ -3317,7 +3355,7 @@ msgstr "Run on startup"
 msgid "Running"
 msgstr "Running"
 
-#: src/pages/CreateWallet.tsx:206
+#: src/pages/CreateWallet.tsx:230
 msgid "Save mnemonic"
 msgstr "Save mnemonic"
 
@@ -3530,7 +3568,7 @@ msgstr "Send {ticker}"
 msgid "Send in bulk (airdrop)"
 msgstr "Send in bulk (airdrop)"
 
-#: src/components/confirmations/TokenConfirmation.tsx:82
+#: src/components/confirmations/TokenConfirmation.tsx:88
 msgid "Send Token"
 msgstr "Send Token"
 
@@ -3767,7 +3805,7 @@ msgstr "Split {0}"
 #~ msgstr "Split {ticker}"
 
 #: src/pages/Token.tsx:130
-#: src/components/confirmations/TokenConfirmation.tsx:38
+#: src/components/confirmations/TokenConfirmation.tsx:44
 msgid "Split Coins"
 msgstr "Split Coins"
 
@@ -3810,7 +3848,7 @@ msgstr "Strike Asset"
 msgid "Strike Price"
 msgstr "Strike Price"
 
-#: src/pages/CreateWallet.tsx:268
+#: src/pages/CreateWallet.tsx:292
 #: src/components/ConfirmationDialog.tsx:658
 #: src/components/dialogs/CancelOfferDialog.tsx:82
 msgid "Submit"
@@ -3972,7 +4010,7 @@ msgstr "The assets you will receive."
 msgid "The default fee to use for transactions"
 msgstr "The default fee to use for transactions"
 
-#: src/pages/ImportWallet.tsx:190
+#: src/pages/ImportWallet.tsx:221
 msgid "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 msgstr "The initial derivation index to sync to (both hardened and unhardened keys). This is primarily applicable to legacy wallets with either hardened keys or gaps in addresses used."
 
@@ -4199,7 +4237,7 @@ msgstr "This will bulk transfer {selectedCount} NFTs to another wallet. Are you 
 #~ msgid "This will bulk unassign the NFTs from their profiles."
 #~ msgstr "This will bulk unassign the NFTs from their profiles."
 
-#: src/pages/Offers.tsx:378
+#: src/pages/Offers.tsx:393
 msgid "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 msgstr "This will cancel all {0} active offers on-chain with transactions, preventing them from being taken even if someone has the original offer files."
 
@@ -4207,7 +4245,7 @@ msgstr "This will cancel all {0} active offers on-chain with transactions, preve
 msgid "This will cancel the offer on-chain with a transaction, preventing it from being taken even if someone has the original offer file."
 msgstr "This will cancel the offer on-chain with a transaction, preventing it from being taken even if someone has the original offer file."
 
-#: src/components/ClawbackCoinsCard.tsx:306
+#: src/components/ClawbackCoinsCard.tsx:361
 msgid "This will claw back all of the selected coins."
 msgstr "This will claw back all of the selected coins."
 
@@ -4218,6 +4256,10 @@ msgstr "This will combine all of the selected coins into one."
 #: src/components/OwnedCoinsCard.tsx:607
 msgid "This will combine small enough coins automatically, so you don't have to manually select them."
 msgstr "This will combine small enough coins automatically, so you don't have to manually select them."
+
+#: src/components/ClawbackCoinsCard.tsx:408
+msgid "This will complete the clawback for all of the selected coins, and send the funds to the original recipient (even if the recipient wallet does not support clawbacks)."
+msgstr "This will complete the clawback for all of the selected coins, and send the funds to the original recipient (even if the recipient wallet does not support clawbacks)."
 
 #: src/components/dialogs/DeleteOfferDialog.tsx:40
 msgid "This will delete {offerCount} offers from the wallet, but if they're shared externally they can still be accepted. The only way to truly cancel public offers is by spending one or more of their coins."
@@ -4281,7 +4323,7 @@ msgstr "This will split all of the selected coins."
 
 #: src/pages/IssueToken.tsx:91
 #: src/components/TokenCard.tsx:237
-#: src/components/confirmations/TokenConfirmation.tsx:130
+#: src/components/confirmations/TokenConfirmation.tsx:148
 msgid "Ticker"
 msgstr "Ticker"
 
@@ -4331,7 +4373,7 @@ msgstr "Token Grid"
 msgid "Token Icon"
 msgstr "Token Icon"
 
-#: src/components/confirmations/TokenConfirmation.tsx:60
+#: src/components/confirmations/TokenConfirmation.tsx:66
 msgid "Token Issuance"
 msgstr "Token Issuance"
 
@@ -4365,7 +4407,7 @@ msgstr "Tokens exported successfully"
 msgid "Tokens must have a positive amount."
 msgstr "Tokens must have a positive amount."
 
-#: src/components/confirmations/TokenConfirmation.tsx:193
+#: src/components/confirmations/TokenConfirmation.tsx:216
 msgid "Total Amount"
 msgstr "Total Amount"
 
@@ -4551,7 +4593,7 @@ msgid "Underlying Asset (Locked)"
 msgstr "Underlying Asset (Locked)"
 
 #: src/pages/Settings.tsx:1472
-#: src/pages/ImportWallet.tsx:207
+#: src/pages/ImportWallet.tsx:238
 msgid "Unhardened Keys"
 msgstr "Unhardened Keys"
 
@@ -4602,6 +4644,14 @@ msgstr "Unknown NFT"
 #: src/components/selectors/TokenSelector.tsx:106
 #~ msgid "Unknown token"
 #~ msgstr "Unknown token"
+
+#: src/pages/CreateWallet.tsx:136
+msgid "Unless you create it as a cold wallet, your seed phrase will be viewable from the wallet card on the login screen."
+msgstr "Unless you create it as a cold wallet, your seed phrase will be viewable from the wallet card on the login screen."
+
+#: src/pages/ImportWallet.tsx:115
+msgid "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
+msgstr "Unless you import it as a cold wallet, your seed phrase and/or secret key will be viewable from the wallet card on the login screen."
 
 #: src/components/AdvancedTransactionSummary.tsx:214
 #: src/components/AdvancedTransactionSummary.tsx:228
@@ -4716,7 +4766,7 @@ msgstr "URL is required"
 msgid "USD Value: "
 msgstr "USD Value: "
 
-#: src/pages/CreateWallet.tsx:178
+#: src/pages/CreateWallet.tsx:201
 msgid "Use 24 words"
 msgstr "Use 24 words"
 
@@ -4788,7 +4838,7 @@ msgstr "View Local Offer"
 msgid "View Metadata"
 msgstr "View Metadata"
 
-#: src/pages/Offers.tsx:258
+#: src/pages/Offers.tsx:263
 #: src/pages/Nft.tsx:485
 #: src/pages/Nft.tsx:608
 #: src/components/dialogs/ViewOfferDialog.tsx:49
@@ -4861,8 +4911,8 @@ msgstr "Wallet Details"
 msgid "Wallet emoji"
 msgstr "Wallet emoji"
 
-#: src/pages/ImportWallet.tsx:120
-#: src/pages/CreateWallet.tsx:150
+#: src/pages/ImportWallet.tsx:151
+#: src/pages/CreateWallet.tsx:171
 msgid "Wallet Emoji (Optional)"
 msgstr "Wallet Emoji (Optional)"
 
@@ -4872,13 +4922,13 @@ msgstr "Wallet Emoji (Optional)"
 msgid "Wallet icon"
 msgstr "Wallet icon"
 
-#: src/pages/ImportWallet.tsx:148
+#: src/pages/ImportWallet.tsx:179
 msgid "Wallet Key"
 msgstr "Wallet Key"
 
 #: src/pages/Settings.tsx:1212
-#: src/pages/ImportWallet.tsx:103
-#: src/pages/CreateWallet.tsx:133
+#: src/pages/ImportWallet.tsx:134
+#: src/pages/CreateWallet.tsx:154
 #: src/components/WalletCard.tsx:418
 msgid "Wallet Name"
 msgstr "Wallet Name"
@@ -4909,7 +4959,7 @@ msgstr "Warning: This is a one-sided offer. You are not requesting anything in r
 #~ msgid "Whether to skip syncing older blocks"
 #~ msgstr "Whether to skip syncing older blocks"
 
-#: src/pages/CreateWallet.tsx:181
+#: src/pages/CreateWallet.tsx:204
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 
@@ -4938,7 +4988,7 @@ msgstr "with {syncedCoins} / {totalCoins} coins synced"
 msgid "You"
 msgstr "You"
 
-#: src/components/confirmations/TokenConfirmation.tsx:74
+#: src/components/confirmations/TokenConfirmation.tsx:80
 msgid "You are about to claw back coins. This will return them to your wallet."
 msgstr "You are about to claw back coins. This will return them to your wallet."
 
@@ -4949,6 +4999,10 @@ msgstr "You are about to create <0>{numberOfOffers}</0> individual offers. Each 
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:441
 msgid "You are about to create <0>1</0> offer."
 msgstr "You are about to create <0>1</0> offer."
+
+#: src/components/confirmations/TokenConfirmation.tsx:97
+msgid "You are about to finalize the clawback transaction. This will send the funds to the original recipient (even if the recipient wallet does not support clawbacks)."
+msgstr "You are about to finalize the clawback transaction. This will send the funds to the original recipient (even if the recipient wallet does not support clawbacks)."
 
 #: src/components/confirmations/AddUrlConfirmation.tsx:34
 msgid "You are adding a URL to this NFT. This will be stored on-chain and can be used to link to external content."
@@ -4962,7 +5016,7 @@ msgstr "You are canceling {offerCount} offers on-chain. This will prevent them f
 msgid "You are canceling this offer on-chain. This will prevent it from being taken even if someone has the original offer file."
 msgstr "You are canceling this offer on-chain. This will prevent it from being taken even if someone has the original offer file."
 
-#: src/components/confirmations/TokenConfirmation.tsx:52
+#: src/components/confirmations/TokenConfirmation.tsx:58
 msgid "You are combining multiple coins into a single coin. This can help reduce the number of coins in your wallet."
 msgstr "You are combining multiple coins into a single coin. This can help reduce the number of coins in your wallet."
 
@@ -4970,7 +5024,7 @@ msgstr "You are combining multiple coins into a single coin. This can help reduc
 msgid "You are creating a new profile. This will generate a decentralized identifier (DID) that can be used to associate NFTs and other digital assets with your identity."
 msgstr "You are creating a new profile. This will generate a decentralized identifier (DID) that can be used to associate NFTs and other digital assets with your identity."
 
-#: src/components/confirmations/TokenConfirmation.tsx:63
+#: src/components/confirmations/TokenConfirmation.tsx:69
 msgid "You are issuing a new token. This will create a CAT (Chia Asset Token) that can be sent to other users and traded on exchanges."
 msgstr "You are issuing a new token. This will create a CAT (Chia Asset Token) that can be sent to other users and traded on exchanges."
 
@@ -4986,11 +5040,11 @@ msgstr "You Are Offering"
 msgid "You Are Requesting"
 msgstr "You Are Requesting"
 
-#: src/components/confirmations/TokenConfirmation.tsx:41
+#: src/components/confirmations/TokenConfirmation.tsx:47
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 
-#: src/pages/Offers.tsx:250
+#: src/pages/Offers.tsx:252
 msgid "You can also paste an offer using"
 msgstr "You can also paste an offer using"
 

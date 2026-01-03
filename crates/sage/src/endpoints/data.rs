@@ -887,10 +887,11 @@ impl Sage {
             .transpose()?;
 
         let special_use_type =
-            // this is the hash collection id for the themes collection plus the testnet minter did
-            // need a mainnet collection hash too
+            // DIDs allowed to mint themes, including the Sage Theme DID on mainnet and testnet,
+            // and the Hong Kong Chia Meetup DID on mainnet.
             if minter_did.as_deref() == Some("did:chia:1c9mxmqnyaymseunws8r0dfxwpfjxetha53lk72wm7syxkln6perqapkpzw") ||
-               minter_did.as_deref() == Some("did:chia:1zd2xvqryne68j3ju38r85j4kefzr03dj4dxr0jtdh7gy2g3zpf6q49ulqs") {
+               minter_did.as_deref() == Some("did:chia:1zd2xvqryne68j3ju38r85j4kefzr03dj4dxr0jtdh7gy2g3zpf6q49ulqs") ||
+               minter_did.as_deref() == Some("did:chia:1v2cru3gunszzjd5vuplmf2v5wr2mh9kfc39tlvdml7xlyxqp9v3s29j026") {
                 Some(NftSpecialUseType::Theme)
             } else {
                 None

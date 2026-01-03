@@ -5795,7 +5795,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "sage"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -5836,29 +5836,32 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
+ "sage-api-macro",
  "sage-config",
  "serde",
  "serde_json",
  "specta",
  "tauri-specta",
+ "utoipa",
 ]
 
 [[package]]
 name = "sage-api-macro"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "convert_case 0.8.0",
  "indexmap 2.11.4",
  "proc-macro2",
  "quote",
  "serde_json",
+ "syn 2.0.106",
 ]
 
 [[package]]
 name = "sage-assets"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "base64 0.22.1",
  "chia",
@@ -5878,7 +5881,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "clap",
@@ -5896,7 +5899,7 @@ dependencies = [
 
 [[package]]
 name = "sage-client"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "dirs 5.0.1",
  "reqwest",
@@ -5911,7 +5914,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5923,11 +5926,12 @@ dependencies = [
  "serde_with",
  "specta",
  "toml",
+ "utoipa",
 ]
 
 [[package]]
 name = "sage-database"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "chia",
  "chia-wallet-sdk",
@@ -5939,7 +5943,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -5955,24 +5959,27 @@ dependencies = [
 
 [[package]]
 name = "sage-rpc"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "axum",
  "axum-server",
+ "indexmap 2.11.4",
  "rustls",
  "rustls-pemfile",
  "sage",
  "sage-api",
  "sage-api-macro",
  "serde",
+ "serde_json",
  "tokio",
  "tracing",
+ "utoipa",
 ]
 
 [[package]]
 name = "sage-tauri"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -6010,7 +6017,7 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.12.4"
+version = "0.12.7"
 dependencies = [
  "anyhow",
  "chia",
@@ -8064,6 +8071,29 @@ name = "utf8parse"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
+
+[[package]]
+name = "utoipa"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fcc29c80c21c31608227e0912b2d7fddba57ad76b606890627ba8ee7964e993"
+dependencies = [
+ "indexmap 2.11.4",
+ "serde",
+ "serde_json",
+ "utoipa-gen",
+]
+
+[[package]]
+name = "utoipa-gen"
+version = "5.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6d79d08d92ab8af4c5e8a6da20c47ae3f61a0f1dabc1997cdf2d082b757ca08b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.106",
+]
 
 [[package]]
 name = "uuid"

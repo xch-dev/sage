@@ -80,6 +80,7 @@ pub struct WebhookConfig {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct WebhookEntry {
     pub id: String,
     pub url: String,
