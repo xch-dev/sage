@@ -5,10 +5,12 @@ This document explains how to build the Sage wallet for Android.
 ## Prerequisites
 
 1. Latest CMake
-    - Install via Homebrew
-    - `brew install cmake`
-  
+
+   - Install via Homebrew
+   - `brew install cmake`
+
 2. **Android NDK**: Install via Android Studio SDK Manager or download directly
+
    - Recommended: NDK r26d or later (r29+ works)
    - The setup script will auto-detect NDK in `~/Library/Android/sdk/ndk/`
 
