@@ -1,9 +1,8 @@
-import { commands } from '@/bindings';
+import { commands, KeyInfo } from '@/bindings';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -19,23 +18,22 @@ import { clearState, loginAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
-import { LogOut, WalletIcon } from 'lucide-react';
+import { ChevronDown, WalletIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTheme } from 'theme-o-rama';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 
 interface WalletSwitcherProps {
   isCollapsed?: boolean;
-  logout: () => void;
+  wallet?: KeyInfo;
 }
 
-export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
+export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const navigate = useNavigate();
-  const {
-    wallet: currentWallet,
-    setWallet,
-    setIsSwitching,
-    isSwitching,
-  } = useWallet();
+  const { currentTheme } = useTheme();
+  const { setWallet, setIsSwitching, isSwitching } = useWallet();
   const { addError } = useErrors();
   const [wallets, setWallets] = useState<
     { name: string; fingerprint: number; emoji: string | null }[]
@@ -83,25 +81,19 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
     }
 
     try {
-      // Start switching: clear wallet, state, and set switching state
       setIsSwitching(true);
       setWallet(null);
       clearState();
 
-      // Wait for fade-out transition to complete
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Load new wallet data while still blurred
       await loginAndUpdateState(fingerprint);
       const data = await commands.getKey({});
 
-      // Set new wallet data while still blurred
       setWallet(data.key);
 
-      // Wait a moment for the new data to be set, then fade in
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Now fade in the new wallet
       setIsSwitching(false);
       navigate('/wallet');
     } catch (error) {
@@ -112,6 +104,7 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
   };
 
   const handleMouseEnter = () => {
+    if (isMobile) return;
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -121,87 +114,206 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
   };
 
   const handleMouseLeave = () => {
+    if (isMobile) return;
     setIsHovering(false);
     timeoutRef.current = setTimeout(() => {
       setIsOpen(false);
     }, 150);
   };
 
-  const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
-  const baseClassName = `flex items-center gap-3 transition-all ${
-    isCollapsed ? 'justify-center p-2 rounded-full' : 'px-2 rounded-lg py-1.5'
-  } text-lg md:text-base text-muted-foreground hover:text-primary`;
+  // Filter out current wallet from the list
+  const otherWallets = wallets.filter(
+    (w) => w.fingerprint !== wallet?.fingerprint,
+  );
 
-  // If only one wallet, show simple logout button
-  if (!loading && wallets.length <= 1) {
+  // Don't show dropdown if there are no other wallets
+  const hasOtherWallets = !loading && otherWallets.length > 0;
+
+  // When collapsed, show only the wallet icon/emoji
+  if (isCollapsed) {
+    if (!hasOtherWallets) {
+      // No dropdown needed, just show a tooltip with wallet name
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+            >
+              {wallet?.emoji ? (
+                <span className='text-xl' role='img' aria-label='Wallet emoji'>
+                  {wallet.emoji}
+                </span>
+              ) : (
+                <img
+                  src={
+                    currentTheme?.mostLike === 'light' ? iconDark : iconLight
+                  }
+                  className='h-6 w-6'
+                  alt={t`Wallet icon`}
+                />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side='right'>
+            {wallet?.name ?? t`Wallet`}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    // Show dropdown when collapsed with other wallets available
+    return (
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+        <Tooltip open={!isHovering && !isOpen ? undefined : false}>
+          <TooltipTrigger asChild>
+            <DropdownMenuTrigger asChild>
+              <button
+                type='button'
+                className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {wallet?.emoji ? (
+                  <span
+                    className='text-xl'
+                    role='img'
+                    aria-label='Wallet emoji'
+                  >
+                    {wallet.emoji}
+                  </span>
+                ) : (
+                  <img
+                    src={
+                      currentTheme?.mostLike === 'light' ? iconDark : iconLight
+                    }
+                    className='h-6 w-6'
+                    alt={t`Wallet icon`}
+                  />
+                )}
+              </button>
+            </DropdownMenuTrigger>
+          </TooltipTrigger>
+          <TooltipContent side='right'>
+            {wallet?.name ?? t`Wallet`}
+          </TooltipContent>
+        </Tooltip>
+        <DropdownMenuContent
+          align='start'
+          side='right'
+          className='w-56'
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <div className='px-2 py-1.5 text-sm font-semibold text-muted-foreground'>
+            <Trans>Switch Wallet</Trans>
+          </div>
+          <DropdownMenuSeparator />
+          {otherWallets.map((w) => (
+            <DropdownMenuItem
+              key={w.fingerprint}
+              onClick={() => handleSwitchWallet(w.fingerprint)}
+              disabled={isSwitching}
+              className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
+            >
+              <div className='w-6 flex items-center justify-center'>
+                {w.emoji ? (
+                  <span
+                    className='text-lg'
+                    role='img'
+                    aria-label='Wallet emoji'
+                  >
+                    {w.emoji}
+                  </span>
+                ) : (
+                  <WalletIcon
+                    className='h-5 w-5 text-muted-foreground'
+                    aria-hidden='true'
+                  />
+                )}
+              </div>
+              <span className='truncate'>{w.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
+
+  // Non-collapsed view
+  if (!hasOtherWallets) {
+    // No dropdown needed, just show wallet name as a link
     return (
       <button
         type='button'
-        className={baseClassName}
-        onClick={logout}
-        disabled={isSwitching}
-        aria-label={isCollapsed ? t`Logout` : undefined}
+        className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+        onClick={() => navigate('/wallet')}
       >
-        <LogOut className={className} aria-hidden='true' />
-        {!isCollapsed && <Trans>Logout</Trans>}
+        {wallet?.emoji ? (
+          <span className='text-xl' role='img' aria-label='Wallet emoji'>
+            {wallet.emoji}
+          </span>
+        ) : (
+          <img
+            src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
+            className='h-6 w-6'
+            alt={t`Wallet icon`}
+          />
+        )}
+        <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
       </button>
     );
   }
 
-  const trigger = (
-    <button
-      type='button'
-      className={baseClassName}
-      aria-label={isCollapsed ? t`Wallet switcher` : undefined}
-      {...(isMobile
-        ? {}
-        : {
-            onMouseEnter: handleMouseEnter,
-            onMouseLeave: handleMouseLeave,
-          })}
-    >
-      <LogOut className={className} aria-hidden='true' />
-      {!isCollapsed && <Trans>Wallets</Trans>}
-    </button>
-  );
-
-  const dropdownContent = (
-    <DropdownMenuContent
-      align='end'
-      className='w-56'
-      {...(isMobile
-        ? {}
-        : {
-            onMouseEnter: handleMouseEnter,
-            onMouseLeave: handleMouseLeave,
-          })}
-    >
-      <DropdownMenuLabel>
-        <Trans>Switch Wallet</Trans>
-      </DropdownMenuLabel>
-      <DropdownMenuSeparator />
-      {loading ? (
-        <DropdownMenuItem disabled>
-          <Trans>Loading...</Trans>
-        </DropdownMenuItem>
-      ) : wallets.length === 0 ? (
-        <DropdownMenuItem disabled>
-          <Trans>No wallets available</Trans>
-        </DropdownMenuItem>
-      ) : (
-        wallets.map((wallet) => (
+  // Show full dropdown with wallet name and chevron
+  return (
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type='button'
+          className={`flex items-center gap-2 font-semibold font-heading group ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          {wallet?.emoji ? (
+            <span className='text-xl' role='img' aria-label='Wallet emoji'>
+              {wallet.emoji}
+            </span>
+          ) : (
+            <img
+              src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
+              className='h-6 w-6'
+              alt={t`Wallet icon`}
+            />
+          )}
+          <span className='text-lg'>{wallet?.name ?? t`Wallet`}</span>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            aria-hidden='true'
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        align='start'
+        className='w-56'
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className='px-2 py-1.5 text-sm font-semibold text-muted-foreground'>
+          <Trans>Switch Wallet</Trans>
+        </div>
+        <DropdownMenuSeparator />
+        {otherWallets.map((w) => (
           <DropdownMenuItem
-            key={wallet.fingerprint}
-            onClick={() => handleSwitchWallet(wallet.fingerprint)}
-            disabled={
-              isSwitching || currentWallet?.fingerprint === wallet.fingerprint
-            }
-            className='grid grid-cols-[auto_1fr_auto] items-center gap-3'
+            key={w.fingerprint}
+            onClick={() => handleSwitchWallet(w.fingerprint)}
+            disabled={isSwitching}
+            className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
           >
             <div className='w-6 flex items-center justify-center'>
-              {wallet.emoji ? (
+              {w.emoji ? (
                 <span className='text-lg' role='img' aria-label='Wallet emoji'>
-                  {wallet.emoji}
+                  {w.emoji}
                 </span>
               ) : (
                 <WalletIcon
@@ -210,44 +322,10 @@ export function WalletSwitcher({ isCollapsed, logout }: WalletSwitcherProps) {
                 />
               )}
             </div>
-            <span className='truncate'>{wallet.name}</span>
-            {currentWallet?.fingerprint === wallet.fingerprint && (
-              <span className='text-xs text-muted-foreground'>
-                <Trans>(current)</Trans>
-              </span>
-            )}
+            <span className='truncate'>{w.name}</span>
           </DropdownMenuItem>
-        ))
-      )}
-      <DropdownMenuSeparator />
-      <DropdownMenuItem
-        onClick={logout}
-        disabled={isSwitching}
-        className='text-destructive focus:text-destructive'
-      >
-        <LogOut className={className} aria-hidden='true' />
-        <Trans>Logout</Trans>
-      </DropdownMenuItem>
-    </DropdownMenuContent>
-  );
-
-  // If multiple wallets, show dropdown menu
-  // On mobile, use click to open/close. On desktop, use hover.
-  const dropdown = (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
-      <Tooltip open={isCollapsed && !isHovering && !isOpen ? undefined : false}>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-        </TooltipTrigger>
-        {isCollapsed && (
-          <TooltipContent side='right' role='tooltip' aria-live='polite'>
-            <Trans>Wallet switcher</Trans>
-          </TooltipContent>
-        )}
-      </Tooltip>
-      {dropdownContent}
+        ))}
+      </DropdownMenuContent>
     </DropdownMenu>
   );
-
-  return dropdown;
 }

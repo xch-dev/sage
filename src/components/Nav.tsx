@@ -11,6 +11,7 @@ import {
   FilePenLine,
   Handshake,
   Images,
+  LogOut,
   MonitorCheck,
   MonitorCog,
   SquareUserRound,
@@ -19,7 +20,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { NavLink } from './NavLink';
 import { Separator } from './ui/separator';
-import { WalletSwitcher } from './WalletSwitcher';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface NavProps {
   isCollapsed?: boolean;
@@ -207,7 +212,32 @@ export function BottomNav({ isCollapsed }: NavProps) {
         <Cog className={className} aria-hidden='true' />
       </NavLink>
 
-      <WalletSwitcher isCollapsed={isCollapsed} logout={logout} />
+      {isCollapsed ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type='button'
+              onClick={logout}
+              className='flex items-center justify-center p-2 rounded-full text-lg md:text-base text-muted-foreground hover:text-primary transition-all'
+              aria-label={t`Logout`}
+            >
+              <LogOut className='h-5 w-5' aria-hidden='true' />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side='right' role='tooltip'>
+            <Trans>Logout</Trans>
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        <button
+          type='button'
+          onClick={logout}
+          className='flex items-center gap-3 px-2 rounded-lg py-1.5 text-lg md:text-base text-muted-foreground hover:text-primary transition-all'
+        >
+          <LogOut className={className} aria-hidden='true' />
+          <Trans>Logout</Trans>
+        </button>
+      )}
     </nav>
   );
 }
