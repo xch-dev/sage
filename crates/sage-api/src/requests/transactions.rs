@@ -696,6 +696,29 @@ pub struct TransferOptions {
     pub auto_submit: bool,
 }
 
+/// Send CAT tokens to an address
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "XCH Transactions",
+        description = "Finalize the clawback for a set of coins.",
+        response_type = "TransactionResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct FinalizeClawback {
+    /// The coins to finalize the clawback for
+    pub coin_ids: Vec<String>,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to automatically submit the transaction
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
 /// Sign coin spends to create a transaction
 #[cfg_attr(
     feature = "openapi",
@@ -807,3 +830,4 @@ pub type TransferDidsResponse = TransactionResponse;
 pub type NormalizeDidsResponse = TransactionResponse;
 pub type TransferOptionsResponse = TransactionResponse;
 pub type ExerciseOptionsResponse = TransactionResponse;
+pub type FinalizeClawbackResponse = TransactionResponse;
