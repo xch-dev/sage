@@ -1,3 +1,8 @@
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { usePeers } from '@/hooks/usePeers';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -20,11 +25,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { NavLink } from './NavLink';
 import { Separator } from './ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 
 interface NavProps {
   isCollapsed?: boolean;

@@ -11,8 +11,8 @@ import { useTheme } from 'theme-o-rama';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { WalletSwitcher } from './WalletSwitcher';
 import { TooltipProvider } from './ui/tooltip';
+import { WalletSwitcher } from './WalletSwitcher';
 
 const headerPaginationVariants = {
   enter: { opacity: 1, x: 0 },
@@ -115,7 +115,7 @@ export default function Header(
                 : {}
             }
           >
-            <div className='mt-4'>
+            <div className='mt-4 mb-2'>
               <TooltipProvider>
                 <WalletSwitcher wallet={wallet ?? undefined} />
               </TooltipProvider>

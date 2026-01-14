@@ -11,12 +11,17 @@ import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Insets } from 'tauri-plugin-safe-area-insets';
 import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
 import { WalletSwitcher } from './WalletSwitcher';
 
-function WalletTransitionWrapper({ children }: PropsWithChildren) {
+function WalletTransitionWrapper({
+  children,
+  props,
+  insets,
+}: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
   const { isSwitching, wallet } = useWallet();
 
   // Only show content if we have a wallet or we're not switching
@@ -29,7 +34,14 @@ function WalletTransitionWrapper({ children }: PropsWithChildren) {
         !shouldShow
           ? 'opacity-0 blur-sm pointer-events-none'
           : 'opacity-100 blur-0'
+      } flex flex-col h-screen overflow-hidden ${
+        props.transparentBackground ? 'bg-transparent' : 'bg-background'
       }`}
+      style={{
+        paddingBottom: insets.bottom
+          ? `${insets.bottom}px`
+          : 'env(safe-area-inset-bottom)',
+      }}
     >
       {shouldShow ? children : null}
     </div>
@@ -121,28 +133,17 @@ export function FullLayout(props: LayoutProps) {
             </div>
           </div>
         </div>
-        <WalletTransitionWrapper>
+        <WalletTransitionWrapper props={props} insets={insets}>
           <div
-            className={`flex flex-col h-screen overflow-hidden ${
-              props.transparentBackground ? 'bg-transparent' : 'bg-background'
-            }`}
+            className='bg-background'
             style={{
-              paddingBottom: insets.bottom
-                ? `${insets.bottom}px`
-                : 'env(safe-area-inset-bottom)',
+              height:
+                insets.top !== 0
+                  ? `${insets.top + 8}px`
+                  : 'env(safe-area-inset-top)',
             }}
-          >
-            <div
-              className='bg-background'
-              style={{
-                height:
-                  insets.top !== 0
-                    ? `${insets.top + 8}px`
-                    : 'env(safe-area-inset-top)',
-              }}
-            />
-            {props.children}
-          </div>
+          />
+          {props.children}
         </WalletTransitionWrapper>
       </div>
     </TooltipProvider>
