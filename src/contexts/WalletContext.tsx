@@ -28,7 +28,11 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         setWallet(data.key);
         await fetchState();
       } catch (error) {
-        addError(error as CustomError);
+        const customError = error as CustomError;
+        // Don't add unauthorized errors - they're expected when not logged in
+        if (customError.kind !== 'unauthorized') {
+          addError(customError);
+        }
       }
     };
 
