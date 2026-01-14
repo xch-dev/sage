@@ -1,18 +1,18 @@
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronLeft, Menu } from 'lucide-react';
 import { PropsWithChildren, ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTheme } from 'theme-o-rama';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { TooltipProvider } from './ui/tooltip';
+import { WalletSwitcher } from './WalletSwitcher';
 
 const headerPaginationVariants = {
   enter: { opacity: 1, x: 0 },
@@ -115,33 +115,10 @@ export default function Header(
                 : {}
             }
           >
-            <div className='mt-4'>
-              <Link
-                to='/wallet'
-                className='flex items-center gap-2 font-semibold font-heading'
-                aria-label={t`Go to wallet`}
-              >
-                {wallet?.emoji ? (
-                  <span
-                    className='text-xl'
-                    role='img'
-                    aria-label='Wallet emoji'
-                    aria-hidden='true'
-                  >
-                    {wallet.emoji}
-                  </span>
-                ) : (
-                  <img
-                    src={
-                      currentTheme?.mostLike === 'light' ? iconDark : iconLight
-                    }
-                    className='h-6 w-6'
-                    alt={t`Wallet icon`}
-                    aria-hidden='true'
-                  />
-                )}
-                <span className='text-lg'>{wallet?.name}</span>
-              </Link>
+            <div className='mt-4 mb-2'>
+              <TooltipProvider>
+                <WalletSwitcher wallet={wallet ?? undefined} />
+              </TooltipProvider>
             </div>
             <TopNav />
             <div
