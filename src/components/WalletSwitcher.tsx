@@ -209,32 +209,34 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
             <Trans>Switch Wallet</Trans>
           </div>
           <DropdownMenuSeparator />
-          {otherWallets.map((w) => (
-            <DropdownMenuItem
-              key={w.fingerprint}
-              onClick={() => handleSwitchWallet(w.fingerprint)}
-              disabled={isSwitching}
-              className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
-            >
-              <div className='w-6 flex items-center justify-center'>
-                {w.emoji ? (
-                  <span
-                    className='text-lg'
-                    role='img'
-                    aria-label='Wallet emoji'
-                  >
-                    {w.emoji}
-                  </span>
-                ) : (
-                  <WalletIcon
-                    className='h-5 w-5 text-muted-foreground'
-                    aria-hidden='true'
-                  />
-                )}
-              </div>
-              <span className='truncate'>{w.name}</span>
-            </DropdownMenuItem>
-          ))}
+          <div className='max-h-[75vh] overflow-y-auto'>
+            {otherWallets.map((w) => (
+              <DropdownMenuItem
+                key={w.fingerprint}
+                onClick={() => handleSwitchWallet(w.fingerprint)}
+                disabled={isSwitching}
+                className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
+              >
+                <div className='w-6 flex items-center justify-center'>
+                  {w.emoji ? (
+                    <span
+                      className='text-lg'
+                      role='img'
+                      aria-label='Wallet emoji'
+                    >
+                      {w.emoji}
+                    </span>
+                  ) : (
+                    <WalletIcon
+                      className='h-5 w-5 text-muted-foreground'
+                      aria-hidden='true'
+                    />
+                  )}
+                </div>
+                <span className='truncate'>{w.name}</span>
+              </DropdownMenuItem>
+            ))}
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     );
@@ -303,28 +305,34 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
           <Trans>Switch Wallet</Trans>
         </div>
         <DropdownMenuSeparator />
-        {otherWallets.map((w) => (
-          <DropdownMenuItem
-            key={w.fingerprint}
-            onClick={() => handleSwitchWallet(w.fingerprint)}
-            disabled={isSwitching}
-            className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
-          >
-            <div className='w-6 flex items-center justify-center'>
-              {w.emoji ? (
-                <span className='text-lg' role='img' aria-label='Wallet emoji'>
-                  {w.emoji}
-                </span>
-              ) : (
-                <WalletIcon
-                  className='h-5 w-5 text-muted-foreground'
-                  aria-hidden='true'
-                />
-              )}
-            </div>
-            <span className='truncate'>{w.name}</span>
-          </DropdownMenuItem>
-        ))}
+        <div className='max-h-[75vh] overflow-y-auto'>
+          {otherWallets.map((w) => (
+            <DropdownMenuItem
+              key={w.fingerprint}
+              onClick={() => handleSwitchWallet(w.fingerprint)}
+              disabled={isSwitching}
+              className='grid grid-cols-[auto_1fr] items-center gap-3 cursor-pointer'
+            >
+              <div className='w-6 flex items-center justify-center'>
+                {w.emoji ? (
+                  <span
+                    className='text-lg'
+                    role='img'
+                    aria-label='Wallet emoji'
+                  >
+                    {w.emoji}
+                  </span>
+                ) : (
+                  <WalletIcon
+                    className='h-5 w-5 text-muted-foreground'
+                    aria-hidden='true'
+                  />
+                )}
+              </div>
+              <span className='truncate'>{w.name}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
