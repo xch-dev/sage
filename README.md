@@ -39,6 +39,14 @@ Install the frontend dependencies:
 pnpm install
 ```
 
+#### Windows
+
+The build process on Windows requires CMake, Clang and NASM installed.
+
+```powershell
+choco install cmake llvm nasm
+```
+
 ### Starting the app
 
 You can run the app with:
