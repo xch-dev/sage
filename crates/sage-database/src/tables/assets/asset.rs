@@ -183,10 +183,10 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
-            name = COALESCE(name, excluded.name),
-            ticker = COALESCE(ticker, excluded.ticker),
-            icon_url = COALESCE(icon_url, excluded.icon_url),
-            description = COALESCE(description, excluded.description),
+            name = COALESCE(excluded.name, name),
+            ticker = COALESCE(excluded.ticker, ticker),
+            icon_url = COALESCE(excluded.icon_url, icon_url),
+            description = COALESCE(excluded.description, description),
             is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
         ",
         hash,
