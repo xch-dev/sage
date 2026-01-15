@@ -8,6 +8,10 @@ async function isNdefAvailable() {
 async function getNdefPayloads() {
     return await core.invoke('plugin:sage|get_ndef_payloads').then((r) => r.payloads);
 }
+async function testTangem() {
+    return await core.invoke('plugin:sage|test_tangem').then((r) => r.output);
+}
 
 exports.getNdefPayloads = getNdefPayloads;
 exports.isNdefAvailable = isNdefAvailable;
+exports.testTangem = testTangem;
