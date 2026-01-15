@@ -23,6 +23,7 @@ import {
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
+import { SecureElementProvider } from './contexts/SecureElementContext';
 import { WalletConnectProvider } from './contexts/WalletConnectContext';
 import { WalletProvider } from './contexts/WalletContext';
 import useInitialization from './hooks/useInitialization';
@@ -189,15 +190,17 @@ function AppInner() {
     initialized &&
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
-        <WalletProvider>
-          <PeerProvider>
-            <WalletConnectProvider>
-              <PriceProvider>
-                <RouterProvider router={router} />
-              </PriceProvider>
-            </WalletConnectProvider>
-          </PeerProvider>
-        </WalletProvider>
+        <SecureElementProvider>
+          <WalletProvider>
+            <PeerProvider>
+              <WalletConnectProvider>
+                <PriceProvider>
+                  <RouterProvider router={router} />
+                </PriceProvider>
+              </WalletConnectProvider>
+            </PeerProvider>
+          </WalletProvider>
+        </SecureElementProvider>
       </I18nProvider>
     )
   );
