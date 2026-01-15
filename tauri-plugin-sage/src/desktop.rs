@@ -14,6 +14,10 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Sage<R: Runtime>(AppHandle<R>);
 
 impl<R: Runtime> Sage<R> {
+    pub fn test_tangem(&self) -> crate::Result<TestTangemResponse> {
+        todo!()
+    }
+
     pub fn is_ndef_available(&self) -> crate::Result<IsNdefAvailableResponse> {
         Ok(IsNdefAvailableResponse { available: false })
     }

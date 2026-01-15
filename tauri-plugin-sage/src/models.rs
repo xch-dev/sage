@@ -19,3 +19,13 @@ pub struct GetNdefPayloadsRequest {}
 pub struct GetNdefPayloadsResponse {
     pub payloads: Vec<Vec<u8>>,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestTangemRequest {}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TestTangemResponse {
+    pub output: String,
+}

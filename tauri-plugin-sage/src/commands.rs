@@ -17,3 +17,8 @@ pub(crate) async fn get_ndef_payloads<R: Runtime>(
 ) -> Result<GetNdefPayloadsResponse> {
     app.sage().get_ndef_payloads()
 }
+
+#[command]
+pub(crate) async fn test_tangem<R: Runtime>(app: AppHandle<R>) -> Result<TestTangemResponse> {
+    app.sage().test_tangem()
+}

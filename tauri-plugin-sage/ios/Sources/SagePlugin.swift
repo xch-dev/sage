@@ -7,6 +7,10 @@ import WebKit
 class SagePlugin: Plugin, NFCNDEFReaderSessionDelegate {
   var session: Session?
 
+    @objc public func testTangem(_ invoke: Invoke) throws {
+        invoke.resolve(["output": "Hello, world!"])
+    }
+    
   @objc public func isNdefAvailable(_ invoke: Invoke) throws {
     invoke.resolve(["available": NFCNDEFReaderSession.readingAvailable])
   }

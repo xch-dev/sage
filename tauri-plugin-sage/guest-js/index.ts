@@ -11,3 +11,9 @@ export async function getNdefPayloads(): Promise<number[][]> {
     'plugin:sage|get_ndef_payloads',
   ).then((r) => r.payloads);
 }
+
+export async function testTangem(): Promise<string> {
+  return await invoke<{ output: string }>('plugin:sage|test_tangem').then(
+    (r) => r.output,
+  );
+}

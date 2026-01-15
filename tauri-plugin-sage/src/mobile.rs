@@ -25,6 +25,12 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
 pub struct Sage<R: Runtime>(PluginHandle<R>);
 
 impl<R: Runtime> Sage<R> {
+    pub fn test_tangem(&self) -> crate::Result<TestTangemResponse> {
+        self.0
+            .run_mobile_plugin("testTangem", TestTangemRequest {})
+            .map_err(Into::into)
+    }
+
     pub fn is_ndef_available(&self) -> crate::Result<IsNdefAvailableResponse> {
         self.0
             .run_mobile_plugin("isNdefAvailable", IsNdefAvailableRequest {})
