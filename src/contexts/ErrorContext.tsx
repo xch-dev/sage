@@ -28,6 +28,11 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<CustomError[]>([]);
 
   const addError = useCallback((error: CustomError) => {
+    // Skip unauthorized errors - they're expected during wallet transitions
+    // and redundant when not logged in (user already knows they need to log in)
+    if (error.kind === 'unauthorized') {
+      return;
+    }
     setErrors((prevErrors) => [...prevErrors, error]);
   }, []);
 
