@@ -1,4 +1,5 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
+import { MigrationDialog } from '@/components/dialogs/MigrationDialog';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -511,56 +512,27 @@ export function WalletCard({
         </DialogContent>
       </Dialog>
 
-      <Dialog
+      <MigrationDialog
         open={isMigrationDialogOpen}
         onOpenChange={(open) => !open && setIsMigrationDialogOpen(false)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Database Migration Required</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                In order to proceed with the update, the wallet will be fully
-                resynced. This means any imported offer files or custom asset
-                names will be removed, but you can manually add them again after
-                if needed.
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={async () => {
-                setIsMigrationDialogOpen(false);
-                try {
-                  await logoutAndUpdateState();
-                } catch (error) {
-                  console.error('Error during logout:', error);
-                }
-              }}
-            >
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button
-              variant='default'
-              onClick={async () => {
-                setIsMigrationDialogOpen(false);
-                await logoutAndUpdateState();
-                await commands.deleteDatabase({
-                  fingerprint: info.fingerprint,
-                  network: info.network_id,
-                });
-                await loginSelf();
-              }}
-              autoFocus
-            >
-              <Trans>OK</Trans>
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onCancel={async () => {
+          setIsMigrationDialogOpen(false);
+          try {
+            await logoutAndUpdateState();
+          } catch (error) {
+            console.error('Error during logout:', error);
+          }
+        }}
+        onConfirm={async () => {
+          setIsMigrationDialogOpen(false);
+          await logoutAndUpdateState();
+          await commands.deleteDatabase({
+            fingerprint: info.fingerprint,
+            network: info.network_id,
+          });
+          await loginSelf();
+        }}
+      />
     </>
   );
 }

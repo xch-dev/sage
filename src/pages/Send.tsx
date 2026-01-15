@@ -312,6 +312,7 @@ export default function Send() {
                                 variant='outline'
                                 size='icon'
                                 type='button'
+                                tabIndex={-1}
                                 className='!border-l-0 !rounded-l-none flex-shrink-0'
                                 onClick={() => {
                                   if (asset) {

@@ -7,15 +7,46 @@ import {
 } from '@/components/ui/tooltip';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 import { t } from '@lingui/core/macro';
 import { PanelLeft, PanelLeftClose } from 'lucide-react';
 import { PropsWithChildren } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { Insets } from 'tauri-plugin-safe-area-insets';
 import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
+import { WalletSwitcher } from './WalletSwitcher';
+
+function WalletTransitionWrapper({
+  children,
+  props,
+  insets,
+}: PropsWithChildren<{ props: LayoutProps; insets: Insets }>) {
+  const { isSwitching, wallet } = useWallet();
+
+  // Only show content if we have a wallet or we're not switching
+  // This prevents old wallet data from showing during transition
+  const shouldShow = wallet !== null || !isSwitching;
+
+  return (
+    <div
+      className={`transition-all duration-300 ${
+        !shouldShow
+          ? 'opacity-0 blur-sm pointer-events-none'
+          : 'opacity-100 blur-0'
+      } flex flex-col h-screen overflow-hidden ${
+        props.transparentBackground ? 'bg-transparent' : 'bg-background'
+      }`}
+      style={{
+        paddingBottom: insets.bottom
+          ? `${insets.bottom}px`
+          : 'env(safe-area-inset-bottom)',
+      }}
+    >
+      {shouldShow ? children : null}
+    </div>
+  );
+}
 
 const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
@@ -32,58 +63,6 @@ export function FullLayout(props: LayoutProps) {
   const [isCollapsed, setIsCollapsed] = useLocalStorage<boolean>(
     SIDEBAR_COLLAPSED_STORAGE_KEY,
     false,
-  );
-
-  const walletIcon = (
-    <Link
-      to='/wallet'
-      className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
-    >
-      {wallet?.emoji ? (
-        <span className='text-xl' role='img' aria-label='Wallet emoji'>
-          {wallet.emoji}
-        </span>
-      ) : (
-        <img
-          src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-          className='h-6 w-6'
-          alt={t`Wallet icon`}
-        />
-      )}
-      <span
-        className={`text-lg transition-opacity duration-300 ${
-          isCollapsed ? 'opacity-0 hidden' : 'opacity-100'
-        }`}
-      >
-        {wallet?.name ?? t`Wallet`}
-      </span>
-    </Link>
-  );
-
-  const walletIconWithTooltip = isCollapsed ? (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link
-          to='/wallet'
-          className={`flex items-center gap-2 font-semibold font-heading ${!wallet ? 'opacity-50 pointer-events-none' : ''}`}
-        >
-          {wallet?.emoji ? (
-            <span className='text-xl' role='img' aria-label='Wallet emoji'>
-              {wallet.emoji}
-            </span>
-          ) : (
-            <img
-              src={currentTheme?.mostLike === 'light' ? iconDark : iconLight}
-              className='h-6 w-6'
-              alt={t`Wallet icon`}
-            />
-          )}
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side='right'>{wallet?.name ?? t`Wallet`}</TooltipContent>
-    </Tooltip>
-  ) : (
-    walletIcon
   );
 
   return (
@@ -107,61 +86,32 @@ export function FullLayout(props: LayoutProps) {
           aria-label={t`Sidebar navigation`}
         >
           <div className='bg-background flex h-full max-h-screen flex-col gap-2'>
-            <div className='flex h-14 items-center pt-2 px-5 justify-between'>
-              {isCollapsed && wallet?.emoji ? (
-                // When collapsed and emoji exists, show only the emoji as a clickable button
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type='button'
-                      onClick={() => setIsCollapsed(!isCollapsed)}
-                      className='text-2xl hover:scale-110 transition-transform cursor-pointer'
-                      aria-label={t`Expand sidebar - ${wallet.name}`}
-                      aria-expanded={!isCollapsed}
-                    >
-                      <span role='img' aria-label={t`Wallet emoji`}>
-                        {wallet.emoji}
-                      </span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side='right' role='tooltip'>
-                    {t`Expand sidebar - ${wallet.name}`}
-                  </TooltipContent>
-                </Tooltip>
-              ) : (
-                <>
-                  {!isCollapsed && walletIconWithTooltip}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type='button'
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                        className='text-muted-foreground hover:text-primary transition-colors'
-                        aria-label={
-                          isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
-                        }
-                        aria-expanded={!isCollapsed}
-                      >
-                        {isCollapsed ? (
-                          <PanelLeft className='h-5 w-5' aria-hidden='true' />
-                        ) : (
-                          <PanelLeftClose
-                            className='h-5 w-5'
-                            aria-hidden='true'
-                          />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side='right' role='tooltip'>
-                      {isCollapsed
-                        ? wallet?.name
-                          ? t`Expand sidebar - ${wallet.name}`
-                          : t`Expand sidebar`
-                        : t`Collapse sidebar`}
-                    </TooltipContent>
-                  </Tooltip>
-                </>
-              )}
+            <div
+              className={`flex h-14 items-center pt-2 px-5 ${isCollapsed ? 'flex-col gap-2 justify-center' : 'justify-between'}`}
+            >
+              <WalletSwitcher isCollapsed={isCollapsed} wallet={wallet} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type='button'
+                    onClick={() => setIsCollapsed(!isCollapsed)}
+                    className='text-muted-foreground hover:text-primary transition-colors'
+                    aria-label={
+                      isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`
+                    }
+                    aria-expanded={!isCollapsed}
+                  >
+                    {isCollapsed ? (
+                      <PanelLeft className='h-5 w-5' aria-hidden='true' />
+                    ) : (
+                      <PanelLeftClose className='h-5 w-5' aria-hidden='true' />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side='right' role='tooltip'>
+                  {isCollapsed ? t`Expand sidebar` : t`Collapse sidebar`}
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             <div className='flex-1 flex flex-col justify-between pb-4'>
@@ -183,16 +133,7 @@ export function FullLayout(props: LayoutProps) {
             </div>
           </div>
         </div>
-        <div
-          className={`flex flex-col h-screen overflow-hidden ${
-            props.transparentBackground ? 'bg-transparent' : 'bg-background'
-          }`}
-          style={{
-            paddingBottom: insets.bottom
-              ? `${insets.bottom}px`
-              : 'env(safe-area-inset-bottom)',
-          }}
-        >
+        <WalletTransitionWrapper props={props} insets={insets}>
           <div
             className='bg-background'
             style={{
@@ -203,7 +144,7 @@ export function FullLayout(props: LayoutProps) {
             }}
           />
           {props.children}
-        </div>
+        </WalletTransitionWrapper>
       </div>
     </TooltipProvider>
   );
