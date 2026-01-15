@@ -1,6 +1,6 @@
 [package]
 name = "sage-client"
-version = "0.12.6"
+version = "0.12.7"
 edition = "2021"
 license = "Apache-2.0"
 description = "An RPC client for Sage wallet."

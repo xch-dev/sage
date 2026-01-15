@@ -162,6 +162,18 @@ export default function Token() {
           />
         ),
       };
+    } else if (content.type === 'finalize_clawback') {
+      return {
+        title: t`Finalize Clawback Details`,
+        content: (
+          <TokenConfirmation
+            type='finalize_clawback'
+            coins={content.coins}
+            ticker={content.ticker}
+            precision={content.precision}
+          />
+        ),
+      };
     }
 
     return undefined;
