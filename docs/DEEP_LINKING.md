@@ -5,7 +5,7 @@ Sage supports custom URL scheme deep linking via the `chia-offer://` protocol. W
 ## URL Format
 
 ```html
-chia-offer://<offer_string>
+chia-offer://<offer_string></offer_string>
 ```
 
 Where `<offer_string>` is a valid Chia offer string starting with `offer1`.
@@ -154,6 +154,7 @@ The URL scheme is automatically configured in the app's `Info.plist` during the 
    - Or use TestFlight for distribution
 
 3. **Test the deep link:**
+
    - Open Safari and navigate to `chia-offer://offer1qqr83wcuu...`
    - Or use the command line on a simulator:
 
