@@ -46,12 +46,14 @@ tauri-plugin-sharesheet = "0.0.1"
 tauri-plugin-window-state = { workspace = true }
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-deep-link = { workspace = true }
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-biometric = { workspace = true }
 tauri-plugin-barcode-scanner = { workspace = true }
 tauri-plugin-safe-area-insets = { workspace = true }
 tauri-plugin-sage = { workspace = true }
+tauri-plugin-deep-link = { workspace = true }
 
 [build-dependencies]
 tauri-build = { workspace = true, features = [] }

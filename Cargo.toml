@@ -76,6 +76,7 @@ tauri-plugin-barcode-scanner = "2.4.2"
 tauri-plugin-biometric = "2.3.2"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
+tauri-plugin-deep-link = "2.4"
 tauri-build = "2.5.3"
 tauri-plugin = "2.5.2"
 

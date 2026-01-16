@@ -5,9 +5,11 @@ import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
+  Outlet,
   Route,
   RouterProvider,
 } from 'react-router-dom';
+import { useDeepLink } from './hooks/useDeepLink';
 import { Slide, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { ThemeProvider, useTheme } from 'theme-o-rama';
@@ -58,6 +60,14 @@ import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
 
+// Root layout component that handles deep linking
+function RootLayout() {
+  // Initialize deep link handler
+  useDeepLink();
+
+  return <Outlet />;
+}
+
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
   const { currentTheme } = useTheme();
@@ -89,7 +99,7 @@ function ThemeAwareToastContainer() {
 
 const router = createHashRouter(
   createRoutesFromElements(
-    <>
+    <Route element={<RootLayout />}>
       <Route path='/' element={<Login />} />
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
@@ -140,7 +150,7 @@ const router = createHashRouter(
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
       <Route path='/themes' element={<Themes />} />
-    </>,
+    </Route>,
   ),
 );
 
