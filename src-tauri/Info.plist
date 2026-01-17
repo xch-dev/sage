@@ -11,7 +11,7 @@
                 <string>com.rigidnetwork.sage</string>
                 <key>CFBundleURLSchemes</key>
                 <array>
-                    <string>chia-offer</string>
+                    <string>sage</string>
                 </array>
             </dict>
         </array>

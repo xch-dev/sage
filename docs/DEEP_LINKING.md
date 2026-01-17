@@ -1,19 +1,19 @@
 # Deep Linking in Sage
 
-Sage supports custom URL scheme deep linking via the `chia-offer://` protocol. When a `chia-offer://` URL is opened, the app will launch (or come to focus if already running) and navigate to the appropriate screen.
+Sage supports custom URL scheme deep linking via the `sage:` protocol. When a `sage:` URL is opened, the app will launch (or come to focus if already running) and navigate to the appropriate screen.
 
 ## URL Format
 
-```html
-chia-offer://<offer_string></offer_string>
+```
+sage:<offer_string>
 ```
 
 Where `<offer_string>` is a valid Chia offer string starting with `offer1`.
 
 ### Example
 
-```html
-chia-offer://offer1qqr83wcuu2rykcmqvpsxvgqqd2h6fv0lt2sn8ntyc6t52p2dxeem089j2x7fua0ygjusmd7wlcdkuk3swhc8d6nga5l447u06ml28d0ldrkn7khmlu063ksltjuz7vxl7uu7zhtt50cmdwv32yfh9r7yx2hq7vylhvmrqmn8vrt7uxje45423vjltcf9ep74nm2jm6kuj8ua3fffandh443zlxdf7f48vuewuk4k0hj4c6z4x8d2yg9zl08s3y2ewpaqna7nfa4agfddd069vpx2glkrvzuuh3xvxa97u00hel344vva6lcrjky2ez53p6yh7uh54rlkxtawmgah0v6v3h36wnw6z3uazgpa5afvmmwelunfzp6y9zpas4ea0hmd8mu30v9t60p7470ntl7djjkrufar4u72yv489hpzx3gknypm8lqzzefu20n36hjz0km5y4wl595u38n8d8a4hnjtmx4lm79la3788yflaq28j5yzhq7cul742jxlcs67f2848k7a60vhkclmaxxqwhxlqu8t6t4kw8kejjmm4nsz9tvj88m87tak3k99efxc7f82kk9s4mu8wz48my300x2t6j8g0ptasnnqqhznpycgvksqph04cd4g72zmwre95sa74dth2h4fpx03fx9pl7t8kmuye7cev4cf0wx7kdqymlz8knj4ej94zma287vtmspkcfgg9fml32229z0l94h5872tjqnf56xmdq3kmdy3xmdysxmd5jxnd5kqv23c6drcurlplmydk366yejl6vfeu99wd47h2fv7u9dv8lee579808p3v8040
+```
+sage:offer1qqr83wcuu2rykcmqvpsxvgqqd2h6fv0lt2sn8ntyc6t52p2dxeem089j2x7fua0ygjusmd7wlcdkuk3swhc8d6nga5l447u06ml28d0ldrkn7khmlu063ksltjuz7vxl7uu7zhtt50cmdwv32yfh9r7yx2hq7vylhvmrqmn8vrt7uxje45423vjltcf9ep74nm2jm6kuj8ua3fffandh443zlxdf7f48vuewuk4k0hj4c6z4x8d2yg9zl08s3y2ewpaqna7nfa4agfddd069vpx2glkrvzuuh3xvxa97u00hel344vva6lcrjky2ez53p6yh7uh54rlkxtawmgah0v6v3h36wnw6z3uazgpa5afvmmwelunfzp6y9zpas4ea0hmd8mu30v9t60p7470ntl7djjkrufar4u72yv489hpzx3gknypm8lqzzefu20n36hjz0km5y4wl595u38n8d8a4hnjtmx4lm79la3788yflaq28j5yzhq7cul742jxlcs67f2848k7a60vhkclmaxxqwhxlqu8t6t4kw8kejjmm4nsz9tvj88m87tak3k99efxc7f82kk9s4mu8wz48my300x2t6j8g0ptasnnqqhznpycgvksqph04cd4g72zmwre95sa74dth2h4fpx03fx9pl7t8kmuye7cev4cf0wx7kdqymlz8knj4ej94zma287vtmspkcfgg9fml32229z0l94h5872tjqnf56xmdq3kmdy3xmdysxmd5jxnd5kqv23c6drcurlplmydk366yejl6vfeu99wd47h2fv7u9dv8lee579808p3v8040
 ```
 
 ## Platform-Specific Information
@@ -22,7 +22,7 @@ chia-offer://offer1qqr83wcuu2rykcmqvpsxvgqqd2h6fv0lt2sn8ntyc6t52p2dxeem089j2x7fu
 
 #### Registration
 
-The `chia-offer://` URL scheme is automatically registered in the app's `Info.plist` during the build process. The Tauri deep-link plugin handles the `CFBundleURLTypes` entries automatically based on the configuration in `tauri.conf.json`.
+The `sage:` URL scheme is automatically registered in the app's `Info.plist` during the build process. The Tauri deep-link plugin handles the `CFBundleURLTypes` entries automatically based on the configuration in `tauri.conf.json`.
 
 #### Testing
 
@@ -40,7 +40,7 @@ The `chia-offer://` URL scheme is automatically registered in the app's `Info.pl
 3. **Test the deep link:**
 
    ```bash
-   open "chia-offer://offer1qqr83wcuu..."
+   open "sage:offer1qqr83wcuu..."
    ```
 
 #### Development Limitations
@@ -57,8 +57,8 @@ The URL scheme is registered in the Windows Registry during app installation. Th
 
 Registry entries are created at:
 
-- `HKEY_CURRENT_USER\Software\Classes\chia-offer`
-- Or `HKEY_LOCAL_MACHINE\Software\Classes\chia-offer` (for all users)
+- `HKEY_CURRENT_USER\Software\Classes\sage`
+- Or `HKEY_LOCAL_MACHINE\Software\Classes\sage` (for all users)
 
 #### Testing
 
@@ -75,7 +75,7 @@ Registry entries are created at:
 3. **Test the deep link:**
 
    ```cmd
-   start chia-offer://offer1qqr83wcuu...
+   start sage:offer1qqr83wcuu...
    ```
 
    Or open the URL in a web browser.
@@ -90,7 +90,7 @@ On Windows, you can use `register_all()` in Rust to register the URL scheme duri
 
 #### Registration
 
-On Linux, the URL scheme is registered via a `.desktop` file that includes `MimeType=x-scheme-handler/chia-offer`. This is handled automatically when:
+On Linux, the URL scheme is registered via a `.desktop` file that includes `MimeType=x-scheme-handler/sage`. This is handled automatically when:
 
 - Installing the `.deb` package
 - Using an AppImage with an AppImage launcher
@@ -111,7 +111,7 @@ On Linux, the URL scheme is registered via a `.desktop` file that includes `Mime
 3. **Test the deep link:**
 
    ```bash
-   xdg-open "chia-offer://offer1qqr83wcuu..."
+   xdg-open "sage:offer1qqr83wcuu..."
    ```
 
 #### Development Testing
@@ -125,11 +125,11 @@ cat > ~/.local/share/applications/sage-dev.desktop << EOF
 Name=Sage (Dev)
 Exec=/path/to/sage %u
 Type=Application
-MimeType=x-scheme-handler/chia-offer;
+MimeType=x-scheme-handler/sage;
 EOF
 
 # Register the handler
-xdg-mime default sage-dev.desktop x-scheme-handler/chia-offer
+xdg-mime default sage-dev.desktop x-scheme-handler/sage
 ```
 
 ---
@@ -155,11 +155,11 @@ The URL scheme is automatically configured in the app's `Info.plist` during the 
 
 3. **Test the deep link:**
 
-   - Open Safari and navigate to `chia-offer://offer1qqr83wcuu...`
+   - Open Safari and navigate to `sage:offer1qqr83wcuu...`
    - Or use the command line on a simulator:
 
      ```bash
-     xcrun simctl openurl booted "chia-offer://offer1qqr83wcuu..."
+     xcrun simctl openurl booted "sage:offer1qqr83wcuu..."
      ```
 
 #### Development Testing
@@ -172,7 +172,7 @@ For iOS development, you can test on the simulator or a physical device connecte
 
 #### Registration
 
-The URL scheme is automatically registered in the app's `AndroidManifest.xml` during the build process. The Tauri plugin adds the necessary `<intent-filter>` with the `chia-offer` scheme.
+The URL scheme is automatically registered in the app's `AndroidManifest.xml` during the build process. The Tauri plugin adds the necessary `<intent-filter>` with the `sage` scheme.
 
 The generated manifest includes:
 
@@ -181,7 +181,7 @@ The generated manifest includes:
     <action android:name="android.intent.action.VIEW" />
     <category android:name="android.intent.category.DEFAULT" />
     <category android:name="android.intent.category.BROWSABLE" />
-    <data android:scheme="chia-offer" />
+    <data android:scheme="sage" />
 </intent-filter>
 ```
 
@@ -202,7 +202,7 @@ The generated manifest includes:
 3. **Test the deep link:**
 
    ```bash
-   adb shell am start -a android.intent.action.VIEW -d "chia-offer://offer1qqr83wcuu..."
+   adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
    ```
 
 #### Development Testing
@@ -214,7 +214,7 @@ For Android development, you can test on an emulator or physical device:
 pnpm tauri android dev
 
 # In another terminal, trigger the deep link
-adb shell am start -a android.intent.action.VIEW -d "chia-offer://offer1qqr83wcuu..."
+adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
 ```
 
 ---
@@ -228,11 +228,11 @@ The deep link configuration is located in `src-tauri/tauri.conf.json`:
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["chia-offer"]
+        "schemes": ["sage"]
       },
       "mobile": [
         {
-          "scheme": ["chia-offer"],
+          "scheme": ["sage"],
           "appLink": false
         }
       ]
@@ -277,13 +277,13 @@ The following capabilities are required:
 ### Deep link not working on Windows
 
 - Verify the app was installed via the MSI or NSIS installer
-- Check the Windows Registry for the `chia-offer` scheme under `HKEY_CURRENT_USER\Software\Classes`
+- Check the Windows Registry for the `sage` scheme under `HKEY_CURRENT_USER\Software\Classes`
 - Try restarting Windows Explorer
 
 ### Deep link not working on Linux
 
 - Ensure you're using an AppImage launcher or installed the `.deb` package
-- Verify the MIME type is registered: `xdg-mime query default x-scheme-handler/chia-offer`
+- Verify the MIME type is registered: `xdg-mime query default x-scheme-handler/sage`
 - Check that the `.desktop` file exists in `~/.local/share/applications/`
 
 ### Deep link not working on iOS

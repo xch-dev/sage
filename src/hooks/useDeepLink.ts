@@ -1,19 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const SCHEME_PREFIX = 'chia-offer://';
+const SCHEME_PREFIX = 'sage:';
 
-/**
- * Parses a chia-offer:// URL and extracts the offer string.
- * URL format: chia-offer://<offer_string>
- * Example: chia-offer://offer1qqr83wcuu2rykcmqvpsxvgqqd2h6fv0lt2sn8ntyc6t52p2dxeem089j2x7fua0yg...
- */
 function parseDeepLinkUrl(url: string): string | null {
-  if (!url.startsWith(SCHEME_PREFIX)) {
+  if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
     return null;
   }
 
-  // Extract everything after the scheme
   const offerString = url.slice(SCHEME_PREFIX.length);
 
   // Basic validation - offer strings should start with 'offer1'
@@ -26,9 +20,7 @@ function parseDeepLinkUrl(url: string): string | null {
 }
 
 /**
- * Hook to handle sage:// deep links on all platforms.
- * When the app is opened via a deep link, it navigates to the offer view page.
- *
+ * Hook to handle sage: deep links on all platforms.
  * Platform-specific notes:
  * - macOS: Deep links only work in the bundled app installed in /Applications.
  *          They will not work during development with `pnpm tauri dev`.
@@ -47,19 +39,15 @@ export function useDeepLink() {
 
     const handleDeepLinkUrls = (urls: string[]) => {
       for (const url of urls) {
-        // Avoid processing the same URL twice
         if (processedUrls.current.has(url)) {
           continue;
         }
         processedUrls.current.add(url);
 
-        console.log('Deep link received:', url);
-
         const offerString = parseDeepLinkUrl(url);
         if (offerString) {
           // Navigate to the offer view page
           navigate(`/offers/view/${encodeURIComponent(offerString)}`);
-          // Only process the first valid URL
           break;
         }
       }

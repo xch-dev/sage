@@ -5,11 +5,15 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["chia-offer"]
+        "schemes": [
+          "sage"
+        ]
       },
       "mobile": [
         {
-          "scheme": ["chia-offer"],
+          "scheme": [
+            "sage"
+          ],
           "appLink": false
         }
       ]
