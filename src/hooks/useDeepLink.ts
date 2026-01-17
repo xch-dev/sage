@@ -1,5 +1,8 @@
+import { useWallet } from '@/contexts/WalletContext';
+import { t } from '@lingui/core/macro';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const SCHEME_PREFIX = 'sage:';
 
@@ -32,6 +35,7 @@ function parseDeepLinkUrl(url: string): string | null {
  */
 export function useDeepLink() {
   const navigate = useNavigate();
+  const { wallet } = useWallet();
   const processedUrls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -46,6 +50,11 @@ export function useDeepLink() {
 
         const offerString = parseDeepLinkUrl(url);
         if (offerString) {
+          // Check if user is logged into a wallet
+          if (!wallet) {
+            toast.error(t`Please log into a wallet and try again`);
+            break;
+          }
           // Navigate to the offer view page
           navigate(`/offers/view/${encodeURIComponent(offerString)}`);
           break;
@@ -83,5 +92,5 @@ export function useDeepLink() {
         cleanup();
       }
     };
-  }, [navigate]);
+  }, [navigate, wallet]);
 }
