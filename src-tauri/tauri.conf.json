@@ -5,15 +5,11 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": [
-          "sage"
-        ]
+        "schemes": ["sage"]
       },
       "mobile": [
         {
-          "scheme": [
-            "sage"
-          ],
+          "scheme": ["sage"],
           "appLink": false
         }
       ]

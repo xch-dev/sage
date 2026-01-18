@@ -24,25 +24,42 @@ interface AddressDeepLink {
 
 type DeepLinkData = OfferDeepLink | AddressDeepLink | null;
 
-function parseDeepLinkUrl(url: string, prefix: string): DeepLinkData {
+interface ParseResult {
+  data: DeepLinkData;
+  error?: string;
+}
+
+function parseDeepLinkUrl(url: string, prefix: string): ParseResult {
   if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
-    return null;
+    return { data: null, error: 'invalid_scheme' };
   }
 
   const payload = url.slice(SCHEME_PREFIX.length);
 
+  if (!payload) {
+    return { data: null, error: 'empty_payload' };
+  }
+
   const [mainPart, queryString] = payload.split('?');
 
-  if (mainPart.startsWith('offer1')) {
+  // Validate offer string: must start with offer1, be alphanumeric, and reasonable length
+  // Chia offers are bech32m encoded, max ~10KB when compressed
+  const MAX_OFFER_LENGTH = 15000;
+  if (
+    mainPart.startsWith('offer1') &&
+    mainPart.length <= MAX_OFFER_LENGTH &&
+    /^[a-z0-9]+$/.test(mainPart)
+  ) {
     const result: OfferDeepLink = { type: 'offer', offerString: mainPart };
 
     if (queryString) {
       const params = new URLSearchParams(queryString);
       const fee = params.get('fee');
-      if (fee) result.fee = fee;
+      // Validate fee is a positive integer (mojos)
+      if (fee && /^\d+$/.test(fee)) result.fee = fee;
     }
 
-    return result;
+    return { data: result };
   }
 
   if (isValidAddress(mainPart, prefix)) {
@@ -57,16 +74,18 @@ function parseDeepLinkUrl(url: string, prefix: string): DeepLinkData {
       const fee = params.get('fee');
       const memo = params.get('memos');
 
-      if (amount) result.amount = amount;
-      if (fee) result.fee = fee;
-      if (memo) result.memo = memo;
+      // Validate amount and fee are positive integers (mojos)
+      if (amount && /^\d+$/.test(amount)) result.amount = amount;
+      if (fee && /^\d+$/.test(fee)) result.fee = fee;
+      // Memo is freeform text but limit length to prevent abuse
+      if (memo && memo.length <= 1000) result.memo = memo;
     }
 
-    return result;
+    return { data: result };
   }
 
   console.warn('Unrecognized deep link payload:', payload);
-  return null;
+  return { data: null, error: 'unrecognized_payload' };
 }
 
 /**
@@ -84,29 +103,40 @@ export function useDeepLink() {
   const navigate = useNavigate();
   const { wallet } = useWallet();
   const walletState = useWalletState();
-  const processedUrls = useRef<Set<string>>(new Set());
+
+  // Use refs so the effect doesn't re-run when these change
+  const walletRef = useRef(wallet);
+  const walletStateRef = useRef(walletState);
+  const navigateRef = useRef(navigate);
+
+  // Keep refs up to date
+  useEffect(() => {
+    walletRef.current = wallet;
+    walletStateRef.current = walletState;
+    navigateRef.current = navigate;
+  }, [wallet, walletState, navigate]);
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
+    let isMounted = true;
 
     const handleDeepLinkUrls = (urls: string[]) => {
-      // Check if user is logged into a wallet
-      if (!wallet) {
-        toast.error(t`Please log into a wallet and try again`);
-        return;
-      }
-
-      const prefix = walletState.sync.unit.ticker.toLowerCase();
+      const prefix = walletStateRef.current.sync.unit.ticker.toLowerCase();
 
       for (const url of urls) {
-        if (processedUrls.current.has(url)) {
+        // Parse and validate URL first before checking wallet
+        const { data: deepLinkData, error } = parseDeepLinkUrl(url, prefix);
+        if (!deepLinkData) {
+          if (error) {
+            toast.error(t`Invalid deep link`);
+          }
           continue;
         }
-        processedUrls.current.add(url);
 
-        const deepLinkData = parseDeepLinkUrl(url, prefix);
-        if (!deepLinkData) {
-          continue;
+        // Only check wallet for valid deep links
+        if (!walletRef.current) {
+          toast.error(t`Please log into a wallet first`);
+          return;
         }
 
         if (deepLinkData.type === 'offer') {
@@ -114,7 +144,7 @@ export function useDeepLink() {
           if (deepLinkData.fee) {
             offerUrl += `?fee=${encodeURIComponent(deepLinkData.fee)}`;
           }
-          navigate(offerUrl);
+          navigateRef.current(offerUrl);
           break;
         }
 
@@ -125,7 +155,7 @@ export function useDeepLink() {
           if (deepLinkData.fee) params.set('fee', deepLinkData.fee);
           if (deepLinkData.memo) params.set('memo', deepLinkData.memo);
 
-          navigate(`/wallet/send/xch?${params.toString()}`);
+          navigateRef.current(`/wallet/send/xch?${params.toString()}`);
           break;
         }
       }
@@ -137,15 +167,19 @@ export function useDeepLink() {
           '@tauri-apps/plugin-deep-link'
         );
 
+        if (!isMounted) return;
+
         // Check if app was launched via deep link
         const initialUrls = await getCurrent();
         if (initialUrls && initialUrls.length > 0) {
           handleDeepLinkUrls(initialUrls);
         }
 
+        if (!isMounted) return;
+
         // Listen for deep link events while the app is running
-        const unlisten = await onOpenUrl(handleDeepLinkUrls);
-        cleanup = unlisten;
+        // The single-instance plugin with "deep-link" feature automatically forwards URLs here
+        cleanup = await onOpenUrl(handleDeepLinkUrls);
       } catch (error) {
         // This can happen if the plugin isn't available on the current platform
         // or if there's a configuration issue. Log but don't crash.
@@ -156,9 +190,10 @@ export function useDeepLink() {
     initDeepLink();
 
     return () => {
+      isMounted = false;
       if (cleanup) {
         cleanup();
       }
     };
-  }, [navigate, wallet, walletState]);
+  }, []); // Empty deps - only run once
 }
