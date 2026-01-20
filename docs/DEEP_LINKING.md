@@ -2,19 +2,70 @@
 
 Sage supports custom URL scheme deep linking via the `sage:` protocol. When a `sage:` URL is opened, the app will launch (or come to focus if already running) and navigate to the appropriate screen.
 
-## URL Format
+## URL Formats
+
+### Offer Links
 
 ```
-sage:<offer_string>
+sage:<offer_string>[?fee=<fee_in_mojos>]
 ```
 
 Where `<offer_string>` is a valid Chia offer string starting with `offer1`.
 
-### Example
+**Example:**
 
 ```
-sage:offer1qqr83wcuu2rykcmqvpsxvgqqd2h6fv0lt2sn8ntyc6t52p2dxeem089j2x7fua0ygjusmd7wlcdkuk3swhc8d6nga5l447u06ml28d0ldrkn7khmlu063ksltjuz7vxl7uu7zhtt50cmdwv32yfh9r7yx2hq7vylhvmrqmn8vrt7uxje45423vjltcf9ep74nm2jm6kuj8ua3fffandh443zlxdf7f48vuewuk4k0hj4c6z4x8d2yg9zl08s3y2ewpaqna7nfa4agfddd069vpx2glkrvzuuh3xvxa97u00hel344vva6lcrjky2ez53p6yh7uh54rlkxtawmgah0v6v3h36wnw6z3uazgpa5afvmmwelunfzp6y9zpas4ea0hmd8mu30v9t60p7470ntl7djjkrufar4u72yv489hpzx3gknypm8lqzzefu20n36hjz0km5y4wl595u38n8d8a4hnjtmx4lm79la3788yflaq28j5yzhq7cul742jxlcs67f2848k7a60vhkclmaxxqwhxlqu8t6t4kw8kejjmm4nsz9tvj88m87tak3k99efxc7f82kk9s4mu8wz48my300x2t6j8g0ptasnnqqhznpycgvksqph04cd4g72zmwre95sa74dth2h4fpx03fx9pl7t8kmuye7cev4cf0wx7kdqymlz8knj4ej94zma287vtmspkcfgg9fml32229z0l94h5872tjqnf56xmdq3kmdy3xmdysxmd5jxnd5kqv23c6drcurlplmydk366yejl6vfeu99wd47h2fv7u9dv8lee579808p3v8040
+sage:offer1qqr83wcuu2rykcmqvpsxvgqq...
 ```
+
+### Address Links (Send XCH)
+
+```
+sage:<address>?amount=<amount_in_mojos>[&fee=<fee_in_mojos>][&memos=<memo_text>]
+```
+
+Opens the send screen with pre-filled values.
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `address` | Yes | The destination address (xch1... or txch1...) |
+| `amount` | No | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos) |
+| `fee` | No | Transaction fee in mojos |
+| `memos` | No | Memo text to attach to the transaction |
+
+**Example:**
+
+```
+sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20services
+```
+
+## Android URL Encoding Requirement
+
+**Important:** On Android, the `&` character in query parameters must be URL-encoded as `%26`. Android's Intent system interprets literal `&` as a command separator, which causes the URL to be truncated at the first `&`.
+
+| Platform | `&` (literal) | `%26` (encoded) |
+|----------|---------------|-----------------|
+| Android | URL truncated | Works |
+| iOS | Works | Works |
+| macOS | Works | Works |
+| Windows | Works | Works |
+| Linux | Works | Works |
+
+**For cross-platform compatibility, always use `%26` instead of `&` in deep link URLs with multiple query parameters.**
+
+**Correct (works everywhere):**
+
+```
+sage:xch1abc...?amount=1000000000000%26fee=1000000%26memos=hello
+```
+
+**Incorrect (fails on Android):**
+
+```
+sage:xch1abc...?amount=1000000000000&fee=1000000&memos=hello
+```
+
+The app handles both formats, but Android will truncate URLs with literal `&` before they reach the app.
 
 ## Platform-Specific Information
 
@@ -202,7 +253,11 @@ The generated manifest includes:
 3. **Test the deep link:**
 
    ```bash
+   # Offer link
    adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
+
+   # Address link with parameters (note: use %26 for &)
+   adb shell am start -a android.intent.action.VIEW -d "sage:xch1abc...?amount=1000000000000%26fee=1000000%26memos=hello"
    ```
 
 #### Development Testing
@@ -216,6 +271,10 @@ pnpm tauri android dev
 # In another terminal, trigger the deep link
 adb shell am start -a android.intent.action.VIEW -d "sage:offer1qqr83wcuu..."
 ```
+
+#### URL Encoding Note
+
+When testing address links with multiple query parameters, remember to use `%26` instead of `&`. See [Android URL Encoding Requirement](#android-url-encoding-requirement) for details.
 
 ---
 
@@ -297,6 +356,18 @@ The following capabilities are required:
 - Verify the AndroidManifest.xml contains the intent filter
 - Check `adb logcat` for any activity resolution errors
 - Ensure no other app has registered the same scheme
+
+### Query parameters missing on Android
+
+If only the address is populated but amount, fee, or memos are missing, the URL likely contains literal `&` characters. Android's Intent system truncates URLs at the first `&`. Use `%26` instead:
+
+```
+# Wrong - parameters after first & will be lost
+sage:xch1...?amount=100&fee=100&memos=test
+
+# Correct - all parameters will be received
+sage:xch1...?amount=100%26fee=100%26memos=test
+```
 
 ## References
 

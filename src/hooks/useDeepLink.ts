@@ -69,7 +69,19 @@ function parseDeepLinkUrl(url: string, prefix: string): ParseResult {
     };
 
     if (queryString) {
-      const params = new URLSearchParams(queryString);
+      // Always decode the query string first to handle Android's URL encoding
+      // Android's Intent system requires & to be encoded as %26, otherwise it
+      // truncates the URL at the first &. We decode here so both formats work.
+      let decodedQueryString = queryString;
+      if (queryString.includes('%')) {
+        try {
+          decodedQueryString = decodeURIComponent(queryString);
+        } catch {
+          // If decoding fails, use the original string
+        }
+      }
+
+      const params = new URLSearchParams(decodedQueryString);
       const amount = params.get('amount');
       const fee = params.get('fee');
       const memo = params.get('memos');
