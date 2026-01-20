@@ -13,10 +13,8 @@ import Foundation
 public final class ScanTask: CardSessionRunnable {
     public var shouldAskForAccessCode: Bool { false }
 
-    private let networkService: NetworkService
-
-    public init(networkService: NetworkService) {
-        self.networkService = networkService
+    public init() {
+        
     }
 
     deinit {

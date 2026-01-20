@@ -55,12 +55,10 @@ public extension TangemSdk {
     ///
     /// - Parameters:
     ///   - initialMessage: A custom description that shows at the beginning of the NFC session. If nil, default message will be used
-    ///   - networkService: Allows to customize a network layer
     ///   - completion: Returns `Swift.Result<Card,TangemSdkError>`
     func scanCard(initialMessage: Message? = nil,
-                  networkService: NetworkService,
                   completion: @escaping CompletionResult<Card>) {
-        startSession(with: ScanTask(networkService: networkService), cardId: nil, initialMessage: initialMessage, completion: completion)
+        startSession(with: ScanTask(), cardId: nil, initialMessage: initialMessage, completion: completion)
     }
     
     /// This method allows you to sign one hash and will return a corresponding signature.

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Tauri
 
 private let logger = Log()
 
@@ -76,12 +77,23 @@ public class Log {
         queue.async { [weak self] in
             guard let self else { return }
 
-            guard !loggers.isEmpty else { return }
+//            guard !loggers.isEmpty else { return }
 
-            let msg = String(describing: message)
+            let msg = "TANGEM " + String(describing: message)
 
-            for logger in loggers {
-                logger.log(msg, level: level)
+//            for logger in loggers {
+//                logger.log(msg, level: level)
+//            }
+            
+            switch (level) {
+            case .debug:
+                Logger.debug(msg)
+            case .warning:
+                Logger.error(msg)
+            case .error:
+                Logger.error(msg)
+            default:
+                Logger.info(msg)
             }
         }
     }

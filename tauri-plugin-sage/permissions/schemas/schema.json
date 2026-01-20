@@ -319,10 +319,22 @@
           "markdownDescription": "Denies the is_ndef_available command without any pre-configured scope."
         },
         {
-          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`",
+          "description": "Enables the test_tangem command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-test-tangem",
+          "markdownDescription": "Enables the test_tangem command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the test_tangem command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-test-tangem",
+          "markdownDescription": "Denies the test_tangem command without any pre-configured scope."
+        },
+        {
+          "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`\n- `allow-test-tangem`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`"
+          "markdownDescription": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`\n- `allow-test-tangem`"
         }
       ]
     }

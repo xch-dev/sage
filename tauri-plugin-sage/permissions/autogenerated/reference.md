@@ -6,6 +6,7 @@ Default permissions for the plugin
 
 - `allow-is-ndef-available`
 - `allow-get-ndef-payloads`
+- `allow-test-tangem`
 
 ## Permission Table
 
@@ -64,6 +65,32 @@ Enables the is_ndef_available command without any pre-configured scope.
 <td>
 
 Denies the is_ndef_available command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:allow-test-tangem`
+
+</td>
+<td>
+
+Enables the test_tangem command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:deny-test-tangem`
+
+</td>
+<td>
+
+Denies the test_tangem command without any pre-configured scope.
 
 </td>
 </tr>

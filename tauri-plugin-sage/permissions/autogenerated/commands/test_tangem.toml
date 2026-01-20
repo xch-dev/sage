@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-test-tangem"
+description = "Enables the test_tangem command without any pre-configured scope."
+commands.allow = ["test_tangem"]
+
+[[permission]]
+identifier = "deny-test-tangem"
+description = "Denies the test_tangem command without any pre-configured scope."
+commands.deny = ["test_tangem"]

@@ -1,3 +1,3 @@
 [default]
 description = "Default permissions for the plugin"
-permissions = ["allow-is-ndef-available", "allow-get-ndef-payloads"]
+permissions = ["allow-is-ndef-available", "allow-get-ndef-payloads", "allow-test-tangem"]

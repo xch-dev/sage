@@ -7,8 +7,25 @@ import WebKit
 class SagePlugin: Plugin, NFCNDEFReaderSessionDelegate {
   var session: Session?
 
+    private var tangemSdk: TangemSdk?
+
     @objc public func testTangem(_ invoke: Invoke) throws {
-        invoke.resolve(["output": "Hello, world!"])
+        Logger.enabled = true
+        Logger.info("SAGE OMG XXXXXXXX")
+        
+        self.tangemSdk = TangemSdk()
+        
+        tangemSdk?.scanCard(initialMessage: Message("Testing 123")) { result in
+            switch result {
+            case .success(let card):
+                invoke.resolve(["output": card.json])
+                self.tangemSdk = nil
+            case .failure(let error):
+                invoke.resolve(["output": "ERROR: " + (error.message ?? String(error.code))])
+                self.tangemSdk = nil
+            }
+
+        }
     }
     
   @objc public func isNdefAvailable(_ invoke: Invoke) throws {

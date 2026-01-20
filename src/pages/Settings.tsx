@@ -80,6 +80,7 @@ import {
   WalletDefaults,
 } from '../bindings';
 
+import { testTangem } from 'tauri-plugin-sage';
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
 import { isValidU32 } from '../validation';
 export default function Settings() {
@@ -199,6 +200,7 @@ export default function Settings() {
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
                   {!isMobile && <RpcSettings />}
+                  {isMobile && <TangemPlaceholder />}
                   <LogViewer />
                 </div>
               </TabsContent>
@@ -1598,6 +1600,27 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function TangemPlaceholder() {
+  const [output, setOutput] = useState<string>('');
+
+  const tangemize = async () => {
+    try {
+      const result = await testTangem();
+      setOutput(`${Date.now()} tangemized: ${result}`);
+    } catch (error) {
+      setOutput(`${Date.now()} tangemization failed: ${error}`);
+    }
+  };
+
+  return (
+    <div>
+      <Button onClick={tangemize}>Tangemize</Button>
+
+      <p>{output}</p>
     </div>
   );
 }
