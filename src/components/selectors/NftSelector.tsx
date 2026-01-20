@@ -3,9 +3,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { nftUri } from '@/lib/nftUri';
 import { isValidAddress } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Input } from '../ui/input';
-import { DropdownSelector } from './DropdownSelector';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SearchableSelect } from './SearchableSelect';
 
 export interface NftSelectorProps {
   value: string | null;
@@ -29,16 +28,8 @@ export function NftSelector({
     {},
   );
   const [searchTerm, setSearchTerm] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const pageSize = 8;
-
-  // Restore focus after NFT list updates
-  useEffect(() => {
-    if (searchTerm && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [nfts, searchTerm]);
 
   const isValidNftId = useMemo(() => {
     return isValidAddress(searchTerm, 'nft');
@@ -129,58 +120,88 @@ export function NftSelector({
 
   const defaultNftImage = nftUri(null, null);
 
-  return (
-    <DropdownSelector
-      loadedItems={pageNftIds}
-      page={page}
-      setPage={setPage}
-      value={value || undefined}
-      setValue={(nftId) => {
+  const handleSelect = useCallback(
+    (nftId: string | null) => {
+      if (nftId) {
         onChange(nftId);
-        // Only clear search term if it's not a valid NFT ID (i.e., user clicked on an item from the list)
-        if (!isValidAddress(searchTerm, 'nft')) {
-          setSearchTerm('');
-        }
-      }}
-      isDisabled={(nft) => disabled.includes(nft)}
-      className={className}
-      manualInput={
-        <Input
-          ref={inputRef}
-          placeholder={t`Search by name or enter NFT ID`}
-          value={searchTerm}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setSearchTerm(newValue);
-
-            if (isValidAddress(newValue, 'nft')) {
-              onChange(newValue);
-            }
-          }}
-        />
       }
-      renderItem={(nftId) => (
-        <div className='flex items-center gap-2 w-full'>
-          <img
-            src={nftThumbnails[nftId] ?? defaultNftImage}
-            className='w-10 h-10 rounded object-cover'
-            alt=''
-            aria-hidden='true'
-            loading='lazy'
-          />
-          <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate' role='text'>
-              {nfts[nftId]?.name ?? 'Unknown NFT'}
-            </span>
-            <span
-              className='text-xs text-muted-foreground truncate'
-              aria-label='NFT ID'
-            >
-              {nftId}
-            </span>
-          </div>
+    },
+    [onChange],
+  );
+
+  const handleManualInput = useCallback(
+    (nftId: string) => {
+      onChange(nftId);
+    },
+    [onChange],
+  );
+
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      setSearchTerm(search);
+      // Reset to first page when search changes
+      if (page !== 0) {
+        setPage(0);
+      }
+    },
+    [page],
+  );
+
+  // Get the NFT records for the current page
+  const nftItems = useMemo(() => {
+    return pageNftIds.map((id) => nfts[id]).filter(Boolean) as NftRecord[];
+  }, [pageNftIds, nfts]);
+
+  const renderNft = useCallback(
+    (nft: NftRecord) => (
+      <div className='flex items-center gap-2 min-w-0'>
+        <img
+          src={nftThumbnails[nft.launcher_id] ?? defaultNftImage}
+          className='w-10 h-10 rounded object-cover flex-shrink-0'
+          alt=''
+          aria-hidden='true'
+          loading='lazy'
+        />
+        <div className='flex flex-col min-w-0'>
+          <span className='truncate' role='text'>
+            {nft.name ?? 'Unknown NFT'}
+          </span>
+          <span
+            className='text-xs text-muted-foreground truncate'
+            aria-label='NFT ID'
+          >
+            {nft.launcher_id}
+          </span>
         </div>
-      )}
+      </div>
+    ),
+    [nftThumbnails, defaultNftImage],
+  );
+
+  const validateNftId = useCallback((value: string) => {
+    return isValidAddress(value, 'nft');
+  }, []);
+
+  return (
+    <SearchableSelect
+      value={value || undefined}
+      onSelect={handleSelect}
+      items={nftItems}
+      getItemId={(nft) => nft.launcher_id}
+      renderItem={renderNft}
+      onSearchChange={handleSearchChange}
+      shouldFilter={false}
+      validateManualInput={validateNftId}
+      onManualInput={handleManualInput}
+      page={page}
+      onPageChange={setPage}
+      pageSize={pageSize}
+      hasMorePages={pageNftIds.length >= pageSize}
+      disabled={disabled}
+      className={className}
+      placeholder={t`Select NFT`}
+      searchPlaceholder={t`Search by name or enter NFT ID`}
+      emptyMessage={t`No NFTs found.`}
     />
   );
 }

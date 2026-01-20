@@ -99,7 +99,6 @@ export function AssetSelector({
     checkAssetsInOffers();
   }, [offering, assets.nfts, assets.options]);
 
-  // Generate unique IDs for new items
   const generateId = useCallback(() => Date.now() + Math.random(), []);
 
   const addToken = () => {
