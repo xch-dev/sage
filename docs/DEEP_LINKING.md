@@ -20,22 +20,22 @@ sage:offer1qqr83wcuu2rykcmqvpsxvgqq...
 
 ### Address Links (Send XCH)
 
-```
+```bash
 sage:<address>?amount=<amount_in_mojos>[&fee=<fee_in_mojos>][&memos=<memo_text>]
 ```
 
 Opens the send screen with pre-filled values.
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `address` | Yes | The destination address (xch1... or txch1...) |
-| `amount` | No | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos) |
-| `fee` | No | Transaction fee in mojos |
-| `memos` | No | Memo text to attach to the transaction |
+| Parameter | Required | Description                                               |
+| --------- | -------- | --------------------------------------------------------- |
+| `address` | Yes      | The destination address (xch1... or txch1...)             |
+| `amount`  | No       | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos) |
+| `fee`     | No       | Transaction fee in mojos                                  |
+| `memos`   | No       | Memo text to attach to the transaction                    |
 
 **Example:**
 
-```
+```bash
 sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20services
 ```
 
@@ -44,12 +44,12 @@ sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20servic
 **Important:** On Android, the `&` character in query parameters must be URL-encoded as `%26`. Android's Intent system interprets literal `&` as a command separator, which causes the URL to be truncated at the first `&`.
 
 | Platform | `&` (literal) | `%26` (encoded) |
-|----------|---------------|-----------------|
-| Android | URL truncated | Works |
-| iOS | Works | Works |
-| macOS | Works | Works |
-| Windows | Works | Works |
-| Linux | Works | Works |
+| -------- | ------------- | --------------- |
+| Android  | URL truncated | Works           |
+| iOS      | Works         | Works           |
+| macOS    | Works         | Works           |
+| Windows  | Works         | Works           |
+| Linux    | Works         | Works           |
 
 **For cross-platform compatibility, always use `%26` instead of `&` in deep link URLs with multiple query parameters.**
 
