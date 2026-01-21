@@ -1,6 +1,5 @@
 import { useWallet } from '@/contexts/WalletContext';
 import { isValidAddress } from '@/lib/utils';
-import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -29,7 +28,7 @@ interface ParseResult {
   error?: string;
 }
 
-function parseDeepLinkUrl(url: string, prefix: string): ParseResult {
+function parseDeepLinkUrl(url: string): ParseResult {
   if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
     return { data: null, error: 'invalid_scheme' };
   }
@@ -62,7 +61,7 @@ function parseDeepLinkUrl(url: string, prefix: string): ParseResult {
     return { data: result };
   }
 
-  if (isValidAddress(mainPart, prefix)) {
+  if (isValidAddress(mainPart, 'xch') || isValidAddress(mainPart, 'txch')) {
     const result: AddressDeepLink = {
       type: 'address',
       address: mainPart,
@@ -114,30 +113,25 @@ function parseDeepLinkUrl(url: string, prefix: string): ParseResult {
 export function useDeepLink() {
   const navigate = useNavigate();
   const { wallet } = useWallet();
-  const walletState = useWalletState();
 
   // Use refs so the effect doesn't re-run when these change
   const walletRef = useRef(wallet);
-  const walletStateRef = useRef(walletState);
   const navigateRef = useRef(navigate);
 
   // Keep refs up to date
   useEffect(() => {
     walletRef.current = wallet;
-    walletStateRef.current = walletState;
     navigateRef.current = navigate;
-  }, [wallet, walletState, navigate]);
+  }, [wallet, navigate]);
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
     let isMounted = true;
 
     const handleDeepLinkUrls = (urls: string[]) => {
-      const prefix = walletStateRef.current.sync.unit.ticker.toLowerCase();
-
       for (const url of urls) {
         // Parse and validate URL first before checking wallet
-        const { data: deepLinkData, error } = parseDeepLinkUrl(url, prefix);
+        const { data: deepLinkData, error } = parseDeepLinkUrl(url);
         if (!deepLinkData) {
           if (error) {
             toast.error(t`Invalid deep link`);
