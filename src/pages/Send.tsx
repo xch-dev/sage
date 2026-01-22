@@ -43,7 +43,7 @@ import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, ArrowUpToLine } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import * as z from 'zod';
 import {
   commands,
@@ -65,6 +65,7 @@ export default function Send() {
 
   const navigate = useNavigate();
   const walletState = useWalletState();
+  const [searchParams] = useSearchParams();
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
@@ -131,7 +132,7 @@ export default function Send() {
         asset
           ? BigNumber(amount).lte(toDecimal(asset.balance, asset.precision))
           : true,
-      'Amount exceeds balance',
+      t`Amount exceeds balance`,
     ),
     fee: amount(walletState.sync.unit.precision).optional(),
     memo: z.string().optional(),
@@ -148,6 +149,30 @@ export default function Send() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
+
+  // Populate form from URL query parameters (e.g., from deep links)
+  useEffect(() => {
+    const address = searchParams.get('address');
+    const amountMojos = searchParams.get('amount');
+    const feeMojos = searchParams.get('fee');
+    const memo = searchParams.get('memo');
+
+    if (address) {
+      form.setValue('address', address);
+    }
+    if (amountMojos) {
+      const precision = asset?.precision ?? 12;
+      const amountDecimal = fromMojos(amountMojos, precision);
+      form.setValue('amount', amountDecimal.toString());
+    }
+    if (feeMojos) {
+      const feeDecimal = fromMojos(feeMojos, walletState.sync.unit.precision);
+      form.setValue('fee', feeDecimal.toString());
+    }
+    if (memo) {
+      form.setValue('memo', memo);
+    }
+  }, [searchParams, asset?.precision, walletState.sync.unit.precision, form]);
 
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
     form.setValue('address', scanResValue);

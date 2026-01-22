@@ -16,18 +16,19 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { resolveOfferData } from '@/lib/offerData';
-import { toMojos } from '@/lib/utils';
+import { fromMojos, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
 export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
   const walletState = useWalletState();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
@@ -36,6 +37,15 @@ export function Offer() {
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
+
+  // Populate fee from URL query parameters (e.g., from deep links)
+  useEffect(() => {
+    const feeMojos = searchParams.get('fee');
+    if (feeMojos) {
+      const feeDecimal = fromMojos(feeMojos, walletState.sync.unit.precision);
+      setFee(feeDecimal.toString());
+    }
+  }, [searchParams, walletState.sync.unit.precision]);
 
   const resolveOffer = useCallback(async () => {
     if (!offer) return;
@@ -127,6 +137,7 @@ export function Offer() {
                     <FeeAmountInput
                       id='fee'
                       className='pr-12'
+                      value={fee}
                       onValueChange={(values) => setFee(values.value)}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter') {
