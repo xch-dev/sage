@@ -10,12 +10,19 @@ Sage supports custom URL scheme deep linking via the `sage:` protocol. When a `s
 sage:<offer_string>[?fee=<fee_in_mojos>]
 ```
 
-Where `<offer_string>` is a valid Chia offer string starting with `offer1`.
+| Parameter | Required | Description                                       |
+| --------- | -------- | ------------------------------------------------- |
+| `offer_string`     | Yes       | A valid Chia offer string starting with `offer1`|
+| `fee`     | No       | Network fee in mojos to prepopulate when taking the offer |
 
-**Example:**
+**Examples:**
 
-```
+```bash
+# Basic offer link
 sage:offer1qqr83wcuu2rykcmqvpsxvgqq...
+
+# Offer link with pre-filled fee (1 million mojos = 0.000001 XCH)
+sage:offer1qqr83wcuu2rykcmqvpsxvgqq...?fee=1000000
 ```
 
 ### Address Links (Send XCH)

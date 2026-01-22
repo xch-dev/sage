@@ -52,7 +52,17 @@ function parseDeepLinkUrl(url: string): ParseResult {
     const result: OfferDeepLink = { type: 'offer', offerString: mainPart };
 
     if (queryString) {
-      const params = new URLSearchParams(queryString);
+      // Decode query string to handle Android's URL encoding (see address handling below)
+      let decodedQueryString = queryString;
+      if (queryString.includes('%')) {
+        try {
+          decodedQueryString = decodeURIComponent(queryString);
+        } catch {
+          // If decoding fails, use the original string
+        }
+      }
+
+      const params = new URLSearchParams(decodedQueryString);
       const fee = params.get('fee');
       // Validate fee is a positive integer (mojos)
       if (fee && /^\d+$/.test(fee)) result.fee = fee;
