@@ -28,6 +28,18 @@ interface ParseResult {
   error?: string;
 }
 
+function decodeQueryString(queryString: string): URLSearchParams {
+  let decoded = queryString;
+  if (queryString.includes('%')) {
+    try {
+      decoded = decodeURIComponent(queryString);
+    } catch {
+      // If decoding fails, use the original string
+    }
+  }
+  return new URLSearchParams(decoded);
+}
+
 function parseDeepLinkUrl(url: string): ParseResult {
   if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
     return { data: null, error: 'invalid_scheme' };
@@ -52,17 +64,7 @@ function parseDeepLinkUrl(url: string): ParseResult {
     const result: OfferDeepLink = { type: 'offer', offerString: mainPart };
 
     if (queryString) {
-      // Decode query string to handle Android's URL encoding (see address handling below)
-      let decodedQueryString = queryString;
-      if (queryString.includes('%')) {
-        try {
-          decodedQueryString = decodeURIComponent(queryString);
-        } catch {
-          // If decoding fails, use the original string
-        }
-      }
-
-      const params = new URLSearchParams(decodedQueryString);
+      const params = decodeQueryString(queryString);
       const fee = params.get('fee');
       // Validate fee is a positive integer (mojos)
       if (fee && /^\d+$/.test(fee)) result.fee = fee;
@@ -78,19 +80,7 @@ function parseDeepLinkUrl(url: string): ParseResult {
     };
 
     if (queryString) {
-      // Always decode the query string first to handle Android's URL encoding
-      // Android's Intent system requires & to be encoded as %26, otherwise it
-      // truncates the URL at the first &. We decode here so both formats work.
-      let decodedQueryString = queryString;
-      if (queryString.includes('%')) {
-        try {
-          decodedQueryString = decodeURIComponent(queryString);
-        } catch {
-          // If decoding fails, use the original string
-        }
-      }
-
-      const params = new URLSearchParams(decodedQueryString);
+      const params = decodeQueryString(queryString);
       const amount = params.get('amount');
       const fee = params.get('fee');
       const memo = params.get('memos');
