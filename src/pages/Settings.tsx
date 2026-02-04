@@ -34,6 +34,12 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
@@ -60,7 +66,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
+  AlertTriangleIcon,
   DownloadIcon,
+  InfoIcon,
   KeyIcon,
   LoaderCircleIcon,
   PlusIcon,
@@ -1624,6 +1632,8 @@ function DeviceKeysSettings() {
   const {
     isSupported,
     canEnforceBiometricOnly,
+    strongest,
+    isEmulated,
     keys,
     isLoading,
     createKey,
@@ -1676,7 +1686,7 @@ function DeviceKeysSettings() {
     } catch (error) {
       // Extract error message from various error formats
       let errorMessage = 'Failed to create key';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
@@ -1688,7 +1698,7 @@ function DeviceKeysSettings() {
           errorMessage = String((error as { reason: unknown }).reason);
         }
       }
-      
+
       setCreateError(errorMessage);
     } finally {
       setPending(false);
@@ -1757,9 +1767,89 @@ function DeviceKeysSettings() {
     );
   }
 
+  // Get human-readable label for secure element backing
+  const getBackingLabel = (backing: typeof strongest): string => {
+    switch (backing) {
+      case 'discrete':
+        return t`Discrete`;
+      case 'integrated':
+        return t`Integrated`;
+      case 'firmware':
+        return t`Firmware`;
+      case 'none':
+        return t`None`;
+      default:
+        return backing;
+    }
+  };
+
+  // Get description for secure element backing
+  const getBackingDescription = (backing: typeof strongest): string => {
+    switch (backing) {
+      case 'discrete':
+        return t`A dedicated physical security chip (e.g., discrete TPM, Apple T2, StrongBox)`;
+      case 'integrated':
+        return t`An on-die isolated security core (e.g., Secure Enclave, TrustZone/TEE)`;
+      case 'firmware':
+        return t`Firmware-backed security without dedicated secure processor (e.g., fTPM)`;
+      case 'none':
+        return t`No secure element available`;
+      default:
+        return '';
+    }
+  };
+
   return (
     <div className='flex flex-col gap-4'>
       <SettingsSection title={t`Device Keys`}>
+        <SettingItem
+          label={t`Secure Element`}
+          description={t`Hardware security backing for device keys`}
+          control={
+            <div className='flex items-center gap-2'>
+              {isEmulated && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className='flex items-center gap-1 rounded-md bg-yellow-500/10 px-2 py-1 text-yellow-600 dark:text-yellow-500'>
+                        <AlertTriangleIcon className='h-4 w-4' />
+                        <span className='text-xs font-medium'>
+                          <Trans>Emulated</Trans>
+                        </span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side='left' className='max-w-[300px]'>
+                      <p>
+                        <Trans>
+                          The secure element is emulated (e.g., vTPM in a VM,
+                          iOS Simulator, or Android Emulator). Keys created here
+                          may not have the same security guarantees as on a
+                          physical device.
+                        </Trans>
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className='flex items-center gap-1 rounded-md bg-muted px-2 py-1'>
+                      <InfoIcon className='h-4 w-4 text-muted-foreground' />
+                      <span className='text-sm font-medium'>
+                        {getBackingLabel(strongest)}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side='left' className='max-w-[300px]'>
+                    <p>{getBackingDescription(strongest)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          }
+        />
+
         <SettingItem
           label={t`Search Keys`}
           description={t`Search by key name or public key`}

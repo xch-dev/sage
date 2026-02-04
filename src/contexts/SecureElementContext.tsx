@@ -11,6 +11,7 @@ import {
   generateSecureKey,
   KeyInfo,
   listKeys,
+  SecureElementBacking,
 } from 'tauri-plugin-secure-element-api';
 
 export type AuthenticationMode = 'none' | 'pinOrBiometric' | 'biometricOnly';
@@ -18,6 +19,8 @@ export type AuthenticationMode = 'none' | 'pinOrBiometric' | 'biometricOnly';
 export interface SecureElementContextType {
   isSupported: boolean;
   canEnforceBiometricOnly: boolean;
+  strongest: SecureElementBacking;
+  isEmulated: boolean;
   keys: KeyInfo[];
   selectedKey: KeyInfo | null;
   isLoading: boolean;
@@ -35,6 +38,8 @@ export const SecureElementContext = createContext<
 export function SecureElementProvider({ children }: { children: ReactNode }) {
   const [isSupported, setIsSupported] = useState(false);
   const [canEnforceBiometricOnly, setCanEnforceBiometricOnly] = useState(false);
+  const [strongest, setStrongest] = useState<SecureElementBacking>('none');
+  const [isEmulated, setIsEmulated] = useState(false);
   const [keys, setKeys] = useState<KeyInfo[]>([]);
   const [selectedKey, setSelectedKey] = useState<KeyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,10 +54,11 @@ export function SecureElementProvider({ children }: { children: ReactNode }) {
 
         // Check support
         const support = await checkSecureElementSupport();
-        const supported =
-          support.secureElementSupported || support.teeSupported;
+        const supported = support.strongest !== 'none';
         setIsSupported(supported);
         setCanEnforceBiometricOnly(support.canEnforceBiometricOnly);
+        setStrongest(support.strongest);
+        setIsEmulated(support.emulated);
         // Load keys if supported
         if (supported) {
           const keyList = await listKeys();
@@ -192,6 +198,8 @@ export function SecureElementProvider({ children }: { children: ReactNode }) {
       value={{
         isSupported,
         canEnforceBiometricOnly,
+        strongest,
+        isEmulated,
         keys,
         selectedKey,
         isLoading,
