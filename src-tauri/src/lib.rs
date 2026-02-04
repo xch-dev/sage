@@ -5,7 +5,6 @@ use sage_api::SyncEvent;
 use tauri::Manager;
 use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
 use tokio::sync::Mutex;
-
 mod app_state;
 mod commands;
 mod error;
@@ -162,7 +161,8 @@ pub fn run() {
         tauri_builder = tauri_builder
             .plugin(tauri_plugin_window_state::Builder::new().build())
             .plugin(tauri_plugin_fs::init())
-            .plugin(tauri_plugin_dialog::init());
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_secure_element::init());
     }
 
     #[cfg(mobile)]
@@ -172,6 +172,7 @@ pub fn run() {
             .plugin(tauri_plugin_safe_area_insets::init())
             .plugin(tauri_plugin_biometric::init())
             .plugin(tauri_plugin_sharesheet::init())
+            .plugin(tauri_plugin_secure_element::init())
             .plugin(tauri_plugin_sage::init());
     }
 

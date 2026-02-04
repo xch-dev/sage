@@ -78,6 +78,7 @@ tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
 tauri-build = "2.5.3"
 tauri-plugin = "2.5.2"
+tauri-plugin-secure-element = "0.1.0-beta.3"
 
 # Specta
 specta = "2.0.0-rc.20"
