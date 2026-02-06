@@ -2,9 +2,8 @@ import { commands, OptionRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { isValidAddress } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Input } from '../ui/input';
-import { DropdownSelector } from './DropdownSelector';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { SearchableSelect } from './SearchableSelect';
 
 export interface OptionSelectorProps {
   value: string | null;
@@ -23,18 +22,9 @@ export function OptionSelector({
 
   const [page, setPage] = useState(0);
   const [options, setOptions] = useState<Record<string, OptionRecord>>({});
-  const [pageOptionIds, setPageOptionIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const pageSize = 8;
-
-  // Restore focus after option list updates
-  useEffect(() => {
-    if (searchTerm && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [options, searchTerm]);
 
   const isValidOptionId = useMemo(() => {
     return isValidAddress(searchTerm, 'option');
@@ -56,7 +46,6 @@ export function OptionSelector({
           .then(({ option }) => {
             if (option) {
               options[option.launcher_id] = option;
-              setPageOptionIds([option.launcher_id]);
             }
           });
       } else {
@@ -71,17 +60,11 @@ export function OptionSelector({
             for (const option of data.options) {
               options[option.launcher_id] = option;
             }
-            setPageOptionIds(
-              data.options
-                .filter(
-                  (option) => option.expiration_seconds * 1000 >= Date.now(),
-                )
-                .map((option) => option.launcher_id),
-            );
           })
           .catch(addError);
       }
 
+      // Filter out expired options
       setOptions(
         Object.fromEntries(
           Object.entries(options).filter(
@@ -92,42 +75,38 @@ export function OptionSelector({
     };
 
     fetchOptions();
-  }, [addError, page, searchTerm, isValidOptionId, value]);
+  }, [addError, searchTerm, isValidOptionId, value]);
 
-  const filteredOptionIds = useMemo(() => {
-    return pageOptionIds
-      .filter((optionId) => {
-        const option = options[optionId];
-
-        if (!option) return false;
-
+  // Filter and sort options based on search term
+  const filteredOptions = useMemo(() => {
+    return Object.values(options)
+      .filter((option) => {
         // Filter out expired options
+        if (option.expiration_seconds * 1000 < Date.now()) return false;
+
+        if (!searchTerm) return true;
+
+        // Match by launcher ID, name, underlying asset, or strike asset
         return (
-          option.expiration_seconds * 1000 >= Date.now() &&
-          (option.launcher_id === searchTerm ||
-            option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            option.underlying_asset.name
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            option.underlying_asset.ticker
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            option.underlying_asset.asset_id === searchTerm ||
-            option.strike_asset.name
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            option.strike_asset.ticker
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            option.strike_asset.asset_id === searchTerm)
+          option.launcher_id === searchTerm ||
+          option.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          option.underlying_asset.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          option.underlying_asset.ticker
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          option.underlying_asset.asset_id === searchTerm ||
+          option.strike_asset.name
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          option.strike_asset.ticker
+            ?.toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          option.strike_asset.asset_id === searchTerm
         );
       })
-      .sort((aId, bId) => {
-        const a = options[aId];
-        const b = options[bId];
-
-        if (!a || !b) return 0;
-
+      .sort((a, b) => {
         return (
           (a.name ?? '').localeCompare(b.name ?? '') ||
           (a.underlying_asset.name ?? '').localeCompare(
@@ -135,56 +114,83 @@ export function OptionSelector({
           ) ||
           (a.strike_asset.name ?? '').localeCompare(b.strike_asset.name ?? '')
         );
-      })
+      });
+  }, [options, searchTerm]);
 
-      .slice(page * pageSize, (page + 1) * pageSize);
-  }, [options, searchTerm, page, pageOptionIds]);
+  const paginatedOptions = useMemo(() => {
+    const start = page * pageSize;
+    return filteredOptions.slice(start, start + pageSize);
+  }, [filteredOptions, page, pageSize]);
+
+  const handleSelect = useCallback(
+    (optionId: string | null) => {
+      if (optionId) {
+        onChange(optionId);
+      }
+    },
+    [onChange],
+  );
+
+  const handleManualInput = useCallback(
+    (optionId: string) => {
+      onChange(optionId);
+    },
+    [onChange],
+  );
+
+  const handleSearchChange = useCallback(
+    (search: string) => {
+      setSearchTerm(search);
+      if (page !== 0) {
+        setPage(0);
+      }
+    },
+    [page],
+  );
+
+  const validateOptionId = useCallback((value: string) => {
+    return isValidAddress(value, 'option');
+  }, []);
+
+  const renderOption = useCallback(
+    (option: OptionRecord) => (
+      <div className='flex items-center gap-2 min-w-0'>
+        <div className='flex flex-col min-w-0'>
+          <span className='truncate' role='text'>
+            {option.name ?? 'Unknown Option'}
+          </span>
+          <span
+            className='text-xs text-muted-foreground truncate'
+            aria-label='Option ID'
+          >
+            {option.launcher_id}
+          </span>
+        </div>
+      </div>
+    ),
+    [],
+  );
 
   return (
-    <DropdownSelector
-      loadedItems={filteredOptionIds}
-      page={page}
-      setPage={setPage}
+    <SearchableSelect
       value={value || undefined}
-      setValue={(optionId) => {
-        onChange(optionId);
-        // Only clear search term if it's not a valid Option ID (i.e., user clicked on an item from the list)
-        if (!isValidAddress(searchTerm, 'option')) {
-          setSearchTerm('');
-        }
-      }}
-      isDisabled={(optionId) => disabled.includes(optionId)}
+      onSelect={handleSelect}
+      items={paginatedOptions}
+      getItemId={(opt) => opt.launcher_id}
+      renderItem={renderOption}
+      onSearchChange={handleSearchChange}
+      shouldFilter={false}
+      validateManualInput={validateOptionId}
+      onManualInput={handleManualInput}
+      page={page}
+      onPageChange={setPage}
+      pageSize={pageSize}
+      hasMorePages={filteredOptions.length > (page + 1) * pageSize}
+      disabled={disabled}
       className={className}
-      manualInput={
-        <Input
-          ref={inputRef}
-          placeholder={t`Search by name or enter Option ID`}
-          value={searchTerm}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setSearchTerm(newValue);
-
-            if (isValidAddress(newValue, 'option')) {
-              onChange(newValue);
-            }
-          }}
-        />
-      }
-      renderItem={(optionId) => (
-        <div className='flex items-center gap-2 w-full'>
-          <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate' role='text'>
-              {options[optionId]?.name ?? 'Unknown Option'}
-            </span>
-            <span
-              className='text-xs text-muted-foreground truncate'
-              aria-label='Option ID'
-            >
-              {optionId}
-            </span>
-          </div>
-        </div>
-      )}
+      placeholder={t`Select option`}
+      searchPlaceholder={t`Search by name or enter Option ID`}
+      emptyMessage={t`No options found.`}
     />
   );
 }

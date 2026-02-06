@@ -1,0 +1,21 @@
+# Android target configurations
+# The linker will be automatically resolved from CC_* environment variables
+# which are set by setup-android-env.sh script
+# For NDK 29+, these point to versioned clang binaries (e.g., aarch64-linux-android34-clang)
+
+[target.aarch64-linux-android]
+ar = "llvm-ar"
+# Linker is set via CC_aarch64_linux_android environment variable
+
+[target.armv7-linux-androideabi]
+ar = "llvm-ar"
+# Linker is set via CC_armv7_linux_androideabi environment variable
+
+[target.i686-linux-android]
+ar = "llvm-ar"
+# Linker is set via CC_i686_linux_android environment variable
+
+[target.x86_64-linux-android]
+ar = "llvm-ar"
+# Linker is set via CC_x86_64_linux_android environment variable
+

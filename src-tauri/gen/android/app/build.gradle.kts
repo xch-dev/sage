@@ -58,7 +58,17 @@ android {
             }
         }
         getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+            val keystorePropertiesFile = rootProject.file("keystore.properties")
+            if (keystorePropertiesFile.exists()) {
+                val keystoreProperties = Properties()
+                keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+                val keyAliasProp = keystoreProperties["keyAlias"] as? String
+                val passwordProp = keystoreProperties["password"] as? String
+                val storeFileProp = keystoreProperties["storeFile"] as? String
+                if (keyAliasProp != null && passwordProp != null && storeFileProp != null) {
+                    signingConfig = signingConfigs.getByName("release")
+                }
+            }
             isMinifyEnabled = true
             proguardFiles(
                 *fileTree(".") { include("**/*.pro") }
