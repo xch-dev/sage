@@ -25,6 +25,7 @@ mod options;
 mod signing;
 mod xch;
 
+pub use memos::*;
 pub use multi_send::*;
 pub use nfts::*;
 pub use offer::*;
@@ -205,13 +206,13 @@ impl Wallet {
             let delta = deltas.get(&id).copied().unwrap_or_default();
             let required_amount = delta.output.saturating_sub(delta.input);
 
-            if required_amount == 0 && !deltas.is_needed(&id) {
-                continue;
-            }
-
             match id {
                 Id::New(_) => {}
                 Id::Xch => {
+                    if required_amount == 0 && !deltas.is_needed(&id) {
+                        continue;
+                    }
+
                     let coins = self
                         .select_xch_coins(required_amount, &selected_coin_ids)
                         .await?;
@@ -222,6 +223,10 @@ impl Wallet {
                 }
                 Id::Existing(asset_id) => match self.db.asset_kind(asset_id).await? {
                     Some(AssetKind::Token) => {
+                        if required_amount == 0 && !deltas.is_needed(&id) {
+                            continue;
+                        }
+
                         let coins = self
                             .select_cat_coins(asset_id, required_amount, &selected_coin_ids)
                             .await?;
@@ -231,6 +236,10 @@ impl Wallet {
                         }
                     }
                     Some(AssetKind::Did) => {
+                        if required_amount == 0 && !deltas.is_needed(&id) && delta.output == 0 {
+                            continue;
+                        }
+
                         let did = self
                             .db
                             .did(asset_id)
@@ -240,6 +249,10 @@ impl Wallet {
                         spends.add(did.deserialize(ctx)?);
                     }
                     Some(AssetKind::Nft) => {
+                        if required_amount == 0 && !deltas.is_needed(&id) && delta.output == 0 {
+                            continue;
+                        }
+
                         let nft = self
                             .db
                             .nft(asset_id)
@@ -249,6 +262,10 @@ impl Wallet {
                         spends.add(nft.deserialize(ctx)?);
                     }
                     Some(AssetKind::Option) => {
+                        if required_amount == 0 && !deltas.is_needed(&id) && delta.output == 0 {
+                            continue;
+                        }
+
                         let option = self
                             .db
                             .option(asset_id)
@@ -257,7 +274,13 @@ impl Wallet {
 
                         spends.add(option);
                     }
-                    None => return Err(WalletError::MissingAsset(asset_id)),
+                    None => {
+                        if required_amount == 0 && !deltas.is_needed(&id) {
+                            continue;
+                        }
+
+                        return Err(WalletError::MissingAsset(asset_id));
+                    }
                 },
             }
         }

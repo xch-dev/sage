@@ -4,10 +4,10 @@ use bip39::Mnemonic;
 use chia_wallet_sdk::{
     chia::{
         bls::{
-            master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate,
-            DerivableKey,
+            DerivableKey, master_to_wallet_hardened_intermediate,
+            master_to_wallet_unhardened_intermediate,
         },
-        puzzle_types::{standard::StandardArgs, DeriveSynthetic},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
 };
@@ -110,10 +110,10 @@ impl Sage {
     pub fn generate_mnemonic(&self, req: GenerateMnemonic) -> Result<GenerateMnemonicResponse> {
         let mut rng = ChaCha20Rng::from_entropy();
         let mnemonic = if req.use_24_words {
-            let entropy: [u8; 32] = rng.gen();
+            let entropy: [u8; 32] = rng.r#gen();
             Mnemonic::from_entropy(&entropy)?
         } else {
-            let entropy: [u8; 16] = rng.gen();
+            let entropy: [u8; 16] = rng.r#gen();
             Mnemonic::from_entropy(&entropy)?
         };
         Ok(GenerateMnemonicResponse {
@@ -196,26 +196,26 @@ impl Sage {
             }
         }
 
-        if req.hardened.unwrap_or(true) {
-            if let Some(master_sk) = master_sk {
-                let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
+        if req.hardened.unwrap_or(true)
+            && let Some(master_sk) = master_sk
+        {
+            let intermediate_hardened_sk = master_to_wallet_hardened_intermediate(&master_sk);
 
-                for index in 0..req.derivation_index {
-                    let synthetic_key = intermediate_hardened_sk
-                        .derive_hardened(index)
-                        .derive_synthetic()
-                        .public_key();
-                    let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                    tx.insert_custody_p2_puzzle(
-                        p2_puzzle_hash,
-                        synthetic_key,
-                        Derivation {
-                            derivation_index: index,
-                            is_hardened: true,
-                        },
-                    )
-                    .await?;
-                }
+            for index in 0..req.derivation_index {
+                let synthetic_key = intermediate_hardened_sk
+                    .derive_hardened(index)
+                    .derive_synthetic()
+                    .public_key();
+                let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
+                tx.insert_custody_p2_puzzle(
+                    p2_puzzle_hash,
+                    synthetic_key,
+                    Derivation {
+                        derivation_index: index,
+                        is_hardened: true,
+                    },
+                )
+                .await?;
             }
         }
 

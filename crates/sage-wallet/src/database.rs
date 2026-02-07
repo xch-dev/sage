@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chia_wallet_sdk::{
-    chia::puzzle_types::{nft::NftMetadata, LineageProof},
+    chia::puzzle_types::{LineageProof, nft::NftMetadata},
     prelude::*,
 };
 use sage_assets::base64_data_uri;
@@ -12,7 +12,7 @@ use sage_database::{
 use tracing::{error, warn};
 
 use crate::{
-    compute_nft_info, ChildKind, OptionContext, PuzzleContext, Transaction, WalletError, WalletPeer,
+    ChildKind, OptionContext, PuzzleContext, Transaction, WalletError, WalletPeer, compute_nft_info,
 };
 
 pub async fn validate_wallet_coin(
@@ -53,12 +53,12 @@ pub async fn insert_puzzle(
     let coin_id = coin_state.coin.coin_id();
 
     // It's an XCH coin, so we don't care about the child kind
-    if let Some(underlying_p2_puzzle_hash) = underlying_p2_puzzle_hash {
-        if coin_state.coin.puzzle_hash == underlying_p2_puzzle_hash {
-            tx.update_coin(coin_id, Bytes32::default(), underlying_p2_puzzle_hash)
-                .await?;
-            return Ok(true);
-        }
+    if let Some(underlying_p2_puzzle_hash) = underlying_p2_puzzle_hash
+        && coin_state.coin.puzzle_hash == underlying_p2_puzzle_hash
+    {
+        tx.update_coin(coin_id, Bytes32::default(), underlying_p2_puzzle_hash)
+            .await?;
+        return Ok(true);
     }
 
     match info {
@@ -221,13 +221,17 @@ pub async fn insert_puzzle(
             clawback,
         } => {
             if underlying_p2_puzzle_hash.is_some() {
-                warn!("Deleting underlying coin {coin_id} because recursive option contracts are unsupported");
+                warn!(
+                    "Deleting underlying coin {coin_id} because recursive option contracts are unsupported"
+                );
                 tx.delete_coin(coin_id).await?;
                 return Ok(false);
             }
 
             let PuzzleContext::Option(context) = context else {
-                warn!("Received an invalid option contract coin (either the metadata or underlying coin were invalid)");
+                warn!(
+                    "Received an invalid option contract coin (either the metadata or underlying coin were invalid)"
+                );
                 tx.delete_coin(coin_id).await?;
                 return Ok(false);
             };
@@ -299,17 +303,17 @@ pub async fn insert_nft(
         edition_total: metadata.as_ref().map(|m| m.edition_total),
     };
 
-    if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash) {
-        if let Some(blob) = tx.file_data(*metadata_hash).await? {
-            let computed = compute_nft_info(coin_info.minter_hash, &blob);
-            asset.name = computed.name;
-            asset.description = computed.description;
-            asset.is_sensitive_content = computed.sensitive_content;
+    if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash)
+        && let Some(blob) = tx.file_data(*metadata_hash).await?
+    {
+        let computed = compute_nft_info(coin_info.minter_hash, &blob);
+        asset.name = computed.name;
+        asset.description = computed.description;
+        asset.is_sensitive_content = computed.sensitive_content;
 
-            if let Some(collection) = computed.collection {
-                coin_info.collection_hash = collection.hash;
-                tx.insert_collection(collection).await?;
-            }
+        if let Some(collection) = computed.collection {
+            coin_info.collection_hash = collection.hash;
+            tx.insert_collection(collection).await?;
         }
     }
 

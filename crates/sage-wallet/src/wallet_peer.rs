@@ -190,14 +190,6 @@ impl WalletPeer {
         )))
     }
 
-    pub async fn fetch_singleton_child(&self, coin_id: Bytes32) -> Result<CoinState, WalletError> {
-        let Some(child) = self.try_fetch_singleton_child(coin_id).await? else {
-            return Err(WalletError::MissingChild(coin_id));
-        };
-
-        Ok(child)
-    }
-
     pub async fn try_fetch_singleton_child(
         &self,
         coin_id: Bytes32,

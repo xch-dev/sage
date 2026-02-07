@@ -1,6 +1,6 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
-    Error, Result, Sage,
+    address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id, parse_did_id,
+    parse_nft_id, parse_option_id, Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use chia_wallet_sdk::chia::puzzle_types::nft::NftMetadata;
@@ -394,16 +394,7 @@ impl Sage {
     pub async fn is_asset_owned(&self, req: IsAssetOwned) -> Result<IsAssetOwnedResponse> {
         let wallet = self.wallet()?;
 
-        let asset_hash = if req.asset_id.starts_with("nft") {
-            parse_nft_id(req.asset_id)?
-        } else if req.asset_id.starts_with("did:chia:") {
-            parse_did_id(req.asset_id)?
-        } else if req.asset_id.starts_with("option") {
-            parse_option_id(req.asset_id)?
-        } else {
-            // Assume it's a CAT token (hex string)
-            parse_asset_id(req.asset_id)?
-        };
+        let asset_hash = parse_any_asset_id(req.asset_id)?;
 
         let owned = wallet.db.is_asset_owned(asset_hash).await?;
         Ok(IsAssetOwnedResponse { owned })

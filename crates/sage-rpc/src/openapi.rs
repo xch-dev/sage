@@ -98,7 +98,15 @@ pub fn generate_openapi() -> OpenApi {
         .schema_from::<sage_api::NftMint>()
         .schema_from::<sage_api::OfferAmount>()
         .schema_from::<sage_api::OptionAsset>()
-        .schema_from::<sage_api::NetworkKind>();
+        .schema_from::<sage_api::NetworkKind>()
+        .schema_from::<sage_api::Id>()
+        .schema_from::<sage_api::Action>()
+        .schema_from::<sage_api::SendAction>()
+        .schema_from::<sage_api::MintNftAction>()
+        .schema_from::<sage_api::UpdateNftAction>()
+        .schema_from::<sage_api::FeeAction>()
+        .schema_from::<sage_api::NewNftUri>()
+        .schema_from::<sage_api::NftTransfer>();
 
     // Endpoints - automatically generated from endpoints.json
     components = sage_api_macro::register_openapi_types! {};

@@ -503,7 +503,7 @@ pub struct AddNftUri {
 
 /// Type of NFT URI
 #[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "NFTs"))]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[serde(rename_all = "snake_case")]

@@ -161,6 +161,19 @@ pub fn parse_memos(input: Vec<String>) -> Result<Vec<Bytes>> {
     Ok(memos)
 }
 
+pub fn parse_any_asset_id(input: String) -> Result<Bytes32> {
+    Ok(if input.starts_with("nft") {
+        parse_nft_id(input)?
+    } else if input.starts_with("did:chia:") {
+        parse_did_id(input)?
+    } else if input.starts_with("option") {
+        parse_option_id(input)?
+    } else {
+        // Assume it's a CAT token (hex string)
+        parse_asset_id(input)?
+    })
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::unwrap_used)]
