@@ -5,8 +5,8 @@ use sage_database::{NftOfferInfo, OptionOfferInfo, SerializePrimitive};
 use tokio::time::sleep;
 
 use crate::{
-    fetch_minter_hash, fetch_option, insert_nft, insert_option, PuzzleContext, Wallet, WalletError,
-    WalletPeer,
+    PuzzleContext, Wallet, WalletError, WalletPeer, fetch_minter_hash, fetch_option, insert_nft,
+    insert_option,
 };
 
 impl Wallet {

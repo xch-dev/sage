@@ -1,5 +1,5 @@
 use chia_wallet_sdk::{prelude::*, types::puzzles::P2DelegatedConditionsArgs};
-use sqlx::{query, SqliteExecutor};
+use sqlx::{SqliteExecutor, query};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 

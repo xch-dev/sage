@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sage_wallet::{insert_transaction, SyncCommand, Transaction};
+use sage_wallet::{SyncCommand, Transaction, insert_transaction};
 
 use crate::{Error, Result, Sage};
 

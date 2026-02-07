@@ -3,7 +3,7 @@ use std::{collections::HashSet, sync::Arc, time::Duration};
 use chia_wallet_sdk::{chia::protocol::CoinStateFilters, prelude::*};
 use sage_database::DatabaseTx;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     time::sleep,
 };
 use tracing::{info, warn};

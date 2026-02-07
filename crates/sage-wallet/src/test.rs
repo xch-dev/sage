@@ -6,10 +6,10 @@ use std::{
 use chia_wallet_sdk::{
     chia::{
         bls::{
-            master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
-            master_to_wallet_unhardened_intermediate, DerivableKey,
+            DerivableKey, master_to_wallet_hardened, master_to_wallet_hardened_intermediate,
+            master_to_wallet_unhardened_intermediate,
         },
-        puzzle_types::{standard::StandardArgs, DeriveSynthetic},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     client::Connector,
     prelude::*,
@@ -17,19 +17,19 @@ use chia_wallet_sdk::{
 };
 use sage_config::TESTNET11;
 use sage_database::{Database, Derivation};
-use sqlx::{migrate, SqlitePool};
+use sqlx::{SqlitePool, migrate};
 use tokio::{
     sync::{
-        mpsc::{Receiver, Sender},
         Mutex,
+        mpsc::{Receiver, Sender},
     },
     time::timeout,
 };
 use tracing::debug;
 
 use crate::{
-    insert_transaction, PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts,
-    Transaction, Wallet,
+    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
+    insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);

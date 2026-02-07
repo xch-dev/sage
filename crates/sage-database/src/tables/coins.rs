@@ -2,7 +2,7 @@ use chia_wallet_sdk::{
     chia::puzzle_types::{LineageProof, Proof},
     prelude::*,
 };
-use sqlx::{query, Row, SqliteExecutor};
+use sqlx::{Row, SqliteExecutor, query};
 
 use crate::{
     AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result, SerializedDid,

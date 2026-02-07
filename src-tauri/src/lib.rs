@@ -3,7 +3,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
-use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
+use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
 
 mod app_state;

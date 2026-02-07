@@ -1,8 +1,8 @@
 use chia_wallet_sdk::prelude::*;
 
-use crate::{wallet::memos::Hint, WalletError};
+use crate::{WalletError, wallet::memos::Hint};
 
-use super::{memos::calculate_memos, Wallet};
+use super::{Wallet, memos::calculate_memos};
 
 #[derive(Debug, Clone)]
 pub struct MultiSendPayment {

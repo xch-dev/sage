@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sqlx::{query, SqliteConnection, SqliteExecutor};
+use sqlx::{SqliteConnection, SqliteExecutor, query};
 
 use crate::{Convert, Database, DatabaseTx, Result};
 

@@ -1,12 +1,12 @@
 use indexmap::IndexMap;
 use std::collections::BTreeSet;
 use utoipa::openapi::{
+    ComponentsBuilder, ContentBuilder, InfoBuilder, OpenApi, PathsBuilder, RefOr, ResponsesBuilder,
     path::{HttpMethod, OperationBuilder, PathItemBuilder},
     request_body::RequestBodyBuilder,
     response::ResponseBuilder,
     schema::{ObjectBuilder, Schema, SchemaType, Type},
     tag::TagBuilder,
-    ComponentsBuilder, ContentBuilder, InfoBuilder, OpenApi, PathsBuilder, RefOr, ResponsesBuilder,
 };
 
 /// Generates the `OpenAPI` specification for all RPC endpoints

@@ -13,7 +13,7 @@ use std::{
 use reqwest::{Identity, StatusCode};
 use sage_api_macro::impl_endpoints;
 use sage_config::Config;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 
 #[derive(Debug, Clone)]
 pub struct Client {

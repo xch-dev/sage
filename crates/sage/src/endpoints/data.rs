@@ -1,8 +1,8 @@
 use crate::{
-    address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id, parse_did_id,
-    parse_nft_id, parse_option_id, Error, Result, Sage,
+    Error, Result, Sage, address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id,
+    parse_did_id, parse_nft_id, parse_option_id,
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chia_wallet_sdk::chia::puzzle_types::nft::NftMetadata;
 use chia_wallet_sdk::prelude::*;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};

@@ -1,5 +1,5 @@
 use chia_wallet_sdk::prelude::*;
-use sqlx::{query, Row};
+use sqlx::{Row, query};
 
 use crate::{Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result};
 

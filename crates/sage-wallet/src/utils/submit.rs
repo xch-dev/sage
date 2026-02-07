@@ -30,7 +30,9 @@ pub async fn submit_to_peers(
                 mempool = true;
             }
             Status::Failed(failure_status, failure_error) => {
-                info!("Transaction {transaction_id} failed according to peer {ip}, but will check other peers");
+                info!(
+                    "Transaction {transaction_id} failed according to peer {ip}, but will check other peers"
+                );
                 status = failure_status;
                 error = failure_error;
                 failed = true;

@@ -6,9 +6,9 @@ use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
+    KeychainError,
     encrypt::{decrypt, encrypt},
     key_data::{KeyData, SecretKeyData},
-    KeychainError,
 };
 
 #[derive(Debug)]

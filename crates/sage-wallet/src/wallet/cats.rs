@@ -1,8 +1,8 @@
 use chia_wallet_sdk::{chia::puzzle_types::cat::EverythingWithSignatureTailArgs, prelude::*};
 
-use crate::{wallet::memos::Hint, WalletError};
+use crate::{WalletError, wallet::memos::Hint};
 
-use super::{memos::calculate_memos, Wallet};
+use super::{Wallet, memos::calculate_memos};
 
 impl Wallet {
     pub async fn issue_cat(

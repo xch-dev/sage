@@ -4,13 +4,13 @@ use chia_wallet_sdk::{chia::sha2::Sha256, prelude::*};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
-use reqwest::{header::CONTENT_TYPE, StatusCode};
+use reqwest::{StatusCode, header::CONTENT_TYPE};
 use tokio::task::spawn_blocking;
 use tracing::debug;
 
 use crate::UriError;
 
-use super::{thumbnail as make_thumbnail, Thumbnail};
+use super::{Thumbnail, thumbnail as make_thumbnail};
 
 #[derive(Debug, Clone)]
 pub struct Data {

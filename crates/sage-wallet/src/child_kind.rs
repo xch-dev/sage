@@ -1,5 +1,5 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::{nft::NftMetadata, LineageProof, Proof},
+    chia::puzzle_types::{LineageProof, Proof, nft::NftMetadata},
     prelude::*,
     puzzles::SINGLETON_LAUNCHER_HASH,
 };

@@ -13,7 +13,7 @@ use chia_wallet_sdk::{
         ChiaProtocolMessage, Handshake, Message, NewPeakWallet, NodeType, ProtocolMessageTypes,
         TimestampedPeerInfo,
     },
-    client::{connect_peer, ClientError},
+    client::{ClientError, connect_peer},
     prelude::*,
 };
 use futures_lite::StreamExt;
@@ -24,7 +24,7 @@ use tracing::{debug, info, warn};
 
 use crate::{SyncCommand, WalletError, WalletPeer};
 
-use super::{dns::lookup_all, PeerInfo, SyncManager};
+use super::{PeerInfo, SyncManager, dns::lookup_all};
 
 #[derive(Streamable)]
 struct RequestPeersIntroducer {}

@@ -3,7 +3,7 @@ use std::ops::Range;
 use chia_wallet_sdk::{
     chia::{
         bls::DerivableKey,
-        puzzle_types::{standard::StandardArgs, DeriveSynthetic},
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
 };

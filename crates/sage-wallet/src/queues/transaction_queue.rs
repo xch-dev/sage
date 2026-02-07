@@ -3,12 +3,12 @@ use std::{sync::Arc, time::Duration};
 use chia_wallet_sdk::prelude::*;
 use sage_database::Database;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     time::sleep,
 };
 use tracing::{info, warn};
 
-use crate::{submit_to_peers, PeerState, Status, SyncEvent, WalletError};
+use crate::{PeerState, Status, SyncEvent, WalletError, submit_to_peers};
 
 #[derive(Debug)]
 pub struct TransactionQueue {

@@ -7,8 +7,8 @@ use chia_wallet_sdk::{
 use sage_database::{SerializePrimitive, SerializedNft};
 
 use crate::{
-    wallet::memos::{calculate_memos, Hint},
     WalletError,
+    wallet::memos::{Hint, calculate_memos},
 };
 
 use super::Wallet;
