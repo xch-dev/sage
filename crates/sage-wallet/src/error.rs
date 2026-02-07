@@ -1,13 +1,13 @@
 use std::{num::TryFromIntError, time::SystemTimeError};
 
-use chia::{
-    clvm_traits::{FromClvmError, ToClvmError},
-    protocol::Bytes32,
-};
 use chia_wallet_sdk::{
-    client::ClientError, driver::DriverError, signer::SignerError, utils::CoinSelectionError,
+    client::ClientError,
+    clvm_traits::{FromClvmError, ToClvmError},
+    clvmr::error::EvalErr,
+    prelude::*,
+    signer::SignerError,
+    utils::CoinSelectionError,
 };
-use clvmr::reduction::EvalErr;
 use sage_assets::UriError;
 use sage_database::{CoinKind, DatabaseError};
 use thiserror::Error;

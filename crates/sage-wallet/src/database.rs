@@ -1,12 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
-use chia::{
-    bls::Signature,
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, CoinState},
-    puzzles::{nft::NftMetadata, LineageProof},
+use chia_wallet_sdk::{
+    chia::puzzle_types::{nft::NftMetadata, LineageProof},
+    prelude::*,
 };
-use chia_wallet_sdk::driver::{OptionInfo, OptionType, OptionUnderlying};
 use sage_assets::base64_data_uri;
 use sage_database::{
     Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, OptionCoinInfo,

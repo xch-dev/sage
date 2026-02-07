@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use chia::protocol::SpendBundle;
+use chia_wallet_sdk::prelude::*;
 use sage_database::Database;
 use tokio::{
     sync::{mpsc, Mutex},

@@ -1,7 +1,4 @@
-use chia::{
-    bls::Signature,
-    protocol::{Bytes32, Coin, CoinSpend},
-};
+use chia_wallet_sdk::prelude::*;
 use sqlx::{query, SqliteConnection, SqliteExecutor};
 
 use crate::{Convert, Database, DatabaseTx, Result};

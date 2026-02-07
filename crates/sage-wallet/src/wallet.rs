@@ -3,22 +3,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use chia::{
-    bls::PublicKey,
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, Coin},
-    puzzles::offer::SettlementPaymentsSolution,
-};
-use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
 use chia_wallet_sdk::{
-    driver::{
-        Action, Cat, ClawbackV2, Deltas, DriverError, Id, Layer, OptionUnderlying, Outputs,
-        P2DelegatedConditionsLayer, Relation, SettlementLayer, SpendContext, SpendKind,
-        SpendWithConditions, SpendableAsset, Spends, StandardLayer,
-    },
-    signer::AggSigConstants,
+    chia::puzzle_types::offer::SettlementPaymentsSolution,
+    driver::{P2DelegatedConditionsLayer, SpendKind, SpendableAsset},
+    prelude::*,
+    puzzles::SETTLEMENT_PAYMENT_HASH,
     types::puzzles::P2DelegatedConditionsSolution,
-    utils::select_coins,
 };
 use indexmap::IndexMap;
 use sage_database::{AssetKind, CoinKind, Database, DeserializePrimitive, P2Puzzle};
@@ -295,22 +285,22 @@ impl Wallet {
 
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
-        Ok(spends.finish(
-            ctx,
-            deltas,
-            Relation::AssertConcurrent,
-            |ctx, asset, kind| match kind {
+        let spends = spends.prepare(ctx, deltas, Relation::AssertConcurrent)?;
+        let mut coin_spends = HashMap::new();
+
+        for (asset, kind) in spends.unspent() {
+            let spend = match kind {
                 SpendKind::Conditions(spend) => {
                     let Some(p2_puzzle) = p2_puzzles.get(&asset.p2_puzzle_hash()) else {
-                        return Err(DriverError::MissingKey);
+                        return Err(DriverError::MissingKey.into());
                     };
 
                     match p2_puzzle {
                         P2Puzzle::PublicKey(public_key) => StandardLayer::new(*public_key)
-                            .spend_with_conditions(ctx, spend.finish()),
+                            .spend_with_conditions(ctx, spend.finish())?,
                         P2Puzzle::Clawback(clawback) => {
                             let Some(public_key) = clawback.public_key else {
-                                return Err(DriverError::MissingKey);
+                                return Err(DriverError::MissingKey.into());
                             };
 
                             let custody = StandardLayer::new(public_key);
@@ -330,15 +320,16 @@ impl Wallet {
                                 custody.tree_hash() == clawback.sender_puzzle_hash.into();
 
                             if is_sender && timestamp < clawback.seconds {
-                                clawback.sender_spend(ctx, spend)
+                                clawback.sender_spend(ctx, spend)?
                             } else if is_receiver && timestamp >= clawback.seconds {
-                                clawback.receiver_spend(ctx, spend)
+                                clawback.receiver_spend(ctx, spend)?
                             } else if is_sender || is_receiver {
-                                Err(DriverError::Custom(
+                                return Err(DriverError::Custom(
                                     "Cannot fulfill clawback spend".to_string(),
-                                ))
+                                )
+                                .into());
                             } else {
-                                Err(DriverError::MissingKey)
+                                return Err(DriverError::MissingKey.into());
                             }
                         }
                         P2Puzzle::Option(underlying) => {
@@ -354,10 +345,10 @@ impl Wallet {
                             );
 
                             if asset.p2_puzzle_hash() != underlying.tree_hash().into() {
-                                return Err(DriverError::MissingKey);
+                                return Err(DriverError::MissingKey.into());
                             }
 
-                            underlying.clawback_spend(ctx, spend)
+                            underlying.clawback_spend(ctx, spend)?
                         }
                         P2Puzzle::Arbor(key) => P2DelegatedConditionsLayer::new(*key)
                             .construct_spend(
@@ -365,12 +356,16 @@ impl Wallet {
                                 P2DelegatedConditionsSolution::new(
                                     spend.finish().into_iter().collect(),
                                 ),
-                            ),
+                            )?,
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer
-                    .construct_spend(ctx, SettlementPaymentsSolution::new(spend.finish())),
-            },
-        )?)
+                    .construct_spend(ctx, SettlementPaymentsSolution::new(spend.finish()))?,
+            };
+
+            coin_spends.insert(asset.coin().coin_id(), spend);
+        }
+
+        Ok(spends.spend(ctx, coin_spends)?)
     }
 }

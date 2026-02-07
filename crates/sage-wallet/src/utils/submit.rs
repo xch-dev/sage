@@ -1,4 +1,4 @@
-use chia::protocol::SpendBundle;
+use chia_wallet_sdk::prelude::*;
 use tracing::{info, warn};
 
 use crate::{WalletError, WalletPeer};

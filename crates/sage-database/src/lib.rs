@@ -99,7 +99,7 @@ pub enum DatabaseError {
     InvalidLength(usize, usize),
 
     #[error("BLS error: {0}")]
-    Bls(#[from] chia::bls::Error),
+    Bls(#[from] chia_wallet_sdk::chia::bls::Error),
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,

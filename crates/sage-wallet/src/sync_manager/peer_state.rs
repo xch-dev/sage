@@ -4,7 +4,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chia::protocol::Bytes32;
+use chia_wallet_sdk::prelude::*;
 use itertools::Itertools;
 use tokio::task::JoinHandle;
 use tracing::debug;

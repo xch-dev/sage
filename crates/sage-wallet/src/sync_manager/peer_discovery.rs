@@ -6,15 +6,16 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chia::{
-    protocol::{
+use chia_streamable_macro::Streamable;
+use chia_traits::Streamable;
+use chia_wallet_sdk::{
+    chia::protocol::{
         ChiaProtocolMessage, Handshake, Message, NewPeakWallet, NodeType, ProtocolMessageTypes,
         TimestampedPeerInfo,
     },
-    traits::Streamable,
+    client::{connect_peer, ClientError},
+    prelude::*,
 };
-use chia_streamable_macro::Streamable;
-use chia_wallet_sdk::client::{connect_peer, ClientError, Peer, PeerOptions};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use rand::Rng;

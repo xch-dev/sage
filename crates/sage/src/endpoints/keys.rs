@@ -1,12 +1,15 @@
 use std::{fs, str::FromStr};
 
 use bip39::Mnemonic;
-use chia::{
-    bls::{
-        master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate,
-        DerivableKey, PublicKey, SecretKey,
+use chia_wallet_sdk::{
+    chia::{
+        bls::{
+            master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate,
+            DerivableKey,
+        },
+        puzzle_types::{standard::StandardArgs, DeriveSynthetic},
     },
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
+    prelude::*,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;

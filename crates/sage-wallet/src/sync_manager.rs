@@ -5,13 +5,11 @@ use std::{
     time::Duration,
 };
 
-use chia::{
-    protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
-    traits::Streamable,
-};
+use chia_traits::Streamable;
 use chia_wallet_sdk::{
+    chia::protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     client::{ClientError, Connector},
-    types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS},
+    prelude::*,
 };
 use futures_lite::future::poll_once;
 use itertools::Itertools;

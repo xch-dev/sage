@@ -3,13 +3,9 @@ use crate::{
     Error, Result, Sage,
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::Bytes32,
-    puzzles::nft::NftMetadata,
-};
+use chia_wallet_sdk::chia::puzzle_types::nft::NftMetadata;
+use chia_wallet_sdk::prelude::*;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
-use clvmr::Allocator;
 use sage_api::{
     Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,

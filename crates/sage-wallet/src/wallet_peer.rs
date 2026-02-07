@@ -1,11 +1,12 @@
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
-use chia::protocol::{
-    Bytes32, CoinSpend, CoinState, CoinStateFilters, Program, RejectStateReason,
-    RequestBlockHeader, RespondBlockHeader, RespondPeers, RespondPuzzleState, SpendBundle,
-    TransactionAck,
+use chia_wallet_sdk::{
+    chia::protocol::{
+        CoinStateFilters, RejectStateReason, RequestBlockHeader, RespondBlockHeader, RespondPeers,
+        RespondPuzzleState, TransactionAck,
+    },
+    prelude::*,
 };
-use chia_wallet_sdk::client::Peer;
 use tokio::time::timeout;
 
 use crate::WalletError;

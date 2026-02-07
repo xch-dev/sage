@@ -1,13 +1,9 @@
 use std::time::Duration;
 
-use chia::{
-    protocol::{Coin, CoinSpend},
-    puzzles::nft::NftMetadata,
-};
 use chia_wallet_sdk::{
-    driver::{MetadataUpdate, OptionType},
-    types::TESTNET11_CONSTANTS,
-    utils::Address,
+    chia::puzzle_types::nft::NftMetadata,
+    driver::{MetadataUpdate, UriKind},
+    prelude::*,
 };
 use itertools::Itertools;
 use sage_api::{
@@ -412,9 +408,18 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let uri = match req.kind {
-            NftUriKind::Data => MetadataUpdate::NewDataUri(req.uri),
-            NftUriKind::Metadata => MetadataUpdate::NewMetadataUri(req.uri),
-            NftUriKind::License => MetadataUpdate::NewLicenseUri(req.uri),
+            NftUriKind::Data => MetadataUpdate {
+                kind: UriKind::Data,
+                uri: req.uri,
+            },
+            NftUriKind::Metadata => MetadataUpdate {
+                kind: UriKind::Metadata,
+                uri: req.uri,
+            },
+            NftUriKind::License => MetadataUpdate {
+                kind: UriKind::License,
+                uri: req.uri,
+            },
         };
 
         let coin_spends = wallet.add_nft_uri(nft_id, fee, uri).await?;

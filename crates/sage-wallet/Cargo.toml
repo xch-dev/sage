@@ -15,13 +15,10 @@ categories = { workspace = true }
 workspace = true
 
 [dependencies]
-chia = { workspace = true }
+chia-wallet-sdk = { workspace = true }
+chia_streamable_macro = { workspace = true }
 chia-traits = { workspace = true }
 chia-sha2 = { workspace = true }
-chia_streamable_macro = { workspace = true }
-clvmr = { workspace = true }
-chia-puzzles = { workspace = true }
-chia-wallet-sdk = { workspace = true }
 sage-database = { workspace = true }
 sage-assets = { workspace = true }
 sage-config = { workspace = true }
@@ -42,6 +39,3 @@ sqlx = { workspace = true, features = ["runtime-tokio"] }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true }
 hex-literal = { workspace = true }
-
-[package.metadata.cargo-machete]
-ignored = ["chia-traits"]

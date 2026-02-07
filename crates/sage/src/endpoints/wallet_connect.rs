@@ -1,13 +1,12 @@
 use std::slice;
 
-use chia::{
-    bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
-    puzzles::{DeriveSynthetic, Proof},
-};
-use chia_wallet_sdk::driver::{
-    ClawbackV2, Layer, OptionUnderlying, P2DelegatedConditionsLayer, SpendContext, StandardLayer,
+use chia_wallet_sdk::{
+    chia::{
+        bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
+        puzzle_types::{DeriveSynthetic, Proof},
+    },
+    driver::P2DelegatedConditionsLayer,
+    prelude::*,
 };
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,

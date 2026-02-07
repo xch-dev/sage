@@ -1,8 +1,7 @@
-use chia::{
-    protocol::{Bytes32, Coin, CoinState},
-    puzzles::{LineageProof, Proof},
+use chia_wallet_sdk::{
+    chia::puzzle_types::{LineageProof, Proof},
+    prelude::*,
 };
-use chia_wallet_sdk::driver::{Cat, CatInfo, OptionContract, OptionInfo};
 use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{

@@ -1,15 +1,15 @@
 use std::collections::HashMap;
 
-use chia::{
-    bls::{
-        master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate, sign,
-        DerivableKey, PublicKey, SecretKey,
+use chia_wallet_sdk::{
+    chia::{
+        bls::{
+            master_to_wallet_hardened_intermediate, master_to_wallet_unhardened_intermediate, sign,
+            DerivableKey,
+        },
+        puzzle_types::DeriveSynthetic,
     },
-    protocol::{Bytes32, SpendBundle},
-    puzzles::DeriveSynthetic,
+    prelude::*,
 };
-use chia_wallet_sdk::signer::{AggSigConstants, RequiredSignature};
-use clvmr::Allocator;
 use itertools::Itertools;
 
 use crate::WalletError;

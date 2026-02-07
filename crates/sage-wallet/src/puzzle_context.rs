@@ -1,21 +1,14 @@
 use std::time::Duration;
 
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes32, Coin, CoinSpend, CoinState},
-    puzzles::{
+use chia_wallet_sdk::{
+    chia::puzzle_types::{
         nft::{NftOwnershipLayerSolution, NftStateLayerSolution},
         singleton::{LauncherSolution, SingletonSolution},
-        Memos,
     },
+    driver::SingletonLayer,
+    prelude::*,
+    puzzles::SINGLETON_LAUNCHER_HASH,
 };
-use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::{
-    driver::{Layer, NftInfo, OptionInfo, OptionMetadata, Puzzle, SingletonLayer},
-    prelude::CreateCoin,
-    types::{run_puzzle, Condition, Conditions},
-};
-use clvmr::{Allocator, NodePtr};
 use tokio::time::sleep;
 use tracing::warn;
 

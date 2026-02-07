@@ -1,6 +1,6 @@
 use std::{collections::HashSet, sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, CoinState, CoinStateFilters};
+use chia_wallet_sdk::{chia::protocol::CoinStateFilters, prelude::*};
 use sage_database::DatabaseTx;
 use tokio::{
     sync::{mpsc, Mutex},

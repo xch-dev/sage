@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, CoinState};
+use chia_wallet_sdk::prelude::*;
 use futures_util::{stream::FuturesUnordered, StreamExt};
 use sage_database::{Database, UnsyncedCoin};
 use tokio::{

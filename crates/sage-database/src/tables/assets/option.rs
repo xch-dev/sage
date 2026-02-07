@@ -1,5 +1,4 @@
-use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::driver::{OptionType, OptionUnderlying};
+use chia_wallet_sdk::prelude::*;
 use sqlx::{query, Row, SqliteExecutor};
 
 use crate::{
