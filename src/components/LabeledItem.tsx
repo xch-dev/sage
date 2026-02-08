@@ -71,8 +71,8 @@ export function LabeledItem({
           onClick={onClick}
           onKeyDown={(e) => handleKeyDown(e, onClick)}
           className='text-sm break-words text-blue-600 cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-sm text-left p-0 border-0 bg-transparent m-0'
-          title={t`Navigate to: ${content}`}
-          aria-label={t`${label}: ${content} (navigate within app)`}
+          title={t`Navigate to: ${content ?? ''}`}
+          aria-label={t`${label}: ${content ?? ''} (navigate within app)`}
           aria-describedby={labelId}
           role='button'
           tabIndex={0}
