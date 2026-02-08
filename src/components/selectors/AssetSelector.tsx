@@ -99,7 +99,6 @@ export function AssetSelector({
     checkAssetsInOffers();
   }, [offering, assets.nfts, assets.options]);
 
-  // Generate unique IDs for new items
   const generateId = useCallback(() => Date.now() + Math.random(), []);
 
   const addToken = () => {
@@ -260,7 +259,7 @@ export function AssetSelector({
               <div className='flex flex-grow-0'>
                 <TokenAmountInput
                   id={`${prefix}-cat-${i}-amount`}
-                  className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                  className='!border-l-0 z-10 !rounded-l-none !rounded-r-none h-12'
                   placeholder={t`Amount`}
                   value={amount}
                   onValueChange={(values) =>
@@ -274,7 +273,7 @@ export function AssetSelector({
                       <TooltipTrigger asChild>
                         <Button
                           variant='outline'
-                          className='!border-l-0 !rounded-none h-12 px-2 text-xs'
+                          className='!border-l-0 !rounded-none h-12 pl-1.5 pr-1 text-xs'
                           onClick={() => setMaxTokenAmount(i, assetId)}
                         >
                           <ArrowUpToLine className='h-3 w-3 mr-1' />
