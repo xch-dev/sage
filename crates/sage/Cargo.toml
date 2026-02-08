@@ -1,7 +1,7 @@
 [package]
 name = "sage"
 version = "0.12.7"
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 description = "A high level abstraction for running Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
@@ -29,8 +29,6 @@ tokio = { workspace = true }
 indexmap = { workspace = true, features = ["serde"] }
 toml = { workspace = true, features = ["preserve_order"] }
 chia-wallet-sdk = { workspace = true, features = ["rustls"] }
-chia = { workspace = true }
-chia-puzzles = { workspace = true }
 hex = { workspace = true }
 thiserror = { workspace = true }
 log = { workspace = true }
@@ -40,7 +38,6 @@ rand = { workspace = true }
 rand_chacha = { workspace = true }
 bech32 = { workspace = true }
 base64 = { workspace = true }
-clvmr = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 bincode = { workspace = true }
 serde_json = { workspace = true }

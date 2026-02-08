@@ -3,7 +3,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
-use tauri_specta::{collect_commands, collect_events, Builder, ErrorHandlingMode};
+use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
 
 mod app_state;
@@ -56,6 +56,7 @@ pub fn run() {
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::finalize_clawback,
+            commands::create_transaction,
             commands::sign_coin_spends,
             commands::view_coin_spends,
             commands::submit_transaction,

@@ -1,7 +1,7 @@
 [package]
 name = "sage-client"
 version = "0.12.7"
-edition = "2021"
+edition = "2024"
 license = "Apache-2.0"
 description = "An RPC client for Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]

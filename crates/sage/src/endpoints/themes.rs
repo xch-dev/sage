@@ -70,30 +70,30 @@ impl Sage {
 
         let theme_json_path = nft_theme_dir.join("theme.json");
 
-        if let Some(nft_data) = nft_data_response.data {
-            if let Some(metadata_json) = nft_data.metadata_json {
-                let json_value: Value = serde_json::from_str(&metadata_json)
-                    .map_err(|_| crate::Error::InvalidThemeJson)?;
+        if let Some(nft_data) = nft_data_response.data
+            && let Some(metadata_json) = nft_data.metadata_json
+        {
+            let json_value: Value =
+                serde_json::from_str(&metadata_json).map_err(|_| crate::Error::InvalidThemeJson)?;
 
-                // Extract the data.theme node
-                let mut theme_data = json_value
-                    .get("data")
-                    .and_then(|data| data.get("theme"))
-                    .ok_or(crate::Error::MissingThemeData)?
-                    .clone();
+            // Extract the data.theme node
+            let mut theme_data = json_value
+                .get("data")
+                .and_then(|data| data.get("theme"))
+                .ok_or(crate::Error::MissingThemeData)?
+                .clone();
 
-                // Set the name property to the NFT ID
-                if let Some(theme_obj) = theme_data.as_object_mut() {
-                    theme_obj.insert(
-                        "name".to_string(),
-                        serde_json::Value::String(req.nft_id.clone()),
-                    );
-                }
-
-                let theme_json = serde_json::to_string_pretty(&theme_data)
-                    .map_err(|_| crate::Error::InvalidThemeJson)?;
-                fs::write(&theme_json_path, theme_json).await?;
+            // Set the name property to the NFT ID
+            if let Some(theme_obj) = theme_data.as_object_mut() {
+                theme_obj.insert(
+                    "name".to_string(),
+                    serde_json::Value::String(req.nft_id.clone()),
+                );
             }
+
+            let theme_json = serde_json::to_string_pretty(&theme_data)
+                .map_err(|_| crate::Error::InvalidThemeJson)?;
+            fs::write(&theme_json_path, theme_json).await?;
         }
 
         Ok(SaveUserThemeResponse {})

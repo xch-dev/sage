@@ -1,21 +1,14 @@
 use std::time::Duration;
 
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::{Bytes32, Coin, CoinSpend, CoinState},
-    puzzles::{
+use chia_wallet_sdk::{
+    chia::puzzle_types::{
         nft::{NftOwnershipLayerSolution, NftStateLayerSolution},
         singleton::{LauncherSolution, SingletonSolution},
-        Memos,
     },
+    driver::SingletonLayer,
+    prelude::*,
+    puzzles::SINGLETON_LAUNCHER_HASH,
 };
-use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::{
-    driver::{Layer, NftInfo, OptionInfo, OptionMetadata, Puzzle, SingletonLayer},
-    prelude::CreateCoin,
-    types::{run_puzzle, Condition, Conditions},
-};
-use clvmr::{Allocator, NodePtr};
 use tokio::time::sleep;
 use tracing::warn;
 
@@ -91,10 +84,11 @@ pub async fn fetch_minter_hash(
         sleep(Duration::from_secs(1)).await;
     }
 
-    if minter_hash.is_none() {
+    if minter_hash.is_none()
+        && let Some(child) = peer.try_fetch_singleton_child(launcher_id).await?
+        && let Some(spent_height) = child.spent_height
+    {
         let coin_spend = {
-            let child = peer.fetch_singleton_child(launcher_id).await?;
-            let spent_height = child.spent_height.ok_or(WalletError::PeerMisbehaved)?;
             let (puzzle_reveal, solution) = peer
                 .fetch_puzzle_solution(child.coin.coin_id(), spent_height)
                 .await?;
@@ -107,21 +101,20 @@ pub async fn fetch_minter_hash(
         let solution = coin_spend.solution.to_clvm(&mut allocator)?;
         let puzzle = Puzzle::parse(&allocator, puzzle_reveal);
 
-        if let Some((_nft_info, p2_puzzle)) = NftInfo::parse(&allocator, puzzle).ok().flatten() {
-            if let Ok(solution) = SingletonSolution::<
+        if let Some((_nft_info, p2_puzzle)) = NftInfo::parse(&allocator, puzzle).ok().flatten()
+            && let Ok(solution) = SingletonSolution::<
                 NftStateLayerSolution<NftOwnershipLayerSolution<NodePtr>>,
             >::from_clvm(&allocator, solution)
-            {
-                let p2_solution = solution.inner_solution.inner_solution.inner_solution;
+        {
+            let p2_solution = solution.inner_solution.inner_solution.inner_solution;
 
-                if let Ok(output) = run_puzzle(&mut allocator, p2_puzzle.ptr(), p2_solution) {
-                    if let Ok(conditions) = Conditions::<NodePtr>::from_clvm(&allocator, output) {
-                        minter_hash = conditions.into_iter().find_map(|cond| match cond {
-                            Condition::TransferNft(transfer) => transfer.launcher_id,
-                            _ => None,
-                        });
-                    }
-                }
+            if let Ok(output) = run_puzzle(&mut allocator, p2_puzzle.ptr(), p2_solution)
+                && let Ok(conditions) = Conditions::<NodePtr>::from_clvm(&allocator, output)
+            {
+                minter_hash = conditions.into_iter().find_map(|cond| match cond {
+                    Condition::TransferNft(transfer) => transfer.launcher_id,
+                    _ => None,
+                });
             }
         }
     }
