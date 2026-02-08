@@ -139,6 +139,10 @@ export function SearchableSelect<T>({
         className='p-0'
         style={{ width: 'var(--radix-popover-trigger-width)' }}
         align='start'
+        side='bottom'
+        collisionPadding={10}
+        avoidCollisions={true}
+        sticky='partial'
       >
         <Command shouldFilter={shouldFilter}>
           <CommandInput
@@ -181,7 +185,7 @@ export function SearchableSelect<T>({
             </div>
           )}
 
-          <CommandList>
+          <CommandList className='max-h-[200px]'>
             {isLoading ? (
               <div className='py-6 text-center text-sm text-muted-foreground'>
                 Loading...
