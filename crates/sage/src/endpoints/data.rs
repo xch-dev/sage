@@ -1,8 +1,8 @@
 use crate::{
-    Error, Result, Sage, address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id,
-    parse_did_id, parse_nft_id, parse_option_id,
+    address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id, parse_did_id,
+    parse_nft_id, parse_option_id, Error, Result, Sage,
 };
-use base64::{Engine, prelude::BASE64_STANDARD};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use chia_wallet_sdk::chia::puzzle_types::nft::NftMetadata;
 use chia_wallet_sdk::prelude::*;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
@@ -191,7 +191,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
@@ -242,7 +242,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
