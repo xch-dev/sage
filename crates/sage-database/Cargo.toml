@@ -20,3 +20,8 @@ sqlx = { workspace = true, features = ["sqlite"] }
 thiserror = { workspace = true }
 tracing = { workspace = true }
 hex = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+sqlx = { workspace = true, features = ["runtime-tokio", "sqlite"] }
+tokio = { workspace = true }

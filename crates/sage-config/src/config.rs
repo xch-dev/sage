@@ -70,3 +70,71 @@ impl Default for RpcConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_defaults() {
+        let config = Config::default();
+        assert_eq!(config.version, 2);
+        assert_eq!(config.global.log_level, "INFO");
+        assert!(config.global.fingerprint.is_none());
+        assert_eq!(config.network.default_network, "mainnet");
+        assert_eq!(config.network.target_peers, 5);
+        assert!(config.network.discover_peers);
+        assert!(!config.rpc.enabled);
+        assert_eq!(config.rpc.port, 9257);
+    }
+
+    #[test]
+    fn config_toml_round_trip() {
+        let config = Config::default();
+        let toml_str = toml::to_string(&config).unwrap();
+        let parsed: Config = toml::from_str(&toml_str).unwrap();
+        assert_eq!(config, parsed);
+    }
+
+    #[test]
+    fn config_partial_deserialize() {
+        // Only specify a few fields, rest should use defaults
+        let toml_str = r#"
+version = 2
+
+[global]
+log_level = "DEBUG"
+"#;
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.global.log_level, "DEBUG");
+        assert_eq!(config.network.default_network, "mainnet"); // default
+        assert!(!config.rpc.enabled); // default
+    }
+
+    #[test]
+    fn config_with_fingerprint() {
+        let toml_str = r#"
+version = 2
+
+[global]
+log_level = "INFO"
+fingerprint = 12345
+
+[network]
+default_network = "testnet11"
+target_peers = 3
+discover_peers = false
+
+[rpc]
+enabled = true
+port = 8080
+"#;
+        let config: Config = toml::from_str(toml_str).unwrap();
+        assert_eq!(config.global.fingerprint, Some(12345));
+        assert_eq!(config.network.default_network, "testnet11");
+        assert_eq!(config.network.target_peers, 3);
+        assert!(!config.network.discover_peers);
+        assert!(config.rpc.enabled);
+        assert_eq!(config.rpc.port, 8080);
+    }
+}

@@ -1,6 +1,8 @@
 mod maintenance;
 mod serialized_primitives;
 mod tables;
+#[cfg(test)]
+pub(crate) mod test_utils;
 mod utils;
 
 pub use maintenance::*;
