@@ -88,12 +88,15 @@ RUST_LOG=debug,sqlx=off cargo t -p sage-wallet  # Run tests
 ## Database
 SQLite with WAL mode, foreign keys enabled. Key tables: coins, assets, nfts, dids, cats, collections, derivations, offers, transactions, mempool_items, blocks, files.
 
-## Security Notes (Critical)
-- **All keychain encryption uses empty password `b""`** - encryption infrastructure exists but is not utilized
-- **CSP is `null`** in tauri.conf.json (all content allowed)
-- **No file permission controls** on keys.bin, config files, databases
-- **No user authentication** required between login (fingerprint-only) and fund operations
-- **PR #720 (open):** secure-element integration for vault support - would address some of these
+## Security Model (Trusted Device)
+Sage runs on the user's own device — security relies on OS-level protection (login, disk encryption, app sandboxing), consistent with Chia GUI, Electrum, MetaMask, etc.
+
+- **Keychain encryption uses empty password `b""`** — by design, infrastructure ready for optional user passwords (API accepts password param)
+- **CSP is `null`** in tauri.conf.json — should be set for defense-in-depth against NFT metadata injection (MEDIUM)
+- **Theme image URLs not sanitized** — could leak IP via remote image in NFT-sourced themes (MEDIUM)
+- **No file permission controls** on keys.bin — low risk on single-user systems, optional 0o600 enhancement
+- **Fingerprint-only login** — standard for desktop wallets on trusted devices; mobile adds biometric auth for WalletConnect
+- **PR #720 (open):** secure-element integration for vault support
 
 ## Current State
 - Beta status, actively developed (~10 releases in 6 months)
