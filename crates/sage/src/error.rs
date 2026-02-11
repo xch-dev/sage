@@ -122,6 +122,9 @@ pub enum Error {
     #[error("Invalid key")]
     InvalidKey,
 
+    #[error("{0}")]
+    InvalidMnemonic(String),
+
     #[error("Wrong address prefix: {0}")]
     AddressPrefix(String),
 
@@ -279,6 +282,7 @@ impl Error {
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
+            | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
             | Self::ParseInt(..)
