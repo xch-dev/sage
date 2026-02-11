@@ -283,7 +283,7 @@ A single `version.txt` or Cargo workspace version that other files derive from w
 ## 7. Strategic Recommendations
 
 ### 7.1 Address Defense-in-Depth Items Before Leaving Beta
-The medium-priority security findings (see Audit report) — adding a CSP policy and sanitizing theme image URLs — should be addressed before any 1.0 release. These are low-effort hardening measures. The optional user-password enhancement for the keychain (infrastructure already exists) would be a nice-to-have for security-conscious users.
+The medium-priority security findings (see Audit report) — adding a CSP policy and sanitizing theme image URLs — should be addressed before any 1.0 release. These are low-effort hardening measures. The planned optional encryption password for the key file (infrastructure already exists in sage-keychain) would add a layer for security-conscious users.
 
 ### 7.2 Invest in Testing Before Major Refactors
 Several of the recommendations above involve significant refactoring (context flattening, component decomposition, state consolidation). Without test coverage, these refactors carry high regression risk. Build test infrastructure first.

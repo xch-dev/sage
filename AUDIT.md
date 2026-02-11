@@ -107,13 +107,11 @@ Extremely large memos could cause memory pressure. In practice, the blockchain i
 These are architectural observations that are **standard practice for native wallets** but worth documenting for completeness.
 
 ### 2.1 Keychain Encryption Uses Empty Password
-**Status:** By design — consistent with native wallet conventions
+**Status:** By design — optional user password is a planned feature
 
-The keychain (`crates/sage-keychain/src/encrypt.rs`) encrypts private keys with AES-256-GCM + Argon2, but all call sites pass `b""` as the password. This means the encryption provides format-level protection (keys aren't stored in plaintext) but relies on OS-level protection for actual security.
+The keychain (`crates/sage-keychain/src/encrypt.rs`) encrypts private keys with AES-256-GCM + Argon2, but all call sites currently pass `b""` as the password. This means the encryption provides format-level protection (keys aren't stored in plaintext) but relies on OS-level protection for actual security.
 
-This is the same model used by the official Chia wallet, Electrum, and most desktop cryptocurrency wallets. The password parameter in the API exists for future use (e.g., optional user password, secure element integration via PR #720).
-
-**Optional enhancement:** Offer an opt-in application-level password for users who want additional protection beyond OS security. The infrastructure already supports this — only the call sites need to be updated to accept a user-provided password.
+This is the same model used by the official Chia wallet, Electrum, and most desktop cryptocurrency wallets. The password parameter in the API exists because the developer plans to add an option during wallet setup for users to set an encryption password for the key file. The infrastructure already supports this — only the call sites need to be updated to accept a user-provided password. See also PR #720 for secure-element integration.
 
 ---
 
@@ -136,11 +134,11 @@ Files are created with default OS permissions. On typical single-user desktop/la
 ---
 
 ### 2.4 SQLite Not Encrypted at Rest
-**Status:** Standard practice — relies on disk encryption
+**Status:** By design — stores public blockchain data
 
-The SQLite database stores transaction history, coin data, and addresses without application-level encryption. This is standard for native wallets — the data is protected by OS disk encryption (FileVault, BitLocker, LUKS, iOS/Android device encryption).
+The SQLite database stores transaction history, coin data, and addresses without application-level encryption. This data is public blockchain data, not secrets — encrypting it at the application level would not provide meaningful security benefit. Users concerned about data at rest can use OS-level disk encryption (FileVault, BitLocker, LUKS, iOS/Android device encryption).
 
-**Optional enhancement:** SQLCipher could add application-level database encryption for users on systems without full-disk encryption. Medium effort.
+Neither the official Chia reference wallet nor Goby (another Chia wallet) encrypts their local database. This is standard practice across the ecosystem.
 
 ---
 
@@ -199,7 +197,7 @@ The `Error` enum in `crates/sage/src/error.rs` has 40+ specific variants, mapped
 WalletConnect signing operations on mobile prompt for biometric authentication (fingerprint/face), providing an additional authorization layer for dApp interactions.
 
 ### 3.8 Encryption Infrastructure Ready for Passwords
-The keychain module accepts a password parameter at every level — the infrastructure is already built for optional user-password support. Enabling it would be a straightforward change to the call sites.
+The keychain module accepts a password parameter at every level — the infrastructure is already built for optional user-password support. The developer plans to add an option during wallet setup for users to set an encryption password, requiring only call-site changes to enable.
 
 ---
 
@@ -256,9 +254,8 @@ The keychain module accepts a password parameter at every level — the infrastr
 | P2 | Add zeroize to SecretKeyData | Low | Defense-in-depth |
 | P2 | Guard debug logging of spend bundles | Low | Defense-in-depth |
 | P2 | Add memo size limits | Low | Input validation |
-| P3 | Optional user password for keychain | Medium | Opt-in feature |
+| P3 | Optional user password for keychain | Medium | Planned feature |
 | P3 | Set 0o600 on keys.bin (Unix) | Low | Defense-in-depth |
-| P3 | Consider SQLCipher for DB encryption | Medium | Opt-in feature |
 | P3 | Add integrity checking to keys.bin | Low | Defense-in-depth |
 
 ---

@@ -91,7 +91,7 @@ SQLite with WAL mode, foreign keys enabled. Key tables: coins, assets, nfts, did
 ## Security Model (Trusted Device)
 Sage runs on the user's own device — security relies on OS-level protection (login, disk encryption, app sandboxing), consistent with Chia GUI, Electrum, MetaMask, etc.
 
-- **Keychain encryption uses empty password `b""`** — by design, infrastructure ready for optional user passwords (API accepts password param)
+- **Keychain encryption uses empty password `b""`** — by design, developer plans to add optional user password during wallet setup (infrastructure already supports it)
 - **CSP is `null`** in tauri.conf.json — should be set for defense-in-depth against NFT metadata injection (MEDIUM)
 - **Theme image URLs not sanitized** — could leak IP via remote image in NFT-sourced themes (MEDIUM)
 - **No file permission controls** on keys.bin — low risk on single-user systems, optional 0o600 enhancement
