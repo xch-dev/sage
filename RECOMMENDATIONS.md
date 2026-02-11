@@ -91,29 +91,27 @@ The codebase uses inconsistent prop patterns:
 ## 2. Testing
 
 ### 2.1 Add Frontend Test Infrastructure
-**Priority:** CRITICAL | **Effort:** Medium
+**Priority:** CRITICAL | **Effort:** Medium | **Status: IMPLEMENTED in [PR #739](https://github.com/xch-dev/sage/pull/739)**
 
-**Current state:** Zero frontend test files. No test framework configured. This is the single biggest maintainability risk — any refactoring could break functionality silently.
+**Current state:** ~~Zero frontend test files. No test framework configured.~~ PR #739 adds 170 frontend tests across 7 test files covering:
 
-**Recommended setup:**
-1. **Vitest** (already Vite-based, zero config needed) for unit/integration tests
-2. **React Testing Library** for component testing
-3. **MSW (Mock Service Worker)** for mocking Tauri IPC commands
-4. Priority test targets:
-   - Amount parsing/formatting (`lib/utils.ts`) — handles real money
-   - Address validation logic
-   - Offer state management (Zustand store)
-   - ConfirmationDialog (transaction display correctness)
-   - WalletConnect command handling
+- **Test infrastructure:** Vitest + jsdom + Testing Library, with global mocks for all Tauri APIs and plugins
+- **Pure function tests:** amount conversion (toMojos/fromMojos), address encoding/validation, hex utilities, URL validation, deepMerge
+- **WalletConnect:** Zod schema validation for all 17 commands, handler tests for CHIP-0002, offers, and high-level commands
+- **State:** Zustand store tests (wallet, offer, navigation) with mocked Tauri bindings
+- **CI:** lint and frontend test steps added to the build workflow
 
 ### 2.2 Expand Rust Test Coverage
-**Priority:** HIGH | **Effort:** Medium
+**Priority:** HIGH | **Effort:** Medium | **Status: IMPLEMENTED in [PR #739](https://github.com/xch-dev/sage/pull/739)**
 
-Currently only `sage-wallet` has tests. Critical untested areas:
-- `sage-keychain` — encryption/decryption round-trip, error cases, key management
+~~Currently only `sage-wallet` has tests.~~ PR #739 adds 98 new Rust tests across 4 crates:
+- **sage-keychain (16 tests):** encrypt/decrypt round-trips, wrong password, tampered data, keychain CRUD, serialization
+- **sage-database (32 tests):** blocks, offers, collections, mempool items, type conversion utils (in-memory SQLite)
+- **sage-config (23 tests):** config defaults/TOML round-trip, network inheritance, v1→v2 migration
+- **sage parse (27 tests):** all parse_* functions (asset IDs, coins, hashes, signatures)
+
+Still untested:
 - `sage/endpoints` — request validation, error mapping, edge cases
-- `sage-database` — query correctness, migration verification
-- `sage-config` — config migration from old formats
 
 ### 2.3 Add E2E Testing
 **Priority:** MEDIUM | **Effort:** High
@@ -286,7 +284,7 @@ A single `version.txt` or Cargo workspace version that other files derive from w
 The medium-priority security findings (see Audit report) — adding a CSP policy and sanitizing theme image URLs — should be addressed before any 1.0 release. These are low-effort hardening measures. The planned optional encryption password for the key file (infrastructure already exists in sage-keychain) would add a layer for security-conscious users.
 
 ### 7.2 Invest in Testing Before Major Refactors
-Several of the recommendations above involve significant refactoring (context flattening, component decomposition, state consolidation). Without test coverage, these refactors carry high regression risk. Build test infrastructure first.
+Several of the recommendations above involve significant refactoring (context flattening, component decomposition, state consolidation). [PR #739](https://github.com/xch-dev/sage/pull/739) establishes the test infrastructure (170 frontend + 98 Rust tests) needed to safely pursue these refactors. E2E testing (section 2.3) remains the next testing investment.
 
 ### 7.3 Consider Feature Flags for Beta Features
 Options contracts, WalletConnect, and the theme system are complex features with ongoing issues. Feature flags would allow shipping fixes to core wallet functionality without blocking on feature-specific bugs.
@@ -303,10 +301,10 @@ With 52 stars and 13 contributors, the project is growing. To support this:
 
 | Category | Recommendation | Priority | Effort | Impact |
 |----------|---------------|----------|--------|--------|
-| Testing | Add frontend test infra (Vitest) | CRITICAL | Medium | Enables safe refactoring |
+| Testing | ~~Add frontend test infra (Vitest)~~ | ~~CRITICAL~~ DONE | Medium | [PR #739](https://github.com/xch-dev/sage/pull/739) |
 | Architecture | Break down oversized components | HIGH | Medium | Reduces maintenance burden |
 | Architecture | Flatten context provider nesting | HIGH | Medium | Performance + testability |
-| Testing | Expand Rust test coverage | HIGH | Medium | Prevents regressions |
+| Testing | ~~Expand Rust test coverage~~ | ~~HIGH~~ DONE | Medium | [PR #739](https://github.com/xch-dev/sage/pull/739) |
 | DX | Consolidate state management | MEDIUM | Medium | Reduces confusion |
 | DX | Add error boundaries | MEDIUM | Low | Prevents full-app crashes |
 | UI/UX | Consistent loading states | MEDIUM | Low | Polish |
