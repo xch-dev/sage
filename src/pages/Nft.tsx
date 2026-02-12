@@ -272,10 +272,10 @@ export default function Nft() {
                   address={nft?.launcher_id ?? ''}
                 />
 
-                {nft?.edition_total != null && nft?.edition_total > 1 && (
+                {nft?.edition_total != null && (nft?.edition_total === 0 || nft?.edition_total > 1) && (
                   <LabeledItem
                     label={t`Edition`}
-                    content={`${nft.edition_number} of ${nft.edition_total}`}
+                    content={`${nft.edition_number} of ${nft.edition_total === 0 ? '∞' : nft.edition_total}`}
                   />
                 )}
 

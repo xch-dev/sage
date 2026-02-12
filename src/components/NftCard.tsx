@@ -317,12 +317,12 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
               <TooltipContent>
                 <p>
                   {nftName}
-                  {nft.edition_total != null && nft.edition_total > 1 && (
+                  {nft.edition_total != null && (nft.edition_total === 0 || nft.edition_total > 1) && (
                     <span>
                       {' '}
                       (
                       <Trans>
-                        {nft.edition_number} of {nft.edition_total}
+                        {nft.edition_number} of {nft.edition_total === 0 ? '∞' : nft.edition_total}
                       </Trans>
                       )
                     </span>
