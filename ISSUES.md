@@ -140,7 +140,7 @@ PR #728 (open since Jan 16, 2026) already implements a scheme handler, which is 
 
 ---
 
-## #726 — Import error messages need more specificity ✅ Fixed in PR #740
+## #726 — Import error messages need more specificity ✅ Fixed in PR #743
 **Opened by:** AmethystWizard (Jan 14, 2026) | **Type:** UX Bug | **Labels:** None
 
 ### Summary
@@ -184,7 +184,7 @@ The import flow in `crates/sage/src/endpoints/keys.rs:124-161` calls `Mnemonic::
 
 ---
 
-## #723 — Wallet error on single-sided request-only offer ✅ Fixed in PR #740
+## #723 — Wallet error on single-sided request-only offer ✅ Fixed in PR #744
 **Opened by:** judeallred (Jan 5, 2026) | **Type:** Bug | **Labels:** None
 
 ### Summary
@@ -253,7 +253,7 @@ The token selector components use `cmdk` (Command palette) wrapped in a Popover.
 
 ---
 
-## #691 — NFT edition total = 0 should display as infinity ✅ Fixed in PR #740
+## #691 — NFT edition total = 0 should display as infinity ✅ Fixed in PR #741
 **Opened by:** DrakoPensulo (Oct 1, 2025) | **Type:** Enhancement | **Labels:** None
 
 ### Summary
@@ -587,7 +587,7 @@ The CLI is defined in `crates/sage-cli/src/main.rs`, which declares a `Command` 
 
 ---
 
-## #390 — iPad in landscape obscures the network fee dialog ✅ Fixed in PR #740
+## #390 — iPad in landscape obscures the network fee dialog ✅ Fixed in PR #742
 **Opened by:** hoffmang9 (Mar 29, 2025) | **Type:** Bug | **Labels:** bug, ui
 
 ### Summary
@@ -1023,12 +1023,12 @@ The `Wallet::issue_cat` method in `crates/sage-wallet/src/wallet/cats.rs` alread
 
 | Issue | Type | Complexity | Impact | Suggested Priority |
 |-------|------|-----------|--------|-------------------|
-| #723 | Bug | Low | Medium | ✅ Fixed in PR #740 |
-| #726 | UX Bug | Low | Medium | ✅ Fixed in PR #740 |
-| #691 | Enhancement | Low | Low | ✅ Fixed in PR #740 |
+| #723 | Bug | Low | Medium | ✅ Fixed in PR #744 |
+| #726 | UX Bug | Low | Medium | ✅ Fixed in PR #743 |
+| #691 | Enhancement | Low | Low | ✅ Fixed in PR #741 |
 | #735 | Bug | Medium | High | P1 — Affects many users on upgrade |
 | #565 | Build | Low | High | P1 — Blocks Play Store updates |
-| #390 | Bug | Low | Medium | ✅ Fixed in PR #740 |
+| #390 | Bug | Low | Medium | ✅ Fixed in PR #742 |
 | #198 | Enhancement | Low | Medium | P2 — Small UX improvement, reuses existing patterns |
 | #279 | Enhancement | Medium | Medium | P2 — Backend ready, needs UI only |
 | #737 | Enhancement | Medium | High | P2 — Important for power users |
