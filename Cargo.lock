@@ -6333,10 +6333,12 @@ dependencies = [
 name = "sage-database"
 version = "0.12.8"
 dependencies = [
+ "anyhow",
  "chia-wallet-sdk",
  "hex",
  "sqlx",
  "thiserror 1.0.69",
+ "tokio",
  "tracing",
 ]
 
@@ -6345,6 +6347,7 @@ name = "sage-keychain"
 version = "0.12.8"
 dependencies = [
  "aes-gcm",
+ "anyhow",
  "argon2",
  "bincode 1.3.3",
  "bip39",
