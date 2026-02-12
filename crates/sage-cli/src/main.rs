@@ -1,5 +1,7 @@
 mod rpc;
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use clap::Parser;
 use rpc::RpcCommand;
@@ -7,6 +9,9 @@ use rustls::crypto::aws_lc_rs::default_provider;
 
 #[derive(Debug, Parser)]
 struct Args {
+    /// Override the data directory
+    #[clap(long, global = true)]
+    data_dir: Option<PathBuf>,
     #[clap(subcommand)]
     command: Command,
 }
@@ -27,9 +32,13 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    let path = dirs::data_dir()
-        .expect("could not get data directory")
-        .join("com.rigidnetwork.sage");
+    let path = if let Some(dir) = args.data_dir {
+        dir
+    } else {
+        dirs::data_dir()
+            .expect("could not get data directory")
+            .join("com.rigidnetwork.sage")
+    };
 
     match args.command {
         Command::Rpc { command } => command.handle(path).await?,

@@ -38,6 +38,11 @@ impl_endpoints! {
     }
 }
 
+/// Creates the API router without TLS. Used by integration tests.
+pub fn make_router(sage: Arc<Mutex<Sage>>) -> Router {
+    api_router().with_state(AppState { sage })
+}
+
 fn handle<T>(value: sage::Result<T>) -> Response
 where
     T: Serialize,
@@ -80,7 +85,7 @@ pub async fn start_rpc(sage: Arc<Mutex<Sage>>) -> Result<()> {
 
     drop(app);
 
-    let router = api_router().with_state(AppState { sage });
+    let router = make_router(sage);
 
     axum_server::bind_rustls(addr, RustlsConfig::from_config(Arc::new(config)))
         .serve(router.into_make_service())
