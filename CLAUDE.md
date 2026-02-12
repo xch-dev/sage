@@ -79,6 +79,11 @@ cargo sqlx prepare --workspace  # Regenerate SQLx query cache
 RUST_LOG=debug,sqlx=off cargo t -p sage-wallet  # Run tests
 ```
 
+## Contributing Guidelines
+- **1 PR per issue** — do not batch multiple bug fixes or features into a single PR unless they are true duplicates or inseparable. Each issue gets its own branch and PR.
+- Branch naming: `fix/<issue>-short-description` for bugs, `feat/<issue>-short-description` for features
+- Push to your fork, PRs target `xch-dev/sage` `main` branch
+
 ## Code Quality Config
 - **Rust lints:** `unsafe_code = deny`, `unwrap_used = warn`, `clippy::all = deny`
 - **TS:** strict mode, noUnusedParameters, noFallthroughCasesInSwitch
