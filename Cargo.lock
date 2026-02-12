@@ -6363,6 +6363,8 @@ dependencies = [
  "anyhow",
  "axum",
  "axum-server",
+ "http-body-util",
+ "hyper",
  "indexmap 2.12.1",
  "rustls",
  "rustls-pemfile",
@@ -6371,7 +6373,9 @@ dependencies = [
  "sage-api-macro",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
+ "tower",
  "tracing",
  "utoipa",
 ]

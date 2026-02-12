@@ -1,0 +1,54 @@
+name: Smoke Test (Testnet11)
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout:
+        description: 'Funding timeout (seconds)'
+        default: '900'
+      return_address:
+        description: 'Address to return remaining TXCH to after test'
+        default: ''
+
+concurrency:
+  group: smoke-test
+
+jobs:
+  smoke:
+    name: Testnet11 Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-smoke-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-smoke-
+
+      - name: Build sage-cli
+        run: cargo build --release -p sage-cli
+
+      - name: Run smoke test
+        run: |
+          ARGS=""
+          if [[ -n "${{ inputs.timeout }}" ]]; then
+            ARGS="$ARGS --timeout ${{ inputs.timeout }}"
+          fi
+          if [[ -n "${{ inputs.return_address }}" ]]; then
+            ARGS="$ARGS --return-address ${{ inputs.return_address }}"
+          fi
+          ./crates/sage-rpc/tests/smoke_test.sh $ARGS
