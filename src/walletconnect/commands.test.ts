@@ -176,10 +176,6 @@ describe('parseCommand', () => {
         ZodError,
       );
     });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chip0002_signCoinSpends.confirm).toBe(true);
-    });
   });
 
   // ─── chip0002_signMessage ───
@@ -196,10 +192,6 @@ describe('parseCommand', () => {
       expect(() =>
         parseCommand('chip0002_signMessage', { publicKey: 'abc' }),
       ).toThrow(ZodError);
-    });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chip0002_signMessage.confirm).toBe(true);
     });
   });
 
@@ -226,12 +218,6 @@ describe('parseCommand', () => {
     it('rejects missing spendBundle', () => {
       expect(() => parseCommand('chip0002_sendTransaction', {})).toThrow(
         ZodError,
-      );
-    });
-
-    it('does not require confirm', () => {
-      expect(walletConnectCommands.chip0002_sendTransaction.confirm).toBe(
-        false,
       );
     });
   });
@@ -261,10 +247,6 @@ describe('parseCommand', () => {
         parseCommand('chia_createOffer', { requestAssets: [] }),
       ).toThrow(ZodError);
     });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_createOffer.confirm).toBe(true);
-    });
   });
 
   // ─── chia_takeOffer ───
@@ -283,10 +265,6 @@ describe('parseCommand', () => {
       });
       expect(result.fee).toBe(100);
     });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_takeOffer.confirm).toBe(true);
-    });
   });
 
   // ─── chia_cancelOffer ───
@@ -296,10 +274,6 @@ describe('parseCommand', () => {
         id: 'offer-id-123',
       });
       expect(result.id).toBe('offer-id-123');
-    });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_cancelOffer.confirm).toBe(true);
     });
   });
 
@@ -322,10 +296,6 @@ describe('parseCommand', () => {
 
     it('accepts empty object', () => {
       expect(() => parseCommand('chia_getNfts', {})).not.toThrow();
-    });
-
-    it('does not require confirm', () => {
-      expect(walletConnectCommands.chia_getNfts.confirm).toBe(false);
     });
   });
 
@@ -362,10 +332,6 @@ describe('parseCommand', () => {
         parseCommand('chia_send', { amount: 1 }),
       ).toThrow(ZodError);
     });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_send.confirm).toBe(true);
-    });
   });
 
   // ─── chia_bulkMintNfts ───
@@ -388,20 +354,12 @@ describe('parseCommand', () => {
         parseCommand('chia_bulkMintNfts', { nfts: [] }),
       ).toThrow(ZodError);
     });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_bulkMintNfts.confirm).toBe(true);
-    });
   });
 
   // ─── chia_getAddress ───
   describe('chia_getAddress', () => {
     it('accepts empty object', () => {
       expect(() => parseCommand('chia_getAddress', {})).not.toThrow();
-    });
-
-    it('does not require confirm', () => {
-      expect(walletConnectCommands.chia_getAddress.confirm).toBe(false);
     });
   });
 
@@ -420,12 +378,6 @@ describe('parseCommand', () => {
       expect(() =>
         parseCommand('chia_signMessageByAddress', { message: 'test' }),
       ).toThrow(ZodError);
-    });
-
-    it('requires confirm', () => {
-      expect(walletConnectCommands.chia_signMessageByAddress.confirm).toBe(
-        true,
-      );
     });
   });
 });

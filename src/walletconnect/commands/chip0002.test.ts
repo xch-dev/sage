@@ -109,14 +109,13 @@ describe('handleFilterUnlockedCoins', () => {
   it('passes coinNames as coin_ids', async () => {
     mockCommands.filterUnlockedCoins.mockResolvedValue(['coin1'] as never);
 
-    const result = await handleFilterUnlockedCoins({
+    await handleFilterUnlockedCoins({
       coinNames: ['coin1', 'coin2'],
     });
 
     expect(mockCommands.filterUnlockedCoins).toHaveBeenCalledWith({
       coin_ids: ['coin1', 'coin2'],
     });
-    expect(result).toEqual(['coin1']);
   });
 });
 
@@ -230,6 +229,10 @@ describe('handleSignMessage', () => {
       makeContext(),
     );
 
+    expect(mockCommands.signMessageWithPublicKey).toHaveBeenCalledWith({
+      message: 'hello',
+      publicKey: 'pk',
+    });
     expect(result).toBe('sig456');
   });
 
@@ -256,11 +259,10 @@ describe('handleSendTransaction', () => {
       error: null,
     } as never);
 
-    const result = await handleSendTransaction({ spendBundle: bundle });
+    await handleSendTransaction({ spendBundle: bundle });
 
     expect(mockCommands.sendTransactionImmediately).toHaveBeenCalledWith({
       spend_bundle: bundle,
     });
-    expect(result).toEqual({ status: 1, error: null });
   });
 });

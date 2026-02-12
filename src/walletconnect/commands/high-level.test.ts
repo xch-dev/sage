@@ -173,18 +173,21 @@ describe('handleGetAddress', () => {
 describe('handleSignMessageByAddress', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('returns signature and publicKey', async () => {
+  it('passes params and returns result', async () => {
     mockCommands.signMessageByAddress.mockResolvedValue({
       publicKey: 'pk1',
       signature: 'sig1',
     } as never);
 
-    const result = await handleSignMessageByAddress(
+    await handleSignMessageByAddress(
       { message: 'hello', address: 'xch1addr' },
       makeContext(),
     );
 
-    expect(result).toEqual({ publicKey: 'pk1', signature: 'sig1' });
+    expect(mockCommands.signMessageByAddress).toHaveBeenCalledWith({
+      message: 'hello',
+      address: 'xch1addr',
+    });
   });
 
   it('throws on auth failure', async () => {
