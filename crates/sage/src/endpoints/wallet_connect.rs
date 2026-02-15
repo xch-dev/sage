@@ -1,13 +1,12 @@
 use std::slice;
 
-use chia::{
-    bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
-    puzzles::{DeriveSynthetic, Proof},
-};
-use chia_wallet_sdk::driver::{
-    ClawbackV2, Layer, OptionUnderlying, P2DelegatedConditionsLayer, SpendContext, StandardLayer,
+use chia_wallet_sdk::{
+    chia::{
+        bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
+        puzzle_types::{DeriveSynthetic, Proof},
+    },
+    driver::P2DelegatedConditionsLayer,
+    prelude::*,
 };
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
@@ -16,12 +15,12 @@ use sage_api::wallet_connect::{
     SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
-use sage_wallet::{insert_transaction, submit_to_peers, Status, SyncCommand, Transaction};
+use sage_wallet::{Status, SyncCommand, Transaction, insert_transaction, submit_to_peers};
 use tracing::{debug, info, warn};
 
 use crate::{
-    parse_asset_id, parse_coin_id, parse_did_id, parse_hash, parse_nft_id, parse_program,
-    parse_public_key, parse_signature, parse_signature_message, Error, Result, Sage,
+    Error, Result, Sage, parse_asset_id, parse_coin_id, parse_did_id, parse_hash, parse_nft_id,
+    parse_program, parse_public_key, parse_signature, parse_signature_message,
 };
 
 impl Sage {

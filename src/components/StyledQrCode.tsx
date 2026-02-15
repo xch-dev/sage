@@ -39,31 +39,53 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
 }) => {
   const ref = useRef<HTMLImageElement>(null);
   const qrCode = useRef<QRCodeStyling | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const updateImageSrc = useCallback(async () => {
     if (!qrCode.current || !ref.current) return;
 
+    // Cancel any pending operations
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     try {
       const rawData = await qrCode.current.getRawData('svg');
+      if (signal.aborted || !ref.current) return;
+
       if (rawData instanceof Blob) {
         const dataUrl = await new Promise<string>((resolve, reject) => {
+          if (signal.aborted) {
+            reject(new Error('Aborted'));
+            return;
+          }
+
           const reader = new FileReader();
           reader.onloadend = () => {
-            if (ref.current) {
-              resolve(reader.result as string);
+            if (signal.aborted || !ref.current) {
+              reject(new Error('Component unmounted or aborted'));
             } else {
-              reject(new Error('Component unmounted'));
+              resolve(reader.result as string);
             }
           };
           reader.onerror = reject;
           reader.readAsDataURL(rawData);
         });
-        if (ref.current) {
+
+        if (!signal.aborted && ref.current) {
           ref.current.src = dataUrl;
         }
       }
     } catch (error) {
-      console.error('Failed to get QR code data:', error);
+      if (
+        error instanceof Error &&
+        error.message !== 'Aborted' &&
+        error.message !== 'Component unmounted or aborted'
+      ) {
+        console.error('Failed to get QR code data:', error);
+      }
     }
   }, []);
 
@@ -86,40 +108,12 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
 
     qrCode.current = new QRCodeStyling(options);
     updateImageSrc();
-  }, [
-    type,
-    shape,
-    width,
-    height,
-    margin,
-    data,
-    qrOptions,
-    imageOptions,
-    dotsOptions,
-    backgroundOptions,
-    rest,
-    updateImageSrc,
-  ]);
 
-  useEffect(() => {
-    if (!qrCode.current) return;
-
-    const updateOptions: Partial<Options> = {
-      type,
-      shape,
-      width,
-      height,
-      margin,
-      data,
-      qrOptions,
-      imageOptions,
-      dotsOptions,
-      backgroundOptions,
-      ...rest,
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-
-    qrCode.current.update(updateOptions);
-    updateImageSrc();
   }, [
     type,
     shape,
@@ -133,6 +127,8 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     backgroundOptions,
     rest,
     updateImageSrc,
+    // Note: rest is intentionally omitted from dependencies to avoid infinite loops
+    // The spread operator in the options object will still include rest properties
   ]);
 
   return (

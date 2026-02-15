@@ -6,33 +6,32 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
-    client::{create_rustls_connector, load_ssl_cert, Connector},
-    signer::AggSigConstants,
-    utils::Address,
+    chia::bls::master_to_wallet_unhardened_intermediate,
+    client::{Connector, create_rustls_connector, load_ssl_cert},
+    prelude::*,
 };
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    migrate_config, migrate_networks, Config, Network, NetworkList, OldConfig, OldNetwork,
-    WalletConfig,
+    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, migrate_config,
+    migrate_networks,
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     ConnectOptions, SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use tokio::sync::{mpsc, Mutex};
-use tracing::{error, info, Level};
+use tokio::sync::{Mutex, mpsc};
+use tracing::{Level, error, info};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
-    filter::filter_fn, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry,
+    EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{peers::Peers, Error, Result};
+use crate::{Error, Result, peers::Peers};
 
 #[derive(Debug)]
 pub struct Sage {
@@ -458,13 +457,13 @@ impl Sage {
     }
 
     pub fn network(&self) -> &Network {
-        if let Some(wallet) = self.wallet_config() {
-            if let Some(network) = &wallet.network {
-                return self
-                    .network_list
-                    .by_name(network)
-                    .expect("network not found");
-            }
+        if let Some(wallet) = self.wallet_config()
+            && let Some(network) = &wallet.network
+        {
+            return self
+                .network_list
+                .by_name(network)
+                .expect("network not found");
         }
 
         self.network_list

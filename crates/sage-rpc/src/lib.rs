@@ -4,14 +4,14 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Result;
 use axum::{
+    Json, Router,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::post,
-    Json, Router,
 };
 use axum_server::tls_rustls::RustlsConfig;
-use rustls::{pki_types::PrivateKeyDer, ServerConfig};
+use rustls::{ServerConfig, pki_types::PrivateKeyDer};
 use sage::Sage;
 use sage_api::ErrorKind;
 use sage_api_macro::impl_endpoints;

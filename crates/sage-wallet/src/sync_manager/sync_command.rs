@@ -1,6 +1,6 @@
 use std::{net::IpAddr, sync::Arc};
 
-use chia::protocol::{Bytes32, Message};
+use chia_wallet_sdk::{chia::protocol::Message, prelude::*};
 use sage_config::Network;
 
 use crate::Wallet;

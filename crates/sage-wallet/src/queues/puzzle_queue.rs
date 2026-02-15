@@ -1,17 +1,17 @@
 use std::{sync::Arc, time::Duration};
 
-use chia::protocol::{Bytes32, CoinState};
-use futures_util::{stream::FuturesUnordered, StreamExt};
+use chia_wallet_sdk::prelude::*;
+use futures_util::{StreamExt, stream::FuturesUnordered};
 use sage_database::{Database, UnsyncedCoin};
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     time::sleep,
 };
 use tracing::{debug, info, warn};
 
 use crate::{
-    database::insert_puzzle, validate_wallet_coin, ChildKind, PeerState, PuzzleContext,
-    SyncCommand, SyncEvent, WalletError, WalletPeer,
+    ChildKind, PeerState, PuzzleContext, SyncCommand, SyncEvent, WalletError, WalletPeer,
+    database::insert_puzzle, validate_wallet_coin,
 };
 
 #[derive(Debug)]
@@ -128,7 +128,9 @@ impl PuzzleQueue {
                             tx.is_custody_p2_puzzle_hash(coin_id).await?;
 
                         let Some(kind) = item.kind.filter(|_| !is_custody_p2_puzzle_hash) else {
-                            warn!("Retroactively inserting XCH coin that should have already been synced: {coin_id}");
+                            warn!(
+                                "Retroactively inserting XCH coin that should have already been synced: {coin_id}"
+                            );
 
                             self.db
                                 .update_coin(
@@ -155,11 +157,15 @@ impl PuzzleQueue {
 
                         if !is_relevant {
                             if is_root {
-                                warn!("Deleting unexpected coin {coin_id} because it is not relevant to this wallet");
+                                warn!(
+                                    "Deleting unexpected coin {coin_id} because it is not relevant to this wallet"
+                                );
                                 tx.delete_coin(coin_id).await?;
                                 send_events = true;
                             } else {
-                                debug!("Skipping coin {coin_id} because it is not relevant to this wallet");
+                                debug!(
+                                    "Skipping coin {coin_id} because it is not relevant to this wallet"
+                                );
                             }
                             continue;
                         }
@@ -295,37 +301,37 @@ async fn fetch_puzzles(
         }
     }
 
-    if unsynced_coin.is_children_unsynced {
-        if let Some(spent_height) = unsynced_coin.coin_state.spent_height {
-            let (puzzle_reveal, solution) = peer
-                .fetch_puzzle_solution(coin.coin_id(), spent_height)
-                .await?;
+    if unsynced_coin.is_children_unsynced
+        && let Some(spent_height) = unsynced_coin.coin_state.spent_height
+    {
+        let (puzzle_reveal, solution) = peer
+            .fetch_puzzle_solution(coin.coin_id(), spent_height)
+            .await?;
 
-            let children = ChildKind::parse_children(coin, &puzzle_reveal, &solution)?;
+        let children = ChildKind::parse_children(coin, &puzzle_reveal, &solution)?;
 
-            let coin_states = peer
-                .fetch_coins(
-                    children.iter().map(|(child, _)| child.coin_id()).collect(),
-                    genesis_challenge,
-                )
-                .await?;
+        let coin_states = peer
+            .fetch_coins(
+                children.iter().map(|(child, _)| child.coin_id()).collect(),
+                genesis_challenge,
+            )
+            .await?;
 
-            for (child_coin, kind) in children {
-                let Some(&coin_state) = coin_states
-                    .iter()
-                    .find(|coin_state| coin_state.coin.coin_id() == child_coin.coin_id())
-                else {
-                    continue;
-                };
+        for (child_coin, kind) in children {
+            let Some(&coin_state) = coin_states
+                .iter()
+                .find(|coin_state| coin_state.coin.coin_id() == child_coin.coin_id())
+            else {
+                continue;
+            };
 
-                let context = PuzzleContext::fetch(peer, genesis_challenge, &kind).await?;
+            let context = PuzzleContext::fetch(peer, genesis_challenge, &kind).await?;
 
-                synced_coins.push(SyncedCoin {
-                    coin_state,
-                    kind: Some(kind),
-                    context,
-                });
-            }
+            synced_coins.push(SyncedCoin {
+                coin_state,
+                kind: Some(kind),
+                context,
+            });
         }
     }
 

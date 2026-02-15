@@ -8,8 +8,8 @@ use sage_api_macro::impl_endpoints_tauri;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
-use specta::{specta, Type};
-use tauri::{command, AppHandle, State};
+use specta::{Type, specta};
+use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
 
