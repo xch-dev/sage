@@ -7,6 +7,7 @@ use chia_wallet_sdk::{
     },
     driver::P2DelegatedConditionsLayer,
     prelude::*,
+    types::puzzles::{DelegatedPuzzleFeederArgs, IndexWrapperArgs, SingletonMember},
 };
 use sage_api::wallet_connect::{
     self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
@@ -107,6 +108,12 @@ impl Sage {
                 }
                 P2Puzzle::Arbor(key) => {
                     P2DelegatedConditionsLayer::new(key).construct_puzzle(&mut ctx)?
+                }
+                P2Puzzle::Vault(p2_vault) => {
+                    let member = ctx.curry(SingletonMember::new(p2_vault.launcher_id))?;
+                    let delegated_puzzle_feeder =
+                        ctx.curry(DelegatedPuzzleFeederArgs::new(member))?;
+                    ctx.curry(IndexWrapperArgs::new(0, delegated_puzzle_feeder))?
                 }
             };
 

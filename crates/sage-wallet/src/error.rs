@@ -127,4 +127,7 @@ pub enum WalletError {
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
+
+    #[error("Vault wallets do not support derivations")]
+    DerivationsNotSupported,
 }

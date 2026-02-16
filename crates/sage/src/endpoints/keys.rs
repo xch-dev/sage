@@ -84,7 +84,9 @@ impl Sage {
         }
 
         if req.delete_addresses {
-            query!("DELETE FROM p2_puzzles").execute(&pool).await?;
+            query!("DELETE FROM p2_puzzles WHERE kind IN (0, 1, 2)")
+                .execute(&pool)
+                .await?;
         }
 
         if req.delete_blocks {
@@ -184,7 +186,7 @@ impl Sage {
                     .derive_unhardened(index)
                     .derive_synthetic();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_custody_p2_puzzle(
+                tx.insert_derivation_p2_puzzle(
                     p2_puzzle_hash,
                     synthetic_key,
                     Derivation {
@@ -207,7 +209,7 @@ impl Sage {
                     .derive_synthetic()
                     .public_key();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_custody_p2_puzzle(
+                tx.insert_derivation_p2_puzzle(
                     p2_puzzle_hash,
                     synthetic_key,
                     Derivation {

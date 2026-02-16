@@ -56,7 +56,7 @@ impl Keychain {
             Some(KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. }) => {
                 Ok(Some(PublicKey::from_bytes(master_pk)?))
             }
-            None => Ok(None),
+            Some(KeyData::Vault { .. }) | None => Ok(None),
         }
     }
 
@@ -66,7 +66,7 @@ impl Keychain {
         password: &[u8],
     ) -> Result<(Option<Mnemonic>, Option<SecretKey>), KeychainError> {
         match self.keys.get(&fingerprint) {
-            Some(KeyData::Public { .. }) | None => Ok((None, None)),
+            Some(KeyData::Public { .. } | KeyData::Vault { .. }) | None => Ok((None, None)),
             Some(KeyData::Secret {
                 entropy, encrypted, ..
             }) => {
@@ -89,13 +89,20 @@ impl Keychain {
         }
     }
 
+    pub fn extract_vault_id(&self, fingerprint: u32) -> Option<Bytes32> {
+        match self.keys.get(&fingerprint) {
+            Some(KeyData::Vault { launcher_id }) => Some(Bytes32::new(*launcher_id)),
+            Some(KeyData::Public { .. } | KeyData::Secret { .. }) | None => None,
+        }
+    }
+
     pub fn has_secret_key(&self, fingerprint: u32) -> bool {
         let Some(key_data) = self.keys.get(&fingerprint) else {
             return false;
         };
 
         match key_data {
-            KeyData::Public { .. } => false,
+            KeyData::Public { .. } | KeyData::Vault { .. } => false,
             KeyData::Secret { .. } => true,
         }
     }
@@ -170,6 +177,28 @@ impl Keychain {
                 master_pk: master_pk.to_bytes(),
                 entropy: true,
                 encrypted,
+            },
+        );
+
+        Ok(fingerprint)
+    }
+
+    pub fn add_vault(&mut self, launcher_id: &Bytes32) -> Result<u32, KeychainError> {
+        let fingerprint = u32::from_be_bytes([
+            launcher_id[0],
+            launcher_id[1],
+            launcher_id[2],
+            launcher_id[3],
+        ]);
+
+        if self.contains(fingerprint) {
+            return Err(KeychainError::KeyExists);
+        }
+
+        self.keys.insert(
+            fingerprint,
+            KeyData::Vault {
+                launcher_id: launcher_id.to_bytes(),
             },
         );
 
