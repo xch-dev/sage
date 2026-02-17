@@ -29,3 +29,12 @@ rustls-pemfile = { workspace = true }
 utoipa = "5.2.0"
 serde_json = { workspace = true }
 indexmap = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+bip39 = { workspace = true }
+chia-wallet-sdk = { workspace = true, features = ["peer-simulator"] }
+sage-wallet = { workspace = true }

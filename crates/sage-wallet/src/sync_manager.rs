@@ -183,6 +183,9 @@ impl SyncManager {
                     )
                     .await;
                 }
+                SyncCommand::AddPeer { peer, receiver } => {
+                    self.try_add_peer(peer, receiver, true, false).await;
+                }
                 SyncCommand::SubscribeCoins { coin_ids } => {
                     self.pending_coin_subscriptions.extend(coin_ids);
                 }
