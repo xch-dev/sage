@@ -35,7 +35,6 @@ use crate::make_router;
 
 struct TestApp {
     sage: Arc<Mutex<Sage>>,
-    dir: TempDir,
     router: Router<()>,
     rng: ChaCha8Rng,
     sim: PeerSimulator,
@@ -64,7 +63,6 @@ impl TestApp {
 
         let app = Self {
             sage,
-            dir,
             router,
             rng,
             sim,
@@ -167,6 +165,7 @@ impl TestApp {
             .await;
     }
 
+    #[allow(unused)]
     async fn wait_for_puzzles(&mut self) {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
