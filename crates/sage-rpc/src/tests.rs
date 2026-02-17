@@ -39,6 +39,7 @@ struct TestApp {
     rng: ChaCha8Rng,
     sim: PeerSimulator,
     events: mpsc::Receiver<SyncEvent>,
+    _dir: TempDir,
 }
 
 impl TestApp {
@@ -67,6 +68,7 @@ impl TestApp {
             rng,
             sim,
             events,
+            _dir: dir,
         };
 
         let (peer, receiver) = app.sim.connect_raw().await?;
