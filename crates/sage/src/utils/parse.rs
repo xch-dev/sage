@@ -180,36 +180,195 @@ mod tests {
 
     use super::*;
 
+    // ─── parse_signature_message ───
+
     #[test]
-    fn test_parse_signature_message() {
-        // Test hex string with 0x prefix
+    fn test_parse_signature_message_hex_with_prefix() {
         let input = "0x1234567890abcdef";
         let result = parse_signature_message(input.to_string()).unwrap();
         let expected = Bytes::from(hex::decode(&input[2..]).unwrap());
         assert_eq!(result, expected);
+    }
 
-        // Test hex string without prefix
+    #[test]
+    fn test_parse_signature_message_hex_without_prefix() {
         let input = "1234567890abcdef";
         let result = parse_signature_message(input.to_string()).unwrap();
         let expected = Bytes::from(hex::decode(input).unwrap());
         assert_eq!(result, expected);
+    }
 
-        // Test non-hex string
+    #[test]
+    fn test_parse_signature_message_non_hex() {
         let input = "Hello, world!";
         let result = parse_signature_message(input.to_string()).unwrap();
         let expected = Bytes::from(input.as_bytes());
         assert_eq!(result, expected);
+    }
 
-        // Test hex string with 0x prefix
-        let input = "0xcafe";
-        let result = parse_signature_message(input.to_string()).unwrap();
-        let expected = Bytes::from(hex::decode(&input[2..]).unwrap());
-        assert_eq!(result, expected);
-
-        // Test hex string without prefix
+    #[test]
+    fn test_parse_signature_message_short_hex() {
         let input = "cafe";
         let result = parse_signature_message(input.to_string()).unwrap();
         let expected = Bytes::from(hex::decode(input).unwrap());
         assert_eq!(result, expected);
+    }
+
+    // ─── parse_asset_id ───
+
+    #[test]
+    fn test_parse_asset_id_valid() {
+        let hex_str = "aa".repeat(32); // 64 hex chars = 32 bytes
+        let result = parse_asset_id(hex_str.clone());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Bytes32::new([0xaa; 32]));
+    }
+
+    #[test]
+    fn test_parse_asset_id_invalid_length() {
+        let hex_str = "aa".repeat(16); // too short
+        let result = parse_asset_id(hex_str);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_asset_id_invalid_hex() {
+        let input = "zz".repeat(32);
+        let result = parse_asset_id(input);
+        assert!(result.is_err());
+    }
+
+    // ─── parse_coin_id ───
+
+    #[test]
+    fn test_parse_coin_id_without_prefix() {
+        let hex_str = "bb".repeat(32);
+        let result = parse_coin_id(hex_str);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Bytes32::new([0xbb; 32]));
+    }
+
+    #[test]
+    fn test_parse_coin_id_with_0x_prefix() {
+        let hex_str = format!("0x{}", "cc".repeat(32));
+        let result = parse_coin_id(hex_str);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), Bytes32::new([0xcc; 32]));
+    }
+
+    #[test]
+    fn test_parse_coin_id_invalid() {
+        let result = parse_coin_id("not_hex".to_string());
+        assert!(result.is_err());
+    }
+
+    // ─── parse_coin_ids ───
+
+    #[test]
+    fn test_parse_coin_ids_multiple() {
+        let ids = vec!["aa".repeat(32), format!("0x{}", "bb".repeat(32))];
+        let result = parse_coin_ids(ids);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_coin_ids_one_invalid() {
+        let ids = vec!["aa".repeat(32), "invalid".to_string()];
+        let result = parse_coin_ids(ids);
+        assert!(result.is_err());
+    }
+
+    // ─── parse_hash ───
+
+    #[test]
+    fn test_parse_hash_valid() {
+        let hex_str = "dd".repeat(32);
+        let result = parse_hash(hex_str);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_hash_with_0x() {
+        let hex_str = format!("0x{}", "ee".repeat(32));
+        let result = parse_hash(hex_str);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_hash_invalid_length() {
+        let result = parse_hash("abcd".to_string());
+        assert!(result.is_err());
+    }
+
+    // ─── parse_amount ───
+
+    #[test]
+    fn test_parse_amount_valid_integer() {
+        let amount: Amount = serde_json::from_str("1000").unwrap();
+        let result = parse_amount(amount);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1000);
+    }
+
+    #[test]
+    fn test_parse_amount_zero() {
+        let amount: Amount = serde_json::from_str("0").unwrap();
+        let result = parse_amount(amount);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 0);
+    }
+
+    // ─── parse_program ───
+
+    #[test]
+    fn test_parse_program_valid() {
+        let result = parse_program("ff01ff02".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_program_with_0x() {
+        let result = parse_program("0xff01".to_string());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_program_invalid_hex() {
+        let result = parse_program("zzz".to_string());
+        assert!(result.is_err());
+    }
+
+    // ─── parse_memos ───
+
+    #[test]
+    fn test_parse_memos_valid() {
+        let memos = vec!["aabb".to_string(), "ccdd".to_string()];
+        let result = parse_memos(memos);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[test]
+    fn test_parse_memos_empty() {
+        let result = parse_memos(vec![]);
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_parse_memos_invalid_hex() {
+        let memos = vec!["not_hex".to_string()];
+        let result = parse_memos(memos);
+        assert!(result.is_err());
+    }
+
+    // ─── parse_any_asset_id routing ───
+
+    #[test]
+    fn test_parse_any_asset_id_hex() {
+        let hex_str = "aa".repeat(32);
+        let result = parse_any_asset_id(hex_str);
+        assert!(result.is_ok());
     }
 }

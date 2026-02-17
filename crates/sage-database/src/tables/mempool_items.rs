@@ -330,3 +330,104 @@ async fn mempool_items(conn: impl SqliteExecutor<'_>) -> Result<Vec<MempoolItem>
     })
     .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_database;
+
+    fn test_hash(byte: u8) -> Bytes32 {
+        Bytes32::new([byte; 32])
+    }
+
+    fn test_sig() -> Signature {
+        Signature::default()
+    }
+
+    #[tokio::test]
+    async fn empty_mempool() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let items = db.mempool_items().await?;
+        assert!(items.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn insert_and_list_mempool_items() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+
+        tx.insert_mempool_item(test_hash(1), test_sig(), 100)
+            .await?;
+        tx.insert_mempool_item(test_hash(2), test_sig(), 200)
+            .await?;
+        tx.commit().await?;
+
+        let items = db.mempool_items().await?;
+        assert_eq!(items.len(), 2);
+
+        let fees: Vec<u64> = items.iter().map(|i| i.fee).collect();
+        assert!(fees.contains(&100));
+        assert!(fees.contains(&200));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn remove_mempool_item() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_mempool_item(test_hash(1), test_sig(), 100)
+            .await?;
+        tx.commit().await?;
+
+        let mut tx = db.tx().await?;
+        tx.remove_mempool_item(test_hash(1)).await?;
+        tx.commit().await?;
+
+        let items = db.mempool_items().await?;
+        assert!(items.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn update_mempool_item_time() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_mempool_item(test_hash(1), test_sig(), 50)
+            .await?;
+        tx.commit().await?;
+
+        // Initially no submitted_timestamp
+        let items = db.mempool_items().await?;
+        assert!(items[0].submitted_timestamp.is_none());
+
+        // Update timestamp
+        db.update_mempool_item_time(test_hash(1)).await?;
+
+        let items = db.mempool_items().await?;
+        assert!(items[0].submitted_timestamp.is_some());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn mempool_items_to_submit_returns_unsubmitted() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_mempool_item(test_hash(1), test_sig(), 100)
+            .await?;
+        tx.insert_mempool_item(test_hash(2), test_sig(), 200)
+            .await?;
+        tx.commit().await?;
+
+        // Both should appear (no submitted_timestamp)
+        let to_submit = db.mempool_items_to_submit(60, 10).await?;
+        assert_eq!(to_submit.len(), 2);
+
+        // After updating one, it shouldn't appear (within check window)
+        db.update_mempool_item_time(test_hash(1)).await?;
+        let to_submit = db.mempool_items_to_submit(9999, 10).await?;
+        assert_eq!(to_submit.len(), 1);
+        assert_eq!(to_submit[0].hash, test_hash(2));
+        Ok(())
+    }
+}

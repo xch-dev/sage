@@ -198,3 +198,120 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
             .collect(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn old_config_default_is_v1() {
+        let old = OldConfig::default();
+        assert!(old.is_old());
+    }
+
+    #[test]
+    fn migrate_config_basic() {
+        let old = OldConfig::default();
+        let (config, wallet_config) = migrate_config(old).unwrap();
+
+        assert_eq!(config.version, 2);
+        assert_eq!(config.global.log_level, "INFO");
+        assert!(config.global.fingerprint.is_none());
+        assert_eq!(config.network.default_network, "mainnet");
+        assert_eq!(config.network.target_peers, 5);
+        assert!(config.network.discover_peers);
+        assert!(!config.rpc.enabled);
+        assert_eq!(config.rpc.port, 9257);
+        assert!(wallet_config.wallets.is_empty());
+    }
+
+    #[test]
+    fn migrate_config_with_fingerprint_and_wallets() {
+        let mut old = OldConfig::default();
+        old.app.active_fingerprint = Some(12345);
+        old.app.log_level = "DEBUG".to_string();
+        old.rpc.run_on_startup = true;
+        old.rpc.server_port = 8080;
+        old.network.network_id = "testnet11".to_string();
+        old.wallets.insert(
+            "67890".to_string(),
+            OldWalletConfig {
+                name: "My Wallet".to_string(),
+                ..OldWalletConfig::default()
+            },
+        );
+
+        let (config, wallet_config) = migrate_config(old).unwrap();
+
+        assert_eq!(config.global.fingerprint, Some(12345));
+        assert_eq!(config.global.log_level, "DEBUG");
+        assert!(config.rpc.enabled);
+        assert_eq!(config.rpc.port, 8080);
+        assert_eq!(config.network.default_network, "testnet11");
+        assert_eq!(wallet_config.wallets.len(), 1);
+        assert_eq!(wallet_config.wallets[0].fingerprint, 67890);
+        assert_eq!(wallet_config.wallets[0].name, "My Wallet");
+    }
+
+    #[test]
+    fn migrate_config_invalid_fingerprint_key() {
+        let mut old = OldConfig::default();
+        old.wallets.insert(
+            "not_a_number".to_string(),
+            OldWalletConfig::default(),
+        );
+        let result = migrate_config(old);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn migrate_networks_mainnet_inherits() {
+        let genesis = Bytes32::new([1; 32]);
+        let mut networks = IndexMap::new();
+        networks.insert(
+            "mainnet".to_string(),
+            OldNetwork {
+                default_port: 8444,
+                ticker: "XCH".to_string(),
+                address_prefix: "xch".to_string(),
+                precision: 12,
+                genesis_challenge: genesis,
+                agg_sig_me: genesis, // same as genesis → should become None
+                dns_introducers: vec!["dns.example.com".to_string()],
+            },
+        );
+
+        let result = migrate_networks(networks);
+        assert_eq!(result.networks.len(), 1);
+        let net = &result.networks[0];
+        assert_eq!(net.name, "mainnet");
+        assert!(net.prefix.is_none()); // matches lowercase ticker
+        assert!(net.agg_sig_me.is_none()); // matches genesis
+        assert!(matches!(net.inherit, Some(InheritedNetwork::Mainnet)));
+    }
+
+    #[test]
+    fn migrate_networks_custom_prefix_preserved() {
+        let genesis = Bytes32::new([2; 32]);
+        let agg = Bytes32::new([3; 32]);
+        let mut networks = IndexMap::new();
+        networks.insert(
+            "custom".to_string(),
+            OldNetwork {
+                default_port: 9999,
+                ticker: "CUST".to_string(),
+                address_prefix: "mycustom".to_string(), // doesn't match "cust"
+                precision: 6,
+                genesis_challenge: genesis,
+                agg_sig_me: agg, // different from genesis
+                dns_introducers: vec![],
+            },
+        );
+
+        let result = migrate_networks(networks);
+        let net = &result.networks[0];
+        assert_eq!(net.prefix, Some("mycustom".to_string()));
+        assert_eq!(net.agg_sig_me, Some(agg));
+        assert!(net.inherit.is_none()); // not mainnet or testnet11
+    }
+}

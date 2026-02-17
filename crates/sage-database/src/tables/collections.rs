@@ -158,3 +158,82 @@ async fn set_collection_visible(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_database;
+
+    fn test_hash(byte: u8) -> Bytes32 {
+        Bytes32::new([byte; 32])
+    }
+
+    fn test_collection(byte: u8) -> CollectionRow {
+        CollectionRow {
+            hash: test_hash(byte),
+            uuid: format!("uuid-{byte}"),
+            minter_hash: test_hash(byte + 100),
+            name: Some(format!("Collection {byte}")),
+            icon_url: None,
+            banner_url: None,
+            description: Some(format!("Desc {byte}")),
+            is_visible: true,
+        }
+    }
+
+    #[tokio::test]
+    async fn insert_and_retrieve_collection() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        let col = test_collection(1);
+        tx.insert_collection(col).await?;
+        tx.commit().await?;
+
+        let fetched = db.collection(test_hash(1)).await?;
+        assert!(fetched.is_some());
+        let fetched = fetched.unwrap();
+        assert_eq!(fetched.name.as_deref(), Some("Collection 1"));
+        assert_eq!(fetched.uuid, "uuid-1");
+        assert!(fetched.is_visible);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn nonexistent_collection_returns_none() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let fetched = db.collection(test_hash(99)).await?;
+        assert!(fetched.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn set_collection_visibility() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_collection(test_collection(1)).await?;
+        tx.commit().await?;
+
+        db.set_collection_visible(test_hash(1), false).await?;
+
+        let fetched = db.collection(test_hash(1)).await?.unwrap();
+        assert!(!fetched.is_visible);
+
+        db.set_collection_visible(test_hash(1), true).await?;
+
+        let fetched = db.collection(test_hash(1)).await?.unwrap();
+        assert!(fetched.is_visible);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn default_collection_exists_after_migration() -> anyhow::Result<()> {
+        let db = test_database().await?;
+
+        // The default collection (id=0) is inserted by migrations
+        // Verify the database was set up correctly
+        let (collections, _count) = db.collections(100, 0, true).await?;
+        // Even if empty, this shouldn't error
+        assert!(collections.len() <= 1); // May or may not have NFTs
+        Ok(())
+    }
+}

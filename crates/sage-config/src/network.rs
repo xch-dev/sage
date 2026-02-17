@@ -190,3 +190,122 @@ pub static TESTNET11: LazyLock<Network> = LazyLock::new(|| Network {
     additional_peer_introducers: vec!["introducer-testnet11.chia.net".to_string()],
     inherit: Some(InheritedNetwork::Testnet11),
 });
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mainnet_defaults() {
+        assert_eq!(MAINNET.name, "mainnet");
+        assert_eq!(MAINNET.ticker, "XCH");
+        assert_eq!(MAINNET.default_port, 8444);
+        assert_eq!(MAINNET.precision, 12);
+        assert!(MAINNET.prefix.is_none());
+        assert!(MAINNET.network_id.is_none());
+        assert!(MAINNET.agg_sig_me.is_none());
+    }
+
+    #[test]
+    fn testnet11_defaults() {
+        assert_eq!(TESTNET11.name, "testnet11");
+        assert_eq!(TESTNET11.ticker, "TXCH");
+        assert_eq!(TESTNET11.default_port, 58444);
+        assert_eq!(TESTNET11.precision, 12);
+    }
+
+    #[test]
+    fn prefix_fallback_to_lowercase_ticker() {
+        assert_eq!(MAINNET.prefix(), "xch");
+        assert_eq!(TESTNET11.prefix(), "txch");
+    }
+
+    #[test]
+    fn prefix_custom_override() {
+        let mut network = MAINNET.clone();
+        network.prefix = Some("custom".to_string());
+        assert_eq!(network.prefix(), "custom");
+    }
+
+    #[test]
+    fn network_id_fallback_to_name() {
+        assert_eq!(MAINNET.network_id(), "mainnet");
+        assert_eq!(TESTNET11.network_id(), "testnet11");
+    }
+
+    #[test]
+    fn network_id_custom_override() {
+        let mut network = MAINNET.clone();
+        network.network_id = Some("custom-id".to_string());
+        assert_eq!(network.network_id(), "custom-id");
+    }
+
+    #[test]
+    fn agg_sig_me_fallback_to_genesis_challenge() {
+        assert_eq!(MAINNET.agg_sig_me(), MAINNET.genesis_challenge);
+    }
+
+    #[test]
+    fn agg_sig_me_custom_override() {
+        let custom = Bytes32::new([42; 32]);
+        let mut network = MAINNET.clone();
+        network.agg_sig_me = Some(custom);
+        assert_eq!(network.agg_sig_me(), custom);
+    }
+
+    #[test]
+    fn by_name_finds_mainnet() {
+        let list = NetworkList::default();
+        let found = list.by_name("mainnet");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().ticker, "XCH");
+    }
+
+    #[test]
+    fn by_name_finds_testnet11() {
+        let list = NetworkList::default();
+        let found = list.by_name("testnet11");
+        assert!(found.is_some());
+        assert_eq!(found.unwrap().ticker, "TXCH");
+    }
+
+    #[test]
+    fn by_name_returns_none_for_unknown() {
+        let list = NetworkList::default();
+        assert!(list.by_name("unknown_network").is_none());
+    }
+
+    #[test]
+    fn dns_introducers_inherited_from_mainnet() {
+        let network = Network {
+            additional_dns_introducers: Vec::new(),
+            ..MAINNET.clone()
+        };
+        let introducers = network.dns_introducers();
+        assert!(!introducers.is_empty());
+        assert!(introducers.contains(&"dns-introducer.chia.net".to_string()));
+    }
+
+    #[test]
+    fn dns_introducers_no_inheritance() {
+        let mut network = MAINNET.clone();
+        network.inherit = None;
+        network.additional_dns_introducers = vec!["custom.dns".to_string()];
+        let introducers = network.dns_introducers();
+        assert_eq!(introducers, vec!["custom.dns".to_string()]);
+    }
+
+    #[test]
+    fn dns_introducers_merged_without_duplicates() {
+        let network = Network {
+            additional_dns_introducers: vec!["dns-introducer.chia.net".to_string()],
+            ..MAINNET.clone()
+        };
+        let introducers = network.dns_introducers();
+        let count = introducers
+            .iter()
+            .filter(|i| *i == "dns-introducer.chia.net")
+            .count();
+        assert_eq!(count, 1, "Should not have duplicate introducers");
+    }
+}
