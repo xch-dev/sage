@@ -246,6 +246,8 @@ async fn test_send_xch() -> Result<()> {
         .to_u64();
     assert_eq!(balance, Some(1000));
 
+    app.wait_for_coins().await;
+
     app.send_xch(SendXch {
         address: bob_address,
         amount: Amount::u64(1000),
@@ -274,7 +276,7 @@ async fn test_send_xch() -> Result<()> {
         .await?
         .balance
         .to_u64();
-    assert_eq!(balance, Some(1000));
+    assert_eq!(balance, Some(2000));
 
     Ok(())
 }
