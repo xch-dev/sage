@@ -19,7 +19,9 @@ use sage_config::{
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
-use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
+use sage_wallet::{
+    PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet, WalletInfo,
+};
 use sqlx::{
     ConnectOptions, SqlitePool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
@@ -290,11 +292,15 @@ impl Sage {
             return Ok(());
         };
 
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
+        let info = if let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? {
+            WalletInfo::Bls {
+                intermediate_pk: master_to_wallet_unhardened_intermediate(&master_pk),
+            }
+        } else if let Some(launcher_id) = self.keychain.extract_vault_id(fingerprint) {
+            WalletInfo::Vault { launcher_id }
+        } else {
             return Err(Error::UnknownFingerprint);
         };
-
-        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
         let pool = self.connect_to_database(fingerprint).await?;
         let db = Database::new(pool);
@@ -307,7 +313,7 @@ impl Sage {
         let wallet = Arc::new(Wallet::new(
             db.clone(),
             fingerprint,
-            intermediate_pk,
+            info,
             self.network().genesis_challenge,
             AggSigConstants::new(self.network().agg_sig_me()),
             wallet_config

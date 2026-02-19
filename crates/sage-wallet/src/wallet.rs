@@ -33,11 +33,17 @@ pub use options::*;
 
 use crate::WalletError;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum WalletInfo {
+    Bls { intermediate_pk: PublicKey },
+    Vault { launcher_id: Bytes32 },
+}
+
 #[derive(Debug)]
 pub struct Wallet {
     pub db: Database,
     pub fingerprint: u32,
-    pub intermediate_pk: PublicKey,
+    pub info: WalletInfo,
     pub genesis_challenge: Bytes32,
     pub agg_sig_constants: AggSigConstants,
     pub change_p2_puzzle_hash: Option<Bytes32>,
@@ -47,7 +53,7 @@ impl Wallet {
     pub fn new(
         db: Database,
         fingerprint: u32,
-        intermediate_pk: PublicKey,
+        info: WalletInfo,
         genesis_challenge: Bytes32,
         agg_sig_constants: AggSigConstants,
         change_p2_puzzle_hash: Option<Bytes32>,
@@ -55,7 +61,7 @@ impl Wallet {
         Self {
             db,
             fingerprint,
-            intermediate_pk,
+            info,
             genesis_challenge,
             agg_sig_constants,
             change_p2_puzzle_hash,
@@ -380,6 +386,7 @@ impl Wallet {
                                     spend.finish().into_iter().collect(),
                                 ),
                             )?,
+                        P2Puzzle::Vault(_) => todo!(),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer

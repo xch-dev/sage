@@ -17,6 +17,10 @@ pub enum KeyData {
         entropy: bool,
         encrypted: Encrypted,
     },
+    Vault {
+        #[serde_as(as = "Bytes")]
+        launcher_id: [u8; 32],
+    },
 }
 
 #[serde_as]

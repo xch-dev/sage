@@ -9,7 +9,7 @@ use chia_wallet_sdk::{
 };
 use sage_database::{DatabaseTx, Derivation};
 
-use crate::WalletError;
+use crate::{WalletError, WalletInfo};
 
 use super::Wallet;
 
@@ -20,17 +20,18 @@ impl Wallet {
         tx: &mut DatabaseTx<'_>,
         range: Range<u32>,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        let WalletInfo::Bls { intermediate_pk } = &self.info else {
+            return Err(WalletError::DerivationsNotSupported);
+        };
+
         let mut puzzle_hashes = Vec::new();
 
         for index in range {
-            let synthetic_key = self
-                .intermediate_pk
-                .derive_unhardened(index)
-                .derive_synthetic();
+            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
 
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
-            tx.insert_custody_p2_puzzle(
+            tx.insert_derivation_p2_puzzle(
                 p2_puzzle_hash,
                 synthetic_key,
                 Derivation {
@@ -72,7 +73,7 @@ impl Wallet {
         let mut p2_puzzle_hashes = Vec::new();
 
         for index in range {
-            let p2_puzzle_hash = tx.custody_p2_puzzle_hash(index, hardened).await?;
+            let p2_puzzle_hash = tx.derivation_p2_puzzle_hash(index, hardened).await?;
             p2_puzzle_hashes.push(p2_puzzle_hash);
         }
 
