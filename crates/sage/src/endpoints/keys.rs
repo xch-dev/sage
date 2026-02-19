@@ -150,7 +150,30 @@ impl Sage {
                 return Err(Error::InvalidKey);
             }
         } else {
-            let mnemonic = Mnemonic::from_str(&req.key)?;
+            let words: Vec<&str> = req.key.split_whitespace().collect();
+            let word_count = words.len();
+
+            if word_count != 12 && word_count != 24 {
+                return Err(Error::InvalidMnemonic(format!(
+                    "Expected 12 or 24 words, but got {word_count}."
+                )));
+            }
+
+            let mnemonic = Mnemonic::from_str(&req.key).map_err(|e| match e {
+                bip39::Error::BadWordCount(count) => {
+                    Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
+                }
+                bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
+                    "Word #{} ({}) is not a valid BIP39 word.",
+                    idx + 1,
+                    words.get(idx).copied().unwrap_or("unknown"),
+                )),
+                bip39::Error::InvalidChecksum => Error::InvalidMnemonic(
+                    "Invalid checksum. Please verify all words are correct and in the right order."
+                        .to_string(),
+                ),
+                _ => Error::InvalidMnemonic(format!("Invalid mnemonic: {e}")),
+            })?;
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
             let master_pk = master_sk.public_key();
             let fingerprint = if req.save_secrets {

@@ -2,7 +2,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, Once},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -35,6 +35,8 @@ use tracing_subscriber::{
 
 use crate::{Error, Result, peers::Peers};
 
+static LOGGING_SETUP: Once = Once::new();
+
 #[derive(Debug)]
 pub struct Sage {
     pub path: PathBuf,
@@ -46,10 +48,11 @@ pub struct Sage {
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
+    pub test: bool,
 }
 
 impl Sage {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(path: &Path, test: bool) -> Self {
         Self {
             path: path.to_path_buf(),
             config: Config::default(),
@@ -60,6 +63,7 @@ impl Sage {
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
+            test,
         }
     }
 
@@ -79,31 +83,37 @@ impl Sage {
     }
 
     fn setup_logging(&mut self) -> Result<()> {
-        let log_dir = self.path.join("log");
-
-        if !log_dir.exists() {
-            std::fs::create_dir_all(&log_dir)?;
-        }
-
         let log_level: Level = self.config.global.log_level.parse()?;
-
-        // Create rotated log file
-        let log_file = Builder::new()
-            .filename_prefix("app.log")
-            .rotation(Rotation::DAILY)
-            .max_log_files(3)
-            .build(log_dir)?;
 
         // Common filter string
         let filter_string = format!("{log_level},rustls=off,tungstenite=off,h2=off,hyper=off");
 
-        // File layer - always without ANSI
-        let file_layer = fmt::layer()
-            .with_target(false)
-            .with_ansi(false)
-            .with_writer(log_file)
-            .compact()
-            .with_filter(EnvFilter::new(&filter_string));
+        let file_layer = if self.test {
+            None
+        } else {
+            let log_dir = self.path.join("log");
+
+            if !log_dir.exists() {
+                std::fs::create_dir_all(&log_dir)?;
+            }
+
+            // Create rotated log file
+            let log_file = Builder::new()
+                .filename_prefix("app.log")
+                .rotation(Rotation::DAILY)
+                .max_log_files(3)
+                .build(log_dir)?;
+
+            // File layer - always without ANSI
+            Some(
+                fmt::layer()
+                    .with_target(false)
+                    .with_ansi(false)
+                    .with_writer(log_file)
+                    .compact()
+                    .with_filter(EnvFilter::new(&filter_string)),
+            )
+        };
 
         // Terminal layer - with ANSI and additional formatting
         let terminal_layer = fmt::layer()
@@ -118,7 +128,11 @@ impl Sage {
             .with(terminal_layer.with_filter(filter_fn(|_| !cfg!(mobile))));
 
         // Initialize the subscriber
-        tracing::subscriber::set_global_default(subscriber)?;
+        LOGGING_SETUP.call_once(|| {
+            if let Err(error) = tracing::subscriber::set_global_default(subscriber) {
+                error!("Failed to set global default logger: {error}");
+            }
+        });
 
         Ok(())
     }
@@ -227,8 +241,20 @@ impl Sage {
                     .unwrap_or_default()
                     .delta_sync(&self.wallet_config.defaults),
                 puzzle_batch_size_per_peer: 5,
-                timeouts: Timeouts::default(),
-                testing: false,
+                timeouts: if self.test {
+                    Timeouts {
+                        sync_delay: Duration::from_millis(100),
+                        nft_uri_delay: Duration::from_millis(100),
+                        cat_delay: Duration::from_millis(100),
+                        puzzle_delay: Duration::from_millis(100),
+                        transaction_delay: Duration::from_millis(100),
+                        offer_delay: Duration::from_millis(100),
+                        ..Default::default()
+                    }
+                } else {
+                    Timeouts::default()
+                },
+                testing: self.test,
             },
             self.peer_state.clone(),
             self.wallet.clone(),
