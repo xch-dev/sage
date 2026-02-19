@@ -158,9 +158,9 @@ impl Sage {
             }
 
             let mnemonic = Mnemonic::from_str(&req.key).map_err(|e| match e {
-                bip39::Error::BadWordCount(count) => Error::InvalidMnemonic(format!(
-                    "Expected 12 or 24 words, but got {count}."
-                )),
+                bip39::Error::BadWordCount(count) => {
+                    Error::InvalidMnemonic(format!("Expected 12 or 24 words, but got {count}."))
+                }
                 bip39::Error::UnknownWord(idx) => Error::InvalidMnemonic(format!(
                     "Word #{} ({}) is not a valid BIP39 word.",
                     idx + 1,
