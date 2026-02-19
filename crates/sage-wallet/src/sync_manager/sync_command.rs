@@ -2,6 +2,7 @@ use std::{net::IpAddr, sync::Arc};
 
 use chia_wallet_sdk::{chia::protocol::Message, prelude::*};
 use sage_config::Network;
+use tokio::sync::mpsc;
 
 use crate::Wallet;
 
@@ -19,6 +20,10 @@ pub enum SyncCommand {
     ConnectPeer {
         ip: IpAddr,
         user_managed: bool,
+    },
+    AddPeer {
+        peer: Peer,
+        receiver: mpsc::Receiver<Message>,
     },
     SubscribeCoins {
         coin_ids: Vec<Bytes32>,
