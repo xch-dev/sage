@@ -130,6 +130,7 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                fee={state.fee}
               />
             </CardContent>
           </Card>

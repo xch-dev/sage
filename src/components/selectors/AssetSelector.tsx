@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
+import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
@@ -35,6 +36,7 @@ interface AssetSelectorProps {
   setAssets: (value: Assets) => void;
   splitNftOffers?: boolean;
   setSplitNftOffers?: (value: boolean) => void;
+  fee?: string;
 }
 
 export function AssetSelector({
@@ -44,6 +46,7 @@ export function AssetSelector({
   setAssets,
   splitNftOffers,
   setSplitNftOffers,
+  fee,
 }: AssetSelectorProps) {
   const isIos = platform() === 'ios';
 
@@ -271,10 +274,15 @@ export function AssetSelector({
                     precision={assetId === null ? 12 : 3}
                     maxValue={
                       ownedToken
-                        ? toDecimal(
-                            ownedToken.selectable_balance,
-                            ownedToken.precision,
-                          )
+                        ? BigNumber.max(
+                            0,
+                            BigNumber(
+                              toDecimal(
+                                ownedToken.selectable_balance,
+                                ownedToken.precision,
+                              ),
+                            ).minus(assetId === null ? fee || 0 : 0),
+                          ).toString()
                         : undefined
                     }
                     maxButtonClassName='!rounded-r-none'

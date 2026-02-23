@@ -223,12 +223,17 @@ export function Swap() {
                             const token = ownedTokens.find(
                               (t) => t.asset_id === payAssetId,
                             );
-                            return token
-                              ? toDecimal(
-                                  token.selectable_balance,
-                                  token.precision,
-                                )
-                              : undefined;
+                            if (!token) return undefined;
+                            const balance = BigNumber(
+                              toDecimal(
+                                token.selectable_balance,
+                                token.precision,
+                              ),
+                            );
+                            return BigNumber.max(
+                              0,
+                              balance.minus(payAssetId === null ? fee || 0 : 0),
+                            ).toString();
                           })()
                         : undefined
                     }

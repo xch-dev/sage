@@ -182,6 +182,9 @@ const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
             </TooltipTrigger>
             <TooltipContent>
               <Trans>Use maximum spendable balance</Trans>
+              <div className='text-xs text-muted-foreground'>
+                <Trans>Fees subtracted when applicable</Trans>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

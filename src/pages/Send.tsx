@@ -301,9 +301,14 @@ export default function Send() {
                         className='pr-12'
                         maxValue={
                           asset
-                            ? fromMojos(
-                                asset.selectable_balance,
-                                asset.precision,
+                            ? BigNumber.max(
+                                0,
+                                fromMojos(
+                                  asset.selectable_balance,
+                                  asset.precision,
+                                ).minus(
+                                  assetId === null ? form.watch('fee') || 0 : 0,
+                                ),
                               ).toString()
                             : undefined
                         }

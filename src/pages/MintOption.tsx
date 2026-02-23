@@ -18,6 +18,7 @@ import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -185,10 +186,15 @@ export function MintOption() {
                   precision={underlyingAssetId === null ? 12 : 3}
                   maxValue={
                     underlyingAsset
-                      ? toDecimal(
-                          underlyingAsset.selectable_balance,
-                          underlyingAsset.precision,
-                        )
+                      ? BigNumber.max(
+                          0,
+                          BigNumber(
+                            toDecimal(
+                              underlyingAsset.selectable_balance,
+                              underlyingAsset.precision,
+                            ),
+                          ).minus(underlyingAssetId === null ? fee || 0 : 0),
+                        ).toString()
                       : undefined
                   }
                 />
