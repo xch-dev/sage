@@ -333,7 +333,7 @@ impl Sage {
         let token = wallet.db.asset(asset_id).await?;
         let balance = wallet.db.cat_balance(asset_id).await?;
         // selectable_cat_balance works for any token including xch 
-        // holderover from when cats and xch were distinct entities
+        // holde over from when cats and xch were distinct entities
         let selectable_balance = wallet.db.selectable_cat_balance(asset_id).await?;
 
         let token = token

@@ -103,6 +103,18 @@ export function TokenCard({
               <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>
+          <div className='text-xs text-muted-foreground'>
+            {asset?.selectable_balance !== undefined && (
+              <>
+                <NumberFormat
+                  value={fromMojos(asset?.selectable_balance ?? 0, asset.precision)}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={asset.precision}
+                />
+                &nbsp;{t`spendable`}
+              </>
+            )}
+          </div>
           <div className='text-sm text-muted-foreground'>
             <NumberFormat
               value={balanceInUsd}
