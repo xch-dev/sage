@@ -81,6 +81,17 @@ impl Sage {
             }
         }
 
+        let has_offered_assets = offered.xch > 0
+            || !offered.cats.is_empty()
+            || !offered.nfts.is_empty()
+            || !offered.options.is_empty();
+
+        if !has_offered_assets && offered.fee == 0 {
+            return Err(Error::InvalidAmount(
+                "A request-only offer requires a network fee.".to_string(),
+            ));
+        }
+
         let mut requested = Requested::default();
         let mut peer = None;
 

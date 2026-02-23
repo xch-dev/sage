@@ -47,6 +47,8 @@ impl Sage {
                         &mut ctx,
                         if let Some(clawback) = clawback {
                             Hint::Clawback(clawback)
+                        } else if hinted {
+                            Hint::P2PuzzleHash(receiver_puzzle_hash)
                         } else {
                             Hint::None
                         },
