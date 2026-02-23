@@ -76,10 +76,10 @@ impl Wallet {
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
     ) -> Result<Vec<Coin>, WalletError> {
-        let mut spendable_coins = self.db.selectable_xch_coins().await?;
-        spendable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
+        let mut selectable_coins = self.db.selectable_xch_coins().await?;
+        selectable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
-        Ok(select_coins(spendable_coins, amount)?)
+        Ok(select_coins(selectable_coins, amount)?)
     }
 
     async fn select_cat_coins(
@@ -92,14 +92,14 @@ impl Wallet {
         cat_coins.retain(|cat| !selected_coin_ids.contains(&cat.coin.coin_id()));
 
         let mut cats = HashMap::new();
-        let mut spendable_coins = Vec::new();
+        let mut selectable_coins = Vec::new();
 
         for cat in cat_coins {
             cats.insert(cat.coin, cat);
-            spendable_coins.push(cat.coin);
+            selectable_coins.push(cat.coin);
         }
 
-        Ok(select_coins(spendable_coins, amount)?
+        Ok(select_coins(selectable_coins, amount)?
             .into_iter()
             .map(|coin| cats[&coin])
             .collect())
