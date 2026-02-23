@@ -214,7 +214,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });

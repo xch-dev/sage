@@ -86,7 +86,7 @@ impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
-        let balance = wallet.db.xch_balance().await?;
+        let selectable_balance = wallet.db.selectable_xch_balance().await?;
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
@@ -102,7 +102,7 @@ impl Sage {
             .map_or(0, |metadata| metadata.len());
 
         Ok(GetSyncStatusResponse {
-            balance: Amount::u128(balance),
+            selectable_balance: Amount::u128(selectable_balance),
             unit: self.unit.clone(),
             total_coins,
             synced_coins,

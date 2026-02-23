@@ -1437,9 +1437,9 @@ export type GetSyncStatus = Record<string, never>
  */
 export type GetSyncStatusResponse = { 
 /**
- * Current wallet balance
+ * Current wallet selectable balance
  */
-balance: Amount; 
+selectable_balance: Amount; 
 /**
  * Unit for balance display
  */
