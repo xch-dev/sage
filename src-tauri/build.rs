@@ -23,9 +23,11 @@ fn setup_x86_64_android_workaround() {
         match glob(&linux_x86_64_lib_pattern).expect("glob failed").last() {
             Some(Ok(path)) => {
                 println!("cargo:rustc-link-search={}", path.to_string_lossy());
-                println!("cargo:rustc-link-lib=static=clang_rt.builtins-x86_64-android");    
-            },
-            _ => panic!("Path not found: {linux_x86_64_lib_pattern}. Try setting a different ANDROID_NDK_HOME."),
+                println!("cargo:rustc-link-lib=static=clang_rt.builtins-x86_64-android");
+            }
+            _ => panic!(
+                "Path not found: {linux_x86_64_lib_pattern}. Try setting a different ANDROID_NDK_HOME."
+            ),
         }
     }
 }

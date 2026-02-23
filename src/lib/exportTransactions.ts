@@ -120,6 +120,6 @@ export async function exportTransactions(params: TransactionQueryParams) {
   } catch (error) {
     console.error('Failed to export transactions:', error);
     toast.dismiss();
-    toast.error(t`Failed to export transactions: ${error}`);
+    toast.error(t`Failed to export transactions: ${error as string}`);
   }
 }

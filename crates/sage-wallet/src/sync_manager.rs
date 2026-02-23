@@ -5,19 +5,17 @@ use std::{
     time::Duration,
 };
 
-use chia::{
-    protocol::{Bytes32, CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
-    traits::Streamable,
-};
+use chia_traits::Streamable;
 use chia_wallet_sdk::{
+    chia::protocol::{CoinStateUpdate, Message, NewPeakWallet, ProtocolMessageTypes},
     client::{ClientError, Connector},
-    types::{MAINNET_CONSTANTS, TESTNET11_CONSTANTS},
+    prelude::*,
 };
 use futures_lite::future::poll_once;
 use itertools::Itertools;
 use sage_config::Network;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     task::JoinHandle,
     time::{sleep, timeout},
 };
@@ -185,6 +183,9 @@ impl SyncManager {
                     )
                     .await;
                 }
+                SyncCommand::AddPeer { peer, receiver } => {
+                    self.try_add_peer(peer, receiver, true, false).await;
+                }
                 SyncCommand::SubscribeCoins { coin_ids } => {
                     self.pending_coin_subscriptions.extend(coin_ids);
                 }
@@ -312,13 +313,12 @@ impl SyncManager {
 
                     let spent_count = spent_coin_ids.len();
 
-                    if !spent_coin_ids.is_empty() {
-                        if let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync {
-                            if let Some(info) = self.state.lock().await.peer(ip) {
-                                // TODO: Handle cases
-                                info.peer.unsubscribe_coins(spent_coin_ids).await.ok();
-                            }
-                        }
+                    if !spent_coin_ids.is_empty()
+                        && let InitialWalletSync::Subscribed(ip) = self.initial_wallet_sync
+                        && let Some(info) = self.state.lock().await.peer(ip)
+                    {
+                        // TODO: Handle cases
+                        info.peer.unsubscribe_coins(spent_coin_ids).await.ok();
                     }
 
                     incremental_sync(
@@ -332,8 +332,7 @@ impl SyncManager {
 
                     info!(
                         "Received {} unspent coins, {} spent coins, and synced to peak {} with header hash {}",
-                        unspent_count, spent_count,
-                        message.height, message.peak_hash
+                        unspent_count, spent_count, message.height, message.peak_hash
                     );
                 } else {
                     debug!("Received coin state update but no database to update");
@@ -369,20 +368,20 @@ impl SyncManager {
 
         match &mut self.initial_wallet_sync {
             sync @ InitialWalletSync::Idle => {
-                if let Some(wallet) = self.wallet.clone() {
-                    if let Some(peer) = state.acquire_peer() {
-                        let ip = peer.socket_addr().ip();
-                        let task = tokio::spawn(sync_wallet(
-                            wallet.clone(),
-                            peer,
-                            self.state.clone(),
-                            self.event_sender.clone(),
-                            self.command_sender.clone(),
-                            self.options.delta_sync,
-                        ));
-                        *sync = InitialWalletSync::Syncing { ip, task };
-                        self.event_sender.send(SyncEvent::Start(ip)).await.ok();
-                    }
+                if let Some(wallet) = self.wallet.clone()
+                    && let Some(peer) = state.acquire_peer()
+                {
+                    let ip = peer.socket_addr().ip();
+                    let task = tokio::spawn(sync_wallet(
+                        wallet.clone(),
+                        peer,
+                        self.state.clone(),
+                        self.event_sender.clone(),
+                        self.command_sender.clone(),
+                        self.options.delta_sync,
+                    ));
+                    *sync = InitialWalletSync::Syncing { ip, task };
+                    self.event_sender.send(SyncEvent::Start(ip)).await.ok();
                 }
             }
             InitialWalletSync::Syncing { ip, task }
@@ -490,33 +489,33 @@ impl SyncManager {
     }
 
     async fn poll_tasks(&mut self) {
-        if let InitialWalletSync::Syncing { ip, task } = &mut self.initial_wallet_sync {
-            if let Ok(Some(result)) = timeout(Duration::from_secs(1), poll_once(task)).await {
-                match result {
-                    Ok(Ok(())) => {
-                        self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
-                        self.event_sender.send(SyncEvent::Subscribed).await.ok();
-                    }
-                    Ok(Err(error)) => {
-                        warn!("Initial wallet sync failed: {error}");
-                        self.state.lock().await.ban(
-                            *ip,
-                            Duration::from_secs(300),
-                            "wallet sync failed",
-                        );
-                        self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
-                    }
-                    Err(_timeout) => {
-                        warn!("Initial wallet sync timed out");
-                        self.state.lock().await.ban(
-                            *ip,
-                            Duration::from_secs(300),
-                            "wallet sync timed out",
-                        );
-                        self.initial_wallet_sync = InitialWalletSync::Idle;
-                        self.event_sender.send(SyncEvent::Stop).await.ok();
-                    }
+        if let InitialWalletSync::Syncing { ip, task } = &mut self.initial_wallet_sync
+            && let Ok(Some(result)) = timeout(Duration::from_secs(1), poll_once(task)).await
+        {
+            match result {
+                Ok(Ok(())) => {
+                    self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
+                    self.event_sender.send(SyncEvent::Subscribed).await.ok();
+                }
+                Ok(Err(error)) => {
+                    warn!("Initial wallet sync failed: {error}");
+                    self.state.lock().await.ban(
+                        *ip,
+                        Duration::from_secs(300),
+                        "wallet sync failed",
+                    );
+                    self.initial_wallet_sync = InitialWalletSync::Idle;
+                    self.event_sender.send(SyncEvent::Stop).await.ok();
+                }
+                Err(_timeout) => {
+                    warn!("Initial wallet sync timed out");
+                    self.state.lock().await.ban(
+                        *ip,
+                        Duration::from_secs(300),
+                        "wallet sync timed out",
+                    );
+                    self.initial_wallet_sync = InitialWalletSync::Idle;
+                    self.event_sender.send(SyncEvent::Stop).await.ok();
                 }
             }
         }

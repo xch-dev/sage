@@ -1,7 +1,7 @@
 [package]
 name = "sage-rpc"
-version = "0.12.7"
-edition = "2021"
+version = "0.12.8"
+edition = "2024"
 license = "Apache-2.0"
 description = "An RPC server for Sage wallet."
 authors = ["Rigidity <me@rigidnetwork.com>"]
@@ -29,3 +29,12 @@ rustls-pemfile = { workspace = true }
 utoipa = "5.2.0"
 serde_json = { workspace = true }
 indexmap = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+tower = { workspace = true, features = ["util"] }
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+bip39 = { workspace = true }
+chia-wallet-sdk = { workspace = true, features = ["peer-simulator"] }
+sage-wallet = { workspace = true }

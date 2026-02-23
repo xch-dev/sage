@@ -1,15 +1,11 @@
 use crate::{
-    address_kind, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id,
-    Error, Result, Sage,
+    Error, Result, Sage, address_kind, parse_any_asset_id, parse_asset_id, parse_collection_id,
+    parse_did_id, parse_nft_id, parse_option_id,
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::Bytes32,
-    puzzles::nft::NftMetadata,
-};
+use base64::{Engine, prelude::BASE64_STANDARD};
+use chia_wallet_sdk::chia::puzzle_types::nft::NftMetadata;
+use chia_wallet_sdk::prelude::*;
 use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
-use clvmr::Allocator;
 use sage_api::{
     Amount, CheckAddress, CheckAddressResponse, CoinFilterMode as ApiCoinFilterMode, CoinRecord,
     CoinSortMode as ApiCoinSortMode, DerivationRecord, DidRecord, GetAllCats, GetAllCatsResponse,
@@ -195,7 +191,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
@@ -246,7 +242,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
@@ -405,16 +401,7 @@ impl Sage {
     pub async fn is_asset_owned(&self, req: IsAssetOwned) -> Result<IsAssetOwnedResponse> {
         let wallet = self.wallet()?;
 
-        let asset_hash = if req.asset_id.starts_with("nft") {
-            parse_nft_id(req.asset_id)?
-        } else if req.asset_id.starts_with("did:chia:") {
-            parse_did_id(req.asset_id)?
-        } else if req.asset_id.starts_with("option") {
-            parse_option_id(req.asset_id)?
-        } else {
-            // Assume it's a CAT token (hex string)
-            parse_asset_id(req.asset_id)?
-        };
+        let asset_hash = parse_any_asset_id(req.asset_id)?;
 
         let owned = wallet.db.is_asset_owned(asset_hash).await?;
         Ok(IsAssetOwnedResponse { owned })

@@ -9,12 +9,7 @@ pub use make_offer::*;
 
 #[cfg(test)]
 mod tests {
-    use chia::{
-        clvm_traits::{FromClvm, ToClvm},
-        protocol::{Bytes32, Program},
-        puzzles::nft::NftMetadata,
-    };
-    use clvmr::Allocator;
+    use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
     use indexmap::indexmap;
     use sage_database::NftOfferInfo;
     use test_log::test;

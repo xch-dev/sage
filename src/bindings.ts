@@ -104,6 +104,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
 },
+async createTransaction(req: CreateTransaction) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("create_transaction", { req });
+},
 async signCoinSpends(req: SignCoinSpends) : Promise<SignCoinSpendsResponse> {
     return await TAURI_INVOKE("sign_coin_spends", { req });
 },
@@ -373,6 +376,7 @@ syncEvent: "sync-event"
 
 /** user-defined types **/
 
+export type Action = ({ type: "send" } & SendAction) | ({ type: "mint_nft" } & MintNftAction) | ({ type: "update_nft" } & UpdateNftAction) | ({ type: "fee" } & FeeAction)
 /**
  * Add a URI to an NFT
  */
@@ -734,6 +738,19 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type CreateTransaction = { 
+/**
+ * Pre-selected coins to use in the transaction prior to coin selection
+ */
+selected_coin_ids?: string[]; 
+/**
+ * The list of actions to perform in the transaction
+ */
+actions: Action[]; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Delete a wallet database
  */
@@ -804,6 +821,11 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type FeeAction = { 
+/**
+ * The fee amount, in mojos
+ */
+amount: Amount }
 /**
  * Filter unlocked coins from a list
  */
@@ -1578,6 +1600,19 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+export type Id = 
+/**
+ * The XCH asset
+ */
+{ type: "xch" } | 
+/**
+ * An existing asset by its asset id or launcher id
+ */
+{ type: "existing"; asset_id: string } | 
+/**
+ * A new asset by its index in the action list
+ */
+{ type: "new"; index: number }
 /**
  * Import a wallet key
  */
@@ -1778,6 +1813,51 @@ offer: string;
  * Offer ID
  */
 offer_id: string }
+export type MintNftAction = { 
+/**
+ * The parent asset id of the minted NFT
+ */
+parent_id: Id; 
+/**
+ * Edition number
+ */
+edition_number?: number | null; 
+/**
+ * Total editions
+ */
+edition_total?: number | null; 
+/**
+ * Data hash
+ */
+data_hash?: string | null; 
+/**
+ * Data URIs
+ */
+data_uris?: string[]; 
+/**
+ * Metadata hash
+ */
+metadata_hash?: string | null; 
+/**
+ * Metadata URIs
+ */
+metadata_uris?: string[]; 
+/**
+ * License hash
+ */
+license_hash?: string | null; 
+/**
+ * License URIs
+ */
+license_uris?: string[]; 
+/**
+ * Royalty payment address
+ */
+royalty_address?: string | null; 
+/**
+ * Royalty percentage in ten-thousandths (e.g., 300 = 3%)
+ */
+royalty_ten_thousandths?: number }
 /**
  * Mint a new option
  */
@@ -1822,6 +1902,15 @@ export type Network = { name: string; ticker: string; prefix?: string | null; pr
 export type NetworkConfig = { default_network: string; target_peers: number; discover_peers: boolean }
 export type NetworkKind = "mainnet" | "testnet" | "unknown"
 export type NetworkList = { networks: Network[] }
+export type NewNftUri = { 
+/**
+ * The type of URI
+ */
+kind: NftUriKind; 
+/**
+ * The URI to add
+ */
+uri: string }
 export type NftCollectionRecord = { collection_id: string; did_id: string; metadata_collection_id: string; visible: boolean; name: string | null; icon: string | null }
 export type NftData = { blob: string | null; mime_type: string | null; hash_matches: boolean; metadata_json: string | null; metadata_hash_matches: boolean }
 /**
@@ -1876,6 +1965,11 @@ export type NftRecord = { launcher_id: string; collection_id: string | null; col
 export type NftRoyalty = { royalty_address: string; royalty_basis_points: number }
 export type NftSortMode = "name" | "recent"
 export type NftSpecialUseType = "none" | "theme"
+export type NftTransfer = { 
+/**
+ * The DID to assign as the owner
+ */
+did_id: Id | null }
 /**
  * Type of NFT URI
  */
@@ -2067,6 +2161,27 @@ export type SaveUserTheme = {
 nft_id: string }
 export type SaveUserThemeResponse = Record<string, never>
 export type SecretKeyInfo = { mnemonic: string | null; secret_key: string }
+export type SendAction = { 
+/**
+ * The id of the asset to send
+ */
+id: Id; 
+/**
+ * The address to send to, in bech32 format
+ */
+address: string; 
+/**
+ * The amount to send, in mojos
+ */
+amount: Amount; 
+/**
+ * Optional clawback timestamp (seconds since epoch)
+ */
+clawback?: number | null; 
+/**
+ * A list of memos (encoded as hex) to include in the transaction
+ */
+memos?: string[] }
 /**
  * Send CAT tokens to an address
  */
@@ -2544,6 +2659,19 @@ nft_id: string;
  * Whether the `NFT` should be visible in the UI
  */
 visible: boolean }
+export type UpdateNftAction = { 
+/**
+ * The id of the NFT to update
+ */
+id: Id; 
+/**
+ * A list of URLs to add
+ */
+new_uris?: NewNftUri[]; 
+/**
+ * An optional transfer to perform on the NFT
+ */
+transfer?: NftTransfer | null }
 /**
  * Update an `NFT` collection's visibility settings
  */

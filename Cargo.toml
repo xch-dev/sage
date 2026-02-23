@@ -67,34 +67,31 @@ hex = "0.4.3"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.9.4"
+tauri = "2.10.2"
 tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-opener = "2.5.2"
+tauri-plugin-opener = "2.5.3"
 tauri-plugin-os = "2.3.2"
-tauri-plugin-window-state = "2.2.2"
-tauri-plugin-barcode-scanner = "2.4.2"
+tauri-plugin-window-state = "2.4.1"
+tauri-plugin-barcode-scanner = "2.4.4"
 tauri-plugin-biometric = "2.3.2"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
-tauri-build = "2.5.3"
-tauri-plugin = "2.5.2"
+tauri-build = "2.5.5"
+tauri-plugin = "2.5.3"
 
 # Specta
-specta = "2.0.0-rc.20"
-specta-typescript = "0.0.7"
-tauri-specta = "2.0.0-rc.20"
+specta = "2.0.0-rc.22"
+specta-typescript = "0.0.9"
+tauri-specta = "2.0.0-rc.21"
 
 # OpenAPI
 utoipa = "5.2.0"
 
 # Chia
-chia = "0.26.0"
-chia_streamable_macro = "0.26.0"
-chia-traits = "0.26.0"
-chia-sha2 = "0.26.0"
-chia-puzzles = "0.20.1"
-clvmr = "0.14.0"
-chia-wallet-sdk = { version = "0.30.0", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia-wallet-sdk = { version = "0.33.0", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia_streamable_macro = "0.36.1"
+chia-traits = "0.36.1"
+chia-sha2 = "0.36.1"
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
@@ -142,3 +139,7 @@ axum-server = "0.7.1"
 rustls = "0.23.17"
 rustls-pemfile = "2.2.0"
 clap = "4.5.21"
+
+# Testing
+tempfile = "3.25.0"
+tower = "0.5.3"

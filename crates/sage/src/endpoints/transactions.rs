@@ -1,13 +1,9 @@
 use std::time::Duration;
 
-use chia::{
-    protocol::{Coin, CoinSpend},
-    puzzles::nft::NftMetadata,
-};
 use chia_wallet_sdk::{
-    driver::{MetadataUpdate, OptionType},
-    types::TESTNET11_CONSTANTS,
-    utils::Address,
+    chia::puzzle_types::nft::NftMetadata,
+    driver::{MetadataUpdate, UriKind},
+    prelude::*,
 };
 use itertools::Itertools;
 use sage_api::{
@@ -25,9 +21,9 @@ use sage_wallet::{MultiSendPayment, WalletNftMint, WalletOptionMint};
 use tokio::time::timeout;
 
 use crate::{
-    json_bundle, json_spend, parse_amount, parse_asset_id, parse_coin_ids, parse_did_id,
-    parse_hash, parse_memos, parse_nft_id, parse_option_id, rust_bundle, rust_spend,
-    ConfirmationInfo, Error, Result, Sage,
+    ConfirmationInfo, Error, Result, Sage, json_bundle, json_spend, parse_amount, parse_asset_id,
+    parse_coin_ids, parse_did_id, parse_hash, parse_memos, parse_nft_id, parse_option_id,
+    rust_bundle, rust_spend,
 };
 
 impl Sage {
@@ -287,88 +283,9 @@ impl Sage {
 
         let mut mints = Vec::with_capacity(req.mints.len());
         let mut info = ConfirmationInfo::default();
-        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for item in req.mints {
-            let royalty_puzzle_hash = item
-                .royalty_address
-                .map(|address| self.parse_address(address))
-                .transpose()?;
-
-            let royalty_ten_thousandths = item.royalty_ten_thousandths;
-
-            let data_hash = if let Some(data_hash) = item.data_hash {
-                Some(parse_hash(data_hash)?)
-            } else if item.data_uris.is_empty() {
-                None
-            } else {
-                let data = timeout(
-                    Duration::from_secs(10),
-                    fetch_uris_without_hash(item.data_uris.clone(), testnet),
-                )
-                .await??;
-
-                let hash = data.hash;
-                info.nft_data.insert(hash, data);
-
-                Some(hash)
-            };
-
-            let metadata_hash = if let Some(metadata_hash) = item.metadata_hash {
-                Some(parse_hash(metadata_hash)?)
-            } else if item.metadata_uris.is_empty() {
-                None
-            } else {
-                let metadata = timeout(
-                    Duration::from_secs(10),
-                    fetch_uris_without_hash(item.metadata_uris.clone(), testnet),
-                )
-                .await??;
-
-                let hash = metadata.hash;
-                info.nft_data.insert(hash, metadata);
-
-                Some(hash)
-            };
-
-            let license_hash = if let Some(license_hash) = item.license_hash {
-                Some(parse_hash(license_hash)?)
-            } else if item.license_uris.is_empty() {
-                None
-            } else {
-                let data = timeout(
-                    Duration::from_secs(10),
-                    fetch_uris_without_hash(item.license_uris.clone(), testnet),
-                )
-                .await??;
-
-                let hash = data.hash;
-                info.nft_data.insert(hash, data);
-
-                Some(hash)
-            };
-
-            let p2_puzzle_hash = if let Some(address) = item.address {
-                Some(self.parse_address(address)?)
-            } else {
-                None
-            };
-
-            mints.push(WalletNftMint {
-                metadata: NftMetadata {
-                    edition_number: item.edition_number.unwrap_or(1) as u64,
-                    edition_total: item.edition_total.unwrap_or(1) as u64,
-                    data_uris: item.data_uris,
-                    data_hash,
-                    metadata_uris: item.metadata_uris,
-                    metadata_hash,
-                    license_uris: item.license_uris,
-                    license_hash,
-                },
-                p2_puzzle_hash,
-                royalty_puzzle_hash,
-                royalty_basis_points: royalty_ten_thousandths,
-            });
+            mints.push(self.convert_nft_mint(item, &mut info).await?);
         }
 
         let (coin_spends, nfts) = wallet.bulk_mint_nfts(fee, did_id, mints).await?;
@@ -412,9 +329,18 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let uri = match req.kind {
-            NftUriKind::Data => MetadataUpdate::NewDataUri(req.uri),
-            NftUriKind::Metadata => MetadataUpdate::NewMetadataUri(req.uri),
-            NftUriKind::License => MetadataUpdate::NewLicenseUri(req.uri),
+            NftUriKind::Data => MetadataUpdate {
+                kind: UriKind::Data,
+                uri: req.uri,
+            },
+            NftUriKind::Metadata => MetadataUpdate {
+                kind: UriKind::Metadata,
+                uri: req.uri,
+            },
+            NftUriKind::License => MetadataUpdate {
+                kind: UriKind::License,
+                uri: req.uri,
+            },
         };
 
         let coin_spends = wallet.add_nft_uri(nft_id, fee, uri).await?;
@@ -613,7 +539,7 @@ impl Sage {
             .await
     }
 
-    async fn transact_with(
+    pub(crate) async fn transact_with(
         &self,
         coin_spends: Vec<CoinSpend>,
         auto_submit: bool,
@@ -629,6 +555,94 @@ impl Sage {
         Ok(TransactionResponse {
             summary: self.summarize(coin_spends, info).await?,
             coin_spends: json_spends,
+        })
+    }
+
+    pub(crate) async fn convert_nft_mint(
+        &self,
+        item: sage_api::NftMint,
+        info: &mut ConfirmationInfo,
+    ) -> Result<WalletNftMint> {
+        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+
+        let royalty_puzzle_hash = item
+            .royalty_address
+            .map(|address| self.parse_address(address))
+            .transpose()?;
+
+        let royalty_ten_thousandths = item.royalty_ten_thousandths;
+
+        let data_hash = if let Some(data_hash) = item.data_hash {
+            Some(parse_hash(data_hash)?)
+        } else if item.data_uris.is_empty() {
+            None
+        } else {
+            let data = timeout(
+                Duration::from_secs(10),
+                fetch_uris_without_hash(item.data_uris.clone(), testnet),
+            )
+            .await??;
+
+            let hash = data.hash;
+            info.nft_data.insert(hash, data);
+
+            Some(hash)
+        };
+
+        let metadata_hash = if let Some(metadata_hash) = item.metadata_hash {
+            Some(parse_hash(metadata_hash)?)
+        } else if item.metadata_uris.is_empty() {
+            None
+        } else {
+            let metadata = timeout(
+                Duration::from_secs(10),
+                fetch_uris_without_hash(item.metadata_uris.clone(), testnet),
+            )
+            .await??;
+
+            let hash = metadata.hash;
+            info.nft_data.insert(hash, metadata);
+
+            Some(hash)
+        };
+
+        let license_hash = if let Some(license_hash) = item.license_hash {
+            Some(parse_hash(license_hash)?)
+        } else if item.license_uris.is_empty() {
+            None
+        } else {
+            let data = timeout(
+                Duration::from_secs(10),
+                fetch_uris_without_hash(item.license_uris.clone(), testnet),
+            )
+            .await??;
+
+            let hash = data.hash;
+            info.nft_data.insert(hash, data);
+
+            Some(hash)
+        };
+
+        let p2_puzzle_hash = if let Some(address) = item.address {
+            Some(self.parse_address(address)?)
+        } else {
+            None
+        };
+
+        Ok(WalletNftMint {
+            metadata: NftMetadata {
+                edition_number: item.edition_number.unwrap_or(1) as u64,
+                edition_total: item.edition_total.unwrap_or(1) as u64,
+                data_uris: item.data_uris,
+                data_hash,
+                metadata_uris: item.metadata_uris,
+                metadata_hash,
+                license_uris: item.license_uris,
+                license_hash,
+            },
+            p2_puzzle_hash,
+            royalty_puzzle_hash,
+            royalty_basis_points: royalty_ten_thousandths,
         })
     }
 }
