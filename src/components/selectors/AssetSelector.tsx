@@ -19,7 +19,6 @@ import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   AlertTriangle,
-  ArrowUpToLine,
   FilePenLine,
   HandCoins,
   ImageIcon,
@@ -172,13 +171,6 @@ export function AssetSelector({
     setAssets({ ...assets, options: newOptions });
   };
 
-  const setMaxTokenAmount = (index: number, assetId: string | null) => {
-    const token = ownedTokens.find((t) => t.asset_id === assetId);
-    if (token) {
-      updateToken(index, 'amount', toDecimal(token.balance, token.precision));
-    }
-  };
-
   // Initialize IDs if they don't exist
   useEffect(() => {
     if (tokenIds.length !== assets.tokens.length) {
@@ -234,68 +226,71 @@ export function AssetSelector({
             <HandCoins className='h-4 w-4' aria-hidden='true' />
             <span>Tokens</span>
           </Label>
-          {assets.tokens.map(({ asset_id: assetId, amount }, i) => (
-            <div
-              key={tokenIds[i] || `token-${i}`}
-              style={{
-                zIndex:
-                  assets.tokens.length -
-                  i +
-                  assets.nfts.length +
-                  assets.options.length,
-              }}
-              className='flex h-14 mb-1 relative'
-            >
-              <TokenSelector
-                value={assetId}
-                onChange={(assetId) => updateToken(i, 'asset_id', assetId)}
-                disabled={assets.tokens
-                  .filter((t, idx) => t.asset_id !== '' && idx !== i)
-                  .map((t) => t.asset_id)}
-                className='!rounded-r-none'
-                hideZeroBalance={offering === true}
-                showAllCats={offering !== true}
-                includeXch={true}
-              />
-              <div className='flex flex-grow-0'>
-                <TokenAmountInput
-                  id={`${prefix}-cat-${i}-amount`}
-                  className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
-                  placeholder={t`Amount`}
-                  value={amount}
-                  onValueChange={(values) =>
-                    updateToken(i, 'amount', values.value)
-                  }
-                  precision={assetId === null ? 12 : 3}
+          {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
+            const ownedToken = ownedTokens.find((t) => t.asset_id === assetId);
+            return (
+              <div
+                key={tokenIds[i] || `token-${i}`}
+                style={{
+                  zIndex:
+                    assets.tokens.length -
+                    i +
+                    assets.nfts.length +
+                    assets.options.length,
+                }}
+                className='flex h-14 mb-1 relative'
+              >
+                <TokenSelector
+                  value={assetId}
+                  onChange={(newAssetId) => {
+                    const newTokens = [...assets.tokens];
+                    newTokens[i] = {
+                      ...newTokens[i],
+                      asset_id: newAssetId,
+                      amount: '',
+                    };
+                    setAssets({ ...assets, tokens: newTokens });
+                  }}
+                  disabled={assets.tokens
+                    .filter((t, idx) => t.asset_id !== '' && idx !== i)
+                    .map((t) => t.asset_id)}
+                  className='!rounded-r-none'
+                  hideZeroBalance={offering === true}
+                  showAllCats={offering !== true}
+                  includeXch={true}
                 />
-                {offering && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant='outline'
-                          className='!border-l-0 !rounded-none h-12 px-2 text-xs'
-                          onClick={() => setMaxTokenAmount(i, assetId)}
-                        >
-                          <ArrowUpToLine className='h-3 w-3 mr-1' />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <Trans>Use maximum balance</Trans>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                <Button
-                  variant='outline'
-                  className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                  onClick={() => removeToken(i)}
-                >
-                  <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                </Button>
+                <div className='flex flex-grow-0'>
+                  <TokenAmountInput
+                    id={`${prefix}-cat-${i}-amount`}
+                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                    placeholder={t`Amount`}
+                    value={amount}
+                    onValueChange={(values) =>
+                      updateToken(i, 'amount', values.value)
+                    }
+                    precision={assetId === null ? 12 : 3}
+                    maxValue={
+                      ownedToken
+                        ? toDecimal(
+                            ownedToken.selectable_balance,
+                            ownedToken.precision,
+                          )
+                        : undefined
+                    }
+                    maxButtonClassName='!rounded-r-none'
+                    hideMaxButton={!offering}
+                  />
+                  <Button
+                    variant='outline'
+                    className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                    onClick={() => removeToken(i)}
+                  >
+                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

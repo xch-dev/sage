@@ -107,7 +107,10 @@ export function TokenCard({
             {asset?.selectable_balance !== undefined && (
               <>
                 <NumberFormat
-                  value={fromMojos(asset?.selectable_balance ?? 0, asset.precision)}
+                  value={fromMojos(
+                    asset?.selectable_balance ?? 0,
+                    asset.precision,
+                  )}
                   minimumFractionDigits={0}
                   maximumFractionDigits={asset.precision}
                 />

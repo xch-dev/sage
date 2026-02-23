@@ -123,7 +123,9 @@ export default function Send() {
     amount: positiveAmount(asset?.precision || 12).refine(
       (amount) =>
         asset
-          ? BigNumber(amount).lte(toDecimal(asset.selectable_balance, asset.precision))
+          ? BigNumber(amount).lte(
+              toDecimal(asset.selectable_balance, asset.precision),
+            )
           : true,
       'Amount exceeds spendable balance',
     ),
@@ -293,11 +295,16 @@ export default function Send() {
                       <TokenAmountInput
                         {...field}
                         ticker={asset?.ticker}
-                        precision={asset?.precision ?? (assetId === null ? 12 : 3)}
+                        precision={
+                          asset?.precision ?? (assetId === null ? 12 : 3)
+                        }
                         className='pr-12'
                         maxValue={
                           asset
-                            ? fromMojos(asset.selectable_balance, asset.precision).toString()
+                            ? fromMojos(
+                                asset.selectable_balance,
+                                asset.precision,
+                              ).toString()
                             : undefined
                         }
                       />
