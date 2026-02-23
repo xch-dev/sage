@@ -24,12 +24,6 @@ import {
 } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -40,7 +34,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { AlertCircleIcon, ArrowUpToLine } from 'lucide-react';
+import { AlertCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -129,9 +123,9 @@ export default function Send() {
     amount: positiveAmount(asset?.precision || 12).refine(
       (amount) =>
         asset
-          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.precision))
+          ? BigNumber(amount).lte(toDecimal(asset.selectable_balance, asset.precision))
           : true,
-      'Amount exceeds balance',
+      'Amount exceeds spendable balance',
     ),
     fee: amount(walletState.sync.unit.precision).optional(),
     memo: z.string().optional(),
@@ -230,11 +224,11 @@ export default function Send() {
           <Card className='mb-6'>
             <CardContent className='pt-6'>
               <div className='text-sm text-muted-foreground'>
-                Available Balance
+                <Trans>Spendable Balance</Trans>
               </div>
               <div className='text-2xl font-medium mt-1'>
                 <NumberFormat
-                  value={fromMojos(asset.balance, asset.precision)}
+                  value={fromMojos(asset.selectable_balance, asset.precision)}
                   minimumFractionDigits={0}
                   maximumFractionDigits={asset.precision}
                 />{' '}
@@ -296,47 +290,17 @@ export default function Send() {
                       <Trans>Amount</Trans>
                     </FormLabel>
                     <FormControl>
-                      <div className='relative flex'>
-                        <TokenAmountInput
-                          {...field}
-                          ticker={asset?.ticker}
-                          precision={
-                            asset?.precision ?? (assetId === null ? 12 : 3)
-                          }
-                          className='pr-12 !rounded-r-none z-10'
-                        />
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant='outline'
-                                size='icon'
-                                type='button'
-                                tabIndex={-1}
-                                className='!border-l-0 !rounded-l-none flex-shrink-0'
-                                onClick={() => {
-                                  if (asset) {
-                                    const maxAmount = fromMojos(
-                                      asset.balance,
-                                      asset.precision,
-                                    );
-                                    form.setValue(
-                                      'amount',
-                                      maxAmount.toString(),
-                                      { shouldValidate: true },
-                                    );
-                                  }
-                                }}
-                              >
-                                <ArrowUpToLine className='h-4 w-4' />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <Trans>Use maximum balance</Trans>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      <TokenAmountInput
+                        {...field}
+                        ticker={asset?.ticker}
+                        precision={asset?.precision ?? (assetId === null ? 12 : 3)}
+                        className='pr-12'
+                        maxValue={
+                          asset
+                            ? fromMojos(asset.selectable_balance, asset.precision).toString()
+                            : undefined
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

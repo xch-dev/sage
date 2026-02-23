@@ -5,6 +5,15 @@ import * as React from 'react';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { Input, InputProps } from './input';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Trans } from '@lingui/react/macro';
+import { ArrowUpToLine } from 'lucide-react';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -63,16 +72,72 @@ MaskedInput.displayName = 'MaskedInput';
 interface TokenInputProps extends MaskedInputProps {
   precision?: number;
   ticker?: string | null;
+  maxValue?: string;
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
-  ({ precision = 12, ticker = null, ...props }, ref) => {
+  ({ precision = 12, ticker = null, maxValue, onChange, ...props }, ref) => {
     const walletState = useWalletState();
+
+    const handleMaxClick = () => {
+      if (maxValue && onChange) {
+        onChange({
+          target: { value: maxValue },
+        } as React.ChangeEvent<HTMLInputElement>);
+      }
+    };
+
+    if (maxValue) {
+      return (
+        <div className='flex'>
+          <div className='relative flex-1'>
+            <MaskedInput
+              placeholder='0.00'
+              onChange={onChange}
+              {...props}
+              type='text'
+              inputRef={ref}
+              decimalScale={precision}
+              allowLeadingZeros={true}
+              allowNegative={false}
+              className={`!rounded-r-none ${props.className || ''}`}
+            />
+            {ticker && (
+              <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+                <span className='text-muted-foreground text-sm'>
+                  {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
+                </span>
+              </div>
+            )}
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  type='button'
+                  tabIndex={-1}
+                  className='!border-l-0 !rounded-l-none flex-shrink-0'
+                  onClick={handleMaxClick}
+                >
+                  <ArrowUpToLine className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Trans>Use maximum spendable balance</Trans>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      );
+    }
 
     return (
       <div className='relative'>
         <MaskedInput
           placeholder='0.00'
+          onChange={onChange}
           {...props}
           type='text'
           inputRef={ref}
