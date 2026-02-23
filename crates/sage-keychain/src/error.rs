@@ -9,7 +9,7 @@ pub enum KeychainError {
     Argon2(argon2::Error),
 
     #[error("BLS error: {0}")]
-    Bls(#[from] chia::bls::Error),
+    Bls(#[from] chia_wallet_sdk::chia::bls::Error),
 
     #[error("BIP39 error: {0}")]
     Bip39(#[from] bip39::Error),

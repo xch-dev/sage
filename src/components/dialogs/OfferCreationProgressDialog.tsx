@@ -114,7 +114,7 @@ export function OfferCreationProgressDialog({
               if (isMounted) {
                 addError({
                   kind: 'upload',
-                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}. Stopping.: ${error}`,
+                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}. Stopping.: ${error as string}`,
                 });
                 // typically if one fails the rest will fail too
                 break;
