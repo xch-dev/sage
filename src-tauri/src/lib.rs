@@ -181,7 +181,7 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
             let path = app.path().app_data_dir()?;
-            let app_state = AppState::new(Mutex::new(Sage::new(&path)));
+            let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
             app.manage(Initialized(Mutex::new(false)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);

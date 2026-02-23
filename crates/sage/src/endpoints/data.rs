@@ -191,7 +191,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
@@ -242,7 +242,7 @@ impl Sage {
         for row in rows {
             coins.push(CoinRecord {
                 coin_id: hex::encode(row.coin.coin_id()),
-                address: Address::new(row.coin.puzzle_hash, self.network().prefix()).encode()?,
+                address: Address::new(row.p2_puzzle_hash, self.network().prefix()).encode()?,
                 amount: Amount::u64(row.coin.amount),
                 transaction_id: row.mempool_item_hash.map(hex::encode),
                 offer_id: row.offer_hash.map(hex::encode),
