@@ -146,24 +146,33 @@ pub fn run() {
 
     // On mobile or release mode we should not export the TypeScript bindings
     #[cfg(all(debug_assertions, not(mobile)))]
-    builder
-        .export(
-            Typescript::default().bigint(BigIntExportBehavior::Number),
-            "../src/bindings.ts",
-        )
-        .expect("Failed to export TypeScript bindings");
+    if let Err(e) = builder.export(
+        Typescript::default().bigint(BigIntExportBehavior::Number),
+        "../src/bindings.ts",
+    ) {
+        // Don't panic - this can fail when a second instance is launched from a different directory
+        eprintln!("Failed to export TypeScript bindings: {e}");
+    }
 
     let mut tauri_builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_os::init());
+        .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_deep_link::init());
 
     #[cfg(not(mobile))]
     {
         tauri_builder = tauri_builder
             .plugin(tauri_plugin_window_state::Builder::new().build())
             .plugin(tauri_plugin_fs::init())
-            .plugin(tauri_plugin_dialog::init());
+            .plugin(tauri_plugin_dialog::init())
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                // Focus the main window when another instance is launched
+                // Deep link URLs are automatically forwarded by the plugin's "deep-link" feature
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_focus();
+                }
+            }));
     }
 
     #[cfg(mobile)]
@@ -180,6 +189,18 @@ pub fn run() {
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+
+            // Register deep link schemes at runtime for Linux and Windows dev mode
+            // Linux: Always needed since schemes aren't registered via installer during dev
+            // Windows: Only in debug mode, requires running as Administrator first time
+            #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+                if let Err(e) = app.deep_link().register_all() {
+                    eprintln!("Failed to register deep link: {e}");
+                }
+            }
+
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
             app.manage(Initialized(Mutex::new(false)));
