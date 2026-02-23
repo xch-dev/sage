@@ -224,7 +224,7 @@ export function OfferCard({
             </p>
           </CardHeader>
           <CardContent className='flex flex-col gap-3'>
-            <Assets assets={offerSummary.taker} />
+            <Assets assets={offerSummary.taker} catPresence={catPresence} />
             {content}
           </CardContent>
         </Card>
