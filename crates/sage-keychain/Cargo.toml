@@ -1,7 +1,7 @@
 [package]
 name = "sage-keychain"
-version = "0.12.7"
-edition = "2021"
+version = "0.12.8"
+edition = "2024"
 license = "Apache-2.0"
 description = "A simple password based keychain implementation for Sage."
 authors = ["Rigidity <me@rigidnetwork.com>"]
@@ -15,7 +15,7 @@ categories = { workspace = true }
 workspace = true
 
 [dependencies]
-chia = { workspace = true }
+chia-wallet-sdk = { workspace = true }
 bip39 = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true, features = ["derive"] }

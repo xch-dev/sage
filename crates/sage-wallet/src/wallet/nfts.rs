@@ -1,17 +1,14 @@
-use chia::{
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, CoinSpend},
-    puzzles::nft::NftMetadata,
-};
-use chia_puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH;
-use chia_wallet_sdk::driver::{
-    Action, ClawbackV2, DriverError, Id, MetadataUpdate, SpendContext, TransferNftById,
+use chia_wallet_sdk::{
+    chia::puzzle_types::nft::NftMetadata,
+    driver::{MetadataUpdate, TransferNftById},
+    prelude::*,
+    puzzles::NFT_METADATA_UPDATER_DEFAULT_HASH,
 };
 use sage_database::{SerializePrimitive, SerializedNft};
 
 use crate::{
-    wallet::memos::{calculate_memos, Hint},
     WalletError,
+    wallet::memos::{Hint, calculate_memos},
 };
 
 use super::Wallet;
@@ -188,6 +185,7 @@ impl Wallet {
 mod tests {
     use std::time::Duration;
 
+    use chia_wallet_sdk::driver::UriKind;
     use test_log::test;
     use tokio::time::sleep;
 
@@ -224,9 +222,18 @@ mod tests {
         let nft = nfts.remove(0);
 
         for item in [
-            MetadataUpdate::NewDataUri("abc".to_string()),
-            MetadataUpdate::NewMetadataUri("xyz".to_string()),
-            MetadataUpdate::NewLicenseUri("123".to_string()),
+            MetadataUpdate {
+                kind: UriKind::Data,
+                uri: "abc".to_string(),
+            },
+            MetadataUpdate {
+                kind: UriKind::Metadata,
+                uri: "xyz".to_string(),
+            },
+            MetadataUpdate {
+                kind: UriKind::License,
+                uri: "123".to_string(),
+            },
         ] {
             let coin_spends = test
                 .wallet

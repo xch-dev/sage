@@ -1,7 +1,4 @@
-use chia::{
-    bls::Signature,
-    protocol::{Bytes32, SpendBundle},
-};
+use chia_wallet_sdk::prelude::*;
 
 pub fn sort_offer(spend_bundle: SpendBundle) -> SpendBundle {
     let mut offered_coin_spends = Vec::new();

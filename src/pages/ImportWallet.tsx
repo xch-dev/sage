@@ -183,9 +183,10 @@ export default function ImportWallet() {
                       </FormControl>
                       <FormDescription>
                         <Trans>
-                          Enter your mnemonic, private key, or public key above.
-                          If it&apos;s a public key, it will be imported as a
-                          read-only cold wallet.
+                          Enter your 12 or 24-word mnemonic seed phrase, private
+                          key, or public key. Words should be separated by
+                          spaces. If it&apos;s a public key, it will be imported
+                          as a read-only cold wallet.
                         </Trans>
                       </FormDescription>
                       <FormMessage />

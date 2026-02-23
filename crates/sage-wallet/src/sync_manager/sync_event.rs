@@ -1,4 +1,4 @@
-use chia::protocol::Bytes32;
+use chia_wallet_sdk::prelude::*;
 use sage_database::OfferStatus;
 use std::net::IpAddr;
 

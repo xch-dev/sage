@@ -119,11 +119,9 @@ export function NftGroupCard({
       return t`Unnamed Collection`;
     }
 
-    return groupMode === NftGroupMode.OwnerDid ? (
-      <Trans>Untitled Profile</Trans>
-    ) : (
-      <Trans>Unknown Minter</Trans>
-    );
+    return groupMode === NftGroupMode.OwnerDid
+      ? t`Untitled Profile`
+      : `Unknown Minter`;
   };
 
   const getId = () => {

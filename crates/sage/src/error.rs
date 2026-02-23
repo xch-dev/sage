@@ -5,12 +5,13 @@ use std::{
     num::{ParseIntError, TryFromIntError},
 };
 
-use chia::{
+use chia_wallet_sdk::{
+    client::ClientError,
     clvm_traits::{FromClvmError, ToClvmError},
-    protocol::Bytes32,
+    clvmr::error::EvalErr,
+    prelude::*,
+    utils::Bech32Error,
 };
-use chia_wallet_sdk::{client::ClientError, driver::DriverError, utils::AddressError};
-use clvmr::reduction::EvalErr;
 use hex::FromHexError;
 use sage_api::ErrorKind;
 use sage_assets::UriError;
@@ -32,7 +33,7 @@ pub enum Error {
     Keychain(#[from] KeychainError),
 
     #[error("Address error: {0}")]
-    Address(#[from] AddressError),
+    Address(#[from] Bech32Error),
 
     #[error("Wallet error: {0}")]
     Wallet(#[from] WalletError),
@@ -56,7 +57,7 @@ pub enum Error {
     FromClvm(#[from] FromClvmError),
 
     #[error("BLS error: {0}")]
-    Bls(#[from] chia::bls::Error),
+    Bls(#[from] chia_wallet_sdk::chia::bls::Error),
 
     #[error("BIP39 error: {0}")]
     Bip39(#[from] bip39::Error),
@@ -120,6 +121,9 @@ pub enum Error {
 
     #[error("Invalid key")]
     InvalidKey,
+
+    #[error("{0}")]
+    InvalidMnemonic(String),
 
     #[error("Wrong address prefix: {0}")]
     AddressPrefix(String),
@@ -278,6 +282,7 @@ impl Error {
             Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
+            | Self::InvalidMnemonic(..)
             | Self::TryFromSlice(..)
             | Self::TryFromInt(..)
             | Self::ParseInt(..)

@@ -19,7 +19,7 @@ export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
       <div
         className='cursor-pointer'
         onClick={() => openUrl(`https://spacescan.io/coin/0x${coinId}`)}
-        aria-label={t`View coin ${coinId} on Spacescan.io`}
+        aria-label={t`View coin ${coinId ?? ''} on Spacescan.io`}
         role='button'
         tabIndex={0}
         onKeyDown={(e) => {
