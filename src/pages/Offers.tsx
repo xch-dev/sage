@@ -72,7 +72,8 @@ export function Offers() {
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
   const cancelAllSchema = z.object({
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });

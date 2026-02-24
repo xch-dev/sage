@@ -239,7 +239,8 @@ export function OwnedCoinsCard({
 
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -284,7 +285,8 @@ export function OwnedCoinsCard({
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
     splitFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -333,7 +335,8 @@ export function OwnedCoinsCard({
 
   const autoCombineFormSchema = z.object({
     autoCombineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),

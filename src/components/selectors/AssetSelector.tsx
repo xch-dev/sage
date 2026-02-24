@@ -14,12 +14,12 @@ import {
 } from '@/components/ui/tooltip';
 import { toDecimal } from '@/lib/utils';
 import { Assets } from '@/state';
+import BigNumber from 'bignumber.js';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   AlertTriangle,
-  ArrowUpToLine,
   FilePenLine,
   HandCoins,
   ImageIcon,
@@ -36,6 +36,7 @@ interface AssetSelectorProps {
   setAssets: (value: Assets) => void;
   splitNftOffers?: boolean;
   setSplitNftOffers?: (value: boolean) => void;
+  fee?: string;
 }
 
 export function AssetSelector({
@@ -45,6 +46,7 @@ export function AssetSelector({
   setAssets,
   splitNftOffers,
   setSplitNftOffers,
+  fee,
 }: AssetSelectorProps) {
   const isIos = platform() === 'ios';
 
@@ -171,13 +173,6 @@ export function AssetSelector({
     setAssets({ ...assets, options: newOptions });
   };
 
-  const setMaxTokenAmount = (index: number, assetId: string | null) => {
-    const token = ownedTokens.find((t) => t.asset_id === assetId);
-    if (token) {
-      updateToken(index, 'amount', toDecimal(token.balance, token.precision));
-    }
-  };
-
   // Initialize IDs if they don't exist
   useEffect(() => {
     if (tokenIds.length !== assets.tokens.length) {
@@ -233,68 +228,76 @@ export function AssetSelector({
             <HandCoins className='h-4 w-4' aria-hidden='true' />
             <span>Tokens</span>
           </Label>
-          {assets.tokens.map(({ asset_id: assetId, amount }, i) => (
-            <div
-              key={tokenIds[i] || `token-${i}`}
-              style={{
-                zIndex:
-                  assets.tokens.length -
-                  i +
-                  assets.nfts.length +
-                  assets.options.length,
-              }}
-              className='flex h-14 mb-1 relative'
-            >
-              <TokenSelector
-                value={assetId}
-                onChange={(assetId) => updateToken(i, 'asset_id', assetId)}
-                disabled={assets.tokens
-                  .filter((t, idx) => t.asset_id !== '' && idx !== i)
-                  .map((t) => t.asset_id)}
-                className='!rounded-r-none'
-                hideZeroBalance={offering === true}
-                showAllCats={offering !== true}
-                includeXch={true}
-              />
-              <div className='flex flex-grow-0'>
-                <TokenAmountInput
-                  id={`${prefix}-cat-${i}-amount`}
-                  className='!border-l-0 z-10 !rounded-l-none !rounded-r-none h-12'
-                  placeholder={t`Amount`}
-                  value={amount}
-                  onValueChange={(values) =>
-                    updateToken(i, 'amount', values.value)
-                  }
-                  precision={assetId === null ? 12 : 3}
+          {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
+            const ownedToken = ownedTokens.find((t) => t.asset_id === assetId);
+            return (
+              <div
+                key={tokenIds[i] || `token-${i}`}
+                style={{
+                  zIndex:
+                    assets.tokens.length -
+                    i +
+                    assets.nfts.length +
+                    assets.options.length,
+                }}
+                className='flex h-14 mb-1 relative'
+              >
+                <TokenSelector
+                  value={assetId}
+                  onChange={(newAssetId) => {
+                    const newTokens = [...assets.tokens];
+                    newTokens[i] = {
+                      ...newTokens[i],
+                      asset_id: newAssetId,
+                      amount: '',
+                    };
+                    setAssets({ ...assets, tokens: newTokens });
+                  }}
+                  disabled={assets.tokens
+                    .filter((t, idx) => t.asset_id !== '' && idx !== i)
+                    .map((t) => t.asset_id)}
+                  className='!rounded-r-none'
+                  hideZeroBalance={offering === true}
+                  showAllCats={offering !== true}
+                  includeXch={true}
                 />
-                {offering && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant='outline'
-                          className='!border-l-0 !rounded-none h-12 pl-1.5 pr-1 text-xs'
-                          onClick={() => setMaxTokenAmount(i, assetId)}
-                        >
-                          <ArrowUpToLine className='h-3 w-3 mr-1' />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <Trans>Use maximum balance</Trans>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                <Button
-                  variant='outline'
-                  className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                  onClick={() => removeToken(i)}
-                >
-                  <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                </Button>
+                <div className='flex flex-grow-0'>
+                  <TokenAmountInput
+                    id={`${prefix}-cat-${i}-amount`}
+                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                    placeholder={t`Amount`}
+                    value={amount}
+                    onValueChange={(values) =>
+                      updateToken(i, 'amount', values.value)
+                    }
+                    precision={assetId === null ? 12 : 3}
+                    maxValue={
+                      ownedToken
+                        ? BigNumber.max(
+                            0,
+                            BigNumber(
+                              toDecimal(
+                                ownedToken.selectable_balance,
+                                ownedToken.precision,
+                              ),
+                            ).minus(assetId === null ? fee || 0 : 0),
+                          ).toString()
+                        : undefined
+                    }
+                    maxButtonClassName='!rounded-r-none'
+                    hideMaxButton={!offering}
+                  />
+                  <Button
+                    variant='outline'
+                    className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                    onClick={() => removeToken(i)}
+                  >
+                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
