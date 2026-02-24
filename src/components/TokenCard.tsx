@@ -42,6 +42,7 @@ import { toast } from 'react-toastify';
 import { TokenRecord } from '../bindings';
 import { AssetIcon } from './AssetIcon';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Separator } from './ui/separator';
 
 interface TokenCardProps {
   asset: TokenRecord;
@@ -86,8 +87,8 @@ export function TokenCard({
   return (
     <>
       <Card>
-        <CardHeader className='flex flex-col pb-2'>
-          <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>
+        <CardHeader className='flex flex-col pb-2 gap-0.5'>
+          <div className='flex flex-row justify-between items-center space-x-2'>
             <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
               <span className='truncate'>
                 <NumberFormat
@@ -103,7 +104,7 @@ export function TokenCard({
               <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>
-          <div className='text-xs text-muted-foreground'>
+          <div className='text-base text-muted-foreground'>
             {asset?.selectable_balance !== undefined && (
               <>
                 <NumberFormat
@@ -118,6 +119,7 @@ export function TokenCard({
               </>
             )}
           </div>
+          <Separator />
           <div className='text-sm text-muted-foreground'>
             <NumberFormat
               value={balanceInUsd}
