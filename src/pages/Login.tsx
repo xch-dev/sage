@@ -11,6 +11,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import {
   closestCenter,
@@ -35,6 +41,7 @@ import {
   ClockPlusIcon,
   CogIcon,
   EyeIcon,
+  InfoIcon,
   UserRoundKeyIcon,
   UserRoundPlusIcon,
   VaultIcon,
@@ -141,52 +148,85 @@ export default function Login() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className='w-40' align='start'>
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>
-                        <Trans>Standard</Trans>
-                      </DropdownMenuLabel>
+                    <TooltipProvider delayDuration={100}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Standard</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Uses a 12 or 24 word seed phrase to derive BLS
+                                keys
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
 
-                      <DropdownMenuItem onClick={() => navigate('/create')}>
-                        <UserRoundPlusIcon className='h-4 w-4 mr-2' />
-                        <Trans>Create</Trans>
-                      </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                          <UserRoundPlusIcon className='h-4 w-4 mr-2' />
+                          <Trans>Create</Trans>
+                        </DropdownMenuItem>
 
-                      <DropdownMenuItem onClick={() => navigate('/import')}>
-                        <UserRoundKeyIcon className='h-4 w-4 mr-2' />
-                        <Trans>Import</Trans>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
+                        <DropdownMenuItem onClick={() => navigate('/import')}>
+                          <UserRoundKeyIcon className='h-4 w-4 mr-2' />
+                          <Trans>Import</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
 
-                    <DropdownMenuSeparator />
+                      <DropdownMenuSeparator />
 
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>
-                        <Trans>Vault</Trans>
-                      </DropdownMenuLabel>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Vault</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Uses the secure element and a BLS recovery key
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
 
-                      <DropdownMenuItem onClick={() => navigate('/create')}>
-                        <VaultIcon className='h-4 w-4 mr-2' />
-                        <Trans>Mint</Trans>
-                      </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                          <VaultIcon className='h-4 w-4 mr-2' />
+                          <Trans>Mint</Trans>
+                        </DropdownMenuItem>
 
-                      <DropdownMenuItem onClick={() => navigate('/import')}>
-                        <ClockPlusIcon className='h-4 w-4 mr-2' />
-                        <Trans>Recover</Trans>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
+                        <DropdownMenuItem onClick={() => navigate('/import')}>
+                          <ClockPlusIcon className='h-4 w-4 mr-2' />
+                          <Trans>Recover</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
 
-                    <DropdownMenuSeparator />
+                      <DropdownMenuSeparator />
 
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>
-                        <Trans>Other</Trans>
-                      </DropdownMenuLabel>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Other</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Provides a read-only view of a wallet
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
 
-                      <DropdownMenuItem onClick={() => navigate('/create')}>
-                        <EyeIcon className='h-4 w-4 mr-2' />
-                        <Trans>Watch Address</Trans>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
+                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                          <EyeIcon className='h-4 w-4 mr-2' />
+                          <Trans>Watch Address</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </TooltipProvider>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
