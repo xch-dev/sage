@@ -8,12 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toDecimal, toMojos } from '@/lib/utils';
@@ -21,7 +15,7 @@ import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { ArrowUpToLine, HandCoins, Handshake } from 'lucide-react';
+import { HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -62,13 +56,6 @@ export function Swap() {
 
     return () => clearInterval(interval);
   }, [updateCats]);
-
-  const setMaxTokenAmount = () => {
-    const token = ownedTokens.find((t) => t.asset_id === payAssetId);
-    if (token) {
-      setPayAmount(toDecimal(token.balance, token.precision));
-    }
-  };
 
   const updateReceiveAmount = useCallback(
     async (receiveAssetId: string | null, payAmount: string) => {
@@ -220,7 +207,7 @@ export function Swap() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='underlying-amount'
-                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                    className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={payAmount}
                     onChange={(e) => {
@@ -230,25 +217,27 @@ export function Swap() {
                       }
                     }}
                     precision={payAssetId === null ? 12 : 3}
+                    maxValue={
+                      payAssetId !== undefined
+                        ? (() => {
+                            const token = ownedTokens.find(
+                              (t) => t.asset_id === payAssetId,
+                            );
+                            if (!token) return undefined;
+                            const balance = BigNumber(
+                              toDecimal(
+                                token.selectable_balance,
+                                token.precision,
+                              ),
+                            );
+                            return BigNumber.max(
+                              0,
+                              balance.minus(payAssetId === null ? fee || 0 : 0),
+                            ).toString();
+                          })()
+                        : undefined
+                    }
                   />
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant='outline'
-                          className='!border-l-0 !rounded-l-none h-12 px-2 text-xs'
-                          onClick={setMaxTokenAmount}
-                          disabled={payAssetId === undefined}
-                        >
-                          <ArrowUpToLine className='h-3 w-3 mr-1' />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <Trans>Use maximum balance</Trans>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </div>
 
@@ -296,6 +285,7 @@ export function Swap() {
                       }
                     }}
                     precision={receiveAssetId === null ? 12 : 3}
+                    hideMaxButton={true}
                   />
                 </div>
               </div>
