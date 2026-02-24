@@ -1,6 +1,15 @@
 import SafeAreaView from '@/components/SafeAreaView';
 import { WalletCard } from '@/components/WalletCard';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useErrors } from '@/hooks/useErrors';
 import {
@@ -22,7 +31,14 @@ import {
 } from '@dnd-kit/sortable';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
-import { CogIcon } from 'lucide-react';
+import {
+  ClockPlusIcon,
+  CogIcon,
+  EyeIcon,
+  UserRoundKeyIcon,
+  UserRoundPlusIcon,
+  VaultIcon,
+} from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -117,12 +133,62 @@ export default function Login() {
                 >
                   <CogIcon className='h-5 w-5' aria-hidden='true' />
                 </Button>
-                <Button variant='outline' onClick={() => navigate('/import')}>
-                  <Trans>Import</Trans>
-                </Button>
-                <Button onClick={() => navigate('/create')}>
-                  <Trans>Create</Trans>
-                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <Trans>Add Wallet</Trans>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className='w-40' align='start'>
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>
+                        <Trans>Standard</Trans>
+                      </DropdownMenuLabel>
+
+                      <DropdownMenuItem onClick={() => navigate('/create')}>
+                        <UserRoundPlusIcon className='h-4 w-4 mr-2' />
+                        <Trans>Create</Trans>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem onClick={() => navigate('/import')}>
+                        <UserRoundKeyIcon className='h-4 w-4 mr-2' />
+                        <Trans>Import</Trans>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>
+                        <Trans>Vault</Trans>
+                      </DropdownMenuLabel>
+
+                      <DropdownMenuItem onClick={() => navigate('/create')}>
+                        <VaultIcon className='h-4 w-4 mr-2' />
+                        <Trans>Mint</Trans>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem onClick={() => navigate('/import')}>
+                        <ClockPlusIcon className='h-4 w-4 mr-2' />
+                        <Trans>Recover</Trans>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>
+                        <Trans>Other</Trans>
+                      </DropdownMenuLabel>
+
+                      <DropdownMenuItem onClick={() => navigate('/create')}>
+                        <EyeIcon className='h-4 w-4 mr-2' />
+                        <Trans>Watch Address</Trans>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </>
           )}
