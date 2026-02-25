@@ -54,15 +54,15 @@ import { loginAndUpdateState, logoutAndUpdateState } from '../state';
 interface WalletCardProps {
   draggable?: boolean;
   info: WalletRecord;
-  keys: WalletRecord[];
-  setKeys: (keys: WalletRecord[]) => void;
+  wallets: WalletRecord[];
+  setWallets: (wallets: WalletRecord[]) => void;
 }
 
 export function WalletCard({
   draggable,
   info,
-  keys,
-  setKeys,
+  wallets,
+  setWallets,
 }: WalletCardProps) {
   const navigate = useNavigate();
   const { addError } = useErrors();
@@ -84,7 +84,7 @@ export function WalletCard({
       await commands
         .deleteWallet({ fingerprint: info.fingerprint })
         .then(() =>
-          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+          setWallets(wallets.filter((wallet) => wallet.fingerprint !== info.fingerprint)),
         )
         .catch(addError);
     }
@@ -98,11 +98,11 @@ export function WalletCard({
     commands
       .renameWallet({ fingerprint: info.fingerprint, name: newName })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint
-              ? { ...key, name: newName }
-              : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint
+              ? { ...wallet, name: newName }
+              : wallet,
           ),
         ),
       )
@@ -116,9 +116,9 @@ export function WalletCard({
     commands
       .setWalletEmoji({ fingerprint: info.fingerprint, emoji })
       .then(() =>
-        setKeys(
-          keys.map((key) =>
-            key.fingerprint === info.fingerprint ? { ...key, emoji } : key,
+        setWallets(
+          wallets.map((wallet) =>
+            wallet.fingerprint === info.fingerprint ? { ...wallet, emoji } : wallet,
           ),
         ),
       )

@@ -30,14 +30,14 @@ import Container from '../components/Container';
 export default function Keys() {
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<WalletRecord[] | null>(null);
+  const [wallets, setWallets] = useState<WalletRecord[] | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [newMnemonic, setNewMnemonic] = useState('');
 
   useEffect(() => {
     commands
       .getWallets({})
-      .then((data) => setKeys(data.wallets))
+      .then((data) => setWallets(data.wallets))
       .catch(addError);
   }, [addError]);
 
@@ -77,11 +77,11 @@ export default function Keys() {
               </div>
             </CardHeader>
             <CardContent>
-              {keys === null ? (
+              {wallets === null ? (
                 <div className='text-sm text-muted-foreground'>
                   <Trans>Loading...</Trans>
                 </div>
-              ) : keys.length === 0 ? (
+              ) : wallets.length === 0 ? (
                 <div className='text-sm text-muted-foreground text-center py-4'>
                   <Trans>
                     No BLS keys found. Generate or import one to get started
@@ -89,24 +89,24 @@ export default function Keys() {
                 </div>
               ) : (
                 <div className='space-y-2'>
-                  {keys.map((key) => (
+                  {wallets.map((wallet) => (
                     <div
-                      key={key.fingerprint}
+                      key={wallet.fingerprint}
                       className='flex items-center justify-between rounded-lg border p-3'
                     >
                       <div className='flex items-center gap-3'>
-                        {key.emoji && (
-                          <span className='text-lg'>{key.emoji}</span>
+                        {wallet.emoji && (
+                          <span className='text-lg'>{wallet.emoji}</span>
                         )}
                         <div>
-                          <div className='font-medium text-sm'>{key.name}</div>
+                          <div className='font-medium text-sm'>{wallet.name}</div>
                           <div className='text-xs text-muted-foreground'>
-                            <Trans>Fingerprint:</Trans> {key.fingerprint}
+                            <Trans>Fingerprint:</Trans> {wallet.fingerprint}
                           </div>
                         </div>
                       </div>
                       <div className='flex items-center gap-1'>
-                        {key.type === 'bls' && key.has_secrets ? (
+                        {wallet.type === 'bls' && wallet.has_secrets ? (
                           <Badge variant='default' className='text-xs'>
                             <Trans>Hot</Trans>
                           </Badge>

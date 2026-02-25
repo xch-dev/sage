@@ -1038,7 +1038,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
-  const [key, setKey] = useState<WalletRecord | null>(null);
+  const [walletRecord, setWalletRecord] = useState<WalletRecord | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
@@ -1101,7 +1101,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   useEffect(() => {
     commands
       .getWallet({ fingerprint })
-      .then((data) => setKey(data.wallet))
+      .then((data) => setWalletRecord(data.wallet))
       .catch(addError);
   }, [addError, fingerprint]);
 
@@ -1209,7 +1209,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     commands
       .increaseDerivationIndex({
         index: parseInt(values.index),
-        hardened: key?.type === 'bls' && key?.has_secrets && hardened,
+        hardened: walletRecord?.type === 'bls' && walletRecord?.has_secrets && hardened,
         unhardened,
       })
       .then(() => {
