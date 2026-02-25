@@ -170,6 +170,7 @@ impl Wallet {
 
                     spends.add(option);
                 }
+                Some(CoinKind::Vault) => return Err(WalletError::CannotSelectVaultCoins),
                 None => return Err(WalletError::MissingCoin(coin_id)),
             }
         }
@@ -280,6 +281,9 @@ impl Wallet {
                             .ok_or(WalletError::MissingOption(asset_id))?;
 
                         spends.add(option);
+                    }
+                    Some(AssetKind::Vault) => {
+                        return Err(WalletError::CannotSelectVaultCoins);
                     }
                     None => {
                         if required_amount == 0 && !deltas.is_needed(&id) {

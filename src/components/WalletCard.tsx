@@ -38,6 +38,7 @@ import {
   RefreshCcw,
   SnowflakeIcon,
   TrashIcon,
+  VaultIcon,
   WalletIcon,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -341,21 +342,39 @@ export function WalletCard({
         <CardContent className='p-0 px-5 pb-5'>
           <div className='flex items-center justify-between'>
             <span className='text-muted-foreground'>{info.fingerprint}</span>
-            {info.type === 'bls' && info.has_secrets ? (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
-                <FlameIcon className='h-4 w-4' />
-                <span>
-                  <Trans>Hot</Trans>
-                </span>
-              </div>
-            ) : (
-              <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
-                <SnowflakeIcon className='h-4 w-4' />
-                <span>
-                  <Trans>Cold</Trans>
-                </span>
-              </div>
-            )}
+            <div className='inline-flex gap-1 items-center rounded-full px-3 py-1.5 text-xs bg-muted'>
+              {info.type === 'bls' ? (
+                info.has_secrets ? (
+                  <>
+                    <FlameIcon className='h-3.5 w-3.5' />
+                    <span>
+                      <Trans>Hot</Trans>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <SnowflakeIcon className='h-3.5 w-3.5' />
+                    <span>
+                      <Trans>Cold</Trans>
+                    </span>
+                  </>
+                )
+              ) : info.type === 'vault' ? (
+                <>
+                  <VaultIcon className='h-3.5 w-3.5' />
+                  <span>
+                    <Trans>Vault</Trans>
+                  </span>
+                </>
+              ) : (
+                <>
+                  <EyeIcon className='h-3.5 w-3.5' />
+                  <span>
+                    <Trans>Watch</Trans>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

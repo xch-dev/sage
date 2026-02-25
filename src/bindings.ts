@@ -419,7 +419,7 @@ export type Asset = { asset_id: string | null; name: string | null; ticker: stri
  * Type of asset coin
  */
 export type AssetCoinType = "cat" | "did" | "nft"
-export type AssetKind = "token" | "nft" | "did" | "option"
+export type AssetKind = "token" | "nft" | "did" | "option" | "vault"
 /**
  * Assign NFTs to a DID
  */

@@ -107,6 +107,9 @@ pub enum WalletError {
     #[error("Missing asset with id {0}")]
     MissingAsset(Bytes32),
 
+    #[error("Cannot select vault coins")]
+    CannotSelectVaultCoins,
+
     #[error("Uncancellable offer")]
     UncancellableOffer,
 

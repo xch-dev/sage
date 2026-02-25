@@ -523,6 +523,8 @@ async fn p2_puzzle_kind(
         1 => P2PuzzleKind::Clawback,
         2 => P2PuzzleKind::Option,
         3 => P2PuzzleKind::Arbor,
+        4 => P2PuzzleKind::Vault,
+        5 => P2PuzzleKind::External,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }
