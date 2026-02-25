@@ -82,7 +82,7 @@ impl Sage {
     pub async fn get_sync_status(&self, _req: GetSyncStatus) -> Result<GetSyncStatusResponse> {
         let wallet = self.wallet()?;
 
-        let balance = wallet.db.xch_balance().await?;
+        let selectable_balance = wallet.db.selectable_xch_balance().await?;
         let total_coins = wallet.db.total_coin_count().await?;
         let synced_coins = wallet.db.synced_coin_count().await?;
 
@@ -98,7 +98,7 @@ impl Sage {
             .map_or(0, |metadata| metadata.len());
 
         Ok(GetSyncStatusResponse {
-            balance: Amount::u128(balance),
+            selectable_balance: Amount::u128(selectable_balance),
             unit: self.unit.clone(),
             total_coins,
             synced_coins,
@@ -265,6 +265,7 @@ impl Sage {
 
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
+            let selectable_balance = wallet.db.selectable_cat_balance(cat.hash).await?;
 
             records.push(TokenRecord {
                 asset_id: (cat.hash != Bytes32::default()).then(|| hex::encode(cat.hash)),
@@ -275,6 +276,7 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                selectable_balance: Amount::u128(selectable_balance),
                 revocation_address: cat
                     .hidden_puzzle_hash
                     .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
@@ -294,6 +296,7 @@ impl Sage {
 
         for cat in cats {
             let balance = wallet.db.cat_balance(cat.hash).await?;
+            let selectable_balance = wallet.db.selectable_cat_balance(cat.hash).await?;
 
             records.push(TokenRecord {
                 asset_id: (cat.hash != Bytes32::default()).then(|| hex::encode(cat.hash)),
@@ -304,6 +307,7 @@ impl Sage {
                 icon_url: cat.icon_url,
                 visible: cat.is_visible,
                 balance: Amount::u128(balance),
+                selectable_balance: Amount::u128(selectable_balance),
                 revocation_address: cat
                     .hidden_puzzle_hash
                     .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
@@ -323,8 +327,10 @@ impl Sage {
             .transpose()?
             .unwrap_or_default();
         let token = wallet.db.asset(asset_id).await?;
-        // TODO: Empty hash is xch even though it says cat. Is this confusing?
         let balance = wallet.db.cat_balance(asset_id).await?;
+        // selectable_cat_balance works for any token including xch
+        // holde over from when cats and xch were distinct entities
+        let selectable_balance = wallet.db.selectable_cat_balance(asset_id).await?;
 
         let token = token
             .map(|cat| {
@@ -337,6 +343,7 @@ impl Sage {
                     icon_url: cat.icon_url,
                     visible: cat.is_visible,
                     balance: Amount::u128(balance),
+                    selectable_balance: Amount::u128(selectable_balance),
                     revocation_address: cat
                         .hidden_puzzle_hash
                         .map(|puzzle_hash| {

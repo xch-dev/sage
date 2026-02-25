@@ -5,6 +5,15 @@ import * as React from 'react';
 import { NumericFormat, NumericFormatProps } from 'react-number-format';
 import { toast } from 'react-toastify';
 import { Input, InputProps } from './input';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Trans } from '@lingui/react/macro';
+import { ArrowUpToLine } from 'lucide-react';
 
 interface MaskedInputProps extends NumericFormatProps<InputProps> {
   inputRef?: React.Ref<HTMLInputElement>;
@@ -63,30 +72,122 @@ MaskedInput.displayName = 'MaskedInput';
 interface TokenInputProps extends MaskedInputProps {
   precision?: number;
   ticker?: string | null;
+  maxValue?: string;
+  maxButtonClassName?: string;
+  hideMaxButton?: boolean;
 }
 
 const TokenAmountInput = React.forwardRef<HTMLInputElement, TokenInputProps>(
-  ({ precision = 12, ticker = null, ...props }, ref) => {
+  (
+    {
+      precision = 12,
+      ticker = null,
+      maxValue,
+      maxButtonClassName,
+      hideMaxButton = false,
+      onChange,
+      onValueChange,
+      ...props
+    },
+    ref,
+  ) => {
     const walletState = useWalletState();
 
+    const handleMaxClick = () => {
+      if (!maxValue) return;
+      if (onChange) {
+        onChange({
+          target: { value: maxValue },
+        } as React.ChangeEvent<HTMLInputElement>);
+      }
+      if (onValueChange) {
+        (
+          onValueChange as (values: {
+            floatValue: number | undefined;
+            formattedValue: string;
+            value: string;
+          }) => void
+        )({
+          floatValue: parseFloat(maxValue),
+          formattedValue: maxValue,
+          value: maxValue,
+        });
+      }
+    };
+
+    // Extract height class from className (e.g. 'h-12') to apply to the button
+    const heightClass = props.className?.match(/\bh-\d+\b/)?.[0] || 'h-9';
+
+    if (hideMaxButton) {
+      return (
+        <div className='relative'>
+          <MaskedInput
+            placeholder='0.00'
+            onChange={onChange}
+            onValueChange={onValueChange}
+            {...props}
+            type='text'
+            inputRef={ref}
+            decimalScale={precision}
+            allowLeadingZeros={true}
+            allowNegative={false}
+          />
+          {ticker && (
+            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+              <span className='text-muted-foreground text-sm'>
+                {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
+              </span>
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className='relative'>
-        <MaskedInput
-          placeholder='0.00'
-          {...props}
-          type='text'
-          inputRef={ref}
-          decimalScale={precision}
-          allowLeadingZeros={true}
-          allowNegative={false}
-        />
-        {ticker && (
-          <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-            <span className='text-muted-foreground text-sm'>
-              {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
-            </span>
-          </div>
-        )}
+      <div className='flex'>
+        <div className='relative flex-1'>
+          <MaskedInput
+            placeholder='0.00'
+            onChange={onChange}
+            onValueChange={onValueChange}
+            {...props}
+            type='text'
+            inputRef={ref}
+            decimalScale={precision}
+            allowLeadingZeros={true}
+            allowNegative={false}
+            className={`!rounded-r-none ${props.className || ''}`}
+          />
+          {ticker && (
+            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
+              <span className='text-muted-foreground text-sm'>
+                {ticker === 'xch' ? walletState.sync.unit.ticker : ticker}
+              </span>
+            </div>
+          )}
+        </div>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant='outline'
+                type='button'
+                tabIndex={-1}
+                className={`!border-l-0 !rounded-l-none flex-shrink-0 ${heightClass} w-10 px-0 ${maxButtonClassName || ''}`}
+                onClick={handleMaxClick}
+                disabled={!maxValue}
+              >
+                <ArrowUpToLine className='h-4 w-4' />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <Trans>Use maximum spendable balance</Trans>
+              <div className='text-xs text-muted-foreground'>
+                <Trans>Fees subtracted when applicable</Trans>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   },
@@ -169,6 +270,7 @@ const FeeAmountInput = React.forwardRef<HTMLInputElement, FeeAmountInputProps>(
           className={`pr-12 ${className || ''}`}
           ticker='xch'
           precision={12}
+          hideMaxButton={true}
         />
       </div>
     );
