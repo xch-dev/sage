@@ -33,10 +33,11 @@ pub use options::*;
 
 use crate::WalletError;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum WalletInfo {
     Bls { intermediate_pk: PublicKey },
     Vault { launcher_id: Bytes32 },
+    Watch { p2_puzzle_hashes: Vec<Bytes32> },
 }
 
 #[derive(Debug)]
@@ -387,6 +388,7 @@ impl Wallet {
                                 ),
                             )?,
                         P2Puzzle::Vault(_) => todo!(),
+                        P2Puzzle::External => return Err(DriverError::MissingKey.into()),
                     }
                 }
                 SpendKind::Settlement(spend) => SettlementLayer

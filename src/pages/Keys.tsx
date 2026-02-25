@@ -24,13 +24,13 @@ import { Trans } from '@lingui/react/macro';
 import { KeyIcon, PlusIcon, ShieldIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, KeyInfo } from '../bindings';
+import { commands, WalletRecord } from '../bindings';
 import Container from '../components/Container';
 
 export default function Keys() {
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [keys, setKeys] = useState<WalletRecord[] | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [newMnemonic, setNewMnemonic] = useState('');
 
@@ -67,9 +67,7 @@ export default function Keys() {
                     <Trans>BLS Keys</Trans>
                   </CardTitle>
                   <CardDescription>
-                    <Trans>
-                      BLS keys derived from mnemonic seed phrases.
-                    </Trans>
+                    <Trans>BLS keys derived from mnemonic seed phrases.</Trans>
                   </CardDescription>
                 </div>
                 <Button size='sm' onClick={openGenerateDialog}>
@@ -85,7 +83,9 @@ export default function Keys() {
                 </div>
               ) : keys.length === 0 ? (
                 <div className='text-sm text-muted-foreground text-center py-4'>
-                  <Trans>No BLS keys found. Generate or import one to get started</Trans>
+                  <Trans>
+                    No BLS keys found. Generate or import one to get started
+                  </Trans>
                 </div>
               ) : (
                 <div className='space-y-2'>
@@ -106,7 +106,7 @@ export default function Keys() {
                         </div>
                       </div>
                       <div className='flex items-center gap-1'>
-                        {key.has_secrets ? (
+                        {key.type === 'bls' && key.has_secrets ? (
                           <Badge variant='default' className='text-xs'>
                             <Trans>Hot</Trans>
                           </Badge>
@@ -131,8 +131,8 @@ export default function Keys() {
               </CardTitle>
               <CardDescription>
                 <Trans>
-                  Hardware-backed keys stored in the device&apos;s secure element.
-                  Coming soon.
+                  Hardware-backed keys stored in the device&apos;s secure
+                  element. Coming soon.
                 </Trans>
               </CardDescription>
             </CardHeader>

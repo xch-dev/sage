@@ -115,6 +115,7 @@ impl Sage {
                         ctx.curry(DelegatedPuzzleFeederArgs::new(member))?;
                     ctx.curry(IndexWrapperArgs::new(0, delegated_puzzle_feeder))?
                 }
+                P2Puzzle::External => NodePtr::NIL, // TODO: What should we do here?
             };
 
             let (puzzle, proof) = match req.kind {

@@ -4,6 +4,7 @@
   "resync": true,
   "generate_mnemonic": false,
   "import_key": true,
+  "import_addresses": true,
   "delete_key": false,
   "delete_database": false,
   "rename_key": false,

@@ -5,7 +5,9 @@ use chia_wallet_sdk::{
         bls::DerivableKey,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::mips_puzzle_hash,
     prelude::*,
+    types::puzzles::SingletonMember,
 };
 use sage_database::{DatabaseTx, Derivation};
 
@@ -86,6 +88,17 @@ impl Wallet {
         if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
             return Ok(change_p2_puzzle_hash);
         }
-        Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
+
+        match &self.info {
+            WalletInfo::Bls { .. } => Ok(self.p2_puzzle_hashes(1, false, true).await?[0]),
+            WalletInfo::Vault { launcher_id } => Ok(mips_puzzle_hash(
+                0,
+                vec![],
+                SingletonMember::new(*launcher_id).curry_tree_hash(),
+                true,
+            )
+            .into()),
+            WalletInfo::Watch { p2_puzzle_hashes } => Ok(p2_puzzle_hashes[0]),
+        }
     }
 }

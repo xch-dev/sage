@@ -21,6 +21,10 @@ pub enum KeyData {
         #[serde_as(as = "Bytes")]
         launcher_id: [u8; 32],
     },
+    Watch {
+        #[serde_as(as = "Vec<Bytes>")]
+        p2_puzzle_hashes: Vec<[u8; 32]>,
+    },
 }
 
 #[serde_as]

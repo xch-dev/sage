@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{KeyInfo, SecretKeyInfo};
+use crate::{SecretKeyInfo, WalletRecord};
 
 /// Login to a wallet using a fingerprint
 #[cfg_attr(
@@ -197,6 +197,46 @@ pub struct ImportKeyResponse {
     pub fingerprint: u32,
 }
 
+/// Import a read-only wallet using a list of addresses. Optionally logs in.
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Import a read-only wallet using a list of addresses. Optionally logs in."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportAddresses {
+    /// Display name for the wallet
+    pub name: String,
+    /// List of addresses
+    pub addresses: Vec<String>,
+    /// Whether to automatically login after import
+    #[serde(default = "yes")]
+    #[cfg_attr(feature = "openapi", schema(default = true))]
+    pub login: bool,
+    /// Optional emoji identifier
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub emoji: Option<String>,
+}
+
+/// Response with imported wallet fingerprint
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ImportAddressesResponse {
+    /// Fingerprint of the imported wallet
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+}
+
 /// Delete a wallet database
 #[cfg_attr(
     feature = "openapi",
@@ -331,8 +371,8 @@ pub struct GetKeys {}
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetKeysResponse {
-    /// List of wallet keys
-    pub keys: Vec<KeyInfo>,
+    /// List of wallet records
+    pub keys: Vec<WalletRecord>,
 }
 
 /// Get a specific wallet key
@@ -362,9 +402,9 @@ pub struct GetKey {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetKeyResponse {
-    /// Key information if found
+    /// Wallet record if found
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub key: Option<KeyInfo>,
+    pub key: Option<WalletRecord>,
 }
 
 /// Get wallet secret key

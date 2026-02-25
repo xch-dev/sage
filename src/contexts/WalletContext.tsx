@@ -1,12 +1,12 @@
-import { KeyInfo, commands } from '@/bindings';
+import { WalletRecord, commands } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { fetchState, initializeWalletState } from '@/state';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 interface WalletContextType {
-  wallet: KeyInfo | null;
-  setWallet: (wallet: KeyInfo | null) => void;
+  wallet: WalletRecord | null;
+  setWallet: (wallet: WalletRecord | null) => void;
   isSwitching: boolean;
   setIsSwitching: (isSwitching: boolean) => void;
 }
@@ -16,7 +16,7 @@ export const WalletContext = createContext<WalletContextType | undefined>(
 );
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const [wallet, setWallet] = useState<KeyInfo | null>(null);
+  const [wallet, setWallet] = useState<WalletRecord | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
   const { addError } = useErrors();
 

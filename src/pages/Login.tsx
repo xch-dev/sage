@@ -49,7 +49,7 @@ import {
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, KeyInfo } from '../bindings';
+import { commands, WalletRecord } from '../bindings';
 import Container from '../components/Container';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
@@ -57,7 +57,7 @@ const isMobile = platform() === 'ios' || platform() === 'android';
 export default function Login() {
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [keys, setKeys] = useState<WalletRecord[] | null>(null);
 
   useEffect(() => {
     commands
@@ -147,7 +147,7 @@ export default function Login() {
                       <Trans>Add Wallet</Trans>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className='w-40' align='start'>
+                  <DropdownMenuContent className='w-40' align='end'>
                     <TooltipProvider delayDuration={100}>
                       <DropdownMenuGroup>
                         <DropdownMenuLabel className='flex items-center justify-between'>
@@ -193,12 +193,16 @@ export default function Login() {
                           </Tooltip>
                         </DropdownMenuLabel>
 
-                        <DropdownMenuItem onClick={() => navigate('/vault/mint')}>
+                        <DropdownMenuItem
+                          onClick={() => navigate('/vault/mint')}
+                        >
                           <VaultIcon className='h-4 w-4 mr-2' />
                           <Trans>Mint</Trans>
                         </DropdownMenuItem>
 
-                        <DropdownMenuItem onClick={() => navigate('/vault/recover')}>
+                        <DropdownMenuItem
+                          onClick={() => navigate('/vault/recover')}
+                        >
                           <ClockPlusIcon className='h-4 w-4 mr-2' />
                           <Trans>Recover</Trans>
                         </DropdownMenuItem>

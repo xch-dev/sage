@@ -298,6 +298,10 @@ impl Sage {
             }
         } else if let Some(launcher_id) = self.keychain.extract_vault_id(fingerprint) {
             WalletInfo::Vault { launcher_id }
+        } else if let Some(p2_puzzle_hashes) =
+            self.keychain.extract_watch_p2_puzzle_hashes(fingerprint)
+        {
+            WalletInfo::Watch { p2_puzzle_hashes }
         } else {
             return Err(Error::UnknownFingerprint);
         };

@@ -23,6 +23,9 @@ async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse
 async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
     return await TAURI_INVOKE("import_key", { req });
 },
+async importAddresses(req: ImportAddresses) : Promise<ImportAddressesResponse> {
+    return await TAURI_INVOKE("import_addresses", { req });
+},
 async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
     return await TAURI_INVOKE("delete_key", { req });
 },
@@ -1079,9 +1082,9 @@ fingerprint?: number | null }
  */
 export type GetKeyResponse = { 
 /**
- * Key information if found
+ * Wallet record if found
  */
-key: KeyInfo | null }
+key: WalletRecord | null }
 /**
  * List all wallet keys
  */
@@ -1091,9 +1094,9 @@ export type GetKeys = Record<string, never>
  */
 export type GetKeysResponse = { 
 /**
- * List of wallet keys
+ * List of wallet records
  */
-keys: KeyInfo[] }
+keys: WalletRecord[] }
 /**
  * Get minter DIDs with pagination
  */
@@ -1614,6 +1617,34 @@ export type Id =
  */
 { type: "new"; index: number }
 /**
+ * Import a read-only wallet using a list of addresses. Optionally logs in.
+ */
+export type ImportAddresses = { 
+/**
+ * Display name for the wallet
+ */
+name: string; 
+/**
+ * List of addresses
+ */
+addresses: string[]; 
+/**
+ * Whether to automatically login after import
+ */
+login?: boolean; 
+/**
+ * Optional emoji identifier
+ */
+emoji?: string | null }
+/**
+ * Response with imported wallet fingerprint
+ */
+export type ImportAddressesResponse = { 
+/**
+ * Fingerprint of the imported wallet
+ */
+fingerprint: number }
+/**
  * Import a wallet key
  */
 export type ImportKey = { 
@@ -1734,8 +1765,6 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
-export type KeyKind = "bls"
 /**
  * Lineage proof for CAT coins
  */
@@ -2746,6 +2775,7 @@ offer: OfferSummary;
 status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
+export type WalletRecord = ({ type: "bls"; public_key: string; has_secrets: boolean } | { type: "vault"; launcher_id: string } | { type: "watch"; addresses: string[] }) & { name: string; fingerprint: number; network_id: string; emoji: string | null }
 
 /** tauri-specta globals **/
 

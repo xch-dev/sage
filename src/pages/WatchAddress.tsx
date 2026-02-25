@@ -18,16 +18,20 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { LoadingButton } from '@/components/ui/loading-button';
 import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+import { useWallet } from '@/contexts/WalletContext';
+import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-toastify';
 import * as z from 'zod';
+import { commands } from '../bindings';
 import Container from '../components/Container';
+import { fetchState } from '../state';
 
 const formSchema = z.object({
   name: z.string().min(1),
@@ -37,13 +41,39 @@ const formSchema = z.object({
 
 export default function WatchAddress() {
   const navigate = useNavigate();
+  const { addError } = useErrors();
+  const { setWallet } = useWallet();
+  const [pending, setPending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
-  const onSubmit = () => {
-    toast.success(t`Watch address is not yet implemented.`);
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    const addresses = values.addresses
+      .split('\n')
+      .map((a) => a.trim())
+      .filter((a) => a.length > 0);
+
+    if (addresses.length === 0) return;
+
+    setPending(true);
+
+    commands
+      .importAddresses({
+        name: values.name,
+        addresses,
+        login: true,
+        emoji: values.emoji || null,
+      })
+      .then(async () => {
+        await fetchState();
+        const data = await commands.getKey({});
+        setWallet(data.key);
+        navigate('/wallet');
+      })
+      .catch(addError)
+      .finally(() => setPending(false));
   };
 
   return (
@@ -77,7 +107,11 @@ export default function WatchAddress() {
                         <Trans>Wallet Name</Trans>
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder={t`Enter wallet name`} required {...field} />
+                        <Input
+                          placeholder={t`Enter wallet name`}
+                          required
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -138,9 +172,14 @@ export default function WatchAddress() {
                   )}
                 />
 
-                <Button type='submit'>
+                <LoadingButton
+                  type='submit'
+                  loading={pending}
+                  loadingText={t`Importing`}
+                  disabled={!form.formState.isValid}
+                >
                   <Trans>Watch</Trans>
-                </Button>
+                </LoadingButton>
               </form>
             </Form>
           </CardContent>

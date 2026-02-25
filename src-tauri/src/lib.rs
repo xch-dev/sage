@@ -29,6 +29,7 @@ pub fn run() {
             commands::resync,
             commands::generate_mnemonic,
             commands::import_key,
+            commands::import_addresses,
             commands::delete_key,
             commands::delete_database,
             commands::rename_key,

@@ -10,15 +10,17 @@ use chia_wallet_sdk::{
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
+    utils::Bech32Error,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
     DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
     GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
-    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
-    SetWalletEmoji, SetWalletEmojiResponse,
+    GetSecretKeyResponse, ImportAddresses, ImportAddressesResponse, ImportKey, ImportKeyResponse,
+    Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync,
+    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletKind,
+    WalletRecord,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -255,6 +257,53 @@ impl Sage {
         Ok(ImportKeyResponse { fingerprint })
     }
 
+    pub async fn import_addresses(
+        &mut self,
+        req: ImportAddresses,
+    ) -> Result<ImportAddressesResponse> {
+        let p2_puzzle_hashes = req
+            .addresses
+            .into_iter()
+            .map(|address| self.parse_address(address))
+            .collect::<Result<Vec<Bytes32>>>()?;
+
+        if p2_puzzle_hashes.is_empty() {
+            return Err(Error::EmptyAddressesList);
+        }
+
+        let fingerprint = self
+            .keychain
+            .add_watch_p2_puzzle_hashes(&p2_puzzle_hashes)?;
+
+        self.wallet_config.wallets.push(Wallet {
+            name: req.name,
+            fingerprint,
+            emoji: req.emoji,
+            ..Default::default()
+        });
+        self.config.global.fingerprint = Some(fingerprint);
+
+        self.save_keychain()?;
+        self.save_config()?;
+
+        let pool = self.connect_to_database(fingerprint).await?;
+        let db = Database::new(pool);
+
+        let mut tx = db.tx().await?;
+
+        for p2_puzzle_hash in p2_puzzle_hashes {
+            tx.insert_external_p2_puzzle(p2_puzzle_hash).await?;
+        }
+
+        tx.commit().await?;
+
+        if req.login {
+            self.switch_wallet().await?;
+        }
+
+        Ok(ImportAddressesResponse { fingerprint })
+    }
+
     pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {
         let path = self.path.join("wallets").join(req.fingerprint.to_string());
 
@@ -330,24 +379,16 @@ impl Sage {
             return Ok(GetKeyResponse { key: None });
         };
 
-        let wallet_config = self.wallet_config().cloned().unwrap_or_default();
-
-        let network_id = wallet_config.network.unwrap_or_else(|| self.network_id());
-
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-            return Ok(GetKeyResponse { key: None });
-        };
+        let wallet_config = self
+            .wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+            .cloned()
+            .ok_or(Error::UnknownFingerprint)?;
 
         Ok(GetKeyResponse {
-            key: Some(KeyInfo {
-                name: wallet_config.name,
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(fingerprint),
-                network_id,
-                emoji: wallet_config.emoji,
-            }),
+            key: self.wallet_record(&wallet_config)?,
         })
     }
 
@@ -366,24 +407,65 @@ impl Sage {
     }
 
     pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
-        let mut keys = Vec::new();
+        let mut wallets = Vec::new();
 
         for wallet in &self.wallet_config.wallets {
-            let Some(master_pk) = self.keychain.extract_public_key(wallet.fingerprint)? else {
-                continue;
-            };
-
-            keys.push(KeyInfo {
-                name: wallet.name.clone(),
-                fingerprint: wallet.fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
-                network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
-                emoji: wallet.emoji.clone(),
-            });
+            if let Some(record) = self.wallet_record(wallet)? {
+                wallets.push(record);
+            }
         }
 
-        Ok(GetKeysResponse { keys })
+        Ok(GetKeysResponse { keys: wallets })
+    }
+
+    fn wallet_record(&self, wallet: &Wallet) -> Result<Option<WalletRecord>> {
+        let name = wallet.name.clone();
+        let fingerprint = wallet.fingerprint;
+        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
+        let emoji = wallet.emoji.clone();
+
+        if let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? {
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Bls {
+                    public_key: hex::encode(master_pk.to_bytes()),
+                    has_secrets: self.keychain.has_secret_key(fingerprint),
+                },
+                network_id,
+                emoji,
+            }));
+        }
+
+        if let Some(launcher_id) = self.keychain.extract_vault_id(fingerprint) {
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Vault {
+                    launcher_id: launcher_id.to_string(),
+                },
+                network_id,
+                emoji,
+            }));
+        }
+
+        if let Some(p2_puzzle_hashes) = self.keychain.extract_watch_p2_puzzle_hashes(fingerprint) {
+            let addresses = p2_puzzle_hashes
+                .iter()
+                .map(|p2_puzzle_hash| {
+                    Address::new(*p2_puzzle_hash, self.network().prefix()).encode()
+                })
+                .collect::<std::result::Result<Vec<String>, Bech32Error>>()?;
+
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Watch { addresses },
+                network_id,
+                emoji,
+            }));
+        }
+
+        Ok(None)
     }
 }

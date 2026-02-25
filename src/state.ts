@@ -4,7 +4,7 @@ import {
   commands,
   events,
   GetSyncStatusResponse,
-  KeyInfo,
+  WalletRecord,
 } from './bindings';
 import { CustomError } from './contexts/ErrorContext';
 
@@ -133,10 +133,10 @@ export async function loginAndUpdateState(
 }
 
 // Create a separate function to handle wallet state updates
-let setWalletState: ((wallet: KeyInfo | null) => void) | null = null;
+let setWalletState: ((wallet: WalletRecord | null) => void) | null = null;
 
 export function initializeWalletState(
-  setter: (wallet: KeyInfo | null) => void,
+  setter: (wallet: WalletRecord | null) => void,
 ) {
   setWalletState = setter;
 }

@@ -9,11 +9,12 @@ use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum P2PuzzleKind {
-    PublicKey,
-    Clawback,
-    Option,
-    Arbor,
-    Vault,
+    PublicKey = 0,
+    Clawback = 1,
+    Option = 2,
+    Arbor = 3,
+    Vault = 4,
+    External = 5,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -23,6 +24,7 @@ pub enum P2Puzzle {
     Option(Underlying),
     Arbor(PublicKey),
     Vault(P2Vault),
+    External,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -124,6 +126,7 @@ impl Database {
 
                 Ok(P2Puzzle::Vault(P2Vault { launcher_id }))
             }
+            P2PuzzleKind::External => Ok(P2Puzzle::External),
         }
     }
 
@@ -194,10 +197,14 @@ impl DatabaseTx<'_> {
     pub async fn insert_vault_p2_puzzle(&mut self, vault: P2Vault) -> Result<()> {
         insert_vault_p2_puzzle(&mut *self.tx, vault).await
     }
+
+    pub async fn insert_external_p2_puzzle(&mut self, p2_puzzle_hash: Bytes32) -> Result<()> {
+        insert_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
+    }
 }
 
 async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4)")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4, 5)")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -232,7 +239,7 @@ async fn is_custody_p2_puzzle_hash(
     let puzzle_hash = puzzle_hash.as_ref();
 
     Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4)",
+        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4, 5)",
         puzzle_hash
     )
     .fetch_one(conn)
@@ -476,6 +483,24 @@ async fn insert_vault_p2_puzzle(conn: impl SqliteExecutor<'_>, vault: P2Vault) -
         p2_puzzle_hash,
         p2_puzzle_hash,
         launcher_id,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_external_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 5);
+        ",
+        p2_puzzle_hash
     )
     .execute(conn)
     .await?;

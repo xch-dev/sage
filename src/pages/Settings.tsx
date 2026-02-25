@@ -72,13 +72,13 @@ import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
-  KeyInfo,
   LogFile,
   Network,
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
   WalletDefaults,
+  WalletRecord,
 } from '../bindings';
 
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
@@ -1038,7 +1038,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
-  const [key, setKey] = useState<KeyInfo | null>(null);
+  const [key, setKey] = useState<WalletRecord | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
@@ -1209,7 +1209,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     commands
       .increaseDerivationIndex({
         index: parseInt(values.index),
-        hardened: key?.has_secrets && hardened,
+        hardened: key?.type === 'bls' && key?.has_secrets && hardened,
         unhardened,
       })
       .then(() => {

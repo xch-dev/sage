@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
-use rand::SeedableRng;
+use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
@@ -56,7 +56,7 @@ impl Keychain {
             Some(KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. }) => {
                 Ok(Some(PublicKey::from_bytes(master_pk)?))
             }
-            Some(KeyData::Vault { .. }) | None => Ok(None),
+            Some(KeyData::Vault { .. } | KeyData::Watch { .. }) | None => Ok(None),
         }
     }
 
@@ -66,7 +66,9 @@ impl Keychain {
         password: &[u8],
     ) -> Result<(Option<Mnemonic>, Option<SecretKey>), KeychainError> {
         match self.keys.get(&fingerprint) {
-            Some(KeyData::Public { .. } | KeyData::Vault { .. }) | None => Ok((None, None)),
+            Some(KeyData::Public { .. } | KeyData::Vault { .. } | KeyData::Watch { .. }) | None => {
+                Ok((None, None))
+            }
             Some(KeyData::Secret {
                 entropy, encrypted, ..
             }) => {
@@ -92,7 +94,21 @@ impl Keychain {
     pub fn extract_vault_id(&self, fingerprint: u32) -> Option<Bytes32> {
         match self.keys.get(&fingerprint) {
             Some(KeyData::Vault { launcher_id }) => Some(Bytes32::new(*launcher_id)),
-            Some(KeyData::Public { .. } | KeyData::Secret { .. }) | None => None,
+            Some(KeyData::Public { .. } | KeyData::Secret { .. } | KeyData::Watch { .. })
+            | None => None,
+        }
+    }
+
+    pub fn extract_watch_p2_puzzle_hashes(&self, fingerprint: u32) -> Option<Vec<Bytes32>> {
+        match self.keys.get(&fingerprint) {
+            Some(KeyData::Watch { p2_puzzle_hashes }) => Some(
+                p2_puzzle_hashes
+                    .iter()
+                    .map(|p2_puzzle_hash| Bytes32::new(*p2_puzzle_hash))
+                    .collect(),
+            ),
+            Some(KeyData::Public { .. } | KeyData::Secret { .. } | KeyData::Vault { .. })
+            | None => None,
         }
     }
 
@@ -102,7 +118,7 @@ impl Keychain {
         };
 
         match key_data {
-            KeyData::Public { .. } | KeyData::Vault { .. } => false,
+            KeyData::Public { .. } | KeyData::Vault { .. } | KeyData::Watch { .. } => false,
             KeyData::Secret { .. } => true,
         }
     }
@@ -201,6 +217,27 @@ impl Keychain {
                 launcher_id: launcher_id.to_bytes(),
             },
         );
+
+        Ok(fingerprint)
+    }
+
+    pub fn add_watch_p2_puzzle_hashes(
+        &mut self,
+        p2_puzzle_hashes: &[Bytes32],
+    ) -> Result<u32, KeychainError> {
+        let fingerprint = u32::from_be_bytes(self.rng.r#gen::<[u8; 4]>());
+
+        if self.contains(fingerprint) {
+            return Err(KeychainError::KeyExists);
+        }
+
+        let p2_puzzle_hashes = p2_puzzle_hashes
+            .iter()
+            .map(|p2_puzzle_hash| p2_puzzle_hash.to_bytes())
+            .collect();
+
+        self.keys
+            .insert(fingerprint, KeyData::Watch { p2_puzzle_hashes });
 
         Ok(fingerprint)
     }
