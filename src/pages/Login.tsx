@@ -193,12 +193,12 @@ export default function Login() {
                           </Tooltip>
                         </DropdownMenuLabel>
 
-                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                        <DropdownMenuItem onClick={() => navigate('/vault/mint')}>
                           <VaultIcon className='h-4 w-4 mr-2' />
                           <Trans>Mint</Trans>
                         </DropdownMenuItem>
 
-                        <DropdownMenuItem onClick={() => navigate('/import')}>
+                        <DropdownMenuItem onClick={() => navigate('/vault/recover')}>
                           <ClockPlusIcon className='h-4 w-4 mr-2' />
                           <Trans>Recover</Trans>
                         </DropdownMenuItem>
@@ -221,7 +221,7 @@ export default function Login() {
                           </Tooltip>
                         </DropdownMenuLabel>
 
-                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                        <DropdownMenuItem onClick={() => navigate('/watch')}>
                           <EyeIcon className='h-4 w-4 mr-2' />
                           <Trans>Watch Address</Trans>
                         </DropdownMenuItem>

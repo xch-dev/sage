@@ -59,6 +59,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   DownloadIcon,
+  KeyIcon,
   LoaderCircleIcon,
   TrashIcon,
   WalletIcon,
@@ -164,6 +165,20 @@ export default function Settings() {
                 <div className='grid gap-4'>
                   <WalletConnectSettings />
                   <GlobalSettings />
+                  <SettingsSection title={t`Key Management`}>
+                    <SettingItem
+                      label={t`Keys`}
+                      description={t`Manage your BLS and secure element keys`}
+                      control={
+                        <Link to='/keys'>
+                          <Button variant='outline' size='sm'>
+                            <KeyIcon className='h-4 w-4 mr-1' />
+                            <Trans>Manage Keys</Trans>
+                          </Button>
+                        </Link>
+                      }
+                    />
+                  </SettingsSection>
                 </div>
               </TabsContent>
 
