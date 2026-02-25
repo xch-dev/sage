@@ -44,6 +44,7 @@ import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
+import { getConsoleLogs } from '@/lib/consoleCapture';
 import { exportText, ExportType } from '@/lib/exportText';
 import {
   clearState,
@@ -652,6 +653,16 @@ function NetworkSettings() {
   );
 }
 
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+  source: 'backend' | 'frontend';
+}
+
+const LOG_LINE_REGEX =
+  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/;
+
 function LogViewer() {
   const { addError } = useErrors();
 
@@ -662,11 +673,14 @@ function LogViewer() {
   const [logLines, setLogLines] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
-  const [filteredLines, setFilteredLines] = useState<string[]>([]);
+  const [selectedSource, setSelectedSource] = useState<
+    'all' | 'backend' | 'frontend'
+  >('all');
+  const [filteredEntries, setFilteredEntries] = useState<LogEntry[]>([]);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
   const rowVirtualizer = useVirtualizer({
-    count: filteredLines.length,
+    count: filteredEntries.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 24,
     overscan: 5,
@@ -682,7 +696,6 @@ function LogViewer() {
     if (!parentRef.current || !rowVirtualizer) return false;
     const { scrollTop, clientHeight } = parentRef.current;
     const scrollHeight = rowVirtualizer.getTotalSize();
-    // Consider "at bottom" if within 10px of the bottom
     return scrollHeight - scrollTop - clientHeight < 10;
   }, [rowVirtualizer]);
 
@@ -692,10 +705,8 @@ function LogViewer() {
 
   const virtualItems = rowVirtualizer.getVirtualItems();
 
-  // Handle scrolling when log changes or new lines are added
   useEffect(() => {
     const items = virtualItems;
-    // Always scroll on initial load of a log, or when at bottom and content changes
     if (
       items.length > 0 &&
       selectedLog &&
@@ -740,27 +751,56 @@ function LogViewer() {
     }
   }, [selectedLog]);
 
-  // Filter logs based on search query and selected level
   useEffect(() => {
-    const filtered = logLines.filter((line) => {
-      const matchesSearch =
-        searchQuery === '' ||
-        line.toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
-      if (selectedLevel === 'all') return true;
-
-      const levelMatch = line.match(
-        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z\s+(\w+)/,
-      );
-      if (!levelMatch) return false;
-
-      return levelMatch[1].toLowerCase() === selectedLevel.toLowerCase();
+    const backendEntries: LogEntry[] = logLines.map((line) => {
+      const match = line.match(LOG_LINE_REGEX);
+      if (match) {
+        return {
+          timestamp: match[1],
+          level: match[2],
+          message: match[3],
+          source: 'backend',
+        };
+      }
+      return { timestamp: '', level: '', message: line, source: 'backend' };
     });
 
-    setFilteredLines(filtered);
-  }, [logLines, searchQuery, selectedLevel]);
+    const frontendEntries: LogEntry[] = getConsoleLogs().map((entry) => ({
+      timestamp: entry.timestamp,
+      level: entry.level,
+      message: entry.message,
+      source: 'frontend',
+    }));
+
+    const merged = [...backendEntries, ...frontendEntries].sort((a, b) => {
+      if (!a.timestamp) return 1;
+      if (!b.timestamp) return -1;
+      return a.timestamp.localeCompare(b.timestamp);
+    });
+
+    const filtered = merged.filter((entry) => {
+      if (
+        searchQuery !== '' &&
+        !`${entry.level} ${entry.message}`
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+      ) {
+        return false;
+      }
+      if (
+        selectedLevel !== 'all' &&
+        entry.level.toLowerCase() !== selectedLevel.toLowerCase()
+      ) {
+        return false;
+      }
+      if (selectedSource !== 'all' && entry.source !== selectedSource) {
+        return false;
+      }
+      return true;
+    });
+
+    setFilteredEntries(filtered);
+  }, [logLines, searchQuery, selectedLevel, selectedSource]);
 
   const handleLogChange = (name: string) => {
     setLogName(name);
@@ -768,13 +808,14 @@ function LogViewer() {
     setSelectedLog(log ?? null);
     setSearchQuery('');
     setSelectedLevel('all');
-    setIsAtBottom(true); // Reset isAtBottom when changing logs
+    setSelectedSource('all');
+    setIsAtBottom(true);
   };
 
   const formatTimestamp = (timestamp: string) => {
+    if (!timestamp) return '';
     try {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString();
+      return new Date(timestamp).toLocaleTimeString();
     } catch {
       return timestamp;
     }
@@ -796,9 +837,42 @@ function LogViewer() {
   };
 
   const handleExport = () => {
-    if (selectedLog) {
-      exportText(selectedLog.text, selectedLog.name, ExportType.LOG);
-    }
+    if (!selectedLog) return;
+
+    const allBackend: LogEntry[] = logLines.map((line) => {
+      const match = line.match(LOG_LINE_REGEX);
+      if (match) {
+        return {
+          timestamp: match[1],
+          level: match[2],
+          message: match[3],
+          source: 'backend',
+        };
+      }
+      return { timestamp: '', level: '', message: line, source: 'backend' };
+    });
+
+    const allFrontend: LogEntry[] = getConsoleLogs().map((entry) => ({
+      timestamp: entry.timestamp,
+      level: entry.level,
+      message: entry.message,
+      source: 'frontend',
+    }));
+
+    const combined = [...allBackend, ...allFrontend]
+      .sort((a, b) => {
+        if (!a.timestamp) return 1;
+        if (!b.timestamp) return -1;
+        return a.timestamp.localeCompare(b.timestamp);
+      })
+      .map((entry) => {
+        if (!entry.timestamp) return entry.message;
+        const tag = entry.source === 'frontend' ? '[UI]' : '[BE]';
+        return `${entry.timestamp} ${entry.level.padEnd(5)}  ${tag} ${entry.message}`;
+      })
+      .join('\n');
+
+    exportText(combined, `${selectedLog.name}_combined`, ExportType.LOG);
   };
 
   return (
@@ -835,7 +909,6 @@ function LogViewer() {
                 >
                   <SelectValue placeholder={<Trans>Log Level</Trans>} />
                 </SelectTrigger>
-
                 <SelectContent>
                   <SelectItem value='all'>
                     <Trans>All Levels</Trans>
@@ -855,20 +928,41 @@ function LogViewer() {
                 </SelectContent>
               </Select>
 
+              <Select value={selectedSource} onValueChange={(v) => setSelectedSource(v as 'all' | 'backend' | 'frontend')}>
+                <SelectTrigger
+                  id='source'
+                  aria-label='Select log source'
+                  className='w-[130px]'
+                >
+                  <SelectValue placeholder={<Trans>Source</Trans>} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='all'>
+                    <Trans>All Sources</Trans>
+                  </SelectItem>
+                  <SelectItem value='backend'>
+                    <Trans>Backend</Trans>
+                  </SelectItem>
+                  <SelectItem value='frontend'>
+                    <Trans>Frontend</Trans>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
               <Button variant='outline' onClick={handleExport}>
                 <DownloadIcon className='h-4 w-4' />
               </Button>
             </div>
           </div>
 
-          {selectedLog && filteredLines.length === 0 && (
+          {selectedLog && filteredEntries.length === 0 && (
             <div className='text-center py-8 text-muted-foreground'>
               <Trans>No matching log entries found</Trans>
             </div>
           )}
         </div>
 
-        {selectedLog && filteredLines.length > 0 && (
+        {selectedLog && filteredEntries.length > 0 && (
           <div
             ref={parentRef}
             style={{ height: 'calc(100vh - 400px)', minHeight: '300px' }}
@@ -883,44 +977,51 @@ function LogViewer() {
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const line = filteredLines[virtualRow.index];
-                const match = line.match(
-                  /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(\w+)\s+(.*)$/,
-                );
+                const entry = filteredEntries[virtualRow.index];
+                const isFrontend = entry.source === 'frontend';
 
                 return (
                   <div
                     key={virtualRow.index}
                     data-index={virtualRow.index}
                     ref={rowVirtualizer.measureElement}
-                    className={`absolute top-0 left-0 w-full hover:bg-muted/50 transition-colors`}
-                    style={{
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
+                    className='absolute top-0 left-0 w-full hover:bg-muted/50 transition-colors'
+                    style={{ transform: `translateY(${virtualRow.start}px)` }}
                   >
-                    {match ? (
+                    {entry.timestamp ? (
                       <div className='flex min-w-max px-2 py-0.5'>
                         <div className='w-[90px] whitespace-nowrap'>
                           <span className='text-xs text-muted-foreground font-mono'>
-                            {formatTimestamp(match[1])}
+                            {formatTimestamp(entry.timestamp)}
                           </span>
                         </div>
                         <div className='w-[50px] whitespace-nowrap'>
                           <span
-                            className={`text-xs font-medium ${getLevelColor(
-                              match[2],
-                            )}`}
+                            className={`text-xs font-medium ${getLevelColor(entry.level)}`}
                           >
-                            {match[2].padEnd(5, ' ')}
+                            {entry.level.padEnd(5, ' ')}
+                          </span>
+                        </div>
+                        <div className='w-[28px] whitespace-nowrap'>
+                          <span
+                            className={`text-xs font-mono ${isFrontend ? 'text-purple-500' : 'text-muted-foreground/50'}`}
+                          >
+                            {isFrontend ? '[UI]' : '[BE]'}
                           </span>
                         </div>
                         <div className='flex-1 whitespace-nowrap'>
-                          <span className='text-xs font-mono'>{match[3]}</span>
+                          <span
+                            className={`text-xs font-mono ${isFrontend ? 'text-purple-400' : ''}`}
+                          >
+                            {entry.message}
+                          </span>
                         </div>
                       </div>
                     ) : (
                       <div className='px-2 py-0.5 whitespace-nowrap'>
-                        <span className='text-xs font-mono'>{line}</span>
+                        <span className='text-xs font-mono'>
+                          {entry.message}
+                        </span>
                       </div>
                     )}
                   </div>
