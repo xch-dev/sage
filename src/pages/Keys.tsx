@@ -36,8 +36,8 @@ export default function Keys() {
 
   useEffect(() => {
     commands
-      .getKeys({})
-      .then((data) => setKeys(data.keys))
+      .getWallets({})
+      .then((data) => setKeys(data.wallets))
       .catch(addError);
   }, [addError]);
 

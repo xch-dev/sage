@@ -61,16 +61,16 @@ export default function Login() {
 
   useEffect(() => {
     commands
-      .getKeys({})
-      .then((data) => setKeys(data.keys))
+      .getWallets({})
+      .then((data) => setKeys(data.wallets))
       .catch(addError);
   }, [addError]);
 
   useEffect(() => {
     commands
-      .getKey({})
+      .getWallet({})
       .then((data) => {
-        if (data.key !== null) {
+        if (data.wallet !== null) {
           navigate('/wallet');
         }
       })
@@ -114,7 +114,7 @@ export default function Login() {
 
     setKeys(arrayMove(keys, oldIndex, newIndex));
 
-    commands.moveKey(active.id as number, newIndex).catch(addError);
+    commands.moveWallet(active.id as number, newIndex).catch(addError);
   }
 
   const activeKey = keys?.find((key) => key.fingerprint === activeId);

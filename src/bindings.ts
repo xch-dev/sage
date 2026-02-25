@@ -20,32 +20,32 @@ async resync(req: Resync) : Promise<ResyncResponse> {
 async generateMnemonic(req: GenerateMnemonic) : Promise<GenerateMnemonicResponse> {
     return await TAURI_INVOKE("generate_mnemonic", { req });
 },
-async importKey(req: ImportKey) : Promise<ImportKeyResponse> {
-    return await TAURI_INVOKE("import_key", { req });
+async importWallet(req: ImportWallet) : Promise<ImportWalletResponse> {
+    return await TAURI_INVOKE("import_wallet", { req });
 },
 async importAddresses(req: ImportAddresses) : Promise<ImportAddressesResponse> {
     return await TAURI_INVOKE("import_addresses", { req });
 },
-async deleteKey(req: DeleteKey) : Promise<DeleteKeyResponse> {
-    return await TAURI_INVOKE("delete_key", { req });
+async deleteWallet(req: DeleteWallet) : Promise<DeleteWalletResponse> {
+    return await TAURI_INVOKE("delete_wallet", { req });
 },
 async deleteDatabase(req: DeleteDatabase) : Promise<DeleteDatabaseResponse> {
     return await TAURI_INVOKE("delete_database", { req });
 },
-async renameKey(req: RenameKey) : Promise<RenameKeyResponse> {
-    return await TAURI_INVOKE("rename_key", { req });
+async renameWallet(req: RenameWallet) : Promise<RenameWalletResponse> {
+    return await TAURI_INVOKE("rename_wallet", { req });
 },
-async getKeys(req: GetKeys) : Promise<GetKeysResponse> {
-    return await TAURI_INVOKE("get_keys", { req });
+async getWallets(req: GetWallets) : Promise<GetWalletsResponse> {
+    return await TAURI_INVOKE("get_wallets", { req });
 },
 async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
     return await TAURI_INVOKE("set_wallet_emoji", { req });
 },
-async getKey(req: GetKey) : Promise<GetKeyResponse> {
-    return await TAURI_INVOKE("get_key", { req });
+async getWallet(req: GetWallet) : Promise<GetWalletResponse> {
+    return await TAURI_INVOKE("get_wallet", { req });
 },
-async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
-    return await TAURI_INVOKE("get_secret_key", { req });
+async getWalletSecrets(req: GetWalletSecrets) : Promise<GetWalletSecretsResponse> {
+    return await TAURI_INVOKE("get_wallet_secrets", { req });
 },
 async sendXch(req: SendXch) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("send_xch", { req });
@@ -350,8 +350,8 @@ async setRpcRunOnStartup(runOnStartup: boolean) : Promise<null> {
 async switchWallet() : Promise<null> {
     return await TAURI_INVOKE("switch_wallet");
 },
-async moveKey(fingerprint: number, index: number) : Promise<null> {
-    return await TAURI_INVOKE("move_key", { fingerprint, index });
+async moveWallet(fingerprint: number, index: number) : Promise<null> {
+    return await TAURI_INVOKE("move_wallet", { fingerprint, index });
 },
 async downloadCniOffercode(code: string) : Promise<string> {
     return await TAURI_INVOKE("download_cni_offercode", { code });
@@ -771,18 +771,6 @@ network: string }
  */
 export type DeleteDatabaseResponse = Record<string, never>
 /**
- * Delete a wallet key
- */
-export type DeleteKey = { 
-/**
- * Wallet fingerprint to delete
- */
-fingerprint: number }
-/**
- * Response for key deletion
- */
-export type DeleteKeyResponse = Record<string, never>
-/**
  * Delete an offer
  */
 export type DeleteOffer = { 
@@ -803,6 +791,18 @@ export type DeleteUserTheme = {
  */
 nft_id: string }
 export type DeleteUserThemeResponse = Record<string, never>
+/**
+ * Delete a wallet
+ */
+export type DeleteWallet = { 
+/**
+ * Wallet fingerprint to delete
+ */
+fingerprint: number }
+/**
+ * Response for wallet deletion
+ */
+export type DeleteWalletResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
@@ -1069,34 +1069,6 @@ export type GetDidsResponse = {
  * List of DIDs
  */
 dids: DidRecord[] }
-/**
- * Get a specific wallet key
- */
-export type GetKey = { 
-/**
- * Wallet fingerprint (uses currently logged in if null)
- */
-fingerprint?: number | null }
-/**
- * Response with key information
- */
-export type GetKeyResponse = { 
-/**
- * Wallet record if found
- */
-key: WalletRecord | null }
-/**
- * List all wallet keys
- */
-export type GetKeys = Record<string, never>
-/**
- * Response with all wallet keys
- */
-export type GetKeysResponse = { 
-/**
- * List of wallet records
- */
-keys: WalletRecord[] }
 /**
  * Get minter DIDs with pagination
  */
@@ -1422,22 +1394,6 @@ export type GetPendingTransactionsResponse = {
  */
 transactions: PendingTransactionRecord[] }
 /**
- * Get wallet secret key
- */
-export type GetSecretKey = { 
-/**
- * Wallet fingerprint
- */
-fingerprint: number }
-/**
- * Response with secret key information
- */
-export type GetSecretKeyResponse = { 
-/**
- * Secret key information if authorized
- */
-secrets: SecretKeyInfo | null }
-/**
  * Get the count of spendable coins
  */
 export type GetSpendableCoinCount = { 
@@ -1603,6 +1559,50 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+/**
+ * Get a specific wallet
+ */
+export type GetWallet = { 
+/**
+ * Wallet fingerprint (uses currently logged in if null)
+ */
+fingerprint?: number | null }
+/**
+ * Response with wallet information
+ */
+export type GetWalletResponse = { 
+/**
+ * Wallet record if found
+ */
+wallet: WalletRecord | null }
+/**
+ * Get wallet secrets
+ */
+export type GetWalletSecrets = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number }
+/**
+ * Response with wallet secrets
+ */
+export type GetWalletSecretsResponse = { 
+/**
+ * Secret key information if authorized
+ */
+secrets: SecretKeyInfo | null }
+/**
+ * List all wallets
+ */
+export type GetWallets = Record<string, never>
+/**
+ * Response with all wallets
+ */
+export type GetWalletsResponse = { 
+/**
+ * List of wallet records
+ */
+wallets: WalletRecord[] }
 export type Id = 
 /**
  * The XCH asset
@@ -1645,9 +1645,25 @@ export type ImportAddressesResponse = {
  */
 fingerprint: number }
 /**
- * Import a wallet key
+ * Import an offer
  */
-export type ImportKey = { 
+export type ImportOffer = { 
+/**
+ * Offer string to import
+ */
+offer: string }
+/**
+ * Response with imported offer ID
+ */
+export type ImportOfferResponse = { 
+/**
+ * ID of the imported offer
+ */
+offer_id: string }
+/**
+ * Import a wallet
+ */
+export type ImportWallet = { 
 /**
  * Display name for the wallet
  */
@@ -1681,29 +1697,13 @@ login?: boolean;
  */
 emoji?: string | null }
 /**
- * Response with imported key fingerprint
+ * Response with imported wallet fingerprint
  */
-export type ImportKeyResponse = { 
+export type ImportWalletResponse = { 
 /**
- * Fingerprint of the imported key
+ * Fingerprint of the imported wallet
  */
 fingerprint: number }
-/**
- * Import an offer
- */
-export type ImportOffer = { 
-/**
- * Offer string to import
- */
-offer: string }
-/**
- * Response with imported offer ID
- */
-export type ImportOfferResponse = { 
-/**
- * ID of the imported offer
- */
-offer_id: string }
 /**
  * Increase the derivation index to generate more addresses
  */
@@ -2117,9 +2117,9 @@ ip: string;
  */
 ban: boolean }
 /**
- * Rename a wallet key
+ * Rename a wallet
  */
-export type RenameKey = { 
+export type RenameWallet = { 
 /**
  * Wallet fingerprint
  */
@@ -2129,9 +2129,9 @@ fingerprint: number;
  */
 name: string }
 /**
- * Response for key rename
+ * Response for wallet rename
  */
-export type RenameKeyResponse = Record<string, never>
+export type RenameWalletResponse = Record<string, never>
 /**
  * Resynchronize wallet data with the blockchain
  */

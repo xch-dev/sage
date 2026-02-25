@@ -24,8 +24,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     const init = async () => {
       try {
         initializeWalletState(setWallet);
-        const data = await commands.getKey({});
-        setWallet(data.key);
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
         await fetchState();
       } catch (error) {
         const customError = error as CustomError;

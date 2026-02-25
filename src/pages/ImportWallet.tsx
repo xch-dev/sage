@@ -83,7 +83,7 @@ export default function ImportWallet() {
     setPending(true);
 
     commands
-      .importKey({
+      .importWallet({
         name: values.name,
         key: cleanKey(values.key),
         derivation_index: parseInt(values.addresses),
@@ -94,8 +94,8 @@ export default function ImportWallet() {
       .then(fetchState)
       .then(async () => {
         await fetchState();
-        const data = await commands.getKey({});
-        setWallet(data.key);
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
         navigate('/wallet');
       })
       .catch(addError)

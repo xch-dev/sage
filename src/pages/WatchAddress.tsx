@@ -68,8 +68,8 @@ export default function WatchAddress() {
       })
       .then(async () => {
         await fetchState();
-        const data = await commands.getKey({});
-        setWallet(data.key);
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
         navigate('/wallet');
       })
       .catch(addError)

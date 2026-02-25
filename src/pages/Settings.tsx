@@ -1100,8 +1100,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   useEffect(() => {
     commands
-      .getKey({ fingerprint })
-      .then((data) => setKey(data.key))
+      .getWallet({ fingerprint })
+      .then((data) => setKey(data.wallet))
       .catch(addError);
   }, [addError, fingerprint]);
 
@@ -1236,7 +1236,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 if (localName === wallet?.name) return;
 
                 commands
-                  .renameKey({
+                  .renameWallet({
                     fingerprint,
                     name: localName,
                   })

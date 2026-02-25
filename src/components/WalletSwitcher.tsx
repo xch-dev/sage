@@ -50,8 +50,8 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const data = await commands.getKeys({});
-        setWallets([...data.keys].sort((a, b) => a.name.localeCompare(b.name)));
+        const data = await commands.getWallets({});
+        setWallets([...data.wallets].sort((a, b) => a.name.localeCompare(b.name)));
       } catch (error) {
         addError(error as CustomError);
       } finally {
@@ -83,9 +83,9 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       await loginAndUpdateState(fingerprint);
-      const data = await commands.getKey({});
+      const data = await commands.getWallet({});
 
-      setWallet(data.key);
+      setWallet(data.wallet);
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 

@@ -15,12 +15,12 @@ use chia_wallet_sdk::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
-    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportAddresses, ImportAddressesResponse, ImportKey, ImportKeyResponse,
-    Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync,
-    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse, WalletKind,
-    WalletRecord,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteWallet, DeleteWalletResponse, GenerateMnemonic,
+    GenerateMnemonicResponse, GetWallet, GetWalletResponse, GetWalletSecrets,
+    GetWalletSecretsResponse, GetWallets, GetWalletsResponse, ImportAddresses,
+    ImportAddressesResponse, ImportWallet, ImportWalletResponse, Login, LoginResponse, Logout,
+    LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse, SecretKeyInfo,
+    SetWalletEmoji, SetWalletEmojiResponse, WalletKind, WalletRecord,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -125,7 +125,7 @@ impl Sage {
         })
     }
 
-    pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
+    pub async fn import_wallet(&mut self, req: ImportWallet) -> Result<ImportWalletResponse> {
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -254,7 +254,7 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        Ok(ImportKeyResponse { fingerprint })
+        Ok(ImportWalletResponse { fingerprint })
     }
 
     pub async fn import_addresses(
@@ -318,7 +318,7 @@ impl Sage {
         Ok(DeleteDatabaseResponse {})
     }
 
-    pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
+    pub fn delete_wallet(&mut self, req: DeleteWallet) -> Result<DeleteWalletResponse> {
         self.keychain.remove(req.fingerprint);
 
         self.wallet_config
@@ -337,10 +337,10 @@ impl Sage {
             fs::remove_dir_all(path)?;
         }
 
-        Ok(DeleteKeyResponse {})
+        Ok(DeleteWalletResponse {})
     }
 
-    pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
+    pub fn rename_wallet(&mut self, req: RenameWallet) -> Result<RenameWalletResponse> {
         let Some(wallet) = self
             .wallet_config
             .wallets
@@ -353,7 +353,7 @@ impl Sage {
         wallet.name = req.name;
         self.save_config()?;
 
-        Ok(RenameKeyResponse {})
+        Ok(RenameWalletResponse {})
     }
 
     pub fn set_wallet_emoji(&mut self, req: SetWalletEmoji) -> Result<SetWalletEmojiResponse> {
@@ -372,11 +372,11 @@ impl Sage {
         Ok(SetWalletEmojiResponse {})
     }
 
-    pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
+    pub fn get_wallet(&self, req: GetWallet) -> Result<GetWalletResponse> {
         let fingerprint = req.fingerprint.or(self.config.global.fingerprint);
 
         let Some(fingerprint) = fingerprint else {
-            return Ok(GetKeyResponse { key: None });
+            return Ok(GetWalletResponse { wallet: None });
         };
 
         let wallet_config = self
@@ -387,18 +387,18 @@ impl Sage {
             .cloned()
             .ok_or(Error::UnknownFingerprint)?;
 
-        Ok(GetKeyResponse {
-            key: self.wallet_record(&wallet_config)?,
+        Ok(GetWalletResponse {
+            wallet: self.wallet_record(&wallet_config)?,
         })
     }
 
-    pub fn get_secret_key(&self, req: GetSecretKey) -> Result<GetSecretKeyResponse> {
+    pub fn get_wallet_secrets(&self, req: GetWalletSecrets) -> Result<GetWalletSecretsResponse> {
         let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, b"")?
         else {
-            return Ok(GetSecretKeyResponse { secrets: None });
+            return Ok(GetWalletSecretsResponse { secrets: None });
         };
 
-        Ok(GetSecretKeyResponse {
+        Ok(GetWalletSecretsResponse {
             secrets: Some(SecretKeyInfo {
                 mnemonic: mnemonic.map(|m| m.to_string()),
                 secret_key: hex::encode(secret_key.to_bytes()),
@@ -406,7 +406,7 @@ impl Sage {
         })
     }
 
-    pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
+    pub fn get_wallets(&self, _req: GetWallets) -> Result<GetWalletsResponse> {
         let mut wallets = Vec::new();
 
         for wallet in &self.wallet_config.wallets {
@@ -415,7 +415,7 @@ impl Sage {
             }
         }
 
-        Ok(GetKeysResponse { keys: wallets })
+        Ok(GetWalletsResponse { wallets })
     }
 
     fn wallet_record(&self, wallet: &Wallet) -> Result<Option<WalletRecord>> {

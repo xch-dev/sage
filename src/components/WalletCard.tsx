@@ -82,7 +82,7 @@ export function WalletCard({
   const deleteSelf = async () => {
     if (await promptIfEnabled()) {
       await commands
-        .deleteKey({ fingerprint: info.fingerprint })
+        .deleteWallet({ fingerprint: info.fingerprint })
         .then(() =>
           setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
         )
@@ -96,7 +96,7 @@ export function WalletCard({
     if (!newName) return;
 
     commands
-      .renameKey({ fingerprint: info.fingerprint, name: newName })
+      .renameWallet({ fingerprint: info.fingerprint, name: newName })
       .then(() =>
         setKeys(
           keys.map((key) =>
@@ -151,8 +151,8 @@ export function WalletCard({
     try {
       await loginAndUpdateState(info.fingerprint);
 
-      const data = await commands.getKey({});
-      setWallet(data.key);
+      const data = await commands.getWallet({});
+      setWallet(data.wallet);
       navigate('/wallet');
     } catch (error: unknown) {
       if (
@@ -176,7 +176,7 @@ export function WalletCard({
       }
 
       commands
-        .getSecretKey({ fingerprint: info.fingerprint })
+        .getWalletSecrets({ fingerprint: info.fingerprint })
         .then((data) => data.secrets !== null && setSecrets(data.secrets))
         .catch(addError);
     })();
