@@ -1,6 +1,6 @@
 [package]
 name = "sage-keychain"
-version = "0.12.8"
+version = "0.12.9"
 edition = "2024"
 license = "Apache-2.0"
 description = "A simple password based keychain implementation for Sage."
