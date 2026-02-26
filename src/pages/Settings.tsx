@@ -928,7 +928,12 @@ function LogViewer() {
                 </SelectContent>
               </Select>
 
-              <Select value={selectedSource} onValueChange={(v) => setSelectedSource(v as 'all' | 'backend' | 'frontend')}>
+              <Select
+                value={selectedSource}
+                onValueChange={(v) =>
+                  setSelectedSource(v as 'all' | 'backend' | 'frontend')
+                }
+              >
                 <SelectTrigger
                   id='source'
                   aria-label='Select log source'
