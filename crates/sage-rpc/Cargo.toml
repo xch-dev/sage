@@ -1,6 +1,6 @@
 [package]
 name = "sage-rpc"
-version = "0.12.8"
+version = "0.12.9"
 edition = "2024"
 license = "Apache-2.0"
 description = "An RPC server for Sage wallet."
