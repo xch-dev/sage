@@ -20,9 +20,15 @@ function serializeArgs(args: unknown[]): string {
     .join(' ');
 }
 
+// JS Date only has ms precision (.234Z). Pad to 6 decimal places to match
+// the backend's microsecond format (.234000Z) so timestamps sort and display uniformly.
+function timestamp(): string {
+  return new Date().toISOString().replace(/\.(\d{3})Z$/, '.$1000Z');
+}
+
 function capture(level: ConsoleLogEntry['level'], args: unknown[]) {
   entries.push({
-    timestamp: new Date().toISOString(),
+    timestamp: timestamp(),
     level,
     message: serializeArgs(args),
   });
