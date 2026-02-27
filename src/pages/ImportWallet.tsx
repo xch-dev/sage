@@ -83,7 +83,7 @@ export default function ImportWallet() {
     setPending(true);
 
     commands
-      .importKey({
+      .importWallet({
         name: values.name,
         key: cleanKey(values.key),
         derivation_index: parseInt(values.addresses),
@@ -94,8 +94,8 @@ export default function ImportWallet() {
       .then(fetchState)
       .then(async () => {
         await fetchState();
-        const data = await commands.getKey({});
-        setWallet(data.key);
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
         navigate('/wallet');
       })
       .catch(addError)
@@ -134,7 +134,7 @@ export default function ImportWallet() {
                         <Trans>Wallet Name</Trans>
                       </FormLabel>
                       <FormControl>
-                        <Input required {...field} />
+                        <Input placeholder={t`Enter wallet name`} required {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -179,7 +179,7 @@ export default function ImportWallet() {
                         <Trans>Wallet Key</Trans>
                       </FormLabel>
                       <FormControl>
-                        <Textarea className='resize-none h-20' {...field} />
+                        <Textarea className='resize-none h-20' placeholder={t`Enter seed phrase or key`} {...field} />
                       </FormControl>
                       <FormDescription>
                         <Trans>

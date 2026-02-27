@@ -1,7 +1,7 @@
 mod action_system;
 mod actions;
 mod data;
-mod keys;
+mod wallets;
 mod offers;
 mod settings;
 mod themes;

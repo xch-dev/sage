@@ -1,14 +1,20 @@
-use chia_wallet_sdk::{prelude::*, types::puzzles::P2DelegatedConditionsArgs};
+use chia_wallet_sdk::{
+    driver::mips_puzzle_hash,
+    prelude::*,
+    types::puzzles::{P2DelegatedConditionsArgs, SingletonMember},
+};
 use sqlx::{SqliteExecutor, query};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum P2PuzzleKind {
-    PublicKey,
-    Clawback,
-    Option,
-    Arbor,
+    PublicKey = 0,
+    Clawback = 1,
+    Option = 2,
+    Arbor = 3,
+    Vault = 4,
+    External = 5,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -17,6 +23,8 @@ pub enum P2Puzzle {
     Clawback(Clawback),
     Option(Underlying),
     Arbor(PublicKey),
+    Vault(P2Vault),
+    External,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -35,6 +43,11 @@ pub struct Underlying {
     pub seconds: u64,
     pub amount: u64,
     pub strike_type: OptionType,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct P2Vault {
+    pub launcher_id: Bytes32,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -108,6 +121,12 @@ impl Database {
 
                 Ok(P2Puzzle::Arbor(key))
             }
+            P2PuzzleKind::Vault => {
+                let launcher_id = vault_launcher_id(&self.pool, puzzle_hash).await?;
+
+                Ok(P2Puzzle::Vault(P2Vault { launcher_id }))
+            }
+            P2PuzzleKind::External => Ok(P2Puzzle::External),
         }
     }
 
@@ -130,12 +149,12 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
-    pub async fn custody_p2_puzzle_hash(
+    pub async fn derivation_p2_puzzle_hash(
         &mut self,
         derivation_index: u32,
         is_hardened: bool,
     ) -> Result<Bytes32> {
-        custody_p2_puzzle_hash(&mut *self.tx, derivation_index, is_hardened).await
+        derivation_p2_puzzle_hash(&mut *self.tx, derivation_index, is_hardened).await
     }
 
     pub async fn is_custody_p2_puzzle_hash(&mut self, puzzle_hash: Bytes32) -> Result<bool> {
@@ -154,13 +173,13 @@ impl DatabaseTx<'_> {
         unused_derivation_index(&mut *self.tx, is_hardened).await
     }
 
-    pub async fn insert_custody_p2_puzzle(
+    pub async fn insert_derivation_p2_puzzle(
         &mut self,
         p2_puzzle_hash: Bytes32,
         key: PublicKey,
         derivation: Derivation,
     ) -> Result<()> {
-        insert_custody_p2_puzzle(&mut *self.tx, p2_puzzle_hash, key, derivation).await
+        insert_derivation_p2_puzzle(&mut *self.tx, p2_puzzle_hash, key, derivation).await
     }
 
     pub async fn insert_clawback_p2_puzzle(&mut self, clawback: ClawbackV2) -> Result<()> {
@@ -174,10 +193,18 @@ impl DatabaseTx<'_> {
     pub async fn insert_arbor_p2_puzzle(&mut self, key: PublicKey) -> Result<()> {
         insert_arbor_p2_puzzle(&mut *self.tx, key).await
     }
+
+    pub async fn insert_vault_p2_puzzle(&mut self, vault: P2Vault) -> Result<()> {
+        insert_vault_p2_puzzle(&mut *self.tx, vault).await
+    }
+
+    pub async fn insert_external_p2_puzzle(&mut self, p2_puzzle_hash: Bytes32) -> Result<()> {
+        insert_external_p2_puzzle(&mut *self.tx, p2_puzzle_hash).await
+    }
 }
 
 async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<Bytes32>> {
-    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3)")
+    query!("SELECT hash FROM p2_puzzles WHERE kind IN (0, 3, 4, 5)")
         .fetch_all(conn)
         .await?
         .into_iter()
@@ -185,7 +212,7 @@ async fn custody_p2_puzzle_hashes(conn: impl SqliteExecutor<'_>) -> Result<Vec<B
         .collect()
 }
 
-async fn custody_p2_puzzle_hash(
+async fn derivation_p2_puzzle_hash(
     conn: impl SqliteExecutor<'_>,
     derivation_index: u32,
     is_hardened: bool,
@@ -212,7 +239,7 @@ async fn is_custody_p2_puzzle_hash(
     let puzzle_hash = puzzle_hash.as_ref();
 
     Ok(query!(
-        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3)",
+        "SELECT COUNT(*) AS count FROM p2_puzzles WHERE hash = ? AND kind IN (0, 3, 4, 5)",
         puzzle_hash
     )
     .fetch_one(conn)
@@ -327,7 +354,7 @@ async fn unused_derivation_index(conn: impl SqliteExecutor<'_>, is_hardened: boo
     .convert()
 }
 
-async fn insert_custody_p2_puzzle(
+async fn insert_derivation_p2_puzzle(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
     key: PublicKey,
@@ -441,6 +468,46 @@ async fn insert_arbor_p2_puzzle(conn: impl SqliteExecutor<'_>, key: PublicKey) -
     Ok(())
 }
 
+async fn insert_vault_p2_puzzle(conn: impl SqliteExecutor<'_>, vault: P2Vault) -> Result<()> {
+    let member_puzzle_hash = SingletonMember::new(vault.launcher_id).curry_tree_hash();
+    let p2_puzzle_hash = mips_puzzle_hash(0, vec![], member_puzzle_hash, true).to_vec();
+    let launcher_id = vault.launcher_id.as_ref();
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 4);
+
+        INSERT OR IGNORE INTO p2_vaults (p2_puzzle_id, vault_asset_id)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), (SELECT id FROM assets WHERE hash = ?));
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        launcher_id,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_external_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<()> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 5);
+        ",
+        p2_puzzle_hash
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
 async fn p2_puzzle_kind(
     conn: impl SqliteExecutor<'_>,
     p2_puzzle_hash: Bytes32,
@@ -456,6 +523,8 @@ async fn p2_puzzle_kind(
         1 => P2PuzzleKind::Clawback,
         2 => P2PuzzleKind::Option,
         3 => P2PuzzleKind::Arbor,
+        4 => P2PuzzleKind::Vault,
+        5 => P2PuzzleKind::External,
         _ => return Err(DatabaseError::InvalidEnumVariant),
     })
 }
@@ -552,6 +621,28 @@ async fn arbor_key(
     .await?;
 
     row.map(|row| row.key.convert()).transpose()
+}
+
+async fn vault_launcher_id(
+    conn: impl SqliteExecutor<'_>,
+    p2_puzzle_hash: Bytes32,
+) -> Result<Bytes32> {
+    let p2_puzzle_hash = p2_puzzle_hash.as_ref();
+
+    query!(
+        "
+        SELECT assets.hash AS launcher_id
+        FROM p2_puzzles
+        INNER JOIN p2_vaults ON p2_vaults.p2_puzzle_id = p2_puzzles.id
+        INNER JOIN assets ON assets.id = p2_vaults.vault_asset_id
+        WHERE p2_puzzles.hash = ?
+        ",
+        p2_puzzle_hash
+    )
+    .fetch_one(conn)
+    .await?
+    .launcher_id
+    .convert()
 }
 
 async fn derivation(

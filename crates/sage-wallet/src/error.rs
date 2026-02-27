@@ -107,6 +107,9 @@ pub enum WalletError {
     #[error("Missing asset with id {0}")]
     MissingAsset(Bytes32),
 
+    #[error("Cannot select vault coins")]
+    CannotSelectVaultCoins,
+
     #[error("Uncancellable offer")]
     UncancellableOffer,
 
@@ -127,4 +130,7 @@ pub enum WalletError {
 
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
+
+    #[error("Vault wallets do not support derivations")]
+    DerivationsNotSupported,
 }

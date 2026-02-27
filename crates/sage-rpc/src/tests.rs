@@ -19,7 +19,7 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
-use sage_api::{Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, SendXch};
+use sage_api::{Amount, GetPeers, GetSyncStatus, GetVersion, GetWallet, ImportWallet, Login, SendXch};
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
@@ -128,7 +128,7 @@ impl TestApp {
         }
 
         let fingerprint = self
-            .import_key(ImportKey {
+            .import_wallet(ImportWallet {
                 name: "Alice".to_string(),
                 key: mnemonic.to_string(),
                 derivation_index: 0,
@@ -200,9 +200,9 @@ async fn test_initial_state() -> Result<()> {
     let fingerprint = app.setup_bls(0).await?;
 
     let key = app
-        .get_key(GetKey { fingerprint: None })
+        .get_wallet(GetWallet { fingerprint: None })
         .await?
-        .key
+        .wallet
         .expect("should be logged in");
 
     assert_eq!(key.fingerprint, fingerprint);

@@ -11,6 +11,7 @@ mod pending_transaction;
 mod token;
 mod transaction;
 mod transaction_summary;
+mod wallet;
 
 pub use coin::*;
 pub use derivation::*;
@@ -25,3 +26,4 @@ pub use pending_transaction::*;
 pub use token::*;
 pub use transaction::*;
 pub use transaction_summary::*;
+pub use wallet::*;

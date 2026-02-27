@@ -8,7 +8,7 @@ use tokio::{
 };
 use tracing::{info, warn};
 
-use crate::{SyncCommand, Wallet, WalletError, WalletPeer};
+use crate::{SyncCommand, Wallet, WalletError, WalletInfo, WalletPeer};
 
 use super::{PeerState, SyncEvent};
 
@@ -61,35 +61,39 @@ pub async fn sync_wallet(
         .await?;
     }
 
-    loop {
-        let mut tx = wallet.db.tx().await?;
-        let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
-        let next_index = tx.derivation_index(false).await?;
-        tx.commit().await?;
+    if matches!(wallet.info, WalletInfo::Bls { .. }) {
+        loop {
+            let mut tx = wallet.db.tx().await?;
+            let derivations = auto_insert_unhardened_derivations(&wallet, &mut tx).await?;
+            let next_index = tx.derivation_index(false).await?;
+            tx.commit().await?;
 
-        if derivations.is_empty() {
-            break;
+            if derivations.is_empty() {
+                break;
+            }
+
+            info!("Inserted {} derivations", derivations.len());
+
+            sync_sender
+                .send(SyncEvent::DerivationIndex { next_index })
+                .await
+                .ok();
+
+            for batch in derivations.chunks(1000) {
+                sync_puzzle_hashes(
+                    &wallet,
+                    &peer,
+                    None,
+                    wallet.genesis_challenge,
+                    batch,
+                    sync_sender.clone(),
+                    command_sender.clone(),
+                )
+                .await?;
+            }
         }
-
-        info!("Inserted {} derivations", derivations.len());
-
-        sync_sender
-            .send(SyncEvent::DerivationIndex { next_index })
-            .await
-            .ok();
-
-        for batch in derivations.chunks(1000) {
-            sync_puzzle_hashes(
-                &wallet,
-                &peer,
-                None,
-                wallet.genesis_challenge,
-                batch,
-                sync_sender.clone(),
-                command_sender.clone(),
-            )
-            .await?;
-        }
+    } else {
+        info!("Wallet is a vault, skipping automatic key derivation");
     }
 
     if delta_sync {
@@ -260,11 +264,12 @@ pub async fn incremental_sync(
 
     let mut new_derivations = Vec::new();
 
-    if derive_automatically {
+    let next_index = if derive_automatically && matches!(wallet.info, WalletInfo::Bls { .. }) {
         new_derivations = auto_insert_unhardened_derivations(wallet, &mut tx).await?;
-    }
-
-    let next_index = tx.derivation_index(false).await?;
+        Some(tx.derivation_index(false).await?)
+    } else {
+        None
+    };
 
     tx.commit().await?;
 
@@ -272,7 +277,9 @@ pub async fn incremental_sync(
         sync_sender.send(SyncEvent::CoinsUpdated).await.ok();
     }
 
-    if !new_derivations.is_empty() {
+    if !new_derivations.is_empty()
+        && let Some(next_index) = next_index
+    {
         sync_sender
             .send(SyncEvent::DerivationIndex { next_index })
             .await

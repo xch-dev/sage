@@ -1,7 +1,22 @@
 import SafeAreaView from '@/components/SafeAreaView';
 import { WalletCard } from '@/components/WalletCard';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import {
   closestCenter,
@@ -22,11 +37,19 @@ import {
 } from '@dnd-kit/sortable';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
-import { CogIcon } from 'lucide-react';
+import {
+  ClockPlusIcon,
+  CogIcon,
+  EyeIcon,
+  InfoIcon,
+  UserRoundKeyIcon,
+  UserRoundPlusIcon,
+  VaultIcon,
+} from 'lucide-react';
 import type { MouseEvent, TouchEvent } from 'react';
 import { ForwardedRef, forwardRef, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { commands, KeyInfo } from '../bindings';
+import { commands, WalletRecord } from '../bindings';
 import Container from '../components/Container';
 
 const isMobile = platform() === 'ios' || platform() === 'android';
@@ -34,20 +57,20 @@ const isMobile = platform() === 'ios' || platform() === 'android';
 export default function Login() {
   const navigate = useNavigate();
   const { addError } = useErrors();
-  const [keys, setKeys] = useState<KeyInfo[] | null>(null);
+  const [wallets, setWallets] = useState<WalletRecord[] | null>(null);
 
   useEffect(() => {
     commands
-      .getKeys({})
-      .then((data) => setKeys(data.keys))
+      .getWallets({})
+      .then((data) => setWallets(data.wallets))
       .catch(addError);
   }, [addError]);
 
   useEffect(() => {
     commands
-      .getKey({})
+      .getWallet({})
       .then((data) => {
-        if (data.key !== null) {
+        if (data.wallet !== null) {
           navigate('/wallet');
         }
       })
@@ -82,19 +105,19 @@ export default function Login() {
 
     setActiveId(null);
 
-    if (!keys || !over || active.id === over.id) return;
+    if (!wallets || !over || active.id === over.id) return;
 
-    const oldIndex = keys.findIndex((key) => key.fingerprint === active.id);
-    const newIndex = keys.findIndex((key) => key.fingerprint === over.id);
+    const oldIndex = wallets.findIndex((wallet) => wallet.fingerprint === active.id);
+    const newIndex = wallets.findIndex((wallet) => wallet.fingerprint === over.id);
 
     if (oldIndex === newIndex || oldIndex === -1 || newIndex === -1) return;
 
-    setKeys(arrayMove(keys, oldIndex, newIndex));
+    setWallets(arrayMove(wallets, oldIndex, newIndex));
 
-    commands.moveKey(active.id as number, newIndex).catch(addError);
+    commands.moveWallet(active.id as number, newIndex).catch(addError);
   }
 
-  const activeKey = keys?.find((key) => key.fingerprint === activeId);
+  const activeWallet = wallets?.find((wallet) => wallet.fingerprint === activeId);
 
   return (
     <SafeAreaView>
@@ -104,7 +127,7 @@ export default function Login() {
         }`}
       >
         <div className='flex items-center justify-between space-y-2'>
-          {(keys?.length ?? 0) > 0 && (
+          {(wallets?.length ?? 0) > 0 && (
             <>
               <h2 className='text-3xl font-bold tracking-tight'>
                 <Trans>Wallets</Trans>
@@ -117,18 +140,105 @@ export default function Login() {
                 >
                   <CogIcon className='h-5 w-5' aria-hidden='true' />
                 </Button>
-                <Button variant='outline' onClick={() => navigate('/import')}>
-                  <Trans>Import</Trans>
-                </Button>
-                <Button onClick={() => navigate('/create')}>
-                  <Trans>Create</Trans>
-                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button>
+                      <Trans>Add Wallet</Trans>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className='w-40' align='end'>
+                    <TooltipProvider delayDuration={100}>
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Standard</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Uses a 12 or 24 word seed phrase to derive BLS
+                                keys
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
+
+                        <DropdownMenuItem onClick={() => navigate('/create')}>
+                          <UserRoundPlusIcon className='h-4 w-4 mr-2' />
+                          <Trans>Create</Trans>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => navigate('/import')}>
+                          <UserRoundKeyIcon className='h-4 w-4 mr-2' />
+                          <Trans>Import</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Vault</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Uses the secure element and a BLS recovery key
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
+
+                        <DropdownMenuItem
+                          onClick={() => navigate('/vault/mint')}
+                        >
+                          <VaultIcon className='h-4 w-4 mr-2' />
+                          <Trans>Mint</Trans>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => navigate('/vault/recover')}
+                        >
+                          <ClockPlusIcon className='h-4 w-4 mr-2' />
+                          <Trans>Recover</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+
+                      <DropdownMenuSeparator />
+
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel className='flex items-center justify-between'>
+                          <Trans>Other</Trans>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <InfoIcon className='h-4 w-4 text-muted-foreground cursor-help' />
+                            </TooltipTrigger>
+                            <TooltipContent side='left'>
+                              <Trans>
+                                Provides a read-only view of a wallet
+                              </Trans>
+                            </TooltipContent>
+                          </Tooltip>
+                        </DropdownMenuLabel>
+
+                        <DropdownMenuItem onClick={() => navigate('/watch')}>
+                          <EyeIcon className='h-4 w-4 mr-2' />
+                          <Trans>Watch Address</Trans>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                    </TooltipProvider>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </>
           )}
         </div>
-        {keys !== null ? (
-          keys.length ? (
+        {wallets !== null ? (
+          wallets.length ? (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
@@ -136,24 +246,24 @@ export default function Login() {
               onDragEnd={handleDragEnd}
             >
               <SortableContext
-                items={keys.map((key) => key.fingerprint)}
+                items={wallets.map((wallet) => wallet.fingerprint)}
                 strategy={rectSortingStrategy}
               >
                 <div className='grid sm:grid-cols-2 md:grid-cols-3 gap-3'>
-                  {keys.map((key) => (
+                  {wallets.map((wallet) => (
                     <WalletCard
                       draggable
-                      key={key.fingerprint}
-                      info={key}
-                      keys={keys}
-                      setKeys={setKeys}
+                      key={wallet.fingerprint}
+                      info={wallet}
+                      wallets={wallets}
+                      setWallets={setWallets}
                     />
                   ))}
                 </div>
               </SortableContext>
               <DragOverlay>
-                {activeId && activeKey && (
-                  <WalletCard info={activeKey} keys={keys} setKeys={setKeys} />
+                {activeId && activeWallet && (
+                  <WalletCard info={activeWallet} wallets={wallets} setWallets={setWallets} />
                 )}
               </DragOverlay>
             </DndContext>
