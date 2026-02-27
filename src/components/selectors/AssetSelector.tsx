@@ -4,7 +4,7 @@ import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { TokenAmountInput } from '@/components/ui/masked-input';
+import { IntegerInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import {
   Tooltip,
@@ -55,6 +55,14 @@ export function AssetSelector({
   const [nftIds, setNftIds] = useState<number[]>([]);
   const [optionIds, setOptionIds] = useState<number[]>([]);
   const [assetsInOffers, setAssetsInOffers] = useState<Set<string>>(new Set());
+
+  const defaultFeePolicy = () => ({
+    recipient: '',
+    fee_basis_points: '0',
+    min_fee: '0',
+    allow_zero_price: false,
+    allow_revoke_fee_bypass: false,
+  });
 
   useEffect(() => {
     if (!offering) return;
@@ -108,7 +116,7 @@ export function AssetSelector({
     setTokenIds([...tokenIds, newId]);
     setAssets({
       ...assets,
-      tokens: [...assets.tokens, { asset_id: '', amount: '' }],
+      tokens: [...assets.tokens, { asset_id: '', amount: '', fee_policy: null }],
     });
   };
 
@@ -144,6 +152,29 @@ export function AssetSelector({
     const newTokens = assets.tokens.filter((_, i) => i !== index);
     const newTokenIds = tokenIds.filter((_, i) => i !== index);
     setTokenIds(newTokenIds);
+    setAssets({ ...assets, tokens: newTokens });
+  };
+
+  const updateTokenFeePolicy = (
+    index: number,
+    feePolicy: NonNullable<Assets['tokens'][number]['fee_policy']>,
+  ) => {
+    const newTokens = [...assets.tokens];
+    newTokens[index] = {
+      ...newTokens[index],
+      fee_policy: feePolicy,
+    };
+    setAssets({ ...assets, tokens: newTokens });
+  };
+
+  const setTokenFeePolicyEnabled = (index: number, enabled: boolean) => {
+    const newTokens = [...assets.tokens];
+    newTokens[index] = {
+      ...newTokens[index],
+      fee_policy: enabled
+        ? (newTokens[index].fee_policy ?? defaultFeePolicy())
+        : null,
+    };
     setAssets({ ...assets, tokens: newTokens });
   };
 
@@ -228,73 +259,164 @@ export function AssetSelector({
             <HandCoins className='h-4 w-4' aria-hidden='true' />
             <span>Tokens</span>
           </Label>
-          {assets.tokens.map(({ asset_id: assetId, amount }, i) => {
+          {assets.tokens.map(({ asset_id: assetId, amount, fee_policy }, i) => {
             const ownedToken = ownedTokens.find((t) => t.asset_id === assetId);
             return (
-              <div
-                key={tokenIds[i] || `token-${i}`}
-                style={{
-                  zIndex:
-                    assets.tokens.length -
-                    i +
-                    assets.nfts.length +
-                    assets.options.length,
-                }}
-                className='flex h-14 mb-1 relative'
-              >
-                <TokenSelector
-                  value={assetId}
-                  onChange={(newAssetId) => {
-                    const newTokens = [...assets.tokens];
-                    newTokens[i] = {
-                      ...newTokens[i],
-                      asset_id: newAssetId,
-                      amount: '',
-                    };
-                    setAssets({ ...assets, tokens: newTokens });
+              <div key={tokenIds[i] || `token-${i}`}>
+                <div
+                  style={{
+                    zIndex:
+                      assets.tokens.length -
+                      i +
+                      assets.nfts.length +
+                      assets.options.length,
                   }}
-                  disabled={assets.tokens
-                    .filter((t, idx) => t.asset_id !== '' && idx !== i)
-                    .map((t) => t.asset_id)}
-                  className='!rounded-r-none'
-                  hideZeroBalance={offering === true}
-                  showAllCats={offering !== true}
-                  includeXch={true}
-                />
-                <div className='flex flex-grow-0'>
-                  <TokenAmountInput
-                    id={`${prefix}-cat-${i}-amount`}
-                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
-                    placeholder={t`Amount`}
-                    value={amount}
-                    onValueChange={(values) =>
-                      updateToken(i, 'amount', values.value)
-                    }
-                    precision={assetId === null ? 12 : 3}
-                    maxValue={
-                      ownedToken
-                        ? BigNumber.max(
-                            0,
-                            BigNumber(
-                              toDecimal(
-                                ownedToken.selectable_balance,
-                                ownedToken.precision,
-                              ),
-                            ).minus(assetId === null ? fee || 0 : 0),
-                          ).toString()
-                        : undefined
-                    }
-                    maxButtonClassName='!rounded-r-none'
-                    hideMaxButton={!offering}
+                  className='flex h-14 mb-1 relative'
+                >
+                  <TokenSelector
+                    value={assetId}
+                    onChange={(newAssetId) => {
+                      const newTokens = [...assets.tokens];
+                      newTokens[i] = {
+                        ...newTokens[i],
+                        asset_id: newAssetId,
+                        amount: '',
+                        fee_policy: null,
+                      };
+                      setAssets({ ...assets, tokens: newTokens });
+                    }}
+                    disabled={assets.tokens
+                      .filter((t, idx) => t.asset_id !== '' && idx !== i)
+                      .map((t) => t.asset_id)}
+                    className='!rounded-r-none'
+                    hideZeroBalance={offering === true}
+                    showAllCats={offering !== true}
+                    includeXch={true}
                   />
-                  <Button
-                    variant='outline'
-                    className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
-                    onClick={() => removeToken(i)}
-                  >
-                    <TrashIcon className='h-4 w-4' aria-hidden='true' />
-                  </Button>
+                  <div className='flex flex-grow-0'>
+                    <TokenAmountInput
+                      id={`${prefix}-cat-${i}-amount`}
+                      className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                      placeholder={t`Amount`}
+                      value={amount}
+                      onValueChange={(values) =>
+                        updateToken(i, 'amount', values.value)
+                      }
+                      precision={assetId === null ? 12 : 3}
+                      maxValue={
+                        ownedToken
+                          ? BigNumber.max(
+                              0,
+                              BigNumber(
+                                toDecimal(
+                                  ownedToken.selectable_balance,
+                                  ownedToken.precision,
+                                ),
+                              ).minus(assetId === null ? fee || 0 : 0),
+                            ).toString()
+                          : undefined
+                      }
+                      maxButtonClassName='!rounded-r-none'
+                      hideMaxButton={!offering}
+                    />
+                    <Button
+                      variant='outline'
+                      className='!border-l-0 !rounded-l-none flex-shrink-0 flex-grow-0 h-12 px-3'
+                      onClick={() => removeToken(i)}
+                    >
+                      <TrashIcon className='h-4 w-4' aria-hidden='true' />
+                    </Button>
+                  </div>
                 </div>
+
+                {!offering && assetId && assetId !== null && (
+                  <div className='mb-3 rounded border p-3 space-y-3'>
+                    <div className='flex items-center gap-2'>
+                      <Switch
+                        checked={Boolean(fee_policy)}
+                        onCheckedChange={(checked) =>
+                          setTokenFeePolicyEnabled(i, checked)
+                        }
+                      />
+                      <Label>
+                        <Trans>Set CAT fee policy</Trans>
+                      </Label>
+                    </div>
+
+                    {fee_policy && (
+                      <>
+                        <Input
+                          placeholder={t`Fee recipient address`}
+                          value={fee_policy.recipient}
+                          onChange={(event) =>
+                            updateTokenFeePolicy(i, {
+                              ...fee_policy,
+                              recipient: event.target.value,
+                            })
+                          }
+                        />
+
+                        <div className='grid grid-cols-2 gap-2'>
+                          <IntegerInput
+                            value={fee_policy.fee_basis_points}
+                            placeholder={t`Fee (basis points)`}
+                            min={0}
+                            max={65535}
+                            onValueChange={(values) =>
+                              updateTokenFeePolicy(i, {
+                                ...fee_policy,
+                                fee_basis_points: values.value,
+                              })
+                            }
+                          />
+
+                          <TokenAmountInput
+                            value={fee_policy.min_fee}
+                            precision={3}
+                            placeholder={t`Minimum fee`}
+                            hideMaxButton
+                            onValueChange={(values) =>
+                              updateTokenFeePolicy(i, {
+                                ...fee_policy,
+                                min_fee: values.value,
+                              })
+                            }
+                          />
+                        </div>
+
+                        <div className='flex items-center gap-2'>
+                          <Switch
+                            checked={fee_policy.allow_zero_price}
+                            onCheckedChange={(checked) =>
+                              updateTokenFeePolicy(i, {
+                                ...fee_policy,
+                                allow_zero_price: checked,
+                              })
+                            }
+                          />
+                          <Label>
+                            <Trans>Allow zero-price transfers</Trans>
+                          </Label>
+                        </div>
+
+                        <div className='flex items-center gap-2'>
+                          <Switch
+                            checked={fee_policy.allow_revoke_fee_bypass}
+                            onCheckedChange={(checked) =>
+                              updateTokenFeePolicy(i, {
+                                ...fee_policy,
+                                allow_revoke_fee_bypass: checked,
+                              })
+                            }
+                          />
+                          <Label>
+                            <Trans>Allow revoke fee bypass</Trans>
+                          </Label>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

@@ -113,6 +113,43 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
             )}
           </div>
 
+          {asset.fee_policy && (
+            <>
+              <Separator className='my-1' />
+              <div className='text-sm text-muted-foreground space-y-1'>
+                <div className='break-all'>
+                  <Trans>Fee recipient:</Trans> {asset.fee_policy.recipient}
+                </div>
+                <div>
+                  <Trans>Fee:</Trans> {asset.fee_policy.fee_basis_points} bps
+                </div>
+                <div>
+                  <Trans>Minimum fee:</Trans>{' '}
+                  <NumberFormat
+                    value={fromMojos(asset.fee_policy.min_fee, asset.precision)}
+                    minimumFractionDigits={0}
+                    maximumFractionDigits={asset.precision}
+                  />{' '}
+                  <span className='truncate'>{asset.ticker ?? 'CAT'}</span>
+                </div>
+                <div>
+                  {asset.fee_policy.allow_zero_price ? (
+                    <Trans>Zero-price transfers can bypass fees</Trans>
+                  ) : (
+                    <Trans>Zero-price transfers are fee-enforced</Trans>
+                  )}
+                </div>
+                <div>
+                  {asset.fee_policy.allow_revoke_fee_bypass ? (
+                    <Trans>Revocations can bypass fees</Trans>
+                  ) : (
+                    <Trans>Revocations are fee-enforced</Trans>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
           {!nft_royalty && BigNumber(royalty).isGreaterThan(0) && (
             <div className='text-sm text-muted-foreground'>
               <Trans>Amount includes</Trans>{' '}

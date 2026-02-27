@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Amount, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson, TransactionSummary,
+    Amount, FeePolicy, OfferRecord, OfferRecordStatus, OfferSummary, SpendBundleJson,
+    TransactionSummary,
 };
 
 use super::TransactionResponse;
@@ -52,6 +53,10 @@ pub struct OfferAmount {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub hidden_puzzle_hash: Option<String>,
+    /// Optional fee policy for requested CAT assets
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_policy: Option<FeePolicy>,
     /// Amount of the asset
     pub amount: Amount,
 }

@@ -281,6 +281,10 @@ impl Sage {
                     .hidden_puzzle_hash
                     .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
                     .transpose()?,
+                fee_policy: cat
+                    .fee_policy
+                    .map(|fee_policy| self.encode_fee_policy(fee_policy))
+                    .transpose()?,
             });
         }
 
@@ -311,6 +315,10 @@ impl Sage {
                 revocation_address: cat
                     .hidden_puzzle_hash
                     .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
+                    .transpose()?,
+                fee_policy: cat
+                    .fee_policy
+                    .map(|fee_policy| self.encode_fee_policy(fee_policy))
                     .transpose()?,
             });
         }
@@ -349,6 +357,10 @@ impl Sage {
                         .map(|puzzle_hash| {
                             Address::new(puzzle_hash, self.network().prefix()).encode()
                         })
+                        .transpose()?,
+                    fee_policy: cat
+                        .fee_policy
+                        .map(|fee_policy| self.encode_fee_policy(fee_policy))
                         .transpose()?,
                 })
             })

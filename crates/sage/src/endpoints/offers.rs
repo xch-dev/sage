@@ -54,6 +54,7 @@ impl Sage {
             asset_id,
             amount: raw_amount,
             hidden_puzzle_hash: _, // We ignore this since we already have it
+            fee_policy: _, // Fee policy is only used for requested CATs
         } in req.offered_assets
         {
             let amount = parse_amount(raw_amount.clone())?;
@@ -98,6 +99,7 @@ impl Sage {
         for OfferAmount {
             asset_id,
             hidden_puzzle_hash,
+            fee_policy,
             amount: raw_amount,
         } in req.requested_assets
         {
@@ -105,20 +107,39 @@ impl Sage {
 
             if let Some(asset_id) = asset_id {
                 if let Ok(asset_id) = parse_asset_id(asset_id.clone()) {
+                    let existing_cat_info = wallet.fetch_offer_cat_info(asset_id).await?;
+                    let existing_hidden_puzzle_hash = existing_cat_info
+                        .as_ref()
+                        .and_then(|cat| cat.hidden_puzzle_hash);
+                    let existing_fee_policy = existing_cat_info
+                        .as_ref()
+                        .and_then(|cat| cat.fee_policy);
+                    let requested_fee_policy = fee_policy
+                        .map(|fee_policy| self.parse_fee_policy(fee_policy))
+                        .transpose()?
+                        .or(existing_fee_policy);
+
                     let hidden_puzzle_hash = if let Some(hidden_puzzle_hash) = hidden_puzzle_hash {
                         Some(parse_hash(hidden_puzzle_hash)?)
                     } else {
-                        wallet.fetch_offer_cat_hidden_puzzle_hash(asset_id).await?
+                        existing_hidden_puzzle_hash
                     };
 
-                    requested
+                    let cat = requested
                         .cats
                         .entry(asset_id)
                         .or_insert(RequestedCat {
                             amount: 0,
                             hidden_puzzle_hash,
-                        })
-                        .amount += amount;
+                            fee_policy: requested_fee_policy.clone(),
+                        });
+                    cat.amount += amount;
+                    if cat.hidden_puzzle_hash.is_none() {
+                        cat.hidden_puzzle_hash = hidden_puzzle_hash;
+                    }
+                    if cat.fee_policy.is_none() {
+                        cat.fee_policy = requested_fee_policy;
+                    }
                 } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
                     if amount != 1 {
                         return Err(Error::InvalidAmount(raw_amount.to_string()));
@@ -364,12 +385,12 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            let hidden_puzzle_hash = offer
-                .asset_info()
-                .cat(asset_id)
-                .and_then(|cat| cat.hidden_puzzle_hash);
+            let cat_info = offer.asset_info().cat(asset_id);
+            let hidden_puzzle_hash = cat_info.and_then(|cat| cat.hidden_puzzle_hash);
+            let fee_policy = cat_info.and_then(|cat| cat.fee_policy);
 
-            self.cache_cat(asset_id, hidden_puzzle_hash).await?;
+            self.cache_cat(asset_id, hidden_puzzle_hash, fee_policy)
+                .await?;
 
             cat_rows.push(AssetToOffer {
                 offer_id,

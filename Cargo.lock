@@ -1161,8 +1161,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-client"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3857ebe69820f4644d346bf00713b2cfdb071af5c3070da6eca5f0d7a3d1184a"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "aws-lc-rs",
  "chia-protocol",
@@ -1182,8 +1181,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-coinset"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b893b1e6bad18ac210daddf70b53a172618810e54206617cca1d37faa7ad7bf"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "chia-protocol",
  "hex",
@@ -1196,8 +1194,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-derive"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bddb12a31244583a1e2d14b8e379bd8829ac1fb54e8ae4d2b9de8b8aab269b2c"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "convert_case 0.8.0",
  "quote",
@@ -1207,8 +1204,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-driver"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbee2d08c43e0ed406a6e67ac4dca252c0d9efaf8b15d1e6019d05b5e041625a"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "bigdecimal",
  "bip39",
@@ -1217,6 +1213,7 @@ dependencies = [
  "chia-protocol",
  "chia-puzzle-types",
  "chia-puzzles",
+ "chia-sdk-puzzles",
  "chia-sdk-signer",
  "chia-sdk-types",
  "chia-sdk-utils",
@@ -1239,10 +1236,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "chia-sdk-puzzles"
+version = "0.33.0"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
+dependencies = [
+ "hex-literal",
+]
+
+[[package]]
 name = "chia-sdk-signer"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1272d28e427aaaa4505f8b8e5504505ca425fce24882317c62b12702094aac2e"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "chia-bls 0.36.1",
  "chia-consensus",
@@ -1260,8 +1264,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-test"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc86094f4ee78b512a2da5ce96df4c07d2d98ba4caf2a743ee0afbca5d5fe857"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "anyhow",
  "bincode 2.0.1",
@@ -1298,8 +1301,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-types"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d570486f47a35663718a47b18617101f6300dcad06dc3d33afe70fb433248ea"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "chia-bls 0.36.1",
  "chia-consensus",
@@ -1307,6 +1309,7 @@ dependencies = [
  "chia-puzzle-types",
  "chia-puzzles",
  "chia-sdk-derive",
+ "chia-sdk-puzzles",
  "chia-secp",
  "chia-sha2 0.36.1",
  "chialisp",
@@ -1323,8 +1326,7 @@ dependencies = [
 [[package]]
 name = "chia-sdk-utils"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93cecade7c3fe750845cde404e2c69aaeb75caf88dc343fff2ff4952554eccf9"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "bech32",
  "chia-protocol",
@@ -1442,8 +1444,7 @@ dependencies = [
 [[package]]
 name = "chia-wallet-sdk"
 version = "0.33.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e862bece82985b64931b25bb8a3856b1807cd44deceb520ce1f56001a320956e"
+source = "git+https://github.com/cameroncooper/chia-wallet-sdk.git?rev=7856417c6b22aa319cc6d024018f597f6fb55139#7856417c6b22aa319cc6d024018f597f6fb55139"
 dependencies = [
  "chia-bls 0.36.1",
  "chia-consensus",

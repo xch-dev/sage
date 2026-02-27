@@ -137,6 +137,7 @@ pub async fn insert_puzzle(
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: info.hidden_puzzle_hash,
+                fee_policy: info.fee_policy,
                 kind: AssetKind::Token,
             })
             .await?;
@@ -180,6 +181,7 @@ pub async fn insert_puzzle(
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: None,
+                fee_policy: None,
                 kind: AssetKind::Did,
             })
             .await?;
@@ -281,6 +283,7 @@ pub async fn insert_nft(
         is_sensitive_content: false,
         is_visible: true,
         hidden_puzzle_hash: None,
+        fee_policy: None,
         kind: AssetKind::Nft,
     };
 
@@ -400,6 +403,7 @@ pub async fn insert_option(
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: None,
+                fee_policy: None,
                 kind: AssetKind::Token,
             })
             .await?;
@@ -438,6 +442,7 @@ pub async fn insert_option(
         is_sensitive_content: false,
         is_visible: true,
         hidden_puzzle_hash: None,
+        fee_policy: None,
         kind: AssetKind::Option,
     };
 

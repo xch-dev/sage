@@ -1,12 +1,14 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
+        FeePolicy, TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
         calculate_trade_prices,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
 };
+
+use super::fee_trade_price_to_nft_trade_prices;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use sage_database::{NftOfferInfo, OptionOfferInfo};
@@ -31,10 +33,11 @@ pub struct Requested {
     pub options: IndexMap<Bytes32, OptionOfferInfo>,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct RequestedCat {
     pub amount: u64,
     pub hidden_puzzle_hash: Option<Bytes32>,
+    pub fee_policy: Option<FeePolicy>,
 }
 
 impl Wallet {
@@ -60,7 +63,10 @@ impl Wallet {
                 .cats
                 .iter()
                 .map(|(asset_id, cat)| {
-                    asset_info.insert_cat(*asset_id, CatAssetInfo::new(cat.hidden_puzzle_hash))?;
+                    asset_info.insert_cat(
+                        *asset_id,
+                        CatAssetInfo::new(cat.hidden_puzzle_hash, cat.fee_policy),
+                    )?;
                     Ok((*asset_id, cat.amount))
                 })
                 .collect::<Result<_, WalletError>>()?,
@@ -213,10 +219,11 @@ impl Wallet {
             }
         }
 
-        let trade_prices = calculate_trade_prices(
+        let fee_trade_prices = calculate_trade_prices(
             &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
             &asset_info,
         );
+        let nft_trade_prices = fee_trade_price_to_nft_trade_prices(&fee_trade_prices, &asset_info);
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
@@ -233,7 +240,7 @@ impl Wallet {
                     Some(TransferNftById::new(
                         None,
                         if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
+                            nft_trade_prices.clone()
                         } else {
                             vec![]
                         },

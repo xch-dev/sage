@@ -53,6 +53,7 @@ impl CatQueue {
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: cat.hidden_puzzle_hash,
+                fee_policy: None,
                 kind: AssetKind::Token,
             })
             .await?;

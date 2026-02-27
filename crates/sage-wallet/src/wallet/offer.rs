@@ -7,9 +7,42 @@ mod take_offer;
 pub use aggregate_offer::*;
 pub use make_offer::*;
 
+use chia_wallet_sdk::{
+    driver::AssetInfo,
+    prelude::{CatAssetInfo, CatInfo, TradePrice},
+    puzzles::SETTLEMENT_PAYMENT_HASH,
+    types::puzzles::FeeTradePrice,
+};
+
+/// Converts `FeeTradePrice` values (returned by `calculate_trade_prices`) into
+/// the legacy `TradePrice` format expected by the NFT `TransferNft` condition.
+fn fee_trade_price_to_nft_trade_prices(
+    fee_trade_prices: &[FeeTradePrice],
+    asset_info: &AssetInfo,
+) -> Vec<TradePrice> {
+    fee_trade_prices
+        .iter()
+        .map(|ftp| {
+            let puzzle_hash = if let Some(asset_id) = ftp.asset_id {
+                let default = CatAssetInfo::default();
+                let info = asset_info.cat(asset_id).unwrap_or(&default);
+                CatInfo::new(asset_id, info.hidden_puzzle_hash, SETTLEMENT_PAYMENT_HASH.into())
+                    .with_fee_policy(info.fee_policy)
+                    .puzzle_hash()
+                    .into()
+            } else {
+                SETTLEMENT_PAYMENT_HASH.into()
+            };
+            TradePrice::new(ftp.amount, puzzle_hash)
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
+    use chia_wallet_sdk::{
+        chia::puzzle_types::nft::NftMetadata, driver::FeePolicy, prelude::*,
+    };
     use indexmap::indexmap;
     use sage_database::NftOfferInfo;
     use test_log::test;
@@ -38,7 +71,7 @@ mod tests {
                     ..Default::default()
                 },
                 Requested {
-                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None, fee_policy: None } },
                     ..Default::default()
                 },
                 None,
@@ -349,7 +382,7 @@ mod tests {
                     ..Default::default()
                 },
                 Requested {
-                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None, fee_policy: None } },
                     ..Default::default()
                 },
                 None,
@@ -748,6 +781,58 @@ mod tests {
             .is_some();
 
         assert!(!is_spent);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_xch_for_fee_cat() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(2000).await?;
+
+        let fee_policy = FeePolicy::new(bob.puzzle_hash, 500, 1, false, true);
+
+        let (coin_spends, asset_id) = bob
+            .wallet
+            .issue_fee_cat(1000, 0, fee_policy)
+            .await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 1000);
+        let requested_hidden_puzzle_hash = bob
+            .wallet
+            .db
+            .asset(asset_id)
+            .await?
+            .and_then(|asset| asset.hidden_puzzle_hash);
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 750,
+                    fee: 250,
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! { asset_id => RequestedCat {
+                        amount: 1000,
+                        hidden_puzzle_hash: requested_hidden_puzzle_hash,
+                        fee_policy: Some(fee_policy),
+                    } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let mut ctx = SpendContext::new();
+        let parsed_offer = Offer::from_spend_bundle(&mut ctx, &offer)?;
+        let requested_cat = parsed_offer
+            .asset_info()
+            .cat(asset_id)
+            .expect("requested CAT asset info missing");
+        assert_eq!(requested_cat.fee_policy.as_ref(), Some(&fee_policy));
 
         Ok(())
     }

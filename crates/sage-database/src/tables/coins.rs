@@ -6,7 +6,7 @@ use sqlx::{Row, SqliteExecutor, query};
 
 use crate::{
     AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result, SerializedDid,
-    SerializedDidInfo, SerializedNft, SerializedNftInfo,
+    SerializedDidInfo, SerializedNft, SerializedNftInfo, fee_policy_from_row,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -746,9 +746,13 @@ async fn selectable_cat_coins(
         SELECT
             parent_coin_hash, puzzle_hash, amount, asset_hidden_puzzle_hash,
             p2_puzzle_hash, parent_parent_coin_hash, parent_inner_puzzle_hash,
-            parent_amount
+            parent_amount,
+            assets.fee_issuer_puzzle_hash, assets.fee_basis_points,
+            assets.fee_min_fee, assets.fee_allow_zero_price,
+            assets.fee_allow_revoke_fee_bypass
         FROM selectable_coins
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = selectable_coins.coin_id
+        INNER JOIN assets ON assets.id = selectable_coins.asset_id
         WHERE asset_hash = ?
         ",
         asset_id_ref
@@ -757,6 +761,13 @@ async fn selectable_cat_coins(
     .await?
     .into_iter()
     .map(|row| {
+        let fee_policy = fee_policy_from_row(
+            row.fee_issuer_puzzle_hash,
+            row.fee_basis_points,
+            row.fee_min_fee,
+            row.fee_allow_zero_price,
+            row.fee_allow_revoke_fee_bypass,
+        )?;
         Ok(Cat::new(
             Coin::new(
                 row.parent_coin_hash.convert()?,
@@ -772,7 +783,8 @@ async fn selectable_cat_coins(
                 asset_id,
                 row.asset_hidden_puzzle_hash.convert()?,
                 row.p2_puzzle_hash.convert()?,
-            ),
+            )
+            .with_fee_policy(fee_policy),
         ))
     })
     .collect()
@@ -843,9 +855,13 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
         SELECT
             parent_coin_hash, puzzle_hash, amount, asset_hidden_puzzle_hash,
             p2_puzzle_hash, parent_parent_coin_hash, parent_inner_puzzle_hash,
-            parent_amount, asset_hash AS asset_id
+            parent_amount, asset_hash AS asset_id,
+            assets.fee_issuer_puzzle_hash, assets.fee_basis_points,
+            assets.fee_min_fee, assets.fee_allow_zero_price,
+            assets.fee_allow_revoke_fee_bypass
         FROM wallet_coins
         INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id
+        INNER JOIN assets ON assets.id = wallet_coins.asset_id
         WHERE coin_hash = ?
         ",
         coin_id_ref
@@ -855,6 +871,14 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
     else {
         return Ok(None);
     };
+
+    let fee_policy = fee_policy_from_row(
+        row.fee_issuer_puzzle_hash,
+        row.fee_basis_points,
+        row.fee_min_fee,
+        row.fee_allow_zero_price,
+        row.fee_allow_revoke_fee_bypass,
+    )?;
 
     Ok(Some(Cat::new(
         Coin::new(
@@ -871,7 +895,8 @@ async fn cat_coin(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Opt
             row.asset_id.convert()?,
             row.asset_hidden_puzzle_hash.convert()?,
             row.p2_puzzle_hash.convert()?,
-        ),
+        )
+        .with_fee_policy(fee_policy),
     )))
 }
 

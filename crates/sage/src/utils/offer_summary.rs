@@ -48,15 +48,16 @@ impl Sage {
         }
 
         for (asset_id, amount) in offered_amounts.cats {
-            let hidden_puzzle_hash = offer
-                .asset_info()
-                .cat(asset_id)
-                .and_then(|cat| cat.hidden_puzzle_hash);
+            let cat_info = offer.asset_info().cat(asset_id);
+            let hidden_puzzle_hash = cat_info.and_then(|cat| cat.hidden_puzzle_hash);
+            let fee_policy = cat_info.and_then(|cat| cat.fee_policy);
 
             maker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0)),
-                asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
+                asset: self.encode_asset(
+                    self.cache_cat(asset_id, hidden_puzzle_hash, fee_policy).await?,
+                )?,
                 nft_royalty: None,
                 option_assets: None,
             });
@@ -127,15 +128,16 @@ impl Sage {
         }
 
         for (asset_id, amount) in requested_amounts.cats {
-            let hidden_puzzle_hash = offer
-                .asset_info()
-                .cat(asset_id)
-                .and_then(|cat| cat.hidden_puzzle_hash);
+            let cat_info = offer.asset_info().cat(asset_id);
+            let hidden_puzzle_hash = cat_info.and_then(|cat| cat.hidden_puzzle_hash);
+            let fee_policy = cat_info.and_then(|cat| cat.fee_policy);
 
             taker.push(OfferAsset {
                 amount: Amount::u64(amount),
                 royalty: Amount::u64(*requested_royalties.cats.get(&asset_id).unwrap_or(&0)),
-                asset: self.encode_asset(self.cache_cat(asset_id, hidden_puzzle_hash).await?)?,
+                asset: self.encode_asset(
+                    self.cache_cat(asset_id, hidden_puzzle_hash, fee_policy).await?,
+                )?,
                 nft_royalty: None,
                 option_assets: None,
             });

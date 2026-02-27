@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n        SELECT\n            offers.hash as offer_id, assets.hash as asset_id,\n            amount, royalty, is_requested, \n            assets.description, assets.is_sensitive_content,\n            assets.is_visible, assets.icon_url, assets.name,\n            assets.ticker, assets.precision, assets.kind,\n            assets.hidden_puzzle_hash\n        FROM offer_assets \n        INNER JOIN assets ON offer_assets.asset_id = assets.id\n        INNER JOIN offers ON offer_assets.offer_id = offers.id\n        WHERE offers.hash = ?\n        ",
+  "query": "\n        SELECT\n            offers.hash as offer_id, assets.hash as asset_id,\n            amount, royalty, is_requested, \n            assets.description, assets.is_sensitive_content,\n            assets.is_visible, assets.icon_url, assets.name,\n            assets.ticker, assets.precision, assets.kind,\n            assets.hidden_puzzle_hash, assets.fee_issuer_puzzle_hash,\n            assets.fee_basis_points, assets.fee_min_fee,\n            assets.fee_allow_zero_price, assets.fee_allow_revoke_fee_bypass\n        FROM offer_assets \n        INNER JOIN assets ON offer_assets.asset_id = assets.id\n        INNER JOIN offers ON offer_assets.offer_id = offers.id\n        WHERE offers.hash = ?\n        ",
   "describe": {
     "columns": [
       {
@@ -72,6 +72,31 @@
         "name": "hidden_puzzle_hash",
         "ordinal": 13,
         "type_info": "Blob"
+      },
+      {
+        "name": "fee_issuer_puzzle_hash",
+        "ordinal": 14,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee_basis_points",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_min_fee",
+        "ordinal": 16,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_allow_zero_price",
+        "ordinal": 17,
+        "type_info": "Bool"
+      },
+      {
+        "name": "fee_allow_revoke_fee_bypass",
+        "ordinal": 18,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -91,8 +116,13 @@
       true,
       false,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "e53f79f0f7e0241ab03448dbf1423c05f8077e69ae1e73513d9576af6d06ecf0"
+  "hash": "e3f34c77dab8a9258f4fcb266f359e0963a1128522fcac4ddbe3fcb737e3db38"
 }
