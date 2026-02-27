@@ -411,7 +411,7 @@ export type AddPeer = {
 ip: string }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
-export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
+export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; fee_policy: FeePolicy | null; kind: AssetKind }
 /**
  * Type of asset coin
  */
@@ -826,6 +826,27 @@ export type FeeAction = {
  * The fee amount, in mojos
  */
 amount: Amount }
+export type FeePolicy = { 
+/**
+ * Address receiving transfer fees
+ */
+recipient: string; 
+/**
+ * Transfer fee in basis points (1/100 of a percent)
+ */
+fee_basis_points: number; 
+/**
+ * Minimum fee amount in mojos
+ */
+min_fee: Amount; 
+/**
+ * Whether zero-price transfers can bypass fees
+ */
+allow_zero_price: boolean; 
+/**
+ * Whether revocations can bypass fees
+ */
+allow_revoke_fee_bypass: boolean }
 /**
  * Filter unlocked coins from a list
  */
@@ -1731,6 +1752,10 @@ amount: Amount;
  */
 fee: Amount; 
 /**
+ * Optional transfer fee policy for fee CAT issuance
+ */
+fee_policy?: FeePolicy | null; 
+/**
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
@@ -2002,6 +2027,10 @@ asset_id?: string | null;
  * Optional hidden puzzle hash for privacy
  */
 hidden_puzzle_hash?: string | null; 
+/**
+ * Optional fee policy for requested CAT assets
+ */
+fee_policy?: FeePolicy | null; 
 /**
  * Amount of the asset
  */
@@ -2524,7 +2553,7 @@ spend_bundle: SpendBundleJson;
  * Transaction ID
  */
 transaction_id: string }
-export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; selectable_balance: Amount; revocation_address: string | null }
+export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; selectable_balance: Amount; revocation_address: string | null; fee_policy: FeePolicy | null }
 export type TransactionCoinRecord = { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind; asset: Asset }
 export type TransactionInput = { coin_id: string; amount: Amount; address: string; asset: Asset | null; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }

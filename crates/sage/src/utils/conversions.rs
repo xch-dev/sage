@@ -1,4 +1,5 @@
 use chia_wallet_sdk::{
+    driver::FeePolicy as DriverFeePolicy,
     driver::BURN_PUZZLE_HASH,
     prelude::*,
     puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH},
@@ -6,7 +7,7 @@ use chia_wallet_sdk::{
 use sage_api::AddressKind;
 use sage_database::{Asset, AssetKind};
 
-use crate::{Result, Sage};
+use crate::{Result, Sage, parse_amount};
 
 impl Sage {
     pub fn encode_asset(&self, asset: Asset) -> Result<sage_api::Asset> {
@@ -23,8 +24,39 @@ impl Sage {
                 .hidden_puzzle_hash
                 .map(|puzzle_hash| Address::new(puzzle_hash, self.network().prefix()).encode())
                 .transpose()?,
+            fee_policy: asset
+                .fee_policy
+                .map(|fee_policy| self.encode_fee_policy(fee_policy))
+                .transpose()?,
             kind: encode_asset_kind(asset.kind),
         })
+    }
+
+    pub fn encode_fee_policy(
+        &self,
+        fee_policy: DriverFeePolicy,
+    ) -> Result<sage_api::FeePolicy> {
+        Ok(sage_api::FeePolicy {
+            recipient: Address::new(fee_policy.issuer_fee_puzzle_hash, self.network().prefix())
+                .encode()?,
+            fee_basis_points: fee_policy.fee_basis_points,
+            min_fee: sage_api::Amount::u64(fee_policy.min_fee),
+            allow_zero_price: fee_policy.allow_zero_price,
+            allow_revoke_fee_bypass: fee_policy.allow_revoke_fee_bypass,
+        })
+    }
+
+    pub fn parse_fee_policy(
+        &self,
+        fee_policy: sage_api::FeePolicy,
+    ) -> Result<DriverFeePolicy> {
+        Ok(DriverFeePolicy::new(
+            self.parse_address(fee_policy.recipient)?,
+            fee_policy.fee_basis_points,
+            parse_amount(fee_policy.min_fee)?,
+            fee_policy.allow_zero_price,
+            fee_policy.allow_revoke_fee_bypass,
+        ))
     }
 }
 

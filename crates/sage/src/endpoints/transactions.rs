@@ -157,8 +157,16 @@ impl Sage {
         let wallet = self.wallet()?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
+        let fee_policy = req
+            .fee_policy
+            .map(|fee_policy| self.parse_fee_policy(fee_policy))
+            .transpose()?;
 
-        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
+        let (coin_spends, asset_id) = if let Some(fee_policy) = fee_policy.clone() {
+            wallet.issue_fee_cat(amount, fee, fee_policy).await?
+        } else {
+            wallet.issue_cat(amount, fee, None).await?
+        };
         let mut tx = wallet.db.tx().await?;
 
         tx.insert_asset(Asset {
@@ -171,7 +179,7 @@ impl Sage {
             is_sensitive_content: false,
             is_visible: true,
             hidden_puzzle_hash: None,
-            fee_policy: None,
+            fee_policy,
             kind: AssetKind::Token,
         })
         .await?;

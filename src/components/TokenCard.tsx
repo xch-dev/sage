@@ -213,6 +213,45 @@ export function TokenCard({
               </Alert>
             </>
           )}
+
+          {asset.fee_policy && (
+            <Alert className='mt-2'>
+              <AlertTitle>
+                <Trans>Fee Policy</Trans>
+              </AlertTitle>
+              <AlertDescription className='space-y-1'>
+                <p className='break-all'>
+                  <Trans>Recipient:</Trans> {asset.fee_policy.recipient}
+                </p>
+                <p>
+                  <Trans>Fee:</Trans> {asset.fee_policy.fee_basis_points} bps
+                </p>
+                <p>
+                  <Trans>Minimum fee:</Trans>{' '}
+                  <NumberFormat
+                    value={fromMojos(asset.fee_policy.min_fee, asset.precision)}
+                    minimumFractionDigits={0}
+                    maximumFractionDigits={asset.precision}
+                  />{' '}
+                  {asset.ticker ?? 'CAT'}
+                </p>
+                <p>
+                  {asset.fee_policy.allow_zero_price ? (
+                    <Trans>Zero-price transfers can bypass fees</Trans>
+                  ) : (
+                    <Trans>Zero-price transfers are fee-enforced</Trans>
+                  )}
+                </p>
+                <p>
+                  {asset.fee_policy.allow_revoke_fee_bypass ? (
+                    <Trans>Revocations can bypass fees</Trans>
+                  ) : (
+                    <Trans>Revocations are fee-enforced</Trans>
+                  )}
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
       </Card>
 

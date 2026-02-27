@@ -54,6 +54,7 @@ impl Sage {
             asset_id,
             amount: raw_amount,
             hidden_puzzle_hash: _, // We ignore this since we already have it
+            fee_policy: _, // Fee policy is only used for requested CATs
         } in req.offered_assets
         {
             let amount = parse_amount(raw_amount.clone())?;
@@ -98,6 +99,7 @@ impl Sage {
         for OfferAmount {
             asset_id,
             hidden_puzzle_hash,
+            fee_policy,
             amount: raw_amount,
         } in req.requested_assets
         {
@@ -112,6 +114,10 @@ impl Sage {
                     let existing_fee_policy = existing_cat_info
                         .as_ref()
                         .and_then(|cat| cat.fee_policy);
+                    let requested_fee_policy = fee_policy
+                        .map(|fee_policy| self.parse_fee_policy(fee_policy))
+                        .transpose()?
+                        .or(existing_fee_policy);
 
                     let hidden_puzzle_hash = if let Some(hidden_puzzle_hash) = hidden_puzzle_hash {
                         Some(parse_hash(hidden_puzzle_hash)?)
@@ -125,14 +131,14 @@ impl Sage {
                         .or_insert(RequestedCat {
                             amount: 0,
                             hidden_puzzle_hash,
-                            fee_policy: existing_fee_policy,
+                            fee_policy: requested_fee_policy.clone(),
                         });
                     cat.amount += amount;
                     if cat.hidden_puzzle_hash.is_none() {
                         cat.hidden_puzzle_hash = hidden_puzzle_hash;
                     }
                     if cat.fee_policy.is_none() {
-                        cat.fee_policy = existing_fee_policy;
+                        cat.fee_policy = requested_fee_policy;
                     }
                 } else if let Ok(nft_id) = parse_nft_id(asset_id.clone()) {
                     if amount != 1 {

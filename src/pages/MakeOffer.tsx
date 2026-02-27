@@ -3,6 +3,7 @@ import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfi
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
 import { AssetSelector } from '@/components/selectors/AssetSelector';
+import { commands } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -34,7 +35,7 @@ export function MakeOffer() {
     Record<string, boolean>
   >({});
 
-  const makeAction = () => {
+  const makeAction = async () => {
     if (state.expiration !== null) {
       const days = parseInt(state.expiration.days) || 0;
       const hours = parseInt(state.expiration.hours) || 0;
@@ -57,6 +58,62 @@ export function MakeOffer() {
         addError({
           kind: 'invalid',
           reason: t`Tokens must have a positive amount.`,
+        });
+        return;
+      }
+    }
+
+    for (const token of state.requested.tokens) {
+      if (!token.asset_id || !token.fee_policy) continue;
+
+      const recipient = token.fee_policy.recipient.trim();
+      if (!recipient) {
+        addError({
+          kind: 'invalid',
+          reason: t`Fee policy recipient is required.`,
+        });
+        return;
+      }
+
+      const feeBasisPoints = Number.parseInt(
+        token.fee_policy.fee_basis_points || '0',
+        10,
+      );
+      if (
+        Number.isNaN(feeBasisPoints) ||
+        feeBasisPoints < 0 ||
+        feeBasisPoints > 65535
+      ) {
+        addError({
+          kind: 'invalid',
+          reason: t`Fee basis points must be between 0 and 65535.`,
+        });
+        return;
+      }
+
+      const minimumFee = Number(token.fee_policy.min_fee || '0');
+      if (Number.isNaN(minimumFee) || minimumFee < 0) {
+        addError({
+          kind: 'invalid',
+          reason: t`Minimum fee must be a non-negative amount.`,
+        });
+        return;
+      }
+
+      let isAddressValid = false;
+      try {
+        isAddressValid = await commands.validateAddress(recipient);
+      } catch (error) {
+        addError({
+          kind: 'internal',
+          reason: `${error}`,
+        });
+        return;
+      }
+      if (!isAddressValid) {
+        addError({
+          kind: 'invalid',
+          reason: t`Fee policy recipient address is invalid.`,
         });
         return;
       }
@@ -307,7 +364,7 @@ export function MakeOffer() {
           >
             <Trans>Cancel Offer</Trans>
           </Button>
-          <Button disabled={invalid} onClick={makeAction}>
+          <Button disabled={invalid} onClick={() => void makeAction()}>
             <Trans>Create Offer</Trans>
           </Button>
         </div>

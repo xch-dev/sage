@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Amount;
+use crate::{Amount, FeePolicy};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -16,4 +16,5 @@ pub struct TokenRecord {
     pub balance: Amount,
     pub selectable_balance: Amount,
     pub revocation_address: Option<String>,
+    pub fee_policy: Option<FeePolicy>,
 }

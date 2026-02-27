@@ -1,5 +1,6 @@
 import { NumberFormat } from '@/components/NumberFormat';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -139,6 +140,13 @@ export function TokenGridView({ tokens, actionHandlers }: TokenGridViewProps) {
                     />{' '}
                     {token.ticker ?? ''}
                   </div>
+                  {token.fee_policy && (
+                    <div>
+                      <Badge variant='secondary' className='text-[10px]'>
+                        <Trans>Fee CAT</Trans>
+                      </Badge>
+                    </div>
+                  )}
                   <div className='flex justify-between items-center text-sm text-muted-foreground'>
                     <Tooltip>
                       <TooltipTrigger asChild>
