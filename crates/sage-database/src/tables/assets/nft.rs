@@ -95,6 +95,7 @@ impl Database {
                     is_sensitive_content: row.asset_is_sensitive_content,
                     is_visible: row.asset_is_visible,
                     hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: None,
                     kind: AssetKind::Nft,
                 },
                 nft_info: NftCoinInfo {
@@ -233,6 +234,7 @@ impl Database {
                         hidden_puzzle_hash: row
                             .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
                             .convert()?,
+                        fee_policy: None,
                         kind: AssetKind::Nft,
                     },
                     nft_info: NftCoinInfo {

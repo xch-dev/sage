@@ -2,7 +2,8 @@ use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteExecutor, query};
 
 use crate::{
-    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result, is_valid_asset_id,
+    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result, fee_policy_from_row,
+    is_valid_asset_id,
     puzzle_hash_from_address,
 };
 
@@ -89,12 +90,22 @@ impl Database {
                 strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,
                 strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,
                 strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,
+                strike_asset.fee_issuer_puzzle_hash AS strike_fee_issuer_puzzle_hash,
+                strike_asset.fee_basis_points AS strike_fee_basis_points,
+                strike_asset.fee_min_fee AS strike_fee_min_fee,
+                strike_asset.fee_allow_zero_price AS strike_fee_allow_zero_price,
+                strike_asset.fee_allow_revoke_fee_bypass AS strike_fee_allow_revoke_fee_bypass,
 
                 underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,
                 underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
                 underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
                 underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+                underlying_asset.fee_issuer_puzzle_hash AS underlying_fee_issuer_puzzle_hash,
+                underlying_asset.fee_basis_points AS underlying_fee_basis_points,
+                underlying_asset.fee_min_fee AS underlying_fee_min_fee,
+                underlying_asset.fee_allow_zero_price AS underlying_fee_allow_zero_price,
+                underlying_asset.fee_allow_revoke_fee_bypass AS underlying_fee_allow_revoke_fee_bypass,
                 
                 strike_amount, 
                 underlying_coin.amount AS underlying_amount,
@@ -123,6 +134,7 @@ impl Database {
                     is_visible: row.asset_is_visible,
                     is_sensitive_content: row.asset_is_sensitive_content,
                     hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: None,
                     kind: AssetKind::Option,
                 },
                 underlying_asset: Asset {
@@ -135,6 +147,13 @@ impl Database {
                     is_visible: row.underlying_asset_is_visible,
                     is_sensitive_content: row.underlying_asset_is_sensitive_content,
                     hidden_puzzle_hash: row.underlying_asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.underlying_fee_issuer_puzzle_hash,
+                        row.underlying_fee_basis_points,
+                        row.underlying_fee_min_fee,
+                        row.underlying_fee_allow_zero_price,
+                        row.underlying_fee_allow_revoke_fee_bypass,
+                    )?,
                     kind: row.underlying_asset_kind.convert()?,
                 },
                 underlying_amount: row.underlying_amount.convert()?,
@@ -148,6 +167,13 @@ impl Database {
                     is_visible: row.strike_asset_is_visible,
                     is_sensitive_content: row.strike_asset_is_sensitive_content,
                     hidden_puzzle_hash: row.strike_asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.strike_fee_issuer_puzzle_hash,
+                        row.strike_fee_basis_points,
+                        row.strike_fee_min_fee,
+                        row.strike_fee_allow_zero_price,
+                        row.strike_fee_allow_revoke_fee_bypass,
+                    )?,
                     kind: row.strike_asset_kind.convert()?,
                 },
                 strike_amount: row.strike_amount.convert()?,
@@ -265,12 +291,22 @@ impl Database {
                 strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,
                 strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,
                 strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,
+                strike_asset.fee_issuer_puzzle_hash AS strike_fee_issuer_puzzle_hash,
+                strike_asset.fee_basis_points AS strike_fee_basis_points,
+                strike_asset.fee_min_fee AS strike_fee_min_fee,
+                strike_asset.fee_allow_zero_price AS strike_fee_allow_zero_price,
+                strike_asset.fee_allow_revoke_fee_bypass AS strike_fee_allow_revoke_fee_bypass,
 
                 underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,
                 underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
                 underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
                 underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
                 underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+                underlying_asset.fee_issuer_puzzle_hash AS underlying_fee_issuer_puzzle_hash,
+                underlying_asset.fee_basis_points AS underlying_fee_basis_points,
+                underlying_asset.fee_min_fee AS underlying_fee_min_fee,
+                underlying_asset.fee_allow_zero_price AS underlying_fee_allow_zero_price,
+                underlying_asset.fee_allow_revoke_fee_bypass AS underlying_fee_allow_revoke_fee_bypass,
 
                 p2_options.expiration_seconds AS expiration_seconds,
                 strike_amount, 
@@ -299,6 +335,13 @@ impl Database {
                     is_visible: row.underlying_asset_is_visible,
                     is_sensitive_content: row.underlying_asset_is_sensitive_content,
                     hidden_puzzle_hash: row.underlying_asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.underlying_fee_issuer_puzzle_hash,
+                        row.underlying_fee_basis_points,
+                        row.underlying_fee_min_fee,
+                        row.underlying_fee_allow_zero_price,
+                        row.underlying_fee_allow_revoke_fee_bypass,
+                    )?,
                     kind: row.underlying_asset_kind.convert()?,
                 },
                 underlying_amount: row.underlying_amount.convert()?,
@@ -312,6 +355,13 @@ impl Database {
                     is_visible: row.strike_asset_is_visible,
                     is_sensitive_content: row.strike_asset_is_sensitive_content,
                     hidden_puzzle_hash: row.strike_asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.strike_fee_issuer_puzzle_hash,
+                        row.strike_fee_basis_points,
+                        row.strike_fee_min_fee,
+                        row.strike_fee_allow_zero_price,
+                        row.strike_fee_allow_revoke_fee_bypass,
+                    )?,
                     kind: row.strike_asset_kind.convert()?,
                 },
                 strike_amount: row.strike_amount.convert()?,
@@ -380,12 +430,22 @@ async fn owned_options(
             strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,
             strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,
             strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,
+            strike_asset.fee_issuer_puzzle_hash AS strike_fee_issuer_puzzle_hash,
+            strike_asset.fee_basis_points AS strike_fee_basis_points,
+            strike_asset.fee_min_fee AS strike_fee_min_fee,
+            strike_asset.fee_allow_zero_price AS strike_fee_allow_zero_price,
+            strike_asset.fee_allow_revoke_fee_bypass AS strike_fee_allow_revoke_fee_bypass,
 
             underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,
             underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,
             underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,
             underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,
             underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,
+            underlying_asset.fee_issuer_puzzle_hash AS underlying_fee_issuer_puzzle_hash,
+            underlying_asset.fee_basis_points AS underlying_fee_basis_points,
+            underlying_asset.fee_min_fee AS underlying_fee_min_fee,
+            underlying_asset.fee_allow_zero_price AS underlying_fee_allow_zero_price,
+            underlying_asset.fee_allow_revoke_fee_bypass AS underlying_fee_allow_revoke_fee_bypass,
 
             strike_amount, underlying_coin.amount AS underlying_amount, underlying_coin.hash AS underlying_coin_id,
 
@@ -484,6 +544,7 @@ async fn owned_options(
                     hidden_puzzle_hash: row
                         .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
                         .convert()?,
+                    fee_policy: None,
                     kind: AssetKind::Option,
                 },
                 underlying_amount: row.get::<Vec<u8>, _>("underlying_amount").convert()?,
@@ -501,6 +562,13 @@ async fn owned_options(
                     hidden_puzzle_hash: row
                         .get::<Option<Vec<u8>>, _>("underlying_asset_hidden_puzzle_hash")
                         .convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.get::<Option<Vec<u8>>, _>("underlying_fee_issuer_puzzle_hash"),
+                        row.get::<Option<i64>, _>("underlying_fee_basis_points"),
+                        row.get::<Option<i64>, _>("underlying_fee_min_fee"),
+                        row.get::<Option<bool>, _>("underlying_fee_allow_zero_price"),
+                        row.get::<Option<bool>, _>("underlying_fee_allow_revoke_fee_bypass"),
+                    )?,
                     kind: row
                         .get::<Option<i64>, _>("underlying_asset_kind")
                         .map(Convert::convert)
@@ -520,6 +588,13 @@ async fn owned_options(
                     hidden_puzzle_hash: row
                         .get::<Option<Vec<u8>>, _>("strike_asset_hidden_puzzle_hash")
                         .convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.get::<Option<Vec<u8>>, _>("strike_fee_issuer_puzzle_hash"),
+                        row.get::<Option<i64>, _>("strike_fee_basis_points"),
+                        row.get::<Option<i64>, _>("strike_fee_min_fee"),
+                        row.get::<Option<bool>, _>("strike_fee_allow_zero_price"),
+                        row.get::<Option<bool>, _>("strike_fee_allow_revoke_fee_bypass"),
+                    )?,
                     kind: row
                         .get::<Option<i64>, _>("strike_asset_kind")
                         .map(Convert::convert)

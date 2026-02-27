@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                hash, name, icon_url, description, ticker, precision,\n                is_visible, is_sensitive_content, hidden_puzzle_hash\n            FROM assets\n            WHERE assets.kind = 0 AND assets.id != 0\n            ORDER BY name ASC\n            ",
+  "query": "\n            SELECT\n                hash, name, icon_url, description, ticker, precision,\n                is_visible, is_sensitive_content, hidden_puzzle_hash,\n                fee_issuer_puzzle_hash, fee_basis_points, fee_min_fee,\n                fee_allow_zero_price, fee_allow_revoke_fee_bypass\n            FROM assets\n            WHERE assets.kind = 0 AND assets.id != 0\n            ORDER BY name ASC\n            ",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,31 @@
         "name": "hidden_puzzle_hash",
         "ordinal": 8,
         "type_info": "Blob"
+      },
+      {
+        "name": "fee_issuer_puzzle_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee_basis_points",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_min_fee",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_allow_zero_price",
+        "ordinal": 12,
+        "type_info": "Bool"
+      },
+      {
+        "name": "fee_allow_revoke_fee_bypass",
+        "ordinal": 13,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -61,8 +86,13 @@
       false,
       false,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "d4968090a9ac9a2cd512fa3eabc6c54ab9803103799a49bb19fe46cf0ae24a6d"
+  "hash": "c4faf18b76df263035aebbc7a72bd3b1505bcc88a0c3a7a1771c4080f7e5e6e0"
 }

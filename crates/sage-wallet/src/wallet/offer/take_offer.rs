@@ -11,6 +11,8 @@ use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
+use super::fee_trade_price_to_nft_trade_prices;
+
 impl Wallet {
     pub async fn take_offer(
         &self,
@@ -77,13 +79,16 @@ impl Wallet {
             calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
         actions.extend(royalty_payments.actions());
 
-        // Pay requested payments
+        // Pay requested payments (including transfer fees for fee CATs)
         let mut spends = Spends::new(change_puzzle_hash);
         spends.add(offer.offered_coins().clone());
-        actions.extend(offer.requested_payments().actions());
+        actions.extend(offer.take_actions_with_transfer_fees(&mut ctx)?);
 
         // Add requested payments
         self.select_spends(&mut ctx, &mut spends, &actions).await?;
+
+        // Apply fee CAT trade context to relevant CAT spends
+        offer.apply_transfer_fee_trade_context(&mut spends)?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;
@@ -100,10 +105,12 @@ impl Wallet {
             }
         }
 
-        let trade_prices = calculate_trade_prices(
+        let fee_trade_prices = calculate_trade_prices(
             &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
             offer.asset_info(),
         );
+        let nft_trade_prices =
+            fee_trade_price_to_nft_trade_prices(&fee_trade_prices, offer.asset_info());
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
@@ -120,7 +127,7 @@ impl Wallet {
                     Some(TransferNftById::new(
                         None,
                         if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
+                            nft_trade_prices.clone()
                         } else {
                             vec![]
                         },

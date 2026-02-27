@@ -171,6 +171,7 @@ impl Sage {
             is_sensitive_content: false,
             is_visible: true,
             hidden_puzzle_hash: None,
+            fee_policy: None,
             kind: AssetKind::Token,
         })
         .await?;
@@ -268,6 +269,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: None,
+                fee_policy: None,
                 kind: AssetKind::Did,
             })
             .await?;
@@ -431,7 +433,7 @@ impl Sage {
 
         let asset_id = parse_asset_id(asset_id)?;
 
-        self.cache_cat(asset_id, None).await?;
+        self.cache_cat(asset_id, None, None).await?;
 
         let hidden_puzzle_hash = wallet
             .db

@@ -1,4 +1,4 @@
-use crate::{Asset, Convert, Database, DatabaseTx, Result};
+use crate::{Asset, Convert, Database, DatabaseTx, Result, fee_policy_from_row};
 use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
 
@@ -172,7 +172,9 @@ async fn offer_assets(
             assets.description, assets.is_sensitive_content,
             assets.is_visible, assets.icon_url, assets.name,
             assets.ticker, assets.precision, assets.kind,
-            assets.hidden_puzzle_hash
+            assets.hidden_puzzle_hash, assets.fee_issuer_puzzle_hash,
+            assets.fee_basis_points, assets.fee_min_fee,
+            assets.fee_allow_zero_price, assets.fee_allow_revoke_fee_bypass
         FROM offer_assets 
         INNER JOIN assets ON offer_assets.asset_id = assets.id
         INNER JOIN offers ON offer_assets.offer_id = offers.id
@@ -198,6 +200,13 @@ async fn offer_assets(
                     ticker: row.ticker,
                     precision: row.precision.convert()?,
                     hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
+                    fee_policy: fee_policy_from_row(
+                        row.fee_issuer_puzzle_hash,
+                        row.fee_basis_points,
+                        row.fee_min_fee,
+                        row.fee_allow_zero_price,
+                        row.fee_allow_revoke_fee_bypass,
+                    )?,
                 },
                 amount: row.amount.convert()?,
                 royalty: row.royalty.convert()?,

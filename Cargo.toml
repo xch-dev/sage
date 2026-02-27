@@ -88,7 +88,7 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-chia-wallet-sdk = { version = "0.33.0", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia-wallet-sdk = { git = "https://github.com/cameroncooper/chia-wallet-sdk.git", rev = "7856417c6b22aa319cc6d024018f597f6fb55139", features = ["rustls", "offer-compression", "peer-simulator"] }
 chia_streamable_macro = "0.36.1"
 chia-traits = "0.36.1"
 chia-sha2 = "0.36.1"
