@@ -450,9 +450,7 @@ impl Sage {
             return Ok(None);
         }
 
-        let pool = self
-            .connect_to_pool(db_path)
-            .await?;
+        let pool = self.connect_to_pool(db_path).await?;
         let db = Database::new(pool);
         let mut tx = db.tx().await?;
         let index = tx.unused_derivation_index(hardened).await?;
