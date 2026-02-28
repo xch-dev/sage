@@ -16,9 +16,9 @@ use rand_chacha::ChaCha20Rng;
 use sage_api::{
     DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
     GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
-    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
-    SetWalletEmoji, SetWalletEmojiResponse,
+    GetSecretKeyResponse, GetWalletAddress, GetWalletAddressResponse, ImportKey, ImportKeyResponse,
+    KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse,
+    Resync, ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -383,5 +383,66 @@ impl Sage {
         }
 
         Ok(GetKeysResponse { keys })
+    }
+
+    pub async fn get_wallet_address(
+        &self,
+        req: GetWalletAddress,
+    ) -> Result<GetWalletAddressResponse> {
+        let Some(master_pk) = self.keychain.extract_public_key(req.fingerprint)? else {
+            return Err(Error::UnknownFingerprint);
+        };
+
+        // Return the change_address override directly if one is configured
+        let wallet_cfg = self
+            .wallet_config
+            .wallets
+            .iter()
+            .find(|w| w.fingerprint == req.fingerprint);
+
+        if let Some(cfg) = wallet_cfg {
+            if let Some(change_address) = &cfg.change_address {
+                return Ok(GetWalletAddressResponse {
+                    address: change_address.clone(),
+                });
+            }
+        }
+
+        let network_id = wallet_cfg
+            .and_then(|w| w.network.clone())
+            .unwrap_or_else(|| self.config.network.default_network.clone());
+
+        let network = self
+            .network_list
+            .by_name(&network_id)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        let prefix = network.prefix();
+        let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
+
+        // Try to read the current receive address from the wallet's DB
+        let p2_puzzle_hash = self
+            .address_from_db(req.fingerprint, false)
+            .await
+            .ok()
+            .flatten();
+
+        // Fall back to deriving index 0 from the master public key
+        let p2_puzzle_hash = p2_puzzle_hash.unwrap_or_else(|| {
+            let synthetic_key = intermediate_pk.derive_unhardened(0).derive_synthetic();
+            StandardArgs::curry_tree_hash(synthetic_key).into()
+        });
+
+        let address = Address::new(p2_puzzle_hash, prefix).encode()?;
+
+        Ok(GetWalletAddressResponse { address })
+    }
+
+    async fn address_from_db(&self, fingerprint: u32, hardened: bool) -> Result<Option<Bytes32>> {
+        let pool = self.connect_to_database(fingerprint).await?;
+        let db = Database::new(pool);
+        let mut tx = db.tx().await?;
+        let index = tx.unused_derivation_index(hardened).await?;
+        Ok(tx.custody_p2_puzzle_hash(index, hardened).await.ok())
     }
 }
