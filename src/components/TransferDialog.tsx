@@ -9,6 +9,7 @@ import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { PasteInput } from './PasteInput';
+import { WalletAddressPicker } from './WalletAddressPicker';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -82,9 +83,14 @@ export function TransferDialog({
               name='address'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    <Trans>Address</Trans>
-                  </FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>
+                      <Trans>Address</Trans>
+                    </FormLabel>
+                    <WalletAddressPicker
+                      onSelect={(address) => form.setValue('address', address)}
+                    />
+                  </div>
                   <FormControl>
                     <PasteInput
                       {...field}
