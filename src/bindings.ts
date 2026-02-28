@@ -1610,7 +1610,11 @@ export type GetWalletAddress = {
 /**
  * Wallet fingerprint
  */
-fingerprint: number }
+fingerprint: number; 
+/**
+ * Network ID to look up the address on (e.g. "mainnet", "testnet11")
+ */
+network_id: string }
 /**
  * Response with the wallet's receive address
  */

@@ -47,7 +47,10 @@ export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
   const handleSelect = async (fingerprint: number) => {
     setLoadingFingerprint(fingerprint);
     try {
-      const { address } = await commands.getWalletAddress({ fingerprint });
+      const { address } = await commands.getWalletAddress({
+        fingerprint,
+        network_id: wallet!.network_id,
+      });
       onSelect(address);
     } catch (e) {
       addError(e as Parameters<typeof addError>[0]);

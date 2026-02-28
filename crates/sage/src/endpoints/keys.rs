@@ -408,13 +408,9 @@ impl Sage {
             }
         }
 
-        let network_id = wallet_cfg
-            .and_then(|w| w.network.clone())
-            .unwrap_or_else(|| self.config.network.default_network.clone());
-
         let network = self
             .network_list
-            .by_name(&network_id)
+            .by_name(&req.network_id)
             .ok_or(Error::UnknownFingerprint)?;
 
         let prefix = network.prefix();
@@ -422,7 +418,7 @@ impl Sage {
 
         // Try to read the current receive address from the wallet's DB
         let p2_puzzle_hash = self
-            .address_from_db(req.fingerprint, false)
+            .address_from_db(req.fingerprint, &req.network_id, false)
             .await
             .ok()
             .flatten();
@@ -438,8 +434,25 @@ impl Sage {
         Ok(GetWalletAddressResponse { address })
     }
 
-    async fn address_from_db(&self, fingerprint: u32, hardened: bool) -> Result<Option<Bytes32>> {
-        let pool = self.connect_to_database(fingerprint).await?;
+    async fn address_from_db(
+        &self,
+        fingerprint: u32,
+        network_id: &str,
+        hardened: bool,
+    ) -> Result<Option<Bytes32>> {
+        let db_path = self
+            .path
+            .join("wallets")
+            .join(fingerprint.to_string())
+            .join(format!("{network_id}.sqlite"));
+
+        if !db_path.try_exists().unwrap_or(false) {
+            return Ok(None);
+        }
+
+        let pool = self
+            .connect_to_pool(db_path)
+            .await?;
         let db = Database::new(pool);
         let mut tx = db.tx().await?;
         let index = tx.unused_derivation_index(hardened).await?;
