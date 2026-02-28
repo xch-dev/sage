@@ -119,8 +119,15 @@ export function OptionSelector({
 
   const paginatedOptions = useMemo(() => {
     const start = page * pageSize;
-    return filteredOptions.slice(start, start + pageSize);
-  }, [filteredOptions, page, pageSize]);
+    const pageItems = filteredOptions.slice(start, start + pageSize);
+    if (value && !pageItems.find((opt) => opt.launcher_id === value)) {
+      const valueOption = options[value];
+      if (valueOption) {
+        return [valueOption, ...pageItems];
+      }
+    }
+    return pageItems;
+  }, [filteredOptions, options, page, pageSize, value]);
 
   const handleSelect = useCallback(
     (optionId: string | null) => {
