@@ -147,10 +147,16 @@ export function NftSelector({
     [page],
   );
 
-  // Get the NFT records for the current page
+  // Get the NFT records for the current page, always including the selected NFT
   const nftItems = useMemo(() => {
-    return pageNftIds.map((id) => nfts[id]).filter(Boolean) as NftRecord[];
-  }, [pageNftIds, nfts]);
+    const pageItems = pageNftIds
+      .map((id) => nfts[id])
+      .filter(Boolean) as NftRecord[];
+    if (value && nfts[value] && !pageNftIds.includes(value)) {
+      return [nfts[value], ...pageItems];
+    }
+    return pageItems;
+  }, [pageNftIds, nfts, value]);
 
   const renderNft = useCallback(
     (nft: NftRecord) => (
