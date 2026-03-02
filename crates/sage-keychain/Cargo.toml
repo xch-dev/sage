@@ -25,3 +25,6 @@ aes-gcm = { workspace = true }
 rand = { workspace = true }
 rand_chacha = { workspace = true }
 argon2 = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
