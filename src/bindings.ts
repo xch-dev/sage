@@ -1800,7 +1800,11 @@ expires_at_second?: number | null;
 /**
  * Whether to automatically import the offer
  */
-auto_import?: boolean }
+auto_import?: boolean; 
+/**
+ * Optional specific coin IDs to use for the offer instead of auto-selecting
+ */
+coin_ids?: string[] | null }
 /**
  * Response with created offer
  */

@@ -24,8 +24,8 @@ use tracing::debug;
 
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
-    offer_expiration, parse_amount, parse_asset_id, parse_hash, parse_nft_id, parse_offer_id,
-    parse_option_id,
+    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
+    parse_offer_id, parse_option_id,
 };
 
 #[derive(Debug, Clone)]
@@ -41,12 +41,15 @@ impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
+        let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
+
         let mut offered = Offered {
             fee: parse_amount(req.fee)?,
             p2_puzzle_hash: req
                 .receive_address
                 .map(|address| self.parse_address(address))
                 .transpose()?,
+            selected_coin_ids,
             ..Default::default()
         };
 
