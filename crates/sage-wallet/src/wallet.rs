@@ -209,7 +209,9 @@ impl Wallet {
             match id {
                 Id::New(_) => {}
                 Id::Xch => {
-                    if required_amount == 0 && !deltas.is_needed(&id) {
+                    if required_amount == 0
+                        && (!deltas.is_needed(&id) || spends.xch.selected_amount() > 0)
+                    {
                         continue;
                     }
 
@@ -223,7 +225,13 @@ impl Wallet {
                 }
                 Id::Existing(asset_id) => match self.db.asset_kind(asset_id).await? {
                     Some(AssetKind::Token) => {
-                        if required_amount == 0 && !deltas.is_needed(&id) {
+                        if required_amount == 0
+                            && (!deltas.is_needed(&id)
+                                || spends
+                                    .cats
+                                    .get(&id)
+                                    .is_some_and(|c| c.selected_amount() > 0))
+                        {
                             continue;
                         }
 

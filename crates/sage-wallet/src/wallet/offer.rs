@@ -571,6 +571,222 @@ mod tests {
     }
 
     #[test(tokio::test)]
+    async fn test_offer_xch_for_cat_with_selected_coins() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Split Alice's XCH into multiple coins
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        let coin_spends = alice
+            .wallet
+            .split(coins.iter().map(Coin::coin_id).collect(), 3, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(coins.len(), 3);
+
+        // Issue CAT for Bob
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // Select only the first coin for the offer
+        let selected_coin = coins[0];
+        let selected_amount = selected_coin.amount;
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: selected_amount,
+                    selected_coin_ids: vec![selected_coin.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        // Assert the selected coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_coin.coin_id()),
+            "Selected coin should be included in the offer's coin spends"
+        );
+
+        let offer = alice
+            .wallet
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        // Check balances
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, selected_amount as u128);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_cat_with_selected_coins() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Issue CAT for Alice
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        // Split Alice's CAT into multiple coins
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 1);
+        let coin_spends = alice
+            .wallet
+            .split(vec![cats[0].coin.coin_id()], 3, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 3);
+
+        // Select only the first CAT coin for the offer
+        let selected_cat = &cats[0];
+        let selected_amount = selected_cat.coin.amount;
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    cats: indexmap! { asset_id => selected_amount },
+                    selected_coin_ids: vec![selected_cat.coin.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 500,
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        // Assert the selected CAT coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_cat.coin.coin_id()),
+            "Selected CAT coin should be included in the offer's coin spends"
+        );
+
+        let offer = alice
+            .wallet
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        // Check balances: Alice started with 2000, spent 1000 on CAT issuance, received 500 from offer
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1500);
+        assert_eq!(
+            bob.wallet.db.cat_balance(asset_id).await?,
+            selected_amount as u128
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_xch_with_fee_and_selected_coins() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Issue CAT for Bob
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // Select Alice's single coin explicitly for the offer with fee
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(coins.len(), 1);
+
+        let selected_coin_id = coins[0].coin_id();
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 750,
+                    fee: 250,
+                    selected_coin_ids: vec![selected_coin_id],
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        // Assert the selected coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_coin_id),
+            "Selected coin should be included in the offer's coin spends"
+        );
+
+        let offer = alice
+            .wallet
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Take offer
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        // Check balances
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 750);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
     async fn test_offer_xch_single_sided() -> anyhow::Result<()> {
         let alice = TestWallet::new(1000).await?;
         let mut bob = alice.next(0).await?;

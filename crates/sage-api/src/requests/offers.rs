@@ -36,6 +36,10 @@ pub struct MakeOffer {
     #[serde(default = "yes")]
     #[cfg_attr(feature = "openapi", schema(default = true))]
     pub auto_import: bool,
+    /// Optional specific coin IDs to use for the offer instead of auto-selecting
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 /// Asset amount in an offer
