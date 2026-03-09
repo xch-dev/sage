@@ -596,7 +596,7 @@ mod tests {
         let selected_coin = coins[0];
         let selected_amount = selected_coin.amount;
 
-        let offer = alice
+        let unsigned_offer = alice
             .wallet
             .make_offer(
                 Offered {
@@ -611,9 +611,19 @@ mod tests {
                 None,
             )
             .await?;
+
+        // Assert the selected coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_coin.coin_id()),
+            "Selected coin should be included in the offer's coin spends"
+        );
+
         let offer = alice
             .wallet
-            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
@@ -661,7 +671,7 @@ mod tests {
         let selected_cat = &cats[0];
         let selected_amount = selected_cat.coin.amount;
 
-        let offer = alice
+        let unsigned_offer = alice
             .wallet
             .make_offer(
                 Offered {
@@ -676,9 +686,19 @@ mod tests {
                 None,
             )
             .await?;
+
+        // Assert the selected CAT coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_cat.coin.coin_id()),
+            "Selected CAT coin should be included in the offer's coin spends"
+        );
+
         let offer = alice
             .wallet
-            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
@@ -716,13 +736,14 @@ mod tests {
         let coins = alice.wallet.db.selectable_xch_coins().await?;
         assert_eq!(coins.len(), 1);
 
-        let offer = alice
+        let selected_coin_id = coins[0].coin_id();
+        let unsigned_offer = alice
             .wallet
             .make_offer(
                 Offered {
                     xch: 750,
                     fee: 250,
-                    selected_coin_ids: vec![coins[0].coin_id()],
+                    selected_coin_ids: vec![selected_coin_id],
                     ..Default::default()
                 },
                 Requested {
@@ -732,9 +753,19 @@ mod tests {
                 None,
             )
             .await?;
+
+        // Assert the selected coin is actually used in the offer
+        assert!(
+            unsigned_offer
+                .coin_spends
+                .iter()
+                .any(|cs| cs.coin.coin_id() == selected_coin_id),
+            "Selected coin should be included in the offer's coin spends"
+        );
+
         let offer = alice
             .wallet
-            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
             .await?;
 
         // Take offer
