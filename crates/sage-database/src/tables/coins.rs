@@ -16,6 +16,7 @@ pub enum CoinKind {
     Did,
     Nft,
     Option,
+    Vault,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -233,6 +234,7 @@ impl Database {
             AssetKind::Nft => CoinKind::Nft,
             AssetKind::Did => CoinKind::Did,
             AssetKind::Option => CoinKind::Option,
+            AssetKind::Vault => CoinKind::Vault,
         }))
     }
 }
@@ -808,6 +810,7 @@ async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Op
         AssetKind::Nft => CoinKind::Nft,
         AssetKind::Did => CoinKind::Did,
         AssetKind::Option => CoinKind::Option,
+        AssetKind::Vault => CoinKind::Vault,
     }))
 }
 

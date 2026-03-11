@@ -5,11 +5,13 @@ use chia_wallet_sdk::{
         bls::DerivableKey,
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
+    driver::mips_puzzle_hash,
     prelude::*,
+    types::puzzles::SingletonMember,
 };
 use sage_database::{DatabaseTx, Derivation};
 
-use crate::WalletError;
+use crate::{WalletError, WalletInfo};
 
 use super::Wallet;
 
@@ -20,17 +22,18 @@ impl Wallet {
         tx: &mut DatabaseTx<'_>,
         range: Range<u32>,
     ) -> Result<Vec<Bytes32>, WalletError> {
+        let WalletInfo::Bls { intermediate_pk } = &self.info else {
+            return Err(WalletError::DerivationsNotSupported);
+        };
+
         let mut puzzle_hashes = Vec::new();
 
         for index in range {
-            let synthetic_key = self
-                .intermediate_pk
-                .derive_unhardened(index)
-                .derive_synthetic();
+            let synthetic_key = intermediate_pk.derive_unhardened(index).derive_synthetic();
 
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
 
-            tx.insert_custody_p2_puzzle(
+            tx.insert_derivation_p2_puzzle(
                 p2_puzzle_hash,
                 synthetic_key,
                 Derivation {
@@ -72,7 +75,7 @@ impl Wallet {
         let mut p2_puzzle_hashes = Vec::new();
 
         for index in range {
-            let p2_puzzle_hash = tx.custody_p2_puzzle_hash(index, hardened).await?;
+            let p2_puzzle_hash = tx.derivation_p2_puzzle_hash(index, hardened).await?;
             p2_puzzle_hashes.push(p2_puzzle_hash);
         }
 
@@ -85,6 +88,17 @@ impl Wallet {
         if let Some(change_p2_puzzle_hash) = self.change_p2_puzzle_hash {
             return Ok(change_p2_puzzle_hash);
         }
-        Ok(self.p2_puzzle_hashes(1, false, true).await?[0])
+
+        match &self.info {
+            WalletInfo::Bls { .. } => Ok(self.p2_puzzle_hashes(1, false, true).await?[0]),
+            WalletInfo::Vault { launcher_id } => Ok(mips_puzzle_hash(
+                0,
+                vec![],
+                SingletonMember::new(*launcher_id).curry_tree_hash(),
+                true,
+            )
+            .into()),
+            WalletInfo::Watch { p2_puzzle_hashes } => Ok(p2_puzzle_hashes[0]),
+        }
     }
 }

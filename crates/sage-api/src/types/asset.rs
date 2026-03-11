@@ -25,4 +25,5 @@ pub enum AssetKind {
     Nft,
     Did,
     Option,
+    Vault,
 }

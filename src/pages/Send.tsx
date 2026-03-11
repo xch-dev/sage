@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { DurationInput } from '@/components/DurationInput';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -19,7 +20,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   FeeAmountInput,
-  IntegerInput,
   TokenAmountInput,
 } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
@@ -386,58 +386,18 @@ export default function Send() {
 
                     {form.watch('clawbackEnabled') && (
                       <div className='flex flex-col gap-4'>
-                        <div className='flex gap-2'>
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.days')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.days', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Days</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.hours')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.hours', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Hours</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.minutes')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.minutes', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Minutes</Trans>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        <DurationInput
+                          value={{
+                            days: form.watch('clawback.days') ?? '',
+                            hours: form.watch('clawback.hours') ?? '',
+                            minutes: form.watch('clawback.minutes') ?? '',
+                          }}
+                          onChange={({ days, hours, minutes }) => {
+                            form.setValue('clawback.days', days);
+                            form.setValue('clawback.hours', hours);
+                            form.setValue('clawback.minutes', minutes);
+                          }}
+                        />
 
                         <Alert variant='warning'>
                           <AlertCircleIcon className='h-4 w-4' />

@@ -10,15 +10,17 @@ use chia_wallet_sdk::{
         puzzle_types::{DeriveSynthetic, standard::StandardArgs},
     },
     prelude::*,
+    utils::Bech32Error,
 };
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
-    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
-    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
-    SetWalletEmoji, SetWalletEmojiResponse,
+    DeleteDatabase, DeleteDatabaseResponse, DeleteWallet, DeleteWalletResponse, GenerateMnemonic,
+    GenerateMnemonicResponse, GetWallet, GetWalletResponse, GetWalletSecrets,
+    GetWalletSecretsResponse, GetWallets, GetWalletsResponse, ImportAddresses,
+    ImportAddressesResponse, ImportWallet, ImportWalletResponse, Login, LoginResponse, Logout,
+    LogoutResponse, RenameWallet, RenameWalletResponse, Resync, ResyncResponse, SecretKeyInfo,
+    SetWalletEmoji, SetWalletEmojiResponse, WalletKind, WalletRecord,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -84,7 +86,9 @@ impl Sage {
         }
 
         if req.delete_addresses {
-            query!("DELETE FROM p2_puzzles").execute(&pool).await?;
+            query!("DELETE FROM p2_puzzles WHERE kind IN (0, 1, 2)")
+                .execute(&pool)
+                .await?;
         }
 
         if req.delete_blocks {
@@ -121,7 +125,7 @@ impl Sage {
         })
     }
 
-    pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
+    pub async fn import_wallet(&mut self, req: ImportWallet) -> Result<ImportWalletResponse> {
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -207,7 +211,7 @@ impl Sage {
                     .derive_unhardened(index)
                     .derive_synthetic();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_custody_p2_puzzle(
+                tx.insert_derivation_p2_puzzle(
                     p2_puzzle_hash,
                     synthetic_key,
                     Derivation {
@@ -230,7 +234,7 @@ impl Sage {
                     .derive_synthetic()
                     .public_key();
                 let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-                tx.insert_custody_p2_puzzle(
+                tx.insert_derivation_p2_puzzle(
                     p2_puzzle_hash,
                     synthetic_key,
                     Derivation {
@@ -250,7 +254,54 @@ impl Sage {
             self.switch_wallet().await?;
         }
 
-        Ok(ImportKeyResponse { fingerprint })
+        Ok(ImportWalletResponse { fingerprint })
+    }
+
+    pub async fn import_addresses(
+        &mut self,
+        req: ImportAddresses,
+    ) -> Result<ImportAddressesResponse> {
+        let p2_puzzle_hashes = req
+            .addresses
+            .into_iter()
+            .map(|address| self.parse_address(address))
+            .collect::<Result<Vec<Bytes32>>>()?;
+
+        if p2_puzzle_hashes.is_empty() {
+            return Err(Error::EmptyAddressesList);
+        }
+
+        let fingerprint = self
+            .keychain
+            .add_watch_p2_puzzle_hashes(&p2_puzzle_hashes)?;
+
+        self.wallet_config.wallets.push(Wallet {
+            name: req.name,
+            fingerprint,
+            emoji: req.emoji,
+            ..Default::default()
+        });
+        self.config.global.fingerprint = Some(fingerprint);
+
+        self.save_keychain()?;
+        self.save_config()?;
+
+        let pool = self.connect_to_database(fingerprint).await?;
+        let db = Database::new(pool);
+
+        let mut tx = db.tx().await?;
+
+        for p2_puzzle_hash in p2_puzzle_hashes {
+            tx.insert_external_p2_puzzle(p2_puzzle_hash).await?;
+        }
+
+        tx.commit().await?;
+
+        if req.login {
+            self.switch_wallet().await?;
+        }
+
+        Ok(ImportAddressesResponse { fingerprint })
     }
 
     pub fn delete_database(&mut self, req: DeleteDatabase) -> Result<DeleteDatabaseResponse> {
@@ -267,7 +318,7 @@ impl Sage {
         Ok(DeleteDatabaseResponse {})
     }
 
-    pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
+    pub fn delete_wallet(&mut self, req: DeleteWallet) -> Result<DeleteWalletResponse> {
         self.keychain.remove(req.fingerprint);
 
         self.wallet_config
@@ -286,10 +337,10 @@ impl Sage {
             fs::remove_dir_all(path)?;
         }
 
-        Ok(DeleteKeyResponse {})
+        Ok(DeleteWalletResponse {})
     }
 
-    pub fn rename_key(&mut self, req: RenameKey) -> Result<RenameKeyResponse> {
+    pub fn rename_wallet(&mut self, req: RenameWallet) -> Result<RenameWalletResponse> {
         let Some(wallet) = self
             .wallet_config
             .wallets
@@ -302,7 +353,7 @@ impl Sage {
         wallet.name = req.name;
         self.save_config()?;
 
-        Ok(RenameKeyResponse {})
+        Ok(RenameWalletResponse {})
     }
 
     pub fn set_wallet_emoji(&mut self, req: SetWalletEmoji) -> Result<SetWalletEmojiResponse> {
@@ -321,41 +372,33 @@ impl Sage {
         Ok(SetWalletEmojiResponse {})
     }
 
-    pub fn get_key(&self, req: GetKey) -> Result<GetKeyResponse> {
+    pub fn get_wallet(&self, req: GetWallet) -> Result<GetWalletResponse> {
         let fingerprint = req.fingerprint.or(self.config.global.fingerprint);
 
         let Some(fingerprint) = fingerprint else {
-            return Ok(GetKeyResponse { key: None });
+            return Ok(GetWalletResponse { wallet: None });
         };
 
-        let wallet_config = self.wallet_config().cloned().unwrap_or_default();
+        let wallet_config = self
+            .wallet_config
+            .wallets
+            .iter()
+            .find(|wallet| wallet.fingerprint == fingerprint)
+            .cloned()
+            .ok_or(Error::UnknownFingerprint)?;
 
-        let network_id = wallet_config.network.unwrap_or_else(|| self.network_id());
-
-        let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? else {
-            return Ok(GetKeyResponse { key: None });
-        };
-
-        Ok(GetKeyResponse {
-            key: Some(KeyInfo {
-                name: wallet_config.name,
-                fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(fingerprint),
-                network_id,
-                emoji: wallet_config.emoji,
-            }),
+        Ok(GetWalletResponse {
+            wallet: self.wallet_record(&wallet_config)?,
         })
     }
 
-    pub fn get_secret_key(&self, req: GetSecretKey) -> Result<GetSecretKeyResponse> {
+    pub fn get_wallet_secrets(&self, req: GetWalletSecrets) -> Result<GetWalletSecretsResponse> {
         let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, b"")?
         else {
-            return Ok(GetSecretKeyResponse { secrets: None });
+            return Ok(GetWalletSecretsResponse { secrets: None });
         };
 
-        Ok(GetSecretKeyResponse {
+        Ok(GetWalletSecretsResponse {
             secrets: Some(SecretKeyInfo {
                 mnemonic: mnemonic.map(|m| m.to_string()),
                 secret_key: hex::encode(secret_key.to_bytes()),
@@ -363,25 +406,66 @@ impl Sage {
         })
     }
 
-    pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
-        let mut keys = Vec::new();
+    pub fn get_wallets(&self, _req: GetWallets) -> Result<GetWalletsResponse> {
+        let mut wallets = Vec::new();
 
         for wallet in &self.wallet_config.wallets {
-            let Some(master_pk) = self.keychain.extract_public_key(wallet.fingerprint)? else {
-                continue;
-            };
-
-            keys.push(KeyInfo {
-                name: wallet.name.clone(),
-                fingerprint: wallet.fingerprint,
-                public_key: hex::encode(master_pk.to_bytes()),
-                kind: KeyKind::Bls,
-                has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
-                network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
-                emoji: wallet.emoji.clone(),
-            });
+            if let Some(record) = self.wallet_record(wallet)? {
+                wallets.push(record);
+            }
         }
 
-        Ok(GetKeysResponse { keys })
+        Ok(GetWalletsResponse { wallets })
+    }
+
+    fn wallet_record(&self, wallet: &Wallet) -> Result<Option<WalletRecord>> {
+        let name = wallet.name.clone();
+        let fingerprint = wallet.fingerprint;
+        let network_id = wallet.network.clone().unwrap_or_else(|| self.network_id());
+        let emoji = wallet.emoji.clone();
+
+        if let Some(master_pk) = self.keychain.extract_public_key(fingerprint)? {
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Bls {
+                    public_key: hex::encode(master_pk.to_bytes()),
+                    has_secrets: self.keychain.has_secret_key(fingerprint),
+                },
+                network_id,
+                emoji,
+            }));
+        }
+
+        if let Some(launcher_id) = self.keychain.extract_vault_id(fingerprint) {
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Vault {
+                    launcher_id: launcher_id.to_string(),
+                },
+                network_id,
+                emoji,
+            }));
+        }
+
+        if let Some(p2_puzzle_hashes) = self.keychain.extract_watch_p2_puzzle_hashes(fingerprint) {
+            let addresses = p2_puzzle_hashes
+                .iter()
+                .map(|p2_puzzle_hash| {
+                    Address::new(*p2_puzzle_hash, self.network().prefix()).encode()
+                })
+                .collect::<std::result::Result<Vec<String>, Bech32Error>>()?;
+
+            return Ok(Some(WalletRecord {
+                name,
+                fingerprint,
+                kind: WalletKind::Watch { addresses },
+                network_id,
+                emoji,
+            }));
+        }
+
+        Ok(None)
     }
 }

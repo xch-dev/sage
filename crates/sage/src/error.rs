@@ -227,6 +227,9 @@ pub enum Error {
     #[error("Missing asset id")]
     MissingAssetId,
 
+    #[error("An empty list of addresses was provided")]
+    EmptyAddressesList,
+
     #[error("Database version too old")]
     DatabaseVersionTooOld,
 
@@ -310,7 +313,8 @@ impl Error {
             | Self::MissingAssetId
             | Self::InvalidGroup
             | Self::InvalidThemeJson
-            | Self::MissingThemeData => ErrorKind::Api,
+            | Self::MissingThemeData
+            | Self::EmptyAddressesList => ErrorKind::Api,
         }
     }
 }
