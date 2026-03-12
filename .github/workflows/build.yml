@@ -33,6 +33,12 @@ jobs:
           pnpm prettier:check --version
           pnpm prettier:check
 
+      - name: Lint
+        run: pnpm lint
+
+      - name: Frontend Tests
+        run: pnpm test
+
       - name: Install GTK
         run: sudo apt-get update && sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 

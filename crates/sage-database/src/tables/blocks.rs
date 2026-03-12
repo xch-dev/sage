@@ -107,3 +107,83 @@ async fn latest_peak(conn: impl SqliteExecutor<'_>) -> Result<Option<(u32, Bytes
     })
     .transpose()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_database;
+
+    fn test_hash(byte: u8) -> Bytes32 {
+        Bytes32::new([byte; 32])
+    }
+
+    #[tokio::test]
+    async fn empty_peak_returns_none() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let peak = db.latest_peak().await?;
+        assert!(peak.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn insert_block_and_get_peak() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let hash = test_hash(1);
+
+        db.insert_block(100, hash, Some(1000), true).await?;
+
+        let peak = db.latest_peak().await?;
+        assert!(peak.is_some());
+        let (height, peak_hash) = peak.unwrap();
+        assert_eq!(height, 100);
+        assert_eq!(peak_hash, hash);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn upsert_block_updates_existing() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let hash1 = test_hash(1);
+        let hash2 = test_hash(2);
+
+        // Insert without timestamp
+        db.insert_block(50, hash1, None, false).await?;
+
+        // Upsert with timestamp and different hash
+        db.insert_block(50, hash2, Some(500), true).await?;
+
+        let peak = db.latest_peak().await?;
+        assert!(peak.is_some());
+        let (height, peak_hash) = peak.unwrap();
+        assert_eq!(height, 50);
+        assert_eq!(peak_hash, hash2);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn latest_peak_picks_highest() -> anyhow::Result<()> {
+        let db = test_database().await?;
+
+        db.insert_block(10, test_hash(1), Some(100), true).await?;
+        db.insert_block(20, test_hash(2), Some(200), true).await?;
+        db.insert_block(15, test_hash(3), Some(150), true).await?;
+
+        let (height, hash) = db.latest_peak().await?.unwrap();
+        assert_eq!(height, 20);
+        assert_eq!(hash, test_hash(2));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn insert_height_via_tx() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_height(42).await?;
+        tx.commit().await?;
+
+        // Height inserted but no peak (no header_hash)
+        let peak = db.latest_peak().await?;
+        assert!(peak.is_none());
+        Ok(())
+    }
+}
