@@ -75,7 +75,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tauri-plugin-safe-area-insets": "^0.1.0",
     "tauri-plugin-sage": "file:tauri-plugin-sage",
-    "theme-o-rama": "0.2.0",
+    "theme-o-rama": "0.2.4",
     "usehooks-ts": "^3.1.1",
     "zod": "^3.25.76",
     "zustand": "^4.5.7"
