@@ -10,15 +10,15 @@ use crate::{
 };
 
 impl Wallet {
-    pub async fn fetch_offer_cat_hidden_puzzle_hash(
+    pub async fn fetch_offer_cat_info(
         &self,
         asset_id: Bytes32,
-    ) -> Result<Option<Bytes32>, WalletError> {
+    ) -> Result<Option<CatAssetInfo>, WalletError> {
         Ok(self
             .db
             .asset(asset_id)
             .await?
-            .and_then(|asset| asset.hidden_puzzle_hash))
+            .map(|asset| CatAssetInfo::new(asset.hidden_puzzle_hash, asset.fee_policy)))
     }
 
     pub async fn fetch_offer_nft_info(

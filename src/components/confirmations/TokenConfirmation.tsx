@@ -26,6 +26,13 @@ interface TokenConfirmationProps {
   name?: string;
   amount?: string;
   currentMemo?: string;
+  feePolicy?: {
+    recipient: string;
+    feeBasisPoints: string;
+    minFee: string;
+    allowZeroPrice: boolean;
+    allowRevokeFeeBypass: boolean;
+  };
 }
 
 export function TokenConfirmation({
@@ -37,6 +44,7 @@ export function TokenConfirmation({
   name,
   amount,
   currentMemo,
+  feePolicy,
 }: TokenConfirmationProps) {
   const config = {
     split: {
@@ -164,6 +172,37 @@ export function TokenConfirmation({
                 {ticker}
               </div>
             </div>
+
+            {feePolicy && (
+              <div className='col-span-2 space-y-1 rounded border p-2'>
+                <div className='text-muted-foreground text-xs'>
+                  <Trans>Fee Policy</Trans>
+                </div>
+                <div className='text-xs break-all'>
+                  <Trans>Recipient:</Trans> {feePolicy.recipient}
+                </div>
+                <div className='text-xs'>
+                  <Trans>Fee:</Trans> {feePolicy.feeBasisPoints} bps
+                </div>
+                <div className='text-xs'>
+                  <Trans>Minimum fee:</Trans> {feePolicy.minFee} {ticker}
+                </div>
+                <div className='text-xs'>
+                  {feePolicy.allowZeroPrice ? (
+                    <Trans>Zero-price transfers can bypass fees</Trans>
+                  ) : (
+                    <Trans>Zero-price transfers are fee-enforced</Trans>
+                  )}
+                </div>
+                <div className='text-xs'>
+                  {feePolicy.allowRevokeFeeBypass ? (
+                    <Trans>Revocations can bypass fees</Trans>
+                  ) : (
+                    <Trans>Revocations are fee-enforced</Trans>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </ConfirmationCard>
       )}

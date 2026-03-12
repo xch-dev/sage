@@ -25,6 +25,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AssetIcon } from './AssetIcon';
 import { NumberFormat } from './NumberFormat';
+import { Badge } from './ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export interface TokenActionHandlers {
@@ -67,7 +68,7 @@ export const columns = (
         <div className='inline-flex items-center gap-1'>
           <Link
             to={path}
-            className={`hover:underline ${row.original.revocation_address ? 'text-yellow-600 dark:text-yellow-200' : ''}`}
+            className={`hover:underline ${row.original.revocation_address || row.original.fee_policy ? 'text-yellow-600 dark:text-yellow-200' : ''}`}
             aria-label={ariaLabel}
           >
             {name}
@@ -81,6 +82,23 @@ export const columns = (
               <TooltipContent>
                 <p>
                   <Trans>Asset can be revoked by the issuer</Trans>
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {row.original.fee_policy && (
+            <Tooltip delayDuration={200}>
+              <TooltipTrigger asChild>
+                <Badge variant='secondary' className='text-[10px] px-1 py-0 h-4'>
+                  <Trans>Fee CAT</Trans>
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>
+                  <Trans>
+                    Fee policy: {row.original.fee_policy.fee_basis_points} bps
+                  </Trans>
                 </p>
               </TooltipContent>
             </Tooltip>

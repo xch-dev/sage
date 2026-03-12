@@ -1,0 +1,212 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,\n                strike_asset.ticker AS strike_asset_ticker, strike_asset.precision AS strike_asset_precision,\n                strike_asset.icon_url AS strike_asset_icon_url, strike_asset.description AS strike_asset_description,\n                strike_asset.is_visible AS strike_asset_is_visible, strike_asset.is_sensitive_content AS strike_asset_is_sensitive_content,\n                strike_asset.hidden_puzzle_hash AS strike_asset_hidden_puzzle_hash, strike_asset.kind AS strike_asset_kind,\n                strike_asset.fee_issuer_puzzle_hash AS strike_fee_issuer_puzzle_hash,\n                strike_asset.fee_basis_points AS strike_fee_basis_points,\n                strike_asset.fee_min_fee AS strike_fee_min_fee,\n                strike_asset.fee_allow_zero_price AS strike_fee_allow_zero_price,\n                strike_asset.fee_allow_revoke_fee_bypass AS strike_fee_allow_revoke_fee_bypass,\n\n                underlying_asset.hash AS underlying_asset_hash, underlying_asset.name AS underlying_asset_name,\n                underlying_asset.ticker AS underlying_asset_ticker, underlying_asset.precision AS underlying_asset_precision,\n                underlying_asset.icon_url AS underlying_asset_icon_url, underlying_asset.description AS underlying_asset_description,\n                underlying_asset.is_visible AS underlying_asset_is_visible, underlying_asset.is_sensitive_content AS underlying_asset_is_sensitive_content,\n                underlying_asset.hidden_puzzle_hash AS underlying_asset_hidden_puzzle_hash, underlying_asset.kind AS underlying_asset_kind,\n                underlying_asset.fee_issuer_puzzle_hash AS underlying_fee_issuer_puzzle_hash,\n                underlying_asset.fee_basis_points AS underlying_fee_basis_points,\n                underlying_asset.fee_min_fee AS underlying_fee_min_fee,\n                underlying_asset.fee_allow_zero_price AS underlying_fee_allow_zero_price,\n                underlying_asset.fee_allow_revoke_fee_bypass AS underlying_fee_allow_revoke_fee_bypass,\n\n                p2_options.expiration_seconds AS expiration_seconds,\n                strike_amount, \n                underlying_coin.amount AS underlying_amount\n            FROM options\n            INNER JOIN assets AS option_asset ON option_asset.id = options.asset_id\n            INNER JOIN coins AS underlying_coin ON underlying_coin.id = options.underlying_coin_id\n            INNER JOIN p2_options ON p2_options.option_asset_id = options.asset_id\n            INNER JOIN assets AS strike_asset ON strike_asset.id = options.strike_asset_id\n            INNER JOIN assets AS underlying_asset ON underlying_asset.id = underlying_coin.asset_id\n            WHERE option_asset.hash = ?\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "strike_asset_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_asset_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "strike_asset_ticker",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "strike_asset_precision",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "strike_asset_icon_url",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "strike_asset_description",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "strike_asset_is_visible",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "strike_asset_is_sensitive_content",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "strike_asset_hidden_puzzle_hash",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_asset_kind",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "strike_fee_issuer_puzzle_hash",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "strike_fee_basis_points",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "strike_fee_min_fee",
+        "ordinal": 12,
+        "type_info": "Integer"
+      },
+      {
+        "name": "strike_fee_allow_zero_price",
+        "ordinal": 13,
+        "type_info": "Bool"
+      },
+      {
+        "name": "strike_fee_allow_revoke_fee_bypass",
+        "ordinal": 14,
+        "type_info": "Bool"
+      },
+      {
+        "name": "underlying_asset_hash",
+        "ordinal": 15,
+        "type_info": "Blob"
+      },
+      {
+        "name": "underlying_asset_name",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "underlying_asset_ticker",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "underlying_asset_precision",
+        "ordinal": 18,
+        "type_info": "Integer"
+      },
+      {
+        "name": "underlying_asset_icon_url",
+        "ordinal": 19,
+        "type_info": "Text"
+      },
+      {
+        "name": "underlying_asset_description",
+        "ordinal": 20,
+        "type_info": "Text"
+      },
+      {
+        "name": "underlying_asset_is_visible",
+        "ordinal": 21,
+        "type_info": "Bool"
+      },
+      {
+        "name": "underlying_asset_is_sensitive_content",
+        "ordinal": 22,
+        "type_info": "Bool"
+      },
+      {
+        "name": "underlying_asset_hidden_puzzle_hash",
+        "ordinal": 23,
+        "type_info": "Blob"
+      },
+      {
+        "name": "underlying_asset_kind",
+        "ordinal": 24,
+        "type_info": "Integer"
+      },
+      {
+        "name": "underlying_fee_issuer_puzzle_hash",
+        "ordinal": 25,
+        "type_info": "Blob"
+      },
+      {
+        "name": "underlying_fee_basis_points",
+        "ordinal": 26,
+        "type_info": "Integer"
+      },
+      {
+        "name": "underlying_fee_min_fee",
+        "ordinal": 27,
+        "type_info": "Integer"
+      },
+      {
+        "name": "underlying_fee_allow_zero_price",
+        "ordinal": 28,
+        "type_info": "Bool"
+      },
+      {
+        "name": "underlying_fee_allow_revoke_fee_bypass",
+        "ordinal": 29,
+        "type_info": "Bool"
+      },
+      {
+        "name": "expiration_seconds",
+        "ordinal": 30,
+        "type_info": "Integer"
+      },
+      {
+        "name": "strike_amount",
+        "ordinal": 31,
+        "type_info": "Blob"
+      },
+      {
+        "name": "underlying_amount",
+        "ordinal": 32,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d37b02095321bfa821bf62ff4f7e6f5914769af5bb07d934c2d30c66aed5325a"
+}

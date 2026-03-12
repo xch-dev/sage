@@ -47,7 +47,7 @@ impl Sage {
                 CoinKind::Cat { info } => {
                     p2_puzzle_hash = info.p2_puzzle_hash;
                     Some(
-                        self.cache_cat(info.asset_id, info.hidden_puzzle_hash)
+                        self.cache_cat(info.asset_id, info.hidden_puzzle_hash, info.fee_policy)
                             .await?,
                     )
                 }
@@ -71,6 +71,7 @@ impl Sage {
                         is_sensitive_content: false,
                         is_visible: true,
                         hidden_puzzle_hash: None,
+                        fee_policy: None,
                         kind: AssetKind::Did,
                     }))
                 }
@@ -86,6 +87,7 @@ impl Sage {
                         is_sensitive_content: false,
                         is_visible: true,
                         hidden_puzzle_hash: None,
+                        fee_policy: None,
                         kind: AssetKind::Option,
                     }))
                 }

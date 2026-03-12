@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            parent_coin_hash, puzzle_hash, amount, asset_hidden_puzzle_hash,\n            p2_puzzle_hash, parent_parent_coin_hash, parent_inner_puzzle_hash,\n            parent_amount, asset_hash AS asset_id,\n            assets.fee_issuer_puzzle_hash, assets.fee_basis_points,\n            assets.fee_min_fee, assets.fee_allow_zero_price,\n            assets.fee_allow_revoke_fee_bypass\n        FROM wallet_coins\n        INNER JOIN lineage_proofs ON lineage_proofs.coin_id = wallet_coins.coin_id\n        INNER JOIN assets ON assets.id = wallet_coins.asset_id\n        WHERE coin_hash = ?\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "parent_coin_hash",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "puzzle_hash",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_hidden_puzzle_hash",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "p2_puzzle_hash",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_parent_coin_hash",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_inner_puzzle_hash",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "parent_amount",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_id",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee_issuer_puzzle_hash",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "fee_basis_points",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_min_fee",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "fee_allow_zero_price",
+        "ordinal": 12,
+        "type_info": "Bool"
+      },
+      {
+        "name": "fee_allow_revoke_fee_bypass",
+        "ordinal": 13,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b948b3efab3269735febb2fc18277b5e2340f3cc38a1b6ee01e350e0249c34c7"
+}

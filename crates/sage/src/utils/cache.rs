@@ -1,6 +1,6 @@
 use std::{collections::hash_map::Entry, time::Duration};
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
+use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, driver::FeePolicy, prelude::*};
 use sage_assets::{DexieCat, fetch_uris_with_hash};
 use sage_database::{Asset, AssetKind};
 use tokio::time::timeout;
@@ -12,10 +12,28 @@ impl Sage {
         &self,
         asset_id: Bytes32,
         hidden_puzzle_hash: Option<Bytes32>,
+        fee_policy: Option<FeePolicy>,
     ) -> Result<Asset> {
         let wallet = self.wallet()?;
 
-        if let Some(asset) = wallet.db.asset(asset_id).await? {
+        if let Some(mut asset) = wallet.db.asset(asset_id).await? {
+            if asset.fee_policy.is_none() && fee_policy.is_some() {
+                asset.fee_policy = fee_policy;
+                wallet.db.insert_asset(asset.clone()).await?;
+            }
+
+            if asset.hidden_puzzle_hash.is_none() && hidden_puzzle_hash.is_some() {
+                let mut tx = wallet.db.tx().await?;
+
+                if tx.existing_hidden_puzzle_hash(asset_id).await?.is_none() {
+                    tx.update_hidden_puzzle_hash(asset_id, hidden_puzzle_hash)
+                        .await?;
+                    asset.hidden_puzzle_hash = hidden_puzzle_hash;
+                }
+
+                tx.commit().await?;
+            }
+
             return Ok(asset);
         }
 
@@ -34,6 +52,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash: asset.hidden_puzzle_hash.or(hidden_puzzle_hash),
+                fee_policy,
                 kind: AssetKind::Token,
             }
         } else {
@@ -47,6 +66,7 @@ impl Sage {
                 is_sensitive_content: false,
                 is_visible: true,
                 hidden_puzzle_hash,
+                fee_policy,
                 kind: AssetKind::Token,
             }
         };
@@ -118,6 +138,7 @@ impl Sage {
             is_sensitive_content: info.is_sensitive_content,
             is_visible: true,
             hidden_puzzle_hash: None,
+            fee_policy: None,
             kind: AssetKind::Nft,
         };
 

@@ -1,4 +1,4 @@
-use chia_wallet_sdk::prelude::*;
+use chia_wallet_sdk::{driver::FeePolicy, prelude::*};
 use sqlx::{SqliteExecutor, query};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -34,6 +34,7 @@ pub struct Asset {
     pub is_sensitive_content: bool,
     pub is_visible: bool,
     pub hidden_puzzle_hash: Option<Bytes32>,
+    pub fee_policy: Option<FeePolicy>,
     pub kind: AssetKind,
 }
 
@@ -174,20 +175,32 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
     let hash = asset.hash.as_ref();
     let kind = asset.kind as i64;
     let hidden_puzzle_hash = asset.hidden_puzzle_hash.as_deref();
+    let fee_issuer_puzzle_hash = asset.fee_policy.as_ref().map(|fp| fp.issuer_fee_puzzle_hash.to_vec());
+    let fee_basis_points = asset.fee_policy.as_ref().map(|fp| fp.fee_basis_points as i64);
+    let fee_min_fee = asset.fee_policy.as_ref().map(|fp| fp.min_fee as i64);
+    let fee_allow_zero_price = asset.fee_policy.as_ref().map(|fp| fp.allow_zero_price);
+    let fee_allow_revoke_fee_bypass = asset.fee_policy.as_ref().map(|fp| fp.allow_revoke_fee_bypass);
 
     query!(
         "
         INSERT INTO assets (
             hash, kind, name, ticker, precision, icon_url, description,
-            is_sensitive_content, is_visible, hidden_puzzle_hash
+            is_sensitive_content, is_visible, hidden_puzzle_hash,
+            fee_issuer_puzzle_hash, fee_basis_points, fee_min_fee,
+            fee_allow_zero_price, fee_allow_revoke_fee_bypass
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(hash) DO UPDATE SET
             name = COALESCE(excluded.name, name),
             ticker = COALESCE(excluded.ticker, ticker),
             icon_url = COALESCE(excluded.icon_url, icon_url),
             description = COALESCE(excluded.description, description),
-            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content
+            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content,
+            fee_issuer_puzzle_hash = COALESCE(excluded.fee_issuer_puzzle_hash, fee_issuer_puzzle_hash),
+            fee_basis_points = COALESCE(excluded.fee_basis_points, fee_basis_points),
+            fee_min_fee = COALESCE(excluded.fee_min_fee, fee_min_fee),
+            fee_allow_zero_price = COALESCE(excluded.fee_allow_zero_price, fee_allow_zero_price),
+            fee_allow_revoke_fee_bypass = COALESCE(excluded.fee_allow_revoke_fee_bypass, fee_allow_revoke_fee_bypass)
         ",
         hash,
         kind,
@@ -199,6 +212,11 @@ async fn insert_asset(conn: impl SqliteExecutor<'_>, asset: Asset) -> Result<()>
         asset.is_sensitive_content,
         asset.is_visible,
         hidden_puzzle_hash,
+        fee_issuer_puzzle_hash,
+        fee_basis_points,
+        fee_min_fee,
+        fee_allow_zero_price,
+        fee_allow_revoke_fee_bypass,
     )
     .execute(conn)
     .await?;
@@ -225,6 +243,27 @@ async fn existing_hidden_puzzle_hash(
     .transpose()
 }
 
+pub fn fee_policy_from_row(
+    issuer_puzzle_hash: Option<Vec<u8>>,
+    basis_points: Option<i64>,
+    min_fee: Option<i64>,
+    allow_zero_price: Option<bool>,
+    allow_revoke_fee_bypass: Option<bool>,
+) -> Result<Option<FeePolicy>> {
+    match (issuer_puzzle_hash, basis_points, min_fee, allow_zero_price, allow_revoke_fee_bypass) {
+        (Some(iph), Some(bp), Some(mf), Some(azp), Some(arfb)) => {
+            Ok(Some(FeePolicy::new(
+                iph.convert()?,
+                bp as u16,
+                mf as u64,
+                azp,
+                arfb,
+            )))
+        }
+        _ => Ok(None),
+    }
+}
+
 async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<Asset>> {
     let hash = hash.as_ref();
 
@@ -232,7 +271,9 @@ async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<As
         "
         SELECT
             hash, kind, name, ticker, precision, icon_url, description,
-            is_sensitive_content, is_visible, hidden_puzzle_hash
+            is_sensitive_content, is_visible, hidden_puzzle_hash,
+            fee_issuer_puzzle_hash, fee_basis_points, fee_min_fee,
+            fee_allow_zero_price, fee_allow_revoke_fee_bypass
         FROM assets
         WHERE hash = ?
         ",
@@ -252,6 +293,13 @@ async fn asset(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<As
             is_sensitive_content: row.is_sensitive_content,
             is_visible: row.is_visible,
             hidden_puzzle_hash: row.hidden_puzzle_hash.convert()?,
+            fee_policy: fee_policy_from_row(
+                row.fee_issuer_puzzle_hash,
+                row.fee_basis_points,
+                row.fee_min_fee,
+                row.fee_allow_zero_price,
+                row.fee_allow_revoke_fee_bypass,
+            )?,
         })
     })
     .transpose()

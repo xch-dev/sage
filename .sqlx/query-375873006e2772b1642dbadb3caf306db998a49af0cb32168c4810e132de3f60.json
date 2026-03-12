@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT \t\n            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,\n            is_created_in_block, is_spent_in_block, asset_hash, asset_description,\n            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,\n            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash\n        FROM transaction_coins \n        WHERE height = ?",
+  "query": "SELECT \t\n            height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,\n            is_created_in_block, is_spent_in_block, asset_hash, asset_description,\n            asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,\n            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,\n            assets.fee_issuer_puzzle_hash AS asset_fee_issuer_puzzle_hash,\n            assets.fee_basis_points AS asset_fee_basis_points,\n            assets.fee_min_fee AS asset_fee_min_fee,\n            assets.fee_allow_zero_price AS asset_fee_allow_zero_price,\n            assets.fee_allow_revoke_fee_bypass AS asset_fee_allow_revoke_fee_bypass\n        FROM transaction_coins \n        INNER JOIN assets ON assets.hash = transaction_coins.asset_hash\n        WHERE height = ?",
   "describe": {
     "columns": [
       {
@@ -97,6 +97,31 @@
         "name": "asset_hidden_puzzle_hash",
         "ordinal": 18,
         "type_info": "Blob"
+      },
+      {
+        "name": "asset_fee_issuer_puzzle_hash",
+        "ordinal": 19,
+        "type_info": "Blob"
+      },
+      {
+        "name": "asset_fee_basis_points",
+        "ordinal": 20,
+        "type_info": "Integer"
+      },
+      {
+        "name": "asset_fee_min_fee",
+        "ordinal": 21,
+        "type_info": "Integer"
+      },
+      {
+        "name": "asset_fee_allow_zero_price",
+        "ordinal": 22,
+        "type_info": "Bool"
+      },
+      {
+        "name": "asset_fee_allow_revoke_fee_bypass",
+        "ordinal": 23,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -121,8 +146,13 @@
       true,
       true,
       false,
+      true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "e1354916f0346d1eed272947471232e4d15b99bef39202cafa6b034c3fa441e9"
+  "hash": "375873006e2772b1642dbadb3caf306db998a49af0cb32168c4810e132de3f60"
 }

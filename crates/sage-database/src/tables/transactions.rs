@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteExecutor};
 
-use crate::{Asset, Convert, Database, Result};
+use crate::{Asset, Convert, Database, Result, fee_policy_from_row};
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
@@ -51,6 +51,13 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
         description: row.get::<Option<String>, _>("asset_description"),
         is_sensitive_content: row.get::<bool, _>("asset_is_sensitive_content"),
         is_visible: row.get::<bool, _>("asset_is_visible"),
+        fee_policy: fee_policy_from_row(
+            row.get::<Option<Vec<u8>>, _>("asset_fee_issuer_puzzle_hash"),
+            row.get::<Option<i64>, _>("asset_fee_basis_points"),
+            row.get::<Option<i64>, _>("asset_fee_min_fee"),
+            row.get::<Option<bool>, _>("asset_fee_allow_zero_price"),
+            row.get::<Option<bool>, _>("asset_fee_allow_revoke_fee_bypass"),
+        )?,
         kind: row
             .get::<Option<i64>, _>("asset_kind")
             .map(Convert::convert)
@@ -76,8 +83,14 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             height, timestamp, coin_id, puzzle_hash, parent_coin_hash, amount,
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
-            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash
+            asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            assets.fee_issuer_puzzle_hash AS asset_fee_issuer_puzzle_hash,
+            assets.fee_basis_points AS asset_fee_basis_points,
+            assets.fee_min_fee AS asset_fee_min_fee,
+            assets.fee_allow_zero_price AS asset_fee_allow_zero_price,
+            assets.fee_allow_revoke_fee_bypass AS asset_fee_allow_revoke_fee_bypass
         FROM transaction_coins 
+        INNER JOIN assets ON assets.hash = transaction_coins.asset_hash
         WHERE height = ?",
         height
     )
@@ -112,6 +125,13 @@ async fn transaction(conn: impl SqliteExecutor<'_>, height: u32) -> Result<Optio
             description: row.asset_description,
             is_sensitive_content: row.asset_is_sensitive_content,
             is_visible: row.asset_is_visible,
+            fee_policy: fee_policy_from_row(
+                row.asset_fee_issuer_puzzle_hash,
+                row.asset_fee_basis_points,
+                row.asset_fee_min_fee,
+                row.asset_fee_allow_zero_price,
+                row.asset_fee_allow_revoke_fee_bypass,
+            )?,
             kind: row.asset_kind.convert()?,
             hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
         };
@@ -153,8 +173,14 @@ async fn transactions(
             is_created_in_block, is_spent_in_block, asset_hash, asset_description,
             asset_is_visible, asset_is_sensitive_content, asset_name, asset_icon_url,
             asset_kind, p2_puzzle_hash, asset_ticker, asset_precision, asset_hidden_puzzle_hash,
+            assets.fee_issuer_puzzle_hash AS asset_fee_issuer_puzzle_hash,
+            assets.fee_basis_points AS asset_fee_basis_points,
+            assets.fee_min_fee AS asset_fee_min_fee,
+            assets.fee_allow_zero_price AS asset_fee_allow_zero_price,
+            assets.fee_allow_revoke_fee_bypass AS asset_fee_allow_revoke_fee_bypass,
             COUNT(*) OVER() as total_count
         FROM transaction_coins
+        INNER JOIN assets ON assets.hash = transaction_coins.asset_hash
         WHERE 1=1",
     );
 

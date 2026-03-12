@@ -75,7 +75,7 @@ function AssetDisplay({
 
       try {
         const tokensWithNamesPromises = assets.tokens.map(
-          async ({ asset_id: assetId, amount }) => {
+          async ({ asset_id: assetId, amount, fee_policy }) => {
             try {
               const tokenResponse = await commands.getToken({
                 asset_id: assetId,
@@ -92,6 +92,7 @@ function AssetDisplay({
                   ),
                   iconUrl: token.icon_url,
                   precision: token.precision,
+                  fee_policy,
                 };
               } else {
                 return {
@@ -100,6 +101,7 @@ function AssetDisplay({
                   displayName: getAssetDisplayName(null, null, 'token'),
                   iconUrl: null,
                   precision: 3,
+                  fee_policy,
                 };
               }
             } catch (error) {
@@ -113,6 +115,7 @@ function AssetDisplay({
                 displayName: getAssetDisplayName(null, null, 'token'),
                 iconUrl: null,
                 precision: 3,
+                fee_policy,
               };
             }
           },
@@ -217,17 +220,26 @@ function AssetDisplay({
                       }}
                       size='sm'
                     />
-                    <span>
-                      <NumberFormat
-                        value={token.amount || '0'}
-                        minimumFractionDigits={0}
-                        maximumFractionDigits={token.precision}
-                      />{' '}
-                      {token.asset_id
-                        ? token.displayName ||
-                          `${token.asset_id.slice(0, 8)}...`
-                        : t`Chia`}
-                    </span>
+                    <div className='flex flex-col leading-tight'>
+                      <span>
+                        <NumberFormat
+                          value={token.amount || '0'}
+                          minimumFractionDigits={0}
+                          maximumFractionDigits={token.precision}
+                        />{' '}
+                        {token.asset_id
+                          ? token.displayName ||
+                            `${token.asset_id.slice(0, 8)}...`
+                          : t`Chia`}
+                      </span>
+                      {token.fee_policy && (
+                        <span className='text-xs text-muted-foreground'>
+                          <Trans>
+                            Fee policy ({token.fee_policy.fee_basis_points} bps)
+                          </Trans>
+                        </span>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

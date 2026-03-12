@@ -72,6 +72,19 @@ export function useOfferProcessor({
     const requestedTokens = offerState.requested.tokens.map((token) => ({
       asset_id: token.asset_id,
       amount: toMojos(token.amount.toString(), token.asset_id ? 3 : 12),
+      fee_policy:
+        token.asset_id && token.fee_policy
+          ? {
+              recipient: token.fee_policy.recipient,
+              fee_basis_points:
+                Number.parseInt(token.fee_policy.fee_basis_points || '0', 10) ||
+                0,
+              min_fee: toMojos(token.fee_policy.min_fee || '0', 3),
+              allow_zero_price: token.fee_policy.allow_zero_price,
+              allow_revoke_fee_bypass:
+                token.fee_policy.allow_revoke_fee_bypass,
+            }
+          : undefined,
     }));
 
     try {

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO assets (\n            hash, kind, name, ticker, precision, icon_url, description,\n            is_sensitive_content, is_visible, hidden_puzzle_hash,\n            fee_issuer_puzzle_hash, fee_basis_points, fee_min_fee,\n            fee_allow_zero_price, fee_allow_revoke_fee_bypass\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ON CONFLICT(hash) DO UPDATE SET\n            name = COALESCE(excluded.name, name),\n            ticker = COALESCE(excluded.ticker, ticker),\n            icon_url = COALESCE(excluded.icon_url, icon_url),\n            description = COALESCE(excluded.description, description),\n            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content,\n            fee_issuer_puzzle_hash = COALESCE(excluded.fee_issuer_puzzle_hash, fee_issuer_puzzle_hash),\n            fee_basis_points = COALESCE(excluded.fee_basis_points, fee_basis_points),\n            fee_min_fee = COALESCE(excluded.fee_min_fee, fee_min_fee),\n            fee_allow_zero_price = COALESCE(excluded.fee_allow_zero_price, fee_allow_zero_price),\n            fee_allow_revoke_fee_bypass = COALESCE(excluded.fee_allow_revoke_fee_bypass, fee_allow_revoke_fee_bypass)\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 15
+    },
+    "nullable": []
+  },
+  "hash": "410e6cbcdb9d0fa7d60a3ffa21c0c7990b41848de7ccfbe17a8cee2eeee60cab"
+}

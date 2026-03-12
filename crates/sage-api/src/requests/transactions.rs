@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, CoinSpendJson, SpendBundleJson, TransactionSummary};
+use crate::{Amount, CoinSpendJson, FeePolicy, SpendBundleJson, TransactionSummary};
 
 /// Send XCH to an address
 #[cfg_attr(
@@ -212,6 +212,10 @@ pub struct IssueCat {
     pub amount: Amount,
     /// Transaction fee
     pub fee: Amount,
+    /// Optional transfer fee policy for fee CAT issuance
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub fee_policy: Option<FeePolicy>,
     /// Whether to automatically submit the transaction
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]

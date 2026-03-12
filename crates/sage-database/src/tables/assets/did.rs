@@ -49,6 +49,7 @@ impl Database {
                     is_visible: row.asset_is_visible,
                     is_sensitive_content: row.asset_is_sensitive_content,
                     hidden_puzzle_hash: row.asset_hidden_puzzle_hash.convert()?,
+                    fee_policy: None,
                     kind: AssetKind::Did,
                 },
                 did_info: DidCoinInfo {

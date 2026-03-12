@@ -36,9 +36,18 @@ export interface Assets {
   options: string[];
 }
 
+export interface FeePolicyInput {
+  recipient: string;
+  fee_basis_points: string;
+  min_fee: string;
+  allow_zero_price: boolean;
+  allow_revoke_fee_bypass: boolean;
+}
+
 export interface TokenAmount {
   asset_id: string | null;
   amount: Amount;
+  fee_policy?: FeePolicyInput | null;
 }
 
 export interface OfferExpiration {

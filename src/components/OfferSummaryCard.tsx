@@ -4,6 +4,7 @@ import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { AssetIcon } from './AssetIcon';
+import { Badge } from './ui/badge';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
@@ -61,7 +62,7 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
       {assets.map(({ amount, royalty, asset }) => (
         <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon asset={asset} size='md' />
-          <div className='text-sm text-muted-foreground truncate'>
+          <div className='text-sm text-muted-foreground truncate flex items-center gap-1'>
             {asset.kind !== 'nft' && asset.kind !== 'option' && (
               <NumberFormat
                 value={fromMojos(
@@ -73,6 +74,11 @@ function AssetPreview({ label, assets }: AssetPreviewProps) {
               />
             )}{' '}
             {asset.name ?? asset.ticker ?? t`Unknown`}
+            {asset.fee_policy && (
+              <Badge variant='secondary' className='text-[10px] px-1 py-0'>
+                {t`Fee CAT`}
+              </Badge>
+            )}
           </div>
         </div>
       ))}
