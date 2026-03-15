@@ -231,4 +231,168 @@ impl Keychain {
         Ok(fingerprint)
     }
 
+    pub fn change_password(
+        &mut self,
+        fingerprint: u32,
+        old_password: &[u8],
+        new_password: &[u8],
+    ) -> Result<(), KeychainError> {
+        let key_data = self
+            .keys
+            .get(&fingerprint)
+            .ok_or(KeychainError::KeyNotFound)?;
+
+        let (entropy, master_pk, secret_data) = match key_data {
+            KeyData::Public { .. } => return Err(KeychainError::NoSecretKey),
+            KeyData::Secret {
+                entropy,
+                master_pk,
+                encrypted,
+                ..
+            } => {
+                let data = decrypt::<SecretKeyData>(encrypted, old_password)?;
+                (*entropy, *master_pk, data)
+            }
+        };
+
+        let encrypted = encrypt(new_password, &mut self.rng, &secret_data)?;
+
+        self.keys.insert(
+            fingerprint,
+            KeyData::Secret {
+                master_pk,
+                entropy,
+                encrypted,
+                password_protected: !new_password.is_empty(),
+            },
+        );
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bip39::Mnemonic;
+
+    #[test]
+    fn test_change_password() {
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let fingerprint = keychain.add_mnemonic(&mnemonic, b"").unwrap();
+        assert!(!keychain.is_password_protected(fingerprint));
+
+        keychain
+            .change_password(fingerprint, b"", b"secret123")
+            .unwrap();
+        assert!(keychain.is_password_protected(fingerprint));
+        assert!(keychain.extract_secrets(fingerprint, b"").is_err());
+
+        let (mnemonic_out, Some(_sk)) =
+            keychain.extract_secrets(fingerprint, b"secret123").unwrap()
+        else {
+            panic!("expected secret key");
+        };
+        assert!(mnemonic_out.is_some());
+
+        keychain
+            .change_password(fingerprint, b"secret123", b"newpass")
+            .unwrap();
+        assert!(keychain.extract_secrets(fingerprint, b"secret123").is_err());
+        let (_m, Some(_sk)) = keychain.extract_secrets(fingerprint, b"newpass").unwrap() else {
+            panic!("expected secret key");
+        };
+
+        keychain
+            .change_password(fingerprint, b"newpass", b"")
+            .unwrap();
+        assert!(!keychain.is_password_protected(fingerprint));
+        let (_m, Some(_sk)) = keychain.extract_secrets(fingerprint, b"").unwrap() else {
+            panic!("expected secret key");
+        };
+    }
+
+    #[test]
+    fn test_change_password_wrong_old_password() {
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let fingerprint = keychain.add_mnemonic(&mnemonic, b"correct").unwrap();
+        assert!(keychain
+            .change_password(fingerprint, b"wrong", b"newpass")
+            .is_err());
+        let (_m, Some(_sk)) = keychain.extract_secrets(fingerprint, b"correct").unwrap() else {
+            panic!("expected secret key");
+        };
+    }
+
+    #[test]
+    fn test_change_password_public_key_fails() {
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+        let master_pk = master_sk.public_key();
+        let fingerprint = keychain.add_public_key(&master_pk).unwrap();
+        assert!(keychain
+            .change_password(fingerprint, b"", b"pass")
+            .is_err());
+    }
+
+    #[test]
+    fn test_password_protected_flag_on_import() {
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let fp_no_pass = keychain.add_mnemonic(&mnemonic, b"").unwrap();
+        assert!(!keychain.is_password_protected(fp_no_pass));
+
+        let mut keychain2 = Keychain::default();
+        let fp_with_pass = keychain2.add_mnemonic(&mnemonic, b"secret").unwrap();
+        assert!(keychain2.is_password_protected(fp_with_pass));
+    }
+
+    #[test]
+    fn test_serialization_roundtrip_with_password() {
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let fingerprint = keychain.add_mnemonic(&mnemonic, b"pass123").unwrap();
+        let bytes = keychain.to_bytes().unwrap();
+        let keychain2 = Keychain::from_bytes(&bytes).unwrap();
+        assert!(keychain2.is_password_protected(fingerprint));
+        let (_m, Some(_sk)) = keychain2.extract_secrets(fingerprint, b"pass123").unwrap() else {
+            panic!("expected secret key");
+        };
+    }
+
+    #[test]
+    fn test_legacy_format_backward_compat() {
+        use std::collections::HashMap;
+
+        let mut keychain = Keychain::default();
+        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
+        let fingerprint = keychain.add_mnemonic(&mnemonic, b"").unwrap();
+
+        let mut legacy_map: HashMap<u32, LegacyKeyData> = HashMap::new();
+        if let Some(KeyData::Secret {
+            master_pk,
+            entropy,
+            encrypted,
+            ..
+        }) = keychain.keys.get(&fingerprint)
+        {
+            legacy_map.insert(
+                fingerprint,
+                LegacyKeyData::Secret {
+                    master_pk: *master_pk,
+                    entropy: *entropy,
+                    encrypted: encrypted.clone(),
+                },
+            );
+        }
+        let legacy_bytes = bincode::serialize(&legacy_map).unwrap();
+        let restored = Keychain::from_bytes(&legacy_bytes).unwrap();
+        assert!(!restored.is_password_protected(fingerprint));
+        let (_m, Some(_sk)) = restored.extract_secrets(fingerprint, b"").unwrap() else {
+            panic!("expected secret key");
+        };
+    }
 }
