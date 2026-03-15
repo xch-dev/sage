@@ -91,10 +91,7 @@ impl Keychain {
         self.keys.keys().copied()
     }
 
-    pub fn extract_public_key(
-        &self,
-        fingerprint: u32,
-    ) -> Result<Option<PublicKey>, KeychainError> {
+    pub fn extract_public_key(&self, fingerprint: u32) -> Result<Option<PublicKey>, KeychainError> {
         match self.keys.get(&fingerprint) {
             Some(KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. }) => {
                 Ok(Some(PublicKey::from_bytes(master_pk)?))
@@ -318,9 +315,11 @@ mod tests {
         let mut keychain = Keychain::default();
         let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
         let fingerprint = keychain.add_mnemonic(&mnemonic, b"correct").unwrap();
-        assert!(keychain
-            .change_password(fingerprint, b"wrong", b"newpass")
-            .is_err());
+        assert!(
+            keychain
+                .change_password(fingerprint, b"wrong", b"newpass")
+                .is_err()
+        );
         let (_m, Some(_sk)) = keychain.extract_secrets(fingerprint, b"correct").unwrap() else {
             panic!("expected secret key");
         };
@@ -333,9 +332,7 @@ mod tests {
         let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
         let master_pk = master_sk.public_key();
         let fingerprint = keychain.add_public_key(&master_pk).unwrap();
-        assert!(keychain
-            .change_password(fingerprint, b"", b"pass")
-            .is_err());
+        assert!(keychain.change_password(fingerprint, b"", b"pass").is_err());
     }
 
     #[test]

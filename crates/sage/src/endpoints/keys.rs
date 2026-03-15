@@ -353,7 +353,8 @@ impl Sage {
 
     pub fn get_secret_key(&self, req: GetSecretKey) -> Result<GetSecretKeyResponse> {
         let password = req.password.unwrap_or_default().into_bytes();
-        let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, &password)?
+        let (mnemonic, Some(secret_key)) =
+            self.keychain.extract_secrets(req.fingerprint, &password)?
         else {
             return Ok(GetSecretKeyResponse { secrets: None });
         };

@@ -147,7 +147,8 @@ impl Sage {
 
         let coin_spends = ctx.take();
 
-        self.transact_with(coin_spends, req.auto_submit, info, &password).await
+        self.transact_with(coin_spends, req.auto_submit, info, &password)
+            .await
     }
 }
 

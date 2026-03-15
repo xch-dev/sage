@@ -99,7 +99,9 @@ impl Sage {
         let coin_spends = wallet
             .combine(coins.iter().map(Coin::coin_id).collect(), fee)
             .await?;
-        let response = self.transact(coin_spends, req.auto_submit, &password).await?;
+        let response = self
+            .transact(coin_spends, req.auto_submit, &password)
+            .await?;
 
         Ok(AutoCombineXchResponse {
             coin_ids,
@@ -150,7 +152,9 @@ impl Sage {
         let coin_spends = wallet
             .combine(cats.iter().map(|row| row.coin.coin_id()).collect(), fee)
             .await?;
-        let response = self.transact(coin_spends, req.auto_submit, &password).await?;
+        let response = self
+            .transact(coin_spends, req.auto_submit, &password)
+            .await?;
 
         Ok(AutoCombineCatResponse {
             coin_ids,
@@ -283,8 +287,13 @@ impl Sage {
             })
             .await?;
 
-        self.transact_with(coin_spends, req.auto_submit, ConfirmationInfo::default(), &password)
-            .await
+        self.transact_with(
+            coin_spends,
+            req.auto_submit,
+            ConfirmationInfo::default(),
+            &password,
+        )
+        .await
     }
 
     pub async fn bulk_mint_nfts(&self, req: BulkMintNfts) -> Result<BulkMintNftsResponse> {
@@ -426,7 +435,9 @@ impl Sage {
             )
             .await?;
 
-        let response = self.transact(coin_spends, req.auto_submit, &password).await?;
+        let response = self
+            .transact(coin_spends, req.auto_submit, &password)
+            .await?;
 
         Ok(MintOptionResponse {
             option_id: Address::new(option.info.launcher_id, "option".to_string()).encode()?,
@@ -558,8 +569,13 @@ impl Sage {
         auto_submit: bool,
         password: &[u8],
     ) -> Result<TransactionResponse> {
-        self.transact_with(coin_spends, auto_submit, ConfirmationInfo::default(), password)
-            .await
+        self.transact_with(
+            coin_spends,
+            auto_submit,
+            ConfirmationInfo::default(),
+            password,
+        )
+        .await
     }
 
     pub(crate) async fn transact_with(

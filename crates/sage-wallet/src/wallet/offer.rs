@@ -623,7 +623,12 @@ mod tests {
 
         let offer = alice
             .wallet
-            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(
+                unsigned_offer,
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                true,
+            )
             .await?;
 
         // Take offer
@@ -698,7 +703,12 @@ mod tests {
 
         let offer = alice
             .wallet
-            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(
+                unsigned_offer,
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                true,
+            )
             .await?;
 
         // Take offer
@@ -765,7 +775,12 @@ mod tests {
 
         let offer = alice
             .wallet
-            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .sign_transaction(
+                unsigned_offer,
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                true,
+            )
             .await?;
 
         // Take offer

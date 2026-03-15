@@ -427,7 +427,10 @@ pub struct ChangePassword {
 }
 
 /// Response after changing the password
-#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Authentication & Keys"))]
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
