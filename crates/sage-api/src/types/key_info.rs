@@ -9,6 +9,7 @@ pub struct KeyInfo {
     pub public_key: String,
     pub kind: KeyKind,
     pub has_secrets: bool,
+    pub has_password: bool,
     pub network_id: String,
     pub emoji: Option<String>,
 }
