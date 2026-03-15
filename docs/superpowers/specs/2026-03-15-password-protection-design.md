@@ -2,7 +2,7 @@
 
 **Issue:** [xch-dev/sage#206](https://github.com/xch-dev/sage/issues/206)
 **Date:** 2026-03-15
-**Status:** Design
+**Status:** Implemented
 
 ## Overview
 
@@ -180,18 +180,80 @@ New `change_password()` endpoint.
 
 ### Frontend (TypeScript/React)
 
-- Reusable password prompt dialog component
-- Prompt shown before each protected operation (only when `has_password` is true for the active wallet)
-- "Set Password" in wallet settings (calls `change_password` with empty old password)
-- "Change Password" in wallet settings
-- "Remove Password" in wallet settings (calls `change_password` with empty new password, with confirmation dialog warning about reduced security)
-- Biometric opt-in toggle (calls keyring/biometric plugin)
-- Biometric retrieval logic with fallback to manual entry
-- Password change also updates the biometric keychain entry
+#### PasswordContext (`src/contexts/PasswordContext.tsx`)
 
-### New dependency
+A React context provider following the same architecture as the existing `BiometricContext`. Provides a single function:
 
-- A Tauri keyring or biometric plugin (e.g., `tauri-plugin-biometry`) for the optional biometric layer
+```typescript
+requestPassword(hasPassword: boolean): Promise<string | null>
+```
+
+- If `hasPassword` is `false`, resolves to `null` immediately (no prompt).
+- If `hasPassword` is `true`, shows a modal dialog and resolves with the entered password, or `null` if cancelled.
+- Uses a `useRef`-based pending promise pattern to bridge the dialog UI with the async call site.
+
+**Provider placement:** Inside `I18nProvider` (required because the dialog uses Lingui translation macros) but wrapping `WalletProvider` and all downstream providers, so `usePassword()` is available everywhere.
+
+#### PasswordDialog (`src/components/dialogs/PasswordDialog.tsx`)
+
+A reusable modal dialog rendered by `PasswordProvider`. Features:
+
+- Auto-focuses the password input on open
+- Clears password state on open/close
+- Supports Enter key to submit
+- Cancel closes the dialog and resolves the promise with `null`
+
+#### usePassword hook (`src/hooks/usePassword.ts`)
+
+Thin wrapper around `PasswordContext` with a guard that throws if used outside `PasswordProvider`.
+
+#### Call site pattern
+
+Every protected operation follows the same pattern before proceeding:
+
+```typescript
+const password = await requestPassword(wallet?.has_password ?? false);
+if (password === null && wallet?.has_password) return;
+```
+
+Password is then passed to the backend command. Call sites that were updated:
+
+| File | Operations |
+| --- | --- |
+| `ConfirmationDialog.tsx` | `signCoinSpends` (Sign Transaction button, Submit button) |
+| `WalletCard.tsx` | `getSecretKey` (View Details dialog) |
+| `Settings.tsx` | `increaseDerivationIndex` (when hardened keys enabled) |
+| `Offers.tsx` | `cancelOffers` (Cancel All Active) |
+| `OfferRowCard.tsx` | `cancelOffer` (individual offer cancel) |
+| `useOfferProcessor.ts` | `makeOffer` (create offer flow) |
+| `Offer.tsx` | `takeOffer` (take offer flow) |
+| `WalletConnectContext.tsx` | All WC command handling via `HandlerContext` |
+| WalletConnect commands | `signCoinSpends`, `signMessage`, `signMessageByAddress`, `send`, `createOffer`, `takeOffer`, `cancelOffer`, `bulkMintNfts` |
+
+#### WalletConnect integration
+
+The `HandlerContext` interface was extended with `requestPassword` and `hasPassword`. WalletConnect command handlers prompt for the password before executing protected operations, using the same pattern as direct UI call sites.
+
+#### Password management in Settings
+
+A new **Security** section in Wallet Settings (only shown for hot wallets with `has_secrets`):
+
+- **Set Password** — shown when `has_password` is `false`. Opens a dialog with New Password + Confirm Password fields.
+- **Change Password** — shown when `has_password` is `true`. Opens a dialog with Current Password + New Password + Confirm Password fields.
+- **Remove Password** — shown when `has_password` is `true`. Opens a dialog with Current Password field. Uses destructive button variant.
+
+All three operations call `commands.changePassword()` with appropriate `old_password`/`new_password` values (empty string = no password). On success, refreshes `KeyInfo` via `commands.getKey()` and shows a success toast.
+
+#### Error feedback
+
+Wrong password errors (`ErrorKind::Unauthorized` with reason containing "decrypt") are surfaced as a toast notification "Incorrect password" via the global `ErrorContext.addError` handler. This provides consistent feedback across all password-protected operations without requiring per-call-site error handling. Other unauthorized errors (e.g., wallet transition race conditions) continue to be silently discarded.
+
+#### Design decisions
+
+- **No password at import time** — users set a password later via Settings. Simpler UX, same security outcome.
+- **No session caching** — every protected operation prompts independently. Matches the per-operation model described in the backend design.
+- **Single dialog instance** — `PasswordProvider` renders one `PasswordDialog` at the provider level, avoiding duplicate dialog instances across components.
+- **Biometric integration** — the existing `BiometricContext` (`promptIfEnabled`) continues to work alongside password. Password is prompted first, then biometric if enabled. The biometric layer is orthogonal to password protection.
 
 ## Error Handling
 
