@@ -299,8 +299,6 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
         role='article'
         tabIndex={0}
         aria-label={nftName}
-        aria-disabled={!nft.created_height}
-        aria-selected={selectionState?.[0]}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <TooltipProvider>
