@@ -170,6 +170,7 @@ impl Sage {
         &self,
         req: SignMessageWithPublicKey,
     ) -> Result<SignMessageWithPublicKeyResponse> {
+        let password = req.password.unwrap_or_default().into_bytes();
         let wallet = self.wallet()?;
 
         let public_key = parse_public_key(req.public_key)?;
@@ -178,7 +179,7 @@ impl Sage {
         };
 
         let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+            self.keychain.extract_secrets(wallet.fingerprint, &password)?
         else {
             return Err(Error::NoSigningKey);
         };
@@ -205,6 +206,7 @@ impl Sage {
         &self,
         req: SignMessageByAddress,
     ) -> Result<SignMessageByAddressResponse> {
+        let password = req.password.unwrap_or_default().into_bytes();
         let wallet = self.wallet()?;
 
         let p2_puzzle_hash = self.parse_address(req.address)?;
@@ -217,7 +219,7 @@ impl Sage {
         };
 
         let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+            self.keychain.extract_secrets(wallet.fingerprint, &password)?
         else {
             return Err(Error::NoSigningKey);
         };

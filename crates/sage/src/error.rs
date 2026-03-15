@@ -247,6 +247,7 @@ impl Error {
                 | KeychainError::Bls(..)
                 | KeychainError::Bip39(..)
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
+                KeychainError::KeyNotFound | KeychainError::NoSecretKey => ErrorKind::Unauthorized,
             },
             Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
             Self::Send(..)

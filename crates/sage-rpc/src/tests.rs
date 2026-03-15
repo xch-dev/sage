@@ -137,6 +137,7 @@ impl TestApp {
                 save_secrets: true,
                 login: true,
                 emoji: None,
+                password: None,
             })
             .await?
             .fingerprint;
@@ -255,6 +256,7 @@ async fn test_send_xch() -> Result<()> {
         memos: vec![],
         clawback: None,
         auto_submit: true,
+        password: None,
     })
     .await?;
 

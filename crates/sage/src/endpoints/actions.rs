@@ -189,6 +189,7 @@ impl Sage {
         &self,
         req: IncreaseDerivationIndex,
     ) -> Result<IncreaseDerivationIndexResponse> {
+        let password = req.password.unwrap_or_default().into_bytes();
         let wallet = self.wallet()?;
 
         let hardened = req.hardened.is_none_or(|hardened| hardened);
@@ -198,7 +199,7 @@ impl Sage {
 
         if hardened {
             let (_mnemonic, Some(master_sk)) =
-                self.keychain.extract_secrets(wallet.fingerprint, b"")?
+                self.keychain.extract_secrets(wallet.fingerprint, &password)?
             else {
                 return Err(Error::NoSigningKey);
             };
