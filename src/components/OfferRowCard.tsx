@@ -12,7 +12,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -42,6 +44,8 @@ interface OfferRowCardProps {
 export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const walletState = useWalletState();
   const { addError } = useErrors();
+  const { requestPassword } = usePassword();
+  const { wallet } = useWallet();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
@@ -59,13 +63,17 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+  const cancelHandler = async (values: z.infer<typeof cancelSchema>) => {
+    const password = await requestPassword(wallet?.has_password ?? false);
+    if (password === null && wallet?.has_password) return;
+
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
 
     commands
       .cancelOffer({
         offer_id: record.offer_id,
         fee,
+        password,
       })
       .then((result) => {
         setResponse(result);

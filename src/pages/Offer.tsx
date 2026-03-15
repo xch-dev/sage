@@ -14,7 +14,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { resolveOfferData } from '@/lib/offerData';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -26,6 +28,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
+  const { requestPassword } = usePassword();
+  const { wallet } = useWallet();
   const walletState = useWalletState();
   const navigate = useNavigate();
 
@@ -96,9 +100,13 @@ export function Offer() {
     }
 
     try {
+      const password = await requestPassword(wallet?.has_password ?? false);
+      if (password === null && wallet?.has_password) return;
+
       const result = await commands.takeOffer({
         offer: resolvedOffer,
         fee: toMojos(fee || '0', walletState.sync.unit.precision),
+        password,
       });
       setResponse(result);
     } catch (error) {

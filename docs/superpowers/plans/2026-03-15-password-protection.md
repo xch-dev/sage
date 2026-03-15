@@ -17,6 +17,7 @@
 ### Task 1: Add `password_protected` to `KeyData::Secret`
 
 **Files:**
+
 - Modify: `crates/sage-keychain/src/key_data.rs:9-20`
 
 - [ ] **Step 1: Add `password_protected` field to `KeyData::Secret`**
@@ -101,6 +102,7 @@ Expected: compilation errors in `keychain.rs` where `KeyData::Secret` is constru
 In `crates/sage-keychain/src/keychain.rs`, update `add_secret_key()` (line ~138) and `add_mnemonic()` (line ~166) to include `password_protected`:
 
 For `add_secret_key()`:
+
 ```rust
 self.keys.insert(
     fingerprint,
@@ -114,6 +116,7 @@ self.keys.insert(
 ```
 
 For `add_mnemonic()`:
+
 ```rust
 self.keys.insert(
     fingerprint,
@@ -154,6 +157,7 @@ git commit -m "feat: add password_protected flag to KeyData::Secret"
 ### Task 2: Add `change_password` to `Keychain`
 
 **Files:**
+
 - Modify: `crates/sage-keychain/src/keychain.rs`
 
 - [ ] **Step 1: Write a test for `change_password`**
@@ -369,6 +373,7 @@ git commit -m "feat: add change_password and keychain tests"
 ### Task 3: Add `password` field to all protected request structs
 
 **Files:**
+
 - Modify: `crates/sage-api/src/requests/keys.rs`
 - Modify: `crates/sage-api/src/requests/transactions.rs`
 - Modify: `crates/sage-api/src/requests/offers.rs`
@@ -381,6 +386,7 @@ git commit -m "feat: add change_password and keychain tests"
 In `crates/sage-api/src/requests/keys.rs`:
 
 `GetSecretKey` — change from `Copy + Serialize, Deserialize` to just `Clone + Serialize, Deserialize` (since `Option<String>` is not `Copy`), add:
+
 ```rust
 pub struct GetSecretKey {
     pub fingerprint: u32,
@@ -391,6 +397,7 @@ pub struct GetSecretKey {
 ```
 
 `ImportKey` — add:
+
 ```rust
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
@@ -448,6 +455,7 @@ git commit -m "feat: add password field to all protected request structs"
 ### Task 4: Add `ChangePassword` request/response and `has_password` to `KeyInfo`
 
 **Files:**
+
 - Modify: `crates/sage-api/src/requests/keys.rs`
 - Modify: `crates/sage-api/src/types/key_info.rs`
 
@@ -535,6 +543,7 @@ git commit -m "feat: add ChangePassword endpoint and has_password to KeyInfo"
 ### Task 5: Update `sign()` and `transact()` to accept passwords
 
 **Files:**
+
 - Modify: `crates/sage/src/utils/spends.rs`
 - Modify: `crates/sage/src/endpoints/transactions.rs`
 
@@ -636,6 +645,7 @@ let spend_bundle = self.sign(coin_spends, req.partial, &password).await?;
 ### Task 6: Thread password through offers, actions, wallet_connect, and keys
 
 **Files:**
+
 - Modify: `crates/sage/src/endpoints/offers.rs`
 - Modify: `crates/sage/src/endpoints/actions.rs`
 - Modify: `crates/sage/src/endpoints/wallet_connect.rs`
@@ -647,6 +657,7 @@ let spend_bundle = self.sign(coin_spends, req.partial, &password).await?;
 `make_offer()` and `take_offer()` call `extract_secrets` directly. `cancel_offer()` and `cancel_offers()` call `transact()`. Update all four:
 
 For `make_offer` and `take_offer`:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 // ...
@@ -655,6 +666,7 @@ let (_mnemonic, Some(master_sk)) =
 ```
 
 For `cancel_offer` and `cancel_offers`:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 // ... pass &password to self.transact()
@@ -663,6 +675,7 @@ let password = req.password.unwrap_or_default().into_bytes();
 - [ ] **Step 2: Update `actions.rs`**
 
 In `increase_derivation_index()`:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 // ...
@@ -673,6 +686,7 @@ let (_mnemonic, Some(master_sk)) =
 - [ ] **Step 3: Update `wallet_connect.rs`**
 
 Both `sign_message_with_public_key` and `sign_message_by_address`:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 // ...
@@ -683,6 +697,7 @@ let (_mnemonic, Some(master_sk)) =
 - [ ] **Step 4: Update `keys.rs`**
 
 `import_key()` — pass password to `add_secret_key` and `add_mnemonic`:
+
 ```rust
 let password_bytes = req.password.unwrap_or_default().into_bytes();
 // ...
@@ -692,12 +707,14 @@ self.keychain.add_mnemonic(&mnemonic, &password_bytes)?
 ```
 
 `get_secret_key()` — pass password to `extract_secrets`:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, &password)?
 ```
 
 `get_key()` and `get_keys()` — populate `has_password` on `KeyInfo`:
+
 ```rust
 has_password: self.keychain.is_password_protected(fingerprint),
 ```
@@ -705,6 +722,7 @@ has_password: self.keychain.is_password_protected(fingerprint),
 - [ ] **Step 5: Update `action_system.rs`**
 
 In the `create_transaction()` method:
+
 ```rust
 let password = req.password.unwrap_or_default().into_bytes();
 // ... pass &password to self.transact_with()
@@ -739,6 +757,7 @@ git commit -m "feat: thread password through all protected endpoints"
 ### Task 7: Add `change_password` endpoint
 
 **Files:**
+
 - Modify: `crates/sage/src/endpoints/keys.rs`
 
 - [ ] **Step 1: Implement `change_password` endpoint**
@@ -780,6 +799,7 @@ git commit -m "feat: add change_password endpoint"
 ### Task 8: Add integration tests for password protection
 
 **Files:**
+
 - Modify: `crates/sage-rpc/src/tests.rs`
 
 - [ ] **Step 1: Add test for password-protected key import and secret retrieval**
@@ -926,6 +946,7 @@ git commit -m "test: add integration tests for password protection"
 ### Task 9: Ensure Tauri commands compile with new request structs
 
 **Files:**
+
 - Modify: `src-tauri/src/commands.rs` (if needed — the macro should auto-generate)
 
 - [ ] **Step 1: Check if the Tauri command layer auto-generates from the endpoint macro**
@@ -961,6 +982,7 @@ This task should be planned separately once the backend is complete and tested, 
 - [ ] **Step 1: Document the frontend contract**
 
 Create a brief document listing:
+
 - All Tauri command names that now accept `password`
 - The `has_password` field on `KeyInfo` for conditional prompting
 - The `change_password` command for settings UI

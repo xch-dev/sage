@@ -25,6 +25,8 @@ import {
 
 export interface HandlerContext {
   promptIfEnabled: () => Promise<boolean>;
+  requestPassword: (hasPassword: boolean) => Promise<string | null>;
+  hasPassword: boolean;
 }
 
 export const handleCommand = async (

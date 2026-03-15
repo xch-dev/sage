@@ -57,8 +57,8 @@ There are 7 code points where `b""` is passed to `extract_secrets` or `add_mnemo
 
 ### 1. Display mnemonic/secret key (1 site)
 
-| Call site | Function |
-|-----------|----------|
+| Call site                               | Function           |
+| --------------------------------------- | ------------------ |
 | `crates/sage/src/endpoints/keys.rs:353` | `get_secret_key()` |
 
 ### 2. Sign transactions and offers
@@ -71,13 +71,13 @@ endpoint method → transact() / transact_with() → sign() → extract_secrets(
 
 **Direct `extract_secrets` call sites** (5 sites):
 
-| Call site | Function |
-|-----------|----------|
-| `crates/sage/src/utils/spends.rs:15` | `sign()` — called by `transact_with()` and `sign_coin_spends()` |
-| `crates/sage/src/endpoints/offers.rs:170` | `make_offer()` — calls `extract_secrets` directly |
-| `crates/sage/src/endpoints/offers.rs:208` | `take_offer()` — calls `extract_secrets` directly |
-| `crates/sage/src/endpoints/wallet_connect.rs:181` | `sign_message_with_public_key()` |
-| `crates/sage/src/endpoints/wallet_connect.rs:220` | `sign_message_by_address()` |
+| Call site                                         | Function                                                        |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| `crates/sage/src/utils/spends.rs:15`              | `sign()` — called by `transact_with()` and `sign_coin_spends()` |
+| `crates/sage/src/endpoints/offers.rs:170`         | `make_offer()` — calls `extract_secrets` directly               |
+| `crates/sage/src/endpoints/offers.rs:208`         | `take_offer()` — calls `extract_secrets` directly               |
+| `crates/sage/src/endpoints/wallet_connect.rs:181` | `sign_message_with_public_key()`                                |
+| `crates/sage/src/endpoints/wallet_connect.rs:220` | `sign_message_by_address()`                                     |
 
 **Transaction endpoints that flow through `transact()` → `sign()`** (21 endpoints):
 
@@ -87,16 +87,16 @@ Plus `cancel_offer`, `cancel_offers`, and `create_transaction` (action system) w
 
 ### 3. Generate hardened keys (1 site)
 
-| Call site | Function |
-|-----------|----------|
+| Call site                                  | Function                      |
+| ------------------------------------------ | ----------------------------- |
 | `crates/sage/src/endpoints/actions.rs:201` | `increase_derivation_index()` |
 
 ### 4. Key import — encrypt at creation (2 sites)
 
-| Call site | Function |
-|-----------|----------|
+| Call site                               | Function                         |
+| --------------------------------------- | -------------------------------- |
 | `crates/sage/src/endpoints/keys.rs:141` | `import_key()` — secret key path |
-| `crates/sage/src/endpoints/keys.rs:178` | `import_key()` — mnemonic path |
+| `crates/sage/src/endpoints/keys.rs:178` | `import_key()` — mnemonic path   |
 
 Note: `import_key()` also generates hardened derivations using the in-memory master key during import. This does NOT need the password since the key is already decrypted at that point.
 
@@ -135,22 +135,28 @@ Note: this changes the `keys.bin` serialization format. Existing files will fail
 Add `password: Option<String>` to **all request structs that trigger signing, secret access, or key import**:
 
 **Direct secret access:**
+
 - `ImportKey`
 - `GetSecretKey`
 
 **Signing via `transact()` path — all transaction request structs:**
+
 - `SendXch`, `BulkSendXch`, `Combine`, `AutoCombineXch`, `Split`, `AutoCombineCat`, `IssueCat`, `SendCat`, `BulkSendCat`, `MultiSend`, `CreateDid`, `BulkMintNfts`, `TransferNfts`, `AddNftUri`, `AssignNftsToDid`, `TransferDids`, `NormalizeDids`, `MintOption`, `TransferOptions`, `ExerciseOptions`, `FinalizeClawback`
 
 **Signing via direct `extract_secrets` or `sign()`:**
+
 - `SignCoinSpends`, `MakeOffer`, `TakeOffer`, `CancelOffer`, `CancelOffers`, `CreateTransaction`
 
 **Hardened derivation:**
+
 - `IncreaseDerivationIndex`
 
 **WalletConnect signing:**
+
 - `SignMessageWithPublicKey`, `SignMessageByAddress`
 
 **New request/response pair:**
+
 - `ChangePassword { fingerprint: u32, old_password: String, new_password: String }`
 - `ChangePasswordResponse {}`
 
