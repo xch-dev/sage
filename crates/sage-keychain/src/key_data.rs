@@ -16,6 +16,7 @@ pub enum KeyData {
         master_pk: [u8; 48],
         entropy: bool,
         encrypted: Encrypted,
+        password_protected: bool,
     },
 }
 

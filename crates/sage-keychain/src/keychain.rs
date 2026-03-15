@@ -4,12 +4,49 @@ use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
+use serde::{Deserialize, Serialize};
+use serde_with::{Bytes, serde_as};
 
 use crate::{
     KeychainError,
-    encrypt::{decrypt, encrypt},
+    encrypt::{Encrypted, decrypt, encrypt},
     key_data::{KeyData, SecretKeyData},
 };
+
+/// Legacy KeyData without password_protected field, for backward compat
+#[serde_as]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[repr(u8)]
+enum LegacyKeyData {
+    Public {
+        #[serde_as(as = "Bytes")]
+        master_pk: [u8; 48],
+    },
+    Secret {
+        #[serde_as(as = "Bytes")]
+        master_pk: [u8; 48],
+        entropy: bool,
+        encrypted: Encrypted,
+    },
+}
+
+impl From<LegacyKeyData> for KeyData {
+    fn from(legacy: LegacyKeyData) -> Self {
+        match legacy {
+            LegacyKeyData::Public { master_pk } => KeyData::Public { master_pk },
+            LegacyKeyData::Secret {
+                master_pk,
+                entropy,
+                encrypted,
+            } => KeyData::Secret {
+                master_pk,
+                entropy,
+                encrypted,
+                password_protected: false,
+            },
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Keychain {
@@ -28,7 +65,10 @@ impl Default for Keychain {
 
 impl Keychain {
     pub fn from_bytes(data: &[u8]) -> Result<Self, KeychainError> {
-        let keys = bincode::deserialize(data)?;
+        let keys: HashMap<u32, KeyData> = bincode::deserialize(data).or_else(|_| {
+            let legacy: HashMap<u32, LegacyKeyData> = bincode::deserialize(data)?;
+            Ok::<_, bincode::Error>(legacy.into_iter().map(|(k, v)| (k, v.into())).collect())
+        })?;
         Ok(Self {
             rng: ChaCha20Rng::from_entropy(),
             keys,
@@ -51,7 +91,10 @@ impl Keychain {
         self.keys.keys().copied()
     }
 
-    pub fn extract_public_key(&self, fingerprint: u32) -> Result<Option<PublicKey>, KeychainError> {
+    pub fn extract_public_key(
+        &self,
+        fingerprint: u32,
+    ) -> Result<Option<PublicKey>, KeychainError> {
         match self.keys.get(&fingerprint) {
             Some(KeyData::Public { master_pk } | KeyData::Secret { master_pk, .. }) => {
                 Ok(Some(PublicKey::from_bytes(master_pk)?))
@@ -100,6 +143,16 @@ impl Keychain {
         }
     }
 
+    pub fn is_password_protected(&self, fingerprint: u32) -> bool {
+        matches!(
+            self.keys.get(&fingerprint),
+            Some(KeyData::Secret {
+                password_protected: true,
+                ..
+            })
+        )
+    }
+
     pub fn add_public_key(&mut self, master_pk: &PublicKey) -> Result<u32, KeychainError> {
         let fingerprint = master_pk.get_fingerprint();
 
@@ -141,6 +194,7 @@ impl Keychain {
                 master_pk: master_pk.to_bytes(),
                 entropy: false,
                 encrypted,
+                password_protected: !password.is_empty(),
             },
         );
 
@@ -170,9 +224,11 @@ impl Keychain {
                 master_pk: master_pk.to_bytes(),
                 entropy: true,
                 encrypted,
+                password_protected: !password.is_empty(),
             },
         );
 
         Ok(fingerprint)
     }
+
 }
