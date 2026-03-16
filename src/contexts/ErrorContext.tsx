@@ -11,7 +11,6 @@ import { t } from '@lingui/core/macro';
 import { createContext, ReactNode, useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { ErrorKind } from '../bindings';
-import { notifyDecryptError } from './PasswordContext';
 
 export interface CustomError {
   kind: ErrorKind | 'walletconnect' | 'upload' | 'invalid' | 'dexie';
@@ -36,7 +35,6 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
       if (reason.includes('decrypt')) {
         // Wrong password — AES decryption failed
         toast.error(t`Incorrect password`);
-        notifyDecryptError();
       } else if (reason.includes('not found') || reason.includes('No secret')) {
         // KeyNotFound or NoSecretKey — wallet-level issue, not a transition
         toast.error(error.reason);
