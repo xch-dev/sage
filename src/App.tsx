@@ -190,8 +190,8 @@ function AppInner() {
     initialized &&
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
-        <PasswordProvider>
-          <WalletProvider>
+        <WalletProvider>
+          <PasswordProvider>
             <PeerProvider>
               <WalletConnectProvider>
                 <PriceProvider>
@@ -199,8 +199,8 @@ function AppInner() {
                 </PriceProvider>
               </WalletConnectProvider>
             </PeerProvider>
-          </WalletProvider>
-        </PasswordProvider>
+          </PasswordProvider>
+        </WalletProvider>
       </I18nProvider>
     )
   );
