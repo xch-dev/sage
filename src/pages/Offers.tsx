@@ -24,9 +24,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { usePassword } from '@/hooks/usePassword';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
@@ -58,8 +56,6 @@ export function Offers() {
   const offerState = useOfferState();
   const walletState = useWalletState();
   const { addError } = useErrors();
-  const { requestPassword } = usePassword();
-  const { wallet } = useWallet();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [offers, setOffers] = useState<OfferRecord[]>([]);
@@ -190,9 +186,6 @@ export function Offers() {
   };
 
   const cancelAllHandler = async (values: z.infer<typeof cancelAllSchema>) => {
-    const password = await requestPassword(wallet?.has_password ?? false);
-    if (password === undefined) return;
-
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
     const activeOffers = filteredOffers.filter(
       (offer) => offer.status === 'active',
@@ -205,7 +198,6 @@ export function Offers() {
       .cancelOffers({
         offer_ids: activeOffers.map((offer) => offer.offer_id),
         fee,
-        password,
       })
       .then((response) => {
         setCancelAllResponse(response);

@@ -1033,6 +1033,7 @@ function RpcSettings() {
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
   const { requestPassword } = usePassword();
+  const { setWallet: setGlobalWallet } = useWallet();
 
   const walletState = useWalletState();
 
@@ -1242,9 +1243,10 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
       setPasswordDialogOpen(false);
 
-      // Refresh key info to update has_password
+      // Refresh key info to update has_password in local and global state
       const data = await commands.getKey({ fingerprint });
       setKey(data.key);
+      setGlobalWallet(data.key);
 
       toast.success(
         passwordDialogMode === 'set'

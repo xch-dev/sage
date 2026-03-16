@@ -165,6 +165,7 @@ export function useOfferProcessor({
             walletState.sync.unit.precision,
           ),
           expires_at_second: expiresAtSecond,
+          password,
         });
         if (!isCancelled.current) {
           setCreatedOffers([data.offer]);
