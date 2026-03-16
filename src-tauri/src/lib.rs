@@ -174,8 +174,7 @@ pub fn run() {
             .plugin(tauri_plugin_safe_area_insets::init())
             .plugin(tauri_plugin_biometric::init())
             .plugin(tauri_plugin_sharesheet::init())
-            .plugin(tauri_plugin_sage::init())
-            .plugin(tauri_plugin_keychain::init());
+            .plugin(tauri_plugin_sage::init());
     }
 
     tauri_builder
