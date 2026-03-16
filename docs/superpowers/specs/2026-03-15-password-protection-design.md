@@ -294,13 +294,9 @@ Wrong password errors (`ErrorKind::Unauthorized` with reason containing "decrypt
 
 #### Settings UI changes
 
-The existing biometric toggle in Settings moves into the **Security** section alongside password controls:
+The biometric toggle remains in the **Preferences** section of Global Settings (not per-wallet Security) because it is a global setting that applies to all wallets. It is only visible on mobile when biometric hardware is available and enrolled.
 
-- When `has_password` is false: toggle label "Biometric Authentication" / "Require biometrics for sensitive actions" (standalone gate, current behavior)
-- When `has_password` is true: toggle label "Biometric Unlock" / "Use Face ID / Touch ID instead of typing your password"
-- Toggle only visible on mobile when biometric hardware is available and enrolled
-
-A warning is shown when enabling biometric with a password: "Biometric unlock is a convenience — remember your password. There is no way to recover a lost password."
+When the toggle is disabled, all `sage-password-*` keychain entries are cleared.
 
 #### Design decisions
 
