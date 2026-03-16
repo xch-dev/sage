@@ -1000,8 +1000,18 @@ function RpcSettings() {
 
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
-  const { requestPassword, clearKeychainEntry, updateKeychainEntry, clearAllKeychainEntries } = usePassword();
-  const { enabled: biometricEnabled, available, enableIfAvailable, disable } = useBiometric();
+  const {
+    requestPassword,
+    clearKeychainEntry,
+    updateKeychainEntry,
+    clearAllKeychainEntries,
+  } = usePassword();
+  const {
+    enabled: biometricEnabled,
+    available,
+    enableIfAvailable,
+    disable,
+  } = useBiometric();
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   const toggleBiometric = async (value: boolean) => {
@@ -1421,7 +1431,11 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           {isMobile && available && (
             <>
               <SettingItem
-                label={key?.has_password ? t`Biometric Unlock` : t`Biometric Authentication`}
+                label={
+                  key?.has_password
+                    ? t`Biometric Unlock`
+                    : t`Biometric Authentication`
+                }
                 description={
                   key?.has_password
                     ? t`Use Face ID / Touch ID instead of typing your password`

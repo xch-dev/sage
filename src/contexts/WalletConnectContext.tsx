@@ -140,12 +140,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [
-      signClient,
-      addError,
-      requestPassword,
-      wallet?.has_password,
-    ],
+    [signClient, addError, requestPassword, wallet?.has_password],
   );
 
   useEffect(() => {

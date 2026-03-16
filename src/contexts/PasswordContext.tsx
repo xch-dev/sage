@@ -7,7 +7,8 @@ import { createContext, ReactNode, useCallback, useRef, useState } from 'react';
 const isMobile = platform() === 'ios' || platform() === 'android';
 
 // Lazy-initialized keychain module (mobile only)
-let keychainPromise: Promise<typeof import('tauri-plugin-keychain')> | null = null;
+let keychainPromise: Promise<typeof import('tauri-plugin-keychain')> | null =
+  null;
 function getKeychain() {
   if (!isMobile) return null;
   if (!keychainPromise) keychainPromise = import('tauri-plugin-keychain');
@@ -57,7 +58,10 @@ interface PasswordRequest {
 export interface PasswordContextType {
   requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
   clearKeychainEntry: (fingerprint: number) => Promise<void>;
-  updateKeychainEntry: (fingerprint: number, newPassword: string) => Promise<void>;
+  updateKeychainEntry: (
+    fingerprint: number,
+    newPassword: string,
+  ) => Promise<void>;
   clearAllKeychainEntries: (fingerprints: number[]) => Promise<void>;
 }
 

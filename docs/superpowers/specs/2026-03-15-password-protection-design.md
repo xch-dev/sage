@@ -251,17 +251,17 @@ if (password === undefined) return; // auth cancelled or failed
 
 The separate `promptIfEnabled()` biometric call is removed from all call sites. `requestPassword` is now the sole auth gate. Password is then passed to the backend command. Call sites that were updated:
 
-| File | Operations |
-| --- | --- |
-| `ConfirmationDialog.tsx` | `signCoinSpends` (Sign Transaction button, Submit button) |
-| `WalletCard.tsx` | `getSecretKey` (View Details dialog) |
-| `Settings.tsx` | `increaseDerivationIndex` (when hardened keys enabled) |
-| `Offers.tsx` | `cancelOffers` (Cancel All Active) |
-| `OfferRowCard.tsx` | `cancelOffer` (individual offer cancel) |
-| `useOfferProcessor.ts` | `makeOffer` (create offer flow) |
-| `Offer.tsx` | `takeOffer` (take offer flow) |
-| `WalletConnectContext.tsx` | All WC command handling via `HandlerContext` |
-| WalletConnect commands | `signCoinSpends`, `signMessage`, `signMessageByAddress`, `send`, `createOffer`, `takeOffer`, `cancelOffer`, `bulkMintNfts` |
+| File                       | Operations                                                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `ConfirmationDialog.tsx`   | `signCoinSpends` (Sign Transaction button, Submit button)                                                                  |
+| `WalletCard.tsx`           | `getSecretKey` (View Details dialog)                                                                                       |
+| `Settings.tsx`             | `increaseDerivationIndex` (when hardened keys enabled)                                                                     |
+| `Offers.tsx`               | `cancelOffers` (Cancel All Active)                                                                                         |
+| `OfferRowCard.tsx`         | `cancelOffer` (individual offer cancel)                                                                                    |
+| `useOfferProcessor.ts`     | `makeOffer` (create offer flow)                                                                                            |
+| `Offer.tsx`                | `takeOffer` (take offer flow)                                                                                              |
+| `WalletConnectContext.tsx` | All WC command handling via `HandlerContext`                                                                               |
+| WalletConnect commands     | `signCoinSpends`, `signMessage`, `signMessageByAddress`, `send`, `createOffer`, `takeOffer`, `cancelOffer`, `bulkMintNfts` |
 
 #### WalletConnect integration
 
@@ -283,14 +283,14 @@ Wrong password errors (`ErrorKind::Unauthorized` with reason containing "decrypt
 
 #### Keychain lifecycle
 
-| Event | Action |
-| --- | --- |
-| Password-protected operation succeeds (first time) | Store password in keychain for that wallet's fingerprint |
-| Password changed in Settings | Update keychain entry with new password |
-| Password removed in Settings | Delete keychain entry; biometric reverts to standalone gate mode |
-| Biometric toggle disabled | Delete all `sage-password-*` keychain entries |
-| Wallet deleted | Delete that wallet's keychain entry |
-| OS biometric enrollment changes | OS invalidates keychain items; next retrieval fails → dialog fallback → re-stored on success |
+| Event                                              | Action                                                                                       |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Password-protected operation succeeds (first time) | Store password in keychain for that wallet's fingerprint                                     |
+| Password changed in Settings                       | Update keychain entry with new password                                                      |
+| Password removed in Settings                       | Delete keychain entry; biometric reverts to standalone gate mode                             |
+| Biometric toggle disabled                          | Delete all `sage-password-*` keychain entries                                                |
+| Wallet deleted                                     | Delete that wallet's keychain entry                                                          |
+| OS biometric enrollment changes                    | OS invalidates keychain items; next retrieval fails → dialog fallback → re-stored on success |
 
 #### Settings UI changes
 

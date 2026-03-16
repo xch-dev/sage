@@ -533,9 +533,7 @@ export default function ConfirmationDialog({
                           password,
                         })
                         .then((data) => {
-                          setSignature(
-                            data.spend_bundle.aggregated_signature,
-                          );
+                          setSignature(data.spend_bundle.aggregated_signature);
                           toast.success(t`Transaction signed successfully`);
                         })
                         .catch(addError);
