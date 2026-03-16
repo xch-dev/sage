@@ -1223,6 +1223,14 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
       setPasswordDialogOpen(false);
 
+      // Update keychain entries based on the operation
+      if (passwordDialogMode === 'change') {
+        await updateKeychainEntry(fingerprint, newPassword);
+      } else if (passwordDialogMode === 'remove') {
+        await clearKeychainEntry(fingerprint);
+      }
+      // 'set' mode: no keychain action needed — store-on-first-use will handle it
+
       // Refresh key info to update has_password
       const data = await commands.getKey({ fingerprint });
       setKey(data.key);
