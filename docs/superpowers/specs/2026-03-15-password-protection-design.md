@@ -2,7 +2,7 @@
 
 **Issue:** [xch-dev/sage#206](https://github.com/xch-dev/sage/issues/206)
 **Date:** 2026-03-15
-**Status:** Implemented
+**Status:** Implemented (backend + frontend password); In Progress (biometric-password bridge)
 
 ## Overview
 
@@ -40,16 +40,31 @@ Add a `has_password: bool` field to the `KeyInfo` struct returned by `get_key()`
 
 Preferred approach: add `password_hint: Option<String>` or a simple `password_protected: bool` to `KeyData::Secret`. This avoids trial decryption and is serialized into `keys.bin`. Set to `true` when a non-empty password is used at encryption time. Exposed via `KeyInfo` to the frontend.
 
-### Biometric Layer
+### Biometric-Password Bridge (Mobile)
 
 Biometric is a frontend-only concern. The backend never knows whether a password came from typing or biometric retrieval.
 
-1. User enables biometric after setting a password
-2. Frontend stores the password in the OS keychain with biometric access control (via a Tauri keyring/biometric plugin), keyed by wallet fingerprint
-3. On protected operations: frontend tries biometric retrieval first, falls back to manual entry
-4. Backend receives the password in the request struct either way
+**Plugin:** `tauri-plugin-keychain` — wraps iOS Keychain and Android AccountManager. Key-value API: `saveItem(key, password)`, `getItem(key)`, `removeItem(key)`. Supports multiple entries per app (one per wallet).
 
-The OS keychain uses the platform's secure element under the hood (Secure Enclave on macOS/iOS, TEE on Android, TPM on Windows) without Sage needing to manage SE keys directly.
+**Keychain key format:** `sage-password-{fingerprint}` — one entry per wallet.
+
+**Global setting:** Biometric unlock is a single global toggle (the existing `useLocalStorage('biometric', false)` flag). When enabled, it applies to all wallets that have a password. No per-wallet configuration needed.
+
+**Store-on-first-use:** Passwords are not stored in the keychain at enable time. Instead, the first time a password-protected operation occurs for a given wallet after biometric is enabled, the user types their password normally. On successful backend operation, the password is stored in the keychain. Subsequent operations for that wallet use biometric retrieval.
+
+**Retrieval flow:**
+
+1. `requestPassword(hasPassword)` is called at a protected operation call site
+2. If `hasPassword` is false and biometric not enabled → return `null` (no auth needed)
+3. If `hasPassword` is false and biometric enabled → biometric prompt (standalone gate), return `null` on success, `undefined` on failure
+4. If `hasPassword` is true and biometric enabled → attempt `retrieve(sage-password-{fingerprint})` from OS keychain (triggers biometric prompt)
+5. If retrieval succeeds → return the stored password (no dialog shown)
+6. If retrieval fails (no entry, user cancels, enrollment changed, lockout) → fall back to password dialog
+7. If `hasPassword` is true and biometric not enabled → show password dialog
+
+**The OS keychain uses the platform's secure element** (Secure Enclave on iOS, TEE on Android) without Sage needing to manage SE keys directly.
+
+> **TODO:** Add macOS Touch ID + Keychain and Windows Hello + Credential Manager support for desktop platforms.
 
 ## Protected Operations
 
@@ -182,17 +197,35 @@ New `change_password()` endpoint.
 
 #### PasswordContext (`src/contexts/PasswordContext.tsx`)
 
-A React context provider following the same architecture as the existing `BiometricContext`. Provides a single function:
+A React context provider that serves as the **single entry point for all operation authentication** — password, biometric, or both. Provides:
 
 ```typescript
-requestPassword(hasPassword: boolean): Promise<string | null>
+requestPassword(hasPassword: boolean): Promise<string | null | undefined>
 ```
 
-- If `hasPassword` is `false`, resolves to `null` immediately (no prompt).
-- If `hasPassword` is `true`, shows a modal dialog and resolves with the entered password, or `null` if cancelled.
-- Uses a `useRef`-based pending promise pattern to bridge the dialog UI with the async call site.
+**Return values:**
 
-**Provider placement:** Inside `I18nProvider` (required because the dialog uses Lingui translation macros) but wrapping `WalletProvider` and all downstream providers, so `usePassword()` is available everywhere.
+- `string` → use this password (typed by user or retrieved from keychain via biometric)
+- `null` → no password needed, all auth passed (biometric gate passed or no auth required)
+- `undefined` → auth cancelled or failed, abort the operation
+
+**Internal decision tree:**
+
+```text
+hasPassword=false, biometric not enabled  → return null (no auth needed)
+hasPassword=false, biometric enabled      → biometric prompt, return null on success, undefined on fail
+hasPassword=true,  biometric enabled      → try keychain retrieval, fall back to dialog on failure
+hasPassword=true,  biometric not enabled  → show password dialog
+cancelled at any point                    → return undefined
+```
+
+On desktop (no keychain available), the biometric path is skipped — behaves as if biometric is not enabled.
+
+Uses a `useRef`-based pending promise pattern to bridge the dialog UI with the async call site.
+
+**Provider placement:** Inside `I18nProvider` and `WalletProvider` (required because `PasswordProvider` reads `useWallet()` for the fingerprint and `useBiometric()` for the enabled state). Wraps `WalletConnectProvider` and all downstream providers, so `usePassword()` is available everywhere.
+
+Provider tree: `BiometricProvider` → `I18nProvider` → `WalletProvider` → `PasswordProvider` → `PeerProvider` → `WalletConnectProvider` → `PriceProvider` → `RouterProvider`
 
 #### PasswordDialog (`src/components/dialogs/PasswordDialog.tsx`)
 
@@ -209,14 +242,14 @@ Thin wrapper around `PasswordContext` with a guard that throws if used outside `
 
 #### Call site pattern
 
-Every protected operation follows the same pattern before proceeding:
+Every protected operation follows the same unified pattern — a single call that handles password, biometric, or both:
 
 ```typescript
 const password = await requestPassword(wallet?.has_password ?? false);
-if (password === null && wallet?.has_password) return;
+if (password === undefined) return; // auth cancelled or failed
 ```
 
-Password is then passed to the backend command. Call sites that were updated:
+The separate `promptIfEnabled()` biometric call is removed from all call sites. `requestPassword` is now the sole auth gate. Password is then passed to the backend command. Call sites that were updated:
 
 | File | Operations |
 | --- | --- |
@@ -248,19 +281,47 @@ All three operations call `commands.changePassword()` with appropriate `old_pass
 
 Wrong password errors (`ErrorKind::Unauthorized` with reason containing "decrypt") are surfaced as a toast notification "Incorrect password" via the global `ErrorContext.addError` handler. This provides consistent feedback across all password-protected operations without requiring per-call-site error handling. Other unauthorized errors (e.g., wallet transition race conditions) continue to be silently discarded.
 
+#### Keychain lifecycle
+
+| Event | Action |
+| --- | --- |
+| Password-protected operation succeeds (first time) | Store password in keychain for that wallet's fingerprint |
+| Password changed in Settings | Update keychain entry with new password |
+| Password removed in Settings | Delete keychain entry; biometric reverts to standalone gate mode |
+| Biometric toggle disabled | Delete all `sage-password-*` keychain entries |
+| Wallet deleted | Delete that wallet's keychain entry |
+| OS biometric enrollment changes | OS invalidates keychain items; next retrieval fails → dialog fallback → re-stored on success |
+
+#### Settings UI changes
+
+The existing biometric toggle in Settings moves into the **Security** section alongside password controls:
+
+- When `has_password` is false: toggle label "Biometric Authentication" / "Require biometrics for sensitive actions" (standalone gate, current behavior)
+- When `has_password` is true: toggle label "Biometric Unlock" / "Use Face ID / Touch ID instead of typing your password"
+- Toggle only visible on mobile when biometric hardware is available and enrolled
+
+A warning is shown when enabling biometric with a password: "Biometric unlock is a convenience — remember your password. There is no way to recover a lost password."
+
 #### Design decisions
 
 - **No password at import time** — users set a password later via Settings. Simpler UX, same security outcome.
-- **No session caching** — every protected operation prompts independently. Matches the per-operation model described in the backend design.
+- **No session caching** — every protected operation prompts independently. The OS handles its own biometric caching at the system level. Sage does not cache passwords in memory after biometric retrieval.
 - **Single dialog instance** — `PasswordProvider` renders one `PasswordDialog` at the provider level, avoiding duplicate dialog instances across components.
-- **Biometric integration** — the existing `BiometricContext` (`promptIfEnabled`) continues to work alongside password. Password is prompted first, then biometric if enabled. The biometric layer is orthogonal to password protection.
+- **Unified auth entry point** — `requestPassword` subsumes the standalone `promptIfEnabled()` biometric check. Call sites make one auth call instead of two. The `BiometricContext` continues to exist for state management (`enabled`, `available`) but `promptIfEnabled()` is no longer called directly at operation sites.
+- **Global biometric setting** — one toggle applies to all wallets. Per-wallet passwords are stored in the OS keychain on first successful use. No per-wallet biometric configuration needed.
+- **Graceful degradation** — keychain retrieval failure (enrollment change, lockout, corruption, device restore) always falls back to the password dialog. The biometric path is an optimistic fast path, never a hard requirement.
 
 ## Error Handling
 
-- **Wrong password**: AES-GCM authentication fails → `KeychainError::Decrypt` → frontend shows "Incorrect password"
+- **Wrong password**: AES-GCM authentication fails → `KeychainError::Decrypt` → frontend shows "Incorrect password" toast.
 - **Public-key-only wallets**: `extract_secrets` returns `(None, None)` — no prompt needed. Frontend checks `has_secret_key` and `has_password` to decide.
 - **Lost password**: No recovery. AES-256-GCM + Argon2 is irreversible without the password. UI warns at password-set time. Matches industry standard (Chia reference wallet, MetaMask).
-- **Biometric invalidation**: OS invalidates keychain items when biometric enrollment changes. Falls back to manual password entry. User re-enables biometric by entering password again.
+- **Biometric enrollment changes**: OS invalidates keychain items when biometric enrollment changes. Next retrieval fails → falls back to password dialog → password re-stored in keychain on successful operation.
+- **Biometric lockout**: After too many failed OS-level biometric attempts, the OS locks biometric temporarily. `requestPassword` detects retrieval failure and goes straight to the password dialog.
+- **Stale keychain entry**: If the user changed their password but the keychain has the old one, the backend rejects with "Could not decrypt." The "Incorrect password" toast fires, the stale entry is cleared, and next attempt falls back to the dialog.
+- **Device restore**: Keychain items may not survive a device restore depending on OS backup settings and access control flags. Same handling: retrieval fails → dialog fallback → re-stored on success.
+- **App backgrounded during biometric**: OS may cancel the biometric prompt. Treated as cancellation → `requestPassword` returns `undefined`.
+- **WalletConnect while backgrounded**: Biometric prompts cannot appear while backgrounded on iOS. `requestPassword` skips biometric and falls back to dialog (which will appear when the app returns to foreground).
 
 ## Migration
 
@@ -268,9 +329,15 @@ Existing keys encrypted with `b""` continue to work — the user simply never ge
 
 The `keys.bin` format change (adding `password_protected` to `KeyData::Secret`) requires a deserialization fallback: try new format first, fall back to old format with `password_protected: false`. On next save, the file is written in the new format.
 
+### New dependency (biometric bridge)
+
+- `tauri-plugin-keychain` — Rust crate (`tauri-plugin-keychain = "2"`) + JS bindings (`tauri-plugin-keychain`) for iOS Keychain / Android AccountManager access. Mobile-only. Added to `src-tauri/Cargo.toml` (mobile target) and `package.json`.
+- Mobile capabilities (`src-tauri/capabilities/mobile.json`) — add `keychain:default` permission.
+
 ## What's NOT Changing
 
 - `encrypt.rs` — AES-256-GCM + Argon2 implementation is already correct
 - `keys.bin` encryption scheme — same Argon2 + AES-256-GCM, just with real passwords instead of `b""`
 - Any sync, peer, or database logic
 - `SendTransactionImmediately`, `SubmitTransaction`, `ViewCoinSpends` — these operate on pre-signed spend bundles or read-only data and do not call `extract_secrets()` or `sign()`
+- Backend — no backend changes for the biometric bridge. It's entirely frontend.
