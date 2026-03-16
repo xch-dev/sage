@@ -53,10 +53,11 @@ const BIOMETRIC_CACHE_MS = 5 * 60 * 1000;
 
 interface PasswordRequest {
   resolve: (password: string | null | undefined) => void;
+  fingerprint: number | undefined;
 }
 
 export interface PasswordContextType {
-  requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
+  requestPassword: (hasPassword: boolean, fingerprint?: number) => Promise<string | null | undefined>;
   clearKeychainEntry: (fingerprint: number) => Promise<void>;
   updateKeychainEntry: (
     fingerprint: number,
@@ -90,8 +91,8 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   const lastBiometricPromptRef = useRef<number | null>(null);
 
   const requestPassword = useCallback(
-    async (hasPassword: boolean): Promise<string | null | undefined> => {
-      const fingerprint = wallet?.fingerprint;
+    async (hasPassword: boolean, targetFingerprint?: number): Promise<string | null | undefined> => {
+      const fingerprint = targetFingerprint ?? wallet?.fingerprint;
 
       // If the previous call returned a keychain password and we're being called
       // again, the backend accepted it. Clear the skip flag so keychain works next time.
@@ -150,7 +151,7 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
       // Case 4: Has password → show dialog (fallback or no biometric)
       if (hasPassword) {
         return new Promise<string | null | undefined>((resolve) => {
-          pendingRef.current = { resolve };
+          pendingRef.current = { resolve, fingerprint };
           setOpen(true);
         });
       }
@@ -163,7 +164,7 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   const handleSubmit = useCallback(
     (password: string) => {
       setOpen(false);
-      const fingerprint = wallet?.fingerprint;
+      const fingerprint = pendingRef.current?.fingerprint;
 
       // Manual password entry: clear skip flag and store in keychain
       if (fingerprint) {
@@ -176,7 +177,7 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
       pendingRef.current?.resolve(password);
       pendingRef.current = null;
     },
-    [biometricEnabled, wallet?.fingerprint],
+    [biometricEnabled],
   );
 
   const handleCancel = useCallback(() => {

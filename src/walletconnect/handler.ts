@@ -24,7 +24,7 @@ import {
 } from './commands/offers';
 
 export interface HandlerContext {
-  requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
+  requestPassword: (hasPassword: boolean, fingerprint?: number) => Promise<string | null | undefined>;
   hasPassword: boolean;
 }
 
