@@ -263,6 +263,26 @@ function GlobalSettings() {
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
   const { setFee } = useDefaultFee();
+  const { clearAllKeychainEntries } = usePassword();
+  const {
+    enabled: biometricEnabled,
+    available,
+    enableIfAvailable,
+    disable,
+  } = useBiometric();
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const toggleBiometric = async (value: boolean) => {
+    if (value) {
+      await enableIfAvailable();
+    } else {
+      await disable();
+      // Clear all stored passwords from keychain when biometric is disabled
+      const keysData = await commands.getKeys({});
+      await clearAllKeychainEntries(keysData.keys.map((k) => k.fingerprint));
+    }
+  };
 
   const [defaultWalletConfig, setDefaultWalletConfig] =
     useState<WalletDefaults | null>(null);
@@ -310,6 +330,18 @@ function GlobalSettings() {
             </Select>
           }
         />
+        {isMobile && available && (
+          <SettingItem
+            label={t`Biometric Authentication`}
+            description={t`Use biometrics for sensitive actions and password unlock`}
+            control={
+              <Switch
+                checked={biometricEnabled}
+                onCheckedChange={toggleBiometric}
+              />
+            }
+          />
+        )}
       </SettingsSection>
 
       <SettingsSection title={t`Transaction Defaults`}>
@@ -1004,26 +1036,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     requestPassword,
     clearKeychainEntry,
     updateKeychainEntry,
-    clearAllKeychainEntries,
   } = usePassword();
-  const {
-    enabled: biometricEnabled,
-    available,
-    enableIfAvailable,
-    disable,
-  } = useBiometric();
-  const isMobile = platform() === 'ios' || platform() === 'android';
-
-  const toggleBiometric = async (value: boolean) => {
-    if (value) {
-      await enableIfAvailable();
-    } else {
-      await disable();
-      // Clear all stored passwords from keychain when biometric is disabled
-      const keysData = await commands.getKeys({});
-      await clearAllKeychainEntries(keysData.keys.map((k) => k.fingerprint));
-    }
-  };
 
   const walletState = useWalletState();
 
@@ -1428,35 +1441,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
               )
             }
           />
-          {isMobile && available && (
-            <>
-              <SettingItem
-                label={
-                  key?.has_password
-                    ? t`Biometric Unlock`
-                    : t`Biometric Authentication`
-                }
-                description={
-                  key?.has_password
-                    ? t`Use Face ID / Touch ID instead of typing your password`
-                    : t`Require biometrics for sensitive actions`
-                }
-                control={
-                  <Switch
-                    checked={biometricEnabled}
-                    onCheckedChange={toggleBiometric}
-                  />
-                }
-              />
-              {key?.has_password && biometricEnabled && (
-                <div className='px-3 pb-3'>
-                  <p className='text-xs text-muted-foreground'>
-                    {t`Biometric unlock is a convenience — remember your password. There is no way to recover a lost password.`}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
         </SettingsSection>
       )}
 
