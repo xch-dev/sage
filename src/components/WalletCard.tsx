@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { usePassword } from '@/hooks/usePassword';
 import { useSortable } from '@dnd-kit/sortable';
@@ -67,7 +66,6 @@ export function WalletCard({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const { promptIfEnabled } = useBiometric();
   const { requestPassword } = usePassword();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -81,15 +79,14 @@ export function WalletCard({
   const { currentTheme } = useTheme();
 
   const deleteSelf = async () => {
-    if (await promptIfEnabled()) {
-      await commands
-        .deleteKey({ fingerprint: info.fingerprint })
-        .then(() =>
-          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
-        )
-        .catch(addError);
-    }
-
+    const password = await requestPassword(info.has_password);
+    if (password === undefined) return;
+    await commands
+      .deleteKey({ fingerprint: info.fingerprint })
+      .then(() =>
+        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
+      )
+      .catch(addError);
     setIsDeleteOpen(false);
   };
 
@@ -177,12 +174,7 @@ export function WalletCard({
       }
 
       const password = await requestPassword(info.has_password);
-      if (password === null && info.has_password) {
-        setIsDetailsOpen(false);
-        return;
-      }
-
-      if (!(await promptIfEnabled())) {
+      if (password === undefined) {
         setIsDetailsOpen(false);
         return;
       }
@@ -197,7 +189,6 @@ export function WalletCard({
     info.fingerprint,
     info.has_password,
     addError,
-    promptIfEnabled,
     requestPassword,
   ]);
 
