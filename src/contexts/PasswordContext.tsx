@@ -82,12 +82,24 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   // Stale keychain recovery: skip keychain for fingerprints that returned bad passwords
   const skipKeychainRef = useRef<Set<number>>(new Set());
 
+  // Tracks whether the last requestPassword call returned a keychain password.
+  // If we're called again (meaning the previous operation succeeded), we clear the skip flag.
+  const lastKeychainFingerprintRef = useRef<number | null>(null);
+
   // Biometric caching for standalone gate (Case 2)
   const lastBiometricPromptRef = useRef<number | null>(null);
 
   const requestPassword = useCallback(
     async (hasPassword: boolean): Promise<string | null | undefined> => {
       const fingerprint = wallet?.fingerprint;
+
+      // If the previous call returned a keychain password and we're being called
+      // again, the backend accepted it. Clear the skip flag so keychain works next time.
+      const lastKcFp = lastKeychainFingerprintRef.current;
+      lastKeychainFingerprintRef.current = null;
+      if (lastKcFp !== null) {
+        skipKeychainRef.current.delete(lastKcFp);
+      }
 
       // Case 1: No password, no biometric → no auth needed
       if (!hasPassword && !biometricEnabled) {
@@ -126,8 +138,10 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
       ) {
         const stored = await keychainGet(keychainKey(fingerprint));
         if (stored !== null) {
-          // Mark as pending validation — if backend rejects, next call skips keychain
+          // Mark as pending validation — if backend rejects, next call skips keychain.
+          // If backend accepts, the next requestPassword clears the skip flag.
           skipKeychainRef.current.add(fingerprint);
+          lastKeychainFingerprintRef.current = fingerprint;
           return stored;
         }
         // Fall through to password dialog if keychain retrieval fails

@@ -80,7 +80,10 @@ export function WalletCard({
 
   const deleteSelf = async () => {
     const password = await requestPassword(info.has_password);
-    if (password === undefined) return;
+    if (password === undefined) {
+      setIsDeleteOpen(false);
+      return;
+    }
     await commands
       .deleteKey({ fingerprint: info.fingerprint })
       .then(async () => {
