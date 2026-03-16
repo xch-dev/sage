@@ -27,14 +27,14 @@ Legend: ✅ = protected, 🔄 = redundant double-prompt, ⚠️ = bug, ❌ = not
 | Split coins                                         |    ✅     | ConfirmationDialog (via Token.tsx)     |   OK   | `OwnedCoinsCard.tsx:310`                                                 |
 | Auto-combine XCH/CAT                                |    ✅     | ConfirmationDialog (via Token.tsx)     |   OK   | `OwnedCoinsCard.tsx:363`                                                 |
 | Issue CAT                                           |    ✅     | ConfirmationDialog                     |   OK   | `IssueToken.tsx:48`                                                      |
-| Multi-send                                          |     —     | No UI call site                        |  N/A   | Dead code in bindings                                                    |
+| Multi-send                                          |     —     | No frontend binding                    |  N/A   | Rust-only; no TypeScript binding or UI                                   |
 | Sign coin spends (Sign button)                      |    ✅     | Direct `requestPassword`               |   OK   | `ConfirmationDialog.tsx:520`                                             |
 | Sign coin spends (Submit button)                    |    ✅     | Direct `requestPassword`               |   OK   | `ConfirmationDialog.tsx:627`                                             |
 | **NFTs / DIDs**                                     |           |                                        |        |                                                                          |
 | Bulk mint NFTs                                      |    ✅     | ConfirmationDialog                     |   OK   | `MintNft.tsx:140`                                                        |
 | Transfer NFTs                                       |    ✅     | ConfirmationDialog                     |   OK   | `MultiSelectActions.tsx:135`                                             |
 | Burn NFTs                                           |    ✅     | ConfirmationDialog                     |   OK   | `MultiSelectActions.tsx:168`                                             |
-| Add NFT URI                                         |     —     | No UI call site                        |  N/A   | Dead code in bindings                                                    |
+| Add NFT URI                                         |    ✅     | ConfirmationDialog                     |   OK   | `NftCard.tsx:236`                                                        |
 | Assign NFTs to DID                                  |    ✅     | ConfirmationDialog                     |   OK   | `MultiSelectActions.tsx:152`                                             |
 | Create DID                                          |    ✅     | ConfirmationDialog                     |   OK   | `CreateProfile.tsx:46`                                                   |
 | Transfer DIDs                                       |    ✅     | ConfirmationDialog                     |   OK   | `DidList.tsx:166`                                                        |
@@ -87,29 +87,8 @@ All WC handlers use `auto_submit: true` (except `signCoinSpends`), so password i
 | `chia_signMessageByAddress`           |    ✅     |     N/A     |   OK   | `high-level.ts`       |
 | WC read-only (connect, chainId, etc.) |    ❌     |     N/A     |   OK   | No signing            |
 
-## Fixed Issues
-
-### Fixed: Stale `has_password` in WalletContext
-
-**Root cause of the original "incorrect password" bug.** `WalletContext` fetched `wallet.has_password` once at login. After setting a password in Settings, the global context was never updated, so `ConfirmationDialog` always saw `has_password: false` and called `requestPassword(false)` — which returns `null` immediately on desktop.
-
-**Fix:** `Settings.tsx` `WalletSettings` now calls `setGlobalWallet(data.key)` after a successful `changePassword`, keeping the global context in sync.
-
-### Fixed: `makeOffer` non-split path dropped password
-
-`useOfferProcessor.ts:160` — `requestPassword` was correctly called at line 65 but the `password` was not forwarded to `makeOffer` in the single/non-split path. Now passed.
-
-### Fixed: Offer operations double-prompted
-
-`takeOffer`, `cancelOffer`, and `cancelOffers` all called `requestPassword` before the command AND passed the result through `ConfirmationDialog`. Since `auto_submit` is not set, the password was ignored by `transact()`. Removed the redundant pre-prompts; `ConfirmationDialog` now handles password for these operations, matching all other transaction pages.
-
-### Fixed: `deleteKey` password not verified
-
-Previously `deleteKey` called `requestPassword` as a gate but never verified the entered password — any input was accepted. Now verifies via `getSecretKey` (decryption) before allowing deletion. Added to the spec as a protected operation.
 
 ## Remaining Design Considerations
 
-1. **Biometric toggle auth gap** — calls `requestPassword(false)` unconditionally, so on a password-protected wallet it skips all auth.
-2. **Import path is password-only** — biometric is never an option at import time.
-3. **Session caching asymmetry** — biometric caches for 5 minutes; password never caches.
-4. **Dead code** — `multiSend` and `addNftUri` exist in bindings but have no UI call sites.
+1. **Session caching asymmetry** — biometric caches for 5 minutes; password never caches.
+
