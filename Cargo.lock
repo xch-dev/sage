@@ -6410,7 +6410,6 @@ dependencies = [
  "tauri-plugin-clipboard-manager",
  "tauri-plugin-dialog",
  "tauri-plugin-fs",
- "tauri-plugin-keychain",
  "tauri-plugin-opener",
  "tauri-plugin-os",
  "tauri-plugin-safe-area-insets",
@@ -7590,18 +7589,6 @@ dependencies = [
  "thiserror 2.0.17",
  "toml 0.9.8",
  "url",
-]
-
-[[package]]
-name = "tauri-plugin-keychain"
-version = "2.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f23e3f77ea4c7218b7268090b76f822efe729463570d39396c8f80dfc49d6cb6"
-dependencies = [
- "serde",
- "tauri",
- "tauri-plugin",
- "thiserror 1.0.69",
 ]
 
 [[package]]
