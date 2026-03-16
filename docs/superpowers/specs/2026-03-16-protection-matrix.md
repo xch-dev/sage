@@ -50,13 +50,13 @@ Legend: ✅ = protected, 🔄 = redundant double-prompt, ⚠️ = bug, ❌ = not
 | Finalize clawback                                   |    ✅     | ConfirmationDialog (via Token.tsx)     |   OK   | `ClawbackCoinsCard.tsx:260`                                              |
 | **Offers**                                          |           |                                        |        |                                                                          |
 | Make offer (split-NFT path)                         |    ✅     | Direct `requestPassword`               |   OK   | `useOfferProcessor.ts:116` — password forwarded                          |
-| Make offer (single/non-split)                       |    ✅     | Direct `requestPassword`               | ⚠️ BUG | `useOfferProcessor.ts:160` — password obtained at line 65 but not passed |
-| Take offer                                          |    ✅     | `requestPassword` + ConfirmationDialog |   🔄   | `Offer.tsx:103` — double-prompted                                        |
-| Cancel offer                                        |    ✅     | `requestPassword` + ConfirmationDialog |   🔄   | `OfferRowCard.tsx:67` — double-prompted                                  |
-| Cancel all offers                                   |    ✅     | `requestPassword` + ConfirmationDialog |   🔄   | `Offers.tsx:193` — double-prompted                                       |
+| Make offer (single/non-split)                       |    ✅     | Direct `requestPassword`               |   OK   | `useOfferProcessor.ts:160` — fixed: password now forwarded               |
+| Take offer                                          |    ✅     | ConfirmationDialog                     |   OK   | `Offer.tsx` — fixed: removed redundant pre-prompt                        |
+| Cancel offer                                        |    ✅     | ConfirmationDialog                     |   OK   | `OfferRowCard.tsx` — fixed: removed redundant pre-prompt                 |
+| Cancel all offers                                   |    ✅     | ConfirmationDialog                     |   OK   | `Offers.tsx` — fixed: removed redundant pre-prompt                       |
 | **Secrets / Key Management**                        |           |                                        |        |                                                                          |
 | View mnemonic / secret key                          |    ✅     | Direct `requestPassword`               |   OK   | `WalletCard.tsx:179`                                                     |
-| Delete wallet key                                   |    ✅     | Direct `requestPassword` (gate)        |   OK   | `WalletCard.tsx:82`                                                      |
+| Delete wallet key                                   |    ✅     | `requestPassword` + `getSecretKey` verify |   OK   | `WalletCard.tsx:82` — password verified via decryption before delete     |
 | Import key (secret/mnemonic)                        |    ✅     | Password set at import time            |   OK   | Encrypt-at-import only                                                   |
 | Set / Change / Remove password                      |    ✅     | Inline form (not `requestPassword`)    |   OK   | `Settings.tsx:1238`                                                      |
 | **Key Derivation**                                  |           |                                        |        |                                                                          |
@@ -87,32 +87,29 @@ All WC handlers use `auto_submit: true` (except `signCoinSpends`), so password i
 | `chia_signMessageByAddress`           |    ✅     |     N/A     |   OK   | `high-level.ts`       |
 | WC read-only (connect, chainId, etc.) |    ❌     |     N/A     |   OK   | No signing            |
 
-## Issues
-
-### Bug: `makeOffer` non-split path drops password
-
-- **File:** `src/hooks/useOfferProcessor.ts:160`
-- `requestPassword` is correctly called at line 65 and stored in `password`.
-- The split-NFT path at line 116 passes `password` to `makeOffer`.
-- The single/non-split path at line 160 omits `password` from the call.
-- **Impact:** Single-offer creation silently fails on password-protected wallets.
-
-### Redundancy: Offer operations double-prompt
-
-`takeOffer` (`Offer.tsx:103`), `cancelOffer` (`OfferRowCard.tsx:67`), and `cancelOffers` (`Offers.tsx:193`) all call `requestPassword` before the command AND pass the result through `ConfirmationDialog`. Since `auto_submit` is not set, the password passed to the command is ignored by `transact()`. The user gets prompted twice: once before the confirmation dialog opens, then again on Submit.
-
-**Recommendation:** Remove `requestPassword` from these call sites and let `ConfirmationDialog` handle it, matching the pattern used by `Send.tsx`, `IssueToken.tsx`, `CreateProfile.tsx`, and all other transaction pages.
+## Fixed Issues
 
 ### Fixed: Stale `has_password` in WalletContext
 
 **Root cause of the original "incorrect password" bug.** `WalletContext` fetched `wallet.has_password` once at login. After setting a password in Settings, the global context was never updated, so `ConfirmationDialog` always saw `has_password: false` and called `requestPassword(false)` — which returns `null` immediately on desktop.
 
-**Fix applied:** `Settings.tsx` `WalletSettings` now calls `setGlobalWallet(data.key)` after a successful `changePassword`, keeping the global context in sync.
+**Fix:** `Settings.tsx` `WalletSettings` now calls `setGlobalWallet(data.key)` after a successful `changePassword`, keeping the global context in sync.
 
-### Design considerations
+### Fixed: `makeOffer` non-split path dropped password
 
-1. **`deleteKey` is unspecced** — protected in the UI but not mentioned in the spec.
-2. **Biometric toggle auth gap** — calls `requestPassword(false)` unconditionally, so on a password-protected wallet it skips all auth.
-3. **Import path is password-only** — biometric is never an option at import time.
-4. **Session caching asymmetry** — biometric caches for 5 minutes; password never caches.
-5. **Dead code** — `multiSend` and `addNftUri` exist in bindings but have no UI call sites.
+`useOfferProcessor.ts:160` — `requestPassword` was correctly called at line 65 but the `password` was not forwarded to `makeOffer` in the single/non-split path. Now passed.
+
+### Fixed: Offer operations double-prompted
+
+`takeOffer`, `cancelOffer`, and `cancelOffers` all called `requestPassword` before the command AND passed the result through `ConfirmationDialog`. Since `auto_submit` is not set, the password was ignored by `transact()`. Removed the redundant pre-prompts; `ConfirmationDialog` now handles password for these operations, matching all other transaction pages.
+
+### Fixed: `deleteKey` password not verified
+
+Previously `deleteKey` called `requestPassword` as a gate but never verified the entered password — any input was accepted. Now verifies via `getSecretKey` (decryption) before allowing deletion. Added to the spec as a protected operation.
+
+## Remaining Design Considerations
+
+1. **Biometric toggle auth gap** — calls `requestPassword(false)` unconditionally, so on a password-protected wallet it skips all auth.
+2. **Import path is password-only** — biometric is never an option at import time.
+3. **Session caching asymmetry** — biometric caches for 5 minutes; password never caches.
+4. **Dead code** — `multiSend` and `addNftUri` exist in bindings but have no UI call sites.

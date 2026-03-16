@@ -84,6 +84,21 @@ export function WalletCard({
       setIsDeleteOpen(false);
       return;
     }
+
+    // Verify password before allowing deletion
+    if (info.has_password) {
+      try {
+        await commands.getSecretKey({
+          fingerprint: info.fingerprint,
+          password,
+        });
+      } catch (error) {
+        addError(error as CustomError);
+        setIsDeleteOpen(false);
+        return;
+      }
+    }
+
     await commands
       .deleteKey({ fingerprint: info.fingerprint })
       .then(() => {

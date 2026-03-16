@@ -86,7 +86,15 @@ endpoint method → transact() / transact_with() → sign() → extract_secrets(
 
 Plus `cancel_offer`, `cancel_offers`, and `create_transaction` (action system) which also flow through `transact()` / `transact_with()`.
 
-### 3. Generate hardened keys (1 site)
+### 3. Delete wallet key
+
+Password-protected wallets require password verification before deletion. Since the Rust `delete_key()` endpoint does not accept a password, verification is performed on the frontend by calling `get_secret_key()` first — if decryption fails, the delete is blocked.
+
+| Call site             | Function                                            |
+| --------------------- | --------------------------------------------------- |
+| `WalletCard.tsx:81`   | `deleteSelf()` — verifies via `getSecretKey` before `deleteKey` |
+
+### 4. Generate hardened keys (1 site)
 
 | Call site                                  | Function                      |
 | ------------------------------------------ | ----------------------------- |
@@ -239,7 +247,7 @@ The separate `promptIfEnabled()` biometric call is removed from all call sites. 
 | File                       | Operations                                                                                                                 |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `ConfirmationDialog.tsx`   | `signCoinSpends` (Sign Transaction button, Submit button)                                                                  |
-| `WalletCard.tsx`           | `getSecretKey` (View Details dialog)                                                                                       |
+| `WalletCard.tsx`           | `getSecretKey` (View Details dialog), `deleteKey` (password verified via `getSecretKey` before deletion)                    |
 | `Settings.tsx`             | `increaseDerivationIndex` (when hardened keys enabled)                                                                     |
 | `Offers.tsx`               | `cancelOffers` (Cancel All Active)                                                                                         |
 | `OfferRowCard.tsx`         | `cancelOffer` (individual offer cancel)                                                                                    |
