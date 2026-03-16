@@ -24,8 +24,7 @@ import {
 } from './commands/offers';
 
 export interface HandlerContext {
-  promptIfEnabled: () => Promise<boolean>;
-  requestPassword: (hasPassword: boolean) => Promise<string | null>;
+  requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
   hasPassword: boolean;
 }
 

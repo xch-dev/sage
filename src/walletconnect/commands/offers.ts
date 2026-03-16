@@ -7,12 +7,7 @@ export async function handleCreateOffer(
   context: HandlerContext,
 ) {
   const password = await context.requestPassword(context.hasPassword);
-  if (password === null && context.hasPassword)
-    throw new Error('Authentication failed');
-
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.makeOffer({
     fee: params.fee ?? 0,
@@ -41,12 +36,7 @@ export async function handleTakeOffer(
   context: HandlerContext,
 ) {
   const password = await context.requestPassword(context.hasPassword);
-  if (password === null && context.hasPassword)
-    throw new Error('Authentication failed');
-
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.takeOffer({
     offer: params.offer,
@@ -63,12 +53,7 @@ export async function handleCancelOffer(
   context: HandlerContext,
 ) {
   const password = await context.requestPassword(context.hasPassword);
-  if (password === null && context.hasPassword)
-    throw new Error('Authentication failed');
-
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  if (password === undefined) throw new Error('Authentication failed');
 
   await commands.cancelOffer({
     offer_id: params.id,

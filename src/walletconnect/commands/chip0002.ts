@@ -76,12 +76,7 @@ export async function handleSignCoinSpends(
   context: HandlerContext,
 ) {
   const password = await context.requestPassword(context.hasPassword);
-  if (password === null && context.hasPassword)
-    throw new Error('Authentication failed');
-
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.signCoinSpends({
     coin_spends: params.coinSpends.map((coinSpend) => {
@@ -108,12 +103,7 @@ export async function handleSignMessage(
   context: HandlerContext,
 ) {
   const password = await context.requestPassword(context.hasPassword);
-  if (password === null && context.hasPassword)
-    throw new Error('Authentication failed');
-
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.signMessageWithPublicKey({ ...params, password });
 

@@ -20,7 +20,6 @@ import {
 import { LoadingButton } from '@/components/ui/loading-button';
 import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { usePassword } from '@/hooks/usePassword';
 import { decodeHexMessage, fromMojos, isHex } from '@/lib/utils';
@@ -65,7 +64,6 @@ type SessionRequest = SignClientTypes.EventArguments['session_request'];
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const { wallet } = useWallet();
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
   const { requestPassword } = usePassword();
 
   const [signClient, setSignClient] = useState<Awaited<
@@ -106,7 +104,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
           method,
           request.params.request.params,
           {
-            promptIfEnabled,
             requestPassword,
             hasPassword: wallet?.has_password ?? false,
           },
@@ -146,7 +143,6 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
     [
       signClient,
       addError,
-      promptIfEnabled,
       requestPassword,
       wallet?.has_password,
     ],
