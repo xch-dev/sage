@@ -1,6 +1,5 @@
 import { commands, OfferAmount } from '@/bindings';
 import { useWallet } from '@/contexts/WalletContext';
-import { useBiometric } from '@/hooks/useBiometric';
 import { usePassword } from '@/hooks/usePassword';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
@@ -29,7 +28,6 @@ export function useOfferProcessor({
   onProgress,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
   const walletState = useWalletState();
-  const { promptIfEnabled } = useBiometric();
   const { requestPassword } = usePassword();
   const { wallet } = useWallet();
   const [createdOffers, setCreatedOffers] = useState<string[]>([]);
@@ -65,12 +63,8 @@ export function useOfferProcessor({
     }
 
     const password = await requestPassword(wallet?.has_password ?? false);
-    if (password === null && wallet?.has_password) {
-      throw new Error(t`Password authentication was cancelled`);
-    }
-
-    if (!(await promptIfEnabled())) {
-      throw new Error(t`Biometric authentication failed or was cancelled`);
+    if (password === undefined) {
+      throw new Error(t`Authentication was cancelled`);
     }
 
     const offeredTokens = offerState.offered.tokens.map((token) => ({
@@ -190,7 +184,6 @@ export function useOfferProcessor({
     offerState,
     splitNftOffers,
     walletState.sync.unit.precision,
-    promptIfEnabled,
     requestPassword,
     wallet?.has_password,
     onProcessingEnd,
