@@ -263,7 +263,6 @@ function GlobalSettings() {
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
   const { setFee } = useDefaultFee();
-  const { clearAllKeychainEntries } = usePassword();
   const {
     enabled: biometricEnabled,
     available,
@@ -279,9 +278,6 @@ function GlobalSettings() {
         await enableIfAvailable();
       } else {
         await disable();
-        // Clear all stored passwords from keychain when biometric is disabled
-        const keysData = await commands.getKeys({});
-        await clearAllKeychainEntries(keysData.keys.map((k) => k.fingerprint));
       }
     } catch (error) {
       addError(error as CustomError);
@@ -1036,11 +1032,7 @@ function RpcSettings() {
 
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
-  const {
-    requestPassword,
-    clearKeychainEntry,
-    updateKeychainEntry,
-  } = usePassword();
+  const { requestPassword } = usePassword();
 
   const walletState = useWalletState();
 
@@ -1249,14 +1241,6 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
       });
 
       setPasswordDialogOpen(false);
-
-      // Update keychain entries based on the operation
-      if (passwordDialogMode === 'change') {
-        await updateKeychainEntry(fingerprint, newPassword);
-      } else if (passwordDialogMode === 'remove') {
-        await clearKeychainEntry(fingerprint);
-      }
-      // 'set' mode: no keychain action needed — store-on-first-use will handle it
 
       // Refresh key info to update has_password
       const data = await commands.getKey({ fingerprint });
