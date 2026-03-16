@@ -274,13 +274,17 @@ function GlobalSettings() {
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   const toggleBiometric = async (value: boolean) => {
-    if (value) {
-      await enableIfAvailable();
-    } else {
-      await disable();
-      // Clear all stored passwords from keychain when biometric is disabled
-      const keysData = await commands.getKeys({});
-      await clearAllKeychainEntries(keysData.keys.map((k) => k.fingerprint));
+    try {
+      if (value) {
+        await enableIfAvailable();
+      } else {
+        await disable();
+        // Clear all stored passwords from keychain when biometric is disabled
+        const keysData = await commands.getKeys({});
+        await clearAllKeychainEntries(keysData.keys.map((k) => k.fingerprint));
+      }
+    } catch (error) {
+      addError(error as CustomError);
     }
   };
 
