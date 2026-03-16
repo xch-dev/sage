@@ -15,6 +15,7 @@
 ### Task 1: Simplify PasswordContext — remove all keychain code
 
 **Files:**
+
 - Modify: `src/contexts/PasswordContext.tsx`
 
 - [ ] **Step 1: Remove keychain imports and helpers**
@@ -33,13 +34,17 @@ Update `PasswordContextType` to remove `clearKeychainEntry`, `updateKeychainEntr
 
 ```typescript
 export interface PasswordContextType {
-  requestPassword: (hasPassword: boolean, fingerprint?: number) => Promise<string | null | undefined>;
+  requestPassword: (
+    hasPassword: boolean,
+    fingerprint?: number,
+  ) => Promise<string | null | undefined>;
 }
 ```
 
 - [ ] **Step 4: Remove stale-tracking refs and callback registration from provider**
 
 Inside `PasswordProvider`, remove:
+
 - `skipKeychainRef`
 - `lastKeychainFingerprintRef`
 - The `onDecryptErrorCallback = () => { ... }` registration block
@@ -50,7 +55,10 @@ Replace the 4-case decision tree with 3 mutually exclusive cases:
 
 ```typescript
 const requestPassword = useCallback(
-  async (hasPassword: boolean, targetFingerprint?: number): Promise<string | null | undefined> => {
+  async (
+    hasPassword: boolean,
+    targetFingerprint?: number,
+  ): Promise<string | null | undefined> => {
     // Case 1: Has password → password takes precedence, show dialog
     if (hasPassword) {
       return new Promise<string | null | undefined>((resolve) => {
@@ -141,16 +149,19 @@ dialog, biometric is a standalone gate for no-password wallets only."
 ### Task 2: Remove notifyDecryptError from ErrorContext
 
 **Files:**
+
 - Modify: `src/contexts/ErrorContext.tsx`
 
 - [ ] **Step 1: Remove the notifyDecryptError import and call**
 
 Remove the import line:
+
 ```typescript
 import { notifyDecryptError } from './PasswordContext';
 ```
 
 Remove the `notifyDecryptError()` call from the `addError` handler. Keep the toast:
+
 ```typescript
 if (reason.includes('decrypt')) {
   toast.error(t`Incorrect password`);
@@ -167,6 +178,7 @@ git commit -m "refactor: remove notifyDecryptError bridge from ErrorContext"
 ### Task 3: Remove keychain usage from Settings
 
 **Files:**
+
 - Modify: `src/pages/Settings.tsx`
 
 - [ ] **Step 1: Remove keychain calls from GlobalSettings toggleBiometric**
@@ -203,16 +215,19 @@ git commit -m "refactor: remove keychain lifecycle from Settings"
 ### Task 4: Remove keychain usage from WalletCard
 
 **Files:**
+
 - Modify: `src/components/WalletCard.tsx`
 
 - [ ] **Step 1: Remove clearKeychainEntry from WalletCard**
 
 Change the `usePassword()` destructure to only get `requestPassword`:
+
 ```typescript
 const { requestPassword } = usePassword();
 ```
 
 In `deleteSelf`, remove the `clearKeychainEntry` call after successful deletion:
+
 ```typescript
 const deleteSelf = async () => {
   const password = await requestPassword(info.has_password, info.fingerprint);
@@ -240,6 +255,7 @@ git commit -m "refactor: remove keychain cleanup from wallet deletion"
 ### Task 5: Remove usePassword hook's keychain exports
 
 **Files:**
+
 - Modify: `src/hooks/usePassword.ts`
 
 - [ ] **Step 1: Verify usePassword.ts needs no changes**
@@ -257,6 +273,7 @@ Expected: No matches.
 ### Task 6: Remove tauri-plugin-keychain from Rust dependencies
 
 **Files:**
+
 - Modify: `src-tauri/Cargo.toml` — remove `tauri-plugin-keychain = "2"` line
 - Modify: `src-tauri/src/lib.rs` — remove `.plugin(tauri_plugin_keychain::init())` line
 - Modify: `src-tauri/capabilities/mobile.json` — remove `"keychain:default"` from permissions array
@@ -295,11 +312,13 @@ git commit -m "chore: remove tauri-plugin-keychain dependency"
 ### Task 7: Update the design spec
 
 **Files:**
+
 - Modify: `docs/superpowers/specs/2026-03-15-password-protection-design.md`
 
 - [ ] **Step 1: Update the spec**
 
 Key changes to the spec:
+
 1. **Overview** — Replace "Optionally, users can enable biometric unlock... as a convenience layer that stores the password in the OS keychain" with language about mutual exclusivity
 2. **Biometric-Password Bridge section** — Replace entirely. Remove keychain plugin references, store-on-first-use, retrieval flow steps 4-6. Replace with simple mutual exclusivity rule
 3. **Decision tree** — Simplify to 3 cases (password→dialog, no password+biometric→biometric gate, no password+no biometric→no auth)
