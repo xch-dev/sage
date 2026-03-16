@@ -13,7 +13,7 @@ interface PasswordRequest {
 }
 
 export interface PasswordContextType {
-  requestPassword: (hasPassword: boolean, fingerprint?: number) => Promise<string | null | undefined>;
+  requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
 }
 
 export const PasswordContext = createContext<PasswordContextType | undefined>(
@@ -29,7 +29,7 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   const lastBiometricPromptRef = useRef<number | null>(null);
 
   const requestPassword = useCallback(
-    async (hasPassword: boolean, targetFingerprint?: number): Promise<string | null | undefined> => {
+    async (hasPassword: boolean): Promise<string | null | undefined> => {
       // Case 1: Has password → password takes precedence, show dialog
       if (hasPassword) {
         return new Promise<string | null | undefined>((resolve) => {

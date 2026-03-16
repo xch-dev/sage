@@ -79,7 +79,7 @@ export function WalletCard({
   const { currentTheme } = useTheme();
 
   const deleteSelf = async () => {
-    const password = await requestPassword(info.has_password, info.fingerprint);
+    const password = await requestPassword(info.has_password);
     if (password === undefined) {
       setIsDeleteOpen(false);
       return;
@@ -176,7 +176,7 @@ export function WalletCard({
         return;
       }
 
-      const password = await requestPassword(info.has_password, info.fingerprint);
+      const password = await requestPassword(info.has_password);
       if (password === undefined) {
         setIsDetailsOpen(false);
         return;
