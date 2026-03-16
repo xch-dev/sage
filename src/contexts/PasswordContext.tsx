@@ -51,6 +51,15 @@ async function keychainRemove(key: string): Promise<void> {
 // Biometric caching interval (5 minutes), matching existing BiometricContext behavior
 const BIOMETRIC_CACHE_MS = 5 * 60 * 1000;
 
+// Module-level callback for cross-context communication.
+// ErrorContext calls notifyDecryptError when a wrong-password error occurs.
+// PasswordContext uses lastKeychainFingerprintRef to know which entry is stale.
+let onDecryptErrorCallback: (() => void) | null = null;
+
+export function notifyDecryptError() {
+  onDecryptErrorCallback?.();
+}
+
 interface PasswordRequest {
   resolve: (password: string | null | undefined) => void;
   fingerprint: number | undefined;
@@ -79,6 +88,21 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
   const pendingRef = useRef<PasswordRequest | null>(null);
   const { enabled: biometricEnabled } = useBiometric();
   const { wallet } = useWallet();
+
+  // Skip keychain for fingerprints where the stored password was rejected.
+  // Set when ErrorContext reports a decrypt error after a keychain retrieval,
+  // cleared by handleSubmit when the user types a correct password via dialog.
+  const skipKeychainRef = useRef<Set<number>>(new Set());
+  const lastKeychainFingerprintRef = useRef<number | null>(null);
+
+  // Register the module-level callback so ErrorContext can mark entries stale
+  onDecryptErrorCallback = () => {
+    const fp = lastKeychainFingerprintRef.current;
+    if (fp !== null) {
+      skipKeychainRef.current.add(fp);
+      lastKeychainFingerprintRef.current = null;
+    }
+  };
 
   // Biometric caching for standalone gate (Case 2)
   const lastBiometricPromptRef = useRef<number | null>(null);
@@ -114,13 +138,19 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Case 3: Has password, biometric enabled → try keychain first
-      // If keychain returns a stale password, the backend will reject it and the
-      // "Incorrect password" toast fires. The user can cancel the biometric prompt
-      // on the next attempt to fall through to the password dialog.
-      if (hasPassword && biometricEnabled && isMobile && fingerprint) {
+      // Case 3: Has password, biometric enabled → try keychain first (unless stale)
+      // If the backend rejects, ErrorContext calls notifyDecryptError() which
+      // marks the entry stale. Next requestPassword skips keychain → shows dialog.
+      if (
+        hasPassword &&
+        biometricEnabled &&
+        isMobile &&
+        fingerprint &&
+        !skipKeychainRef.current.has(fingerprint)
+      ) {
         const stored = await keychainGet(keychainKey(fingerprint));
         if (stored !== null) {
+          lastKeychainFingerprintRef.current = fingerprint;
           return stored;
         }
         // Fall through to password dialog if keychain retrieval fails
@@ -144,8 +174,10 @@ export function PasswordProvider({ children }: { children: ReactNode }) {
       setOpen(false);
       const fingerprint = pendingRef.current?.fingerprint;
 
-      // Manual password entry: store in keychain for future biometric use
+      // Manual password entry: clear stale flag and store in keychain
+      lastKeychainFingerprintRef.current = null;
       if (fingerprint) {
+        skipKeychainRef.current.delete(fingerprint);
         if (biometricEnabled && isMobile) {
           keychainSave(keychainKey(fingerprint), password);
         }
