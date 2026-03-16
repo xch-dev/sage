@@ -66,7 +66,7 @@ export function WalletCard({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const { requestPassword } = usePassword();
+  const { requestPassword, clearKeychainEntry } = usePassword();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -83,9 +83,10 @@ export function WalletCard({
     if (password === undefined) return;
     await commands
       .deleteKey({ fingerprint: info.fingerprint })
-      .then(() =>
-        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
-      )
+      .then(async () => {
+        await clearKeychainEntry(info.fingerprint);
+        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint));
+      })
       .catch(addError);
     setIsDeleteOpen(false);
   };
