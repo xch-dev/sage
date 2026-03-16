@@ -234,7 +234,7 @@ A reusable modal dialog rendered by `PasswordProvider`. Features:
 - Auto-focuses the password input on open
 - Clears password state on open/close
 - Supports Enter key to submit
-- Cancel closes the dialog and resolves the promise with `null`
+- Cancel closes the dialog and resolves the promise with `undefined` (auth cancelled)
 
 #### usePassword hook (`src/hooks/usePassword.ts`)
 
