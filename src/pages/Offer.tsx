@@ -101,7 +101,7 @@ export function Offer() {
 
     try {
       const password = await requestPassword(wallet?.has_password ?? false);
-      if (password === null && wallet?.has_password) return;
+      if (password === undefined) return;
 
       const result = await commands.takeOffer({
         offer: resolvedOffer,

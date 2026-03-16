@@ -938,7 +938,7 @@ function LogViewer() {
 
 function RpcSettings() {
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
+  const { requestPassword } = usePassword();
 
   const [isRunning, setIsRunning] = useState(false);
   const [runOnStartup, setRunOnStartup] = useState(false);
@@ -961,7 +961,8 @@ function RpcSettings() {
   }, [addError]);
 
   const start = async () => {
-    if (!(await promptIfEnabled())) return;
+    const auth = await requestPassword(false);
+    if (auth === undefined) return;
 
     commands
       .startRpcServer()
@@ -977,7 +978,8 @@ function RpcSettings() {
   };
 
   const toggleRunOnStartup = async (checked: boolean) => {
-    if (!(await promptIfEnabled())) return;
+    const auth = await requestPassword(false);
+    if (auth === undefined) return;
 
     commands
       .setRpcRunOnStartup(checked)
@@ -1255,7 +1257,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     const needsPassword = key?.has_secrets && hardened;
     if (needsPassword) {
       const password = await requestPassword(key?.has_password ?? false);
-      if (password === null && key?.has_password) return;
+      if (password === undefined) return;
 
       setPending(true);
       commands

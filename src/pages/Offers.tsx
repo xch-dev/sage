@@ -191,7 +191,7 @@ export function Offers() {
 
   const cancelAllHandler = async (values: z.infer<typeof cancelAllSchema>) => {
     const password = await requestPassword(wallet?.has_password ?? false);
-    if (password === null && wallet?.has_password) return;
+    if (password === undefined) return;
 
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
     const activeOffers = filteredOffers.filter(

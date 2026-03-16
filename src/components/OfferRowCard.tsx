@@ -65,7 +65,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
 
   const cancelHandler = async (values: z.infer<typeof cancelSchema>) => {
     const password = await requestPassword(wallet?.has_password ?? false);
-    if (password === null && wallet?.has_password) return;
+    if (password === undefined) return;
 
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
 
