@@ -55,17 +55,15 @@ Legend: ✅ = protected, 🔄 = redundant double-prompt, ⚠️ = bug, ❌ = not
 | Cancel offer                                        |    ✅     | ConfirmationDialog                        |   OK   | `OfferRowCard.tsx` — fixed: removed redundant pre-prompt             |
 | Cancel all offers                                   |    ✅     | ConfirmationDialog                        |   OK   | `Offers.tsx` — fixed: removed redundant pre-prompt                   |
 | **Secrets / Key Management**                        |           |                                           |        |                                                                      |
-| View mnemonic / secret key                          |    ✅     | Direct `requestPassword`                  |   OK   | `WalletCard.tsx:179`                                                 |
+| View mnemonic / secret key                          |    ✅     | Direct `requestPassword`                  |   OK   | `WalletCard.tsx:194`                                                 |
 | Delete wallet key                                   |    ✅     | `requestPassword` + `getSecretKey` verify |   OK   | `WalletCard.tsx:82` — password verified via decryption before delete |
 | Import key (secret/mnemonic)                        |    ✅     | Password set at import time               |   OK   | Encrypt-at-import only                                               |
 | Set / Change / Remove password                      |    ✅     | Inline form (not `requestPassword`)       |   OK   | `Settings.tsx:1238`                                                  |
 | **Key Derivation**                                  |           |                                           |        |                                                                      |
-| Increase derivation (hardened)                      |    ✅     | Direct `requestPassword`                  |   OK   | `Settings.tsx:1274`                                                  |
+| Increase derivation (hardened)                      |    ✅     | Direct `requestPassword`                  |   OK   | `Settings.tsx:1269`                                                  |
 | Increase derivation (unhardened)                    |    ❌     | None                                      |   OK   | No private key needed                                                |
-| **Other Privileged Actions**                        |           |                                           |        |                                                                      |
-| Enable/disable biometric toggle                     |    ✅     | `requestPassword(false)`                  |   OK   | `Settings.tsx:972/989`                                               |
-| Start/stop RPC server                               |    ✅     | `requestPassword(false)`                  |   OK   | `Settings.tsx:975/993`                                               |
 | **Unprotected (by design)**                         |           |                                           |        |                                                                      |
+| Enable/disable biometric toggle                     |    ❌     | None                                      |   OK   | No-op on password-protected wallets (mutual exclusivity)             |
 | View balances / addresses / NFTs                    |    ❌     | None                                      |   OK   | Read-only                                                            |
 | Submit pre-signed transaction                       |    ❌     | None                                      |   OK   | No key access needed                                                 |
 | Login / logout wallet                               |    ❌     | None                                      |   OK   | No secret access                                                     |
