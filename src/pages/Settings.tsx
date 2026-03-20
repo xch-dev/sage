@@ -1,4 +1,8 @@
 import Container from '@/components/Container';
+import {
+  PasswordManagementDialog,
+  PasswordDialogMode,
+} from '@/components/dialogs/PasswordManagementDialog';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
@@ -1054,14 +1058,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [unhardened, setUnhardened] = useState(true);
   const [hardened, setHardened] = useState(true);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
-  const [passwordDialogMode, setPasswordDialogMode] = useState<
-    'set' | 'change' | 'remove'
-  >('set');
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordPending, setPasswordPending] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordDialogMode, setPasswordDialogMode] =
+    useState<PasswordDialogMode>('set');
 
   const saveChangeAddress = (address: string) => {
     const trimmedAddress = address.trim();
@@ -1211,56 +1209,26 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     },
   });
 
-  const openPasswordDialog = (mode: 'set' | 'change' | 'remove') => {
+  const openPasswordDialog = (mode: PasswordDialogMode) => {
     setPasswordDialogMode(mode);
-    setOldPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setPasswordError(null);
     setPasswordDialogOpen(true);
   };
 
-  const handlePasswordSubmit = async () => {
-    setPasswordError(null);
+  const handlePasswordSuccess = async () => {
+    setPasswordDialogOpen(false);
 
-    if (passwordDialogMode !== 'remove' && newPassword !== confirmPassword) {
-      setPasswordError(t`Passwords do not match`);
-      return;
-    }
+    // Refresh key info to update has_password in local and global state
+    const data = await commands.getKey({ fingerprint });
+    setKey(data.key);
+    setGlobalWallet(data.key);
 
-    if (passwordDialogMode !== 'remove' && newPassword.length === 0) {
-      setPasswordError(t`Password cannot be empty`);
-      return;
-    }
-
-    setPasswordPending(true);
-    try {
-      await commands.changePassword({
-        fingerprint,
-        old_password: passwordDialogMode === 'set' ? '' : oldPassword,
-        new_password: passwordDialogMode === 'remove' ? '' : newPassword,
-      });
-
-      setPasswordDialogOpen(false);
-
-      // Refresh key info to update has_password in local and global state
-      const data = await commands.getKey({ fingerprint });
-      setKey(data.key);
-      setGlobalWallet(data.key);
-
-      toast.success(
-        passwordDialogMode === 'set'
-          ? t`Password set successfully`
-          : passwordDialogMode === 'change'
-            ? t`Password changed successfully`
-            : t`Password removed successfully`,
-      );
-    } catch (error) {
-      const err = error as CustomError;
-      setPasswordError(err.reason || t`Incorrect password`);
-    } finally {
-      setPasswordPending(false);
-    }
+    toast.success(
+      passwordDialogMode === 'set'
+        ? t`Password set successfully`
+        : passwordDialogMode === 'change'
+          ? t`Password changed successfully`
+          : t`Password removed successfully`,
+    );
   };
 
   const handler = async (values: z.infer<typeof schema>) => {
@@ -1663,130 +1631,13 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         }}
       />
 
-      <Dialog
+      <PasswordManagementDialog
         open={passwordDialogOpen}
-        onOpenChange={(open) => !open && setPasswordDialogOpen(false)}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {passwordDialogMode === 'set' && <Trans>Set Password</Trans>}
-              {passwordDialogMode === 'change' && (
-                <Trans>Change Password</Trans>
-              )}
-              {passwordDialogMode === 'remove' && (
-                <Trans>Remove Password</Trans>
-              )}
-            </DialogTitle>
-            <DialogDescription>
-              {passwordDialogMode === 'set' && (
-                <Trans>
-                  Set a password to protect transaction signing and secret key
-                  access. There is no way to recover a lost password.
-                </Trans>
-              )}
-              {passwordDialogMode === 'change' && (
-                <Trans>Enter your current password and choose a new one.</Trans>
-              )}
-              {passwordDialogMode === 'remove' && (
-                <Trans>
-                  Enter your current password to remove password protection.
-                  Your wallet secrets will no longer require a password.
-                </Trans>
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className='space-y-4'>
-            {passwordDialogMode !== 'set' && (
-              <div className='space-y-2'>
-                <Label htmlFor='oldPassword'>
-                  <Trans>Current Password</Trans>
-                </Label>
-                <Input
-                  id='oldPassword'
-                  type='password'
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder={t`Enter current password`}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && passwordDialogMode === 'remove') {
-                      e.preventDefault();
-                      handlePasswordSubmit();
-                    }
-                  }}
-                />
-              </div>
-            )}
-            {passwordDialogMode !== 'remove' && (
-              <>
-                <div className='space-y-2'>
-                  <Label htmlFor='newPassword'>
-                    {passwordDialogMode === 'set' ? (
-                      <Trans>Password</Trans>
-                    ) : (
-                      <Trans>New Password</Trans>
-                    )}
-                  </Label>
-                  <Input
-                    id='newPassword'
-                    type='password'
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder={t`Enter password`}
-                  />
-                </div>
-                <div className='space-y-2'>
-                  <Label htmlFor='confirmPassword'>
-                    <Trans>Confirm Password</Trans>
-                  </Label>
-                  <Input
-                    id='confirmPassword'
-                    type='password'
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder={t`Confirm password`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handlePasswordSubmit();
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            )}
-            {passwordError && (
-              <p className='text-sm text-destructive'>{passwordError}</p>
-            )}
-          </div>
-          <DialogFooter className='gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => setPasswordDialogOpen(false)}
-            >
-              <Trans>Cancel</Trans>
-            </Button>
-            <Button
-              onClick={handlePasswordSubmit}
-              disabled={passwordPending}
-              variant={
-                passwordDialogMode === 'remove' ? 'destructive' : 'default'
-              }
-            >
-              {passwordPending && (
-                <LoaderCircleIcon className='mr-2 h-4 w-4 animate-spin' />
-              )}
-              {passwordDialogMode === 'set' && <Trans>Set Password</Trans>}
-              {passwordDialogMode === 'change' && (
-                <Trans>Change Password</Trans>
-              )}
-              {passwordDialogMode === 'remove' && (
-                <Trans>Remove Password</Trans>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        mode={passwordDialogMode}
+        fingerprint={fingerprint}
+        onClose={() => setPasswordDialogOpen(false)}
+        onSuccess={handlePasswordSuccess}
+      />
 
       <Dialog open={maintenanceOpen} onOpenChange={setMaintenanceOpen}>
         <DialogContent className='max-w-md'>
