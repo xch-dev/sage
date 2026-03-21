@@ -967,4 +967,232 @@ mod tests {
 
         Ok(())
     }
+
+    /// Reproduces a bug where make_offer with coin_ids selects additional
+    /// maker coins beyond the ones explicitly specified, even when the
+    /// selected coin has enough value to cover the offer amount + fee.
+    #[test(tokio::test)]
+    async fn test_offer_selected_coin_should_not_add_extra_inputs() -> anyhow::Result<()> {
+        // Alice starts with 2000 mojos
+        let mut alice = TestWallet::new(2000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Split Alice's XCH into multiple coins so the auto-selector has
+        // candidates it could grab if the guard condition fails.
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        let coin_spends = alice
+            .wallet
+            .split(coins.iter().map(Coin::coin_id).collect(), 4, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(coins.len(), 4);
+        // Each coin is ~500 mojos
+
+        // Issue a CAT for Bob so we have something to request
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // Pick the largest coin to use as the selected maker coin.
+        // Offer 300 XCH + 100 fee = 400 total. The coin (~500) has ~25% headroom.
+        let selected_coin = coins.iter().max_by_key(|c| c.amount).copied().unwrap();
+        let offer_amount = 300u64;
+        let fee_amount = 100u64;
+        assert!(
+            selected_coin.amount >= offer_amount + fee_amount,
+            "Selected coin ({}) should cover offer + fee ({})",
+            selected_coin.amount,
+            offer_amount + fee_amount
+        );
+
+        // Collect all XCH coin IDs before the offer so we can check which
+        // ones end up in the spend bundle.
+        let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
+            coins.iter().map(|c| c.coin_id()).collect();
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: offer_amount,
+                    fee: fee_amount,
+                    selected_coin_ids: vec![selected_coin.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! {
+                        asset_id => RequestedCat {
+                            amount: 1000,
+                            hidden_puzzle_hash: None,
+                        }
+                    },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        // Count how many of Alice's XCH coins appear in the offer's coin spends.
+        let xch_spends_in_offer: Vec<_> = unsigned_offer
+            .coin_spends
+            .iter()
+            .filter(|cs| all_xch_coin_ids.contains(&cs.coin.coin_id()))
+            .collect();
+
+        // BUG: The offer should only contain the single selected coin as a
+        // maker XCH input. If this assertion fails, the coin selector is
+        // pulling in extra coins despite the caller explicitly specifying
+        // which coin(s) to use.
+        assert_eq!(
+            xch_spends_in_offer.len(),
+            1,
+            "Expected exactly 1 XCH coin spend (the selected coin), but found {}. \
+             coin_ids should be a hard constraint, not a hint. \
+             Spent XCH coins: {:?}",
+            xch_spends_in_offer.len(),
+            xch_spends_in_offer
+                .iter()
+                .map(|cs| (cs.coin.coin_id(), cs.coin.amount))
+                .collect::<Vec<_>>()
+        );
+
+        // And it must be the coin we selected
+        assert_eq!(
+            xch_spends_in_offer[0].coin.coin_id(),
+            selected_coin.coin_id(),
+            "The XCH spend should be the coin we selected"
+        );
+
+        // Verify the offer is still valid end-to-end
+        let offer = alice
+            .wallet
+            .sign_transaction(unsigned_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    /// Reproduces the reported bug: the selected coin has ~10% headroom above
+    /// the XCH offer amount, but the fee pushes the total beyond the coin's
+    /// value. select_spends then silently auto-selects additional coins from
+    /// the wallet, resulting in 2 maker inputs instead of 1.
+    ///
+    /// The user's expectation when providing coin_ids is that ONLY those coins
+    /// are used. If they're insufficient, the call should fail rather than
+    /// silently grabbing more coins from the wallet.
+    #[test(tokio::test)]
+    async fn test_offer_selected_coin_with_fee_should_not_add_extra_inputs() -> anyhow::Result<()> {
+        // Alice starts with 5000 mojos
+        let mut alice = TestWallet::new(5000).await?;
+        let bob = alice.next(1000).await?;
+
+        // Split Alice's XCH into multiple coins so auto-selector has candidates
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        let coin_spends = alice
+            .wallet
+            .split(coins.iter().map(Coin::coin_id).collect(), 5, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(coins.len(), 5);
+        // Each coin is ~1000 mojos
+
+        // Issue a CAT for Bob
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(500, 0, None).await?;
+        // Bob needs to be mutable for transact
+        let mut bob = bob;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // Pick one coin (~1000 mojos). Offer 900 XCH + 200 fee = 1100 total.
+        // The coin has ~11% headroom above the offer amount (900) but NOT
+        // enough for offer + fee (1100). This is the "10% headroom" scenario
+        // from the bug report.
+        let selected_coin = coins.iter().max_by_key(|c| c.amount).copied().unwrap();
+        let offer_amount = (selected_coin.amount as f64 * 0.9) as u64;
+        let fee_amount = (selected_coin.amount as f64 * 0.2) as u64;
+        // Verify setup: coin covers xch but NOT xch + fee
+        assert!(
+            selected_coin.amount >= offer_amount,
+            "Coin should cover the offer amount"
+        );
+        assert!(
+            selected_coin.amount < offer_amount + fee_amount,
+            "Coin should NOT cover offer + fee (this is the bug trigger)"
+        );
+
+        // Collect all XCH coin IDs
+        let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
+            coins.iter().map(|c| c.coin_id()).collect();
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: offer_amount,
+                    fee: fee_amount,
+                    selected_coin_ids: vec![selected_coin.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! {
+                        asset_id => RequestedCat {
+                            amount: 500,
+                            hidden_puzzle_hash: None,
+                        }
+                    },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        // Count XCH coins used in the offer
+        let xch_spends_in_offer: Vec<_> = unsigned_offer
+            .coin_spends
+            .iter()
+            .filter(|cs| all_xch_coin_ids.contains(&cs.coin.coin_id()))
+            .collect();
+
+        // BUG: When coin_ids are provided, only those coins should be used.
+        // This assertion documents the DESIRED behavior and will FAIL with
+        // the current code because select_spends auto-selects additional
+        // coins to cover the shortfall (xch + fee - coin_amount).
+        assert_eq!(
+            xch_spends_in_offer.len(),
+            1,
+            "BUG: Expected exactly 1 XCH coin spend (the selected coin), but found {}. \
+             select_spends silently added extra coins beyond what was specified in coin_ids. \
+             Selected coin: {} mojos, offer: {}, fee: {}, total needed: {}. \
+             Spent XCH coins: {:?}",
+            xch_spends_in_offer.len(),
+            selected_coin.amount,
+            offer_amount,
+            fee_amount,
+            offer_amount + fee_amount,
+            xch_spends_in_offer
+                .iter()
+                .map(|cs| (cs.coin.coin_id(), cs.coin.amount))
+                .collect::<Vec<_>>()
+        );
+
+        Ok(())
+    }
 }
