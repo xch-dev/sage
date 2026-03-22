@@ -1399,4 +1399,247 @@ mod tests {
 
         Ok(())
     }
+
+    /// When multiple pre-selected XCH coins together cover amount + fee (but
+    /// neither alone does), no additional coins should be auto-selected.
+    #[test(tokio::test)]
+    async fn test_offer_multiple_selected_xch_coins_cover_amount_plus_fee_no_extra()
+    -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Split into 4 coins (~500 each)
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        let coin_spends = alice
+            .wallet
+            .split(coins.iter().map(Coin::coin_id).collect(), 4, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let coins = alice.wallet.db.selectable_xch_coins().await?;
+        assert_eq!(coins.len(), 4);
+
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1000, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        // Pick two smallest coins. Each is ~500; together ~1000.
+        // Offer 700 + fee 200 = 900. Neither coin alone covers 900, but together they do.
+        let mut sorted = coins.clone();
+        sorted.sort_by_key(|c| c.amount);
+        let coin_a = sorted[0];
+        let coin_b = sorted[1];
+        let offer_amount = 700u64;
+        let fee_amount = 200u64;
+        let required = offer_amount + fee_amount;
+        assert!(
+            coin_a.amount < required,
+            "coin_a ({}) should not cover amount + fee ({}) alone",
+            coin_a.amount,
+            required
+        );
+        assert!(
+            coin_b.amount < required,
+            "coin_b ({}) should not cover amount + fee ({}) alone",
+            coin_b.amount,
+            required
+        );
+        assert!(
+            coin_a.amount + coin_b.amount >= required,
+            "coin_a + coin_b ({}) must cover amount + fee ({})",
+            coin_a.amount + coin_b.amount,
+            required
+        );
+
+        let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
+            coins.iter().map(|c| c.coin_id()).collect();
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: offer_amount,
+                    fee: fee_amount,
+                    selected_coin_ids: vec![coin_a.coin_id(), coin_b.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    cats: indexmap! {
+                        asset_id => RequestedCat {
+                            amount: 1000,
+                            hidden_puzzle_hash: None,
+                        }
+                    },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        let xch_spends_in_offer: Vec<_> = unsigned_offer
+            .coin_spends
+            .iter()
+            .filter(|cs| all_xch_coin_ids.contains(&cs.coin.coin_id()))
+            .collect();
+
+        assert_eq!(
+            xch_spends_in_offer.len(),
+            2,
+            "Only the two pre-selected XCH coins should be spent, found {}: {:?}",
+            xch_spends_in_offer.len(),
+            xch_spends_in_offer
+                .iter()
+                .map(|cs| (cs.coin.coin_id(), cs.coin.amount))
+                .collect::<Vec<_>>()
+        );
+
+        let spent_ids: std::collections::HashSet<Bytes32> = xch_spends_in_offer
+            .iter()
+            .map(|cs| cs.coin.coin_id())
+            .collect();
+        assert!(spent_ids.contains(&coin_a.coin_id()));
+        assert!(spent_ids.contains(&coin_b.coin_id()));
+
+        // Verify end-to-end
+        let offer = alice
+            .wallet
+            .sign_transaction(
+                unsigned_offer,
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                true,
+            )
+            .await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+
+        Ok(())
+    }
+
+    /// When multiple pre-selected CAT coins together cover the offered CAT amount
+    /// (but neither alone does), no additional CAT coins should be auto-selected.
+    #[test(tokio::test)]
+    async fn test_offer_multiple_selected_cat_coins_cover_amount_no_extra() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2000).await?;
+        let mut bob = alice.next(1000).await?;
+
+        // Issue CAT for Alice and split into 4 coins (~500 each)
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(2000, 0, None).await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 1);
+        let coin_spends = alice
+            .wallet
+            .split(vec![cats[0].coin.coin_id()], 4, 0)
+            .await?;
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let cats = alice.wallet.db.selectable_cat_coins(asset_id).await?;
+        assert_eq!(cats.len(), 4);
+
+        // Pick two smallest CAT coins. Each is ~500; together ~1000.
+        // Offer 700 CATs — neither coin alone covers 700, but together they do.
+        let mut sorted = cats.clone();
+        sorted.sort_by_key(|c| c.coin.amount);
+        let cat_a = sorted[0].clone();
+        let cat_b = sorted[1].clone();
+        let offer_amount = 700u64;
+        assert!(
+            cat_a.coin.amount < offer_amount,
+            "cat_a ({}) should not cover the offered amount ({}) alone",
+            cat_a.coin.amount,
+            offer_amount
+        );
+        assert!(
+            cat_b.coin.amount < offer_amount,
+            "cat_b ({}) should not cover the offered amount ({}) alone",
+            cat_b.coin.amount,
+            offer_amount
+        );
+        assert!(
+            cat_a.coin.amount + cat_b.coin.amount >= offer_amount,
+            "cat_a + cat_b ({}) must cover the offered amount ({})",
+            cat_a.coin.amount + cat_b.coin.amount,
+            offer_amount
+        );
+
+        let all_cat_coin_ids: std::collections::HashSet<Bytes32> =
+            cats.iter().map(|c| c.coin.coin_id()).collect();
+
+        let unsigned_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    cats: indexmap! { asset_id => offer_amount },
+                    selected_coin_ids: vec![cat_a.coin.coin_id(), cat_b.coin.coin_id()],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 500,
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+
+        let cat_spends_in_offer: Vec<_> = unsigned_offer
+            .coin_spends
+            .iter()
+            .filter(|cs| all_cat_coin_ids.contains(&cs.coin.coin_id()))
+            .collect();
+
+        assert_eq!(
+            cat_spends_in_offer.len(),
+            2,
+            "Only the two pre-selected CAT coins should be spent, found {}: {:?}",
+            cat_spends_in_offer.len(),
+            cat_spends_in_offer
+                .iter()
+                .map(|cs| (cs.coin.coin_id(), cs.coin.amount))
+                .collect::<Vec<_>>()
+        );
+
+        let spent_ids: std::collections::HashSet<Bytes32> = cat_spends_in_offer
+            .iter()
+            .map(|cs| cs.coin.coin_id())
+            .collect();
+        assert!(spent_ids.contains(&cat_a.coin.coin_id()));
+        assert!(spent_ids.contains(&cat_b.coin.coin_id()));
+
+        // Verify end-to-end
+        let offer = alice
+            .wallet
+            .sign_transaction(
+                unsigned_offer,
+                &alice.agg_sig,
+                alice.master_sk.clone(),
+                true,
+            )
+            .await?;
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = bob
+            .wallet
+            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+        bob.push_bundle(spend_bundle).await?;
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+        assert_eq!(
+            bob.wallet.db.cat_balance(asset_id).await?,
+            offer_amount as u128
+        );
+
+        Ok(())
+    }
 }
