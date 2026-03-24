@@ -2621,7 +2621,7 @@ msgstr ""
 msgid "No matching log entries found"
 msgstr ""
 
-#: src/components/selectors/NftSelector.tsx:204
+#: src/components/selectors/NftSelector.tsx:210
 msgid "No NFTs found."
 msgstr ""
 
@@ -2641,7 +2641,7 @@ msgstr ""
 msgid "No offers yet"
 msgstr "Keine Offers vorhanden"
 
-#: src/components/selectors/OptionSelector.tsx:193
+#: src/components/selectors/OptionSelector.tsx:200
 msgid "No options found."
 msgstr ""
 
@@ -3421,11 +3421,11 @@ msgstr ""
 #~ msgid "Scan this QR code to view the offer"
 #~ msgstr ""
 
-#: src/components/selectors/NftSelector.tsx:203
+#: src/components/selectors/NftSelector.tsx:209
 msgid "Search by name or enter NFT ID"
 msgstr ""
 
-#: src/components/selectors/OptionSelector.tsx:192
+#: src/components/selectors/OptionSelector.tsx:199
 msgid "Search by name or enter Option ID"
 msgstr ""
 
@@ -3536,11 +3536,11 @@ msgid "Select network"
 msgstr "Netzwerk auswählen"
 
 #: src/components/NftCard.tsx:342
-#: src/components/selectors/NftSelector.tsx:202
+#: src/components/selectors/NftSelector.tsx:208
 msgid "Select NFT"
 msgstr ""
 
-#: src/components/selectors/OptionSelector.tsx:191
+#: src/components/selectors/OptionSelector.tsx:198
 msgid "Select option"
 msgstr ""
 

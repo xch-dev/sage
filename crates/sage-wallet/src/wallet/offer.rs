@@ -1019,7 +1019,7 @@ mod tests {
         );
 
         let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
-            coins.iter().map(|c| c.coin_id()).collect();
+            coins.iter().map(Coin::coin_id).collect();
 
         let unsigned_offer = alice
             .wallet
@@ -1092,6 +1092,7 @@ mod tests {
     /// it is ok for the wallet to auto-select additional coins to
     /// make up the difference.
     #[test(tokio::test)]
+    #[allow(clippy::cast_precision_loss)]
     async fn test_offer_selected_coin_insufficient_allows_extra() -> anyhow::Result<()> {
         let mut alice = TestWallet::new(5000).await?;
         let mut bob = alice.next(1000).await?;
@@ -1127,7 +1128,7 @@ mod tests {
         );
 
         let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
-            coins.iter().map(|c| c.coin_id()).collect();
+            coins.iter().map(Coin::coin_id).collect();
 
         let unsigned_offer = alice
             .wallet
@@ -1453,7 +1454,7 @@ mod tests {
         );
 
         let all_xch_coin_ids: std::collections::HashSet<Bytes32> =
-            coins.iter().map(|c| c.coin_id()).collect();
+            coins.iter().map(Coin::coin_id).collect();
 
         let unsigned_offer = alice
             .wallet
@@ -1552,8 +1553,8 @@ mod tests {
         // Offer 700 CATs — neither coin alone covers 700, but together they do.
         let mut sorted = cats.clone();
         sorted.sort_by_key(|c| c.coin.amount);
-        let cat_a = sorted[0].clone();
-        let cat_b = sorted[1].clone();
+        let cat_a = sorted[0];
+        let cat_b = sorted[1];
         let offer_amount = 700u64;
         assert!(
             cat_a.coin.amount < offer_amount,
