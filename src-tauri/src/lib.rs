@@ -35,6 +35,7 @@ pub fn run() {
             commands::get_keys,
             commands::set_wallet_emoji,
             commands::get_key,
+            commands::get_wallet_address,
             commands::get_secret_key,
             commands::send_xch,
             commands::bulk_send_xch,
