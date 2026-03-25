@@ -88,6 +88,7 @@ export const walletConnectCommands = {
       .object({
         limit: z.number().optional(),
         offset: z.number().optional(),
+        hardened: z.boolean().optional(),
       })
       .optional(),
     returnType: z.array(z.string()),

@@ -20,6 +20,7 @@ export async function handleGetPublicKeys(
   const data = await commands.getDerivations({
     limit: params?.limit ?? 10,
     offset: params?.offset ?? 0,
+    hardened: params?.hardened ?? false,
   });
 
   return data.derivations.map((derivation) => derivation.public_key);
