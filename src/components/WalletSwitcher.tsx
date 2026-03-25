@@ -62,12 +62,8 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   }, [addError]);
 
   useEffect(() => {
-    if (debouncedIsHovering) {
-      setIsOpen(true);
-    } else if (!isHovering) {
-      setIsOpen(false);
-    }
-  }, [debouncedIsHovering, isHovering]);
+    setIsOpen(debouncedIsHovering);
+  }, [debouncedIsHovering]);
 
   const handleSwitchWallet = async (fingerprint: number) => {
     if (isSwitching) {
