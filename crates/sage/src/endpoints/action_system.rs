@@ -15,6 +15,7 @@ use crate::{
 
 impl Sage {
     pub async fn create_transaction(&self, req: CreateTransaction) -> Result<TransactionResponse> {
+        let password = req.password.unwrap_or_default().into_bytes();
         let wallet = self.wallet()?;
 
         let sender_puzzle_hash = wallet.change_p2_puzzle_hash().await?;
@@ -146,7 +147,8 @@ impl Sage {
 
         let coin_spends = ctx.take();
 
-        self.transact_with(coin_spends, req.auto_submit, info).await
+        self.transact_with(coin_spends, req.auto_submit, info, &password)
+            .await
     }
 }
 

@@ -358,6 +358,9 @@ async getLogs() : Promise<LogFile[]> {
 },
 async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
     return await TAURI_INVOKE("is_asset_owned", { req });
+},
+async changePassword(req: ChangePassword) : Promise<ChangePasswordResponse> {
+    return await TAURI_INVOKE("change_password", { req });
 }
 }
 
@@ -400,7 +403,11 @@ kind: NftUriKind;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Add a new peer to connect to
  */
@@ -436,7 +443,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Automatically combine CAT coins
  */
@@ -460,7 +471,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response for auto-combine CAT
  */
@@ -496,7 +511,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response for auto-combine XCH
  */
@@ -532,7 +551,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response for bulk NFT minting
  */
@@ -580,7 +603,11 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Send XCH to multiple addresses
  */
@@ -604,7 +631,11 @@ memos?: string[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Cancel an offer on-chain
  */
@@ -620,7 +651,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Cancel multiple offers
  */
@@ -636,7 +671,31 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
+/**
+ * Change the password for a wallet's secret key
+ */
+export type ChangePassword = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Current password (empty string if no password is set)
+ */
+old_password: string; 
+/**
+ * New password (empty string to remove password protection)
+ */
+new_password: string }
+/**
+ * Response after changing the password
+ */
+export type ChangePasswordResponse = Record<string, never>
 /**
  * Validate and check an address
  */
@@ -705,7 +764,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Combine multiple offers
  */
@@ -737,7 +800,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 export type CreateTransaction = { 
 /**
  * Pre-selected coins to use in the transaction prior to coin selection
@@ -750,7 +817,11 @@ actions: Action[];
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Delete a wallet database
  */
@@ -820,7 +891,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 export type FeeAction = { 
 /**
  * The fee amount, in mojos
@@ -857,7 +932,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Generate a new mnemonic phrase for wallet creation
  */
@@ -1425,7 +1504,11 @@ export type GetSecretKey = {
 /**
  * Wallet fingerprint
  */
-fingerprint: number }
+fingerprint: number; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with secret key information
  */
@@ -1648,7 +1731,11 @@ login?: boolean;
 /**
  * Optional emoji identifier
  */
-emoji?: string | null }
+emoji?: string | null; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with imported key fingerprint
  */
@@ -1688,7 +1775,11 @@ unhardened?: boolean | null;
 /**
  * The target derivation index to increase to
  */
-index: number }
+index: number; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response after increasing the derivation index
  */
@@ -1733,8 +1824,12 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
-export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; network_id: string; emoji: string | null }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
+export type KeyInfo = { name: string; fingerprint: number; public_key: string; kind: KeyKind; has_secrets: boolean; has_password: boolean; network_id: string; emoji: string | null }
 export type KeyKind = "bls"
 /**
  * Lineage proof for CAT coins
@@ -1804,7 +1899,11 @@ auto_import?: boolean;
 /**
  * Optional specific coin IDs to use for the offer instead of auto-selecting
  */
-coin_ids?: string[] | null }
+coin_ids?: string[] | null; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with created offer
  */
@@ -1885,7 +1984,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response for minting an option
  */
@@ -1993,7 +2096,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Asset amount in an offer
  */
@@ -2221,7 +2328,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Send a transaction immediately
  */
@@ -2269,7 +2380,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Set the change address for transactions
  */
@@ -2369,7 +2484,11 @@ auto_submit?: boolean;
 /**
  * Whether to partially sign (for multi-signature)
  */
-partial?: boolean }
+partial?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with signed spend bundle
  */
@@ -2389,7 +2508,11 @@ message: string;
 /**
  * Address whose key to use
  */
-address: string }
+address: string; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with signed message
  */
@@ -2413,7 +2536,11 @@ message: string;
 /**
  * Public key to use for signing
  */
-publicKey: string }
+publicKey: string; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with message signature
  */
@@ -2482,7 +2609,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Submit a transaction to the network
  */
@@ -2511,7 +2642,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response with accepted offer details
  */
@@ -2569,7 +2704,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Transfer NFTs to a new owner
  */
@@ -2593,7 +2732,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Transfer options to another address
  */
@@ -2617,7 +2760,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 export type Unit = { ticker: string; precision: number }
 /**
  * Update a `CAT` token's metadata and visibility
@@ -2748,7 +2895,7 @@ offer: OfferSummary;
  * Offer status
  */
 status: OfferRecordStatus }
-export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null; password_protected: boolean }
 export type WalletDefaults = { delta_sync: boolean }
 
 /** tauri-specta globals **/

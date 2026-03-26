@@ -212,7 +212,7 @@ importers:
         version: 5.10.1(@lingui/core@5.9.0(@lingui/babel-plugin-lingui-macro@5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0))
       '@lingui/vite-plugin':
         specifier: ^5.9.0
-        version: 5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1))
+        version: 5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1))
       '@tauri-apps/cli':
         specifier: ^2.10.0
         version: 2.10.0
@@ -233,7 +233,7 @@ importers:
         version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
       '@vitejs/plugin-react-swc':
         specifier: ^3.11.0
-        version: 3.11.0(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1))
+        version: 3.11.0(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1))
       autoprefixer:
         specifier: ^10.4.24
         version: 10.4.24(postcss@8.5.6)
@@ -269,7 +269,7 @@ importers:
         version: 8.54.0(eslint@8.57.1)(typescript@5.9.3)
       vite:
         specifier: ^7.3.1
-        version: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1)
+        version: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1)
 
 packages:
 
@@ -791,6 +791,9 @@ packages:
   '@jridgewell/resolve-uri@3.1.2':
     resolution: {integrity: sha512-bRISgCIjP20/tbWSPWMEi54QVPRZExkuD9lJL+UIxUKtwVJA8wW1Trb1jMs1RFXo1CBTNZ/5hpC9QvmKWdopKw==}
     engines: {node: '>=6.0.0'}
+
+  '@jridgewell/source-map@0.3.11':
+    resolution: {integrity: sha512-ZMp1V8ZFcPG5dIWnQLr3NSI1MiCU7UETdS/A0G8V/XWHvJv3ZsFqutJn1Y5RPmAPX6F3BiE397OqveU/9NCuIA==}
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
@@ -2113,6 +2116,9 @@ packages:
   bs58@6.0.0:
     resolution: {integrity: sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==}
 
+  buffer-from@1.1.2:
+    resolution: {integrity: sha512-E+XQCRwSbaaiChtv6k6Dwgc+bx+Bs6vuKJHHl5kox/BaKbhiXzqQOwK4cO22yElGp2OCmjwVhT3HmxgyPGnJfQ==}
+
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
 
@@ -2205,6 +2211,9 @@ packages:
   commander@10.0.1:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
+
+  commander@2.20.3:
+    resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
   commander@4.1.1:
     resolution: {integrity: sha512-NOKm8xhkzAjzFx8B2v5OAHT+u5pRQc2UCa2Vq9jYL/31o2wi9mxBA7LIFs3sV5VSC49z6pEhfbMULvShKj26WA==}
@@ -3448,6 +3457,13 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
+  source-map-support@0.5.21:
+    resolution: {integrity: sha512-uBHU3L3czsIyYXKX88fdrGovxdSCoTGDRZ6SYXtSRxLZUzHg5P/66Ht6uoUlHu9EZod+inXhKo3qQgwXUT/y1w==}
+
+  source-map@0.6.1:
+    resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
+    engines: {node: '>=0.10.0'}
+
   source-map@0.7.6:
     resolution: {integrity: sha512-i5uvt8C3ikiWeNZSVZNWcfZPItFQOsYTUAOkcUPGd8DqDy1uOUikjt5dG+uRlwyvR108Fb9DOd4GvXfT0N2/uQ==}
     engines: {node: '>= 12'}
@@ -3527,6 +3543,11 @@ packages:
 
   tauri-plugin-sage-api@file:tauri-plugin-sage:
     resolution: {directory: tauri-plugin-sage, type: directory}
+
+  terser@5.46.0:
+    resolution: {integrity: sha512-jTwoImyr/QbOWFFso3YoU3ik0jBBDJ6JTOQiy/J2YxVJdZCc+5u7skhNwiOR3FQIygFqVUPHl7qbbxtjW2K3Qg==}
+    engines: {node: '>=10'}
+    hasBin: true
 
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
@@ -4257,6 +4278,12 @@ snapshots:
 
   '@jridgewell/resolve-uri@3.1.2': {}
 
+  '@jridgewell/source-map@0.3.11':
+    dependencies:
+      '@jridgewell/gen-mapping': 0.3.13
+      '@jridgewell/trace-mapping': 0.3.31
+    optional: true
+
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
   '@jridgewell/trace-mapping@0.3.31':
@@ -4359,11 +4386,11 @@ snapshots:
     dependencies:
       '@lingui/core': 5.9.0(@lingui/babel-plugin-lingui-macro@5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)
 
-  '@lingui/vite-plugin@5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1))':
+  '@lingui/vite-plugin@5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1))':
     dependencies:
       '@lingui/cli': 5.9.0(babel-plugin-macros@3.1.0)(typescript@5.9.3)
       '@lingui/conf': 5.9.0(typescript@5.9.3)
-      vite: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1)
+      vite: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -5348,11 +5375,11 @@ snapshots:
       '@use-gesture/core': 10.3.1
       react: 18.3.1
 
-  '@vitejs/plugin-react-swc@3.11.0(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1))':
+  '@vitejs/plugin-react-swc@3.11.0(vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@swc/core': 1.15.11
-      vite: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1)
+      vite: 7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1)
     transitivePeerDependencies:
       - '@swc/helpers'
 
@@ -5782,6 +5809,9 @@ snapshots:
     dependencies:
       base-x: 5.0.1
 
+  buffer-from@1.1.2:
+    optional: true
+
   buffer@5.7.1:
     dependencies:
       base64-js: 1.5.1
@@ -5886,6 +5916,9 @@ snapshots:
   colors@1.0.3: {}
 
   commander@10.0.1: {}
+
+  commander@2.20.3:
+    optional: true
 
   commander@4.1.1: {}
 
@@ -7307,6 +7340,15 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
+  source-map-support@0.5.21:
+    dependencies:
+      buffer-from: 1.1.2
+      source-map: 0.6.1
+    optional: true
+
+  source-map@0.6.1:
+    optional: true
+
   source-map@0.7.6: {}
 
   split2@4.2.0: {}
@@ -7433,6 +7475,14 @@ snapshots:
   tauri-plugin-sage-api@file:tauri-plugin-sage:
     dependencies:
       '@tauri-apps/api': 2.10.1
+
+  terser@5.46.0:
+    dependencies:
+      '@jridgewell/source-map': 0.3.11
+      acorn: 8.15.0
+      commander: 2.20.3
+      source-map-support: 0.5.21
+    optional: true
 
   text-table@0.2.0: {}
 
@@ -7611,7 +7661,7 @@ snapshots:
 
   util-deprecate@1.0.2: {}
 
-  vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(yaml@2.5.1):
+  vite@7.3.1(@types/node@22.19.10)(jiti@1.21.7)(terser@5.46.0)(yaml@2.5.1):
     dependencies:
       esbuild: 0.27.3
       fdir: 6.5.0(picomatch@4.0.3)
@@ -7623,6 +7673,7 @@ snapshots:
       '@types/node': 22.19.10
       fsevents: 2.3.3
       jiti: 1.21.7
+      terser: 5.46.0
       yaml: 2.5.1
 
   wcwidth@1.0.1:

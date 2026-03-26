@@ -20,8 +20,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { t } from '@lingui/core/macro';
@@ -66,7 +66,7 @@ export function WalletCard({
   const navigate = useNavigate();
   const { addError } = useErrors();
   const { setWallet } = useWallet();
-  const { promptIfEnabled } = useBiometric();
+  const { requestPassword } = usePassword();
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -79,15 +79,32 @@ export function WalletCard({
   const { currentTheme } = useTheme();
 
   const deleteSelf = async () => {
-    if (await promptIfEnabled()) {
-      await commands
-        .deleteKey({ fingerprint: info.fingerprint })
-        .then(() =>
-          setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint)),
-        )
-        .catch(addError);
+    const password = await requestPassword(info.has_password);
+    if (password === undefined) {
+      setIsDeleteOpen(false);
+      return;
     }
 
+    // Verify password before allowing deletion
+    if (info.has_password) {
+      try {
+        await commands.getSecretKey({
+          fingerprint: info.fingerprint,
+          password,
+        });
+      } catch (error) {
+        addError(error as CustomError);
+        setIsDeleteOpen(false);
+        return;
+      }
+    }
+
+    await commands
+      .deleteKey({ fingerprint: info.fingerprint })
+      .then(() => {
+        setKeys(keys.filter((key) => key.fingerprint !== info.fingerprint));
+      })
+      .catch(addError);
     setIsDeleteOpen(false);
   };
 
@@ -169,17 +186,29 @@ export function WalletCard({
 
   useEffect(() => {
     (async () => {
-      if (!isDetailsOpen || !(await promptIfEnabled())) {
+      if (!isDetailsOpen) {
         setSecrets(null);
         return;
       }
 
+      const password = await requestPassword(info.has_password);
+      if (password === undefined) {
+        setIsDetailsOpen(false);
+        return;
+      }
+
       commands
-        .getSecretKey({ fingerprint: info.fingerprint })
+        .getSecretKey({ fingerprint: info.fingerprint, password })
         .then((data) => data.secrets !== null && setSecrets(data.secrets))
         .catch(addError);
     })();
-  }, [isDetailsOpen, info.fingerprint, addError, promptIfEnabled]);
+  }, [
+    isDetailsOpen,
+    info.fingerprint,
+    info.has_password,
+    addError,
+    requestPassword,
+  ]);
 
   const values = useSortable({
     id: draggable ? info.fingerprint : 'not-draggable',

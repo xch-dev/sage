@@ -33,6 +33,10 @@ pub struct SendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Send XCH to multiple addresses
@@ -61,6 +65,10 @@ pub struct BulkSendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Combine multiple coins into one
@@ -84,6 +92,10 @@ pub struct Combine {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Split coins into multiple smaller coins
@@ -109,6 +121,10 @@ pub struct Split {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Automatically combine XCH coins
@@ -134,6 +150,10 @@ pub struct AutoCombineXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response for auto-combine XCH
@@ -175,6 +195,10 @@ pub struct AutoCombineCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response for auto-combine CAT
@@ -216,6 +240,10 @@ pub struct IssueCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Send CAT tokens to an address
@@ -254,6 +282,10 @@ pub struct SendCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Send CAT tokens to multiple addresses
@@ -288,6 +320,10 @@ pub struct BulkSendCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 fn yes() -> bool {
@@ -315,6 +351,10 @@ pub struct MultiSend {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Individual payment in a multi-send transaction
@@ -357,6 +397,10 @@ pub struct CreateDid {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Mint multiple NFTs in one transaction
@@ -381,6 +425,10 @@ pub struct BulkMintNfts {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response for bulk NFT minting
@@ -472,6 +520,10 @@ pub struct TransferNfts {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Add a URI to an NFT
@@ -499,6 +551,10 @@ pub struct AddNftUri {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Type of NFT URI
@@ -537,6 +593,10 @@ pub struct AssignNftsToDid {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Transfer DIDs to a new address
@@ -566,6 +626,10 @@ pub struct TransferDids {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Normalize DIDs to latest state
@@ -589,6 +653,10 @@ pub struct NormalizeDids {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Asset specification for options
@@ -628,6 +696,10 @@ pub struct MintOption {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response for minting an option
@@ -665,6 +737,10 @@ pub struct ExerciseOptions {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Transfer options to another address
@@ -694,6 +770,10 @@ pub struct TransferOptions {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Send CAT tokens to an address
@@ -717,6 +797,10 @@ pub struct FinalizeClawback {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Sign coin spends to create a transaction
@@ -741,6 +825,10 @@ pub struct SignCoinSpends {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub partial: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with signed spend bundle

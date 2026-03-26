@@ -14,6 +14,7 @@ import { ThemeProvider, useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { ErrorProvider } from './contexts/ErrorContext';
+import { PasswordProvider } from './contexts/PasswordContext';
 import {
   getBrowserLanguage,
   LanguageProvider,
@@ -190,13 +191,15 @@ function AppInner() {
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
         <WalletProvider>
-          <PeerProvider>
-            <WalletConnectProvider>
-              <PriceProvider>
-                <RouterProvider router={router} />
-              </PriceProvider>
-            </WalletConnectProvider>
-          </PeerProvider>
+          <PasswordProvider>
+            <PeerProvider>
+              <WalletConnectProvider>
+                <PriceProvider>
+                  <RouterProvider router={router} />
+                </PriceProvider>
+              </WalletConnectProvider>
+            </PeerProvider>
+          </PasswordProvider>
         </WalletProvider>
       </I18nProvider>
     )

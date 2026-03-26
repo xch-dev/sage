@@ -59,7 +59,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
 
-  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
+  const cancelHandler = async (values: z.infer<typeof cancelSchema>) => {
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
 
     commands

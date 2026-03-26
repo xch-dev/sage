@@ -294,6 +294,12 @@ impl Sage {
             return Err(Error::UnknownFingerprint);
         };
 
+        // Correct the password_protected flag if it drifted from actual state
+        if self.keychain.has_secret_key(fingerprint) {
+            let actual = self.keychain.is_password_protected(fingerprint);
+            self.set_password_protected(fingerprint, actual)?;
+        }
+
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
         let pool = self.connect_to_database(fingerprint).await?;
@@ -526,6 +532,27 @@ impl Sage {
         fs::write(self.path.join("wallets.toml"), wallet_config)?;
         let network_list = toml::to_string_pretty(&self.network_list)?;
         fs::write(self.path.join("networks.toml"), network_list)?;
+        Ok(())
+    }
+
+    /// Updates the wallet config's `password_protected` flag if it doesn't
+    /// match the actual state, and persists the change.
+    pub fn set_password_protected(
+        &mut self,
+        fingerprint: u32,
+        password_protected: bool,
+    ) -> Result<()> {
+        let wallet = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        if wallet.password_protected != password_protected {
+            wallet.password_protected = password_protected;
+            self.save_config()?;
+        }
         Ok(())
     }
 
