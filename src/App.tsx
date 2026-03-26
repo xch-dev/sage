@@ -35,7 +35,9 @@ import CreateWallet from './pages/CreateWallet';
 import { DidList } from './pages/DidList';
 import ImportWallet from './pages/ImportWallet';
 import IssueToken from './pages/IssueToken';
+import Keys from './pages/Keys';
 import Login from './pages/Login';
+import MintVault from './pages/MintVault';
 import { MakeOffer } from './pages/MakeOffer';
 import MintNft from './pages/MintNft';
 import { MintOption } from './pages/MintOption';
@@ -46,6 +48,7 @@ import { Offers } from './pages/Offers';
 import Option from './pages/Option';
 import { OptionList } from './pages/OptionList';
 import PeerList from './pages/PeerList';
+import RecoverVault from './pages/RecoverVault';
 import QRScanner from './pages/QrScanner';
 import { SavedOffer } from './pages/SavedOffer';
 import Send from './pages/Send';
@@ -57,6 +60,7 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+import WatchAddress from './pages/WatchAddress';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -93,6 +97,10 @@ const router = createHashRouter(
       <Route path='/' element={<Login />} />
       <Route path='/create' element={<CreateWallet />} />
       <Route path='/import' element={<ImportWallet />} />
+      <Route path='/vault/mint' element={<MintVault />} />
+      <Route path='/vault/recover' element={<RecoverVault />} />
+      <Route path='/watch' element={<WatchAddress />} />
+      <Route path='/keys' element={<Keys />} />
       <Route path='/wallet' element={<Wallet />}>
         <Route path='' element={<TokenList />} />
         <Route path='token/:asset_id' element={<Token />} />

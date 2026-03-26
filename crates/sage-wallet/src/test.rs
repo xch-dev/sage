@@ -29,7 +29,7 @@ use tracing::debug;
 
 use crate::{
     PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Transaction, Wallet,
-    insert_transaction,
+    WalletInfo, insert_transaction,
 };
 
 static INDEX: Mutex<u32> = Mutex::const_new(0);
@@ -107,7 +107,7 @@ impl TestWallet {
                 .derive_synthetic()
                 .public_key();
             let p2_puzzle_hash = StandardArgs::curry_tree_hash(synthetic_key).into();
-            tx.insert_custody_p2_puzzle(
+            tx.insert_derivation_p2_puzzle(
                 p2_puzzle_hash,
                 synthetic_key,
                 Derivation {
@@ -137,7 +137,7 @@ impl TestWallet {
         let wallet = Arc::new(Wallet::new(
             db,
             fingerprint,
-            intermediate_pk,
+            WalletInfo::Bls { intermediate_pk },
             genesis_challenge,
             AggSigConstants::new(TESTNET11_CONSTANTS.agg_sig_me_additional_data),
             None,

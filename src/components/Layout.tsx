@@ -1,4 +1,4 @@
-import { KeyInfo } from '@/bindings';
+import { WalletRecord } from '@/bindings';
 import {
   Tooltip,
   TooltipContent,
@@ -52,7 +52,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = 'sage-wallet-sidebar-collapsed';
 
 type LayoutProps = PropsWithChildren<object> & {
   transparentBackground?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletRecord;
 };
 
 export function FullLayout(props: LayoutProps) {

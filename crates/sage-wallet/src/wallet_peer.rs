@@ -299,7 +299,7 @@ impl WalletPeer {
 
     pub async fn block_timestamp(&self, height: u32) -> Result<(Bytes32, u64), WalletError> {
         let header_block = timeout(
-            Duration::from_secs(5),
+            Duration::from_secs(15),
             self.peer
                 .request_infallible::<RespondBlockHeader, _>(RequestBlockHeader::new(height)),
         )

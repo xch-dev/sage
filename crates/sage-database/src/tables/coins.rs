@@ -16,6 +16,7 @@ pub enum CoinKind {
     Did,
     Nft,
     Option,
+    Vault,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -233,6 +234,7 @@ impl Database {
             AssetKind::Nft => CoinKind::Nft,
             AssetKind::Did => CoinKind::Did,
             AssetKind::Option => CoinKind::Option,
+            AssetKind::Vault => CoinKind::Vault,
         }))
     }
 }
@@ -487,7 +489,7 @@ async fn subscription_coin_ids(conn: impl SqliteExecutor<'_>) -> Result<Vec<Byte
         "
         SELECT coin_hash FROM wallet_coins
         WHERE spent_height IS NULL
-        AND (asset_id != 0 OR p2_puzzle_kind != 0)
+        AND (asset_id != 0 OR p2_puzzle_kind IN (1, 2))
         "
     )
     .fetch_all(conn)
@@ -808,6 +810,7 @@ async fn coin_kind(conn: impl SqliteExecutor<'_>, coin_id: Bytes32) -> Result<Op
         AssetKind::Nft => CoinKind::Nft,
         AssetKind::Did => CoinKind::Did,
         AssetKind::Option => CoinKind::Option,
+        AssetKind::Vault => CoinKind::Vault,
     }))
 }
 

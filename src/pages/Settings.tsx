@@ -59,6 +59,7 @@ import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
   DownloadIcon,
+  KeyIcon,
   LoaderCircleIcon,
   TrashIcon,
   WalletIcon,
@@ -71,13 +72,13 @@ import { z } from 'zod';
 import {
   commands,
   GetDatabaseStatsResponse,
-  KeyInfo,
   LogFile,
   Network,
   NetworkConfig,
   PerformDatabaseMaintenanceResponse,
   Wallet,
   WalletDefaults,
+  WalletRecord,
 } from '../bindings';
 
 import { ThemeSelectorSimple } from '../components/ThemeSelector';
@@ -164,6 +165,20 @@ export default function Settings() {
                 <div className='grid gap-4'>
                   <WalletConnectSettings />
                   <GlobalSettings />
+                  <SettingsSection title={t`Key Management`}>
+                    <SettingItem
+                      label={t`Keys`}
+                      description={t`Manage your BLS and secure element keys`}
+                      control={
+                        <Link to='/keys'>
+                          <Button variant='outline' size='sm'>
+                            <KeyIcon className='h-4 w-4 mr-1' />
+                            <Trans>Manage Keys</Trans>
+                          </Button>
+                        </Link>
+                      }
+                    />
+                  </SettingsSection>
                 </div>
               </TabsContent>
 
@@ -1023,7 +1038,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   const walletState = useWalletState();
 
-  const [key, setKey] = useState<KeyInfo | null>(null);
+  const [walletRecord, setWalletRecord] = useState<WalletRecord | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [localName, setLocalName] = useState<string>('');
   const [localChangeAddress, setLocalChangeAddress] = useState('');
@@ -1085,8 +1100,8 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
 
   useEffect(() => {
     commands
-      .getKey({ fingerprint })
-      .then((data) => setKey(data.key))
+      .getWallet({ fingerprint })
+      .then((data) => setWalletRecord(data.wallet))
       .catch(addError);
   }, [addError, fingerprint]);
 
@@ -1194,7 +1209,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     commands
       .increaseDerivationIndex({
         index: parseInt(values.index),
-        hardened: key?.has_secrets && hardened,
+        hardened: walletRecord?.type === 'bls' && walletRecord?.has_secrets && hardened,
         unhardened,
       })
       .then(() => {
@@ -1221,7 +1236,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 if (localName === wallet?.name) return;
 
                 commands
-                  .renameKey({
+                  .renameWallet({
                     fingerprint,
                     name: localName,
                   })
