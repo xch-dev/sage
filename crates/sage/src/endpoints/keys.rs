@@ -188,6 +188,7 @@ impl Sage {
             name: req.name,
             fingerprint,
             emoji: req.emoji,
+            password_protected: !password_bytes.is_empty(),
             ..Default::default()
         });
         self.config.global.fingerprint = Some(fingerprint);
@@ -344,7 +345,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(fingerprint),
-                has_password: self.keychain.is_password_protected(fingerprint),
+                has_password: wallet_config.password_protected,
                 network_id,
                 emoji: wallet_config.emoji,
             }),
@@ -373,6 +374,7 @@ impl Sage {
         self.keychain
             .change_password(req.fingerprint, &old_password, &new_password)?;
         self.save_keychain()?;
+        self.set_password_protected(req.fingerprint, !new_password.is_empty())?;
         Ok(ChangePasswordResponse {})
     }
 
@@ -390,7 +392,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
-                has_password: self.keychain.is_password_protected(wallet.fingerprint),
+                has_password: wallet.password_protected,
                 network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
                 emoji: wallet.emoji.clone(),
             });

@@ -2895,7 +2895,7 @@ offer: OfferSummary;
  * Offer status
  */
 status: OfferRecordStatus }
-export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
+export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null; password_protected: boolean }
 export type WalletDefaults = { delta_sync: boolean }
 
 /** tauri-specta globals **/

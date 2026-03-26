@@ -1,52 +1,14 @@
 use std::collections::HashMap;
 
+use crate::{
+    KeychainError,
+    encrypt::{decrypt, encrypt},
+    key_data::{KeyData, SecretKeyData},
+};
 use bip39::Mnemonic;
 use chia_wallet_sdk::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
-use serde::{Deserialize, Serialize};
-use serde_with::{Bytes, serde_as};
-
-use crate::{
-    KeychainError,
-    encrypt::{Encrypted, decrypt, encrypt},
-    key_data::{KeyData, SecretKeyData},
-};
-
-/// Legacy KeyData without password_protected field, for backward compat
-#[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[repr(u8)]
-enum LegacyKeyData {
-    Public {
-        #[serde_as(as = "Bytes")]
-        master_pk: [u8; 48],
-    },
-    Secret {
-        #[serde_as(as = "Bytes")]
-        master_pk: [u8; 48],
-        entropy: bool,
-        encrypted: Encrypted,
-    },
-}
-
-impl From<LegacyKeyData> for KeyData {
-    fn from(legacy: LegacyKeyData) -> Self {
-        match legacy {
-            LegacyKeyData::Public { master_pk } => KeyData::Public { master_pk },
-            LegacyKeyData::Secret {
-                master_pk,
-                entropy,
-                encrypted,
-            } => KeyData::Secret {
-                master_pk,
-                entropy,
-                encrypted,
-                password_protected: false,
-            },
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Keychain {
@@ -65,10 +27,7 @@ impl Default for Keychain {
 
 impl Keychain {
     pub fn from_bytes(data: &[u8]) -> Result<Self, KeychainError> {
-        let keys: HashMap<u32, KeyData> = bincode::deserialize(data).or_else(|_| {
-            let legacy: HashMap<u32, LegacyKeyData> = bincode::deserialize(data)?;
-            Ok::<_, bincode::Error>(legacy.into_iter().map(|(k, v)| (k, v.into())).collect())
-        })?;
+        let keys: HashMap<u32, KeyData> = bincode::deserialize(data)?;
         Ok(Self {
             rng: ChaCha20Rng::from_entropy(),
             keys,
@@ -129,6 +88,17 @@ impl Keychain {
         }
     }
 
+    /// Probes whether the key is password-protected by attempting to
+    /// decrypt with an empty password. Returns `false` for public keys.
+    pub fn is_password_protected(&self, fingerprint: u32) -> bool {
+        match self.keys.get(&fingerprint) {
+            Some(KeyData::Secret { encrypted, .. }) => {
+                decrypt::<SecretKeyData>(encrypted, b"").is_err()
+            }
+            _ => false,
+        }
+    }
+
     pub fn has_secret_key(&self, fingerprint: u32) -> bool {
         let Some(key_data) = self.keys.get(&fingerprint) else {
             return false;
@@ -138,16 +108,6 @@ impl Keychain {
             KeyData::Public { .. } => false,
             KeyData::Secret { .. } => true,
         }
-    }
-
-    pub fn is_password_protected(&self, fingerprint: u32) -> bool {
-        matches!(
-            self.keys.get(&fingerprint),
-            Some(KeyData::Secret {
-                password_protected: true,
-                ..
-            })
-        )
     }
 
     pub fn add_public_key(&mut self, master_pk: &PublicKey) -> Result<u32, KeychainError> {
@@ -191,7 +151,6 @@ impl Keychain {
                 master_pk: master_pk.to_bytes(),
                 entropy: false,
                 encrypted,
-                password_protected: !password.is_empty(),
             },
         );
 
@@ -221,7 +180,6 @@ impl Keychain {
                 master_pk: master_pk.to_bytes(),
                 entropy: true,
                 encrypted,
-                password_protected: !password.is_empty(),
             },
         );
 
@@ -260,7 +218,6 @@ impl Keychain {
                 master_pk,
                 entropy,
                 encrypted,
-                password_protected: !new_password.is_empty(),
             },
         );
 
@@ -278,12 +235,10 @@ mod tests {
         let mut keychain = Keychain::default();
         let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
         let fingerprint = keychain.add_mnemonic(&mnemonic, b"").unwrap();
-        assert!(!keychain.is_password_protected(fingerprint));
 
         keychain
             .change_password(fingerprint, b"", b"secret123")
             .unwrap();
-        assert!(keychain.is_password_protected(fingerprint));
         assert!(keychain.extract_secrets(fingerprint, b"").is_err());
 
         let (mnemonic_out, Some(_sk)) =
@@ -304,7 +259,6 @@ mod tests {
         keychain
             .change_password(fingerprint, b"newpass", b"")
             .unwrap();
-        assert!(!keychain.is_password_protected(fingerprint));
         let (_m, Some(_sk)) = keychain.extract_secrets(fingerprint, b"").unwrap() else {
             panic!("expected secret key");
         };
@@ -336,59 +290,13 @@ mod tests {
     }
 
     #[test]
-    fn test_password_protected_flag_on_import() {
-        let mut keychain = Keychain::default();
-        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
-        let fp_no_pass = keychain.add_mnemonic(&mnemonic, b"").unwrap();
-        assert!(!keychain.is_password_protected(fp_no_pass));
-
-        let mut keychain2 = Keychain::default();
-        let fp_with_pass = keychain2.add_mnemonic(&mnemonic, b"secret").unwrap();
-        assert!(keychain2.is_password_protected(fp_with_pass));
-    }
-
-    #[test]
     fn test_serialization_roundtrip_with_password() {
         let mut keychain = Keychain::default();
         let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
         let fingerprint = keychain.add_mnemonic(&mnemonic, b"pass123").unwrap();
         let bytes = keychain.to_bytes().unwrap();
         let keychain2 = Keychain::from_bytes(&bytes).unwrap();
-        assert!(keychain2.is_password_protected(fingerprint));
         let (_m, Some(_sk)) = keychain2.extract_secrets(fingerprint, b"pass123").unwrap() else {
-            panic!("expected secret key");
-        };
-    }
-
-    #[test]
-    fn test_legacy_format_backward_compat() {
-        use std::collections::HashMap;
-
-        let mut keychain = Keychain::default();
-        let mnemonic = Mnemonic::from_entropy(&[0u8; 16]).unwrap();
-        let fingerprint = keychain.add_mnemonic(&mnemonic, b"").unwrap();
-
-        let mut legacy_map: HashMap<u32, LegacyKeyData> = HashMap::new();
-        if let Some(KeyData::Secret {
-            master_pk,
-            entropy,
-            encrypted,
-            ..
-        }) = keychain.keys.get(&fingerprint)
-        {
-            legacy_map.insert(
-                fingerprint,
-                LegacyKeyData::Secret {
-                    master_pk: *master_pk,
-                    entropy: *entropy,
-                    encrypted: encrypted.clone(),
-                },
-            );
-        }
-        let legacy_bytes = bincode::serialize(&legacy_map).unwrap();
-        let restored = Keychain::from_bytes(&legacy_bytes).unwrap();
-        assert!(!restored.is_password_protected(fingerprint));
-        let (_m, Some(_sk)) = restored.extract_secrets(fingerprint, b"").unwrap() else {
             panic!("expected secret key");
         };
     }
