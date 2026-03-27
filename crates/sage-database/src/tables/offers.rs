@@ -398,3 +398,99 @@ async fn update_offer_status(
         .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::test_database;
+
+    fn test_hash(byte: u8) -> Bytes32 {
+        Bytes32::new([byte; 32])
+    }
+
+    fn test_offer(byte: u8, status: OfferStatus) -> OfferRow {
+        OfferRow {
+            offer_id: test_hash(byte),
+            encoded_offer: format!("offer_{byte}"),
+            expiration_height: None,
+            expiration_timestamp: None,
+            fee: 100,
+            status,
+            inserted_timestamp: 1000 + byte as u64,
+        }
+    }
+
+    #[tokio::test]
+    async fn insert_and_fetch_offer() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        let offer = test_offer(1, OfferStatus::Active);
+        tx.insert_offer(offer.clone()).await?;
+        tx.commit().await?;
+
+        let fetched = db.offer(test_hash(1)).await?;
+        assert!(fetched.is_some());
+        let fetched = fetched.unwrap();
+        assert_eq!(fetched.encoded_offer, "offer_1");
+        assert_eq!(fetched.fee, 100);
+        assert!(matches!(fetched.status, OfferStatus::Active));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn fetch_nonexistent_offer_returns_none() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let fetched = db.offer(test_hash(99)).await?;
+        assert!(fetched.is_none());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn list_offers_by_status() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_offer(test_offer(1, OfferStatus::Active)).await?;
+        tx.insert_offer(test_offer(2, OfferStatus::Pending)).await?;
+        tx.insert_offer(test_offer(3, OfferStatus::Active)).await?;
+        tx.commit().await?;
+
+        let active = db.offers(Some(OfferStatus::Active)).await?;
+        assert_eq!(active.len(), 2);
+
+        let pending = db.offers(Some(OfferStatus::Pending)).await?;
+        assert_eq!(pending.len(), 1);
+
+        let all = db.offers(None).await?;
+        assert_eq!(all.len(), 3);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn update_offer_status_works() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_offer(test_offer(1, OfferStatus::Active)).await?;
+        tx.commit().await?;
+
+        db.update_offer_status(test_hash(1), OfferStatus::Completed)
+            .await?;
+
+        let fetched = db.offer(test_hash(1)).await?.unwrap();
+        assert!(matches!(fetched.status, OfferStatus::Completed));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn delete_offer_works() -> anyhow::Result<()> {
+        let db = test_database().await?;
+        let mut tx = db.tx().await?;
+        tx.insert_offer(test_offer(1, OfferStatus::Active)).await?;
+        tx.commit().await?;
+
+        db.delete_offer(test_hash(1)).await?;
+
+        let fetched = db.offer(test_hash(1)).await?;
+        assert!(fetched.is_none());
+        Ok(())
+    }
+}
