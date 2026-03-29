@@ -28,7 +28,15 @@ import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount, positiveAmount } from '@/lib/formTypes';
-import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
+import {
+  fromHexStrict,
+  fromMojos,
+  isValidHexBytes,
+  toDecimal,
+  toHex,
+  toMojos,
+  utf8ToBytes,
+} from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -45,10 +53,7 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
-
-function stringToUint8Array(str: string): Uint8Array {
-  return new TextEncoder().encode(str);
-}
+import { Memo, MemoMode } from '@/types/CoinMemo.ts';
 
 export default function Send() {
   let { asset_id: assetId = null } = useParams();
@@ -62,7 +67,7 @@ export default function Send() {
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
-  const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
+  const [currentMemo, setCurrentMemo] = useState<Memo | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
 
@@ -108,42 +113,61 @@ export default function Send() {
     }
   };
 
-  const formSchema = z.object({
-    address: z
-      .string()
-      .refine(
-        (address) =>
-          Promise.all(
-            addressList(address).map((address) =>
-              commands.validateAddress(address).catch(addError),
-            ),
-          ).then((values) => values.every(Boolean)),
-        bulk ? t`Invalid addresses` : t`Invalid address`,
+  const formSchema = z
+    .object({
+      address: z
+        .string()
+        .refine(
+          (address) =>
+            Promise.all(
+              addressList(address).map((address) =>
+                commands.validateAddress(address).catch(addError),
+              ),
+            ).then((values) => values.every(Boolean)),
+          bulk ? t`Invalid addresses` : t`Invalid address`,
+        ),
+      amount: positiveAmount(asset?.precision || 12).refine(
+        (amount) =>
+          asset
+            ? BigNumber(amount).lte(
+                toDecimal(asset.selectable_balance, asset.precision),
+              )
+            : true,
+        'Amount exceeds spendable balance',
       ),
-    amount: positiveAmount(asset?.precision || 12).refine(
-      (amount) =>
-        asset
-          ? BigNumber(amount).lte(
-              toDecimal(asset.selectable_balance, asset.precision),
-            )
-          : true,
-      'Amount exceeds spendable balance',
-    ),
-    fee: amount(walletState.sync.unit.precision).optional(),
-    memo: z.string().optional(),
-    clawbackEnabled: z.boolean().optional(),
-    clawback: z
-      .object({
-        days: z.string(),
-        hours: z.string(),
-        minutes: z.string(),
-      })
-      .optional(),
-  });
+      fee: amount(walletState.sync.unit.precision).optional(),
+      memo: z.string().optional(),
+      memoMode: z.nativeEnum(MemoMode),
+      clawbackEnabled: z.boolean().optional(),
+      clawback: z
+        .object({
+          days: z.string(),
+          hours: z.string(),
+          minutes: z.string(),
+        })
+        .optional(),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        values.memoMode === MemoMode.Hex &&
+        values.memo &&
+        !isValidHexBytes(values.memo)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['memo'],
+          message: t`Memo must be valid hex bytes (even length, 0-9, a-f)`,
+        });
+      }
+    });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      memoMode: MemoMode.Text,
+    },
   });
+  const memoMode = form.watch('memoMode') || MemoMode.Text;
 
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
     form.setValue('address', scanResValue);
@@ -151,12 +175,20 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
-    const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
 
-    // Store the memo for the confirmation dialog
-    setCurrentMemo(values.memo);
+    let memos: string[] = [];
 
-    // Calculate clawback seconds if enabled
+    if (values.memo) {
+      const memoBytes =
+        values.memoMode === MemoMode.Hex
+          ? fromHexStrict(values.memo)
+          : utf8ToBytes(values.memo);
+
+      memos = [toHex(memoBytes)];
+    }
+
+    setCurrentMemo(values.memo ? {mode: values.memoMode, value: values.memo} : undefined);
+
     let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
@@ -337,27 +369,79 @@ export default function Send() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name='memo'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Memo (optional)</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        autoCorrect='off'
-                        autoCapitalize='off'
-                        autoComplete='off'
-                        placeholder={t`Enter memo`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className='col-span-2'>
+                <div className='flex items-center justify-between mb-2'>
+                  <FormLabel>
+                    <Trans>Memo (optional)</Trans>
+                  </FormLabel>
+
+                  <div className='flex items-center gap-2 text-sm'>
+                    <span
+                      className={
+                        memoMode === 'text'
+                          ? 'font-medium'
+                          : 'text-muted-foreground'
+                      }
+                    >
+                      <Trans>Text</Trans>
+                    </span>
+
+                    <Switch
+                      checked={memoMode === MemoMode.Hex}
+                      onCheckedChange={(checked) => {
+                        form.setValue(
+                          'memoMode',
+                          checked ? MemoMode.Hex : MemoMode.Text,
+                          {
+                            shouldValidate: true,
+                          },
+                        );
+                      }}
+                    />
+
+                    <span
+                      className={
+                        memoMode === MemoMode.Hex
+                          ? 'font-medium'
+                          : 'text-muted-foreground'
+                      }
+                    >
+                      <Trans>Hex</Trans>
+                    </span>
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name='memo'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          autoCorrect='off'
+                          autoCapitalize='off'
+                          autoComplete='off'
+                          placeholder={
+                            memoMode === MemoMode.Hex
+                              ? t`e.g. ff00ab`
+                              : t`Enter memo`
+                          }
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className='text-sm text-muted-foreground mt-2'>
+                  {memoMode === MemoMode.Hex ? (
+                    <Trans>Raw bytes (hex)</Trans>
+                  ) : (
+                    <Trans>UTF-8 encoded</Trans>
+                  )}
+                </div>
+              </div>
 
               {!bulk && (
                 <div className='col-span-2'>
