@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
@@ -22,6 +23,7 @@ import { useNavigate } from 'react-router-dom';
 export function Swap() {
   const walletState = useWalletState();
   const navigate = useNavigate();
+  const { isReadOnly } = useWallet();
 
   const { addError } = useErrors();
 
@@ -321,6 +323,7 @@ export function Swap() {
         <div className='mt-4'>
           <Button
             disabled={
+              isReadOnly ||
               payAssetId === undefined ||
               receiveAssetId === undefined ||
               !receiveAmount ||

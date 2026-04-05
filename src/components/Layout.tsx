@@ -15,6 +15,7 @@ import { Insets } from 'tauri-plugin-safe-area-insets';
 import { useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BottomNav, TopNav } from './Nav';
+import { ReadOnlyBanner } from './ReadOnlyBanner';
 import { WalletSwitcher } from './WalletSwitcher';
 
 function WalletTransitionWrapper({
@@ -43,7 +44,12 @@ function WalletTransitionWrapper({
           : 'env(safe-area-inset-bottom)',
       }}
     >
-      {shouldShow ? children : null}
+      {shouldShow ? (
+        <>
+          <ReadOnlyBanner />
+          {children}
+        </>
+      ) : null}
     </div>
   );
 }

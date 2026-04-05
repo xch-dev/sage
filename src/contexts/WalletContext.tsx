@@ -9,6 +9,7 @@ interface WalletContextType {
   setWallet: (wallet: KeyInfo | null) => void;
   isSwitching: boolean;
   setIsSwitching: (isSwitching: boolean) => void;
+  isReadOnly: boolean;
 }
 
 export const WalletContext = createContext<WalletContextType | undefined>(
@@ -19,6 +20,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<KeyInfo | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
   const { addError } = useErrors();
+
+  const isReadOnly = wallet !== null && wallet.has_secrets === false;
 
   useEffect(() => {
     const init = async () => {
@@ -41,7 +44,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <WalletContext.Provider
-      value={{ wallet, setWallet, isSwitching, setIsSwitching }}
+      value={{ wallet, setWallet, isSwitching, setIsSwitching, isReadOnly }}
     >
       {children}
     </WalletContext.Provider>

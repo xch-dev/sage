@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { TransferDialog } from '@/components/TransferDialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -30,6 +31,7 @@ import { Switch } from '@/components/ui/switch';
 import { useDids } from '@/hooks/useDids';
 import { useErrors } from '@/hooks/useErrors';
 import { toMojos } from '@/lib/utils';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -67,10 +69,10 @@ export function DidList() {
         <ReceiveAddress />
       </Header>
       <Container>
-        <Button onClick={() => navigate('/dids/create')}>
+        <ReadOnlyButton onClick={() => navigate('/dids/create')}>
           <UserPlusIcon className='h-4 w-4 mr-2' />
           <Trans>Create Profile</Trans>
-        </Button>
+        </ReadOnlyButton>
 
         {hasHiddenDids && (
           <div className='flex items-center gap-2 my-4'>
@@ -118,6 +120,7 @@ interface ProfileProps {
 
 function Profile({ did, updateDids }: ProfileProps) {
   const { addError } = useErrors();
+  const { isReadOnly } = useWallet();
 
   const walletState = useWalletState();
 
@@ -232,7 +235,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
-                  disabled={did.created_height === null}
+                  disabled={did.created_height === null || isReadOnly}
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>
@@ -247,7 +250,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                       e.stopPropagation();
                       setNormalizeOpen(true);
                     }}
-                    disabled={did.created_height === null}
+                    disabled={did.created_height === null || isReadOnly}
                   >
                     <ActivityIcon className='mr-2 h-4 w-4' />
                     <span>
@@ -262,7 +265,7 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
-                  disabled={did.created_height === null}
+                  disabled={did.created_height === null || isReadOnly}
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <span>

@@ -20,6 +20,7 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -61,6 +62,7 @@ export function ClawbackCoinsCard({
   setSelectedCoins,
 }: ClawbackCoinsCardProps) {
   const walletState = useWalletState();
+  const { isReadOnly } = useWallet();
 
   const { addError } = useErrors();
 
@@ -315,7 +317,7 @@ export function ClawbackCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={!canClawBack}
+                disabled={isReadOnly || !canClawBack}
                 onClick={() => {
                   if (canClawBack) setClawBackOpen(true);
                 }}
@@ -326,7 +328,9 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={selectedCoinIds.length === 0 || canClawBack}
+                disabled={
+                  isReadOnly || selectedCoinIds.length === 0 || canClawBack
+                }
                 onClick={() => {
                   setFinalizeOpen(true);
                 }}

@@ -8,6 +8,7 @@ import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { OfferRowCard } from '@/components/OfferRowCard';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -44,7 +45,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { useLocalStorage } from 'usehooks-ts';
 import { z } from 'zod';
@@ -272,11 +273,11 @@ export function Offers() {
                     onSubmit={handleViewOffer}
                   />
                 </Dialog>
-                <Link to='/offers/make' replace={true}>
-                  <Button>
-                    <Trans>Create Offer</Trans>
-                  </Button>
-                </Link>
+                <ReadOnlyButton
+                  onClick={() => navigate('/offers/make', { replace: true })}
+                >
+                  <Trans>Create Offer</Trans>
+                </ReadOnlyButton>
               </div>
             </div>
 

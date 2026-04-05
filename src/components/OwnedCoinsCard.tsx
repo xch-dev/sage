@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { fromMojos, toMojos } from '@/lib/utils';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -62,6 +63,7 @@ export function OwnedCoinsCard({
   setSelectedCoins,
 }: OwnedCoinsCardProps) {
   const walletState = useWalletState();
+  const { isReadOnly } = useWallet();
 
   const { addError } = useErrors();
 
@@ -439,7 +441,7 @@ export function OwnedCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={!canSplit}
+                disabled={isReadOnly || !canSplit}
                 onClick={() => setSplitOpen(true)}
               >
                 <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
@@ -447,7 +449,7 @@ export function OwnedCoinsCard({
               </Button>
               <Button
                 variant='outline'
-                disabled={!(canCombine || canAutoCombine)}
+                disabled={isReadOnly || !(canCombine || canAutoCombine)}
                 onClick={() => {
                   if (canCombine) {
                     setCombineOpen(true);
