@@ -34,6 +34,23 @@ export default function QRScanner() {
   }, [navigate, returnPath]);
 
   useEffect(() => {
+    // Remove body background image so camera feed shows through WebView
+    const body = document.body;
+    const hadBackgroundImage = body.classList.contains('has-background-image');
+    const savedBackgroundImage = body.style.backgroundImage;
+    if (hadBackgroundImage) {
+      body.classList.remove('has-background-image');
+      body.style.backgroundImage = 'none';
+    }
+    return () => {
+      if (hadBackgroundImage) {
+        body.classList.add('has-background-image');
+        body.style.backgroundImage = savedBackgroundImage;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const startScanning = async () => {
       try {
         const result = await scan({
