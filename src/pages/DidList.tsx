@@ -120,7 +120,7 @@ interface ProfileProps {
 
 function Profile({ did, updateDids }: ProfileProps) {
   const { addError } = useErrors();
-  const { isReadOnly } = useWallet();
+  const { isTransactionDisabled } = useWallet();
 
   const walletState = useWalletState();
 
@@ -235,7 +235,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
-                  disabled={did.created_height === null || isReadOnly}
+                  disabled={
+                    did.created_height === null || isTransactionDisabled
+                  }
                 >
                   <SendIcon className='mr-2 h-4 w-4' />
                   <span>
@@ -250,7 +252,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                       e.stopPropagation();
                       setNormalizeOpen(true);
                     }}
-                    disabled={did.created_height === null || isReadOnly}
+                    disabled={
+                      did.created_height === null || isTransactionDisabled
+                    }
                   >
                     <ActivityIcon className='mr-2 h-4 w-4' />
                     <span>
@@ -265,7 +269,9 @@ function Profile({ did, updateDids }: ProfileProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
-                  disabled={did.created_height === null || isReadOnly}
+                  disabled={
+                    did.created_height === null || isTransactionDisabled
+                  }
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <span>

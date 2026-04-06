@@ -12,9 +12,9 @@ import { cn } from '@/lib/utils';
 type ButtonProps = ComponentProps<typeof Button>;
 
 export function ReadOnlyButton({ children, onClick, ...props }: ButtonProps) {
-  const { isReadOnly } = useWallet();
+  const { isTransactionDisabled } = useWallet();
 
-  if (isReadOnly) {
+  if (isTransactionDisabled) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>

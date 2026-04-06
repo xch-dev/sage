@@ -62,7 +62,7 @@ export function ClawbackCoinsCard({
   setSelectedCoins,
 }: ClawbackCoinsCardProps) {
   const walletState = useWalletState();
-  const { isReadOnly } = useWallet();
+  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
 
@@ -317,7 +317,7 @@ export function ClawbackCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={isReadOnly || !canClawBack}
+                disabled={isTransactionDisabled || !canClawBack}
                 onClick={() => {
                   if (canClawBack) setClawBackOpen(true);
                 }}
@@ -329,7 +329,9 @@ export function ClawbackCoinsCard({
               <Button
                 variant='outline'
                 disabled={
-                  isReadOnly || selectedCoinIds.length === 0 || canClawBack
+                  isTransactionDisabled ||
+                  selectedCoinIds.length === 0 ||
+                  canClawBack
                 }
                 onClick={() => {
                   setFinalizeOpen(true);

@@ -23,7 +23,7 @@ import { useNavigate } from 'react-router-dom';
 export function Swap() {
   const walletState = useWalletState();
   const navigate = useNavigate();
-  const { isReadOnly } = useWallet();
+  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
 
@@ -323,7 +323,7 @@ export function Swap() {
         <div className='mt-4'>
           <Button
             disabled={
-              isReadOnly ||
+              isTransactionDisabled ||
               payAssetId === undefined ||
               receiveAssetId === undefined ||
               !receiveAmount ||

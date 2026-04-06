@@ -63,7 +63,7 @@ export function OwnedCoinsCard({
   setSelectedCoins,
 }: OwnedCoinsCardProps) {
   const walletState = useWalletState();
-  const { isReadOnly } = useWallet();
+  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
 
@@ -441,7 +441,7 @@ export function OwnedCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={isReadOnly || !canSplit}
+                disabled={isTransactionDisabled || !canSplit}
                 onClick={() => setSplitOpen(true)}
               >
                 <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
@@ -449,7 +449,9 @@ export function OwnedCoinsCard({
               </Button>
               <Button
                 variant='outline'
-                disabled={isReadOnly || !(canCombine || canAutoCombine)}
+                disabled={
+                  isTransactionDisabled || !(canCombine || canAutoCombine)
+                }
                 onClick={() => {
                   if (canCombine) {
                     setCombineOpen(true);

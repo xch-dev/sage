@@ -10,6 +10,7 @@ import {
 import { LoadingButton } from '@/components/ui/loading-button';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { useWallet } from '@/contexts/WalletContext';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -38,9 +39,11 @@ import { formatNumber } from '../i18n';
 import { calculateTransaction } from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { ReadOnlyButton } from './ReadOnlyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -65,6 +68,9 @@ export default function ConfirmationDialog({
 
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
+  const { isReadOnly, allowUnsigned } = useWallet();
+
+  const isColdWalletUnsignedMode = isReadOnly && allowUnsigned;
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -76,6 +82,12 @@ export default function ConfirmationDialog({
       setSignature(response.spend_bundle.aggregated_signature);
     }
   }, [response]);
+
+  useEffect(() => {
+    if (response !== null && isColdWalletUnsignedMode) {
+      setActiveTab('json');
+    }
+  }, [response, isColdWalletUnsignedMode]);
 
   const reset = () => {
     setPending(false);
@@ -512,7 +524,7 @@ export default function ConfirmationDialog({
                 </Alert>
 
                 <div className='flex items-center gap-2 mt-4'>
-                  <Button
+                  <ReadOnlyButton
                     size='sm'
                     onClick={async () => {
                       if (await promptIfEnabled()) {
@@ -534,7 +546,7 @@ export default function ConfirmationDialog({
                           .catch(addError);
                       }
                     }}
-                    disabled={!!signature}
+                    disabled={!!signature || isReadOnly}
                   >
                     {signature ? (
                       <>
@@ -547,7 +559,7 @@ export default function ConfirmationDialog({
                     ) : (
                       <Trans>Sign Transaction</Trans>
                     )}
-                  </Button>
+                  </ReadOnlyButton>
 
                   <Button
                     variant='outline'
@@ -606,57 +618,80 @@ export default function ConfirmationDialog({
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
-          <LoadingButton
-            loading={pending}
-            loadingText={t`Submitting`}
-            onClick={() => {
-              setPending(true);
+          {isColdWalletUnsignedMode ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='inline-flex cursor-not-allowed'>
+                  <LoadingButton
+                    disabled
+                    loading={false}
+                    loadingText=''
+                    className='pointer-events-none'
+                  >
+                    <Trans>Submit</Trans>
+                  </LoadingButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Trans>
+                  Cold wallets cannot sign transactions. Copy the JSON and sign
+                  externally.
+                </Trans>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <LoadingButton
+              loading={pending}
+              loadingText={t`Submitting`}
+              onClick={() => {
+                setPending(true);
 
-              (async () => {
-                let finalSignature: string | null = signature;
+                (async () => {
+                  let finalSignature: string | null = signature;
 
-                if (
-                  !finalSignature &&
-                  response !== null &&
-                  'coin_spends' in response
-                ) {
-                  if (!(await promptIfEnabled())) return;
+                  if (
+                    !finalSignature &&
+                    response !== null &&
+                    'coin_spends' in response
+                  ) {
+                    if (!(await promptIfEnabled())) return;
+
+                    const data = await commands
+                      .signCoinSpends({
+                        coin_spends: response.coin_spends,
+                      })
+                      .catch(addError);
+
+                    if (!data) return reset();
+
+                    finalSignature = data.spend_bundle.aggregated_signature;
+                  }
 
                   const data = await commands
-                    .signCoinSpends({
-                      coin_spends: response.coin_spends,
+                    .submitTransaction({
+                      spend_bundle: {
+                        coin_spends:
+                          response === null
+                            ? []
+                            : 'coin_spends' in response
+                              ? response.coin_spends
+                              : response.spend_bundle.coin_spends,
+                        aggregated_signature: finalSignature ?? '',
+                      },
                     })
                     .catch(addError);
 
                   if (!data) return reset();
 
-                  finalSignature = data.spend_bundle.aggregated_signature;
-                }
-
-                const data = await commands
-                  .submitTransaction({
-                    spend_bundle: {
-                      coin_spends:
-                        response === null
-                          ? []
-                          : 'coin_spends' in response
-                            ? response.coin_spends
-                            : response.spend_bundle.coin_spends,
-                      aggregated_signature: finalSignature ?? '',
-                    },
-                  })
-                  .catch(addError);
-
-                if (!data) return reset();
-
-                toast.success(t`Transaction submitted successfully`);
-                onConfirm?.();
-                reset();
-              })().finally(() => setPending(false));
-            }}
-          >
-            <Trans>Submit</Trans>
-          </LoadingButton>
+                  toast.success(t`Transaction submitted successfully`);
+                  onConfirm?.();
+                  reset();
+                })().finally(() => setPending(false));
+              }}
+            >
+              <Trans>Submit</Trans>
+            </LoadingButton>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
