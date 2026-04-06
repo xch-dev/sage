@@ -38,6 +38,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useInsets } from '@/contexts/SafeAreaContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useBiometric } from '@/hooks/useBiometric';
+import { useColdWalletUnsigned } from '@/hooks/useColdWalletUnsigned';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
@@ -198,6 +199,7 @@ export default function Settings() {
 
               <TabsContent value='advanced'>
                 <div className='grid gap-4'>
+                  <ColdWalletSettings />
                   {!isMobile && <RpcSettings />}
                   <LogViewer />
                 </div>
@@ -930,6 +932,22 @@ function LogViewer() {
           </div>
         )}
       </div>
+    </SettingsSection>
+  );
+}
+
+function ColdWalletSettings() {
+  const { allowUnsigned, setAllowUnsigned } = useColdWalletUnsigned();
+
+  return (
+    <SettingsSection title={t`Cold Wallets`}>
+      <SettingItem
+        label={t`Allow Unsigned Transactions`}
+        description={t`When enabled, cold wallets can build transactions and export the unsigned spend bundle for external signing, instead of being blocked from transacting entirely.`}
+        control={
+          <Switch checked={allowUnsigned} onCheckedChange={setAllowUnsigned} />
+        }
+      />
     </SettingsSection>
   );
 }
