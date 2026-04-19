@@ -13,8 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
 import { emptyNftRecord, fromMojos, getAssetDisplayName, toMojos } from '@/lib/utils';
-import { Assets, OfferState, TokenAmount } from '@/state';
-import { useWalletState } from '@/state';
+import { Assets, OfferState, TokenAmount, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
@@ -400,8 +399,8 @@ export function MakeOfferConfirmationDialog({
       const xchBalance = BigNumber(walletState.sync.selectable_balance);
 
       if (totalXchNeeded.gt(xchBalance)) {
-        const needed = fromMojos(totalXchNeeded.toString(), 12);
-        const have = fromMojos(xchBalance.toString(), 12);
+        const needed = fromMojos(totalXchNeeded.toString(), 12).toString();
+        const have = fromMojos(xchBalance.toString(), 12).toString();
         setBalanceError(
           t`Insufficient XCH balance: need ${needed} XCH for ${copies} copies, have ${have}`,
         );
@@ -425,8 +424,8 @@ export function MakeOfferConfirmationDialog({
                 resp.token.ticker,
                 'token',
               );
-              const needed = fromMojos(neededMojos.toString(), resp.token.precision);
-              const have = fromMojos(haveMojos.toString(), resp.token.precision);
+              const needed = fromMojos(neededMojos.toString(), resp.token.precision).toString();
+              const have = fromMojos(haveMojos.toString(), resp.token.precision).toString();
               setBalanceError(
                 t`Insufficient balance: need ${needed} ${displayName} for ${copies} copies, have ${have}`,
               );
