@@ -315,7 +315,10 @@ export function MakeOffer() {
 
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
-          onOpenChange={setIsConfirmDialogOpen}
+          onOpenChange={(open) => {
+            setIsConfirmDialogOpen(open);
+            if (!open) setCopies(1);
+          }}
           onConfirm={handleConfirm}
           offerState={state}
           splitNftOffers={splitNftOffers}
