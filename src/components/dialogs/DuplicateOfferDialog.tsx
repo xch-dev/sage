@@ -152,14 +152,14 @@ export function DuplicateOfferDialog({
   }, [copies, open, record.summary, walletState.sync.selectable_balance]);
 
   const handleDuplicate = async () => {
+    // Check biometric before transitioning to progress phase
+    if (!(await promptIfEnabled())) {
+      return;
+    }
+
     setPhase('progress');
     setIsCreating(true);
     setCurrentStep('creating');
-
-    if (!(await promptIfEnabled())) {
-      onOpenChange(false);
-      return;
-    }
 
     const offeredAssets: OfferAmount[] = record.summary.maker.map((a) => ({
       asset_id: a.asset.asset_id,
