@@ -33,6 +33,7 @@ export function MakeOffer() {
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
+  const [copies, setCopies] = useState(1);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -321,6 +322,8 @@ export function MakeOffer() {
           fee={state.fee || '0'}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
+          copies={copies}
+          onCopiesChange={setCopies}
         />
 
         <OfferCreationProgressDialog
@@ -329,6 +332,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           enabledMarketplaces={enabledMarketplaces}
+          copies={copies}
           clearOfferState={() => {
             setState(null);
             navigate('/offers', { replace: true });

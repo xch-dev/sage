@@ -340,6 +340,8 @@ export function Swap() {
           offerState={offerState}
           splitNftOffers={false}
           fee={fee || '0'}
+          copies={1}
+          onCopiesChange={() => {}}
         />
 
         <OfferCreationProgressDialog
