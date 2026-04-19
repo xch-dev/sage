@@ -28,6 +28,7 @@ interface OfferCreationProgressDialogProps {
   enabledMarketplaces?: Record<string, boolean>;
   clearOfferState: (offers: string[]) => void;
   isSwap?: boolean;
+  copies?: number;
 }
 
 export function OfferCreationProgressDialog({
@@ -38,6 +39,7 @@ export function OfferCreationProgressDialog({
   enabledMarketplaces,
   clearOfferState,
   isSwap,
+  copies = 1,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
   const [network, setNetwork] = useState<NetworkKind | null>(null);
@@ -51,7 +53,7 @@ export function OfferCreationProgressDialog({
   const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
   const totalOffers = splitNftOffers
     ? offerState.offered.nfts.filter((n) => n).length
-    : 1;
+    : copies;
 
   const {
     createdOffers,
@@ -62,6 +64,7 @@ export function OfferCreationProgressDialog({
   } = useOfferProcessor({
     offerState,
     splitNftOffers,
+    copies,
     onProcessingEnd: () => {
       // Don't auto-close on success
     },
@@ -248,12 +251,12 @@ export function OfferCreationProgressDialog({
                   aria-hidden='true'
                 />
                 {currentStep === 'creating' ? (
-                  splitNftOffers ? (
+                  splitNftOffers || copies > 1 ? (
                     <Trans>Creating Offers</Trans>
                   ) : (
                     <Trans>Creating Offer</Trans>
                   )
-                ) : splitNftOffers ? (
+                ) : splitNftOffers || copies > 1 ? (
                   <Trans>Uploading Offers</Trans>
                 ) : (
                   <Trans>Uploading Offer</Trans>
@@ -271,7 +274,7 @@ export function OfferCreationProgressDialog({
                 <p>
                   <Trans>
                     Please wait while{' '}
-                    {splitNftOffers ? 'your offers are' : 'your offer is'} being
+                    {splitNftOffers || copies > 1 ? 'your offers are' : 'your offer is'} being
                     {currentStep === 'creating' ? ' created' : ' uploaded'}
                     {currentStep === 'creating' &&
                     Object.values(enabledMarketplaces ?? {}).some(Boolean)
