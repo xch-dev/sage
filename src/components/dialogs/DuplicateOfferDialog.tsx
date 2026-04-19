@@ -149,7 +149,7 @@ export function DuplicateOfferDialog({
     };
 
     validate();
-  }, [copies, open, record.summary, walletState.sync.selectable_balance]);
+  }, [copies, open, record.offer_id, walletState.sync.selectable_balance]);
 
   const handleDuplicate = async () => {
     // Check biometric before transitioning to progress phase
@@ -189,7 +189,9 @@ export function DuplicateOfferDialog({
       addError({
         kind: 'invalid',
         reason:
-          error instanceof Error ? error.message : t`Failed to create offer`,
+          error instanceof Error
+            ? t`Failed on copy ${createdOffers.length + 1} of ${copies}: ${error.message}`
+            : t`Failed to create offer`,
       });
       onOpenChange(false);
       return;
@@ -221,7 +223,7 @@ export function DuplicateOfferDialog({
           } catch (error) {
             addError({
               kind: 'upload',
-              reason: t`Failed to upload offer ${oi + 1} to ${marketplace.name}: ${error as string}`,
+              reason: t`Failed to upload offer ${oi + 1} to ${marketplace.name}: ${error instanceof Error ? error.message : String(error)}`,
             });
             break;
           }
@@ -265,7 +267,15 @@ export function DuplicateOfferDialog({
         if (!isInProgress) onOpenChange(isOpen);
       }}
     >
-      <DialogContent className='sm:max-w-md'>
+      <DialogContent
+        className='sm:max-w-md'
+        onInteractOutside={(e) => {
+          if (isInProgress) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isInProgress) e.preventDefault();
+        }}
+      >
         {phase === 'config' ? (
           <>
             <DialogHeader>
