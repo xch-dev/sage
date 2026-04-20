@@ -12,12 +12,17 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
-import { emptyNftRecord, getAssetDisplayName } from '@/lib/utils';
-import { Assets, OfferState, TokenAmount } from '@/state';
+import {
+  emptyNftRecord,
+  fromMojos,
+  getAssetDisplayName,
+  toMojos,
+} from '@/lib/utils';
+import { Assets, OfferState, TokenAmount, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Minus, Plus } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { NumberFormat } from '../NumberFormat';
 import { ScrollArea } from '../ui/scroll-area';
@@ -31,6 +36,8 @@ interface MakeOfferConfirmationDialogProps {
   fee: string;
   enabledMarketplaces?: Record<string, boolean>;
   setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
+  copies: number;
+  onCopiesChange?: (copies: number) => void;
 }
 interface TokenWithName extends TokenAmount {
   displayName?: string;
@@ -371,8 +378,94 @@ export function MakeOfferConfirmationDialog({
   fee,
   enabledMarketplaces,
   setEnabledMarketplaces,
+  copies,
+  onCopiesChange,
 }: MakeOfferConfirmationDialogProps) {
   const [xchToken, setXchToken] = useState<TokenRecord | null>(null);
+  const walletState = useWalletState();
+  const [balanceError, setBalanceError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Balance validation only runs when copies > 1 — single-copy offers
+    // rely on the blockchain to reject insufficient balance at signing time.
+    if (!open || copies <= 1) {
+      setBalanceError(null);
+      return;
+    }
+
+    const validate = async () => {
+      // XCH check: (fee + any XCH offered) × copies ≤ selectable_balance (mojos)
+      const xchToken = offerState.offered.tokens.find(
+        (t) => t.asset_id === null,
+      );
+      const xchOfferedMojos = xchToken
+        ? BigNumber(toMojos(xchToken.amount?.toString() || '0', 12))
+        : BigNumber(0);
+      const feeMojos = BigNumber(toMojos(fee || '0', 12));
+      const totalXchNeeded = xchOfferedMojos
+        .plus(feeMojos)
+        .multipliedBy(copies);
+      const xchBalance = BigNumber(walletState.sync.selectable_balance);
+
+      if (totalXchNeeded.gt(xchBalance)) {
+        const needed = fromMojos(totalXchNeeded.toString(), 12).toString();
+        const have = fromMojos(xchBalance.toString(), 12).toString();
+        setBalanceError(
+          t`Insufficient XCH balance: need ${needed} XCH for ${copies} copies, have ${have}`,
+        );
+        return;
+      }
+
+      // Per-CAT check: cat_amount × copies ≤ cat.selectable_balance (mojos)
+      for (const token of offerState.offered.tokens.filter(
+        (t) => t.asset_id !== null,
+      )) {
+        try {
+          const resp = await commands.getToken({ asset_id: token.asset_id });
+          if (resp.token) {
+            const neededMojos = BigNumber(
+              toMojos(
+                token.amount?.toString() || '0',
+                resp.token.precision,
+              ),
+            ).multipliedBy(copies);
+            const haveMojos = BigNumber(resp.token.selectable_balance);
+            if (neededMojos.gt(haveMojos)) {
+              const displayName = getAssetDisplayName(
+                resp.token.name,
+                resp.token.ticker,
+                'token',
+              );
+              const needed = fromMojos(
+                neededMojos.toString(),
+                resp.token.precision,
+              ).toString();
+              const have = fromMojos(
+                haveMojos.toString(),
+                resp.token.precision,
+              ).toString();
+              setBalanceError(
+                t`Insufficient balance: need ${needed} ${displayName} for ${copies} copies, have ${have}`,
+              );
+              return;
+            }
+          }
+        } catch {
+          // skip check if fetch fails
+        }
+      }
+
+      setBalanceError(null);
+    };
+
+    validate();
+  }, [
+    copies,
+    open,
+    offerState.offered.tokens,
+    fee,
+    walletState.sync.selectable_balance,
+  ]);
 
   useEffect(() => {
     const fetchXchToken = async () => {
@@ -434,6 +527,13 @@ export function MakeOfferConfirmationDialog({
                   <span className='font-bold'>{numberOfOffers}</span> individual
                   offers. Each offer will request the same assets and offer one
                   of the selected NFTs.
+                </Trans>
+              </p>
+            ) : copies > 1 ? (
+              <p className='text-sm'>
+                <Trans>
+                  You are about to create{' '}
+                  <span className='font-bold'>{copies}</span> identical offers.
                 </Trans>
               </p>
             ) : (
@@ -533,21 +633,42 @@ export function MakeOfferConfirmationDialog({
                   </p>
                 </>
               ) : (
-                <p className='text-sm'>
-                  <Trans>Network Fee:</Trans>{' '}
-                  <NumberFormat
-                    value={feePerOffer}
-                    minimumFractionDigits={2}
-                    maximumFractionDigits={xchToken?.precision ?? 12}
-                  />{' '}
-                  {xchToken
-                    ? getAssetDisplayName(
-                        xchToken.name,
-                        xchToken.ticker,
-                        'token',
-                      )
-                    : 'XCH'}
-                </p>
+                <>
+                  <p className='text-sm'>
+                    <Trans>Network Fee:</Trans>{' '}
+                    <NumberFormat
+                      value={feePerOffer}
+                      minimumFractionDigits={2}
+                      maximumFractionDigits={xchToken?.precision ?? 12}
+                    />{' '}
+                    {xchToken
+                      ? getAssetDisplayName(
+                          xchToken.name,
+                          xchToken.ticker,
+                          'token',
+                        )
+                      : 'XCH'}
+                  </p>
+                  {!isSplitting && copies > 1 && (
+                    <p className='text-sm'>
+                      <Trans>Total fees for {copies} copies:</Trans>{' '}
+                      <NumberFormat
+                        value={new BigNumber(feePerOffer)
+                          .multipliedBy(copies)
+                          .toString()}
+                        minimumFractionDigits={2}
+                        maximumFractionDigits={xchToken?.precision ?? 12}
+                      />{' '}
+                      {xchToken
+                        ? getAssetDisplayName(
+                            xchToken.name,
+                            xchToken.ticker,
+                            'token',
+                          )
+                        : 'XCH'}
+                    </p>
+                  )}
+                </>
               )}
               {(fee || '0') === '0' && (
                 <p className='text-xs text-muted-foreground'>
@@ -555,6 +676,40 @@ export function MakeOfferConfirmationDialog({
                     (Plus any blockchain royalties for offered assets)
                   </Trans>
                 </p>
+              )}
+            </div>
+          )}
+
+          {!isSplitting && onCopiesChange != null && (
+            <div>
+              <h3 className='text-md font-semibold mb-1'>
+                <Trans>Number of Copies</Trans>
+              </h3>
+              <div className='flex items-center gap-2'>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  className='h-8 w-8'
+                  onClick={() => onCopiesChange(Math.max(1, copies - 1))}
+                  disabled={copies <= 1}
+                  type='button'
+                >
+                  <Minus className='h-4 w-4' />
+                </Button>
+                <span className='w-8 text-center font-mono'>{copies}</span>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  className='h-8 w-8'
+                  onClick={() => onCopiesChange(Math.min(10, copies + 1))}
+                  disabled={copies >= 10}
+                  type='button'
+                >
+                  <Plus className='h-4 w-4' />
+                </Button>
+              </div>
+              {balanceError && (
+                <p className='text-sm text-destructive mt-1'>{balanceError}</p>
               )}
             </div>
           )}
@@ -610,7 +765,7 @@ export function MakeOfferConfirmationDialog({
           <Button variant='outline' onClick={() => onOpenChange(false)}>
             <Trans>Cancel</Trans>
           </Button>
-          <Button onClick={handleConfirm}>
+          <Button onClick={handleConfirm} disabled={!!balanceError}>
             <Trans>Confirm & Create</Trans>
           </Button>
         </DialogFooter>
