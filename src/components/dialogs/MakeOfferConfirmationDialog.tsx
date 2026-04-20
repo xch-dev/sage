@@ -420,12 +420,15 @@ export function MakeOfferConfirmationDialog({
       for (const token of offerState.offered.tokens.filter(
         (t) => t.asset_id !== null,
       )) {
-        const neededMojos = BigNumber(
-          toMojos(token.amount?.toString() || '0', 3),
-        ).multipliedBy(copies);
         try {
           const resp = await commands.getToken({ asset_id: token.asset_id });
           if (resp.token) {
+            const neededMojos = BigNumber(
+              toMojos(
+                token.amount?.toString() || '0',
+                resp.token.precision,
+              ),
+            ).multipliedBy(copies);
             const haveMojos = BigNumber(resp.token.selectable_balance);
             if (neededMojos.gt(haveMojos)) {
               const displayName = getAssetDisplayName(
