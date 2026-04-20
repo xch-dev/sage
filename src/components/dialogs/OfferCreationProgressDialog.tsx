@@ -274,7 +274,10 @@ export function OfferCreationProgressDialog({
                 <p>
                   <Trans>
                     Please wait while{' '}
-                    {splitNftOffers || copies > 1 ? 'your offers are' : 'your offer is'} being
+                    {splitNftOffers || copies > 1
+                      ? 'your offers are'
+                      : 'your offer is'}{' '}
+                    being
                     {currentStep === 'creating' ? ' created' : ' uploaded'}
                     {currentStep === 'creating' &&
                     Object.values(enabledMarketplaces ?? {}).some(Boolean)

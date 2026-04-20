@@ -12,7 +12,12 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { marketplaces } from '@/lib/marketplaces';
-import { emptyNftRecord, fromMojos, getAssetDisplayName, toMojos } from '@/lib/utils';
+import {
+  emptyNftRecord,
+  fromMojos,
+  getAssetDisplayName,
+  toMojos,
+} from '@/lib/utils';
 import { Assets, OfferState, TokenAmount, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -397,7 +402,9 @@ export function MakeOfferConfirmationDialog({
         ? BigNumber(toMojos(xchToken.amount?.toString() || '0', 12))
         : BigNumber(0);
       const feeMojos = BigNumber(toMojos(fee || '0', 12));
-      const totalXchNeeded = xchOfferedMojos.plus(feeMojos).multipliedBy(copies);
+      const totalXchNeeded = xchOfferedMojos
+        .plus(feeMojos)
+        .multipliedBy(copies);
       const xchBalance = BigNumber(walletState.sync.selectable_balance);
 
       if (totalXchNeeded.gt(xchBalance)) {
@@ -426,8 +433,14 @@ export function MakeOfferConfirmationDialog({
                 resp.token.ticker,
                 'token',
               );
-              const needed = fromMojos(neededMojos.toString(), resp.token.precision).toString();
-              const have = fromMojos(haveMojos.toString(), resp.token.precision).toString();
+              const needed = fromMojos(
+                neededMojos.toString(),
+                resp.token.precision,
+              ).toString();
+              const have = fromMojos(
+                haveMojos.toString(),
+                resp.token.precision,
+              ).toString();
               setBalanceError(
                 t`Insufficient balance: need ${needed} ${displayName} for ${copies} copies, have ${have}`,
               );
@@ -443,7 +456,13 @@ export function MakeOfferConfirmationDialog({
     };
 
     validate();
-  }, [copies, open, offerState.offered.tokens, fee, walletState.sync.selectable_balance]);
+  }, [
+    copies,
+    open,
+    offerState.offered.tokens,
+    fee,
+    walletState.sync.selectable_balance,
+  ]);
 
   useEffect(() => {
     const fetchXchToken = async () => {

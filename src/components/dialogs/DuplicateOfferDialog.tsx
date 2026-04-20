@@ -149,7 +149,13 @@ export function DuplicateOfferDialog({
     };
 
     validate();
-  }, [copies, open, record.offer_id, walletState.sync.selectable_balance]);
+  }, [
+    copies,
+    open,
+    record.summary.fee,
+    record.summary.maker,
+    walletState.sync.selectable_balance,
+  ]);
 
   const handleDuplicate = async () => {
     // Check biometric before transitioning to progress phase
@@ -213,10 +219,7 @@ export function DuplicateOfferDialog({
         for (const [oi, offer] of createdOffers.entries()) {
           setCurrentOfferIndex(oi);
           try {
-            await marketplace.uploadToMarketplace(
-              offer,
-              network === 'testnet',
-            );
+            await marketplace.uploadToMarketplace(offer, network === 'testnet');
             if (oi < createdOffers.length - 1) {
               await delay(500);
             }
@@ -286,8 +289,8 @@ export function DuplicateOfferDialog({
               </DialogTitle>
               <DialogDescription>
                 <Trans>
-                  Create identical copies of this offer. All copies will use
-                  the same assets and amounts as the original. Timestamp-based
+                  Create identical copies of this offer. All copies will use the
+                  same assets and amounts as the original. Timestamp-based
                   expiry is preserved; block-height expiry is not supported and
                   will be omitted.
                 </Trans>
@@ -323,7 +326,9 @@ export function DuplicateOfferDialog({
                   </Button>
                 </div>
                 {balanceError && (
-                  <p className='text-sm text-destructive mt-1'>{balanceError}</p>
+                  <p className='text-sm text-destructive mt-1'>
+                    {balanceError}
+                  </p>
                 )}
               </div>
 
