@@ -15,7 +15,7 @@ import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
@@ -34,6 +34,7 @@ export function MakeOffer() {
     Record<string, boolean>
   >({});
   const [copies, setCopies] = useState(1);
+  const confirmedRef = useRef(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -105,6 +106,7 @@ export function MakeOffer() {
   };
 
   const handleConfirm = () => {
+    confirmedRef.current = true;
     setIsProgressDialogOpen(true);
   };
 
@@ -317,7 +319,8 @@ export function MakeOffer() {
           open={isConfirmDialogOpen}
           onOpenChange={(open) => {
             setIsConfirmDialogOpen(open);
-            if (!open) setCopies(1);
+            if (!open && !confirmedRef.current) setCopies(1);
+            confirmedRef.current = false;
           }}
           onConfirm={handleConfirm}
           offerState={state}
