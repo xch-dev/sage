@@ -225,6 +225,8 @@ export function DuplicateOfferDialog({
               kind: 'upload',
               reason: t`Failed to upload offer ${oi + 1} to ${marketplace.name}: ${error instanceof Error ? error.message : String(error)}`,
             });
+            // Break inner loop only — consistent with OfferCreationProgressDialog behavior.
+            // Typically if one offer fails, the rest will too.
             break;
           }
         }
@@ -285,7 +287,9 @@ export function DuplicateOfferDialog({
               <DialogDescription>
                 <Trans>
                   Create identical copies of this offer. All copies will use
-                  the same assets, amounts, and expiry as the original.
+                  the same assets and amounts as the original. Timestamp-based
+                  expiry is preserved; block-height expiry is not supported and
+                  will be omitted.
                 </Trans>
               </DialogDescription>
             </DialogHeader>

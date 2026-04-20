@@ -32,7 +32,7 @@ interface MakeOfferConfirmationDialogProps {
   enabledMarketplaces?: Record<string, boolean>;
   setEnabledMarketplaces?: (marketplaces: Record<string, boolean>) => void;
   copies: number;
-  onCopiesChange: (copies: number) => void;
+  onCopiesChange?: (copies: number) => void;
 }
 interface TokenWithName extends TokenAmount {
   displayName?: string;
@@ -381,6 +381,8 @@ export function MakeOfferConfirmationDialog({
   const [balanceError, setBalanceError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Balance validation only runs when copies > 1 — single-copy offers
+    // rely on the blockchain to reject insufficient balance at signing time.
     if (!open || copies <= 1) {
       setBalanceError(null);
       return;
@@ -656,7 +658,7 @@ export function MakeOfferConfirmationDialog({
             </div>
           )}
 
-          {!isSplitting && (
+          {!isSplitting && onCopiesChange != null && (
             <div>
               <h3 className='text-md font-semibold mb-1'>
                 <Trans>Number of Copies</Trans>
