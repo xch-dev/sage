@@ -1,4 +1,4 @@
-import { commands, KeyInfo } from '@/bindings';
+import { commands, WalletRecord } from '@/bindings';
 import { MigrationDialog } from '@/components/dialogs/MigrationDialog';
 import {
   DropdownMenu,
@@ -15,6 +15,8 @@ import {
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import iconDark from '@/icon-dark.png';
+import iconLight from '@/icon-light.png';
 import { clearState, loginAndUpdateState, logoutAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -23,12 +25,10 @@ import { ChevronDown, WalletIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'theme-o-rama';
-import iconDark from '@/icon-dark.png';
-import iconLight from '@/icon-light.png';
 
 interface WalletSwitcherProps {
   isCollapsed?: boolean;
-  wallet?: KeyInfo;
+  wallet?: WalletRecord;
 }
 
 export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
@@ -36,20 +36,22 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const { currentTheme } = useTheme();
   const { setWallet, setIsSwitching, isSwitching } = useWallet();
   const { addError } = useErrors();
-  const [wallets, setWallets] = useState<KeyInfo[]>([]);
+  const [wallets, setWallets] = useState<WalletRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
-  const [migrationWallet, setMigrationWallet] = useState<KeyInfo | null>(null);
+  const [migrationWallet, setMigrationWallet] = useState<WalletRecord | null>(
+    null,
+  );
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
     const fetchWallets = async () => {
       try {
-        const data = await commands.getKeys({});
-        setWallets([...data.keys].sort((a, b) => a.name.localeCompare(b.name)));
+        const data = await commands.getWallets({});
+        setWallets([...data.wallets].sort((a, b) => a.name.localeCompare(b.name)));
       } catch (error) {
         addError(error as CustomError);
       } finally {
@@ -81,9 +83,9 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       await loginAndUpdateState(fingerprint);
-      const data = await commands.getKey({});
+      const data = await commands.getWallet({});
 
-      setWallet(data.key);
+      setWallet(data.wallet);
 
       await new Promise((resolve) => setTimeout(resolve, 50));
 

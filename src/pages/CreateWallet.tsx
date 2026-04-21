@@ -1,7 +1,7 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
+import { MnemonicDisplay } from '@/components/MnemonicDisplay';
 import SafeAreaView from '@/components/SafeAreaView';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -28,15 +28,12 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import { CopyIcon, RefreshCwIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +49,7 @@ export default function CreateWallet() {
 
   const submit = (values: z.infer<typeof formSchema>) => {
     commands
-      .importKey({
+      .importWallet({
         name: values.walletName,
         key: values.mnemonic,
         save_secrets: values.saveMnemonic,
@@ -61,8 +58,8 @@ export default function CreateWallet() {
       .catch(addError)
       .then(async () => {
         await fetchState();
-        const data = await commands.getKey({});
-        setWallet(data.key);
+        const data = await commands.getWallet({});
+        setWallet(data.wallet);
         navigate('/wallet');
       });
   };
@@ -109,12 +106,6 @@ function CreateForm(props: {
     loadMnemonic();
   }, [loadMnemonic]);
 
-  const mnemonic = form.watch('mnemonic');
-  const copyMnemonic = useCallback(() => {
-    if (!mnemonic) return;
-    writeText(mnemonic);
-  }, [mnemonic]);
-
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const confirmAndSubmit = (values: z.infer<typeof formSchema>) => {
@@ -154,7 +145,7 @@ function CreateForm(props: {
                       <Trans>Wallet Name</Trans>
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder='' required {...field} />
+                      <Input placeholder={t`Enter wallet name`} required {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -249,43 +240,10 @@ function CreateForm(props: {
               />
 
               <div className='mt-3'>
-                <div className='flex justify-between items-center mb-2'>
-                  <Label>
-                    <Trans>Mnemonic</Trans>
-                  </Label>
-                  <div>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='sm'
-                      onClick={loadMnemonic}
-                    >
-                      <RefreshCwIcon className='h-4 w-4' />
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='sm'
-                      onClick={copyMnemonic}
-                    >
-                      <CopyIcon className='h-4 w-4' />
-                    </Button>
-                  </div>
-                </div>
-                <div className='flex flex-wrap'>
-                  {form
-                    .watch('mnemonic')
-                    ?.split(' ')
-                    .map((word) => (
-                      <Badge
-                        key={word}
-                        variant='outline'
-                        className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
-                      >
-                        {word}
-                      </Badge>
-                    ))}
-                </div>
+                <MnemonicDisplay
+                  mnemonic={form.watch('mnemonic')}
+                  onRegenerate={loadMnemonic}
+                />
               </div>
 
               <Button type='submit'>

@@ -161,7 +161,7 @@ pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
 
 #[command]
 #[specta]
-pub async fn move_key(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
+pub async fn move_wallet(state: State<'_, AppState>, fingerprint: u32, index: u32) -> Result<()> {
     let mut state = state.lock().await;
 
     let old_index = state
