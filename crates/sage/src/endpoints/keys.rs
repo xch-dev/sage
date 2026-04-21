@@ -14,11 +14,11 @@ use chia_wallet_sdk::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
-    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
-    Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo,
-    SetWalletEmoji, SetWalletEmojiResponse,
+    ChangePassword, ChangePasswordResponse, DeleteDatabase, DeleteDatabaseResponse, DeleteKey,
+    DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys,
+    GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo,
+    KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync,
+    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -122,6 +122,7 @@ impl Sage {
     }
 
     pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
+        let password_bytes = req.password.unwrap_or_default().into_bytes();
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -138,7 +139,7 @@ impl Sage {
                 let master_pk = master_sk.public_key();
 
                 let fingerprint = if req.save_secrets {
-                    self.keychain.add_secret_key(&master_sk, b"")?
+                    self.keychain.add_secret_key(&master_sk, &password_bytes)?
                 } else {
                     self.keychain.add_public_key(&master_pk)?
                 };
@@ -175,7 +176,7 @@ impl Sage {
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
             let master_pk = master_sk.public_key();
             let fingerprint = if req.save_secrets {
-                self.keychain.add_mnemonic(&mnemonic, b"")?
+                self.keychain.add_mnemonic(&mnemonic, &password_bytes)?
             } else {
                 self.keychain.add_public_key(&master_pk)?
             };
@@ -187,6 +188,7 @@ impl Sage {
             name: req.name,
             fingerprint,
             emoji: req.emoji,
+            password_protected: !password_bytes.is_empty(),
             ..Default::default()
         });
         self.config.global.fingerprint = Some(fingerprint);
@@ -343,6 +345,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(fingerprint),
+                has_password: wallet_config.password_protected,
                 network_id,
                 emoji: wallet_config.emoji,
             }),
@@ -350,7 +353,9 @@ impl Sage {
     }
 
     pub fn get_secret_key(&self, req: GetSecretKey) -> Result<GetSecretKeyResponse> {
-        let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, b"")?
+        let password = req.password.unwrap_or_default().into_bytes();
+        let (mnemonic, Some(secret_key)) =
+            self.keychain.extract_secrets(req.fingerprint, &password)?
         else {
             return Ok(GetSecretKeyResponse { secrets: None });
         };
@@ -361,6 +366,16 @@ impl Sage {
                 secret_key: hex::encode(secret_key.to_bytes()),
             }),
         })
+    }
+
+    pub fn change_password(&mut self, req: ChangePassword) -> Result<ChangePasswordResponse> {
+        let old_password = req.old_password.into_bytes();
+        let new_password = req.new_password.into_bytes();
+        self.keychain
+            .change_password(req.fingerprint, &old_password, &new_password)?;
+        self.save_keychain()?;
+        self.set_password_protected(req.fingerprint, !new_password.is_empty())?;
+        Ok(ChangePasswordResponse {})
     }
 
     pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
@@ -377,6 +392,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
+                has_password: wallet.password_protected,
                 network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
                 emoji: wallet.emoji.clone(),
             });

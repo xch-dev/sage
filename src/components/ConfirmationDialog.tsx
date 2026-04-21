@@ -8,8 +8,9 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
+import { useWallet } from '@/contexts/WalletContext';
 import { fromMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -64,7 +65,8 @@ export default function ConfirmationDialog({
   const ticker = walletState.sync.unit.ticker;
 
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
+  const { requestPassword } = usePassword();
+  const { wallet } = useWallet();
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -515,24 +517,26 @@ export default function ConfirmationDialog({
                   <Button
                     size='sm'
                     onClick={async () => {
-                      if (await promptIfEnabled()) {
-                        commands
-                          .signCoinSpends({
-                            coin_spends:
-                              response === null
-                                ? []
-                                : 'coin_spends' in response
-                                  ? response.coin_spends
-                                  : response.spend_bundle.coin_spends,
-                          })
-                          .then((data) => {
-                            setSignature(
-                              data.spend_bundle.aggregated_signature,
-                            );
-                            toast.success(t`Transaction signed successfully`);
-                          })
-                          .catch(addError);
-                      }
+                      const password = await requestPassword(
+                        wallet?.has_password ?? false,
+                      );
+                      if (password === undefined) return;
+
+                      commands
+                        .signCoinSpends({
+                          coin_spends:
+                            response === null
+                              ? []
+                              : 'coin_spends' in response
+                                ? response.coin_spends
+                                : response.spend_bundle.coin_spends,
+                          password,
+                        })
+                        .then((data) => {
+                          setSignature(data.spend_bundle.aggregated_signature);
+                          toast.success(t`Transaction signed successfully`);
+                        })
+                        .catch(addError);
                     }}
                     disabled={!!signature}
                   >
@@ -620,11 +624,15 @@ export default function ConfirmationDialog({
                   response !== null &&
                   'coin_spends' in response
                 ) {
-                  if (!(await promptIfEnabled())) return;
+                  const password = await requestPassword(
+                    wallet?.has_password ?? false,
+                  );
+                  if (password === undefined) return;
 
                   const data = await commands
                     .signCoinSpends({
                       coin_spends: response.coin_spends,
+                      password,
                     })
                     .catch(addError);
 

@@ -76,9 +76,8 @@ export async function handleSignCoinSpends(
   params: Params<'chip0002_signCoinSpends'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.signCoinSpends({
     coin_spends: params.coinSpends.map((coinSpend) => {
@@ -94,6 +93,7 @@ export async function handleSignCoinSpends(
     }),
     partial: params.partialSign,
     auto_submit: false,
+    password,
   });
 
   return data.spend_bundle.aggregated_signature;
@@ -103,11 +103,10 @@ export async function handleSignMessage(
   params: Params<'chip0002_signMessage'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
-  const data = await commands.signMessageWithPublicKey(params);
+  const data = await commands.signMessageWithPublicKey({ ...params, password });
 
   return data.signature;
 }

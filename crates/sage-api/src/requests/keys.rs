@@ -177,6 +177,10 @@ pub struct ImportKey {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub emoji: Option<String>,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 fn yes() -> bool {
@@ -375,13 +379,17 @@ pub struct GetKeyResponse {
         description = "Retrieve the secret key (mnemonic) for a wallet. Requires authentication."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetSecretKey {
     /// Wallet fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with secret key information
@@ -397,6 +405,36 @@ pub struct GetSecretKeyResponse {
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub secrets: Option<SecretKeyInfo>,
 }
+
+/// Change the password for a wallet's secret key
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Change the password used to encrypt a wallet's secret key."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ChangePassword {
+    /// Wallet fingerprint
+    pub fingerprint: u32,
+    /// Current password (empty string if no password is set)
+    pub old_password: String,
+    /// New password (empty string to remove password protection)
+    pub new_password: String,
+}
+
+/// Response after changing the password
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ChangePasswordResponse {}
 
 /// List all custom theme NFTs
 #[cfg_attr(

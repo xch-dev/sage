@@ -192,7 +192,7 @@ pub struct RedownloadNftResponse {}
         description = "Increase the derivation index to generate more addresses for the wallet."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct IncreaseDerivationIndex {
@@ -205,6 +205,10 @@ pub struct IncreaseDerivationIndex {
     /// The target derivation index to increase to
     #[cfg_attr(feature = "openapi", schema(example = 100))]
     pub index: u32,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response after increasing the derivation index

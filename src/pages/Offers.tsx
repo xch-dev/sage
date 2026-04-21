@@ -185,7 +185,7 @@ export function Offers() {
     }
   };
 
-  const cancelAllHandler = (values: z.infer<typeof cancelAllSchema>) => {
+  const cancelAllHandler = async (values: z.infer<typeof cancelAllSchema>) => {
     const fee = toMojos(values.fee, walletState.sync.unit.precision);
     const activeOffers = filteredOffers.filter(
       (offer) => offer.status === 'active',

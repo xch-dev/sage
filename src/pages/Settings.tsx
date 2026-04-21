@@ -1,4 +1,8 @@
 import Container from '@/components/Container';
+import {
+  PasswordManagementDialog,
+  PasswordDialogMode,
+} from '@/components/dialogs/PasswordManagementDialog';
 import { ResyncDialog } from '@/components/dialogs/ResyncDialog';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
@@ -42,6 +46,7 @@ import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { exportText, ExportType } from '@/lib/exportText';
@@ -67,6 +72,7 @@ import prettyBytes from 'pretty-bytes';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { z } from 'zod';
 import {
   commands,
@@ -260,8 +266,27 @@ function GlobalSettings() {
   const { locale, changeLanguage } = useLanguage();
   const { expiry, setExpiry } = useDefaultOfferExpiry();
   const { clawback, setClawback } = useDefaultClawback();
-  const { enabled, available, enableIfAvailable, disable } = useBiometric();
   const { setFee } = useDefaultFee();
+  const {
+    enabled: biometricEnabled,
+    available,
+    enableIfAvailable,
+    disable,
+  } = useBiometric();
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const toggleBiometric = async (value: boolean) => {
+    try {
+      if (value) {
+        await enableIfAvailable();
+      } else {
+        await disable();
+      }
+    } catch (error) {
+      addError(error as CustomError);
+    }
+  };
 
   const [defaultWalletConfig, setDefaultWalletConfig] =
     useState<WalletDefaults | null>(null);
@@ -269,16 +294,6 @@ function GlobalSettings() {
   useEffect(() => {
     commands.defaultWalletConfig().then(setDefaultWalletConfig).catch(addError);
   }, [addError]);
-
-  const isMobile = platform() === 'ios' || platform() === 'android';
-
-  const toggleBiometric = async (value: boolean) => {
-    if (value) {
-      await enableIfAvailable();
-    } else {
-      await disable();
-    }
-  };
 
   return (
     <>
@@ -302,19 +317,6 @@ function GlobalSettings() {
             </Link>
           </div>
         </div>
-        {isMobile && (
-          <SettingItem
-            label={t`Biometric Authentication`}
-            description={t`Require biometrics for sensitive actions`}
-            control={
-              <Switch
-                checked={enabled}
-                disabled={!available}
-                onCheckedChange={toggleBiometric}
-              />
-            }
-          />
-        )}
         <SettingItem
           label={t`Language`}
           description={t`Choose your preferred language`}
@@ -332,6 +334,18 @@ function GlobalSettings() {
             </Select>
           }
         />
+        {isMobile && available && (
+          <SettingItem
+            label={t`Biometric Authentication`}
+            description={t`Use biometrics for sensitive actions and password unlock`}
+            control={
+              <Switch
+                checked={biometricEnabled}
+                onCheckedChange={toggleBiometric}
+              />
+            }
+          />
+        )}
       </SettingsSection>
 
       <SettingsSection title={t`Transaction Defaults`}>
@@ -936,7 +950,7 @@ function LogViewer() {
 
 function RpcSettings() {
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
+  const { requestPassword } = usePassword();
 
   const [isRunning, setIsRunning] = useState(false);
   const [runOnStartup, setRunOnStartup] = useState(false);
@@ -959,7 +973,8 @@ function RpcSettings() {
   }, [addError]);
 
   const start = async () => {
-    if (!(await promptIfEnabled())) return;
+    const auth = await requestPassword(false);
+    if (auth === undefined) return;
 
     commands
       .startRpcServer()
@@ -975,7 +990,8 @@ function RpcSettings() {
   };
 
   const toggleRunOnStartup = async (checked: boolean) => {
-    if (!(await promptIfEnabled())) return;
+    const auth = await requestPassword(false);
+    if (auth === undefined) return;
 
     commands
       .setRpcRunOnStartup(checked)
@@ -1020,6 +1036,8 @@ function RpcSettings() {
 
 function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const { addError } = useErrors();
+  const { requestPassword } = usePassword();
+  const { setWallet: setGlobalWallet } = useWallet();
 
   const walletState = useWalletState();
 
@@ -1039,6 +1057,9 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
   const [performingMaintenance, setPerformingMaintenance] = useState(false);
   const [unhardened, setUnhardened] = useState(true);
   const [hardened, setHardened] = useState(true);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [passwordDialogMode, setPasswordDialogMode] =
+    useState<PasswordDialogMode>('set');
 
   const saveChangeAddress = (address: string) => {
     const trimmedAddress = address.trim();
@@ -1188,21 +1209,63 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     },
   });
 
-  const handler = (values: z.infer<typeof schema>) => {
-    setPending(true);
+  const openPasswordDialog = (mode: PasswordDialogMode) => {
+    setPasswordDialogMode(mode);
+    setPasswordDialogOpen(true);
+  };
 
-    commands
-      .increaseDerivationIndex({
-        index: parseInt(values.index),
-        hardened: key?.has_secrets && hardened,
-        unhardened,
-      })
-      .then(() => {
-        setDeriveOpen(false);
-        updateSyncStatus();
-      })
-      .catch(addError)
-      .finally(() => setPending(false));
+  const handlePasswordSuccess = async () => {
+    setPasswordDialogOpen(false);
+
+    // Refresh key info to update has_password in local and global state
+    const data = await commands.getKey({ fingerprint });
+    setKey(data.key);
+    setGlobalWallet(data.key);
+
+    toast.success(
+      passwordDialogMode === 'set'
+        ? t`Password set successfully`
+        : passwordDialogMode === 'change'
+          ? t`Password changed successfully`
+          : t`Password removed successfully`,
+    );
+  };
+
+  const handler = async (values: z.infer<typeof schema>) => {
+    const needsPassword = key?.has_secrets && hardened;
+    if (needsPassword) {
+      const password = await requestPassword(key?.has_password ?? false);
+      if (password === undefined) return;
+
+      setPending(true);
+      commands
+        .increaseDerivationIndex({
+          index: parseInt(values.index),
+          hardened: true,
+          unhardened,
+          password,
+        })
+        .then(() => {
+          setDeriveOpen(false);
+          updateSyncStatus();
+        })
+        .catch(addError)
+        .finally(() => setPending(false));
+    } else {
+      setPending(true);
+      commands
+        .increaseDerivationIndex({
+          index: parseInt(values.index),
+          hardened: false,
+          unhardened,
+        })
+        .then(() => {
+          setDeriveOpen(false);
+          updateSyncStatus();
+        })
+        .catch(addError)
+        .finally(() => setPending(false));
+    }
   };
 
   return (
@@ -1297,6 +1360,47 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
           </div>
         </SettingItem>
       </SettingsSection>
+
+      {key?.has_secrets && (
+        <SettingsSection title={t`Security`}>
+          <SettingItem
+            label={key?.has_password ? t`Wallet Password` : t`Set Password`}
+            description={
+              key?.has_password
+                ? t`Your wallet is password-protected`
+                : t`Protect signing and secret access with a password`
+            }
+            control={
+              key?.has_password ? (
+                <div className='flex gap-2'>
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    onClick={() => openPasswordDialog('change')}
+                  >
+                    <Trans>Change</Trans>
+                  </Button>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => openPasswordDialog('remove')}
+                  >
+                    <Trans>Remove</Trans>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant='secondary'
+                  size='sm'
+                  onClick={() => openPasswordDialog('set')}
+                >
+                  <Trans>Set Password</Trans>
+                </Button>
+              )
+            }
+          />
+        </SettingsSection>
+      )}
 
       <SettingsSection title={t`Syncing`}>
         <SettingItem
@@ -1525,6 +1629,14 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
         submit={async (options) => {
           await commands.resync({ fingerprint, ...options });
         }}
+      />
+
+      <PasswordManagementDialog
+        open={passwordDialogOpen}
+        mode={passwordDialogMode}
+        fingerprint={fingerprint}
+        onClose={() => setPasswordDialogOpen(false)}
+        onSuccess={handlePasswordSuccess}
       />
 
       <Dialog open={maintenanceOpen} onOpenChange={setMaintenanceOpen}>

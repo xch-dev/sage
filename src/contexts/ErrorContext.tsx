@@ -7,7 +7,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { t } from '@lingui/core/macro';
 import { createContext, ReactNode, useCallback, useState } from 'react';
+import { toast } from 'react-toastify';
 import { ErrorKind } from '../bindings';
 
 export interface CustomError {
@@ -28,9 +30,16 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<CustomError[]>([]);
 
   const addError = useCallback((error: CustomError) => {
-    // Skip unauthorized errors - they're expected during wallet transitions
-    // and redundant when not logged in (user already knows they need to log in)
     if (error.kind === 'unauthorized') {
+      const reason = error.reason ?? '';
+      if (reason.includes('decrypt')) {
+        // Wrong password — AES decryption failed
+        toast.error(t`Incorrect password`);
+      } else if (reason.includes('not found') || reason.includes('No secret')) {
+        // KeyNotFound or NoSecretKey — wallet-level issue, not a transition
+        toast.error(error.reason);
+      }
+      // NotLoggedIn / NoSigningKey during wallet transitions are silently ignored
       return;
     }
     setErrors((prevErrors) => [...prevErrors, error]);
