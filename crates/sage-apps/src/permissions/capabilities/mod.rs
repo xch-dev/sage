@@ -1,9 +1,3 @@
-use anyhow::Result;
-use std::collections::BTreeSet;
-use crate::bridge::capabilities::UserBridgeCapability;
-use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
-use crate::types::{SageRequestedCapabilities};
-
 mod definitions;
 mod normalization;
 mod validation;
@@ -14,9 +8,15 @@ pub(crate) use definitions::{
     user_capability_definition_view,
     user_registry
 };
-pub(in crate::permissions) use normalization::normalize_requested_capabilities;
-pub(in crate::permissions) use validation::validate_granted_capabilities;
+pub(super) use normalization::normalize_requested_capabilities;
+pub(super) use validation::validate_granted_capabilities;
 pub(crate) use types::CapabilityFlags;
+
+use anyhow::Result;
+use std::collections::BTreeSet;
+use crate::bridge::capabilities::UserBridgeCapability;
+use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+use crate::types::{SageRequestedCapabilities};
 
 pub(crate) fn normalize_and_validate_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,

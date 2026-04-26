@@ -1,14 +1,14 @@
 use std::collections::BTreeSet;
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use crate::types::{SageNetworkPermissionTarget, SageRequestedNetworkPermissions};
 
-pub fn normalize_requested_network(
+pub(in crate::permissions) fn normalize_requested_network(
     network_permissions: &SageRequestedNetworkPermissions,
-) -> anyhow::Result<SageRequestedNetworkPermissions> {
-    let required = normalize_requested_network_entries(&network_permissions.whitelist.required)?;
+) -> Result<SageRequestedNetworkPermissions> {
+    let required = normalize_network_entries(&network_permissions.whitelist.required)?;
     let required_keys = required.iter().cloned().collect::<BTreeSet<_>>();
 
-    let optional = normalize_requested_network_entries(&network_permissions.whitelist.optional)?
+    let optional = normalize_network_entries(&network_permissions.whitelist.optional)?
         .into_iter()
         .filter(|entry| !required_keys.contains(entry))
         .collect();
@@ -18,9 +18,15 @@ pub fn normalize_requested_network(
     })
 }
 
+pub(in crate::permissions) fn normalize_granted_network(
+    granted: &[SageNetworkPermissionTarget],
+) -> Result<Vec<SageNetworkPermissionTarget>> {
+    normalize_network_entries(granted)
+}
+
 pub fn normalize_network_entry(
     entry: &SageNetworkPermissionTarget,
-) -> anyhow::Result<SageNetworkPermissionTarget> {
+) -> Result<SageNetworkPermissionTarget> {
     let scheme = entry.scheme.trim().to_ascii_lowercase();
     let host = entry.host.trim().to_ascii_lowercase();
 
@@ -35,9 +41,9 @@ pub fn normalize_network_entry(
     Ok(SageNetworkPermissionTarget { scheme, host })
 }
 
-fn normalize_requested_network_entries(
+fn normalize_network_entries(
     entries: &[SageNetworkPermissionTarget],
-) -> anyhow::Result<Vec<SageNetworkPermissionTarget>> {
+) -> Result<Vec<SageNetworkPermissionTarget>> {
     let mut seen = BTreeSet::new();
     let mut normalized = Vec::new();
 

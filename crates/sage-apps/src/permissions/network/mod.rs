@@ -1,47 +1,27 @@
+mod validation;
+mod normalization;
+
+pub(super) use validation::validate_granted_network;
+pub(super) use normalization::normalize_requested_network;
+
 use std::collections::BTreeSet;
-use anyhow::{anyhow, Result};
-use crate::permissions::network::normalization::normalize_network_entry;
+use anyhow::Result;
+use crate::permissions::network::normalization::{normalize_granted_network};
 use crate::types::{SageNetworkPermissionTarget, SageRequestedNetworkPermissions};
 
-pub mod validation;
-pub mod normalization;
-
-pub fn normalize_and_validate_granted_network(
+pub(crate) fn normalize_and_validate_granted_network(
     requested: &SageRequestedNetworkPermissions,
     granted: &[SageNetworkPermissionTarget],
 ) -> Result<Vec<SageNetworkPermissionTarget>> {
-    let requested_required = requested
-        .whitelist
-        .required
-        .iter()
-        .map(|entry| normalize_network_entry(&entry))
-        .collect::<Result<BTreeSet<_>>>()?;
+    let requested = normalize_requested_network(requested)?;
+    let granted = normalize_granted_network(granted)?;
 
-    let mut requested_optional = BTreeSet::new();
+    validate_granted_network(&requested, &granted)?;
 
-    for entry in &requested.whitelist.optional {
-        let key = normalize_network_entry(&entry)?;
+    let mut effective = BTreeSet::new();
 
-        if !requested_required.contains(&key) {
-            requested_optional.insert(key);
-        }
-    }
+    effective.extend(requested.whitelist.required);
+    effective.extend(granted);
 
-    let mut result = requested_required;
-
-    for entry in granted {
-        let key = normalize_network_entry(&entry)?;
-
-        if !result.contains(&key) && !requested_optional.contains(&key) {
-            return Err(anyhow!(
-                "granted network whitelist entry not requested in manifest: {}://{}",
-                key.scheme,
-                key.host
-            ));
-        }
-
-        result.insert(key);
-    }
-
-    Ok(result.into_iter().collect())
+    Ok(effective.into_iter().collect())
 }

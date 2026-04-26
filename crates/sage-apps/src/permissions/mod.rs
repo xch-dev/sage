@@ -12,7 +12,7 @@ use crate::permissions::network::normalize_and_validate_granted_network;
 use crate::permissions::normalization::normalize_requested_permissions;
 use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedPermissions};
 
-pub fn normalize_and_validate_requested_permissions(
+pub(crate) fn normalize_and_validate_requested_permissions(
     permissions: &SageRequestedPermissions,
 ) -> Result<SageRequestedPermissions> {
     let normalized_requested = normalize_requested_permissions(permissions)?;
@@ -22,7 +22,7 @@ pub fn normalize_and_validate_requested_permissions(
     Ok(normalized_requested)
 }
 
-pub(super) fn normalize_and_validate_granted_permissions(
+pub(crate) fn normalize_and_validate_granted_permissions(
     requested: &SageRequestedPermissions,
     granted: SageGrantedPermissions,
 ) -> Result<SageGrantedPermissions> {
