@@ -79,3 +79,57 @@ pub(crate) fn requested_user_grantable_capabilities(
     caps.dedup();
     caps
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::permissions::resolve_and_validate_effective_granted_capabilities;
+    use crate::permissions::tests::{auto_granted_capability, empty_requested_permissions};
+
+    #[test]
+    fn moving_non_user_grantable_capability_from_optional_to_required_still_auto_grants() {
+        let auto = auto_granted_capability();
+
+        let mut optional_requested = empty_requested_permissions();
+        optional_requested.capabilities.optional = vec![auto];
+
+        let optional_effective = resolve_and_validate_effective_granted_capabilities(
+            &optional_requested.capabilities,
+            &[],
+        )
+            .expect("optional auto grant should resolve");
+
+        assert_eq!(optional_effective, vec![auto]);
+
+        let mut required_requested = empty_requested_permissions();
+        required_requested.capabilities.required = vec![auto];
+
+        let required_effective = resolve_and_validate_effective_granted_capabilities(
+            &required_requested.capabilities,
+            &[],
+        )
+            .expect("required auto grant should resolve");
+
+        assert_eq!(required_effective, vec![auto]);
+    }
+
+    #[test]
+    fn removed_non_user_grantable_capability_is_no_longer_effective() {
+        let auto = auto_granted_capability();
+
+        let mut requested = empty_requested_permissions();
+        requested.capabilities.required = vec![auto];
+
+        let effective = resolve_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
+            .expect("expected auto grant before removal");
+
+        assert_eq!(effective, vec![auto]);
+
+        let removed_requested = empty_requested_permissions();
+
+        let effective_after_removal =
+            resolve_and_validate_effective_granted_capabilities(&removed_requested.capabilities, &[])
+                .expect("expected permissions to resolve after removal");
+
+        assert!(effective_after_removal.is_empty());
+    }
+}

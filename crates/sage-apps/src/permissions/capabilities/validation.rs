@@ -62,7 +62,7 @@ mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::permissions::capabilities::validation::{validate_effective_granted_capabilities, validate_user_granted_capabilities};
     use crate::permissions::resolve_and_validate_effective_granted_capabilities;
-    use crate::permissions::tests::tests::{auto_granted_capability, empty_requested_permissions};
+    use crate::permissions::tests::{auto_granted_capability, empty_requested_permissions};
 
     #[test]
     fn validate_user_granted_capabilities_rejects_unrequested_capability() {

@@ -24,7 +24,7 @@ pub(super) fn validate_requested_permission(
 #[cfg(test)]
 pub(super) mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
-    use crate::permissions::tests::tests::empty_requested_permissions;
+    use crate::permissions::tests::empty_requested_permissions;
     use crate::permissions::validate_requested_permission;
 
     #[test]

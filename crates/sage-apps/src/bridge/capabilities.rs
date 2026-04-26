@@ -123,3 +123,63 @@ impl UserBridgeCapability {
         shared.into_iter().collect()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::permissions::user_registry;
+
+    fn first_shared_capability() -> UserBridgeCapability {
+        user_registry()
+            .values()
+            .find(|definition| definition.flags.shared_with_app)
+            .unwrap_or_else(|| {
+                panic!("test requires at least one capability with shared_with_app = true")
+            })
+            .capability
+    }
+
+    fn first_non_shared_capability() -> UserBridgeCapability {
+        user_registry()
+            .values()
+            .find(|definition| !definition.flags.shared_with_app)
+            .unwrap_or_else(|| {
+                panic!("test requires at least one capability with shared_with_app = false")
+            })
+            .capability
+    }
+
+    #[test]
+    fn resolve_shared_capabilities_filters_out_non_shared_capabilities() {
+        let shared = first_shared_capability();
+        let non_shared = first_non_shared_capability();
+
+        let shared_capabilities = UserBridgeCapability::shared_from_granted(&vec![
+            shared.clone(),
+            non_shared.clone(),
+        ]);
+
+        assert!(
+            shared_capabilities.contains(&shared),
+            "shared capability should remain visible to app"
+        );
+        assert!(
+            !shared_capabilities.contains(&non_shared),
+            "non-shared capability should not be visible to app"
+        );
+    }
+
+    #[test]
+    fn resolve_shared_capabilities_preserves_ordered_unique_shared_subset() {
+        let shared = first_shared_capability();
+        let non_shared = first_non_shared_capability();
+
+        let shared_capabilities = UserBridgeCapability::shared_from_granted(&vec![
+            non_shared.clone(),
+            shared.clone(),
+            shared.clone(),
+        ]);
+
+        assert_eq!(shared_capabilities, vec![shared]);
+    }
+}

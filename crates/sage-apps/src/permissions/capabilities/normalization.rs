@@ -67,14 +67,14 @@ mod tests {
 
     #[test]
     fn normalize_user_granted_capabilities_strips_non_user_grantable_capability() {
-        let auto = crate::permissions::tests::tests::auto_granted_capability();
+        let auto = crate::permissions::tests::auto_granted_capability();
 
         let normalized = normalize_granted_capabilities(&[auto])
             .expect("normalization should tolerate and strip stale non-user-grantable grants");
 
         assert!(normalized.is_empty());
 
-        let mut requested = crate::permissions::tests::tests::empty_requested_permissions();
+        let mut requested = crate::permissions::tests::empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
         let effective = resolve_and_validate_effective_granted_capabilities(&requested.capabilities, &normalized)
