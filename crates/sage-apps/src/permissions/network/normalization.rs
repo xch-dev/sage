@@ -44,21 +44,10 @@ pub fn normalize_network_entry(
 fn normalize_network_entries(
     entries: &[SageNetworkPermissionTarget],
 ) -> Result<Vec<SageNetworkPermissionTarget>> {
-    let mut seen = BTreeSet::new();
-    let mut normalized = Vec::new();
+    let normalized = entries
+        .iter()
+        .map(normalize_network_entry)
+        .collect::<Result<BTreeSet<_>>>()?;
 
-    for entry in entries {
-        let normalized_entry = normalize_network_entry(&entry)?;
-        if seen.insert(normalized_entry.clone()) {
-            normalized.push(normalized_entry);
-        }
-    }
-
-    normalized.sort_by(|a, b| {
-        let a_key = format!("{}://{}", a.scheme, a.host);
-        let b_key = format!("{}://{}", b.scheme, b.host);
-        a_key.cmp(&b_key)
-    });
-
-    Ok(normalized)
+    Ok(normalized.into_iter().collect())
 }

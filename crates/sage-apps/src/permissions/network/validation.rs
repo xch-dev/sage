@@ -8,22 +8,16 @@ pub(in crate::permissions) fn validate_granted_network(
     requested: &SageRequestedNetworkPermissions,
     granted: &[SageNetworkPermissionTarget],
 ) -> Result<()> {
-    let requested_required = requested
+    let allowed: BTreeSet<_> = requested
         .whitelist
         .required
         .iter()
+        .chain(requested.whitelist.optional.iter())
         .cloned()
-        .collect::<BTreeSet<_>>();
-
-    let requested_optional = requested
-        .whitelist
-        .optional
-        .iter()
-        .cloned()
-        .collect::<BTreeSet<_>>();
+        .collect();
 
     for entry in granted {
-        if !requested_required.contains(entry) && !requested_optional.contains(entry) {
+        if !allowed.contains(entry) {
             return Err(anyhow!(
                 "granted network whitelist entry not requested in manifest: {}://{}",
                 entry.scheme,
