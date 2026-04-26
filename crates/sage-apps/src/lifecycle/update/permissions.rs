@@ -5,9 +5,7 @@ use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id
 use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::permissions::capabilities::definitions::{get_user_capability_definition};
-use crate::permissions::capabilities::get_effective_granted_capabilities;
-use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
-use crate::permissions::capabilities::validation::validate_granted_capabilities;
+use crate::permissions::capabilities::{get_and_validate_effective_granted_capabilities, normalize_and_validate_granted_capabilities};
 use crate::permissions::network::normalize_and_validate_granted_network;
 use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageNetworkPermissionTarget, UserSageApp};
 
@@ -19,17 +17,13 @@ pub fn update_app_permissions(
 ) -> anyhow::Result<UserSageApp> {
     let mut app = read_installed_app_by_id(base_path, app_id)?;
 
-    let normalized_capabilities = normalize_granted_capabilities(
-        &granted_permissions.capabilities,
+    let normalized_capabilities = normalize_and_validate_granted_capabilities(
+        &app.common.requested_permissions.capabilities,
+        &granted_permissions.capabilities
     )?;
 
-    validate_granted_capabilities(
-        &app.common.requested_permissions,
-        &normalized_capabilities,
-    )?;
-
-    let effective_capabilities = get_effective_granted_capabilities(
-        &app.common.requested_permissions,
+    let effective_capabilities = get_and_validate_effective_granted_capabilities(
+        &app.common.requested_permissions.capabilities,
         &normalized_capabilities,
     )?;
 
@@ -54,8 +48,8 @@ pub fn update_app_permissions(
         },
     };
 
-    let effective_capabilities = get_effective_granted_capabilities(
-        &app.common.requested_permissions,
+    let effective_capabilities = get_and_validate_effective_granted_capabilities(
+        &app.common.requested_permissions.capabilities,
         &app.common.granted_permissions.capabilities,
     )?;
 

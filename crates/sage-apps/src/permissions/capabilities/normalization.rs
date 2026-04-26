@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
-use anyhow::anyhow;
+use anyhow::{anyhow, Result};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::permissions::capabilities::definitions::get_user_capability_definition;
 use crate::types::SageRequestedCapabilities;
 
-pub fn normalize_requested_capabilities(
+pub(in crate::permissions) fn normalize_requested_capabilities(
     capabilities: &SageRequestedCapabilities,
-) -> anyhow::Result<SageRequestedCapabilities> {
+) -> Result<SageRequestedCapabilities> {
     let mut required = BTreeSet::new();
     let mut optional = BTreeSet::new();
 
@@ -48,7 +48,7 @@ pub fn normalize_requested_capabilities(
 
 pub fn normalize_granted_capabilities(
     granted: &[UserBridgeCapability],
-) -> anyhow::Result<Vec<UserBridgeCapability>> {
+) -> Result<Vec<UserBridgeCapability>> {
     let mut out = BTreeSet::new();
 
     for granted_capability in granted {
@@ -60,4 +60,28 @@ pub fn normalize_granted_capabilities(
     }
 
     Ok(out.into_iter().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
+    use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+
+    #[test]
+    fn normalize_user_granted_capabilities_strips_non_user_grantable_capability() {
+        let auto = crate::permissions::tests::tests::auto_granted_capability();
+
+        let normalized = normalize_granted_capabilities(&[auto])
+            .expect("normalization should tolerate and strip stale non-user-grantable grants");
+
+        assert!(normalized.is_empty());
+
+        let mut requested = crate::permissions::tests::tests::empty_requested_permissions();
+        requested.capabilities.required = vec![auto];
+
+        let effective = get_and_validate_effective_granted_capabilities(&requested.capabilities, &normalized)
+            .expect("auto capability should still be effective");
+
+        assert_eq!(effective, vec![auto]);
+    }
 }

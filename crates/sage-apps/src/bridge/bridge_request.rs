@@ -9,7 +9,7 @@ use crate::bridge::registry::BridgeRegistry;
 use crate::bridge::state::write_pending_approval;
 use crate::host::AppState;
 use crate::permissions::capabilities::definitions::{get_system_capability_definition, get_user_capability_definition};
-use crate::permissions::capabilities::get_effective_granted_capabilities;
+use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
@@ -218,8 +218,8 @@ fn verify_user_capability(
     }
 
     let effective_capabilities = match app {
-        SageApp::User(user_app) => get_effective_granted_capabilities(
-            &user_app.common.requested_permissions,
+        SageApp::User(user_app) => get_and_validate_effective_granted_capabilities(
+            &user_app.common.requested_permissions.capabilities,
             &user_app.common.granted_permissions.capabilities,
         )
             .map_err(|err| {

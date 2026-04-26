@@ -7,10 +7,9 @@ use tauri::command;
 use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
 use crate::lifecycle::flags::get_app_flags;
-use crate::permissions::{normalize_and_validate_requested_permissions};
+use crate::permissions::{normalize_and_validate_granted_permissions, normalize_and_validate_requested_permissions};
 use crate::permissions::capabilities::definitions::{get_user_capability_definition};
-use crate::permissions::capabilities::get_effective_granted_capabilities;
-use crate::permissions::capabilities::validation::validate_granted_capabilities;
+use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageAppSource, UserSageApp};
 
 macro_rules! sandbox_test_id_prefix {
@@ -210,19 +209,18 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     user_granted_capabilities.sort();
     user_granted_capabilities.dedup();
 
-    let granted_permissions = SageGrantedPermissions {
-        capabilities: user_granted_capabilities,
-        network: SageGrantedNetworkPermissions {
-            whitelist: manifest.permissions.network.whitelist.required.clone(),
-        },
-    };
-
-    validate_granted_capabilities(
+    let granted_permissions = normalize_and_validate_granted_permissions(
         &manifest.permissions,
-        &granted_permissions.capabilities,
+        SageGrantedPermissions {
+            capabilities: user_granted_capabilities,
+            network: SageGrantedNetworkPermissions {
+                whitelist: manifest.permissions.network.whitelist.required.clone(),
+            },
+        }
     )?;
-    let effective_capabilities = get_effective_granted_capabilities(
-        &manifest.permissions,
+
+    let effective_capabilities = get_and_validate_effective_granted_capabilities(
+        &manifest.permissions.capabilities,
         &granted_permissions.capabilities,
     )?;
 
