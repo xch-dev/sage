@@ -1,4 +1,4 @@
-pub mod policy;
+pub mod tests;
 pub mod validation;
 pub mod capabilities;
 pub mod network;
