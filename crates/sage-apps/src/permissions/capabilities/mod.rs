@@ -1,15 +1,21 @@
 use anyhow::Result;
 use std::collections::BTreeSet;
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::permissions::capabilities::definitions::get_user_capability_definition;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
-use crate::permissions::capabilities::validation::validate_granted_capabilities;
 use crate::types::{SageRequestedCapabilities};
 
-pub mod definitions;
-pub mod normalization;
-pub(in crate::permissions) mod validation;
+mod definitions;
+mod normalization;
+mod validation;
 pub mod types;
+
+pub(crate) use definitions::{
+    get_user_capability_definition, get_system_capability_definition,
+    user_capability_definition_view,
+    user_registry
+};
+pub(in crate::permissions) use normalization::normalize_requested_capabilities;
+pub(in crate::permissions) use validation::validate_granted_capabilities;
 
 pub(crate) fn normalize_and_validate_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,
@@ -22,7 +28,7 @@ pub(crate) fn normalize_and_validate_granted_capabilities(
     Ok(normalized)
 }
 
-pub(crate) fn get_and_validate_effective_granted_capabilities(
+pub(crate) fn resolve_effective_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,
     user_granted_capabilities: &[UserBridgeCapability],
 ) -> Result<Vec<UserBridgeCapability>> {
@@ -45,4 +51,24 @@ pub(crate) fn get_and_validate_effective_granted_capabilities(
     }
 
     Ok(effective.into_iter().collect())
+}
+
+pub(crate) fn requested_user_grantable_capabilities(
+    requested: &SageRequestedCapabilities,
+) -> Vec<UserBridgeCapability> {
+    let mut caps: Vec<_> = requested
+        .required
+        .iter()
+        .chain(requested.optional.iter())
+        .copied()
+        .filter(|cap| {
+            get_user_capability_definition(*cap)
+                .flags
+                .user_grantable
+        })
+        .collect();
+
+    caps.sort();
+    caps.dedup();
+    caps
 }

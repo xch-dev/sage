@@ -22,7 +22,7 @@ pub fn normalize_and_validate_requested_permissions(
     Ok(normalized_requested)
 }
 
-pub fn normalize_and_validate_granted_permissions(
+pub(super) fn normalize_and_validate_granted_permissions(
     requested: &SageRequestedPermissions,
     granted: SageGrantedPermissions,
 ) -> Result<SageGrantedPermissions> {

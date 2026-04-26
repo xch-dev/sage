@@ -3,9 +3,9 @@ pub(super) mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags, mark_storage_may_contain_secrets};
     use crate::permissions::{normalize_and_validate_requested_permissions, validate_requested_permission};
-    use crate::permissions::capabilities::definitions::user_registry;
-    use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
-    use crate::permissions::capabilities::validation::validate_granted_capabilities;
+    use crate::permissions::capabilities::user_registry;
+    use crate::permissions::capabilities::resolve_effective_granted_capabilities;
+    use crate::permissions::capabilities::validate_granted_capabilities;
     use crate::types::{SageAppFlags, SageNetworkPermissionTarget, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions};
 
     pub fn empty_requested_permissions() -> SageRequestedPermissions {
@@ -324,7 +324,7 @@ pub(super) mod tests {
         validate_granted_capabilities(&requested.capabilities, &[])
             .expect("non-user-grantable required capability should not require persisted user grant");
 
-        let effective = get_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
+        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
             .expect("expected effective permissions to resolve");
 
         assert_eq!(effective, vec![auto]);
@@ -340,7 +340,7 @@ pub(super) mod tests {
         validate_granted_capabilities(&requested.capabilities, &[])
             .expect("non-user-grantable optional capability should not require persisted user grant");
 
-        let effective = get_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
+        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
             .expect("expected effective permissions to resolve");
 
         assert_eq!(effective, vec![auto]);
@@ -353,7 +353,7 @@ pub(super) mod tests {
         let mut optional_requested = empty_requested_permissions();
         optional_requested.capabilities.optional = vec![auto];
 
-        let optional_effective = get_and_validate_effective_granted_capabilities(
+        let optional_effective = resolve_effective_granted_capabilities(
             &optional_requested.capabilities,
             &[],
         )
@@ -364,7 +364,7 @@ pub(super) mod tests {
         let mut required_requested = empty_requested_permissions();
         required_requested.capabilities.required = vec![auto];
 
-        let required_effective = get_and_validate_effective_granted_capabilities(
+        let required_effective = resolve_effective_granted_capabilities(
             &required_requested.capabilities,
             &[],
         )
@@ -380,7 +380,7 @@ pub(super) mod tests {
         let mut requested = empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
-        let effective = get_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
+        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
             .expect("expected auto grant before removal");
 
         assert_eq!(effective, vec![auto]);
@@ -388,7 +388,7 @@ pub(super) mod tests {
         let removed_requested = empty_requested_permissions();
 
         let effective_after_removal =
-            get_and_validate_effective_granted_capabilities(&removed_requested.capabilities, &[])
+            resolve_effective_granted_capabilities(&removed_requested.capabilities, &[])
                 .expect("expected permissions to resolve after removal");
 
         assert!(effective_after_removal.is_empty());
@@ -407,7 +407,7 @@ pub(super) mod tests {
             "error should mention missing user-grantable required capability"
         );
 
-        get_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
+        resolve_effective_granted_capabilities(&requested.capabilities, &[])
             .expect_err("effective permissions should not resolve without required user grant");
     }
 }

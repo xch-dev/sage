@@ -44,9 +44,7 @@ pub(in crate::permissions) fn normalize_requested_capabilities(
     })
 }
 
-
-
-pub fn normalize_granted_capabilities(
+pub(in crate::permissions::capabilities) fn normalize_granted_capabilities(
     granted: &[UserBridgeCapability],
 ) -> Result<Vec<UserBridgeCapability>> {
     let mut out = BTreeSet::new();
@@ -64,7 +62,7 @@ pub fn normalize_granted_capabilities(
 
 #[cfg(test)]
 mod tests {
-    use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
+    use crate::permissions::capabilities::resolve_effective_granted_capabilities;
     use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
 
     #[test]
@@ -79,7 +77,7 @@ mod tests {
         let mut requested = crate::permissions::tests::tests::empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
-        let effective = get_and_validate_effective_granted_capabilities(&requested.capabilities, &normalized)
+        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &normalized)
             .expect("auto capability should still be effective");
 
         assert_eq!(effective, vec![auto]);

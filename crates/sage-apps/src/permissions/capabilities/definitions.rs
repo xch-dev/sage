@@ -4,17 +4,7 @@ use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
 use crate::permissions::capabilities::types::{CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition};
 use crate::types::{SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView};
 
-fn read_wallet_flags() -> CapabilityFlags {
-    CapabilityFlags {
-        externally_observable: false,
-        accesses_sensitive_secret: false,
-        requestable_by_app: true,
-        user_grantable: true,
-        shared_with_app: true,
-    }
-}
-
-pub fn get_user_capability_definition(
+pub(crate) fn get_user_capability_definition(
     capability: UserBridgeCapability,
 ) -> UserCapabilityDefinition {
     match capability {
@@ -246,7 +236,7 @@ pub fn get_user_capability_definition(
     }
 }
 
-pub fn get_system_capability_definition(
+pub(crate) fn get_system_capability_definition(
     capability: SystemBridgeCapability,
 ) -> SystemCapabilityDefinition {
     match capability {
@@ -319,57 +309,7 @@ pub fn get_system_capability_definition(
     }
 }
 
-pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
-    UserBridgeCapability::ALL
-        .iter()
-        .copied()
-        .map(|capability| {
-            let definition = get_user_capability_definition(capability);
-            (capability, definition)
-        })
-        .collect()
-}
-
-pub fn system_registry() -> BTreeMap<SystemBridgeCapability, SystemCapabilityDefinition> {
-    SystemBridgeCapability::ALL
-        .iter()
-        .copied()
-        .map(|capability| {
-            let definition = get_system_capability_definition(capability);
-            (capability, definition)
-        })
-        .collect()
-}
-
-pub fn get_user_capability_definition_by_key(
-    key: &str,
-) -> Option<UserCapabilityDefinition> {
-    UserBridgeCapability::from_key(key)
-        .map(get_user_capability_definition)
-}
-
-pub fn get_system_capability_definition_by_key(
-    key: &str,
-) -> Option<SystemCapabilityDefinition> {
-    SystemBridgeCapability::from_key(key)
-        .map(get_system_capability_definition)
-}
-
-pub fn require_user_capability_definition_by_key(
-    key: &str,
-) -> anyhow::Result<UserCapabilityDefinition> {
-    get_user_capability_definition_by_key(key)
-        .ok_or_else(|| anyhow::anyhow!("unknown user capability: {}", key))
-}
-
-pub fn require_system_capability_definition_by_key(
-    key: &str,
-) -> anyhow::Result<SystemCapabilityDefinition> {
-    get_system_capability_definition_by_key(key)
-        .ok_or_else(|| anyhow::anyhow!("unknown system capability: {}", key))
-}
-
-pub fn user_capability_definition_view(
+pub(crate) fn user_capability_definition_view(
     definition: UserCapabilityDefinition,
 ) -> SageAppCapabilityDefinitionView {
     SageAppCapabilityDefinitionView {
@@ -382,5 +322,26 @@ pub fn user_capability_definition_view(
             requestable_by_app: definition.flags.requestable_by_app,
             user_grantable: definition.flags.user_grantable,
         },
+    }
+}
+
+pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
+    UserBridgeCapability::ALL
+        .iter()
+        .copied()
+        .map(|capability| {
+            let definition = get_user_capability_definition(capability);
+            (capability, definition)
+        })
+        .collect()
+}
+
+fn read_wallet_flags() -> CapabilityFlags {
+    CapabilityFlags {
+        externally_observable: false,
+        accesses_sensitive_secret: false,
+        requestable_by_app: true,
+        user_grantable: true,
+        shared_with_app: true,
     }
 }

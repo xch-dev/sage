@@ -4,7 +4,7 @@ use crate::bridge::{RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
-use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
+use crate::permissions::capabilities::resolve_effective_granted_capabilities;
 use crate::types::SageApp;
 
 #[derive(Debug, Clone, Copy)]
@@ -35,7 +35,7 @@ impl BridgeMethod for AppGetCapabilities {
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let effective_capabilities = match ctx.app {
-            SageApp::User(user_app) => get_and_validate_effective_granted_capabilities(
+            SageApp::User(user_app) => resolve_effective_granted_capabilities(
                 &user_app.common.requested_permissions.capabilities,
                 &user_app.common.granted_permissions.capabilities,
             )

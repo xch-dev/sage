@@ -8,8 +8,8 @@ use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
 use crate::lifecycle::flags::get_app_flags;
 use crate::permissions::{normalize_and_validate_granted_permissions, normalize_and_validate_requested_permissions};
-use crate::permissions::capabilities::definitions::{get_user_capability_definition};
-use crate::permissions::capabilities::get_and_validate_effective_granted_capabilities;
+use crate::permissions::capabilities::{requested_user_grantable_capabilities};
+use crate::permissions::capabilities::resolve_effective_granted_capabilities;
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageAppSource, UserSageApp};
 
 macro_rules! sandbox_test_id_prefix {
@@ -190,36 +190,19 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     manifest.permissions =
         normalize_and_validate_requested_permissions(&manifest.permissions)?;
 
-    let mut user_granted_capabilities = Vec::new();
-
-    for capability in manifest
-        .permissions
-        .capabilities
-        .required
-        .iter()
-        .chain(manifest.permissions.capabilities.optional.iter())
-    {
-        let definition = get_user_capability_definition(*capability);
-
-        if definition.flags.user_grantable {
-            user_granted_capabilities.push(*capability);
-        }
-    }
-
-    user_granted_capabilities.sort();
-    user_granted_capabilities.dedup();
+    let user_grantable_capabilities = requested_user_grantable_capabilities(&manifest.permissions.capabilities);
 
     let granted_permissions = normalize_and_validate_granted_permissions(
         &manifest.permissions,
         SageGrantedPermissions {
-            capabilities: user_granted_capabilities,
+            capabilities: user_grantable_capabilities,
             network: SageGrantedNetworkPermissions {
                 whitelist: manifest.permissions.network.whitelist.required.clone(),
             },
         }
     )?;
 
-    let effective_capabilities = get_and_validate_effective_granted_capabilities(
+    let effective_capabilities = resolve_effective_granted_capabilities(
         &manifest.permissions.capabilities,
         &granted_permissions.capabilities,
     )?;
