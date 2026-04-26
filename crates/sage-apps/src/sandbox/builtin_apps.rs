@@ -6,7 +6,9 @@ use tauri::command;
 
 use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
-use crate::permissions::{normalize_and_validate_requested_permissions, resolve_capability_flags, resolve_effective_granted_capabilities, validate_user_granted_capabilities};
+use crate::permissions::{normalize_and_validate_requested_permissions, resolve_capability_flags, resolve_effective_granted_capabilities};
+use crate::permissions::capabilities::definitions::{get_user_capability_definition};
+use crate::permissions::capabilities::validation::validate_granted_capabilities;
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageAppSource, UserSageApp};
 
 macro_rules! sandbox_test_id_prefix {
@@ -196,7 +198,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         .iter()
         .chain(manifest.permissions.capabilities.optional.iter())
     {
-        let definition = crate::permissions::require_user_capability_definition(*capability)?;
+        let definition = get_user_capability_definition(*capability);
 
         if definition.flags.user_grantable {
             user_granted_capabilities.push(*capability);
@@ -213,7 +215,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         },
     };
 
-    validate_user_granted_capabilities(
+    validate_granted_capabilities(
         &manifest.permissions,
         &granted_permissions.capabilities,
     )?;

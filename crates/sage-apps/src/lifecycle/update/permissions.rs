@@ -3,8 +3,71 @@ use std::path::{Path, PathBuf};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::permissions::{clear_storage_may_contain_secrets, normalize_and_validate_granted_network_whitelist, normalize_user_granted_capabilities, resolve_capability_flags, resolve_effective_granted_capabilities, validate_user_granted_capabilities};
+use crate::permissions::{clear_storage_may_contain_secrets, resolve_capability_flags, resolve_effective_granted_capabilities};
+use crate::permissions::capabilities::definitions::{get_user_capability_definition};
+use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+use crate::permissions::capabilities::validation::validate_granted_capabilities;
+use crate::permissions::network::normalize_and_validate_granted_network;
 use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageNetworkPermissionTarget, UserSageApp};
+
+pub fn update_app_permissions(
+    base_path: &Path,
+    app_id: &str,
+    granted_permissions: SageGrantedPermissions,
+    clear_storage_taint: bool,
+) -> anyhow::Result<UserSageApp> {
+    let mut app = read_installed_app_by_id(base_path, app_id)?;
+
+    let normalized_capabilities = normalize_granted_capabilities(
+        &granted_permissions.capabilities,
+    )?;
+
+    validate_granted_capabilities(
+        &app.common.requested_permissions,
+        &normalized_capabilities,
+    )?;
+
+    let effective_capabilities = resolve_effective_granted_capabilities(
+        &app.common.requested_permissions,
+        &normalized_capabilities,
+    )?;
+
+    let granted_network_whitelist = normalize_and_validate_granted_network(
+        &app.common.active_snapshot.manifest.permissions.network,
+        &granted_permissions.network.whitelist,
+    )?;
+
+    let mut permission_flags = resolve_capability_flags(
+        &effective_capabilities,
+        Some(&app.common.capability_flags),
+    )?;
+
+    if clear_storage_taint {
+        permission_flags = clear_storage_may_contain_secrets(&permission_flags);
+    }
+
+    app.common.granted_permissions = SageGrantedPermissions {
+        capabilities: normalized_capabilities,
+        network: SageGrantedNetworkPermissions {
+            whitelist: granted_network_whitelist,
+        },
+    };
+
+    let effective_capabilities = resolve_effective_granted_capabilities(
+        &app.common.requested_permissions,
+        &app.common.granted_permissions.capabilities,
+    )?;
+
+    app.common.capability_flags = resolve_capability_flags(
+        &effective_capabilities,
+        Some(&permission_flags),
+    )?;
+
+    let app_dir = PathBuf::from(&app.common.app_dir);
+    write_installed_app_metadata(&app, &app_dir)?;
+
+    Ok(app)
+}
 
 fn sort_unique_network(
     values: impl IntoIterator<Item = SageNetworkPermissionTarget>,
@@ -80,66 +143,6 @@ fn sort_unique_capabilities(
     capabilities.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
 }
 
-pub fn update_app_permissions_internal(
-    base_path: &Path,
-    app_id: &str,
-    granted_permissions: SageGrantedPermissions,
-    clear_storage_taint: bool,
-) -> anyhow::Result<UserSageApp> {
-    let mut app = read_installed_app_by_id(base_path, app_id)?;
-
-    validate_user_granted_capabilities(
-        &app.common.requested_permissions,
-        &granted_permissions.capabilities,
-    )?;
-
-    let normalized_capabilities = normalize_user_granted_capabilities(
-        &app.common.requested_permissions,
-        &granted_permissions.capabilities,
-    )?;
-
-    let effective_capabilities = resolve_effective_granted_capabilities(
-        &app.common.requested_permissions,
-        &normalized_capabilities,
-    )?;
-
-    let granted_network_whitelist = normalize_and_validate_granted_network_whitelist(
-        &app.common.active_snapshot.manifest.permissions.network,
-        &granted_permissions.network.whitelist,
-    )?;
-
-    let mut permission_flags = resolve_capability_flags(
-        &effective_capabilities,
-        Some(&app.common.capability_flags),
-    )?;
-
-    if clear_storage_taint {
-        permission_flags = clear_storage_may_contain_secrets(&permission_flags);
-    }
-
-    app.common.granted_permissions = SageGrantedPermissions {
-        capabilities: normalized_capabilities,
-        network: SageGrantedNetworkPermissions {
-            whitelist: granted_network_whitelist,
-        },
-    };
-
-    let effective_capabilities = resolve_effective_granted_capabilities(
-        &app.common.requested_permissions,
-        &app.common.granted_permissions.capabilities,
-    )?;
-
-    app.common.capability_flags = resolve_capability_flags(
-        &effective_capabilities,
-        Some(&permission_flags),
-    )?;
-
-    let app_dir = PathBuf::from(&app.common.app_dir);
-    write_installed_app_metadata(&app, &app_dir)?;
-
-    Ok(app)
-}
-
 pub fn grant_requested_capability_internal(
     base_path: &Path,
     app_id: &str,
@@ -154,7 +157,7 @@ pub fn grant_requested_capability_internal(
             capability.key()
         );
     }
-    let definition = crate::permissions::require_user_capability_definition(capability)?;
+    let definition = get_user_capability_definition(capability);
 
     if !definition.flags.user_grantable {
         anyhow::bail!(
@@ -177,7 +180,7 @@ pub fn grant_requested_capability_internal(
     next_capabilities.push(capability);
     next_capabilities = sort_unique_capabilities(next_capabilities);
 
-    let updated = update_app_permissions_internal(
+    let updated = update_app_permissions(
         base_path,
         app_id,
         SageGrantedPermissions {
@@ -244,7 +247,7 @@ pub fn grant_requested_network_whitelist_entry_internal(
     next_whitelist.push(entry.clone());
     next_whitelist = sort_unique_network(next_whitelist);
 
-    let updated = update_app_permissions_internal(
+    let updated = update_app_permissions(
         base_path,
         app_id,
         SageGrantedPermissions {
@@ -276,7 +279,7 @@ pub fn update_app_permissions_with_change_internal(
 )> {
     let previous = read_installed_app_by_id(base_path, app_id)?;
 
-    let updated = update_app_permissions_internal(
+    let updated = update_app_permissions(
         base_path,
         app_id,
         granted_permissions,

@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use crate::types::{SageNetworkPermissionTarget, SageRequestedNetworkPermissions};
 
-pub fn normalize_requested_network_permissions(
+pub fn normalize_requested_network(
     network_permissions: &SageRequestedNetworkPermissions,
-) -> Result<SageRequestedNetworkPermissions> {
+) -> anyhow::Result<SageRequestedNetworkPermissions> {
     let required = normalize_requested_network_entries(&network_permissions.whitelist.required)?;
     let required_keys = required.iter().cloned().collect::<BTreeSet<_>>();
 
@@ -18,9 +18,26 @@ pub fn normalize_requested_network_permissions(
     })
 }
 
+pub fn normalize_network_entry(
+    entry: &SageNetworkPermissionTarget,
+) -> anyhow::Result<SageNetworkPermissionTarget> {
+    let scheme = entry.scheme.trim().to_ascii_lowercase();
+    let host = entry.host.trim().to_ascii_lowercase();
+
+    if scheme.is_empty() {
+        return Err(anyhow!("network whitelist entry is missing scheme"));
+    }
+
+    if host.is_empty() {
+        return Err(anyhow!("network whitelist entry is missing host"));
+    }
+
+    Ok(SageNetworkPermissionTarget { scheme, host })
+}
+
 fn normalize_requested_network_entries(
     entries: &[SageNetworkPermissionTarget],
-) -> Result<Vec<SageNetworkPermissionTarget>> {
+) -> anyhow::Result<Vec<SageNetworkPermissionTarget>> {
     let mut seen = BTreeSet::new();
     let mut normalized = Vec::new();
 
@@ -38,21 +55,4 @@ fn normalize_requested_network_entries(
     });
 
     Ok(normalized)
-}
-
-pub fn normalize_network_entry(
-    entry: &SageNetworkPermissionTarget,
-) -> Result<SageNetworkPermissionTarget> {
-    let scheme = entry.scheme.trim().to_ascii_lowercase();
-    let host = entry.host.trim().to_ascii_lowercase();
-
-    if scheme.is_empty() {
-        return Err(anyhow!("network whitelist entry is missing scheme"));
-    }
-
-    if host.is_empty() {
-        return Err(anyhow!("network whitelist entry is missing host"));
-    }
-
-    Ok(SageNetworkPermissionTarget { scheme, host })
 }

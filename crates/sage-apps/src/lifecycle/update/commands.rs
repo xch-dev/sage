@@ -9,7 +9,10 @@ use crate::host::AppState;
 use crate::lifecycle::{download_url_snapshot, manifest_entry_file, manifest_icon_file, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::permissions::{normalize_and_validate_granted_network_whitelist, normalize_user_granted_capabilities, resolve_capability_flags, resolve_effective_granted_capabilities, validate_user_granted_capabilities};
+use crate::permissions::{resolve_capability_flags, resolve_effective_granted_capabilities};
+use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+use crate::permissions::capabilities::validation::validate_granted_capabilities;
+use crate::permissions::network::normalize_and_validate_granted_network;
 use crate::types::{SageAppUrlPreview, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 #[command]
@@ -123,19 +126,18 @@ pub async fn apply_app_update(
         .clone()
         .ok_or_else(|| io::Error::other(format!("app {} has no pending update", app_id)))?;
 
-    validate_user_granted_capabilities(
-        &pending.manifest.permissions,
+    let normalized_capabilities = normalize_granted_capabilities(
         &granted_permissions.capabilities,
     )
         .map_err(|err| io::Error::other(format!("invalid granted permissions for update: {err}")))?;
 
-    let normalized_capabilities = normalize_user_granted_capabilities(
+    validate_granted_capabilities(
         &pending.manifest.permissions,
-        &granted_permissions.capabilities,
+        &normalized_capabilities,
     )
         .map_err(|err| io::Error::other(format!("invalid granted permissions for update: {err}")))?;
 
-    let granted_network_whitelist = normalize_and_validate_granted_network_whitelist(
+    let granted_network_whitelist = normalize_and_validate_granted_network(
         &pending.manifest.permissions.network,
         &granted_permissions.network.whitelist,
     )

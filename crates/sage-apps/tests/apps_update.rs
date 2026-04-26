@@ -15,7 +15,7 @@ use sage_apps::types::{
 };
 use tempfile::tempdir;
 use sage_apps::bridge::capabilities::UserBridgeCapability;
-use sage_apps::lifecycle::update::permissions::{grant_requested_capability_internal, grant_requested_network_whitelist_entry_internal, update_app_permissions_internal};
+use sage_apps::lifecycle::update::permissions::{grant_requested_capability_internal, grant_requested_network_whitelist_entry_internal, update_app_permissions};
 use sage_apps::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome};
 
 fn sample_app(base: &Path, app_id: &str) -> UserSageApp {
@@ -70,7 +70,7 @@ fn update_app_permissions_internal_persists_required_network_entries() {
     let app_path = app_dir(dir.path(), &app.common.id);
     write_installed_app_metadata(&app, &app_path).unwrap();
 
-    let updated = update_app_permissions_internal(
+    let updated = update_app_permissions(
         dir.path(),
         &app.common.id,
         SageGrantedPermissions {
@@ -106,7 +106,7 @@ fn update_app_permissions_internal_rejects_unrequested_capability() {
     let app_path = app_dir(dir.path(), &app.common.id);
     write_installed_app_metadata(&app, &app_path).unwrap();
 
-    let err = update_app_permissions_internal(
+    let err = update_app_permissions(
         dir.path(),
         &app.common.id,
         SageGrantedPermissions {
@@ -136,7 +136,7 @@ fn update_app_permissions_internal_can_clear_storage_taint_without_capabilities(
     let app_path = app_dir(dir.path(), &app.common.id);
     write_installed_app_metadata(&app, &app_path).unwrap();
 
-    let updated = update_app_permissions_internal(
+    let updated = update_app_permissions(
         dir.path(),
         &app.common.id,
         SageGrantedPermissions {

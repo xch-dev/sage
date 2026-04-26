@@ -4,7 +4,7 @@ use crate::bridge::{RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
-use crate::permissions::{resolve_effective_granted_capabilities, resolve_shared_capabilities};
+use crate::permissions::{resolve_effective_granted_capabilities};
 use crate::types::SageApp;
 
 #[derive(Debug, Clone, Copy)]
@@ -43,9 +43,8 @@ impl BridgeMethod for AppGetCapabilities {
             SageApp::System(_) => ctx.app.granted_permissions().capabilities.clone(),
         };
 
-        let capabilities =
-            resolve_shared_capabilities(&effective_capabilities).unwrap_or_default();
+        let shared_capabilities = UserBridgeCapability::shared_from_granted(&effective_capabilities);
 
-        Ok(Box::new(capabilities))
+        Ok(Box::new(shared_capabilities))
     }
 }

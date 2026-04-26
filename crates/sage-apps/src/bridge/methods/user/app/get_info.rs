@@ -9,7 +9,6 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::{RustBridgeRequest};
 use crate::lifecycle::parse_network_permission_target;
-use crate::permissions::resolve_shared_capabilities;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;
@@ -57,10 +56,6 @@ impl BridgeMethod for AppGetInfo {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let capabilities =
-            resolve_shared_capabilities(&ctx.app.granted_permissions().capabilities)
-                .unwrap_or_default();
-
         let required_network = required_network_set(&ctx)?;
 
         let network = ctx
@@ -81,7 +76,7 @@ impl BridgeMethod for AppGetInfo {
             name: ctx.app.name().to_string(),
             version: ctx.app.version().to_string(),
             requested_permissions: ctx.app.requested_permissions().clone(),
-            capabilities,
+            capabilities: UserBridgeCapability::shared_from_granted(&ctx.app.granted_permissions().capabilities),
             network,
         }))
     }

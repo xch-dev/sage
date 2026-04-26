@@ -8,7 +8,8 @@ use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::registry::BridgeRegistry;
 use crate::bridge::state::write_pending_approval;
 use crate::host::AppState;
-use crate::permissions::{require_system_capability_definition, require_user_capability_definition, resolve_effective_granted_capabilities};
+use crate::permissions::{resolve_effective_granted_capabilities};
+use crate::permissions::capabilities::definitions::{get_system_capability_definition, get_user_capability_definition};
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
@@ -178,18 +179,7 @@ fn verify_capability(
 ) -> Result<(), RustBridgeResponse> {
     match capability {
         BridgeCapability::User(capability) => {
-            let definition =
-                require_user_capability_definition(capability).map_err(|err| {
-                    RustBridgeResponse::error(
-                        &request.channel,
-                        &request.id,
-                        "internal_error",
-                        format!(
-                            "bridge method declared unknown user capability {}: {err}",
-                            capability.key(),
-                        ),
-                    )
-                })?;
+            let definition = get_user_capability_definition(capability);
 
             verify_user_capability(
                 app,
@@ -200,18 +190,7 @@ fn verify_capability(
         }
 
         BridgeCapability::System(capability) => {
-            let definition =
-                require_system_capability_definition(capability).map_err(|err| {
-                    RustBridgeResponse::error(
-                        &request.channel,
-                        &request.id,
-                        "internal_error",
-                        format!(
-                            "bridge method declared unknown system capability {}: {err}",
-                            capability.key(),
-                        ),
-                    )
-                })?;
+            let definition = get_system_capability_definition(capability);
 
             verify_system_capability(
                 app,

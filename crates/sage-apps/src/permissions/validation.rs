@@ -1,17 +1,39 @@
 use anyhow::{anyhow, Result as AnyResult};
-use std::collections::BTreeSet;
-use crate::permissions::{normalize_capabilities, normalize_requested_network_permissions, normalize_user_granted_capabilities, validate_requested_permission_policy, validate_user_granted_capabilities};
-use crate::types::{SageGrantedPermissions, SageNetworkPermissionTarget, SageRequestedNetworkPermissions, SageRequestedPermissions};
+use crate::permissions::capabilities::normalization::{normalize_granted_capabilities, normalize_requested_capabilities};
+use crate::permissions::capabilities::types::CapabilityFlags;
+use crate::permissions::capabilities::validation::validate_granted_capabilities;
+use crate::permissions::network::normalization::normalize_requested_network;
+use crate::permissions::network::normalize_and_validate_granted_network;
+use crate::types::{SageGrantedPermissions, SageRequestedPermissions};
+
+pub fn validate_requested_permission(
+    permissions: &SageRequestedPermissions,
+) -> AnyResult<()> {
+    let mut requested = Vec::new();
+    requested.extend(permissions.capabilities.required.iter().copied());
+    requested.extend(permissions.capabilities.optional.iter().copied());
+
+
+    let requested_capability_flags = CapabilityFlags::from_capabilities(&requested)?;
+
+    if requested_capability_flags.externally_observable && requested_capability_flags.accesses_sensitive_secret {
+        return Err(anyhow!(
+            "requested permissions cannot include both externally observable and sensitive secret access permissions"
+        ));
+    }
+
+    Ok(())
+}
 
 pub fn normalize_and_validate_requested_permissions(
     permissions: &SageRequestedPermissions,
 ) -> AnyResult<SageRequestedPermissions> {
     let normalized = SageRequestedPermissions {
-        network: normalize_requested_network_permissions(&permissions.network)?,
-        capabilities: normalize_capabilities(&permissions.capabilities)?,
+        network: normalize_requested_network(&permissions.network)?,
+        capabilities: normalize_requested_capabilities(&permissions.capabilities)?,
     };
 
-    validate_requested_permission_policy(&normalized)?;
+    validate_requested_permission(&normalized)?;
     Ok(normalized)
 }
 
@@ -19,55 +41,17 @@ pub fn normalize_and_validate_granted_permissions(
     requested: &SageRequestedPermissions,
     granted: SageGrantedPermissions,
 ) -> AnyResult<SageGrantedPermissions> {
-    validate_user_granted_capabilities(requested, &granted.capabilities)?;
+    let normalized_capabilities = normalize_granted_capabilities(&granted.capabilities)?;
 
-    let whitelist = normalize_and_validate_granted_network_whitelist(
+    validate_granted_capabilities(requested, &normalized_capabilities)?;
+
+    let whitelist = normalize_and_validate_granted_network(
         &requested.network,
         &granted.network.whitelist,
     )?;
 
     Ok(SageGrantedPermissions {
-        capabilities: normalize_user_granted_capabilities(requested, &granted.capabilities)?,
+        capabilities: normalized_capabilities,
         network: crate::types::SageGrantedNetworkPermissions { whitelist },
     })
-}
-
-pub fn normalize_and_validate_granted_network_whitelist(
-    requested: &SageRequestedNetworkPermissions,
-    granted: &[SageNetworkPermissionTarget],
-) -> AnyResult<Vec<SageNetworkPermissionTarget>> {
-    let requested_required = requested
-        .whitelist
-        .required
-        .iter()
-        .map(|entry| crate::permissions::normalize_network_entry(&entry))
-        .collect::<AnyResult<BTreeSet<_>>>()?;
-
-    let mut requested_optional = BTreeSet::new();
-
-    for entry in &requested.whitelist.optional {
-        let key = crate::permissions::normalize_network_entry(&entry)?;
-
-        if !requested_required.contains(&key) {
-            requested_optional.insert(key);
-        }
-    }
-
-    let mut result = requested_required;
-
-    for entry in granted {
-        let key = crate::permissions::normalize_network_entry(&entry)?;
-
-        if !result.contains(&key) && !requested_optional.contains(&key) {
-            return Err(anyhow!(
-                "granted network whitelist entry not requested in manifest: {}://{}",
-                key.scheme,
-                key.host
-            ));
-        }
-
-        result.insert(key);
-    }
-
-    Ok(result.into_iter().collect())
 }

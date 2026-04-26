@@ -1,17 +1,17 @@
 use std::collections::BTreeSet;
-use anyhow::{anyhow, Result};
-use crate::permissions::get_user_capability_definition;
+use anyhow::anyhow;
+use crate::bridge::capabilities::UserBridgeCapability;
+use crate::permissions::capabilities::definitions::get_user_capability_definition;
 use crate::types::SageRequestedCapabilities;
 
-pub fn normalize_capabilities(
+pub fn normalize_requested_capabilities(
     capabilities: &SageRequestedCapabilities,
-) -> Result<SageRequestedCapabilities> {
+) -> anyhow::Result<SageRequestedCapabilities> {
     let mut required = BTreeSet::new();
     let mut optional = BTreeSet::new();
 
     for capability in &capabilities.required {
-        let definition = get_user_capability_definition(*capability)
-            .ok_or_else(|| anyhow!("unknown capability: {}", capability.key()))?;
+        let definition = get_user_capability_definition(*capability);
 
         if !definition.flags.requestable_by_app {
             return Err(anyhow!(
@@ -24,8 +24,7 @@ pub fn normalize_capabilities(
     }
 
     for capability in &capabilities.optional {
-        let definition = get_user_capability_definition(*capability)
-            .ok_or_else(|| anyhow!("unknown capability: {}", capability.key()))?;
+        let definition = get_user_capability_definition(*capability);
 
         if !definition.flags.requestable_by_app {
             return Err(anyhow!(
@@ -43,4 +42,22 @@ pub fn normalize_capabilities(
         required: required.into_iter().collect(),
         optional: optional.into_iter().collect(),
     })
+}
+
+
+
+pub fn normalize_granted_capabilities(
+    granted: &[UserBridgeCapability],
+) -> anyhow::Result<Vec<UserBridgeCapability>> {
+    let mut out = BTreeSet::new();
+
+    for granted_capability in granted {
+        let granted_capability_definition = get_user_capability_definition(*granted_capability);
+
+        if granted_capability_definition.flags.user_grantable {
+            out.insert(*granted_capability);
+        }
+    }
+
+    Ok(out.into_iter().collect())
 }

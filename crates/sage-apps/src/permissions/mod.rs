@@ -1,9 +1,7 @@
-pub mod capabilities;
 pub mod policy;
 pub mod validation;
-pub mod normalize;
+pub mod capabilities;
+pub mod network;
 
-pub use capabilities::*;
 pub use policy::*;
 pub use validation::*;
-pub use normalize::*;

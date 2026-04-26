@@ -1,5 +1,7 @@
+use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use crate::permissions::capabilities::definitions::get_user_capability_definition;
 
 macro_rules! define_bridge_capabilities {
     (
@@ -101,5 +103,23 @@ impl BridgeCapability {
             Self::User(capability) => capability.key(),
             Self::System(capability) => capability.key(),
         }
+    }
+}
+
+impl UserBridgeCapability {
+    pub fn shared_from_granted(
+        granted: &[UserBridgeCapability],
+    ) -> Vec<UserBridgeCapability> {
+        let mut shared = BTreeSet::new();
+
+        for capability in granted {
+            let definition = get_user_capability_definition(*capability);
+
+            if definition.flags.shared_with_app {
+                shared.insert(*capability);
+            }
+        }
+
+        shared.into_iter().collect()
     }
 }

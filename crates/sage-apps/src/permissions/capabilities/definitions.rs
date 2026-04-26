@@ -1,27 +1,8 @@
 use std::collections::BTreeMap;
 
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
+use crate::permissions::capabilities::types::{CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition};
 use crate::types::{SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView};
-
-#[derive(Debug, Clone, Copy)]
-pub struct CapabilityFlags {
-    pub externally_observable: bool,
-    pub accesses_sensitive_secret: bool,
-    pub requestable_by_app: bool,
-    pub user_grantable: bool,
-    pub shared_with_app: bool,
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct CapabilityDefinition<C> {
-    pub capability: C,
-    pub label: &'static str,
-    pub description: &'static str,
-    pub flags: CapabilityFlags,
-}
-
-pub type UserCapabilityDefinition = CapabilityDefinition<UserBridgeCapability>;
-pub type SystemCapabilityDefinition = CapabilityDefinition<SystemBridgeCapability>;
 
 fn read_wallet_flags() -> CapabilityFlags {
     CapabilityFlags {
@@ -35,8 +16,8 @@ fn read_wallet_flags() -> CapabilityFlags {
 
 pub fn get_user_capability_definition(
     capability: UserBridgeCapability,
-) -> Option<UserCapabilityDefinition> {
-    Some(match capability {
+) -> UserCapabilityDefinition {
+    match capability {
         UserBridgeCapability::PersistentStorage => UserCapabilityDefinition {
             capability,
             label: "Persistent storage",
@@ -262,13 +243,13 @@ pub fn get_user_capability_definition(
             description: "Allows the app to list wallet transactions.",
             flags: read_wallet_flags(),
         },
-    })
+    }
 }
 
 pub fn get_system_capability_definition(
     capability: SystemBridgeCapability,
-) -> Option<SystemCapabilityDefinition> {
-    Some(match capability {
+) -> SystemCapabilityDefinition {
+    match capability {
         SystemBridgeCapability::RuntimeManagerListRuntimes => SystemCapabilityDefinition {
             capability,
             label: "List app runtimes",
@@ -335,23 +316,7 @@ pub fn get_system_capability_definition(
                 },
             }
         }
-    })
-}
-
-pub fn require_user_capability_definition(
-    capability: UserBridgeCapability,
-) -> anyhow::Result<UserCapabilityDefinition> {
-    get_user_capability_definition(capability).ok_or_else(|| {
-        anyhow::anyhow!("unknown user capability: {}", capability.key())
-    })
-}
-
-pub fn require_system_capability_definition(
-    capability: SystemBridgeCapability,
-) -> anyhow::Result<SystemCapabilityDefinition> {
-    get_system_capability_definition(capability).ok_or_else(|| {
-        anyhow::anyhow!("unknown system capability: {}", capability.key())
-    })
+    }
 }
 
 pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinition> {
@@ -359,8 +324,7 @@ pub fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDefinitio
         .iter()
         .copied()
         .map(|capability| {
-            let definition = require_user_capability_definition(capability)
-                .expect("all user capabilities must have definitions");
+            let definition = get_user_capability_definition(capability);
             (capability, definition)
         })
         .collect()
@@ -371,8 +335,7 @@ pub fn system_registry() -> BTreeMap<SystemBridgeCapability, SystemCapabilityDef
         .iter()
         .copied()
         .map(|capability| {
-            let definition = require_system_capability_definition(capability)
-                .expect("all system capabilities must have definitions");
+            let definition = get_system_capability_definition(capability);
             (capability, definition)
         })
         .collect()
@@ -381,13 +344,15 @@ pub fn system_registry() -> BTreeMap<SystemBridgeCapability, SystemCapabilityDef
 pub fn get_user_capability_definition_by_key(
     key: &str,
 ) -> Option<UserCapabilityDefinition> {
-    UserBridgeCapability::from_key(key).and_then(get_user_capability_definition)
+    UserBridgeCapability::from_key(key)
+        .map(get_user_capability_definition)
 }
 
 pub fn get_system_capability_definition_by_key(
     key: &str,
 ) -> Option<SystemCapabilityDefinition> {
-    SystemBridgeCapability::from_key(key).and_then(get_system_capability_definition)
+    SystemBridgeCapability::from_key(key)
+        .map(get_system_capability_definition)
 }
 
 pub fn require_user_capability_definition_by_key(

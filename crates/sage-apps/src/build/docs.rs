@@ -3,9 +3,7 @@ use std::{fs, path::PathBuf};
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::{BridgeMethodCapability};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::permissions::{
-    require_system_capability_definition, require_user_capability_definition,
-};
+use crate::permissions::capabilities::definitions::{get_system_capability_definition, get_user_capability_definition};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -56,8 +54,7 @@ pub fn user_capabilities_markdown() -> String {
     let mut out = String::from("# User bridge capabilities\n\n");
 
     for capability in UserBridgeCapability::ALL {
-        let definition = require_user_capability_definition(*capability)
-            .expect("all user capabilities must have definitions");
+        let definition = get_user_capability_definition(*capability);
 
         out.push_str(&format!("## `{}`\n\n", definition.capability.key()));
         out.push_str(&format!("**{}**\n\n", definition.label));
@@ -94,8 +91,7 @@ pub fn system_capabilities_markdown() -> String {
     let mut out = String::from("# System bridge capabilities\n\n");
 
     for capability in SystemBridgeCapability::ALL {
-        let definition = require_system_capability_definition(*capability)
-            .expect("all system capabilities must have definitions");
+        let definition = get_system_capability_definition(*capability);
 
         out.push_str(&format!("## `{}`\n\n", definition.capability.key()));
         out.push_str(&format!("**{}**\n\n", definition.label));
