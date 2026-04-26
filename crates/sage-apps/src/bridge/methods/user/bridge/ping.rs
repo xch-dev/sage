@@ -3,10 +3,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{RustBridgeRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgePing;
@@ -33,8 +31,8 @@ impl BridgeMethod for BridgePing {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

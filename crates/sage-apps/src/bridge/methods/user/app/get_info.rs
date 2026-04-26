@@ -6,10 +6,8 @@ use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError,
-};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::{RustBridgeRequest};
 use crate::lifecycle::parse_network_permission_target;
 use crate::permissions::resolve_shared_capabilities;
 
@@ -49,8 +47,8 @@ impl BridgeMethod for AppGetInfo {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

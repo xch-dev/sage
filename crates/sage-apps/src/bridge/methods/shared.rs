@@ -48,8 +48,12 @@ impl BridgeMethodHandleError {
     }
 }
 
+pub type BridgeApprovalRequestResult =
+Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
+
 pub type BridgeHandleResult =
 Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
+
 
 #[async_trait]
 pub trait BridgeMethod: Send + Sync {
@@ -60,7 +64,7 @@ pub trait BridgeMethod: Send + Sync {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest>;
+    ) -> BridgeApprovalRequestResult;
 
     async fn handle(
         &self,

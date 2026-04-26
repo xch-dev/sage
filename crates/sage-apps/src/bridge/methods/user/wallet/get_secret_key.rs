@@ -3,9 +3,7 @@ use sage_api::GetSecretKey;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError,
-};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::types::RustBridgeApprovalBody;
 
@@ -26,17 +24,17 @@ impl BridgeMethod for WalletGetSecretKey {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        let params: GetSecretKey = parse_required_params(self, request).ok()?;
+    ) -> BridgeApprovalRequestResult {
+        let params: GetSecretKey = parse_required_params(self, request)?;
 
-        Some(RustBridgeApprovalRequest {
+        Ok(Some(RustBridgeApprovalRequest {
             app: ctx.app.clone(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::GetSecretKey {
                 fingerprint: params.fingerprint,
             },
-        })
+        }))
     }
 
     async fn handle(

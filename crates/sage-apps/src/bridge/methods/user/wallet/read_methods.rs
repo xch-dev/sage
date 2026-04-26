@@ -2,10 +2,8 @@ use async_trait::async_trait;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError,
-};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::{RustBridgeRequest};
 
 use sage_api::{
     CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetKey, GetKeys,
@@ -32,8 +30,8 @@ macro_rules! define_wallet_read_no_params_async_method {
                 &self,
                 _ctx: BridgeContext<'_>,
                 _request: &RustBridgeRequest,
-            ) -> Option<RustBridgeApprovalRequest> {
-                None
+            ) -> BridgeApprovalRequestResult {
+                Ok(None)
             }
 
             async fn handle(
@@ -76,8 +74,8 @@ macro_rules! define_wallet_read_no_params_sync_method {
                 &self,
                 _ctx: BridgeContext<'_>,
                 _request: &RustBridgeRequest,
-            ) -> Option<RustBridgeApprovalRequest> {
-                None
+            ) -> BridgeApprovalRequestResult {
+                Ok(None)
             }
 
             async fn handle(
@@ -120,8 +118,8 @@ macro_rules! define_wallet_read_params_async_method {
                 &self,
                 _ctx: BridgeContext<'_>,
                 _request: &RustBridgeRequest,
-            ) -> Option<RustBridgeApprovalRequest> {
-                None
+            ) -> BridgeApprovalRequestResult {
+                Ok(None)
             }
 
             async fn handle(
@@ -166,8 +164,8 @@ macro_rules! define_wallet_read_params_sync_method {
                 &self,
                 _ctx: BridgeContext<'_>,
                 _request: &RustBridgeRequest,
-            ) -> Option<RustBridgeApprovalRequest> {
-                None
+            ) -> BridgeApprovalRequestResult {
+                Ok(None)
             }
 
             async fn handle(

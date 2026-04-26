@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::{RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
 use crate::permissions::{resolve_effective_granted_capabilities, resolve_shared_capabilities};
 use crate::types::SageApp;
 
@@ -24,8 +24,8 @@ impl BridgeMethod for AppGetCapabilities {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

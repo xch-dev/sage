@@ -4,10 +4,7 @@ use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
-};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::{
     RustBridgeApprovalRequest, RustBridgeRequest,
 };
@@ -63,26 +60,24 @@ impl BridgeMethod for WalletSendXch {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
+    ) -> BridgeApprovalRequestResult {
         if ctx
             .app
             .granted_permissions()
             .capabilities
             .contains(&UserBridgeCapability::WalletSendXchAutoSubmit)
         {
-            return None;
+            return Ok(None);
         }
 
-        let Ok(params) = parse_required_params::<WalletSendXchParams>(self, request) else {
-            return None;
-        };
+        let params = parse_required_params::<WalletSendXchParams>(self, request)?;
 
-        Some(RustBridgeApprovalRequest {
+        Ok(Some(RustBridgeApprovalRequest {
             app: ctx.app.clone(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::SendXch { summary: params },
-        })
+        }))
     }
 
     async fn handle(

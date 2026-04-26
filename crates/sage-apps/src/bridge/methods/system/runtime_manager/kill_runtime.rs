@@ -1,12 +1,9 @@
 use async_trait::async_trait;
 
 use crate::bridge::capabilities::SystemBridgeCapability;
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
-};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::{RustBridgeRequest};
 use crate::runtime::stop::kill_runtime;
 use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 
@@ -27,8 +24,8 @@ impl BridgeMethod for RuntimeManagerKillRuntime {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

@@ -6,9 +6,7 @@ use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError,
-};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::types::RustBridgeApprovalBody;
@@ -50,18 +48,11 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
+    ) -> BridgeApprovalRequestResult {
         let mut params: RequestNetworkWhitelistGrantParams =
-            parse_required_params(self, request).ok()?;
+            parse_required_params(self, request)?;
 
-        // normalize (still needed)
-        let normalized = parse_network_permission_target(&format!(
-            "{}://{}",
-            params.entry.scheme, params.entry.host
-        ))
-            .ok()?;
-
-        params.entry = normalized;
+        params.entry = normalize_network_permission_target(params.entry)?;
 
         if ctx
             .app
@@ -71,17 +62,17 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
             .iter()
             .any(|entry| entry == &params.entry)
         {
-            return None;
+            return Ok(None);
         }
 
-        Some(RustBridgeApprovalRequest {
+        Ok(Some(RustBridgeApprovalRequest {
             app: ctx.app.clone(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::NetworkWhitelistGrant {
                 entry: params.entry,
             },
-        })
+        }))
     }
 
     async fn handle(
@@ -93,12 +84,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         let mut params: RequestNetworkWhitelistGrantParams =
             parse_required_params(self, request)?;
 
-        // normalize
-        params.entry = parse_network_permission_target(&format!(
-            "{}://{}",
-            params.entry.scheme, params.entry.host
-        ))
-            .map_err(BridgeMethodHandleError::invalid_request)?;
+        params.entry = normalize_network_permission_target(params.entry)?;
 
         let base_path = resolve_app_base_path(&tools)?;
 
@@ -144,4 +130,9 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
 
         Ok(Box::new(result))
     }
+}
+
+fn normalize_network_permission_target(entry: SageNetworkPermissionTarget) -> Result<SageNetworkPermissionTarget, BridgeMethodHandleError> {
+    parse_network_permission_target(&format!("{}://{}", entry.scheme, entry.host))
+        .map_err(BridgeMethodHandleError::invalid_request)
 }

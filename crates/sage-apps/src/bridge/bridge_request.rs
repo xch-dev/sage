@@ -79,20 +79,33 @@ pub async fn process(
         }
     }
 
-    if let Some(approval) = method.approval_request(
+    match method.approval_request(
         BridgeContext {
             app: &app_model,
             source_label: &webview_label,
         },
         &request,
     ) {
-        let approval_id = Uuid::new_v4().to_string();
+        Ok(Some(approval)) => {
+            let approval_id = Uuid::new_v4().to_string();
 
-        let apps_state = app.state::<AppsHostState>();
-        write_pending_approval(&apps_state, &approval_id, &app_model, &webview_label, &request).await;
+            let apps_state = app.state::<AppsHostState>();
+            write_pending_approval(&apps_state, &approval_id, &app_model, &webview_label, &request).await;
 
-        emit_sage_approval_requested(&app, approval_id, approval)?;
-        return Ok(RustBridgeInvokeResult::Pending {});
+            emit_sage_approval_requested(&app, approval_id, approval)?;
+            return Ok(RustBridgeInvokeResult::Pending {});
+        }
+        Ok(None) => {}
+        Err(err) => {
+            return Ok(RustBridgeInvokeResult::Immediate {
+                response: RustBridgeResponse::error(
+                    expected_channel,
+                    &request.id,
+                    err.code,
+                    err.message,
+                ),
+            });
+        }
     }
 
     let response = execute_bridge_request(

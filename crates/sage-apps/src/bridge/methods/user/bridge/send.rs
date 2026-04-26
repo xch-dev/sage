@@ -4,11 +4,8 @@ use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
-};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::{RustBridgeRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgeSend;
@@ -41,8 +38,8 @@ impl BridgeMethod for BridgeSend {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

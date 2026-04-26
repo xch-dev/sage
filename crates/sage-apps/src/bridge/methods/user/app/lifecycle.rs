@@ -2,10 +2,8 @@ use async_trait::async_trait;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{RustBridgeRequest};
 use crate::runtime::state::types::{
     ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams,
 };
@@ -30,8 +28,8 @@ impl BridgeMethod for AppLifecycleSetBeforeStopListener {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(
@@ -73,8 +71,8 @@ impl BridgeMethod for AppLifecycleReadyToStop {
         &self,
         _ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
-        None
+    ) -> BridgeApprovalRequestResult {
+        Ok(None)
     }
 
     async fn handle(

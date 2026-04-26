@@ -6,9 +6,7 @@ use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{
-    parse_required_params, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError,
-};
+use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::types::RustBridgeApprovalBody;
@@ -49,9 +47,9 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> Option<RustBridgeApprovalRequest> {
+    ) -> BridgeApprovalRequestResult {
         let params: RequestCapabilityGrantParams =
-            parse_required_params(self, request).ok()?;
+            parse_required_params(self, request)?;
 
         if ctx
             .app
@@ -59,12 +57,18 @@ impl BridgeMethod for AppRequestCapabilityGrant {
             .capabilities
             .contains(&params.capability)
         {
-            return None;
+            return Ok(None);
         }
 
-        let definition = get_user_capability_definition(params.capability)?;
+        let definition = get_user_capability_definition(params.capability)
+            .ok_or_else(|| {
+                BridgeMethodHandleError::internal_error(format!(
+                    "unknown capability: {}",
+                    params.capability.key()
+                ))
+            })?;
 
-        Some(RustBridgeApprovalRequest {
+        Ok(Some(RustBridgeApprovalRequest {
             app: ctx.app.clone(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
@@ -72,7 +76,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
                 capability: params.capability,
                 definition: user_capability_definition_view(definition),
             },
-        })
+        }))
     }
 
     async fn handle(
