@@ -133,7 +133,7 @@ pub struct SageAppSnapshot {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, Default)]
 #[serde(rename_all = "camelCase")]
-pub struct SageAppCapabilityFlags {
+pub struct SageAppFlags {
     pub has_secret_access: bool,
     pub has_external_access: bool,
     pub storage_may_contain_secrets: bool,
@@ -189,7 +189,7 @@ pub struct SageAppCommon {
     pub icon_file: String,
     pub requested_permissions: SageRequestedPermissions,
     pub granted_permissions: SageGrantedPermissions,
-    pub capability_flags: SageAppCapabilityFlags,
+    pub capability_flags: SageAppFlags,
     pub storage: InstalledSageAppStorage,
     pub active_snapshot: SageAppSnapshot,
 }
@@ -274,7 +274,7 @@ impl SageApp {
         }
     }
 
-    pub fn capability_flags(&self) -> &SageAppCapabilityFlags {
+    pub fn capability_flags(&self) -> &SageAppFlags {
         &self.common().capability_flags
     }
 

@@ -8,7 +8,7 @@ use sage_apps::lifecycle::{
     read_pending_storage_cleanup_entries, read_retired_app_origins,
 };
 use sage_apps::types::{
-    InstalledSageAppStorage, PendingStorageCleanupTarget, SageAppCapabilityFlags,
+    InstalledSageAppStorage, PendingStorageCleanupTarget, SageAppFlags,
     SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
     SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageApp,
     UserSageAppSource,
@@ -30,7 +30,7 @@ fn sample_app(storage: InstalledSageAppStorage) -> UserSageApp {
                 capabilities: vec![],
                 network: SageGrantedNetworkPermissions { whitelist: vec![] },
             },
-            capability_flags: SageAppCapabilityFlags {
+            capability_flags: SageAppFlags {
                 has_secret_access: false,
                 has_external_access: false,
                 storage_may_contain_secrets: true,

@@ -6,7 +6,8 @@ use tauri::command;
 
 use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
-use crate::permissions::{normalize_and_validate_requested_permissions, resolve_capability_flags};
+use crate::lifecycle::flags::get_app_flags;
+use crate::permissions::{normalize_and_validate_requested_permissions};
 use crate::permissions::capabilities::definitions::{get_user_capability_definition};
 use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::permissions::capabilities::validation::validate_granted_capabilities;
@@ -225,7 +226,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         &granted_permissions.capabilities,
     )?;
 
-    let capability_flags = resolve_capability_flags(&effective_capabilities, None)?;
+    let capability_flags = get_app_flags(&effective_capabilities, None)?;
 
     let entry_file_name = manifest_entry_file(&manifest).to_string();
     let icon_file_name = manifest_icon_file(&manifest).to_string();

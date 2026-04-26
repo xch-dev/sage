@@ -274,7 +274,7 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::types::{
-        InstalledSageAppStorage, SageAppCapabilityFlags, SageAppCommon,
+        InstalledSageAppStorage, SageAppFlags, SageAppCommon,
         SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot,
         SageGrantedNetworkPermissions, SageGrantedPermissions,
         SageRequestedPermissions, UserSageApp, UserSageAppSource,
@@ -298,7 +298,7 @@ mod tests {
                     capabilities: vec![],
                     network: SageGrantedNetworkPermissions { whitelist: vec![] },
                 },
-                capability_flags: SageAppCapabilityFlags::default(),
+                capability_flags: SageAppFlags::default(),
                 storage: InstalledSageAppStorage::Unmanaged,
                 active_snapshot: SageAppSnapshot {
                     manifest_hash: "hash".into(),

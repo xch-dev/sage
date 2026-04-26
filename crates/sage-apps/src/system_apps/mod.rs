@@ -5,7 +5,8 @@ use tauri::command;
 use crate::bridge::capabilities::SystemBridgeCapability;
 use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
-use crate::permissions::{normalize_and_validate_requested_permissions, resolve_capability_flags};
+use crate::lifecycle::flags::get_app_flags;
+use crate::permissions::{normalize_and_validate_requested_permissions};
 use crate::permissions::capabilities::validation::validate_granted_capabilities;
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot, SageGrantedNetworkPermissions, SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp};
 
@@ -139,8 +140,7 @@ pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         &manifest.permissions,
         &granted_permissions.capabilities,
     )?;
-    let permission_flags =
-        resolve_capability_flags(&granted_permissions.capabilities, None)?;
+    let app_flags = get_app_flags(&granted_permissions.capabilities, None)?;
 
     let entry_file_name = manifest_entry_file(&manifest).to_string();
     let icon_file_name = manifest_icon_file(&manifest).to_string();
@@ -174,7 +174,7 @@ pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
             icon_file: icon_file_name,
             requested_permissions: manifest.permissions.clone(),
             granted_permissions,
-            capability_flags: permission_flags,
+            capability_flags: app_flags,
             storage: InstalledSageAppStorage::Unmanaged,
             active_snapshot: SageAppSnapshot {
                 manifest_hash: format!("builtin-system:{}", spec.app_id),

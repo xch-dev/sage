@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 use crate::lifecycle::parse_network_permission_target;
 use crate::lifecycle::registry::format_network_target;
-use crate::types::{InstalledSageAppStorage, SageAppAuthor, SageAppCapabilityFlags, SageAppCommon, SageAppDonation, SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{InstalledSageAppStorage, SageAppAuthor, SageAppFlags, SageAppCommon, SageAppDonation, SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct PersistedStringListBucket {
@@ -70,7 +70,7 @@ pub struct PersistedUserSageApp {
     icon_file: String,
     requested_permissions: PersistedRequestedPermissions,
     granted_permissions: SageGrantedPermissions,
-    capability_flags: SageAppCapabilityFlags,
+    capability_flags: SageAppFlags,
     storage: InstalledSageAppStorage,
     active_snapshot: PersistedSageAppSnapshot,
     source: PersistedUserSageAppSource,

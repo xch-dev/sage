@@ -7,9 +7,9 @@ use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::host::AppState;
 use crate::lifecycle::{download_url_snapshot, manifest_entry_file, manifest_icon_file, read_installed_app_by_id, write_installed_app_metadata};
+use crate::lifecycle::flags::get_app_flags;
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::permissions::{resolve_capability_flags};
 use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
 use crate::permissions::capabilities::validation::validate_granted_capabilities;
@@ -154,7 +154,7 @@ pub async fn apply_app_update(
             io::Error::other(format!("invalid granted permission policy for update: {err}"))
         })?;
 
-    let permission_flags = resolve_capability_flags(
+    let permission_flags = get_app_flags(
         &effective_capabilities,
         Some(&app.common.capability_flags),
     )

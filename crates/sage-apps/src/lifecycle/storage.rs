@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::AppsHostState;
 use crate::host::AppState;
 use crate::lifecycle::{read_installed_app_by_id, read_pending_storage_cleanup_entries, read_retired_app_origins, write_installed_app_metadata, write_pending_storage_cleanup_entries, write_retired_app_origins};
-use crate::permissions::mark_storage_may_contain_secrets;
+use crate::lifecycle::flags::mark_storage_may_contain_secrets;
 use crate::runtime::{resolve_app};
 use crate::runtime::stop::close_runtime_internal;
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};

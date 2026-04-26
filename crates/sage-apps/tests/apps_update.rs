@@ -7,7 +7,7 @@ use sage_apps::lifecycle::registry::{
     app_dir, read_installed_app_by_id, write_installed_app_metadata,
 };
 use sage_apps::types::{
-    InstalledSageAppStorage, SageAppCapabilityFlags, SageAppPackageManifest,
+    InstalledSageAppStorage, SageAppFlags, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedNetworkPermissions, SageGrantedPermissions,
     SageNetworkPermissionTarget, SageRequestedCapabilities,
     SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
@@ -126,7 +126,7 @@ fn update_app_permissions_internal_rejects_unrequested_capability() {
 fn update_app_permissions_internal_can_clear_storage_taint_without_capabilities() {
     let dir = tempdir().unwrap();
     let mut app = sample_app(dir.path(), "app-1");
-    app.common.capability_flags = SageAppCapabilityFlags {
+    app.common.capability_flags = SageAppFlags {
         has_secret_access: false,
         has_external_access: false,
         storage_may_contain_secrets: true,

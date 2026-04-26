@@ -135,7 +135,7 @@ mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_installed_app_metadata;
     use crate::types::{
-        InstalledSageAppStorage, SageAppCapabilityFlags, SageAppManifestFile,
+        InstalledSageAppStorage, SageAppFlags, SageAppManifestFile,
         SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedCapabilities,
         SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions,
     };
@@ -207,7 +207,7 @@ mod tests {
                 capabilities: vec![UserBridgeCapability::PersistentStorage],
                 network: SageGrantedNetworkPermissions { whitelist: vec![] },
             },
-            SageAppCapabilityFlags::default(),
+            SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
             UserSageAppSource::Zip,
             SageAppSnapshot {

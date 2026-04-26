@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 use sage_apps::lifecycle::app_dir;
-use sage_apps::types::{InstalledSageAppStorage, SageAppCapabilityFlags, SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot, SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+use sage_apps::types::{InstalledSageAppStorage, SageAppFlags, SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot, SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppSource};
 
 pub fn empty_permissions() -> SageRequestedPermissions {
     SageRequestedPermissions {
@@ -44,7 +44,7 @@ pub fn sample_installed_app(base: &Path, app_id: &str, name: &str) -> UserSageAp
                 capabilities: vec![],
                 network: SageGrantedNetworkPermissions { whitelist: vec![] },
             },
-            capability_flags: SageAppCapabilityFlags::default(),
+            capability_flags: SageAppFlags::default(),
             storage: InstalledSageAppStorage::Unmanaged,
             active_snapshot: SageAppSnapshot {
                 manifest_hash: "hash".into(),

@@ -7,6 +7,7 @@ pub mod package;
 pub mod registry;
 pub mod snapshot;
 pub mod storage;
+pub mod flags;
 
 pub use limits::*;
 pub use manifest::*;

@@ -234,7 +234,7 @@ mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
     use crate::types::{
-        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCapabilityFlags, SageAppCommon,
+        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppFlags, SageAppCommon,
         SageAppManifestFile, SageGrantedNetworkPermissions, SageGrantedPermissions,
         SageNetworkPermissionTarget, SageRequestedCapabilities, SageRequestedNetworkPermissions,
         SageRequestedNetworkWhitelist, SageRequestedPermissions,
@@ -309,7 +309,7 @@ mod tests {
                         }],
                     },
                 },
-                capability_flags: SageAppCapabilityFlags::default(),
+                capability_flags: SageAppFlags::default(),
                 storage: InstalledSageAppStorage::Unmanaged,
                 active_snapshot: SageAppSnapshot {
                     manifest_hash: "hash".into(),

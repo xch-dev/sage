@@ -11,12 +11,13 @@ use crate::lifecycle::{
     allocate_new_storage, apps_root, manifest_entry_file, manifest_icon_file,
     write_installed_app_metadata,
 };
+use crate::lifecycle::flags::get_app_flags;
 use crate::permissions::{
-    normalize_and_validate_granted_permissions, resolve_capability_flags,
+    normalize_and_validate_granted_permissions,
 };
 use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::types::{
-    InstalledSageAppStorage, SageAppCapabilityFlags, SageAppCommon, SageAppPackageManifest,
+    InstalledSageAppStorage, SageAppFlags, SageAppCommon, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
 
@@ -130,7 +131,7 @@ where
         &granted_permissions.capabilities,
     )?;
 
-    let permission_flags = resolve_capability_flags(&effective_capabilities, None)?;
+    let app_flags = get_app_flags(&effective_capabilities, None)?;
 
     let (app_id, app_dir, existing_app) =
         source.resolve_target(&root, base_path, &prepared)?;
@@ -157,7 +158,7 @@ where
         &app_dir,
         manifest,
         granted_permissions,
-        permission_flags,
+        app_flags,
         storage,
         source.source(&prepared),
         snapshot,
@@ -174,7 +175,7 @@ pub fn build_installed_app(
     app_dir: &Path,
     manifest: &SageAppPackageManifest,
     granted_permissions: SageGrantedPermissions,
-    permission_flags: SageAppCapabilityFlags,
+    permission_flags: SageAppFlags,
     storage: InstalledSageAppStorage,
     source: UserSageAppSource,
     snapshot: SageAppSnapshot,
@@ -420,7 +421,7 @@ mod tests {
                 capabilities: vec![UserBridgeCapability::PersistentStorage],
                 network: SageGrantedNetworkPermissions { whitelist: vec![] },
             },
-            SageAppCapabilityFlags::default(),
+            SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
             UserSageAppSource::Zip,
             SageAppSnapshot {

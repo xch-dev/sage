@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
+use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::permissions::{clear_storage_may_contain_secrets, resolve_capability_flags};
 use crate::permissions::capabilities::definitions::{get_user_capability_definition};
 use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
@@ -38,7 +38,7 @@ pub fn update_app_permissions(
         &granted_permissions.network.whitelist,
     )?;
 
-    let mut permission_flags = resolve_capability_flags(
+    let mut permission_flags = get_app_flags(
         &effective_capabilities,
         Some(&app.common.capability_flags),
     )?;
@@ -59,7 +59,7 @@ pub fn update_app_permissions(
         &app.common.granted_permissions.capabilities,
     )?;
 
-    app.common.capability_flags = resolve_capability_flags(
+    app.common.capability_flags = get_app_flags(
         &effective_capabilities,
         Some(&permission_flags),
     )?;
