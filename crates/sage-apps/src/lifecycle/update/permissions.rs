@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
-use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags};
+use crate::lifecycle::flags::{get_app_flags};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::permissions::{get_user_capability_definition};
 use crate::permissions::{resolve_and_validate_effective_granted_capabilities, normalize_and_validate_user_granted_capabilities};
@@ -13,7 +13,6 @@ pub fn update_app_permissions(
     base_path: &Path,
     app_id: &str,
     granted_permissions: SageGrantedPermissions,
-    clear_storage_taint: bool,
 ) -> anyhow::Result<UserSageApp> {
     let mut app = read_installed_app_by_id(base_path, app_id)?;
 
@@ -44,14 +43,10 @@ pub fn update_app_permissions(
         &requested_network_whitelist,
     )?;
 
-    let mut permission_flags = get_app_flags(
+    let permission_flags = get_app_flags(
         &effective_capabilities,
         Some(&app.common.capability_flags),
     )?;
-
-    if clear_storage_taint {
-        permission_flags = clear_storage_may_contain_secrets(&permission_flags);
-    }
 
     app.common.granted_permissions = SageGrantedPermissions {
         capabilities: normalized_capabilities,
@@ -186,7 +181,6 @@ pub fn grant_requested_capability_internal(
             capabilities: next_capabilities,
             network: app.common.granted_permissions.network.clone(),
         },
-        false,
     )?;
 
     let change = diff_capabilities(
@@ -255,7 +249,6 @@ pub fn grant_requested_network_whitelist_entry_internal(
                 whitelist: next_whitelist,
             },
         },
-        false,
     )?;
 
     let change = diff_network_whitelist(
@@ -270,7 +263,6 @@ pub fn update_app_permissions_with_change_internal(
     base_path: &Path,
     app_id: &str,
     granted_permissions: SageGrantedPermissions,
-    clear_storage_taint: bool,
 ) -> anyhow::Result<(
     UserSageApp,
     GrantedCapabilitiesChange,
@@ -282,7 +274,6 @@ pub fn update_app_permissions_with_change_internal(
         base_path,
         app_id,
         granted_permissions,
-        clear_storage_taint,
     )?;
 
     let capability_change = diff_capabilities(

@@ -197,7 +197,6 @@ pub async fn apps_update_permissions(
     state: State<'_, AppState>,
     app_id: String,
     granted_permissions: SageGrantedPermissions,
-    clear_storage_taint: bool,
 ) -> Result<()> {
     let base_path = {
         let state = state.lock().await;
@@ -209,7 +208,6 @@ pub async fn apps_update_permissions(
             &base_path,
             &app_id,
             granted_permissions,
-            clear_storage_taint,
         )
             .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
 

@@ -77,7 +77,6 @@ fn update_app_permissions_internal_persists_required_network_entries() {
             capabilities: vec![],
             network: SageGrantedNetworkPermissions { whitelist: vec![] },
         },
-        false,
     )
         .unwrap();
 
@@ -113,42 +112,12 @@ fn update_app_permissions_internal_rejects_unrequested_capability() {
             capabilities: vec![UserBridgeCapability::WalletSendXchAutoSubmit],
             network: SageGrantedNetworkPermissions { whitelist: vec![] },
         },
-        false,
     )
         .unwrap_err();
 
     let err = err.to_string();
     assert!(err.contains("not requested in manifest"));
     assert!(err.contains(UserBridgeCapability::WalletSendXchAutoSubmit.key()));
-}
-
-#[test]
-fn update_app_permissions_internal_can_clear_storage_taint_without_capabilities() {
-    let dir = tempdir().unwrap();
-    let mut app = sample_app(dir.path(), "app-1");
-    app.common.capability_flags = SageAppFlags {
-        has_secret_access: false,
-        has_external_access: false,
-        storage_may_contain_secrets: true,
-        isolated: true,
-    };
-
-    let app_path = app_dir(dir.path(), &app.common.id);
-    write_installed_app_metadata(&app, &app_path).unwrap();
-
-    let updated = update_app_permissions(
-        dir.path(),
-        &app.common.id,
-        SageGrantedPermissions {
-            capabilities: vec![],
-            network: SageGrantedNetworkPermissions { whitelist: vec![] },
-        },
-        true,
-    )
-        .unwrap();
-
-    assert!(!updated.common.capability_flags.storage_may_contain_secrets);
-    assert!(!updated.common.capability_flags.isolated);
 }
 
 #[test]
