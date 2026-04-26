@@ -9,7 +9,8 @@ use crate::host::AppState;
 use crate::lifecycle::{download_url_snapshot, manifest_entry_file, manifest_icon_file, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::permissions::{resolve_capability_flags, resolve_effective_granted_capabilities};
+use crate::permissions::{resolve_capability_flags};
+use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
 use crate::permissions::capabilities::validation::validate_granted_capabilities;
 use crate::permissions::network::normalize_and_validate_granted_network;
@@ -145,7 +146,7 @@ pub async fn apply_app_update(
             io::Error::other(format!("invalid granted network whitelist for update: {err}"))
         })?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = get_effective_granted_capabilities(
         &pending.manifest.permissions,
         &normalized_capabilities,
     )

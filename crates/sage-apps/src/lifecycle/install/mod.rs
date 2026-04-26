@@ -13,8 +13,8 @@ use crate::lifecycle::{
 };
 use crate::permissions::{
     normalize_and_validate_granted_permissions, resolve_capability_flags,
-    resolve_effective_granted_capabilities,
 };
+use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::types::{
     InstalledSageAppStorage, SageAppCapabilityFlags, SageAppCommon, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
@@ -125,7 +125,7 @@ where
     let granted_permissions =
         normalize_and_validate_granted_permissions(&manifest.permissions, granted_permissions)?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = get_effective_granted_capabilities(
         &manifest.permissions,
         &granted_permissions.capabilities,
     )?;

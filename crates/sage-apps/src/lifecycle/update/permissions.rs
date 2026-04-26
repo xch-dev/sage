@@ -3,8 +3,9 @@ use std::path::{Path, PathBuf};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::permissions::{clear_storage_may_contain_secrets, resolve_capability_flags, resolve_effective_granted_capabilities};
+use crate::permissions::{clear_storage_may_contain_secrets, resolve_capability_flags};
 use crate::permissions::capabilities::definitions::{get_user_capability_definition};
+use crate::permissions::capabilities::get_effective_granted_capabilities;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
 use crate::permissions::capabilities::validation::validate_granted_capabilities;
 use crate::permissions::network::normalize_and_validate_granted_network;
@@ -27,7 +28,7 @@ pub fn update_app_permissions(
         &normalized_capabilities,
     )?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = get_effective_granted_capabilities(
         &app.common.requested_permissions,
         &normalized_capabilities,
     )?;
@@ -53,7 +54,7 @@ pub fn update_app_permissions(
         },
     };
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = get_effective_granted_capabilities(
         &app.common.requested_permissions,
         &app.common.granted_permissions.capabilities,
     )?;

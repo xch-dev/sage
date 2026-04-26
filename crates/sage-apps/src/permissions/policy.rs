@@ -1,38 +1,9 @@
 use anyhow::{anyhow, Result as AnyResult};
-use std::collections::BTreeSet;
-
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::{
-    types::{SageAppCapabilityFlags, SageRequestedPermissions},
+    types::{SageAppCapabilityFlags},
 };
-use crate::permissions::capabilities::definitions::get_user_capability_definition;
 use crate::permissions::capabilities::types::CapabilityFlags;
-use crate::permissions::capabilities::validation::validate_granted_capabilities;
-
-pub fn resolve_effective_granted_capabilities(
-    permissions: &SageRequestedPermissions,
-    user_granted: &[UserBridgeCapability],
-) -> AnyResult<Vec<UserBridgeCapability>> {
-    validate_granted_capabilities(permissions, user_granted)?;
-
-    let mut effective = BTreeSet::new();
-    effective.extend(user_granted.iter().copied());
-
-    for capability in permissions
-        .capabilities
-        .required
-        .iter()
-        .chain(permissions.capabilities.optional.iter())
-    {
-        let definition = get_user_capability_definition(*capability);
-
-        if !definition.flags.user_grantable {
-            effective.insert(*capability);
-        }
-    }
-
-    Ok(effective.into_iter().collect())
-}
 
 pub fn resolve_capability_flags(
     granted: &[UserBridgeCapability],
@@ -93,7 +64,9 @@ mod tests {
     use super::*;
     use crate::permissions::{normalize_and_validate_requested_permissions, validate_requested_permission};
     use crate::permissions::capabilities::definitions::user_registry;
+    use crate::permissions::capabilities::get_effective_granted_capabilities;
     use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+    use crate::permissions::capabilities::validation::validate_granted_capabilities;
     use crate::types::{SageNetworkPermissionTarget, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions};
 
     fn empty_requested_permissions() -> SageRequestedPermissions {
@@ -412,7 +385,7 @@ mod tests {
         validate_granted_capabilities(&requested, &[])
             .expect("non-user-grantable required capability should not require persisted user grant");
 
-        let effective = resolve_effective_granted_capabilities(&requested, &[])
+        let effective = get_effective_granted_capabilities(&requested, &[])
             .expect("expected effective permissions to resolve");
 
         assert_eq!(effective, vec![auto]);
@@ -428,7 +401,7 @@ mod tests {
         validate_granted_capabilities(&requested, &[])
             .expect("non-user-grantable optional capability should not require persisted user grant");
 
-        let effective = resolve_effective_granted_capabilities(&requested, &[])
+        let effective = get_effective_granted_capabilities(&requested, &[])
             .expect("expected effective permissions to resolve");
 
         assert_eq!(effective, vec![auto]);
@@ -446,7 +419,7 @@ mod tests {
         let mut requested = empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
-        let effective = resolve_effective_granted_capabilities(&requested, &normalized)
+        let effective = get_effective_granted_capabilities(&requested, &normalized)
             .expect("auto capability should still be effective");
 
         assert_eq!(effective, vec![auto]);
@@ -459,7 +432,7 @@ mod tests {
         let mut optional_requested = empty_requested_permissions();
         optional_requested.capabilities.optional = vec![auto];
 
-        let optional_effective = resolve_effective_granted_capabilities(
+        let optional_effective = get_effective_granted_capabilities(
             &optional_requested,
             &[],
         )
@@ -470,7 +443,7 @@ mod tests {
         let mut required_requested = empty_requested_permissions();
         required_requested.capabilities.required = vec![auto];
 
-        let required_effective = resolve_effective_granted_capabilities(
+        let required_effective = get_effective_granted_capabilities(
             &required_requested,
             &[],
         )
@@ -486,7 +459,7 @@ mod tests {
         let mut requested = empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
-        let effective = resolve_effective_granted_capabilities(&requested, &[])
+        let effective = get_effective_granted_capabilities(&requested, &[])
             .expect("expected auto grant before removal");
 
         assert_eq!(effective, vec![auto]);
@@ -494,7 +467,7 @@ mod tests {
         let removed_requested = empty_requested_permissions();
 
         let effective_after_removal =
-            resolve_effective_granted_capabilities(&removed_requested, &[])
+            get_effective_granted_capabilities(&removed_requested, &[])
                 .expect("expected permissions to resolve after removal");
 
         assert!(effective_after_removal.is_empty());
@@ -513,7 +486,7 @@ mod tests {
             "error should mention missing user-grantable required capability"
         );
 
-        resolve_effective_granted_capabilities(&requested, &[])
+        get_effective_granted_capabilities(&requested, &[])
             .expect_err("effective permissions should not resolve without required user grant");
     }
 }
