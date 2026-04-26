@@ -7,9 +7,10 @@ use tauri::command;
 use crate::host::Result;
 use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
 use crate::lifecycle::flags::get_app_flags;
-use crate::permissions::{normalize_and_validate_granted_permissions, normalize_and_validate_requested_permissions};
-use crate::permissions::capabilities::{requested_user_grantable_capabilities};
-use crate::permissions::capabilities::resolve_effective_granted_capabilities;
+use crate::permissions::{normalize_and_validate_granted_permissions,
+     normalize_and_validate_requested_permissions, requested_user_grantable_capabilities,
+                         resolve_and_validate_effective_granted_capabilities
+};
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageAppSource, UserSageApp};
 
 macro_rules! sandbox_test_id_prefix {
@@ -202,7 +203,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         }
     )?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
         &manifest.permissions.capabilities,
         &granted_permissions.capabilities,
     )?;

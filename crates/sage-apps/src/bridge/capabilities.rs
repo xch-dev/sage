@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use crate::permissions::capabilities::get_user_capability_definition;
+use crate::permissions::get_user_capability_definition;
 
 macro_rules! define_bridge_capabilities {
     (

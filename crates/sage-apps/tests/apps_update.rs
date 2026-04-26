@@ -117,9 +117,9 @@ fn update_app_permissions_internal_rejects_unrequested_capability() {
     )
         .unwrap_err();
 
-    assert!(err
-        .to_string()
-        .contains("granted permission not requested in manifest"));
+    let err = err.to_string();
+    assert!(err.contains("not requested in manifest"));
+    assert!(err.contains(UserBridgeCapability::WalletSendXchAutoSubmit.key()));
 }
 
 #[test]

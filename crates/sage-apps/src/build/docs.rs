@@ -3,13 +3,13 @@ use std::{fs, path::PathBuf};
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::{BridgeMethodCapability};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::permissions::capabilities::{get_system_capability_definition, get_user_capability_definition};
+use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
 
 fn workspace_root() -> PathBuf {
-    
-    
-    
-    
+
+
+
+
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|path| path.parent())

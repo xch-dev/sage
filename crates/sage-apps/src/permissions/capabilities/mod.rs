@@ -9,31 +9,33 @@ pub(crate) use definitions::{
     user_registry
 };
 pub(super) use normalization::normalize_requested_capabilities;
-pub(super) use validation::validate_granted_capabilities;
 pub(crate) use types::CapabilityFlags;
 
 use anyhow::Result;
 use std::collections::BTreeSet;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::permissions::capabilities::normalization::normalize_granted_capabilities;
+use crate::permissions::capabilities::validation::{validate_effective_granted_capabilities, validate_user_granted_capabilities};
 use crate::types::{SageRequestedCapabilities};
 
-pub(crate) fn normalize_and_validate_granted_capabilities(
+pub(crate) fn normalize_and_validate_user_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,
     granted: &[UserBridgeCapability],
 ) -> Result<Vec<UserBridgeCapability>> {
-    let normalized = normalize_granted_capabilities(&granted)?;
+    validate_user_granted_capabilities(requested_capabilities, granted)?;
 
-    validate_granted_capabilities(requested_capabilities, &normalized)?;
+    let normalized = normalize_granted_capabilities(granted)?;
+
+    validate_user_granted_capabilities(requested_capabilities, &normalized)?;
 
     Ok(normalized)
 }
 
-pub(crate) fn resolve_effective_granted_capabilities(
+pub(crate) fn resolve_and_validate_effective_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,
     user_granted_capabilities: &[UserBridgeCapability],
 ) -> Result<Vec<UserBridgeCapability>> {
-    validate_granted_capabilities(requested_capabilities, user_granted_capabilities)?;
+    validate_user_granted_capabilities(requested_capabilities, user_granted_capabilities)?;
 
     let mut effective = BTreeSet::new();
     effective.extend(user_granted_capabilities.iter().copied());
@@ -51,7 +53,11 @@ pub(crate) fn resolve_effective_granted_capabilities(
         }
     }
 
-    Ok(effective.into_iter().collect())
+    let effective_vec: Vec<UserBridgeCapability> = effective.into_iter().collect();
+
+    validate_effective_granted_capabilities(requested_capabilities, &effective_vec)?;
+
+    Ok(effective_vec)
 }
 
 pub(crate) fn requested_user_grantable_capabilities(

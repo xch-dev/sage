@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Result};
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::permissions::capabilities::CapabilityFlags;
+use crate::permissions::CapabilityFlags;
 use crate::types::SageAppFlags;
 
 pub fn get_app_flags(
     granted: &[UserBridgeCapability],
     previous_flags: Option<&SageAppFlags>,
 ) -> Result<SageAppFlags> {
-    let granted_capability_flags = CapabilityFlags::from_capabilities(granted)?;
+    let granted_capability_flags = CapabilityFlags::from_capabilities(granted);
 
     let previous_storage_may_contain_secrets = previous_flags
         .map(|flags| flags.storage_may_contain_secrets)

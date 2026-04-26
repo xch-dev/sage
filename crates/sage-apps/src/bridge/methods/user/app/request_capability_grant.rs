@@ -12,7 +12,7 @@ use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::lifecycle::update::permissions::grant_requested_capability_internal;
 use crate::lifecycle::update::types::GrantCapabilityOutcome;
-use crate::permissions::capabilities::{get_user_capability_definition, user_capability_definition_view};
+use crate::permissions::{get_user_capability_definition, user_capability_definition_view};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppRequestCapabilityGrant;

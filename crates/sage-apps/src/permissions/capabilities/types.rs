@@ -1,4 +1,3 @@
-use anyhow::{anyhow, Result};
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
 use crate::permissions::capabilities::definitions::get_user_capability_definition;
 
@@ -12,6 +11,14 @@ pub(crate) struct CapabilityFlags {
 }
 
 impl CapabilityFlags {
+    pub const EMPTY: Self = Self {
+        externally_observable: false,
+        accesses_sensitive_secret: false,
+        requestable_by_app: false,
+        user_grantable: false,
+        shared_with_app: false,
+    };
+
     pub fn union(self, other: Self) -> Self {
         Self {
             externally_observable: self.externally_observable || other.externally_observable,
@@ -24,17 +31,10 @@ impl CapabilityFlags {
 
     pub fn from_capabilities(
         capabilities: &[UserBridgeCapability],
-    ) -> Result<Self> {
-        let (first, rest) = capabilities
-            .split_first()
-            .ok_or_else(|| anyhow!("cannot derive capability flags from empty capability list"))?;
-
-        let first_def = get_user_capability_definition(*first);
-
-        rest.iter().try_fold(first_def.flags, |flags, capability| {
+    ) -> Self {
+        capabilities.iter().fold(Self::EMPTY, |flags, capability| {
             let def = get_user_capability_definition(*capability);
-
-            Ok(flags.union(def.flags))
+            flags.union(def.flags)
         })
     }
 }

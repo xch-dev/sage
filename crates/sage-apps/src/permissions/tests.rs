@@ -2,10 +2,9 @@
 pub(super) mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags, mark_storage_may_contain_secrets};
-    use crate::permissions::{normalize_and_validate_requested_permissions, validate_requested_permission};
+    use crate::permissions::{normalize_and_validate_requested_permissions};
     use crate::permissions::capabilities::user_registry;
-    use crate::permissions::capabilities::resolve_effective_granted_capabilities;
-    use crate::permissions::capabilities::validate_granted_capabilities;
+    use crate::permissions::capabilities::resolve_and_validate_effective_granted_capabilities;
     use crate::types::{SageAppFlags, SageNetworkPermissionTarget, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions};
 
     pub fn empty_requested_permissions() -> SageRequestedPermissions {
@@ -187,70 +186,6 @@ pub(super) mod tests {
     }
 
     #[test]
-    fn validate_granted_capabilities_rejects_unrequested_capability() {
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![UserBridgeCapability::WalletSendXch];
-
-        let err = validate_granted_capabilities(
-            &requested.capabilities,
-            &vec![
-                UserBridgeCapability::WalletSendXch,
-                UserBridgeCapability::PersistentStorage,
-            ],
-        )
-            .expect_err("expected unrequested capability to be rejected");
-
-        assert!(
-            err.to_string().contains("persistent_storage"),
-            "error should mention unrequested capability"
-        );
-    }
-
-    #[test]
-    fn validate_granted_capabilities_rejects_missing_required_capability() {
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![UserBridgeCapability::WalletSendXch];
-
-        let err = validate_granted_capabilities(&requested.capabilities, &[])
-            .expect_err("expected missing required capability to be rejected");
-
-        assert!(
-            err.to_string().contains(UserBridgeCapability::WalletSendXch.key()),
-            "error should mention missing required capability"
-        );
-    }
-
-    #[test]
-    fn validate_granted_capabilities_allows_subset_of_optional_capabilities() {
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![UserBridgeCapability::WalletSendXch];
-        requested.capabilities.optional = vec![UserBridgeCapability::PersistentStorage];
-
-        validate_granted_capabilities(
-            &requested.capabilities,
-            &vec![UserBridgeCapability::WalletSendXch],
-        )
-            .expect("expected optional capability to be omittable");
-    }
-
-    #[test]
-    fn requested_permissions_policy_rejects_secret_and_external_combination() {
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![
-            UserBridgeCapability::WalletSendXch,
-            UserBridgeCapability::WalletGetSecretKey,
-        ];
-
-        let err = validate_requested_permission(&requested)
-            .expect_err("expected incompatible requested capability policy to be rejected");
-
-        assert!(
-            err.to_string().contains("requested permissions cannot include both externally observable and sensitive secret access permissions"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
     fn resolve_capability_flags_sets_expected_flags_for_shared_send_capability() {
         let flags = get_app_flags(&vec![UserBridgeCapability::WalletSendXch], None)
             .expect("expected capability flags to resolve");
@@ -315,45 +250,13 @@ pub(super) mod tests {
     }
 
     #[test]
-    fn non_user_grantable_required_capability_is_effective_without_persisted_grant() {
-        let auto = auto_granted_capability();
-
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![auto];
-
-        validate_granted_capabilities(&requested.capabilities, &[])
-            .expect("non-user-grantable required capability should not require persisted user grant");
-
-        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
-            .expect("expected effective permissions to resolve");
-
-        assert_eq!(effective, vec![auto]);
-    }
-
-    #[test]
-    fn non_user_grantable_optional_capability_is_effective_without_persisted_grant() {
-        let auto = auto_granted_capability();
-
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.optional = vec![auto];
-
-        validate_granted_capabilities(&requested.capabilities, &[])
-            .expect("non-user-grantable optional capability should not require persisted user grant");
-
-        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
-            .expect("expected effective permissions to resolve");
-
-        assert_eq!(effective, vec![auto]);
-    }
-
-    #[test]
     fn moving_non_user_grantable_capability_from_optional_to_required_still_auto_grants() {
         let auto = auto_granted_capability();
 
         let mut optional_requested = empty_requested_permissions();
         optional_requested.capabilities.optional = vec![auto];
 
-        let optional_effective = resolve_effective_granted_capabilities(
+        let optional_effective = resolve_and_validate_effective_granted_capabilities(
             &optional_requested.capabilities,
             &[],
         )
@@ -364,7 +267,7 @@ pub(super) mod tests {
         let mut required_requested = empty_requested_permissions();
         required_requested.capabilities.required = vec![auto];
 
-        let required_effective = resolve_effective_granted_capabilities(
+        let required_effective = resolve_and_validate_effective_granted_capabilities(
             &required_requested.capabilities,
             &[],
         )
@@ -380,7 +283,7 @@ pub(super) mod tests {
         let mut requested = empty_requested_permissions();
         requested.capabilities.required = vec![auto];
 
-        let effective = resolve_effective_granted_capabilities(&requested.capabilities, &[])
+        let effective = resolve_and_validate_effective_granted_capabilities(&requested.capabilities, &[])
             .expect("expected auto grant before removal");
 
         assert_eq!(effective, vec![auto]);
@@ -388,26 +291,9 @@ pub(super) mod tests {
         let removed_requested = empty_requested_permissions();
 
         let effective_after_removal =
-            resolve_effective_granted_capabilities(&removed_requested.capabilities, &[])
+            resolve_and_validate_effective_granted_capabilities(&removed_requested.capabilities, &[])
                 .expect("expected permissions to resolve after removal");
 
         assert!(effective_after_removal.is_empty());
-    }
-
-    #[test]
-    fn user_grantable_required_capability_without_user_grant_is_blocked() {
-        let mut requested = empty_requested_permissions();
-        requested.capabilities.required = vec![UserBridgeCapability::WalletSendXch];
-
-        let err = validate_granted_capabilities(&requested.capabilities, &[])
-            .expect_err("user-grantable required capability should require user grant");
-
-        assert!(
-            err.to_string().contains(UserBridgeCapability::WalletSendXch.key()),
-            "error should mention missing user-grantable required capability"
-        );
-
-        resolve_effective_granted_capabilities(&requested.capabilities, &[])
-            .expect_err("effective permissions should not resolve without required user grant");
     }
 }

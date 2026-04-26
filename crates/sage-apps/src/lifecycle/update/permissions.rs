@@ -4,9 +4,9 @@ use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags};
 use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::permissions::capabilities::{get_user_capability_definition};
-use crate::permissions::capabilities::{resolve_effective_granted_capabilities, normalize_and_validate_granted_capabilities};
-use crate::permissions::network::normalize_and_validate_granted_network;
+use crate::permissions::{get_user_capability_definition};
+use crate::permissions::{resolve_and_validate_effective_granted_capabilities, normalize_and_validate_user_granted_capabilities};
+use crate::permissions::normalize_and_validate_granted_network;
 use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageNetworkPermissionTarget, UserSageApp};
 
 pub fn update_app_permissions(
@@ -17,19 +17,31 @@ pub fn update_app_permissions(
 ) -> anyhow::Result<UserSageApp> {
     let mut app = read_installed_app_by_id(base_path, app_id)?;
 
-    let normalized_capabilities = normalize_and_validate_granted_capabilities(
+    let normalized_capabilities = normalize_and_validate_user_granted_capabilities(
         &app.common.requested_permissions.capabilities,
-        &granted_permissions.capabilities
+        &granted_permissions.capabilities,
     )?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
         &app.common.requested_permissions.capabilities,
         &normalized_capabilities,
     )?;
 
+    let mut requested_network_whitelist = app
+        .common
+        .active_snapshot
+        .manifest
+        .permissions
+        .network
+        .whitelist
+        .required
+        .clone();
+
+    requested_network_whitelist.extend(granted_permissions.network.whitelist);
+
     let granted_network_whitelist = normalize_and_validate_granted_network(
         &app.common.active_snapshot.manifest.permissions.network,
-        &granted_permissions.network.whitelist,
+        &requested_network_whitelist,
     )?;
 
     let mut permission_flags = get_app_flags(
@@ -48,15 +60,7 @@ pub fn update_app_permissions(
         },
     };
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
-        &app.common.requested_permissions.capabilities,
-        &app.common.granted_permissions.capabilities,
-    )?;
-
-    app.common.capability_flags = get_app_flags(
-        &effective_capabilities,
-        Some(&permission_flags),
-    )?;
+    app.common.capability_flags = permission_flags;
 
     let app_dir = PathBuf::from(&app.common.app_dir);
     write_installed_app_metadata(&app, &app_dir)?;

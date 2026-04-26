@@ -5,7 +5,7 @@ use crate::bridge::bridge_request::{execute_bridge_request, process};
 use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::bridge::state::{get_pending_approval, remove_pending_approval};
 use crate::host::AppState;
-use crate::permissions::capabilities::{user_capability_definition_view, user_registry};
+use crate::permissions::{user_capability_definition_view, user_registry};
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::types::{SageAppCapabilityDefinitionView};

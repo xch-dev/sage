@@ -4,7 +4,6 @@ mod normalization;
 pub(super) use validation::validate_granted_network;
 pub(super) use normalization::normalize_requested_network;
 
-use std::collections::BTreeSet;
 use anyhow::Result;
 use crate::permissions::network::normalization::{normalize_granted_network};
 use crate::types::{SageNetworkPermissionTarget, SageRequestedNetworkPermissions};
@@ -18,10 +17,5 @@ pub(crate) fn normalize_and_validate_granted_network(
 
     validate_granted_network(&requested, &granted)?;
 
-    let mut effective = BTreeSet::new();
-
-    effective.extend(requested.whitelist.required);
-    effective.extend(granted);
-
-    Ok(effective.into_iter().collect())
+    Ok(granted)
 }

@@ -10,8 +10,8 @@ use crate::lifecycle::{download_url_snapshot, manifest_entry_file, manifest_icon
 use crate::lifecycle::flags::get_app_flags;
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::permissions::capabilities::{resolve_effective_granted_capabilities, normalize_and_validate_granted_capabilities};
-use crate::permissions::network::normalize_and_validate_granted_network;
+use crate::permissions::{resolve_and_validate_effective_granted_capabilities, normalize_and_validate_user_granted_capabilities};
+use crate::permissions::normalize_and_validate_granted_network;
 use crate::types::{SageAppUrlPreview, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 #[command]
@@ -125,7 +125,7 @@ pub async fn apply_app_update(
         .clone()
         .ok_or_else(|| io::Error::other(format!("app {} has no pending update", app_id)))?;
 
-    let normalized_capabilities = normalize_and_validate_granted_capabilities(
+    let normalized_capabilities = normalize_and_validate_user_granted_capabilities(
         &app.common.requested_permissions.capabilities,
         &granted_permissions.capabilities
     ).map_err(|err| io::Error::other(format!("invalid granted permissions for update: {err}")))?;
@@ -138,7 +138,7 @@ pub async fn apply_app_update(
             io::Error::other(format!("invalid granted network whitelist for update: {err}"))
         })?;
 
-    let effective_capabilities = resolve_effective_granted_capabilities(
+    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
         &pending.manifest.permissions.capabilities,
         &normalized_capabilities,
     )

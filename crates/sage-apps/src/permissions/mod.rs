@@ -1,15 +1,24 @@
 pub mod tests;
-pub mod validation;
-pub mod capabilities;
-pub mod network;
-pub mod normalization;
+mod validation;
+mod capabilities;
+mod network;
+mod normalization;
 
-pub use validation::*;
+pub(crate) use capabilities::{
+    get_user_capability_definition,
+    normalize_and_validate_user_granted_capabilities,
+    resolve_and_validate_effective_granted_capabilities,
+    requested_user_grantable_capabilities,
+    user_capability_definition_view,
+    user_registry,
+    get_system_capability_definition,
+    CapabilityFlags,
+};
+pub(crate) use network::normalize_and_validate_granted_network;
 
 use anyhow::Result;
-use crate::permissions::capabilities::normalize_and_validate_granted_capabilities;
-use crate::permissions::network::normalize_and_validate_granted_network;
 use crate::permissions::normalization::normalize_requested_permissions;
+use crate::permissions::validation::validate_requested_permission;
 use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedPermissions};
 
 pub(crate) fn normalize_and_validate_requested_permissions(
@@ -27,7 +36,7 @@ pub(crate) fn normalize_and_validate_granted_permissions(
     granted: SageGrantedPermissions,
 ) -> Result<SageGrantedPermissions> {
     Ok(SageGrantedPermissions {
-        capabilities: normalize_and_validate_granted_capabilities(
+        capabilities: normalize_and_validate_user_granted_capabilities(
             &requested.capabilities,
             &granted.capabilities
         )?,
