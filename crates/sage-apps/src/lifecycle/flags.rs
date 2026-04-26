@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::permissions::capabilities::types::CapabilityFlags;
+use crate::permissions::capabilities::CapabilityFlags;
 use crate::types::SageAppFlags;
 
 pub fn get_app_flags(

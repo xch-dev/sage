@@ -3,7 +3,7 @@ use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
 use crate::permissions::capabilities::definitions::get_user_capability_definition;
 
 #[derive(Debug, Clone, Copy)]
-pub struct CapabilityFlags {
+pub(crate) struct CapabilityFlags {
     pub externally_observable: bool,
     pub accesses_sensitive_secret: bool,
     pub requestable_by_app: bool,
@@ -49,10 +49,3 @@ pub struct CapabilityDefinition<C> {
 
 pub type UserCapabilityDefinition = CapabilityDefinition<UserBridgeCapability>;
 pub type SystemCapabilityDefinition = CapabilityDefinition<SystemBridgeCapability>;
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct CapabilitySummary {
-    pub externally_observable: bool,
-    pub accesses_sensitive_secret: bool,
-    pub persistent_storage: bool,
-}

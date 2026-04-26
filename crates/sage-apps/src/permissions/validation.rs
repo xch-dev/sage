@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use crate::permissions::capabilities::types::CapabilityFlags;
+use crate::permissions::capabilities::CapabilityFlags;
 use crate::types::{SageRequestedPermissions};
 
 pub fn validate_requested_permission(

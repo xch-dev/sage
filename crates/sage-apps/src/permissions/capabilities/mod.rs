@@ -7,7 +7,7 @@ use crate::types::{SageRequestedCapabilities};
 mod definitions;
 mod normalization;
 mod validation;
-pub mod types;
+mod types;
 
 pub(crate) use definitions::{
     get_user_capability_definition, get_system_capability_definition,
@@ -16,6 +16,7 @@ pub(crate) use definitions::{
 };
 pub(in crate::permissions) use normalization::normalize_requested_capabilities;
 pub(in crate::permissions) use validation::validate_granted_capabilities;
+pub(crate) use types::CapabilityFlags;
 
 pub(crate) fn normalize_and_validate_granted_capabilities(
     requested_capabilities: &SageRequestedCapabilities,
