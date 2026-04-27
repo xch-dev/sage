@@ -2,14 +2,17 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
-use crate::bridge::methods::user::app::resolve_app_base_path;
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
 use crate::bridge::methods::user::app::events::EventForApp;
+use crate::bridge::methods::user::app::resolve_app_base_path;
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
+use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::lifecycle::update::permissions::grant_requested_network_whitelist_entry_internal;
 use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
 use crate::types::SageNetworkWhitelistEntry;
@@ -48,8 +51,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        let params: RequestNetworkWhitelistGrantParams =
-            parse_required_params(self, request)?;
+        let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
         if ctx
             .app
@@ -77,20 +79,19 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let params: RequestNetworkWhitelistGrantParams =
-            parse_required_params(self, request)?;
+        let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
         let base_path = resolve_app_base_path(&tools)?;
 
         let result = match grant_requested_network_whitelist_entry_internal(
             &base_path,
-            &ctx.app.id(),
+            ctx.app.id(),
             &params.entry,
         ) {
             Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
-                   entry,
-                   full_granted_network_whitelist,
-               }) => RequestNetworkWhitelistGrantResult {
+                entry,
+                full_granted_network_whitelist,
+            }) => RequestNetworkWhitelistGrantResult {
                 granted: true,
                 already_granted: Some(true),
                 entry,
@@ -105,7 +106,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
                     ctx.app.id(),
                     EventForApp::from_network_whitelist_change(&request.channel, change),
                 )
-                    .await;
+                .await;
 
                 RequestNetworkWhitelistGrantResult {
                     granted: true,

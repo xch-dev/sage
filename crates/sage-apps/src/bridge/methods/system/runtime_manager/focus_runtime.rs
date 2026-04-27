@@ -1,10 +1,13 @@
 use async_trait::async_trait;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::capabilities::SystemBridgeCapability;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
 use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
-use crate::bridge::{RustBridgeRequest};
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::runtime::focus_runtime;
 
 #[derive(Debug, Clone, Copy)]
@@ -36,11 +39,7 @@ impl BridgeMethod for RuntimeManagerFocusRuntime {
     ) -> BridgeHandleResult {
         let params: RuntimeTargetParams = parse_required_params(self, request)?;
 
-        let record = focus_runtime(
-            tools.app_handle,
-            tools.host_state,
-            &params.app_id,
-        )
+        let record = focus_runtime(tools.app_handle, tools.host_state, &params.app_id)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 

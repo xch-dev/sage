@@ -2,10 +2,13 @@ use async_trait::async_trait;
 use sage_api::GetSecretKey;
 
 use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::types::RustBridgeApprovalBody;
+use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetSecretKey;
@@ -48,10 +51,7 @@ impl BridgeMethod for WalletGetSecretKey {
         let sage = tools.app_state.lock().await;
 
         let response = sage.get_secret_key(params).map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!(
-                "{} failed: {err}",
-                self.name()
-            ))
+            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
         })?;
 
         Ok(Box::new(response))

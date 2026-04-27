@@ -2,9 +2,7 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::fs_utils::{
-    copy_dir_all_if_changed, copy_file_if_changed, remove_unexpected_files,
-};
+use super::fs_utils::{copy_dir_all_if_changed, copy_file_if_changed, remove_unexpected_files};
 
 pub fn finalize_source_app(
     shared_dir: Option<&Path>,
@@ -18,10 +16,10 @@ pub fn finalize_source_app(
 
     let mut expected_files = BTreeSet::<PathBuf>::new();
 
-    if let Some(shared_dir) = shared_dir {
-        if shared_dir.is_dir() {
-            copy_dir_all_if_changed(shared_dir, out_dir, &mut expected_files)?;
-        }
+    if let Some(shared_dir) = shared_dir
+        && shared_dir.is_dir()
+    {
+        copy_dir_all_if_changed(shared_dir, out_dir, &mut expected_files)?;
     }
 
     copy_dir_all_if_changed(source_dir, out_dir, &mut expected_files)?;
@@ -44,9 +42,8 @@ pub fn finalize_source_app(
             if rel != PathBuf::from("sage-manifest.json") {
                 let path = out_dir.join(&rel);
                 if path.is_file() {
-                    fs::remove_file(&path).map_err(|err| {
-                        format!("failed to remove {}: {err}", path.display())
-                    })?;
+                    fs::remove_file(&path)
+                        .map_err(|err| format!("failed to remove {}: {err}", path.display()))?;
                 }
             }
         }

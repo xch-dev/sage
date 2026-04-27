@@ -1,15 +1,15 @@
-use tauri::{AppHandle, Emitter, Manager, State};
-use crate::runtime::webview_locator::get_sage_webview;
-use crate::state::AppsHostState;
-use crate::utils::unix_timestamp_ms;
 use super::probes::{
     run_clear_cycle_test, run_isolation_test, run_network_test, run_persistence_test,
 };
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{
-    build_running_sandbox_state, mark_cap, SandboxCapability, SandboxCapabilityStatus,
-    SandboxRunState, SandboxState,
+    SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,
+    build_running_sandbox_state, mark_cap,
 };
+use crate::runtime::webview_locator::get_sage_webview;
+use crate::state::AppsHostState;
+use crate::utils::unix_timestamp_ms;
+use tauri::{AppHandle, Emitter, Manager, State};
 
 async fn emit_state_view(app: &AppHandle, apps_state: &State<'_, AppsHostState>) {
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
@@ -107,9 +107,10 @@ pub async fn sandbox_runner(app: AppHandle) {
 
     let mut current_state = {
         let current_run = apps_state.sandbox.current_run.lock().await.clone();
-        current_run
-            .map(|r| r.state)
-            .unwrap_or_else(|| build_running_sandbox_state(unix_timestamp_ms()))
+        current_run.map_or_else(
+            || build_running_sandbox_state(unix_timestamp_ms()),
+            |r| r.state,
+        )
     };
 
     let isolation_fut = run_isolation_test(&app, &apps_state);

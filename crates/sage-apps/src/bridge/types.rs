@@ -1,10 +1,10 @@
+use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
+use crate::types::{SageApp, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
 use tauri_specta::Event;
-use crate::bridge::capabilities::UserBridgeCapability;
-use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::types::{SageApp, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry};
 
 #[derive(Debug, Clone)]
 pub struct PendingBridgeApproval {
@@ -49,7 +49,6 @@ pub struct RustBridgeErrorResponse {
     pub ok: bool,
     pub error: RustBridgeErrorPayload,
 }
-
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(untagged)]
@@ -110,11 +109,7 @@ pub struct ResolveBridgeApprovalArgs {
 }
 
 impl RustBridgeResponse {
-    pub fn success(
-        channel: &str,
-        id: &str,
-        result: Value
-    ) -> RustBridgeResponse {
+    pub fn success(channel: &str, id: &str, result: Value) -> RustBridgeResponse {
         RustBridgeResponse::Success(RustBridgeSuccessResponse {
             channel: channel.into(),
             bridge_version: "v1".into(),
@@ -127,7 +122,7 @@ impl RustBridgeResponse {
         channel: &str,
         id: &str,
         code: &str,
-        message: impl Into<String>
+        message: impl Into<String>,
     ) -> RustBridgeResponse {
         RustBridgeResponse::Error(RustBridgeErrorResponse {
             channel: channel.into(),

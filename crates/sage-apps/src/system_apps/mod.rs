@@ -1,10 +1,13 @@
-use std::{fs, path::PathBuf};
-use std::path::Path;
-use anyhow::{anyhow, Context, Result as AnyResult};
-use tauri::command;
 use crate::bridge::capabilities::SystemBridgeCapability;
 use crate::host::Result;
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
+    SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp,
+};
+use anyhow::{Context, Result as AnyResult, anyhow};
+use std::path::Path;
+use std::{fs, path::PathBuf};
+use tauri::command;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 
@@ -30,7 +33,9 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[BuiltinSystemAppSpec {
 }];
 
 pub fn builtin_system_app_spec(app_id: &str) -> Option<&'static BuiltinSystemAppSpec> {
-    BUILTIN_SYSTEM_APPS.iter().find(|spec| spec.app_id == app_id)
+    BUILTIN_SYSTEM_APPS
+        .iter()
+        .find(|spec| spec.app_id == app_id)
 }
 
 pub fn builtin_apps_root() -> PathBuf {
@@ -75,9 +80,12 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
 fn compute_total_bytes(app_dir: &PathBuf) -> AnyResult<u64> {
     let mut total_bytes = 0_u64;
 
-    for entry in fs::read_dir(app_dir)
-        .with_context(|| format!("failed to read builtin system app dir {}", app_dir.display()))?
-    {
+    for entry in fs::read_dir(app_dir).with_context(|| {
+        format!(
+            "failed to read builtin system app dir {}",
+            app_dir.display()
+        )
+    })? {
         let entry = entry.with_context(|| {
             format!(
                 "failed to read entry in builtin system app dir {}",
@@ -191,9 +199,7 @@ pub fn list_builtin_system_apps() -> AnyResult<Vec<SageApp>> {
 
 #[command]
 #[specta::specta]
-pub fn get_builtin_system_app(
-    app_id: &str,
-) -> Result<Option<SageApp>> {
+pub fn get_builtin_system_app(app_id: &str) -> Result<Option<SageApp>> {
     build_builtin_system_app(app_id).map_err(|err| {
         std::io::Error::other(format!("failed to load builtin system app: {err}")).into()
     })

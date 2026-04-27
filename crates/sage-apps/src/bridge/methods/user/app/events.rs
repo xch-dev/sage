@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::update::types::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::types::SageNetworkWhitelistEntry;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum EventForApp {
@@ -43,7 +43,10 @@ impl EventForApp {
         })
     }
 
-    pub fn from_network_whitelist_change(channel: &str, change: GrantedNetworkWhitelistChange) -> Self {
+    pub fn from_network_whitelist_change(
+        channel: &str,
+        change: GrantedNetworkWhitelistChange,
+    ) -> Self {
         EventForApp::GrantedNetworkWhitelistChange(GrantedNetworkWhitelistChangeEvent {
             channel: channel.to_string(),
             event_type: "grantedNetworkWhitelistChange".to_string(),

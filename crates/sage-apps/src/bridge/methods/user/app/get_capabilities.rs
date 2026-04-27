@@ -1,9 +1,11 @@
 use async_trait::async_trait;
 
-use crate::bridge::{RustBridgeRequest};
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
 use crate::types::SageApp;
 
 #[derive(Debug, Clone, Copy)]
@@ -39,11 +41,7 @@ impl BridgeMethod for AppGetCapabilities {
                 .requested_permissions
                 .capabilities
                 .resolve_effective_grants(
-                    user_app
-                        .common
-                        .granted_permissions
-                        .capabilities()
-                        .copied(),
+                    user_app.common.granted_permissions.capabilities().copied(),
                 )
                 .unwrap_or_default(),
 

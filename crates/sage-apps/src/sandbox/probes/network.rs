@@ -3,8 +3,8 @@ use tauri::{AppHandle, State};
 use crate::sandbox::{BUILTIN_NETWORK_ALLOW_A_ID, BUILTIN_NETWORK_ALLOW_B_ID};
 use crate::state::AppsHostState;
 
-use super::poll::poll_network;
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
+use super::poll::poll_network;
 
 pub async fn run_network_test(
     app: &AppHandle,
@@ -22,7 +22,7 @@ pub async fn run_network_test(
         &[("runId", run_id.clone())],
         None,
     )
-        .await?;
+    .await?;
     start_test_app(
         app,
         apps_state,
@@ -30,7 +30,7 @@ pub async fn run_network_test(
         &[("runId", run_id.clone())],
         None,
     )
-        .await?;
+    .await?;
 
     let results = poll_network(apps_state, &run_id, 2, 12_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;

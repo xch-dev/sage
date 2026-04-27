@@ -24,7 +24,7 @@ fn requested_permissions() -> SageRequestedPermissions {
             [UserBridgeCapability::PersistentStorage],
         ),
     )
-        .unwrap()
+    .unwrap()
 }
 
 fn sample_manifest_with(
@@ -41,14 +41,11 @@ fn sample_manifest_with(
         author: None,
         donation: None,
     })
-        .unwrap()
+    .unwrap()
 }
 
 fn sample_manifest() -> SageAppPackageManifest {
-    sample_manifest_with(
-        Some("entry.html".to_string()),
-        Some("icon.svg".to_string()),
-    )
+    sample_manifest_with(Some("entry.html".to_string()), Some("icon.svg".to_string()))
 }
 
 #[test]

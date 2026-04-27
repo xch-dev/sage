@@ -1,17 +1,19 @@
-use std::collections::BTreeMap;
-use serde::Deserialize;
-use specta::Type;
-use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
-use tauri::webview::NewWindowResponse;
-use crate::{sandbox, AppsHostState};
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::runtime::{build_entry_src, is_allowed_app_url, resolve_app, runtime_kind_for_app};
-use crate::runtime::webview_locator::{find_webview_in_sage_window, get_sage_window, get_webview_in_sage_window};
 use crate::runtime::state::types::{SageAppRuntimeKind, SageAppRuntimeRecord};
 use crate::runtime::state::write::{write_runtime_and_emit_changed, write_runtime_id_by_app_id};
+use crate::runtime::webview_locator::{
+    find_webview_in_sage_window, get_sage_window, get_webview_in_sage_window,
+};
+use crate::runtime::{build_entry_src, is_allowed_app_url, resolve_app, runtime_kind_for_app};
 use crate::storage::parse_data_store_id;
 use crate::types::{InstalledSageAppStorage, SageApp};
 use crate::utils::unix_timestamp_ms;
+use crate::{AppsHostState, sandbox};
+use serde::Deserialize;
+use specta::Type;
+use std::collections::BTreeMap;
+use tauri::webview::NewWindowResponse;
+use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -48,21 +50,19 @@ pub async fn create_inline_runtime(
             args.visible,
             args.internal,
         )
-            .await;
+        .await;
     }
 
     if !args.internal && !resolved.is_sandbox_test() {
         let baseline = apps_state.sandbox.baseline.lock().await.clone();
         let current_run = apps_state.sandbox.current_run.lock().await.clone();
-        let effective =
-            sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
+        let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
         let gate = sandbox::evaluate_app_launch_gate(&resolved, &effective);
 
         if !gate.allowed {
-            return Err(
-                gate.message
-                    .unwrap_or_else(|| "App launch blocked by sandbox policy".into()),
-            );
+            return Err(gate
+                .message
+                .unwrap_or_else(|| "App launch blocked by sandbox policy".into()));
         }
     }
 
@@ -77,10 +77,8 @@ pub async fn create_inline_runtime(
                 .map_err(|e| format!("invalid entry url: {e}"))?,
         ),
     )
-        .on_navigation(move |url| {
-            is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav)
-        })
-        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+    .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
+    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     if should_use_incognito(&resolved) {
         builder = builder.incognito(true);
@@ -94,7 +92,8 @@ pub async fn create_inline_runtime(
 
             #[cfg(target_os = "windows")]
             InstalledSageAppStorage::WindowsProfile { directory_name } => {
-                builder = builder.data_directory(crate::storage::data_directory_for(directory_name));
+                builder =
+                    builder.data_directory(crate::storage::data_directory_for(directory_name));
             }
 
             _ => {}
@@ -175,21 +174,21 @@ async fn reuse_existing_inline_runtime(
         let by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
         by_runtime_id.get(&runtime_id).cloned()
     }
-        .unwrap_or_else(|| SageAppRuntimeRecord {
-            runtime_id: runtime_id.clone(),
-            app_id: app_id.clone(),
-            app_name,
-            entry_src,
-            webview_label: webview_label.clone(),
-            host_window_label: "main".into(),
-            runtime_kind,
-            mode: "inline".into(),
-            state: "hidden".into(),
-            started_at: now,
-            last_active_at: now,
-            visible: false,
-            internal,
-        });
+    .unwrap_or_else(|| SageAppRuntimeRecord {
+        runtime_id: runtime_id.clone(),
+        app_id: app_id.clone(),
+        app_name,
+        entry_src,
+        webview_label: webview_label.clone(),
+        host_window_label: "main".into(),
+        runtime_kind,
+        mode: "inline".into(),
+        state: "hidden".into(),
+        started_at: now,
+        last_active_at: now,
+        visible: false,
+        internal,
+    });
 
     record.visible = visible;
     record.state = if visible {
@@ -245,10 +244,9 @@ fn should_use_incognito(app: &SageApp) -> bool {
 }
 
 fn fallback_debug_slot(app_id: &str) -> usize {
-    app_id
-        .bytes()
-        .fold(0usize, |acc, b| acc.wrapping_mul(31).wrapping_add(b as usize))
-        % 12
+    app_id.bytes().fold(0usize, |acc, b| {
+        acc.wrapping_mul(31).wrapping_add(b as usize)
+    }) % 12
 }
 
 fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {

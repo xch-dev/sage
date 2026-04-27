@@ -8,12 +8,8 @@ fn effective_cap(
     current: &SandboxCapabilityResult,
 ) -> SandboxCapabilityResult {
     match current.status {
-        SandboxCapabilityStatus::Passed | SandboxCapabilityStatus::Failed => {
-            current.clone()
-        }
-        SandboxCapabilityStatus::Pending | SandboxCapabilityStatus::Running => {
-            baseline.clone()
-        }
+        SandboxCapabilityStatus::Passed | SandboxCapabilityStatus::Failed => current.clone(),
+        SandboxCapabilityStatus::Pending | SandboxCapabilityStatus::Running => baseline.clone(),
     }
 }
 

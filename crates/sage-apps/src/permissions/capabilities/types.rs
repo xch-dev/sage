@@ -22,16 +22,15 @@ impl CapabilityFlags {
     pub fn union(self, other: Self) -> Self {
         Self {
             externally_observable: self.externally_observable || other.externally_observable,
-            accesses_sensitive_secret: self.accesses_sensitive_secret || other.accesses_sensitive_secret,
+            accesses_sensitive_secret: self.accesses_sensitive_secret
+                || other.accesses_sensitive_secret,
             requestable_by_app: self.requestable_by_app || other.requestable_by_app,
             user_grantable: self.user_grantable || other.user_grantable,
             shared_with_app: self.shared_with_app || other.shared_with_app,
         }
     }
 
-    pub fn from_capabilities(
-        capabilities: &[UserBridgeCapability],
-    ) -> Self {
+    pub fn from_capabilities(capabilities: &[UserBridgeCapability]) -> Self {
         capabilities.iter().fold(Self::EMPTY, |flags, capability| {
             let def = get_user_capability_definition(*capability);
             flags.union(def.flags)

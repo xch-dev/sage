@@ -1,14 +1,14 @@
 mod common;
 
-use common::{sample_manifest_file};
-use sage_apps::lifecycle::limits::{
-    MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES,
-};
+use common::sample_manifest_file;
+use sage_apps::lifecycle::limits::{MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES};
 use sage_apps::lifecycle::manifest::{
-    validate_manifest_file_path, validate_manifest_files,
-    validate_sha256_hex,
+    validate_manifest_file_path, validate_manifest_files, validate_sha256_hex,
 };
-use sage_apps::types::{SageAppManifestFile, SageAppPackageManifest, SageRequestedPermissions, SageAppPackageManifestParts};
+use sage_apps::types::{
+    SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+    SageRequestedPermissions,
+};
 
 fn sample_manifest() -> SageAppPackageManifest {
     SageAppPackageManifest::try_from(SageAppPackageManifestParts {
@@ -21,7 +21,7 @@ fn sample_manifest() -> SageAppPackageManifest {
         author: None,
         donation: None,
     })
-        .unwrap()
+    .unwrap()
 }
 
 #[test]
@@ -57,9 +57,7 @@ fn validate_manifest_file_path_rejects_backslashes() {
 
 #[test]
 fn validate_sha256_hex_accepts_valid_hash() {
-    validate_sha256_hex(
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    )
+    validate_sha256_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
         .unwrap();
 }
 
@@ -137,7 +135,8 @@ fn manifest_rejects_blank_name() {
         icon: Some("icon.png".to_string()),
         author: None,
         donation: None,
-    }).unwrap_err();
+    })
+    .unwrap_err();
 
     assert!(err.to_string().contains("name cannot be empty"));
 }
@@ -153,7 +152,8 @@ fn manifest_rejects_blank_version() {
         icon: Some("icon.png".to_string()),
         author: None,
         donation: None,
-    }).unwrap_err();
+    })
+    .unwrap_err();
 
     assert!(err.to_string().contains("version cannot be empty"));
 }

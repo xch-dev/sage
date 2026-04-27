@@ -1,15 +1,11 @@
 use std::{fs, path::PathBuf};
 
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::bridge::methods::shared::{BridgeMethodCapability};
+use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
 use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
 
 fn workspace_root() -> PathBuf {
-
-
-
-
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .and_then(|path| path.parent())
@@ -31,11 +27,7 @@ fn write_if_changed(path: PathBuf, content: String) -> anyhow::Result<()> {
 }
 
 fn bool_cell(value: bool) -> &'static str {
-    if value {
-        "`true`"
-    } else {
-        "`false`"
-    }
+    if value { "`true`" } else { "`false`" }
 }
 
 fn bridge_capability_key(capability: BridgeCapability) -> &'static str {

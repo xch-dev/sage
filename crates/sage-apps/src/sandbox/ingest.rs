@@ -3,11 +3,10 @@ use tauri::State;
 
 use crate::state::AppsHostState;
 
-use super::store::{replace_by_app_id, SandboxAppResult};
+use super::store::{SandboxAppResult, replace_by_app_id};
 use super::types::{
-    SandboxIsolationProbeResult, SandboxNetworkProbeResult,
-    SandboxPersistenceReadProbeResult, SandboxPersistenceWriteProbeResult,
-    SandboxStorageClearProbeResult,
+    SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
+    SandboxPersistenceWriteProbeResult, SandboxStorageClearProbeResult,
 };
 
 pub async fn ingest_bridge_send_payload(
@@ -51,7 +50,7 @@ pub async fn ingest_bridge_send_payload(
     match report_type {
         "isolation" => {
             if let Ok(parsed) = serde_json::from_value::<SandboxIsolationProbeResult>(data) {
-                let _changed = replace_by_app_id(
+                replace_by_app_id(
                     &mut run.isolation,
                     SandboxAppResult {
                         app_id: app_id.to_string(),
@@ -61,10 +60,8 @@ pub async fn ingest_bridge_send_payload(
             }
         }
         "persistence_write" => {
-            if let Ok(parsed) =
-                serde_json::from_value::<SandboxPersistenceWriteProbeResult>(data)
-            {
-                let _changed = replace_by_app_id(
+            if let Ok(parsed) = serde_json::from_value::<SandboxPersistenceWriteProbeResult>(data) {
+                replace_by_app_id(
                     &mut run.persistence_write,
                     SandboxAppResult {
                         app_id: app_id.to_string(),
@@ -74,10 +71,8 @@ pub async fn ingest_bridge_send_payload(
             }
         }
         "persistence_read" => {
-            if let Ok(parsed) =
-                serde_json::from_value::<SandboxPersistenceReadProbeResult>(data)
-            {
-                let _changed = replace_by_app_id(
+            if let Ok(parsed) = serde_json::from_value::<SandboxPersistenceReadProbeResult>(data) {
+                replace_by_app_id(
                     &mut run.persistence_read,
                     SandboxAppResult {
                         app_id: app_id.to_string(),
@@ -88,7 +83,7 @@ pub async fn ingest_bridge_send_payload(
         }
         "network" => {
             if let Ok(parsed) = serde_json::from_value::<SandboxNetworkProbeResult>(data) {
-                let _changed = replace_by_app_id(
+                replace_by_app_id(
                     &mut run.network,
                     SandboxAppResult {
                         app_id: app_id.to_string(),
@@ -98,10 +93,8 @@ pub async fn ingest_bridge_send_payload(
             }
         }
         "clear_cycle" => {
-            if let Ok(parsed) =
-                serde_json::from_value::<SandboxStorageClearProbeResult>(data)
-            {
-                let _changed = replace_by_app_id(
+            if let Ok(parsed) = serde_json::from_value::<SandboxStorageClearProbeResult>(data) {
+                replace_by_app_id(
                     &mut run.clear_cycle,
                     SandboxAppResult {
                         app_id: app_id.to_string(),

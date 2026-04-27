@@ -1,6 +1,6 @@
-use serde::{Serialize};
-use specta::Type;
 use crate::runtime::state::types::SageAppRuntimeRecord;
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

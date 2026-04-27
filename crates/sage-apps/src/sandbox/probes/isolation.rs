@@ -5,8 +5,8 @@ use crate::sandbox::{
 };
 use crate::state::AppsHostState;
 
-use super::poll::poll_isolation;
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
+use super::poll::poll_isolation;
 
 pub async fn run_isolation_test(
     app: &AppHandle,
@@ -27,7 +27,7 @@ pub async fn run_isolation_test(
         &[("runId", run_id.clone())],
         None,
     )
-        .await?;
+    .await?;
     start_test_app(
         app,
         apps_state,
@@ -35,7 +35,7 @@ pub async fn run_isolation_test(
         &[("runId", run_id.clone())],
         None,
     )
-        .await?;
+    .await?;
 
     let results = poll_isolation(apps_state, &run_id, 2, 10_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;
@@ -54,7 +54,10 @@ pub async fn run_isolation_test(
         return Ok((false, Some("Missing incognito isolation result.".into())));
     };
 
-    for (label, result) in [("persistent", &persistent.data), ("incognito", &incognito.data)] {
+    for (label, result) in [
+        ("persistent", &persistent.data),
+        ("incognito", &incognito.data),
+    ] {
         if result.error.is_some() {
             return Ok((
                 false,

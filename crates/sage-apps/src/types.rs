@@ -1,17 +1,20 @@
-use std::collections::BTreeSet;
 use anyhow::anyhow;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
+use std::collections::BTreeSet;
 
-use crate::bridge::capabilities::{SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability};
+use crate::bridge::capabilities::{
+    SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
+};
 use crate::lifecycle::flags::get_app_flags;
-use crate::lifecycle::{manifest_entry_file, manifest_icon_file, validate_manifest_file_path, validate_sha256_hex, MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES};
-use crate::permissions::{get_user_capability_definition, CapabilityFlags};
+use crate::lifecycle::{
+    MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES, manifest_entry_file, manifest_icon_file,
+    validate_manifest_file_path, validate_sha256_hex,
+};
+use crate::permissions::{CapabilityFlags, get_user_capability_definition};
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 
-#[derive(
-    Debug, Clone, Type, PartialEq, Eq, PartialOrd, Ord,
-)]
+#[derive(Debug, Clone, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntry {
     scheme: String,
     host: String,
@@ -342,7 +345,7 @@ impl<'de> Deserialize<'de> for SageRequestedPermissions {
             SageRequestedNetworkPermissions::new(required_network, optional_network),
             raw.capabilities.unwrap_or_default(),
         )
-            .map_err(serde::de::Error::custom)
+        .map_err(serde::de::Error::custom)
     }
 }
 
@@ -356,14 +359,16 @@ impl<'de> Deserialize<'de> for SageAppPackageManifest {
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: raw.name,
             version: raw.version,
-            permissions: raw.permissions.unwrap_or_else(SageRequestedPermissions::empty),
+            permissions: raw
+                .permissions
+                .unwrap_or_else(SageRequestedPermissions::empty),
             files: raw.files,
             entry: raw.entry,
             icon: raw.icon,
             author: raw.author,
             donation: raw.donation,
         })
-            .map_err(serde::de::Error::custom)
+        .map_err(serde::de::Error::custom)
     }
 }
 
@@ -410,7 +415,9 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
             anyhow::bail!("manifest version cannot be empty");
         }
 
-        if let Some(author) = &value.author && author.name.trim().is_empty() {
+        if let Some(author) = &value.author
+            && author.name.trim().is_empty()
+        {
             anyhow::bail!("author name cannot be empty");
         }
 
@@ -654,10 +661,7 @@ impl SystemSageApp {
 }
 
 impl SageNetworkWhitelistEntry {
-    pub fn new(
-        scheme: impl Into<String>,
-        host: impl Into<String>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(scheme: impl Into<String>, host: impl Into<String>) -> anyhow::Result<Self> {
         let scheme = scheme.into().trim().to_ascii_lowercase();
         let host = host.into().trim().to_ascii_lowercase();
 
@@ -892,15 +896,9 @@ impl SageGrantedPermissions {
         capabilities: impl IntoIterator<Item = UserBridgeCapability>,
         network_whitelist: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     ) -> anyhow::Result<Self> {
-        let capabilities = Self::build_capabilities(
-            &requested.capabilities,
-            capabilities,
-        )?;
+        let capabilities = Self::build_capabilities(&requested.capabilities, capabilities)?;
 
-        let network = SageGrantedNetworkPermissions::new(
-            &requested.network,
-            network_whitelist,
-        )?;
+        let network = SageGrantedNetworkPermissions::new(&requested.network, network_whitelist)?;
 
         let effective_capabilities = requested
             .capabilities
@@ -922,11 +920,7 @@ impl SageGrantedPermissions {
         requested: &SageRequestedPermissions,
         granted: SageGrantedPermissions,
     ) -> anyhow::Result<Self> {
-        Self::new(
-            requested,
-            granted.capabilities,
-            granted.network.whitelist,
-        )
+        Self::new(requested, granted.capabilities, granted.network.whitelist)
     }
 
     pub fn capabilities(&self) -> impl Iterator<Item = &UserBridgeCapability> {
@@ -953,7 +947,10 @@ impl SageGrantedPermissions {
 
         for cap in &capabilities {
             if !requested.is_allowed(cap) {
-                anyhow::bail!("granted capability not requested in manifest: {}", cap.key());
+                anyhow::bail!(
+                    "granted capability not requested in manifest: {}",
+                    cap.key()
+                );
             }
 
             if !get_user_capability_definition(*cap).flags.user_grantable {
@@ -1042,10 +1039,8 @@ impl SageAppCommon {
             .capabilities
             .resolve_effective_grants(granted_permissions.capabilities().copied())?;
 
-        let capability_flags = get_app_flags(
-            &effective_capabilities,
-            Some(&self.capability_flags),
-        )?;
+        let capability_flags =
+            get_app_flags(&effective_capabilities, Some(&self.capability_flags))?;
 
         Self::validate_app_flags_policy(capability_flags)?;
 
@@ -1073,10 +1068,7 @@ impl SageAppCommon {
             .required()
             .cloned();
 
-        let granted_network = granted_permissions
-            .network()
-            .whitelist()
-            .cloned();
+        let granted_network = granted_permissions.network().whitelist().cloned();
 
         let granted_permissions = SageGrantedPermissions::new(
             &self.requested_permissions,
@@ -1089,10 +1081,8 @@ impl SageAppCommon {
             .capabilities
             .resolve_effective_grants(granted_permissions.capabilities().copied())?;
 
-        let capability_flags = get_app_flags(
-            &effective_capabilities,
-            Some(&self.capability_flags),
-        )?;
+        let capability_flags =
+            get_app_flags(&effective_capabilities, Some(&self.capability_flags))?;
 
         Self::validate_app_flags_policy(capability_flags)?;
 
@@ -1179,21 +1169,18 @@ fn validate_permissions_policy(
     network: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     context: &str,
 ) -> anyhow::Result<()> {
-    let capability_flags = capabilities.into_iter().fold(
-        CapabilityFlags::EMPTY,
-        |flags, cap| {
+    let capability_flags = capabilities
+        .into_iter()
+        .fold(CapabilityFlags::EMPTY, |flags, cap| {
             flags.union(get_user_capability_definition(cap).flags)
-        }
-    );
+        });
 
     let has_secret_access = capability_flags.accesses_sensitive_secret;
     let has_external_access =
         capability_flags.externally_observable || network.into_iter().next().is_some();
 
     if has_secret_access && has_external_access {
-        anyhow::bail!(
-            "{context} cannot include both external access and sensitive secret access"
-        );
+        anyhow::bail!("{context} cannot include both external access and sensitive secret access");
     }
 
     Ok(())
@@ -1203,7 +1190,10 @@ fn validate_permissions_policy(
 mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::permissions::user_registry;
-    use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
+    use crate::types::{
+        SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
 
     #[test]
     fn granted_permissions_rejects_non_user_grantable_capability_as_user_grant() {
@@ -1213,7 +1203,7 @@ mod tests {
             SageRequestedNetworkPermissions::empty(),
             SageRequestedCapabilities::new([auto], []),
         )
-            .expect("requested permissions should be valid");
+        .expect("requested permissions should be valid");
 
         let err = SageGrantedPermissions::new(&requested, [auto], [])
             .expect_err("non-user-grantable capability cannot be persisted as user grant");
@@ -1242,10 +1232,16 @@ mod tests {
         let auto = UserBridgeCapability::AppGetInfo;
 
         let optional_requested = SageRequestedCapabilities::new([], [auto]);
-        assert_eq!(optional_requested.resolve_effective_grants([]).unwrap(), vec![auto]);
+        assert_eq!(
+            optional_requested.resolve_effective_grants([]).unwrap(),
+            vec![auto]
+        );
 
         let required_requested = SageRequestedCapabilities::new([auto], []);
-        assert_eq!(required_requested.resolve_effective_grants([]).unwrap(), vec![auto]);
+        assert_eq!(
+            required_requested.resolve_effective_grants([]).unwrap(),
+            vec![auto]
+        );
     }
 
     #[test]
@@ -1256,7 +1252,12 @@ mod tests {
         assert_eq!(requested.resolve_effective_grants([]).unwrap(), vec![auto]);
 
         let removed_requested = SageRequestedCapabilities::new([], []);
-        assert!(removed_requested.resolve_effective_grants([]).unwrap().is_empty());
+        assert!(
+            removed_requested
+                .resolve_effective_grants([])
+                .unwrap()
+                .is_empty()
+        );
     }
 
     #[test]
@@ -1267,7 +1268,7 @@ mod tests {
             SageRequestedNetworkPermissions::empty(),
             SageRequestedCapabilities::new([non_requestable], []),
         )
-            .expect_err("expected non-requestable required capability to be rejected");
+        .expect_err("expected non-requestable required capability to be rejected");
 
         let message = err.to_string();
         assert!(message.contains(non_requestable.key()));
@@ -1281,7 +1282,7 @@ mod tests {
             SageRequestedNetworkPermissions::empty(),
             SageRequestedCapabilities::new([], [non_requestable]),
         )
-            .expect_err("expected non-requestable optional capability to be rejected");
+        .expect_err("expected non-requestable optional capability to be rejected");
 
         let message = err.to_string();
         assert!(message.contains(non_requestable.key()));
@@ -1319,7 +1320,8 @@ mod tests {
                 ],
             ),
             SageRequestedCapabilities::empty(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let required = requested
             .network
@@ -1352,7 +1354,7 @@ mod tests {
             SageRequestedNetworkPermissions::empty(),
             SageRequestedCapabilities::new([UserBridgeCapability::WalletSendXch], []),
         )
-            .unwrap();
+        .unwrap();
 
         let err = SageGrantedPermissions::new(
             &requested,
@@ -1362,7 +1364,7 @@ mod tests {
             ],
             [],
         )
-            .expect_err("expected unrequested capability to be rejected");
+        .expect_err("expected unrequested capability to be rejected");
 
         assert!(err.to_string().contains("persistent_storage"));
     }
@@ -1373,12 +1375,15 @@ mod tests {
             SageRequestedNetworkPermissions::empty(),
             SageRequestedCapabilities::new([UserBridgeCapability::WalletSendXch], []),
         )
-            .unwrap();
+        .unwrap();
 
         let err = SageGrantedPermissions::new(&requested, [], [])
             .expect_err("expected missing required capability to be rejected");
 
-        assert!(err.to_string().contains(UserBridgeCapability::WalletSendXch.key()));
+        assert!(
+            err.to_string()
+                .contains(UserBridgeCapability::WalletSendXch.key())
+        );
     }
 
     #[test]
@@ -1390,13 +1395,9 @@ mod tests {
                 [UserBridgeCapability::PersistentStorage],
             ),
         )
-            .unwrap();
+        .unwrap();
 
-        SageGrantedPermissions::new(
-            &requested,
-            [UserBridgeCapability::WalletSendXch],
-            [],
-        )
+        SageGrantedPermissions::new(&requested, [UserBridgeCapability::WalletSendXch], [])
             .expect("expected optional capability to be omittable");
     }
 
@@ -1428,16 +1429,16 @@ mod tests {
 
     #[test]
     fn user_grantable_required_capability_without_user_grant_is_blocked() {
-        let requested = SageRequestedCapabilities::new(
-            [UserBridgeCapability::WalletSendXch],
-            [],
-        );
+        let requested = SageRequestedCapabilities::new([UserBridgeCapability::WalletSendXch], []);
 
         let err = requested
             .resolve_effective_grants([])
             .expect_err("required user-grantable capability should require user grant");
 
-        assert!(err.to_string().contains(UserBridgeCapability::WalletSendXch.key()));
+        assert!(
+            err.to_string()
+                .contains(UserBridgeCapability::WalletSendXch.key())
+        );
     }
 
     #[test]
@@ -1452,7 +1453,7 @@ mod tests {
                 [],
             ),
         )
-            .expect_err("expected incompatible requested capability policy to be rejected");
+        .expect_err("expected incompatible requested capability policy to be rejected");
 
         assert!(
             err.to_string().contains(
@@ -1472,4 +1473,3 @@ mod tests {
             .capability
     }
 }
-

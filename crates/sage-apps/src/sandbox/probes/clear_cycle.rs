@@ -1,12 +1,12 @@
-use tauri::{AppHandle, State};
 use crate::lifecycle::clear_runtime_browsing_data_internal;
 use crate::runtime::stop::close_runtime_internal;
-use crate::sandbox::{BUILTIN_STORAGE_CLEAR_PERSISTENT_ID};
+use crate::sandbox::BUILTIN_STORAGE_CLEAR_PERSISTENT_ID;
 use crate::state::AppsHostState;
+use tauri::{AppHandle, State};
 
-use super::poll::poll_clear_cycle_phase;
 use super::super::runtime::{run_clear_cycle_phase_runtime, unique_run_id};
 use super::super::types::{SandboxStorageClearProbePhase, SandboxStorageClearProbeResult};
+use super::poll::poll_clear_cycle_phase;
 
 async fn run_clear_cycle_phase(
     app: &AppHandle,
@@ -20,11 +20,11 @@ async fn run_clear_cycle_phase(
         SandboxStorageClearProbePhase::CheckPresent => "check_present",
         SandboxStorageClearProbePhase::CheckAbsent => "check_absent",
     }
-        .to_string();
+    .to_string();
 
     run_clear_cycle_phase_runtime(app, apps_state, app_id, run_id, phase_string).await?;
 
-    let out = poll_clear_cycle_phase(apps_state, run_id, app_id, phase.clone(), 10_000).await;
+    let out = poll_clear_cycle_phase(apps_state, run_id, app_id, phase, 10_000).await;
 
     let _ = close_runtime_internal(app, apps_state, app_id).await;
 
@@ -45,7 +45,7 @@ pub async fn run_clear_cycle_test(
         &run_id,
         SandboxStorageClearProbePhase::Write,
     )
-        .await?;
+    .await?;
 
     if write.error.is_some() || !write.local_storage_present || !write.indexed_db_present {
         return Ok((
@@ -65,7 +65,7 @@ pub async fn run_clear_cycle_test(
         &run_id,
         SandboxStorageClearProbePhase::CheckPresent,
     )
-        .await?;
+    .await?;
 
     if present.error.is_some() || !present.local_storage_present || !present.indexed_db_present {
         return Ok((
@@ -87,7 +87,7 @@ pub async fn run_clear_cycle_test(
         &run_id,
         SandboxStorageClearProbePhase::CheckAbsent,
     )
-        .await?;
+    .await?;
 
     if absent.error.is_some() {
         return Ok((false, absent.error));

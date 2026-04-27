@@ -3,9 +3,8 @@ use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppFlags, SageAppSnapshot,
-    SageGrantedPermissions, SageRequestedPermissions, UserSageApp,
-    UserSageAppPendingUpdate, UserSageAppSource,
+    InstalledSageAppStorage, SageAppCommon, SageAppFlags, SageAppSnapshot, SageGrantedPermissions,
+    SageRequestedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,9 +57,7 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
 
     fn try_from(app: PersistedUserSageApp) -> Result<Self, Self::Error> {
         if app.requested_permissions != *app.active_snapshot.manifest.permissions() {
-            anyhow::bail!(
-                "persisted requested permissions do not match active snapshot manifest"
-            );
+            anyhow::bail!("persisted requested permissions do not match active snapshot manifest");
         }
 
         let manifest = app.active_snapshot.manifest.clone();

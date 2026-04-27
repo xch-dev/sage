@@ -1,7 +1,7 @@
+use crate::build::{runtime_apps, system_apps, test_apps};
+use sha2::Digest;
 use std::fs;
 use std::path::{Path, PathBuf};
-use sha2::Digest;
-use crate::build::{runtime_apps, system_apps, test_apps};
 
 pub fn build_builtin_apps() -> Result<(), String> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
@@ -34,7 +34,10 @@ pub fn build_builtin_apps() -> Result<(), String> {
 
     println!("cargo:rerun-if-changed={}", test_src_dir.display());
     println!("cargo:rerun-if-changed={}", runtime_src_dir.display());
-    println!("cargo:rerun-if-changed={}", system_apps_workspace_dir.display());
+    println!(
+        "cargo:rerun-if-changed={}",
+        system_apps_workspace_dir.display()
+    );
     println!("cargo:rerun-if-changed={}", user_sdk_dist.display());
     println!("cargo:rerun-if-changed={}", system_sdk_dist.display());
 
@@ -47,11 +50,7 @@ pub fn build_builtin_apps() -> Result<(), String> {
 
     test_apps::build_test_apps(&test_src_dir, &test_out_dir, &user_sdk_dist)?;
     runtime_apps::build_runtime_apps(&runtime_src_dir, &runtime_out_dir, &user_sdk_dist)?;
-    system_apps::build_system_apps(
-        &system_apps_src_dir,
-        &system_out_dir,
-        &system_sdk_dist,
-    )?;
+    system_apps::build_system_apps(&system_apps_src_dir, &system_out_dir, &system_sdk_dist)?;
 
     inject_all_manifests(&test_out_dir)?;
     inject_all_manifests(&runtime_out_dir)?;
@@ -61,8 +60,8 @@ pub fn build_builtin_apps() -> Result<(), String> {
 }
 
 fn inject_all_manifests(root: &Path) -> Result<(), String> {
-    for entry in fs::read_dir(root)
-        .map_err(|err| format!("failed to read {}: {err}", root.display()))?
+    for entry in
+        fs::read_dir(root).map_err(|err| format!("failed to read {}: {err}", root.display()))?
     {
         let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
         let app_dir = entry.path();
@@ -110,8 +109,8 @@ fn collect_manifest_files(
     dir: &Path,
     files: &mut Vec<serde_json::Value>,
 ) -> Result<(), String> {
-    for entry in fs::read_dir(dir)
-        .map_err(|err| format!("failed to read {}: {err}", dir.display()))?
+    for entry in
+        fs::read_dir(dir).map_err(|err| format!("failed to read {}: {err}", dir.display()))?
     {
         let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
         let path = entry.path();
@@ -138,8 +137,8 @@ fn collect_manifest_files(
             continue;
         }
 
-        let bytes = fs::read(&path)
-            .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
+        let bytes =
+            fs::read(&path).map_err(|err| format!("failed to read {}: {err}", path.display()))?;
 
         let sha256 = hex::encode(sha2::Sha256::digest(&bytes));
 

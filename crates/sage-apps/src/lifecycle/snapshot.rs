@@ -1,12 +1,12 @@
+use crate::lifecycle::compute_dir_size;
+use crate::types::{SageAppPackageManifest, SageAppSnapshot};
+use crate::utils::bytes_sha256_hex;
+use anyhow::{Context, Result as AnyResult, anyhow};
+use std::path::Component;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
-use std::path::Component;
-use anyhow::{Context, Result as AnyResult, anyhow};
-use crate::lifecycle::compute_dir_size;
-use crate::types::{SageAppPackageManifest, SageAppSnapshot};
-use crate::utils::bytes_sha256_hex;
 
 pub fn read_snapshot_file(root: &Path, request_path: &str) -> AnyResult<PathBuf> {
     let normalized = if request_path.is_empty() || request_path == "/" {
@@ -25,10 +25,7 @@ pub fn read_snapshot_file(root: &Path, request_path: &str) -> AnyResult<PathBuf>
         match component {
             Component::Normal(_) => {}
             _ => {
-                return Err(anyhow!(
-                    "invalid snapshot path component in {}",
-                    request_path
-                ));
+                return Err(anyhow!("invalid snapshot path component in {request_path}"));
             }
         }
     }
@@ -36,7 +33,7 @@ pub fn read_snapshot_file(root: &Path, request_path: &str) -> AnyResult<PathBuf>
     let path = root.join(relative);
 
     if !path.is_file() {
-        return Err(anyhow!("snapshot file not found: {}", request_path));
+        return Err(anyhow!("snapshot file not found: {request_path}"));
     }
 
     Ok(path)
@@ -63,15 +60,14 @@ fn write_file(path: &Path, bytes: &[u8]) -> AnyResult<()> {
             .with_context(|| format!("failed to create directory {}", parent.display()))?;
     }
 
-    fs::write(path, bytes)
-        .with_context(|| format!("failed to write {}", path.display()))?;
+    fs::write(path, bytes).with_context(|| format!("failed to write {}", path.display()))?;
 
     Ok(())
 }
 
 fn join_app_url(base_url: &str, relative_path: &str) -> AnyResult<String> {
-    let base = reqwest::Url::parse(base_url)
-        .with_context(|| format!("invalid app url {base_url}"))?;
+    let base =
+        reqwest::Url::parse(base_url).with_context(|| format!("invalid app url {base_url}"))?;
     let joined = base
         .join(relative_path)
         .with_context(|| format!("failed to join app url {base_url} with path {relative_path}"))?;
@@ -88,7 +84,10 @@ pub async fn download_url_snapshot(
 
     if snapshot_dir.exists() {
         fs::remove_dir_all(&snapshot_dir).with_context(|| {
-            format!("failed to remove existing snapshot dir {}", snapshot_dir.display())
+            format!(
+                "failed to remove existing snapshot dir {}",
+                snapshot_dir.display()
+            )
         })?;
     }
 

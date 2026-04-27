@@ -1,13 +1,12 @@
-use std::collections::{BTreeMap, HashMap};
-use tauri::{AppHandle, State};
-use uuid::Uuid;
-use crate::runtime::{apps_create_inline_runtime};
+use crate::runtime::apps_create_inline_runtime;
 use crate::runtime::start::CreateInlineRuntimeArgs;
 use crate::runtime::stop::close_runtime_internal;
 use crate::state::AppsHostState;
+use std::collections::{BTreeMap, HashMap};
+use tauri::{AppHandle, State};
+use uuid::Uuid;
 
-pub const STORAGE_CLEAR_PROBE_PATH: &str =
-    "/__sage/runtime-apps/storage-clear-probe/index.html";
+pub const STORAGE_CLEAR_PROBE_PATH: &str = "/__sage/runtime-apps/storage-clear-probe/index.html";
 
 pub fn unique_run_id(prefix: &str) -> String {
     format!("{prefix}-{}", Uuid::new_v4())
@@ -16,8 +15,8 @@ pub fn unique_run_id(prefix: &str) -> String {
 fn debug_test_apps_enabled() -> bool {
     cfg!(debug_assertions)
         && std::env::var("SAGE_DEBUG_TEST_APPS")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+            .map(|v| v == "1")
+            .unwrap_or(false)
 }
 
 pub async fn stop_test_apps(
@@ -53,7 +52,7 @@ pub async fn start_test_app(
         path,
         query_map.into_iter().collect(),
     )
-        .await
+    .await
 }
 
 pub async fn run_clear_cycle_phase_runtime(
@@ -78,7 +77,7 @@ pub async fn run_clear_cycle_phase_runtime(
         Some(STORAGE_CLEAR_PROBE_PATH.into()),
         query,
     )
-        .await
+    .await
 }
 
 async fn start_internal_runtime_for_sandbox(

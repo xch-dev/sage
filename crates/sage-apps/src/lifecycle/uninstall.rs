@@ -1,7 +1,10 @@
-use std::{fs, io};
-use tauri::{command, AppHandle, State};
 use crate::host::{AppState, Result};
-use crate::lifecycle::{apps_clear_runtime_browsing_data, apps_root, enqueue_pending_storage_cleanup, enqueue_retired_app_origin, read_installed_app_by_id};
+use crate::lifecycle::{
+    apps_clear_runtime_browsing_data, apps_root, enqueue_pending_storage_cleanup,
+    enqueue_retired_app_origin, read_installed_app_by_id,
+};
+use std::{fs, io};
+use tauri::{AppHandle, State, command};
 
 #[command]
 #[specta::specta]

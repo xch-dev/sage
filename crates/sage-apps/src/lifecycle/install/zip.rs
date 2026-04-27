@@ -8,7 +8,10 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use super::AppInstallSource;
-use crate::lifecycle::{detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest, unzip_to_dir, validate_package_structure};
+use crate::lifecycle::{
+    detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest,
+    unzip_to_dir, validate_package_structure,
+};
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
 };
@@ -77,7 +80,7 @@ impl AppInstallSource for ZipInstallSource {
         _base_path: &Path,
         prepared: &Self::Prepared,
     ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-        resolve_zip_install_target(root, &prepared.manifest.name())
+        resolve_zip_install_target(root, prepared.manifest.name())
     }
 
     async fn create_snapshot(
@@ -122,7 +125,10 @@ fn find_existing_installed_app_by_name(
 mod tests {
     use super::*;
     use crate::lifecycle::write_installed_app_metadata;
-    use crate::types::{InstalledSageAppStorage, SageAppFlags, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions};
+    use crate::types::{
+        InstalledSageAppStorage, SageAppFlags, SageAppManifestFile, SageAppPackageManifestParts,
+        SageGrantedPermissions, SageRequestedPermissions,
+    };
     use tempfile::tempdir;
 
     fn sample_manifest_named(name: &str) -> SageAppPackageManifest {
@@ -139,7 +145,8 @@ mod tests {
             icon: Some("icon.png".into()),
             author: None,
             donation: None,
-        }).unwrap()
+        })
+        .unwrap()
     }
 
     #[test]
@@ -170,11 +177,8 @@ mod tests {
         fs::create_dir_all(&app_dir).unwrap();
 
         let manifest = sample_manifest_named("Test App");
-        let granted_permissions = SageGrantedPermissions::new(
-            &manifest.permissions(),
-            [],
-            [],
-        ).unwrap();
+        let granted_permissions =
+            SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
         let installed = super::super::build_installed_app(
             app_id.into(),

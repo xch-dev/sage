@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use tokio::sync::Mutex;
 
 use super::types::{
-    SandboxIsolationProbeResult, SandboxPersistenceWriteProbeResult,
-    SandboxPersistenceReadProbeResult, SandboxStorageClearProbeResult,
-    SandboxNetworkProbeResult, SandboxRunState, build_initial_sandbox_state,
+    SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
+    SandboxPersistenceWriteProbeResult, SandboxRunState, SandboxStorageClearProbeResult,
+    build_initial_sandbox_state,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,10 +42,7 @@ impl Default for SandboxStateStore {
     }
 }
 
-pub fn replace_by_app_id<T>(
-    items: &mut Vec<SandboxAppResult<T>>,
-    next: SandboxAppResult<T>,
-) {
+pub fn replace_by_app_id<T>(items: &mut Vec<SandboxAppResult<T>>, next: SandboxAppResult<T>) {
     if let Some(existing) = items.iter_mut().find(|item| item.app_id == next.app_id) {
         *existing = next;
     } else {

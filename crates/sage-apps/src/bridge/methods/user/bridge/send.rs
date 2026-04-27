@@ -2,10 +2,13 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
-use crate::bridge::{RustBridgeRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgeSend;
@@ -56,11 +59,7 @@ impl BridgeMethod for BridgeSend {
             ))
         })?;
 
-        crate::sandbox::ingest_bridge_send_payload(
-            &ctx.app.id(),
-            &payload_value,
-            tools.host_state,
-        )
+        crate::sandbox::ingest_bridge_send_payload(ctx.app.id(), &payload_value, tools.host_state)
             .await;
 
         Ok(Box::new(BridgeSendResult { ok: true }))

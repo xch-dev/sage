@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-use tauri::{AppHandle, Manager};
-use url::Url;
 use crate::lifecycle::read_installed_app_by_id;
-use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::state::types::SageAppRuntimeKind;
+use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::sandbox::build_builtin_test_app;
 use crate::system_apps::build_builtin_system_app;
 use crate::types::SageApp;
+use tauri::{AppHandle, Manager};
+use url::Url;
 
 pub fn app_id_from_webview_label(label: &str) -> Option<(SageAppRuntimeKind, &str)> {
     if let Some(app_id) = label.strip_prefix("app-inline-") {
@@ -35,11 +35,7 @@ pub fn protocol_scheme_for_runtime_kind(runtime_kind: SageAppRuntimeKind) -> &'s
     }
 }
 
-pub fn is_allowed_app_url(
-    url: &Url,
-    origin_id: &str,
-    runtime_kind: SageAppRuntimeKind,
-) -> bool {
+pub fn is_allowed_app_url(url: &Url, origin_id: &str, runtime_kind: SageAppRuntimeKind) -> bool {
     url.scheme() == protocol_scheme_for_runtime_kind(runtime_kind)
         && url.host_str() == Some(origin_id)
 }

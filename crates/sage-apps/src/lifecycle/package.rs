@@ -6,11 +6,11 @@ use std::{
 use anyhow::{Context, Result as AnyResult, anyhow};
 use zip::ZipArchive;
 
+use crate::utils::bytes_sha256_hex;
 use crate::{
     lifecycle::manifest::read_manifest,
     types::{SageAppPackageManifest, SageAppSnapshot},
 };
-use crate::utils::bytes_sha256_hex;
 
 const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
@@ -24,7 +24,9 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
     }
     fs::create_dir_all(out_dir)?;
 
-    archive.extract(out_dir).context("failed to extract zip archive")?;
+    archive
+        .extract(out_dir)
+        .context("failed to extract zip archive")?;
     Ok(())
 }
 
@@ -35,12 +37,12 @@ pub fn detect_package_root(unpack_dir: &Path) -> AnyResult<PathBuf> {
     }
 
     let mut dirs = fs::read_dir(unpack_dir)?
-        .filter_map(|entry| entry.ok())
+        .filter_map(std::result::Result::ok)
         .filter_map(|entry| {
             entry
                 .file_type()
                 .ok()
-                .filter(|ft| ft.is_dir())
+                .filter(std::fs::FileType::is_dir)
                 .map(|_| entry.path())
         })
         .collect::<Vec<_>>();
@@ -53,7 +55,7 @@ pub fn detect_package_root(unpack_dir: &Path) -> AnyResult<PathBuf> {
         }
     }
 
-    anyhow::bail!("could not find {}", MANIFEST_FILE_NAME)
+    anyhow::bail!("could not find {MANIFEST_FILE_NAME}")
 }
 
 pub fn validate_package_structure(package_root: &Path) -> AnyResult<()> {
@@ -86,8 +88,8 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> AnyResult<()> {
     fs::create_dir_all(dst)
         .with_context(|| format!("failed to create directory {}", dst.display()))?;
 
-    for entry in fs::read_dir(src)
-        .with_context(|| format!("failed to read directory {}", src.display()))?
+    for entry in
+        fs::read_dir(src).with_context(|| format!("failed to read directory {}", src.display()))?
     {
         let entry = entry?;
         let file_type = entry.file_type()?;
@@ -139,7 +141,10 @@ pub fn prepare_zip_snapshot(
 
     if snapshot_dir.exists() {
         fs::remove_dir_all(&snapshot_dir).with_context(|| {
-            format!("failed to remove existing snapshot dir {}", snapshot_dir.display())
+            format!(
+                "failed to remove existing snapshot dir {}",
+                snapshot_dir.display()
+            )
         })?;
     }
 

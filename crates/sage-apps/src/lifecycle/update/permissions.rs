@@ -2,17 +2,13 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::lifecycle::{
-    read_installed_app_by_id, write_installed_app_metadata,
-};
 use crate::lifecycle::update::types::{
     GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange,
     GrantedNetworkWhitelistChange,
 };
+use crate::lifecycle::{read_installed_app_by_id, write_installed_app_metadata};
 use crate::permissions::get_user_capability_definition;
-use crate::types::{
-    SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp,
-};
+use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
 
 pub fn update_app_permissions(
     base_path: &Path,
@@ -32,13 +28,21 @@ pub fn update_app_permissions(
 fn sort_unique_network(
     values: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
 ) -> Vec<SageNetworkWhitelistEntry> {
-    values.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
+    values
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn sort_unique_capabilities(
     values: impl IntoIterator<Item = UserBridgeCapability>,
 ) -> Vec<UserBridgeCapability> {
-    values.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
+    values
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn requested_capability_set(app: &UserSageApp) -> BTreeSet<UserBridgeCapability> {
@@ -52,7 +56,11 @@ fn requested_capability_set(app: &UserSageApp) -> BTreeSet<UserBridgeCapability>
 }
 
 fn granted_capabilities(app: &UserSageApp) -> Vec<UserBridgeCapability> {
-    app.common.granted_permissions.capabilities().copied().collect()
+    app.common
+        .granted_permissions
+        .capabilities()
+        .copied()
+        .collect()
 }
 
 fn granted_network_whitelist(app: &UserSageApp) -> Vec<SageNetworkWhitelistEntry> {
@@ -68,10 +76,8 @@ fn diff_capabilities(
     previous: &[UserBridgeCapability],
     next: &[UserBridgeCapability],
 ) -> GrantedCapabilitiesChange {
-    let previous_set: BTreeSet<UserBridgeCapability> =
-        previous.iter().copied().collect();
-    let next_set: BTreeSet<UserBridgeCapability> =
-        next.iter().copied().collect();
+    let previous_set: BTreeSet<UserBridgeCapability> = previous.iter().copied().collect();
+    let next_set: BTreeSet<UserBridgeCapability> = next.iter().copied().collect();
 
     GrantedCapabilitiesChange {
         removed: previous_set.difference(&next_set).copied().collect(),
@@ -84,10 +90,8 @@ fn diff_network_whitelist(
     previous: &[SageNetworkWhitelistEntry],
     next: &[SageNetworkWhitelistEntry],
 ) -> GrantedNetworkWhitelistChange {
-    let previous_set: BTreeSet<SageNetworkWhitelistEntry> =
-        previous.iter().cloned().collect();
-    let next_set: BTreeSet<SageNetworkWhitelistEntry> =
-        next.iter().cloned().collect();
+    let previous_set: BTreeSet<SageNetworkWhitelistEntry> = previous.iter().cloned().collect();
+    let next_set: BTreeSet<SageNetworkWhitelistEntry> = next.iter().cloned().collect();
 
     GrantedNetworkWhitelistChange {
         removed: previous_set.difference(&next_set).cloned().collect(),
@@ -128,12 +132,8 @@ pub fn grant_requested_capability_internal(
         });
     }
 
-    let next_capabilities = sort_unique_capabilities(
-        previous_capabilities
-            .iter()
-            .copied()
-            .chain([capability]),
-    );
+    let next_capabilities =
+        sort_unique_capabilities(previous_capabilities.iter().copied().chain([capability]));
 
     let previous_network = granted_network_whitelist(&app);
 
@@ -147,10 +147,7 @@ pub fn grant_requested_capability_internal(
 
     let updated_capabilities = granted_capabilities(&updated);
 
-    let change = diff_capabilities(
-        &previous_capabilities,
-        &updated_capabilities,
-    );
+    let change = diff_capabilities(&previous_capabilities, &updated_capabilities);
 
     Ok(GrantCapabilityOutcome::Granted { capability, change })
 }
@@ -184,12 +181,8 @@ pub fn grant_requested_network_whitelist_entry_internal(
         });
     }
 
-    let next_whitelist = sort_unique_network(
-        previous_whitelist
-            .iter()
-            .cloned()
-            .chain([entry.clone()]),
-    );
+    let next_whitelist =
+        sort_unique_network(previous_whitelist.iter().cloned().chain([entry.clone()]));
 
     let granted_permissions = SageGrantedPermissions::new(
         &app.common.requested_permissions,
@@ -201,10 +194,7 @@ pub fn grant_requested_network_whitelist_entry_internal(
 
     let updated_whitelist = granted_network_whitelist(&updated);
 
-    let change = diff_network_whitelist(
-        &previous_whitelist,
-        &updated_whitelist,
-    );
+    let change = diff_network_whitelist(&previous_whitelist, &updated_whitelist);
 
     Ok(GrantNetworkWhitelistOutcome::Granted {
         entry: entry.clone(),
@@ -231,11 +221,9 @@ pub fn update_app_permissions_with_change_internal(
     let updated_capabilities = granted_capabilities(&updated);
     let updated_network = granted_network_whitelist(&updated);
 
-    let capability_change =
-        diff_capabilities(&previous_capabilities, &updated_capabilities);
+    let capability_change = diff_capabilities(&previous_capabilities, &updated_capabilities);
 
-    let network_change =
-        diff_network_whitelist(&previous_network, &updated_network);
+    let network_change = diff_network_whitelist(&previous_network, &updated_network);
 
     Ok((updated, capability_change, network_change))
 }

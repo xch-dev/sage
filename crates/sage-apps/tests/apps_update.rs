@@ -11,13 +11,17 @@ use sage_apps::lifecycle::update::permissions::{
     grant_requested_capability_internal, grant_requested_network_whitelist_entry_internal,
     update_app_permissions,
 };
-use sage_apps::lifecycle::update::types::{
-    GrantCapabilityOutcome, GrantNetworkWhitelistOutcome,
+use sage_apps::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome};
+use sage_apps::types::{
+    InstalledSageAppStorage, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot,
+    SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+    SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageApp,
 };
-use sage_apps::types::{InstalledSageAppStorage, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageApp};
 use tempfile::tempdir;
 
-fn entries(values: impl IntoIterator<Item = SageNetworkWhitelistEntry>) -> Vec<SageNetworkWhitelistEntry> {
+fn entries(
+    values: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
+) -> Vec<SageNetworkWhitelistEntry> {
     values.into_iter().collect()
 }
 
@@ -41,7 +45,7 @@ fn sample_app(base: &Path, app_id: &str) -> UserSageApp {
             ],
         ),
     )
-        .unwrap();
+    .unwrap();
 
     let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
         name: "Test App".to_string(),
@@ -52,7 +56,8 @@ fn sample_app(base: &Path, app_id: &str) -> UserSageApp {
         icon: Some("icon.png".to_string()),
         author: None,
         donation: None,
-    }).unwrap();
+    })
+    .unwrap();
 
     app.common.requested_permissions = requested_permissions;
     app.common.active_snapshot = SageAppSnapshot {
@@ -80,13 +85,27 @@ fn update_app_permissions_internal_persists_required_network_entries() {
     let updated = update_app_permissions(dir.path(), &app.common.id, granted).unwrap();
 
     assert_eq!(
-        entries(updated.common.granted_permissions.network().whitelist().cloned()),
+        entries(
+            updated
+                .common
+                .granted_permissions
+                .network()
+                .whitelist()
+                .cloned()
+        ),
         [network_whitelist_entry("https", "required.example.com")]
     );
 
     let reloaded = read_installed_app_by_id(dir.path(), &app.common.id).unwrap();
     assert_eq!(
-        entries(reloaded.common.granted_permissions.network().whitelist().cloned()),
+        entries(
+            reloaded
+                .common
+                .granted_permissions
+                .network()
+                .whitelist()
+                .cloned()
+        ),
         [network_whitelist_entry("https", "required.example.com")]
     );
 }
@@ -103,7 +122,7 @@ fn update_app_permissions_internal_rejects_unrequested_capability() {
         [UserBridgeCapability::WalletSendXchAutoSubmit],
         [],
     )
-        .unwrap_err();
+    .unwrap_err();
 
     let err = err.to_string();
     assert!(err.contains("not requested in manifest"));
@@ -122,7 +141,7 @@ fn grant_requested_capability_internal_grants_optional_capability() {
         &app.common.id,
         UserBridgeCapability::WalletSendXch,
     )
-        .unwrap();
+    .unwrap();
 
     match outcome {
         GrantCapabilityOutcome::Granted { capability, change } => {
@@ -153,7 +172,7 @@ fn grant_requested_capability_internal_returns_already_granted_when_present() {
         [UserBridgeCapability::WalletSendXch],
         [network_whitelist_entry("https", "required.example.com")],
     )
-        .unwrap();
+    .unwrap();
 
     let app_path = app_dir(dir.path(), &app.common.id);
     write_installed_app_metadata(&app, &app_path).unwrap();
@@ -163,7 +182,7 @@ fn grant_requested_capability_internal_returns_already_granted_when_present() {
         &app.common.id,
         UserBridgeCapability::WalletSendXch,
     )
-        .unwrap();
+    .unwrap();
 
     match outcome {
         GrantCapabilityOutcome::AlreadyGranted {
@@ -171,7 +190,10 @@ fn grant_requested_capability_internal_returns_already_granted_when_present() {
             full_granted_capabilities,
         } => {
             assert_eq!(capability, UserBridgeCapability::WalletSendXch);
-            assert_eq!(full_granted_capabilities, [UserBridgeCapability::WalletSendXch]);
+            assert_eq!(
+                full_granted_capabilities,
+                [UserBridgeCapability::WalletSendXch]
+            );
         }
         GrantCapabilityOutcome::Granted { .. } => {
             panic!("expected already-granted outcome")
@@ -191,11 +213,12 @@ fn grant_requested_capability_internal_rejects_unrequested_capability() {
         &app.common.id,
         UserBridgeCapability::WalletSendXchAutoSubmit,
     )
-        .unwrap_err();
+    .unwrap_err();
 
-    assert!(err
-        .to_string()
-        .contains("Capability was not requested by app manifest"));
+    assert!(
+        err.to_string()
+            .contains("Capability was not requested by app manifest")
+    );
 }
 
 #[test]
@@ -210,7 +233,7 @@ fn grant_requested_network_whitelist_entry_internal_grants_optional_entry() {
         &app.common.id,
         &network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM"),
     )
-        .unwrap();
+    .unwrap();
 
     match outcome {
         GrantNetworkWhitelistOutcome::Granted { entry, change } => {
@@ -241,7 +264,14 @@ fn grant_requested_network_whitelist_entry_internal_grants_optional_entry() {
 
     let reloaded = read_installed_app_by_id(dir.path(), &app.common.id).unwrap();
     assert_eq!(
-        entries(reloaded.common.granted_permissions.network().whitelist().cloned()),
+        entries(
+            reloaded
+                .common
+                .granted_permissions
+                .network()
+                .whitelist()
+                .cloned()
+        ),
         [
             network_whitelist_entry("https", "required.example.com"),
             network_whitelist_entry("wss", "optional.example.com"),
@@ -259,7 +289,7 @@ fn grant_requested_network_whitelist_entry_internal_returns_already_granted_when
         [],
         [network_whitelist_entry("https", "required.example.com")],
     )
-        .unwrap();
+    .unwrap();
 
     let app_path = app_dir(dir.path(), &app.common.id);
     write_installed_app_metadata(&app, &app_path).unwrap();
@@ -269,7 +299,7 @@ fn grant_requested_network_whitelist_entry_internal_returns_already_granted_when
         &app.common.id,
         &network_whitelist_entry("https", "required.example.com"),
     )
-        .unwrap();
+    .unwrap();
 
     match outcome {
         GrantNetworkWhitelistOutcome::AlreadyGranted {
@@ -303,11 +333,12 @@ fn grant_requested_network_whitelist_entry_internal_rejects_unrequested_entry() 
         &app.common.id,
         &network_whitelist_entry("https", "evil.example.com"),
     )
-        .unwrap_err();
+    .unwrap_err();
 
-    assert!(err
-        .to_string()
-        .contains("Network whitelist entry was not requested by app manifest"));
+    assert!(
+        err.to_string()
+            .contains("Network whitelist entry was not requested by app manifest")
+    );
 }
 
 fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {

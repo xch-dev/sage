@@ -1,7 +1,11 @@
+use sage_apps::lifecycle::app_dir;
+use sage_apps::types::{
+    InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
+    SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions,
+    UserSageApp, UserSageAppSource,
+};
 use std::fs;
 use std::path::Path;
-use sage_apps::lifecycle::app_dir;
-use sage_apps::types::{InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource, SageAppPackageManifestParts};
 
 pub fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
     SageAppManifestFile {
@@ -31,7 +35,7 @@ pub fn sample_installed_app(base: &Path, app_id: &str, name: &str) -> UserSageAp
         author: None,
         donation: None,
     })
-        .unwrap();
+    .unwrap();
 
     let snapshot = SageAppSnapshot {
         manifest_hash: "hash".into(),
@@ -40,8 +44,7 @@ pub fn sample_installed_app(base: &Path, app_id: &str, name: &str) -> UserSageAp
         manifest: manifest.clone(),
     };
 
-    let granted_permissions =
-        SageGrantedPermissions::new(&requested_permissions, [], []).unwrap();
+    let granted_permissions = SageGrantedPermissions::new(&requested_permissions, [], []).unwrap();
 
     let common = SageAppCommon::new(
         app_id.into(),
@@ -52,7 +55,7 @@ pub fn sample_installed_app(base: &Path, app_id: &str, name: &str) -> UserSageAp
         InstalledSageAppStorage::Unmanaged,
         snapshot,
     )
-        .unwrap();
+    .unwrap();
 
     UserSageApp {
         common,

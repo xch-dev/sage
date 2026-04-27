@@ -2,10 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
-use crate::bridge::{RustBridgeRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;
@@ -61,7 +63,12 @@ impl BridgeMethod for AppGetInfo {
             .map(|entry| SageNetworkPermissionInfo {
                 scheme: entry.scheme().to_string(),
                 host: entry.host().to_string(),
-                required: ctx.app.requested_permissions().network.whitelist.is_required(entry),
+                required: ctx
+                    .app
+                    .requested_permissions()
+                    .network
+                    .whitelist
+                    .is_required(entry),
             })
             .collect::<Vec<_>>();
 

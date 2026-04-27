@@ -2,13 +2,11 @@ use std::collections::BTreeSet;
 
 use anyhow::{Context, Result as AnyResult, anyhow};
 
+use crate::utils::bytes_sha256_hex;
 use crate::{
-    lifecycle::limits::{
-        MAX_APP_FILE_COUNT, MAX_APP_PATH_LENGTH, MAX_APP_TOTAL_SIZE_BYTES,
-    },
+    lifecycle::limits::{MAX_APP_FILE_COUNT, MAX_APP_PATH_LENGTH, MAX_APP_TOTAL_SIZE_BYTES},
     types::{SageAppManifestFile, SageAppPackageManifest},
 };
-use crate::utils::bytes_sha256_hex;
 
 const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
@@ -21,17 +19,15 @@ pub fn manifest_icon_file(manifest: &SageAppPackageManifest) -> &str {
 }
 
 pub fn derive_manifest_url(app_url: &str) -> AnyResult<String> {
-    let base = reqwest::Url::parse(app_url)
-        .with_context(|| format!("invalid app url: {app_url}"))?;
+    let base =
+        reqwest::Url::parse(app_url).with_context(|| format!("invalid app url: {app_url}"))?;
 
     base.join(MANIFEST_FILE_NAME)
         .map(|url| url.to_string())
         .with_context(|| format!("failed to derive manifest url from app url: {app_url}"))
 }
 
-pub async fn fetch_url_manifest(
-    manifest_url: &str,
-) -> AnyResult<(SageAppPackageManifest, String)> {
+pub async fn fetch_url_manifest(manifest_url: &str) -> AnyResult<(SageAppPackageManifest, String)> {
     let response = reqwest::get(manifest_url)
         .await
         .with_context(|| format!("failed to GET manifest url {manifest_url}"))?
@@ -70,20 +66,17 @@ pub fn validate_manifest_file_path(path: &str) -> AnyResult<()> {
 
     if path.len() > MAX_APP_PATH_LENGTH {
         return Err(anyhow!(
-            "manifest file path exceeds max length {}: {}",
-            MAX_APP_PATH_LENGTH,
-            path
+            "manifest file path exceeds max length {MAX_APP_PATH_LENGTH}: {path}"
         ));
     }
 
     if path.starts_with('/') || path.starts_with('\\') {
-        return Err(anyhow!("manifest file path must be relative: {}", path));
+        return Err(anyhow!("manifest file path must be relative: {path}"));
     }
 
     if path.contains('\\') {
         return Err(anyhow!(
-            "manifest file path must use forward slashes: {}",
-            path
+            "manifest file path must use forward slashes: {path}"
         ));
     }
 
@@ -91,7 +84,7 @@ pub fn validate_manifest_file_path(path: &str) -> AnyResult<()> {
         .split('/')
         .any(|part| part == "." || part == ".." || part.is_empty())
     {
-        return Err(anyhow!("manifest file path is invalid: {}", path));
+        return Err(anyhow!("manifest file path is invalid: {path}"));
     }
 
     Ok(())
@@ -99,7 +92,7 @@ pub fn validate_manifest_file_path(path: &str) -> AnyResult<()> {
 
 pub fn validate_sha256_hex(value: &str) -> AnyResult<()> {
     if value.len() != 64 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(anyhow!("invalid sha256 hex: {}", value));
+        return Err(anyhow!("invalid sha256 hex: {value}"));
     }
 
     Ok(())
@@ -136,9 +129,7 @@ pub fn validate_manifest_files(files: &[SageAppManifestFile]) -> AnyResult<u64> 
 
     if total > MAX_APP_TOTAL_SIZE_BYTES {
         return Err(anyhow!(
-            "manifest total size {} exceeds limit {}",
-            total,
-            MAX_APP_TOTAL_SIZE_BYTES
+            "manifest total size {total} exceeds limit {MAX_APP_TOTAL_SIZE_BYTES}"
         ));
     }
 

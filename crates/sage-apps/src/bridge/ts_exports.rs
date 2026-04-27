@@ -1,17 +1,33 @@
-use specta::TypeCollection;
-use specta_typescript::{BigIntExportBehavior, Typescript};
-use sage_api::{CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion, GetVersionResponse, TransactionResponse};
-use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::system::RuntimeManagerRuntimesChangedEvent;
+use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
-use crate::bridge::methods::user::app::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
-use crate::bridge::methods::user::app::request_capability_grant::{RequestCapabilityGrantParams, RequestCapabilityGrantResult};
-use crate::bridge::methods::user::app::request_network_whitelist_grant::{RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult};
+use crate::bridge::methods::user::app::request_capability_grant::{
+    RequestCapabilityGrantParams, RequestCapabilityGrantResult,
+};
+use crate::bridge::methods::user::app::request_network_whitelist_grant::{
+    RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
+};
+use crate::bridge::methods::user::app::{
+    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
+};
 use crate::bridge::methods::user::bridge::ping::BridgePingResult;
 use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::runtime::state::types::{ReadyToStopParams, RuntimeAckResult, SageAppRuntimeRecord, SageLifecycleBeforeStopDetail, SetBeforeStopListenerParams};
+use crate::runtime::state::types::{
+    ReadyToStopParams, RuntimeAckResult, SageAppRuntimeRecord, SageLifecycleBeforeStopDetail,
+    SetBeforeStopListenerParams,
+};
 use crate::runtime::stop::SystemKillRuntimeResult;
+use sage_api::{
+    CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys,
+    GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey,
+    GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus,
+    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
+    GetTransactionsResponse, GetVersion, GetVersionResponse, TransactionResponse,
+};
+use specta::TypeCollection;
+use specta_typescript::{BigIntExportBehavior, Typescript};
 
 pub fn export_system_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();

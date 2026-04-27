@@ -1,15 +1,20 @@
-use std::io;
-use std::path::PathBuf;
-use crate::host::Result;
-use tauri::{command, AppHandle, State};
+use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
-use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::host::AppState;
-use crate::lifecycle::{download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata};
+use crate::host::Result;
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::types::{SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::lifecycle::{
+    download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata,
+};
+use crate::types::{
+    SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate,
+    UserSageAppSource,
+};
+use std::io;
+use std::path::PathBuf;
+use tauri::{AppHandle, State, command};
 
 #[command]
 #[specta::specta]
@@ -22,9 +27,8 @@ pub async fn check_app_update(
         state.path.clone()
     };
 
-    let app = read_installed_app_by_id(&base_path, &app_id).map_err(|err| {
-        io::Error::other(format!("failed to read installed app {}: {err}", app_id))
-    })?;
+    let app = read_installed_app_by_id(&base_path, &app_id)
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let app_url = match &app.source {
         UserSageAppSource::Url { app_url, .. } => app_url.clone(),
@@ -35,8 +39,7 @@ pub async fn check_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
-    let same_manifest_hash =
-        preview.manifest_hash == app.common.active_snapshot.manifest_hash;
+    let same_manifest_hash = preview.manifest_hash == app.common.active_snapshot.manifest_hash;
     let same_manifest_content = preview.manifest == app.common.active_snapshot.manifest;
 
     if same_manifest_hash && same_manifest_content {
@@ -66,9 +69,8 @@ pub async fn download_app_update(
         state.path.clone()
     };
 
-    let mut app = read_installed_app_by_id(&base_path, &app_id).map_err(|err| {
-        io::Error::other(format!("failed to read installed app {}: {err}", app_id))
-    })?;
+    let mut app = read_installed_app_by_id(&base_path, &app_id)
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let (app_url, manifest_url) = match &app.source {
         UserSageAppSource::Url {
@@ -76,9 +78,7 @@ pub async fn download_app_update(
             manifest_url,
         } => (app_url.clone(), manifest_url.clone()),
         UserSageAppSource::Zip => {
-            return Err(
-                io::Error::other("zip apps do not support URL update download").into(),
-            );
+            return Err(io::Error::other("zip apps do not support URL update download").into());
         }
     };
 
@@ -113,14 +113,13 @@ pub async fn apply_app_update(
         state.path.clone()
     };
 
-    let mut app = read_installed_app_by_id(&base_path, &app_id).map_err(|err| {
-        io::Error::other(format!("failed to read installed app {}: {err}", app_id))
-    })?;
+    let mut app = read_installed_app_by_id(&base_path, &app_id)
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let pending = app
         .pending_update
         .clone()
-        .ok_or_else(|| io::Error::other(format!("app {} has no pending update", app_id)))?;
+        .ok_or_else(|| io::Error::other(format!("app {app_id} has no pending update")))?;
 
     let app_dir = PathBuf::from(&app.common.app_dir);
 
@@ -130,8 +129,8 @@ pub async fn apply_app_update(
         &pending.manifest,
         &pending.manifest_hash,
     )
-        .await
-        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+    .await
+    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
     app.common
         .apply_update(&pending, granted_permissions, snapshot)
@@ -161,27 +160,25 @@ pub async fn apps_update_permissions(
     };
 
     let (_updated, capability_change, network_change) =
-        update_app_permissions_with_change_internal(
-            &base_path,
-            &app_id,
-            granted_permissions,
-        )
+        update_app_permissions_with_change_internal(&base_path, &app_id, granted_permissions)
             .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
 
     if !capability_change.added.is_empty() || !capability_change.removed.is_empty() {
         let _ = emit_bridge_event_to_app_id(
             &app,
             &app_id,
-            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change)
-        ).await;
+            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
+        )
+        .await;
     }
 
     if !network_change.added.is_empty() || !network_change.removed.is_empty() {
         let _ = emit_bridge_event_to_app_id(
             &app,
             &app_id,
-            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change)
-        ).await;
+            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
+        )
+        .await;
     }
 
     Ok(())

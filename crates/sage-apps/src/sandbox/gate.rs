@@ -1,28 +1,20 @@
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::types::SageApp;
 
-use super::{
-    AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState,
-};
+use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};
 
 fn capability_status(
     state: &SandboxState,
     capability: SandboxCapability,
 ) -> SandboxCapabilityStatus {
     match capability {
-        SandboxCapability::StorageIsolationFromSage => {
-            state.storage_isolation_from_sage.status
-        }
-        SandboxCapability::StoragePersistenceNormal => {
-            state.storage_persistence_normal.status
-        }
+        SandboxCapability::StorageIsolationFromSage => state.storage_isolation_from_sage.status,
+        SandboxCapability::StoragePersistenceNormal => state.storage_persistence_normal.status,
         SandboxCapability::StorageNonPersistenceIncognito => {
             state.storage_non_persistence_incognito.status
         }
         SandboxCapability::StorageClearCycle => state.storage_clear_cycle.status,
-        SandboxCapability::NetworkAllowlistEnforced => {
-            state.network_allowlist_enforced.status
-        }
+        SandboxCapability::NetworkAllowlistEnforced => state.network_allowlist_enforced.status,
     }
 }
 
@@ -63,10 +55,7 @@ fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
     caps
 }
 
-pub fn evaluate_app_launch_gate(
-    app: &SageApp,
-    effective: &SandboxState,
-) -> AppLaunchGateResult {
+pub fn evaluate_app_launch_gate(app: &SageApp, effective: &SandboxState) -> AppLaunchGateResult {
     if !app_requires_sandbox_gate(app) {
         return AppLaunchGateResult {
             allowed: true,
@@ -96,8 +85,7 @@ pub fn evaluate_app_launch_gate(
                     kind: "sandboxFailed".into(),
                     capability: Some(capability),
                     message: Some(
-                        "Apps are blocked because a required sandbox capability failed."
-                            .into(),
+                        "Apps are blocked because a required sandbox capability failed.".into(),
                     ),
                 };
             }

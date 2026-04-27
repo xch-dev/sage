@@ -1,7 +1,7 @@
-use std::collections::BTreeSet;
+use crate::permissions::get_user_capability_definition;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use crate::permissions::get_user_capability_definition;
+use std::collections::BTreeSet;
 
 macro_rules! define_bridge_capabilities {
     (
@@ -153,10 +153,7 @@ mod tests {
         let shared = first_shared_capability();
         let non_shared = first_non_shared_capability();
 
-        let shared_capabilities = [
-            shared.clone(),
-            non_shared.clone(),
-        ].shared();
+        let shared_capabilities = [shared, non_shared].shared();
 
         assert!(
             shared_capabilities.contains(&shared),
@@ -173,11 +170,7 @@ mod tests {
         let shared = first_shared_capability();
         let non_shared = first_non_shared_capability();
 
-        let shared_capabilities = [
-            non_shared.clone(),
-            shared.clone(),
-            shared.clone(),
-        ].shared();
+        let shared_capabilities = [non_shared, shared, shared].shared();
 
         assert_eq!(shared_capabilities, vec![shared]);
     }

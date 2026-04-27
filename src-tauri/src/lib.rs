@@ -13,9 +13,9 @@ mod app_state;
 mod commands;
 mod error;
 
+use sage_apps::bridge::RustBridgeApprovalEvent;
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use sage_apps::bridge::RustBridgeApprovalEvent;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -230,14 +230,13 @@ pub fn run() {
                 .app_data_dir()
                 .expect("failed to resolve app data dir");
 
-            apps::handle_system_app_protocol_request(&base_path, &request)
-                .unwrap_or_else(|err| {
-                    tauri::http::Response::builder()
-                        .status(404)
-                        .header("Content-Type", "text/plain; charset=utf-8")
-                        .body(format!("sage-system-app error: {err}").into_bytes())
-                        .expect("failed to build error response")
-                })
+            apps::handle_system_app_protocol_request(&base_path, &request).unwrap_or_else(|err| {
+                tauri::http::Response::builder()
+                    .status(404)
+                    .header("Content-Type", "text/plain; charset=utf-8")
+                    .body(format!("sage-system-app error: {err}").into_bytes())
+                    .expect("failed to build error response")
+            })
         })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
@@ -253,20 +252,19 @@ pub fn run() {
             let cleanup_base_path = path.clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(err) =
-                    apps::lifecycle::retry_pending_storage_cleanup(
-                            &app_handle,
-                            &cleanup_base_path,
-                    )
+                    apps::lifecycle::retry_pending_storage_cleanup(&app_handle, &cleanup_base_path)
                         .await
                 {
-                        eprintln!("failed to retry pending storage cleanup on startup: {err}");
+                    eprintln!("failed to retry pending storage cleanup on startup: {err}");
                 }
             });
 
             let sandbox_app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(err) = apps::sandbox::runner::ensure_initial_sandbox_run(sandbox_app_handle).await {
-                        eprintln!("failed to start initial sandbox run: {err}");
+                if let Err(err) =
+                    apps::sandbox::runner::ensure_initial_sandbox_run(sandbox_app_handle).await
+                {
+                    eprintln!("failed to start initial sandbox run: {err}");
                 }
             });
 

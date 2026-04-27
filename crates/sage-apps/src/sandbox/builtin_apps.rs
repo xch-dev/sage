@@ -1,11 +1,14 @@
-use std::{fs, path::PathBuf};
-use std::path::Path;
 use anyhow::{Context, Result as AnyResult, anyhow};
 use sha2::{Digest, Sha256};
+use std::path::Path;
+use std::{fs, path::PathBuf};
 use tauri::command;
 
 use crate::host::Result;
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedPermissions, UserSageAppSource, UserSageApp};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
+    SageGrantedPermissions, UserSageApp, UserSageAppSource,
+};
 
 macro_rules! sandbox_test_id_prefix {
     () => {
@@ -25,10 +28,8 @@ pub const BUILTIN_PERSISTENCE_INCOGNITO_ID: &str =
     concat!(sandbox_test_id_prefix!(), "persistence_incognito");
 pub const BUILTIN_STORAGE_CLEAR_PERSISTENT_ID: &str =
     concat!(sandbox_test_id_prefix!(), "storage_clear_persistent");
-pub const BUILTIN_NETWORK_ALLOW_A_ID: &str =
-    concat!(sandbox_test_id_prefix!(), "network_allow_a");
-pub const BUILTIN_NETWORK_ALLOW_B_ID: &str =
-    concat!(sandbox_test_id_prefix!(), "network_allow_b");
+pub const BUILTIN_NETWORK_ALLOW_A_ID: &str = concat!(sandbox_test_id_prefix!(), "network_allow_a");
+pub const BUILTIN_NETWORK_ALLOW_B_ID: &str = concat!(sandbox_test_id_prefix!(), "network_allow_b");
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinTestAppSpec {
@@ -235,9 +236,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
 
 #[command]
 #[specta::specta]
-pub async fn get_builtin_test_app(
-    app_id: String,
-) -> Result<Option<SageApp>> {
+pub async fn get_builtin_test_app(app_id: String) -> Result<Option<SageApp>> {
     build_builtin_test_app(&app_id).map_err(|err| {
         std::io::Error::other(format!("failed to load builtin test app: {err}")).into()
     })

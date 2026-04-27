@@ -1,14 +1,14 @@
 use tauri::State;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
-use crate::state::AppsHostState;
-use crate::utils::unix_timestamp_ms;
 use super::super::store::SandboxAppResult;
 use super::super::types::{
-    SandboxIsolationProbeResult, SandboxNetworkProbeResult,
-    SandboxPersistenceReadProbeResult, SandboxPersistenceWriteProbeResult,
-    SandboxStorageClearProbePhase, SandboxStorageClearProbeResult,
+    SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
+    SandboxPersistenceWriteProbeResult, SandboxStorageClearProbePhase,
+    SandboxStorageClearProbeResult,
 };
+use crate::state::AppsHostState;
+use crate::utils::unix_timestamp_ms;
 
 pub async fn poll_isolation(
     apps_state: &State<'_, AppsHostState>,

@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Result};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::permissions::CapabilityFlags;
 use crate::types::SageAppFlags;
+use anyhow::{Result, anyhow};
 
 pub fn get_app_flags(
     granted: &[UserBridgeCapability],
@@ -9,9 +9,8 @@ pub fn get_app_flags(
 ) -> Result<SageAppFlags> {
     let granted_capability_flags = CapabilityFlags::from_capabilities(granted);
 
-    let previous_storage_may_contain_secrets = previous_flags
-        .map(|flags| flags.storage_may_contain_secrets)
-        .unwrap_or(false);
+    let previous_storage_may_contain_secrets =
+        previous_flags.is_some_and(|flags| flags.storage_may_contain_secrets);
 
     let has_secret_access = granted_capability_flags.accesses_sensitive_secret;
     let has_external_access = granted_capability_flags.externally_observable;
@@ -35,9 +34,7 @@ pub fn get_app_flags(
     })
 }
 
-pub fn mark_storage_may_contain_secrets(
-    flags: &SageAppFlags,
-) -> SageAppFlags {
+pub fn mark_storage_may_contain_secrets(flags: &SageAppFlags) -> SageAppFlags {
     SageAppFlags {
         has_secret_access: flags.has_secret_access,
         has_external_access: flags.has_external_access,
@@ -46,9 +43,7 @@ pub fn mark_storage_may_contain_secrets(
     }
 }
 
-pub fn clear_storage_may_contain_secrets(
-    flags: &SageAppFlags,
-) -> SageAppFlags {
+pub fn clear_storage_may_contain_secrets(flags: &SageAppFlags) -> SageAppFlags {
     SageAppFlags {
         has_secret_access: flags.has_secret_access,
         has_external_access: flags.has_external_access,
@@ -60,7 +55,9 @@ pub fn clear_storage_may_contain_secrets(
 #[cfg(test)]
 mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
-    use crate::lifecycle::flags::{clear_storage_may_contain_secrets, get_app_flags, mark_storage_may_contain_secrets};
+    use crate::lifecycle::flags::{
+        clear_storage_may_contain_secrets, get_app_flags, mark_storage_may_contain_secrets,
+    };
     use crate::types::SageAppFlags;
 
     #[test]
@@ -78,7 +75,7 @@ mod tests {
         assert!(updated.has_secret_access);
         assert!(!updated.has_external_access);
     }
-    
+
     #[test]
     fn clear_storage_may_contain_secrets_preserves_secret_access_isolation_only() {
         let flags = SageAppFlags {
@@ -96,7 +93,7 @@ mod tests {
 
     #[test]
     fn resolve_capability_flags_sets_expected_flags_for_shared_send_capability() {
-        let flags = get_app_flags(&vec![UserBridgeCapability::WalletSendXch], None)
+        let flags = get_app_flags(&[UserBridgeCapability::WalletSendXch], None)
             .expect("expected capability flags to resolve");
 
         assert!(flags.has_external_access);
@@ -114,10 +111,7 @@ mod tests {
             isolated: true,
         };
 
-        let err = get_app_flags(
-            &vec![UserBridgeCapability::WalletSendXch],
-            Some(&previous),
-        )
+        let err = get_app_flags(&[UserBridgeCapability::WalletSendXch], Some(&previous))
             .expect_err("expected tainted storage to block externally observable capability");
 
         assert_eq!(err.to_string(), "STORAGE_TAINTED");

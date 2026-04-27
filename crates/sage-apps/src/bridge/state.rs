@@ -1,10 +1,10 @@
-use std::collections::BTreeMap;
-use tauri::State;
-use tokio::sync::Mutex;
 use crate::AppsHostState;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::types::PendingBridgeApproval;
 use crate::types::SageApp;
+use std::collections::BTreeMap;
+use tauri::State;
+use tokio::sync::Mutex;
 
 #[derive(Debug, Default)]
 pub struct BridgeState {
@@ -41,9 +41,9 @@ pub(crate) async fn get_pending_approval(
     apps_state: &State<'_, AppsHostState>,
     approval_id: &str,
 ) -> Result<PendingBridgeApproval, String> {
-    find_pending_approval(apps_state, approval_id).await.ok_or_else(|| {
-        format!("No pending approval with id {}", approval_id)
-    })
+    find_pending_approval(apps_state, approval_id)
+        .await
+        .ok_or_else(|| format!("No pending approval with id {approval_id}"))
 }
 
 pub(crate) async fn remove_pending_approval(

@@ -132,10 +132,7 @@ pub fn make_cap(
     }
 }
 
-pub fn cap_result(
-    state: &SandboxState,
-    cap: SandboxCapability,
-) -> &SandboxCapabilityResult {
+pub fn cap_result(state: &SandboxState, cap: SandboxCapability) -> &SandboxCapabilityResult {
     match cap {
         SandboxCapability::StorageIsolationFromSage => &state.storage_isolation_from_sage,
         SandboxCapability::StoragePersistenceNormal => &state.storage_persistence_normal,
@@ -143,9 +140,7 @@ pub fn cap_result(
             &state.storage_non_persistence_incognito
         }
         SandboxCapability::StorageClearCycle => &state.storage_clear_cycle,
-        SandboxCapability::NetworkAllowlistEnforced => {
-            &state.network_allowlist_enforced
-        }
+        SandboxCapability::NetworkAllowlistEnforced => &state.network_allowlist_enforced,
     }
 }
 
@@ -164,17 +159,17 @@ pub fn mark_cap(
 
     match cap {
         SandboxCapability::StorageIsolationFromSage => {
-            state.storage_isolation_from_sage = next
+            state.storage_isolation_from_sage = next;
         }
         SandboxCapability::StoragePersistenceNormal => {
-            state.storage_persistence_normal = next
+            state.storage_persistence_normal = next;
         }
         SandboxCapability::StorageNonPersistenceIncognito => {
-            state.storage_non_persistence_incognito = next
+            state.storage_non_persistence_incognito = next;
         }
         SandboxCapability::StorageClearCycle => state.storage_clear_cycle = next,
         SandboxCapability::NetworkAllowlistEnforced => {
-            state.network_allowlist_enforced = next
+            state.network_allowlist_enforced = next;
         }
     }
 }

@@ -1,20 +1,26 @@
 use std::io;
-use std::path::{Path, PathBuf};
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Result as AnyResult};
-use tauri::{command, AppHandle, Manager, State};
-use uuid::Uuid;
 use crate::AppsHostState;
 use crate::host::AppState;
-use crate::lifecycle::{read_installed_app_by_id, read_pending_storage_cleanup_entries, read_retired_app_origins, write_installed_app_metadata, write_pending_storage_cleanup_entries, write_retired_app_origins};
 use crate::lifecycle::flags::mark_storage_may_contain_secrets;
-use crate::runtime::{resolve_app};
+use crate::lifecycle::{
+    read_installed_app_by_id, read_pending_storage_cleanup_entries, read_retired_app_origins,
+    write_installed_app_metadata, write_pending_storage_cleanup_entries, write_retired_app_origins,
+};
+use crate::runtime::resolve_app;
 use crate::runtime::stop::close_runtime_internal;
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
-use crate::types::{InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, UserSageApp, UserSageAppSource};
+use crate::types::{
+    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
+    RetiredAppOriginEntry, UserSageApp, UserSageAppSource,
+};
 use crate::utils::unix_timestamp_ms;
+use anyhow::{Result as AnyResult, anyhow};
+use tauri::{AppHandle, Manager, State, command};
+use uuid::Uuid;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn allocate_new_storage(
@@ -42,8 +48,12 @@ pub async fn allocate_new_storage(
     base_path: &Path,
 ) -> AnyResult<InstalledSageAppStorage> {
     let profiles_root = base_path.join("profiles");
-    fs::create_dir_all(&profiles_root)
-        .with_context(|| format!("failed to create profiles directory {}", profiles_root.display()))?;
+    fs::create_dir_all(&profiles_root).with_context(|| {
+        format!(
+            "failed to create profiles directory {}",
+            profiles_root.display()
+        )
+    })?;
 
     loop {
         let directory_name = format!("profile-{}", uuid::Uuid::new_v4());
@@ -97,10 +107,7 @@ pub fn enqueue_pending_storage_cleanup(
     write_pending_storage_cleanup_entries(base_path, &entries)
 }
 
-pub async fn retry_pending_storage_cleanup(
-    app: &AppHandle,
-    base_path: &Path,
-) -> AnyResult<()> {
+pub async fn retry_pending_storage_cleanup(app: &AppHandle, base_path: &Path) -> AnyResult<()> {
     let entries = read_pending_storage_cleanup_entries(base_path)?;
     if entries.is_empty() {
         return Ok(());
@@ -137,7 +144,7 @@ pub async fn clear_app_storage_by_target(
                 .await
                 .map_err(|e| format!("failed to fetch data store identifiers: {e}"))?;
 
-            if existing_ids.iter().any(|id| *id == target_id) {
+            if existing_ids.contains(&target_id) {
                 app.remove_data_store(target_id)
                     .await
                     .map_err(|e| format!("failed to remove data store: {e}"))?;
@@ -185,7 +192,9 @@ pub fn enqueue_retired_app_origin(
 
     let mut entries = read_retired_app_origins(base_path)?;
 
-    if let Some(existing) = entries.iter_mut().find(|entry| entry.origin_id == app.common.origin_id)
+    if let Some(existing) = entries
+        .iter_mut()
+        .find(|entry| entry.origin_id == app.common.origin_id)
     {
         existing.app_id = app.common.id.clone();
         existing.app_name = app.common.name.clone();
@@ -199,8 +208,7 @@ pub fn enqueue_retired_app_origin(
             app_name: app.common.name.clone(),
             origin_id: app.common.origin_id.clone(),
             created_at_ms: unix_timestamp_ms(),
-            storage_may_contain_secrets:
-            app.common.capability_flags.storage_may_contain_secrets,
+            storage_may_contain_secrets: app.common.capability_flags.storage_may_contain_secrets,
             cleanup_pending,
         });
     }
@@ -253,8 +261,7 @@ pub async fn apps_mark_storage_may_contain_secrets(
         return Ok(());
     }
 
-    app.common.capability_flags =
-        mark_storage_may_contain_secrets(&app.common.capability_flags);
+    app.common.capability_flags = mark_storage_may_contain_secrets(&app.common.capability_flags);
 
     let app_dir = PathBuf::from(&app.common.app_dir);
     write_installed_app_metadata(&app, &app_dir)
@@ -265,8 +272,8 @@ pub async fn apps_mark_storage_may_contain_secrets(
 
 #[cfg(test)]
 mod tests {
-    use crate::types::{PendingStorageCleanupTarget, InstalledSageAppStorage};
     use super::*;
+    use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
 
     #[test]
     fn target_from_storage_maps_apple_data_store() {

@@ -1,13 +1,13 @@
-use serde::{Deserialize, Serialize};
-use specta::Type;
-use tauri::{AppHandle, Emitter, Manager, State};
 use crate::bridge::methods::system::RuntimeManagerRuntimesChangedEvent;
-use crate::runtime::webview_locator::{find_sage_window, get_webview_in_sage_window};
 use crate::runtime::state::read::{get_runtime_by_app_id, list_runtimes};
 use crate::runtime::state::types::{SageAppRuntimeKind, SageAppRuntimeRecord};
 use crate::runtime::state::write::write_runtime_and_emit_changed;
+use crate::runtime::webview_locator::{find_sage_window, get_webview_in_sage_window};
 use crate::state::AppsHostState;
 use crate::utils::unix_timestamp_ms;
+use serde::{Deserialize, Serialize};
+use specta::Type;
+use tauri::{AppHandle, Emitter, Manager, State};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -33,10 +33,7 @@ pub(crate) async fn emit_runtime_manager_runtimes_changed(
             .collect::<Vec<_>>()
     };
 
-    let event = RuntimeManagerRuntimesChangedEvent::new(
-        "sage-system-bridge".to_string(),
-        runtimes,
-    );
+    let event = RuntimeManagerRuntimesChangedEvent::new("sage-system-bridge".to_string(), runtimes);
 
     let Some(sage_window) = find_sage_window(app) else {
         return;

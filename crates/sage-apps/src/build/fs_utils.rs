@@ -57,8 +57,8 @@ pub fn collect_files_recursive(
     for entry in fs::read_dir(current)
         .map_err(|err| format!("failed to read {}: {err}", current.display()))?
     {
-        let entry = entry
-            .map_err(|err| format!("failed to read entry in {}: {err}", current.display()))?;
+        let entry =
+            entry.map_err(|err| format!("failed to read entry in {}: {err}", current.display()))?;
         let path = entry.path();
         let file_type = entry
             .file_type()
@@ -93,8 +93,7 @@ pub fn copy_dir_all_if_changed(
         return Err(format!("missing directory: {}", src.display()));
     }
 
-    fs::create_dir_all(dst)
-        .map_err(|err| format!("failed to create {}: {err}", dst.display()))?;
+    fs::create_dir_all(dst).map_err(|err| format!("failed to create {}: {err}", dst.display()))?;
 
     let mut rel_files = Vec::new();
     collect_files_recursive(src, src, &mut rel_files)?;
@@ -139,8 +138,8 @@ pub fn remove_empty_dirs_recursively(dir: &Path) -> Result<bool, String> {
 
     let mut is_empty = true;
 
-    for entry in fs::read_dir(dir)
-        .map_err(|err| format!("failed to read {}: {err}", dir.display()))?
+    for entry in
+        fs::read_dir(dir).map_err(|err| format!("failed to read {}: {err}", dir.display()))?
     {
         let entry =
             entry.map_err(|err| format!("failed to read entry in {}: {err}", dir.display()))?;

@@ -1,40 +1,31 @@
 use std::collections::BTreeSet;
 
-use crate::types::{SageApp};
+use crate::types::SageApp;
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
 }
 
 pub fn build_app_csp(app: &SageApp) -> String {
-    let default_src = csp_source_list(&vec!["'self'".to_string()]);
-    let script_src = csp_source_list(&vec![
-        "'self'".to_string(),
-        "'wasm-unsafe-eval'".to_string(),
-    ]);
-    let style_src = csp_source_list(&vec![
-        "'self'".to_string(),
-        "'unsafe-inline'".to_string(),
-    ]);
-    let img_src = csp_source_list(&vec![
+    let default_src = csp_source_list(&["'self'".to_string()]);
+    let script_src = csp_source_list(&["'self'".to_string(), "'wasm-unsafe-eval'".to_string()]);
+    let style_src = csp_source_list(&["'self'".to_string(), "'unsafe-inline'".to_string()]);
+    let img_src = csp_source_list(&[
         "'self'".to_string(),
         "data:".to_string(),
         "blob:".to_string(),
     ]);
-    let font_src = csp_source_list(&vec![
-        "'self'".to_string(),
-        "data:".to_string(),
-    ]);
-    let media_src = csp_source_list(&vec![
+    let font_src = csp_source_list(&["'self'".to_string(), "data:".to_string()]);
+    let media_src = csp_source_list(&[
         "'self'".to_string(),
         "data:".to_string(),
         "blob:".to_string(),
     ]);
-    let object_src = csp_source_list(&vec!["'none'".to_string()]);
-    let frame_ancestors = csp_source_list(&vec!["'self'".to_string()]);
-    let base_uri = csp_source_list(&vec!["'none'".to_string()]);
-    let form_action = csp_source_list(&vec!["'none'".to_string()]);
-    let worker_src = csp_source_list(&vec!["'self'".to_string()]);
+    let object_src = csp_source_list(&["'none'".to_string()]);
+    let frame_ancestors = csp_source_list(&["'self'".to_string()]);
+    let base_uri = csp_source_list(&["'none'".to_string()]);
+    let form_action = csp_source_list(&["'none'".to_string()]);
+    let worker_src = csp_source_list(&["'self'".to_string()]);
 
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
@@ -42,9 +33,7 @@ pub fn build_app_csp(app: &SageApp) -> String {
         connect_sources.insert(entry.as_permission_string());
     }
 
-    let connect_src = csp_source_list(
-        &connect_sources.into_iter().collect::<Vec<_>>(),
-    );
+    let connect_src = csp_source_list(&connect_sources.into_iter().collect::<Vec<_>>());
 
     format!(
         "default-src {default_src}; \

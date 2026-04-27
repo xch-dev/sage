@@ -1,16 +1,19 @@
 use std::{fs, io, path::Path};
 
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State, command};
 
 use crate::host::{AppState, Result};
-use crate::lifecycle::{apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir, validate_package_structure};
+use crate::lifecycle::install::install_app_from_source;
+use crate::lifecycle::install::url::{UrlInstallSource, preview_app_url_internal};
+use crate::lifecycle::install::zip::ZipInstallSource;
+use crate::lifecycle::{
+    apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir,
+    validate_package_structure,
+};
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppUrlPreview, SageGrantedPermissions, UserSageApp,
 };
 use uuid::Uuid;
-use crate::lifecycle::install::install_app_from_source;
-use crate::lifecycle::install::url::{preview_app_url_internal, UrlInstallSource};
-use crate::lifecycle::install::zip::ZipInstallSource;
 
 #[command]
 #[specta::specta]
@@ -29,7 +32,7 @@ pub async fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest>
     let _ = fs::remove_dir_all(&unpack_dir);
 
     result.map_err(|err| {
-        io::Error::other(format!("failed to preview app zip {}: {err}", zip_path)).into()
+        io::Error::other(format!("failed to preview app zip {zip_path}: {err}")).into()
     })
 }
 
@@ -52,7 +55,10 @@ pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<Liste
     let root = apps_root(&base_path);
 
     fs::create_dir_all(&root).map_err(|err| {
-        io::Error::other(format!("failed to create apps directory {}: {err}", root.display()))
+        io::Error::other(format!(
+            "failed to create apps directory {}: {err}",
+            root.display()
+        ))
     })?;
 
     list_installed_apps_internal(&root)
@@ -75,26 +81,23 @@ pub async fn install_app_zip(
     let root = apps_root(&base_path);
 
     fs::create_dir_all(&root).map_err(|err| {
-        io::Error::other(format!("failed to create apps directory {}: {err}", root.display()))
+        io::Error::other(format!(
+            "failed to create apps directory {}: {err}",
+            root.display()
+        ))
     })?;
 
     let source = ZipInstallSource::new(&root, zip_path.clone());
     let unpack_dir = source.unpack_dir.clone();
 
-    let result = install_app_from_source(
-        &app,
-        &base_path,
-        granted_permissions,
-        source,
-    )
-        .await;
+    let result = install_app_from_source(&app, &base_path, granted_permissions, source).await;
 
     if unpack_dir.exists() {
         let _ = fs::remove_dir_all(&unpack_dir);
     }
 
     result.map_err(|err| {
-        io::Error::other(format!("failed to install app zip {}: {err}", zip_path)).into()
+        io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into()
     })
 }
 
@@ -119,8 +122,6 @@ pub async fn install_app_url(
             app_url: app_url.clone(),
         },
     )
-        .await
-        .map_err(|err| {
-            io::Error::other(format!("failed to install app URL {}: {err}", app_url)).into()
-        })
+    .await
+    .map_err(|err| io::Error::other(format!("failed to install app URL {app_url}: {err}")).into())
 }

@@ -5,10 +5,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result as AnyResult};
 use crate::lifecycle::types::PersistedUserSageApp;
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageNetworkWhitelistEntry, UserSageApp, SageApp};
 use crate::system_apps::list_builtin_system_apps;
+use crate::types::{
+    CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry,
+    SageApp, SageNetworkWhitelistEntry, UserSageApp,
+};
+use anyhow::{Context, Result as AnyResult};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -34,14 +37,12 @@ pub fn retired_app_origins_path(base_path: &Path) -> PathBuf {
     apps_root(base_path).join(RETIRED_APP_ORIGINS_FILE)
 }
 
-pub fn parse_network_permission_target(
-    value: &str,
-) -> Result<SageNetworkWhitelistEntry, String> {
+pub fn parse_network_permission_target(value: &str) -> Result<SageNetworkWhitelistEntry, String> {
     let value = value.trim().to_ascii_lowercase();
 
     let (scheme, host) = value
         .split_once("://")
-        .ok_or_else(|| format!("invalid network entry (missing scheme): {}", value))?;
+        .ok_or_else(|| format!("invalid network entry (missing scheme): {value}"))?;
 
     SageNetworkWhitelistEntry::new(scheme, host).map_err(|err| err.to_string())
 }
@@ -55,10 +56,7 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     persisted.try_into()
 }
 
-pub fn write_installed_app_metadata(
-    app: &UserSageApp,
-    app_dir: &Path,
-) -> AnyResult<()> {
+pub fn write_installed_app_metadata(app: &UserSageApp, app_dir: &Path) -> AnyResult<()> {
     let path = installed_metadata_path(app_dir);
     let persisted: PersistedUserSageApp = app.into();
     let text = serde_json::to_string_pretty(&persisted)
@@ -67,10 +65,7 @@ pub fn write_installed_app_metadata(
     Ok(())
 }
 
-pub fn read_installed_app_by_id(
-    base_path: &Path,
-    app_id: &str,
-) -> AnyResult<UserSageApp> {
+pub fn read_installed_app_by_id(base_path: &Path, app_id: &str) -> AnyResult<UserSageApp> {
     let dir = app_dir(base_path, app_id);
     read_installed_user_app_from_dir(&dir)
 }
@@ -93,8 +88,7 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
         if path
             .file_name()
             .and_then(|s| s.to_str())
-            .map(|s| s.starts_with(".tmp-"))
-            .unwrap_or(false)
+            .is_some_and(|s| s.starts_with(".tmp-"))
         {
             continue;
         }
@@ -102,7 +96,7 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
         let Some(id) = path
             .file_name()
             .and_then(|s| s.to_str())
-            .map(|s| s.to_string())
+            .map(std::string::ToString::to_string)
         else {
             continue;
         };
@@ -155,8 +149,8 @@ pub fn read_pending_storage_cleanup_entries(
         return Ok(Vec::new());
     }
 
-    let text = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read {}", path.display()))?;
+    let text =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
     let entries = serde_json::from_str::<Vec<PendingStorageCleanupEntry>>(&text)
         .with_context(|| format!("failed to parse {}", path.display()))?;
@@ -173,24 +167,23 @@ pub fn write_pending_storage_cleanup_entries(
         .with_context(|| format!("failed to create apps root {}", root.display()))?;
 
     let path = pending_storage_cleanup_path(base_path);
-    let text = serde_json::to_string_pretty(entries)
-        .map_err(|err| anyhow::anyhow!("failed to serialize pending storage cleanup entries: {err}"))?;
+    let text = serde_json::to_string_pretty(entries).map_err(|err| {
+        anyhow::anyhow!("failed to serialize pending storage cleanup entries: {err}")
+    })?;
     fs::write(&path, format!("{text}\n"))
         .with_context(|| format!("failed to write {}", path.display()))?;
     Ok(())
 }
 
-pub fn read_retired_app_origins(
-    base_path: &Path,
-) -> AnyResult<Vec<RetiredAppOriginEntry>> {
+pub fn read_retired_app_origins(base_path: &Path) -> AnyResult<Vec<RetiredAppOriginEntry>> {
     let path = retired_app_origins_path(base_path);
 
     if !path.exists() {
         return Ok(Vec::new());
     }
 
-    let text = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read {}", path.display()))?;
+    let text =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
     let entries = serde_json::from_str::<Vec<RetiredAppOriginEntry>>(&text)
         .with_context(|| format!("failed to parse {}", path.display()))?;
@@ -223,12 +216,16 @@ pub fn read_installed_user_app_by_origin_id(
     let root = apps_root(base_path);
 
     for entry in list_installed_apps_internal(&root)? {
-        if let ListedSageApp::User(app) = entry && app.common.origin_id == origin_id {
+        if let ListedSageApp::User(app) = entry
+            && app.common.origin_id == origin_id
+        {
             return Ok(app);
         }
     }
 
-    Err(anyhow::anyhow!("no installed app found for origin id {origin_id}"))
+    Err(anyhow::anyhow!(
+        "no installed app found for origin id {origin_id}"
+    ))
 }
 
 #[cfg(test)]
@@ -236,7 +233,11 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+    use crate::types::{
+        InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
+        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+    };
 
     fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
         let dir = app_dir(base, app_id);
@@ -255,10 +256,11 @@ mod tests {
             icon: Some("icon.png".into()),
             author: None,
             donation: None,
-        }).unwrap();
+        })
+        .unwrap();
 
         let granted_permissions =
-            SageGrantedPermissions::new(&manifest.permissions(), [], []).unwrap();
+            SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
         let snapshot = SageAppSnapshot {
             manifest_hash: "hash".into(),
@@ -276,7 +278,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         UserSageApp {
             common,
@@ -321,6 +323,9 @@ mod tests {
     fn read_installed_app_by_origin_id_errors_when_missing() {
         let dir = tempdir().unwrap();
         let err = read_installed_user_app_by_origin_id(dir.path(), "missing").unwrap_err();
-        assert!(err.to_string().contains("no installed app found for origin id"));
+        assert!(
+            err.to_string()
+                .contains("no installed app found for origin id")
+        );
     }
 }

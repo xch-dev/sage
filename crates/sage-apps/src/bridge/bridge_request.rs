@@ -1,18 +1,21 @@
-use tauri::{AppHandle, Emitter, Manager, State, Webview};
-use uuid::Uuid;
 use crate::AppsHostState;
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::bridge::{response_channel_for_runtime_kind, RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
-use crate::bridge::methods::{BridgeContext, BridgeTools};
 use crate::bridge::methods::shared::BridgeMethodCapability;
+use crate::bridge::methods::{BridgeContext, BridgeTools};
 use crate::bridge::registry::BridgeRegistry;
 use crate::bridge::state::write_pending_approval;
+use crate::bridge::{
+    RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest,
+    RustBridgeResponse, response_channel_for_runtime_kind,
+};
 use crate::host::AppState;
 use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
-use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
+use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::types::SageApp;
+use tauri::{AppHandle, Emitter, Manager, State, Webview};
+use uuid::Uuid;
 
 pub async fn process(
     app: AppHandle,
@@ -71,9 +74,7 @@ pub async fn process(
     match method.capability() {
         BridgeMethodCapability::Ungated => {}
         BridgeMethodCapability::Required(capability) => {
-            if let Err(response) =
-                verify_capability(&app_model, &request, capability)
-            {
+            if let Err(response) = verify_capability(&app_model, &request, capability) {
                 return Ok(RustBridgeInvokeResult::Immediate { response });
             }
         }
@@ -90,7 +91,14 @@ pub async fn process(
             let approval_id = Uuid::new_v4().to_string();
 
             let apps_state = app.state::<AppsHostState>();
-            write_pending_approval(&apps_state, &approval_id, &app_model, &webview_label, &request).await;
+            write_pending_approval(
+                &apps_state,
+                &approval_id,
+                &app_model,
+                &webview_label,
+                &request,
+            )
+            .await;
 
             emit_sage_approval_requested(&app, approval_id, approval)?;
             return Ok(RustBridgeInvokeResult::Pending {});
@@ -108,14 +116,8 @@ pub async fn process(
         }
     }
 
-    let response = execute_bridge_request(
-        &app,
-        &app_state,
-        &app_model,
-        &webview_label,
-        &request,
-    )
-        .await;
+    let response =
+        execute_bridge_request(&app, &app_state, &app_model, &webview_label, &request).await;
 
     Ok(RustBridgeInvokeResult::Immediate { response })
 }
@@ -151,23 +153,16 @@ pub(crate) async fn execute_bridge_request(
         .await;
 
     match result {
-        Ok(value) => {
-            match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-                Ok(value) => RustBridgeResponse::success(&request.channel, &request.id, value),
-                Err(err) => RustBridgeResponse::error(
-                    &request.channel,
-                    &request.id,
-                    "internal_error",
-                    format!("failed to encode {} result: {err}", method.name()),
-                ),
-            }
-        }
-        Err(err) => RustBridgeResponse::error(
-            &request.channel,
-            &request.id,
-            err.code,
-            err.message,
-        ),
+        Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
+            Ok(value) => RustBridgeResponse::success(&request.channel, &request.id, value),
+            Err(err) => RustBridgeResponse::error(
+                &request.channel,
+                &request.id,
+                "internal_error",
+                format!("failed to encode {} result: {err}", method.name()),
+            ),
+        },
+        Err(err) => RustBridgeResponse::error(&request.channel, &request.id, err.code, err.message),
     }
 }
 
@@ -180,23 +175,13 @@ fn verify_capability(
         BridgeCapability::User(capability) => {
             let definition = get_user_capability_definition(capability);
 
-            verify_user_capability(
-                app,
-                request,
-                capability,
-                definition.flags.shared_with_app,
-            )
+            verify_user_capability(app, request, capability, definition.flags.shared_with_app)
         }
 
         BridgeCapability::System(capability) => {
             let definition = get_system_capability_definition(capability);
 
-            verify_system_capability(
-                app,
-                request,
-                capability,
-                definition.flags.shared_with_app,
-            )
+            verify_system_capability(app, request, capability, definition.flags.shared_with_app)
         }
     }
 }
@@ -221,13 +206,7 @@ fn verify_user_capability(
             .common
             .requested_permissions
             .capabilities
-            .resolve_effective_grants(
-                user_app
-                    .common
-                    .granted_permissions
-                    .capabilities()
-                    .copied(),
-            )
+            .resolve_effective_grants(user_app.common.granted_permissions.capabilities().copied())
             .map_err(|err| {
                 RustBridgeResponse::error(
                     &request.channel,
@@ -237,11 +216,7 @@ fn verify_user_capability(
                 )
             })?,
 
-        SageApp::System(_) => app
-            .granted_permissions()
-            .capabilities()
-            .copied()
-            .collect(),
+        SageApp::System(_) => app.granted_permissions().capabilities().copied().collect(),
     };
 
     if !effective_capabilities.contains(&capability) {
@@ -273,8 +248,7 @@ fn verify_system_capability(
 
     let granted = app
         .system_granted_permissions()
-        .map(|permissions| permissions.capabilities.contains(&capability))
-        .unwrap_or(false);
+        .is_some_and(|permissions| permissions.capabilities.contains(&capability));
 
     if !granted {
         return Err(RustBridgeResponse::error(
@@ -301,15 +275,15 @@ fn validate_request_basics(
         ));
     }
 
-    if let Some(version) = &request.bridge_version {
-        if version != "v1" {
-            return Err(RustBridgeResponse::error(
-                expected_channel,
-                &request.id,
-                "unsupported_bridge_version",
-                format!("Unsupported Sage bridge version: {version}"),
-            ));
-        }
+    if let Some(version) = &request.bridge_version
+        && version != "v1"
+    {
+        return Err(RustBridgeResponse::error(
+            expected_channel,
+            &request.id,
+            "unsupported_bridge_version",
+            format!("Unsupported Sage bridge version: {version}"),
+        ));
     }
 
     Ok(())

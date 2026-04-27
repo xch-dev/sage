@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
-use crate::permissions::capabilities::types::{CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition};
+use crate::permissions::capabilities::types::{
+    CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition,
+};
 use crate::types::{SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView};
 
 pub(crate) fn get_user_capability_definition(
@@ -292,20 +294,18 @@ pub(crate) fn get_system_capability_definition(
             },
         },
 
-        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => {
-            SystemCapabilityDefinition {
-                capability,
-                label: "Observe runtime changes",
-                description: "Allows the system app to receive events when Sage app runtimes change.",
-                flags: CapabilityFlags {
-                    externally_observable: false,
-                    accesses_sensitive_secret: false,
-                    requestable_by_app: true,
-                    user_grantable: false,
-                    shared_with_app: true,
-                },
-            }
-        }
+        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => SystemCapabilityDefinition {
+            capability,
+            label: "Observe runtime changes",
+            description: "Allows the system app to receive events when Sage app runtimes change.",
+            flags: CapabilityFlags {
+                externally_observable: false,
+                accesses_sensitive_secret: false,
+                requestable_by_app: true,
+                user_grantable: false,
+                shared_with_app: true,
+            },
+        },
     }
 }
 

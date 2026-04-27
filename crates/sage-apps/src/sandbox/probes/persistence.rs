@@ -1,12 +1,10 @@
 use tauri::{AppHandle, State};
 
-use crate::sandbox::{
-    BUILTIN_PERSISTENCE_INCOGNITO_ID, BUILTIN_PERSISTENCE_PERSISTENT_ID,
-};
+use crate::sandbox::{BUILTIN_PERSISTENCE_INCOGNITO_ID, BUILTIN_PERSISTENCE_PERSISTENT_ID};
 use crate::state::AppsHostState;
 
-use super::poll::{poll_persistence_read, poll_persistence_write};
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
+use super::poll::{poll_persistence_read, poll_persistence_write};
 
 pub async fn run_persistence_test(
     app: &AppHandle,
@@ -27,7 +25,7 @@ pub async fn run_persistence_test(
         &[("runId", run_id.clone()), ("phase", "write".into())],
         None,
     )
-        .await?;
+    .await?;
     start_test_app(
         app,
         apps_state,
@@ -35,7 +33,7 @@ pub async fn run_persistence_test(
         &[("runId", run_id.clone()), ("phase", "write".into())],
         None,
     )
-        .await?;
+    .await?;
 
     let write_results = poll_persistence_write(apps_state, &run_id, 2, 10_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;
@@ -123,7 +121,7 @@ pub async fn run_persistence_test(
         &[("runId", run_id.clone()), ("phase", "read".into())],
         None,
     )
-        .await?;
+    .await?;
     start_test_app(
         app,
         apps_state,
@@ -131,7 +129,7 @@ pub async fn run_persistence_test(
         &[("runId", run_id.clone()), ("phase", "read".into())],
         None,
     )
-        .await?;
+    .await?;
 
     let read_results = poll_persistence_read(apps_state, &run_id, 2, 10_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;

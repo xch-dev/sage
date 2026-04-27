@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use anyhow::{anyhow, Result as AnyResult};
+use anyhow::{Result as AnyResult, anyhow};
 use tauri::http::{Response, StatusCode};
 
 use crate::{
@@ -20,16 +20,13 @@ pub enum AppProtocolKind {
     System,
 }
 
-fn serve_runtime_app_asset(
-    request_path: &str,
-    csp: &str,
-) -> AnyResult<Response<Vec<u8>>> {
+fn serve_runtime_app_asset(request_path: &str, csp: &str) -> AnyResult<Response<Vec<u8>>> {
     let runtime_root = builtin_runtime_apps_root();
     let relative_path = request_path
         .strip_prefix("/__sage/runtime-apps/")
         .ok_or_else(|| anyhow!("invalid runtime app path"))?;
 
-    let safe_path = format!("/{}", relative_path);
+    let safe_path = format!("/{relative_path}");
     let file_path = read_snapshot_file(&runtime_root, &safe_path)?;
 
     if request_path.ends_with("/index.html") {
@@ -66,7 +63,7 @@ fn handle_builtin_test_app_request(
     request: &tauri::http::Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
     let app = build_builtin_test_app(app_id)?
-        .ok_or_else(|| anyhow!("unknown builtin test app {}", app_id))?;
+        .ok_or_else(|| anyhow!("unknown builtin test app {app_id}"))?;
 
     let request_path = request.uri().path();
     let csp = build_app_csp(&app);
@@ -76,7 +73,7 @@ fn handle_builtin_test_app_request(
     }
 
     let app_dir = builtin_test_app_dir(app_id)?
-        .ok_or_else(|| anyhow!("missing builtin test app dir for {}", app_id))?;
+        .ok_or_else(|| anyhow!("missing builtin test app dir for {app_id}"))?;
 
     let file_path = read_snapshot_file(&app_dir, request_path)?;
 
@@ -114,7 +111,7 @@ fn handle_builtin_system_app_request(
     request: &tauri::http::Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
     let app = build_builtin_system_app(app_id)?
-        .ok_or_else(|| anyhow!("unknown builtin system app {}", app_id))?;
+        .ok_or_else(|| anyhow!("unknown builtin system app {app_id}"))?;
 
     let request_path = request.uri().path();
     let csp = build_app_csp(&app);
@@ -124,7 +121,7 @@ fn handle_builtin_system_app_request(
     }
 
     let app_dir = builtin_system_app_dir(app_id)?
-        .ok_or_else(|| anyhow!("missing builtin system app dir for {}", app_id))?;
+        .ok_or_else(|| anyhow!("missing builtin system app dir for {app_id}"))?;
 
     let file_path = read_snapshot_file(&app_dir, request_path)?;
 
@@ -171,8 +168,7 @@ pub fn handle_app_protocol_request(
     if builtin_test_app_spec(host).is_some() {
         if protocol_kind != AppProtocolKind::User {
             return Err(anyhow!(
-                "builtin sandbox test app {} cannot be served through system protocol",
-                host
+                "builtin sandbox test app {host} cannot be served through system protocol"
             ));
         }
 
@@ -182,8 +178,7 @@ pub fn handle_app_protocol_request(
     if builtin_system_app_spec(host).is_some() {
         if protocol_kind != AppProtocolKind::System {
             return Err(anyhow!(
-                "builtin system app {} cannot be served through user protocol",
-                host
+                "builtin system app {host} cannot be served through user protocol"
             ));
         }
 
@@ -192,8 +187,7 @@ pub fn handle_app_protocol_request(
 
     if protocol_kind != AppProtocolKind::User {
         return Err(anyhow!(
-            "user-installed app {} cannot be served through system protocol",
-            host
+            "user-installed app {host} cannot be served through system protocol"
         ));
     }
 

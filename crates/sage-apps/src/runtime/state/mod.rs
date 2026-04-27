@@ -1,4 +1,4 @@
-pub mod types;
 pub mod read;
-pub mod write;
 pub mod remove;
+pub mod types;
+pub mod write;

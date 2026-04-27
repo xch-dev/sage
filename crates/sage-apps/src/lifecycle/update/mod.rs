@@ -1,3 +1,3 @@
 pub mod commands;
-pub mod types;
 pub mod permissions;
+pub mod types;

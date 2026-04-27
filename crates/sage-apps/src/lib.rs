@@ -7,13 +7,10 @@ pub mod runtime;
 pub mod sandbox;
 pub mod security;
 pub mod state;
+pub mod storage;
 pub mod system_apps;
 pub mod types;
 pub mod utils;
-pub mod storage;
 
-pub use security::{
-    handle_system_app_protocol_request,
-    handle_user_app_protocol_request,
-};
+pub use security::{handle_system_app_protocol_request, handle_user_app_protocol_request};
 pub use state::AppsHostState;

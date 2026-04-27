@@ -31,10 +31,7 @@ pub struct ResyncCatResponse {}
 
 #[cfg_attr(
     feature = "openapi",
-    crate::openapi_attr(
-        tag = "Price",
-        description = "Get XCH-USD price"
-    )
+    crate::openapi_attr(tag = "Price", description = "Get XCH-USD price")
 )]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]

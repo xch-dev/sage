@@ -1,4 +1,3 @@
-
 use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
 
 #[cfg(target_os = "windows")]
@@ -23,7 +22,9 @@ pub fn parse_data_store_id(identifier_hex: &str) -> Result<[u8; 16], String> {
     Ok(out)
 }
 
-pub fn cleanup_target_from_storage(storage: &InstalledSageAppStorage) -> PendingStorageCleanupTarget {
+pub fn cleanup_target_from_storage(
+    storage: &InstalledSageAppStorage,
+) -> PendingStorageCleanupTarget {
     match storage {
         InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
             PendingStorageCleanupTarget::AppleDataStore {

@@ -2,17 +2,20 @@ mod common;
 
 use std::fs;
 
-use common::{sample_installed_app};
+use crate::common::sample_manifest_file;
+use common::sample_installed_app;
 use sage_apps::lifecycle::registry::{
     app_dir, apps_root, list_installed_apps_internal, parse_network_permission_target,
     read_installed_app_by_id, read_installed_user_app_by_origin_id,
-    read_pending_storage_cleanup_entries, read_retired_app_origins,
-    write_installed_app_metadata, write_pending_storage_cleanup_entries,
-    write_retired_app_origins,
+    read_pending_storage_cleanup_entries, read_retired_app_origins, write_installed_app_metadata,
+    write_pending_storage_cleanup_entries, write_retired_app_origins,
 };
-use sage_apps::types::{ListedSageApp, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageAppPendingUpdate};
+use sage_apps::types::{
+    ListedSageApp, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry,
+    SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+    SageRequestedPermissions, UserSageAppPendingUpdate,
+};
 use tempfile::tempdir;
-use crate::common::{sample_manifest_file};
 
 #[test]
 fn installed_app_metadata_roundtrips() {
@@ -28,8 +31,11 @@ fn installed_app_metadata_roundtrips() {
 
     assert_eq!(loaded.common.id, app.common.id);
     assert_eq!(loaded.common.name, app.common.name);
-    assert_eq!(loaded.common.granted_permissions, app.common.granted_permissions);
-    assert_eq!(loaded.common.capability_flags.has_external_access, false);
+    assert_eq!(
+        loaded.common.granted_permissions,
+        app.common.granted_permissions
+    );
+    assert!(!loaded.common.capability_flags.has_external_access);
 }
 
 fn without_system_apps(listed: Vec<ListedSageApp>) -> Vec<ListedSageApp> {
@@ -57,7 +63,9 @@ fn installed_app_metadata_roundtrips_pending_update() {
     write_installed_app_metadata(&app, &dir).unwrap();
     let loaded = read_installed_app_by_id(base.path(), app_id).unwrap();
 
-    let pending = loaded.pending_update.expect("pending update should survive roundtrip");
+    let pending = loaded
+        .pending_update
+        .expect("pending update should survive roundtrip");
     assert_eq!(pending.manifest_hash, "pending-hash");
     assert_eq!(pending.manifest.name(), "Alpha Updated");
 }
@@ -70,7 +78,8 @@ fn corrupted_metadata_is_reported_as_corrupted_listing() {
 
     fs::write(dir.join(".sage-installed.json"), "{ definitely not json").unwrap();
 
-    let listed = without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+    let listed =
+        without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
     assert_eq!(listed.len(), 1);
 
     match &listed[0] {
@@ -163,9 +172,10 @@ fn corrupted_persisted_network_entry_is_reported_as_corrupted_listing() {
   "pendingUpdate": null
 }"#,
     )
-        .unwrap();
+    .unwrap();
 
-    let listed = without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+    let listed =
+        without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
     assert_eq!(listed.len(), 1);
 
     match &listed[0] {
@@ -175,7 +185,9 @@ fn corrupted_persisted_network_entry_is_reported_as_corrupted_listing() {
                 app.error.contains("network entry")
                     || app.error.contains("invalid host")
                     || app.error.contains("failed to parse installed app metadata")
-                    || app.error.contains("failed to parse persisted required network entry"),
+                    || app
+                        .error
+                        .contains("failed to parse persisted required network entry"),
                 "unexpected error: {}",
                 app.error
             );
@@ -200,7 +212,8 @@ fn installed_apps_are_sorted_by_name() {
     zeta.common.app_dir = zeta_dir.to_string_lossy().to_string();
     write_installed_app_metadata(&zeta, &zeta_dir).unwrap();
 
-    let listed = without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+    let listed =
+        without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
     let names: Vec<_> = listed
         .into_iter()
         .map(|entry| match entry {
@@ -219,7 +232,8 @@ fn list_installed_apps_ignores_tmp_directories() {
     let root = apps_root(base.path());
     fs::create_dir_all(root.join(".tmp-123")).unwrap();
 
-    let listed = without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+    let listed =
+        without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
     assert!(listed.is_empty());
 }
 
@@ -229,7 +243,8 @@ fn list_installed_apps_ignores_directories_without_metadata() {
     let root = apps_root(base.path());
     fs::create_dir_all(root.join("missing-metadata")).unwrap();
 
-    let listed = without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+    let listed =
+        without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
     assert!(listed.is_empty());
 }
 
@@ -286,9 +301,10 @@ fn read_installed_app_by_origin_id_finds_matching_app() {
 fn read_installed_app_by_origin_id_errors_when_missing() {
     let base = tempdir().unwrap();
     let err = read_installed_user_app_by_origin_id(base.path(), "missing").unwrap_err();
-    assert!(err
-        .to_string()
-        .contains("no installed app found for origin id"));
+    assert!(
+        err.to_string()
+            .contains("no installed app found for origin id")
+    );
 }
 
 #[test]
@@ -340,5 +356,6 @@ fn sample_manifest(name: &str) -> SageAppPackageManifest {
         icon: Some("icon.png".to_string()),
         author: None,
         donation: None,
-    }).unwrap()
+    })
+    .unwrap()
 }

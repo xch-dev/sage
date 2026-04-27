@@ -1,16 +1,16 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{anyhow, Context, Result as AnyResult};
+use anyhow::{Context, Result as AnyResult, anyhow};
 use async_trait::async_trait;
 use url::Url;
 use uuid::Uuid;
 
 use super::AppInstallSource;
+use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::lifecycle::{
     derive_manifest_url, download_url_snapshot, fetch_url_manifest, read_retired_app_origins,
     write_retired_app_origins,
 };
-use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrlPreview, UserSageApp, UserSageAppSource,
 };
@@ -67,7 +67,7 @@ impl AppInstallSource for UrlInstallSource {
             &prepared.preview.manifest,
             &prepared.preview.manifest_hash,
         )
-            .await
+        .await
     }
 
     fn origin_id(
@@ -201,7 +201,10 @@ pub fn resolve_url_install_target(
     let app_dir = root.join(&app_id);
 
     let existing = if app_dir.exists() {
-        Some(read_installed_app_by_id(root.parent().unwrap_or(root), &app_id)?)
+        Some(read_installed_app_by_id(
+            root.parent().unwrap_or(root),
+            &app_id,
+        )?)
     } else {
         None
     };
@@ -210,10 +213,10 @@ pub fn resolve_url_install_target(
 }
 
 fn slugify_host(input: &str) -> String {
-    if let Ok(url) = Url::parse(input) {
-        if let Some(host) = url.host_str() {
-            return slugify_app_name(host);
-        }
+    if let Ok(url) = Url::parse(input)
+        && let Some(host) = url.host_str()
+    {
+        return slugify_app_name(host);
     }
 
     slugify_app_name(input)
@@ -224,8 +227,12 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
-    use crate::types::{InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
-    use tempfile::{tempdir, TempDir};
+    use crate::types::{
+        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile,
+        SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
+    use tempfile::{TempDir, tempdir};
 
     fn fake_retired_app_origins(dir: &TempDir, storage_may_contain_secrets: bool) {
         write_retired_app_origins(
@@ -240,7 +247,7 @@ mod tests {
                 cleanup_pending: false,
             }],
         )
-            .unwrap();
+        .unwrap();
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -249,12 +256,9 @@ mod tests {
                 [],
                 [SageNetworkWhitelistEntry::new("https", "api.example.com").unwrap()],
             ),
-            SageRequestedCapabilities::new(
-                [],
-                [UserBridgeCapability::PersistentStorage],
-            ),
+            SageRequestedCapabilities::new([], [UserBridgeCapability::PersistentStorage]),
         )
-            .unwrap();
+        .unwrap();
 
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".into(),
@@ -270,7 +274,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     fn sample_app(app_id: &str, origin_id: &str) -> UserSageApp {
@@ -283,9 +287,12 @@ mod tests {
         let granted_permissions = SageGrantedPermissions::new(
             manifest.permissions(),
             [UserBridgeCapability::PersistentStorage],
-            [SageNetworkWhitelistEntry::new_unchecked("https", "api.example.com")],
+            [SageNetworkWhitelistEntry::new_unchecked(
+                "https",
+                "api.example.com",
+            )],
         )
-            .unwrap();
+        .unwrap();
 
         let snapshot = SageAppSnapshot {
             manifest_hash: "hash".into(),
@@ -303,7 +310,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         UserSageApp {
             common,
@@ -406,7 +413,7 @@ mod tests {
                 cleanup_pending: false,
             }],
         )
-            .unwrap();
+        .unwrap();
 
         assert!(should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -497,7 +504,7 @@ mod tests {
                 cleanup_pending: true,
             }],
         )
-            .unwrap();
+        .unwrap();
 
         let before = read_retired_app_origins(dir.path()).unwrap();
         assert!(before[0].cleanup_pending);
@@ -535,7 +542,7 @@ mod tests {
                 cleanup_pending: true,
             }],
         )
-            .unwrap();
+        .unwrap();
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),

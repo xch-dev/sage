@@ -2,14 +2,17 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
 use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::methods::user::app::resolve_app_base_path;
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
+use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::lifecycle::update::permissions::grant_requested_capability_internal;
 use crate::lifecycle::update::types::GrantCapabilityOutcome;
 use crate::permissions::{get_user_capability_definition, user_capability_definition_view};
@@ -48,8 +51,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        let params: RequestCapabilityGrantParams =
-            parse_required_params(self, request)?;
+        let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
 
         if ctx
             .app
@@ -79,20 +81,19 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let params: RequestCapabilityGrantParams =
-            parse_required_params(self, request)?;
+        let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
 
         let base_path = resolve_app_base_path(&tools)?;
 
         let result = match grant_requested_capability_internal(
             &base_path,
-            &ctx.app.id(),
+            ctx.app.id(),
             params.capability,
         ) {
             Ok(GrantCapabilityOutcome::AlreadyGranted {
-                   capability,
-                   full_granted_capabilities,
-               }) => RequestCapabilityGrantResult {
+                capability,
+                full_granted_capabilities,
+            }) => RequestCapabilityGrantResult {
                 granted: true,
                 already_granted: Some(true),
                 capability,
@@ -107,7 +108,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
                     ctx.app.id(),
                     EventForApp::from_capabilities_change(&request.channel, change),
                 )
-                    .await;
+                .await;
 
                 RequestCapabilityGrantResult {
                     granted: true,

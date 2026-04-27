@@ -1,19 +1,18 @@
-use std::collections::HashMap;
-use crate::types::SageApp;
 use super::methods::BridgeMethod;
 use super::methods::system::runtime_manager::{
-    RuntimeManagerFocusRuntime, RuntimeManagerHideRuntime,
-    RuntimeManagerKillRuntime, RuntimeManagerListRuntimes,
+    RuntimeManagerFocusRuntime, RuntimeManagerHideRuntime, RuntimeManagerKillRuntime,
+    RuntimeManagerListRuntimes,
 };
 use super::methods::user::{
-    AppGetCapabilities, AppGetInfo, AppLifecycleReadyToStop,
-    AppLifecycleSetBeforeStopListener, AppRequestCapabilityGrant,
-    AppRequestNetworkWhitelistGrant, BridgePing, BridgeSend, WalletCheckAddress,
-    WalletGetCoins, WalletGetCoinsByIds, WalletGetDerivations, WalletGetKey,
-    WalletGetKeys, WalletGetPendingTransactions, WalletGetSecretKey,
-    WalletGetSpendableCoinCount, WalletGetSyncStatus, WalletGetTransaction,
-    WalletGetTransactions, WalletGetVersion, WalletSendXch,
+    AppGetCapabilities, AppGetInfo, AppLifecycleReadyToStop, AppLifecycleSetBeforeStopListener,
+    AppRequestCapabilityGrant, AppRequestNetworkWhitelistGrant, BridgePing, BridgeSend,
+    WalletCheckAddress, WalletGetCoins, WalletGetCoinsByIds, WalletGetDerivations, WalletGetKey,
+    WalletGetKeys, WalletGetPendingTransactions, WalletGetSecretKey, WalletGetSpendableCoinCount,
+    WalletGetSyncStatus, WalletGetTransaction, WalletGetTransactions, WalletGetVersion,
+    WalletSendXch,
 };
+use crate::types::SageApp;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeRegistryKind {
@@ -45,7 +44,7 @@ impl BridgeRegistry {
     }
 
     pub fn get(&self, method: &str) -> Option<&dyn BridgeMethod> {
-        self.methods.get(method).map(|method| method.as_ref())
+        self.methods.get(method).map(std::convert::AsRef::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &dyn BridgeMethod)> {
