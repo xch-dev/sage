@@ -15,10 +15,12 @@ pub(crate) use app::{
 };
 pub(crate) use permissions::{
     SageRequestedPermissions, SageGrantedPermissions, SageGrantedSystemPermissions,
-    SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView
+    SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView,
+    SageRequestedCapabilities, SageRequestedNetworkPermissions,
 };
-pub(crate) use manifest::{SageAppPackageManifest, SageAppManifestFile};
+pub(crate) use manifest::{SageAppPackageManifest, SageAppManifestFile, SageAppPackageManifestParts};
 pub(crate) use storage::{
     InstalledSageAppStorage, PendingStorageCleanupTarget, PendingStorageCleanupEntry
 };
 pub(crate) use network::{SageNetworkWhitelistEntry};
+

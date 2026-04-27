@@ -1,8 +1,9 @@
 use std::collections::BTreeSet;
-use serde::{Deserialize, Serialize};
+
+use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-#[derive(Debug, Clone, Type, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntry {
     scheme: String,
     host: String,
@@ -12,6 +13,29 @@ pub struct SageNetworkWhitelistEntry {
 pub struct SageRequestedNetworkWhitelist {
     required: BTreeSet<SageNetworkWhitelistEntry>,
     optional: BTreeSet<SageNetworkWhitelistEntry>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum RawSageNetworkWhitelistEntry {
+    String(String),
+    Object { scheme: String, host: String },
+}
+
+impl<'de> Deserialize<'de> for SageNetworkWhitelistEntry {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match RawSageNetworkWhitelistEntry::deserialize(deserializer)? {
+            RawSageNetworkWhitelistEntry::String(value) => {
+                value.parse().map_err(serde::de::Error::custom)
+            }
+            RawSageNetworkWhitelistEntry::Object { scheme, host } => {
+                Self::new(scheme, host).map_err(serde::de::Error::custom)
+            }
+        }
+    }
 }
 
 impl SageNetworkWhitelistEntry {
@@ -31,6 +55,7 @@ impl SageNetworkWhitelistEntry {
         {
             anyhow::bail!("invalid host in network entry: {scheme}://{host}");
         }
+
         Ok(Self { scheme, host })
     }
 

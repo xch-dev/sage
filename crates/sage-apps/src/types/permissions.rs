@@ -10,7 +10,7 @@ pub struct SageRequestedNetworkPermissions {
     pub whitelist: SageRequestedNetworkWhitelist,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedCapabilities {
     required: BTreeSet<UserBridgeCapability>,
     optional: BTreeSet<UserBridgeCapability>,
@@ -59,18 +59,18 @@ pub struct SageAppCapabilityDefinitionView {
 }
 
 #[derive(Debug, Deserialize, Default)]
-struct RawStringListBucket {
+struct RawNetworkWhitelistBucket {
     #[serde(default)]
-    required: Vec<String>,
+    required: Vec<SageNetworkWhitelistEntry>,
 
     #[serde(default)]
-    optional: Vec<String>,
+    optional: Vec<SageNetworkWhitelistEntry>,
 }
 
 #[derive(Debug, Deserialize, Default)]
 struct RawRequestedNetworkPermissions {
     #[serde(default)]
-    whitelist: RawStringListBucket,
+    whitelist: RawNetworkWhitelistBucket,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -82,22 +82,22 @@ struct RawRequestedPermissions {
     capabilities: Option<SageRequestedCapabilities>,
 }
 
-impl Serialize for SageNetworkWhitelistEntry {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&self.as_permission_string())
-    }
+#[derive(Debug, Deserialize, Default)]
+struct RawRequestedCapabilities {
+    #[serde(default)]
+    required: Vec<UserBridgeCapability>,
+
+    #[serde(default)]
+    optional: Vec<UserBridgeCapability>,
 }
 
-impl<'de> Deserialize<'de> for SageNetworkWhitelistEntry {
+impl<'de> Deserialize<'de> for SageRequestedCapabilities {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de>,
+        D: Deserializer<'de>,
     {
-        let value = String::deserialize(deserializer)?;
-        value.parse().map_err(serde::de::Error::custom)
+        let raw = RawRequestedCapabilities::deserialize(deserializer)?;
+        Ok(Self::new(raw.required, raw.optional))
     }
 }
 
@@ -108,21 +108,8 @@ impl<'de> Deserialize<'de> for SageRequestedPermissions {
     {
         let raw = <RawRequestedPermissions as Deserialize>::deserialize(deserializer)?;
 
-        let required_network = raw
-            .network
-            .whitelist
-            .required
-            .into_iter()
-            .map(|value| value.parse().map_err(serde::de::Error::custom))
-            .collect::<Result<Vec<_>, _>>()?;
-
-        let optional_network = raw
-            .network
-            .whitelist
-            .optional
-            .into_iter()
-            .map(|value| value.parse().map_err(serde::de::Error::custom))
-            .collect::<Result<Vec<_>, _>>()?;
+        let required_network = raw.network.whitelist.required;
+        let optional_network = raw.network.whitelist.optional;
 
         SageRequestedPermissions::new(
             SageRequestedNetworkPermissions::new(required_network, optional_network),
