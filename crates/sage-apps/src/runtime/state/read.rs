@@ -40,9 +40,9 @@ pub async fn find_runtime_by_app_id_optional(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Option<SageAppRuntimeRecord> {
-    let Some(runtime_id) = find_runtime_id_by_app_id_optional(apps_state, app_id).await else {
-        return None;
-    };
+    let runtime_id =
+        find_runtime_id_by_app_id_optional(apps_state, app_id).await?;
+
     find_runtime_by_runtime_id_optional(apps_state, &runtime_id).await
 }
 

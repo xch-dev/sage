@@ -81,15 +81,15 @@ pub fn resolve_app(app: &AppHandle, app_id: &str) -> Result<SageApp, String> {
 }
 
 pub(crate) fn assert_bridge_origin(
-    app: AppHandle,
-    webview_label: String,
+    app: &AppHandle,
+    webview_label: &String,
 ) -> Result<(String, SageAppRuntimeKind), String> {
-    let (runtime_kind, app_id) = app_id_from_webview_label(&webview_label)
+    let (runtime_kind, app_id) = app_id_from_webview_label(webview_label)
         .ok_or_else(|| format!("invalid app runtime label: {webview_label}"))?;
 
     let app_id = app_id.to_string();
 
-    let resolved = resolve_app(&app, &app_id)?;
+    let resolved = resolve_app(app, &app_id)?;
     let expected_runtime_kind = runtime_kind_for_app(&resolved);
 
     if runtime_kind != expected_runtime_kind {
@@ -98,7 +98,7 @@ pub(crate) fn assert_bridge_origin(
         ));
     }
 
-    let app_webview = get_webview_in_sage_window(&app, &webview_label)?;
+    let app_webview = get_webview_in_sage_window(app, webview_label)?;
 
     let current_url = app_webview
         .url()

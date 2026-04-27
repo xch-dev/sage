@@ -3,7 +3,7 @@ import type {
   SageApp,
   SageAppCapabilityDefinitionView,
   SageGrantedPermissions,
-  SageNetworkPermissionTarget,
+  SageNetworkWhitelistEntry,
   SystemSageApp,
   UserBridgeCapability,
   UserSageApp,
@@ -66,13 +66,13 @@ interface PermissionGroupNode {
   sensitivityRank: number;
 }
 
-function networkKey(entry: SageNetworkPermissionTarget): string {
+function networkKey(entry: SageNetworkWhitelistEntry): string {
   return `${entry.scheme}://${entry.host}`;
 }
 
 function sortNetworkEntries(
-  entries: SageNetworkPermissionTarget[],
-): SageNetworkPermissionTarget[] {
+  entries: SageNetworkWhitelistEntry[],
+): SageNetworkWhitelistEntry[] {
   return [...entries].sort((a, b) =>
     networkKey(a).localeCompare(networkKey(b)),
   );
@@ -175,9 +175,9 @@ function buildCapabilityEntries(
 }
 
 function buildNetworkEntries(
-  requestedRequired: SageNetworkPermissionTarget[],
-  requestedOptional: SageNetworkPermissionTarget[],
-  grantedNetworkWhitelist: SageNetworkPermissionTarget[],
+  requestedRequired: SageNetworkWhitelistEntry[],
+  requestedOptional: SageNetworkWhitelistEntry[],
+  grantedNetworkWhitelist: SageNetworkWhitelistEntry[],
 ): PermissionEntry[] {
   const grantedSet = new Set(
     grantedNetworkWhitelist.map((entry) => networkKey(entry)),

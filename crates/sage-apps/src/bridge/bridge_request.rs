@@ -32,7 +32,7 @@ pub async fn process(
 
     let webview_label = webview.label().to_string();
 
-    let (app_id, runtime_kind) = match assert_bridge_origin(app.clone(), webview_label.clone()) {
+    let (app_id, runtime_kind) = match assert_bridge_origin(&app, &webview_label) {
         Ok(value) => value,
         Err(err) => {
             return Ok(RustBridgeInvokeResult::Immediate {
@@ -154,7 +154,7 @@ pub(crate) async fn execute_bridge_request(
 
     match result {
         Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-            Ok(value) => RustBridgeResponse::success(&request.channel, &request.id, value),
+            Ok(value) => RustBridgeResponse::success(&request.channel, &request.id, &value),
             Err(err) => RustBridgeResponse::error(
                 &request.channel,
                 &request.id,

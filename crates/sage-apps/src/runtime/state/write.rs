@@ -25,11 +25,11 @@ pub async fn write_runtime_id_by_app_id(
 
 pub async fn write_pending_stop_ready(
     apps_state: &State<'_, AppsHostState>,
-    request_id: &String,
+    request_id: &str,
     tx: tokio::sync::oneshot::Sender<()>,
 ) {
     let mut pending = apps_state.runtime.pending_stop_ready.lock().await;
-    pending.insert(request_id.clone(), tx);
+    pending.insert(request_id.to_string(), tx);
 }
 
 async fn write_runtime(apps_state: &State<'_, AppsHostState>, record: SageAppRuntimeRecord) {

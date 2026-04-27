@@ -40,7 +40,9 @@ fn main() {
     println!("cargo:rerun-if-changed=../crates/sage-apps/src/permissions");
     println!("cargo:rerun-if-changed=../crates/sage-apps/src/build/docs.rs");
     println!("cargo:rerun-if-changed=../crates/sage-apps/src/build/builtin_apps.rs");
-    println!("cargo:rerun-if-changed=../crates/sage-apps/builtin-apps");
+    println!("cargo:rerun-if-changed=../crates/sage-apps/builtin-apps/test-apps-src");
+    println!("cargo:rerun-if-changed=../crates/sage-apps/builtin-apps/runtime-apps-src");
+    println!("cargo:rerun-if-changed=../crates/sage-apps/builtin-apps/system-apps-src");
 
     if let Err(err) = sage_apps::build::builtin_apps::build_builtin_apps() {
         panic!("failed to build builtin apps: {err}");

@@ -82,9 +82,8 @@ pub async fn download_app_update(
         }
     };
 
-    let preview = match check_app_update(state, app_id.clone()).await? {
-        Some(preview) => preview,
-        None => return Ok(app),
+    let Some(preview) = check_app_update(state, app_id.clone()).await? else {
+        return Ok(app)
     };
 
     app.pending_update = Some(UserSageAppPendingUpdate {
@@ -160,7 +159,7 @@ pub async fn apps_update_permissions(
     };
 
     let (_updated, capability_change, network_change) =
-        update_app_permissions_with_change_internal(&base_path, &app_id, granted_permissions)
+        update_app_permissions_with_change_internal(&base_path, &app_id, &granted_permissions)
             .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
 
     if !capability_change.added.is_empty() || !capability_change.removed.is_empty() {

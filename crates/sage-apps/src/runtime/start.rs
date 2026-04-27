@@ -38,19 +38,18 @@ pub async fn create_inline_runtime(
     let entry_src = build_entry_src(&resolved, args.path.clone(), args.query.clone());
 
     if let Some(existing) = find_webview_in_sage_window(&app, &webview_label) {
-        return reuse_existing_inline_runtime(
-            &apps_state,
-            &existing,
+        return reuse_existing_inline_runtime(ReuseInlineRuntimeParams {
+            apps_state: &apps_state,
+            webview: &existing,
             runtime_id,
-            resolved.id().to_string(),
-            resolved.name().to_string(),
+            app_id: resolved.id().to_string(),
+            app_name: resolved.name().to_string(),
             entry_src,
             webview_label,
             runtime_kind,
-            args.visible,
-            args.internal,
-        )
-        .await;
+            visible: args.visible,
+            internal: args.internal,
+        }).await;
     }
 
     if !args.internal && !resolved.is_sandbox_test() {
@@ -146,9 +145,10 @@ pub async fn create_inline_runtime(
     Ok(record)
 }
 
-async fn reuse_existing_inline_runtime(
-    apps_state: &State<'_, AppsHostState>,
-    webview: &tauri::Webview,
+
+struct ReuseInlineRuntimeParams<'a> {
+    apps_state: &'a State<'a, AppsHostState>,
+    webview: &'a tauri::Webview,
     runtime_id: String,
     app_id: String,
     app_name: String,
@@ -157,7 +157,24 @@ async fn reuse_existing_inline_runtime(
     runtime_kind: SageAppRuntimeKind,
     visible: bool,
     internal: bool,
+}
+
+async fn reuse_existing_inline_runtime(
+    params: ReuseInlineRuntimeParams<'_>,
 ) -> Result<SageAppRuntimeRecord, String> {
+    let ReuseInlineRuntimeParams {
+        apps_state,
+        webview,
+        runtime_id,
+        app_id,
+        app_name,
+        entry_src,
+        webview_label,
+        runtime_kind,
+        visible,
+        internal,
+    } = params;
+
     let now = unix_timestamp_ms();
 
     if visible {
@@ -272,8 +289,8 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
     let col = slot % cols;
     let row = slot / cols;
 
-    let x = origin_x + col as f64 * (cell_w + margin_x);
-    let y = origin_y + row as f64 * (cell_h + margin_y);
+    let x = origin_x + (col as u32 as f64) * (cell_w + margin_x);
+    let y = origin_y + (row as u32 as f64) * (cell_h + margin_y);
 
     (x, y, cell_w, cell_h)
 }

@@ -13,11 +13,11 @@ use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageAp
 pub fn update_app_permissions(
     base_path: &Path,
     app_id: &str,
-    granted_permissions: SageGrantedPermissions,
+    granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<UserSageApp> {
     let mut app = read_installed_app_by_id(base_path, app_id)?;
 
-    app.common.update_permissions(&granted_permissions)?;
+    app.common.update_permissions(granted_permissions)?;
 
     let app_dir = PathBuf::from(&app.common.app_dir);
     write_installed_app_metadata(&app, &app_dir)?;
@@ -143,7 +143,7 @@ pub fn grant_requested_capability_internal(
         previous_network.clone(),
     )?;
 
-    let updated = update_app_permissions(base_path, app_id, granted_permissions)?;
+    let updated = update_app_permissions(base_path, app_id, &granted_permissions)?;
 
     let updated_capabilities = granted_capabilities(&updated);
 
@@ -190,7 +190,7 @@ pub fn grant_requested_network_whitelist_entry_internal(
         next_whitelist.clone(),
     )?;
 
-    let updated = update_app_permissions(base_path, app_id, granted_permissions)?;
+    let updated = update_app_permissions(base_path, app_id, &granted_permissions)?;
 
     let updated_whitelist = granted_network_whitelist(&updated);
 
@@ -205,7 +205,7 @@ pub fn grant_requested_network_whitelist_entry_internal(
 pub fn update_app_permissions_with_change_internal(
     base_path: &Path,
     app_id: &str,
-    granted_permissions: SageGrantedPermissions,
+    granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<(
     UserSageApp,
     GrantedCapabilitiesChange,

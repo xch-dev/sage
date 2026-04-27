@@ -2,15 +2,11 @@
 
 ## `app.getCapabilities`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `app.get_capabilities` |
 
 ## `app.getInfo`
-
-
 
 | Field | Value |
 |---|---|
@@ -18,15 +14,11 @@
 
 ## `app.lifecycle.readyToStop`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `app.lifecycle.ready_to_stop` |
 
 ## `app.lifecycle.setBeforeStopListener`
-
-
 
 | Field | Value |
 |---|---|
@@ -34,15 +26,11 @@
 
 ## `app.requestCapabilityGrant`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `app.request_capability_grant` |
 
 ## `app.requestNetworkWhitelistGrant`
-
-
 
 | Field | Value |
 |---|---|
@@ -50,15 +38,11 @@
 
 ## `bridge.ping`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `ungated` |
 
 ## `bridge.send`
-
-
 
 | Field | Value |
 |---|---|
@@ -66,15 +50,11 @@
 
 ## `wallet.checkAddress`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.check_address` |
 
 ## `wallet.getCoins`
-
-
 
 | Field | Value |
 |---|---|
@@ -82,15 +62,11 @@
 
 ## `wallet.getCoinsByIds`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_coins_by_ids` |
 
 ## `wallet.getDerivations`
-
-
 
 | Field | Value |
 |---|---|
@@ -98,15 +74,11 @@
 
 ## `wallet.getKey`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_key` |
 
 ## `wallet.getKeys`
-
-
 
 | Field | Value |
 |---|---|
@@ -114,15 +86,11 @@
 
 ## `wallet.getPendingTransactions`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_pending_transactions` |
 
 ## `wallet.getSecretKey`
-
-
 
 | Field | Value |
 |---|---|
@@ -130,15 +98,11 @@
 
 ## `wallet.getSpendableCoinCount`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_spendable_coin_count` |
 
 ## `wallet.getSyncStatus`
-
-
 
 | Field | Value |
 |---|---|
@@ -146,15 +110,11 @@
 
 ## `wallet.getTransaction`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_transaction` |
 
 ## `wallet.getTransactions`
-
-
 
 | Field | Value |
 |---|---|
@@ -162,15 +122,11 @@
 
 ## `wallet.getVersion`
 
-
-
 | Field | Value |
 |---|---|
 | Capability | `wallet.get_version` |
 
 ## `wallet.sendXch`
-
-
 
 | Field | Value |
 |---|---|

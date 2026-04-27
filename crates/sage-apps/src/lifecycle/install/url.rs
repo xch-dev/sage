@@ -168,7 +168,7 @@ pub fn should_rotate_url_origin_on_install(base_path: &Path, app_id: &str) -> An
 
     Ok(retired
         .iter()
-        .any(|entry| entry.app_id == app_id && entry.storage_may_contain_secrets))
+        .any(|entry| entry.app_id() == app_id && entry.storage_may_contain_secrets()))
 }
 
 pub fn clear_pending_cleanup_for_reused_url_origin(
@@ -180,9 +180,8 @@ pub fn clear_pending_cleanup_for_reused_url_origin(
     let mut changed = false;
 
     for entry in &mut retired {
-        if entry.app_id == app_id && entry.origin_id == origin_id && entry.cleanup_pending {
-            entry.cleanup_pending = false;
-            changed = true;
+        if entry.matches_app_origin(app_id, origin_id) {
+            changed |= entry.clear_pending_cleanup();
         }
     }
 
@@ -234,18 +233,18 @@ mod tests {
     };
     use tempfile::{TempDir, tempdir};
 
-    fn fake_retired_app_origins(dir: &TempDir, storage_may_contain_secrets: bool) {
+    fn fake_retired_app_origins(dir: &TempDir, storage_may_contain_secrets: bool, cleanup_pending: bool) {
         write_retired_app_origins(
             dir.path(),
-            &[RetiredAppOriginEntry {
-                id: "retired-1".into(),
-                app_id: "url-abc123".into(),
-                app_name: "Test App".into(),
-                origin_id: "url-abc123".into(),
-                created_at_ms: 1,
+            &[RetiredAppOriginEntry::new_for_tests(
+                "retired-1",
+                "url-abc123",
+                "Test App",
+                "url-abc123",
+                1,
                 storage_may_contain_secrets,
-                cleanup_pending: false,
-            }],
+                cleanup_pending,
+            )],
         )
         .unwrap();
     }
@@ -383,7 +382,7 @@ mod tests {
     fn should_not_rotate_url_origin_for_pending_cleanup_without_secrets() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, false);
+        fake_retired_app_origins(&dir, false, false);
 
         assert!(!should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -392,7 +391,7 @@ mod tests {
     fn should_not_rotate_url_origin_for_clean_retired_origin() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, false);
+        fake_retired_app_origins(&dir, false, false);
 
         assert!(!should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -401,19 +400,7 @@ mod tests {
     fn should_rotate_url_origin_when_retired_storage_may_contain_secrets() {
         let dir = tempdir().unwrap();
 
-        write_retired_app_origins(
-            dir.path(),
-            &[RetiredAppOriginEntry {
-                id: "retired-1".into(),
-                app_id: "url-abc123".into(),
-                app_name: "Test App".into(),
-                origin_id: "url-abc123".into(),
-                created_at_ms: 1,
-                storage_may_contain_secrets: true,
-                cleanup_pending: false,
-            }],
-        )
-        .unwrap();
+        fake_retired_app_origins(&dir, true, false);
 
         assert!(should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -422,7 +409,7 @@ mod tests {
     fn should_rotate_url_origin_when_retired_storage_may_contain_secrets_even_if_cleanup_pending() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, true);
+        fake_retired_app_origins(&dir, true, false);
 
         assert!(should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -460,7 +447,7 @@ mod tests {
     fn url_origin_id_reuses_default_origin_for_pending_cleanup_without_secrets() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, false);
+        fake_retired_app_origins(&dir, false, false);
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),
@@ -475,7 +462,7 @@ mod tests {
     fn url_origin_id_rotates_with_retired_secret_storage() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, true);
+        fake_retired_app_origins(&dir, true, false);
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),
@@ -492,22 +479,10 @@ mod tests {
     fn reused_url_origin_clears_pending_cleanup_after_origin_selected() {
         let dir = tempdir().unwrap();
 
-        write_retired_app_origins(
-            dir.path(),
-            &[RetiredAppOriginEntry {
-                id: "retired-1".into(),
-                app_id: "url-abc123".into(),
-                app_name: "Test App".into(),
-                origin_id: "url-abc123".into(),
-                created_at_ms: 1,
-                storage_may_contain_secrets: false,
-                cleanup_pending: true,
-            }],
-        )
-        .unwrap();
+        fake_retired_app_origins(&dir, false, true);
 
         let before = read_retired_app_origins(dir.path()).unwrap();
-        assert!(before[0].cleanup_pending);
+        assert!(before[0].cleanup_pending());
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),
@@ -522,27 +497,15 @@ mod tests {
 
         let after = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(after.len(), 1);
-        assert!(!after[0].cleanup_pending);
-        assert!(!after[0].storage_may_contain_secrets);
+        assert!(!after[0].cleanup_pending());
+        assert!(!after[0].storage_may_contain_secrets());
     }
 
     #[test]
     fn rotated_url_origin_does_not_clear_pending_cleanup_for_old_origin() {
         let dir = tempdir().unwrap();
 
-        write_retired_app_origins(
-            dir.path(),
-            &[RetiredAppOriginEntry {
-                id: "retired-1".into(),
-                app_id: "url-abc123".into(),
-                app_name: "Test App".into(),
-                origin_id: "url-abc123".into(),
-                created_at_ms: 1,
-                storage_may_contain_secrets: true,
-                cleanup_pending: true,
-            }],
-        )
-        .unwrap();
+        fake_retired_app_origins(&dir, true, true);
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),
@@ -557,7 +520,7 @@ mod tests {
 
         let retired = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(retired.len(), 1);
-        assert!(retired[0].cleanup_pending);
-        assert!(retired[0].storage_may_contain_secrets);
+        assert!(retired[0].cleanup_pending());
+        assert!(retired[0].storage_may_contain_secrets());
     }
 }

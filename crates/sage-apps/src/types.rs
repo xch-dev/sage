@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use std::collections::BTreeSet;
-
+use uuid::Uuid;
 use crate::bridge::capabilities::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
@@ -13,6 +13,7 @@ use crate::lifecycle::{
 };
 use crate::permissions::{CapabilityFlags, get_user_capability_definition};
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
+use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntry {
@@ -79,26 +80,26 @@ pub enum PendingStorageCleanupTarget {
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PendingStorageCleanupEntry {
-    pub id: String,
-    pub app_id: String,
-    pub app_name: String,
-    pub target: PendingStorageCleanupTarget,
-    pub created_at_ms: i64,
-    pub last_attempt_at_ms: Option<i64>,
-    pub attempt_count: u32,
-    pub last_error: Option<String>,
+    id: String,
+    app_id: String,
+    app_name: String,
+    target: PendingStorageCleanupTarget,
+    created_at_ms: i64,
+    last_attempt_at_ms: Option<i64>,
+    attempt_count: u32,
+    last_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RetiredAppOriginEntry {
-    pub id: String,
-    pub app_id: String,
-    pub app_name: String,
-    pub origin_id: String,
-    pub created_at_ms: i64,
-    pub storage_may_contain_secrets: bool,
-    pub cleanup_pending: bool,
+    id: String,
+    app_id: String,
+    app_name: String,
+    origin_id: String,
+    created_at_ms: i64,
+    storage_may_contain_secrets: bool,
+    cleanup_pending: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
@@ -648,6 +649,85 @@ impl SageApp {
     }
 }
 
+impl PendingStorageCleanupEntry {
+    pub fn new(app: &UserSageApp, target: PendingStorageCleanupTarget, error: &str) -> Self {
+        let now = unix_timestamp_ms();
+
+        Self {
+            id: Uuid::new_v4().to_string(),
+            app_id: app.common.id.clone(),
+            app_name: app.common.name.clone(),
+            target,
+            created_at_ms: now,
+            last_attempt_at_ms: Some(now),
+            attempt_count: 1,
+            last_error: Some(error.to_string()),
+        }
+    }
+
+    pub fn record_failed_attempt(&mut self, error: &str) {
+        self.last_attempt_at_ms = Some(unix_timestamp_ms());
+        self.attempt_count = self.attempt_count.saturating_add(1);
+        self.last_error = Some(error.to_string());
+    }
+
+    pub fn target(&self) -> &PendingStorageCleanupTarget {
+        &self.target
+    }
+}
+
+impl RetiredAppOriginEntry {
+    pub fn new(app: &UserSageApp, cleanup_pending: bool) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            app_id: app.common.id.clone(),
+            app_name: app.common.name.clone(),
+            origin_id: app.common.origin_id.clone(),
+            created_at_ms: unix_timestamp_ms(),
+            storage_may_contain_secrets: app.common.capability_flags.storage_may_contain_secrets,
+            cleanup_pending,
+        }
+    }
+
+    pub fn refresh_from_app(&mut self, app: &UserSageApp, cleanup_pending: bool) {
+        self.app_id.clone_from(&app.common.id);
+        self.app_name.clone_from(&app.common.name);
+        self.cleanup_pending = cleanup_pending;
+        self.storage_may_contain_secrets =
+            app.common.capability_flags.storage_may_contain_secrets;
+    }
+
+
+    pub fn matches_app_origin(&self, app_id: &str, origin_id: &str) -> bool {
+        self.app_id == app_id && self.origin_id == origin_id
+    }
+
+    pub fn clear_pending_cleanup(&mut self) -> bool {
+        if !self.cleanup_pending {
+            return false;
+        }
+
+        self.cleanup_pending = false;
+        true
+    }
+
+    pub fn app_id(&self) -> &str {
+        &self.app_id
+    }
+
+    pub fn origin_id(&self) -> &str {
+        &self.origin_id
+    }
+
+    pub fn cleanup_pending(&self) -> bool {
+        self.cleanup_pending
+    }
+
+    pub fn storage_may_contain_secrets(&self) -> bool {
+        self.storage_may_contain_secrets
+    }
+}
+
 impl UserSageApp {
     pub fn into_sage_app(self) -> SageApp {
         SageApp::User(self)
@@ -1106,6 +1186,19 @@ impl SageAppCommon {
         }
 
         Ok(())
+    }
+}
+
+impl UserSageApp {
+    pub fn new_installed(
+        common: SageAppCommon,
+        source: UserSageAppSource,
+    ) -> Self {
+        Self {
+            common,
+            source,
+            pending_update: None,
+        }
     }
 }
 

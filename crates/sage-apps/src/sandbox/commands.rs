@@ -46,7 +46,8 @@ pub async fn apps_rerun_sandbox_tests(
 
     let runner_app = app.clone();
     tokio::spawn(async move {
-        sandbox_runner(runner_app).await;
+        let runner = Box::pin(sandbox_runner(runner_app));
+        runner.await;
     });
 
     Ok(view)

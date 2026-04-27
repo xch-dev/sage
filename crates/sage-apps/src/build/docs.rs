@@ -1,9 +1,14 @@
+use std::fmt::Write;
 use std::{fs, path::PathBuf};
 
-use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
+use crate::bridge::capabilities::{
+    BridgeCapability, SystemBridgeCapability, UserBridgeCapability,
+};
 use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
+use crate::permissions::{
+    get_system_capability_definition, get_user_capability_definition,
+};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -27,7 +32,11 @@ fn write_if_changed(path: PathBuf, content: String) -> anyhow::Result<()> {
 }
 
 fn bool_cell(value: bool) -> &'static str {
-    if value { "`true`" } else { "`false`" }
+    if value {
+        "`true`"
+    } else {
+        "`false`"
+    }
 }
 
 fn bridge_capability_key(capability: BridgeCapability) -> &'static str {
@@ -52,32 +61,47 @@ pub fn user_capabilities_markdown() -> String {
     for capability in UserBridgeCapability::ALL {
         let definition = get_user_capability_definition(*capability);
 
-        out.push_str(&format!("## `{}`\n\n", definition.capability.key()));
-        out.push_str(&format!("**{}**\n\n", definition.label));
-        out.push_str(&format!("{}\n\n", definition.description));
+        writeln!(out, "## `{}`\n", definition.capability.key()).unwrap();
+        writeln!(out, "**{}**\n", definition.label).unwrap();
+        writeln!(out, "{}\n", definition.description).unwrap();
 
         out.push_str("| Flag | Value |\n");
         out.push_str("|---|---|\n");
-        out.push_str(&format!(
-            "| Requestable by app | {} |\n",
+
+        writeln!(
+            out,
+            "| Requestable by app | {} |",
             bool_cell(definition.flags.requestable_by_app)
-        ));
-        out.push_str(&format!(
-            "| User grantable | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| User grantable | {} |",
             bool_cell(definition.flags.user_grantable)
-        ));
-        out.push_str(&format!(
-            "| Shared with app | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Shared with app | {} |",
             bool_cell(definition.flags.shared_with_app)
-        ));
-        out.push_str(&format!(
-            "| Externally observable | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Externally observable | {} |",
             bool_cell(definition.flags.externally_observable)
-        ));
-        out.push_str(&format!(
-            "| Accesses sensitive secret | {} |\n\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Accesses sensitive secret | {} |\n",
             bool_cell(definition.flags.accesses_sensitive_secret)
-        ));
+        )
+            .unwrap();
     }
 
     out
@@ -89,32 +113,47 @@ pub fn system_capabilities_markdown() -> String {
     for capability in SystemBridgeCapability::ALL {
         let definition = get_system_capability_definition(*capability);
 
-        out.push_str(&format!("## `{}`\n\n", definition.capability.key()));
-        out.push_str(&format!("**{}**\n\n", definition.label));
-        out.push_str(&format!("{}\n\n", definition.description));
+        writeln!(out, "## `{}`\n", definition.capability.key()).unwrap();
+        writeln!(out, "**{}**\n", definition.label).unwrap();
+        writeln!(out, "{}\n", definition.description).unwrap();
 
         out.push_str("| Flag | Value |\n");
         out.push_str("|---|---|\n");
-        out.push_str(&format!(
-            "| Requestable by app | {} |\n",
+
+        writeln!(
+            out,
+            "| Requestable by app | {} |",
             bool_cell(definition.flags.requestable_by_app)
-        ));
-        out.push_str(&format!(
-            "| User grantable | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| User grantable | {} |",
             bool_cell(definition.flags.user_grantable)
-        ));
-        out.push_str(&format!(
-            "| Shared with app | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Shared with app | {} |",
             bool_cell(definition.flags.shared_with_app)
-        ));
-        out.push_str(&format!(
-            "| Externally observable | {} |\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Externally observable | {} |",
             bool_cell(definition.flags.externally_observable)
-        ));
-        out.push_str(&format!(
-            "| Accesses sensitive secret | {} |\n\n",
+        )
+            .unwrap();
+
+        writeln!(
+            out,
+            "| Accesses sensitive secret | {} |\n",
             bool_cell(definition.flags.accesses_sensitive_secret)
-        ));
+        )
+            .unwrap();
     }
 
     out
@@ -133,15 +172,17 @@ pub fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
     let mut out = format!("# {title}\n\n");
 
     for (name, method) in methods {
-        out.push_str(&format!("## `{name}`\n\n"));
-        out.push_str("\n\n");
+        writeln!(out, "## `{name}`\n").unwrap();
 
         out.push_str("| Field | Value |\n");
         out.push_str("|---|---|\n");
-        out.push_str(&format!(
-            "| Capability | {} |\n",
+
+        writeln!(
+            out,
+            "| Capability | {} |",
             method_capability_cell(method.capability())
-        ));
+        )
+            .unwrap();
 
         out.push('\n');
     }

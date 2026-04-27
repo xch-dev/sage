@@ -17,7 +17,7 @@ use uuid::Uuid;
 
 #[command]
 #[specta::specta]
-pub async fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
+pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
     let unpack_dir = std::env::temp_dir().join(format!(".sage-preview-{}", Uuid::new_v4()));
 
     let result = (|| -> anyhow::Result<SageAppPackageManifest> {

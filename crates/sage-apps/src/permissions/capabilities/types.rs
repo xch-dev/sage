@@ -1,6 +1,7 @@
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
 use crate::permissions::capabilities::definitions::get_user_capability_definition;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CapabilityFlags {
     pub externally_observable: bool,

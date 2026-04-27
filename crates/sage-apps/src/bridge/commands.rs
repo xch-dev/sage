@@ -47,7 +47,7 @@ pub async fn apps_resolve_bridge_approval(
     remove_pending_approval(&apps_state, &args.approval_id).await;
 
     let (app_id, runtime_kind) =
-        assert_bridge_origin(app.clone(), pending.app_webview_label.clone())?;
+        assert_bridge_origin(&app, &pending.app_webview_label)?;
     let app_model = resolve_app(&app, &app_id)?;
 
     let response = if args.approved {
@@ -75,7 +75,7 @@ pub async fn apps_resolve_bridge_approval(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn get_user_capability_definitions()
+pub fn get_user_capability_definitions()
 -> Result<Vec<SageAppCapabilityDefinitionView>, String> {
     Ok(user_registry()
         .values()

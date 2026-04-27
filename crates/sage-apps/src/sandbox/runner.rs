@@ -52,7 +52,8 @@ pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
 
     let runner_app = app.clone();
     tokio::spawn(async move {
-        sandbox_runner(runner_app).await;
+        let runner = Box::pin(sandbox_runner(runner_app));
+        runner.await;
     });
 
     Ok(())

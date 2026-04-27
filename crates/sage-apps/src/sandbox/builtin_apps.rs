@@ -236,8 +236,8 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
 
 #[command]
 #[specta::specta]
-pub async fn get_builtin_test_app(app_id: String) -> Result<Option<SageApp>> {
-    build_builtin_test_app(&app_id).map_err(|err| {
+pub fn get_builtin_test_app(app_id: &str) -> Result<Option<SageApp>> {
+    build_builtin_test_app(app_id).map_err(|err| {
         std::io::Error::other(format!("failed to load builtin test app: {err}")).into()
     })
 }

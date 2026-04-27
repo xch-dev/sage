@@ -1,13 +1,13 @@
 import type {
   SageAppPackageManifest,
   SageGrantedPermissions,
-  SageNetworkPermissionTarget,
+  SageNetworkWhitelistEntry,
 } from '@/bindings';
 import { sortCapabilities } from '@/lib/apps/permissionCollections.ts';
 
 function sortNetworkEntries(
-  entries: SageNetworkPermissionTarget[],
-): SageNetworkPermissionTarget[] {
+  entries: SageNetworkWhitelistEntry[],
+): SageNetworkWhitelistEntry[] {
   return [...entries].sort((a, b) => {
     const aKey = `${a.scheme}://${a.host}`;
     const bKey = `${b.scheme}://${b.host}`;

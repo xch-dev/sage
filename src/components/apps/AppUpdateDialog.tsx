@@ -3,7 +3,7 @@ import type {
   SageAppPackageManifest,
   SageAppUrlPreview,
   SageGrantedPermissions,
-  SageNetworkPermissionTarget,
+  SageNetworkWhitelistEntry,
   UserSageApp,
 } from '@/bindings';
 import {
@@ -197,7 +197,7 @@ export function AppUpdateDialog({
       ...selectedOptionalGrantedPermissions.capabilities,
     ]);
 
-    const nextNetworkMap = new Map<string, SageNetworkPermissionTarget>();
+    const nextNetworkMap = new Map<string, SageNetworkWhitelistEntry>();
 
     for (const entry of delta.nextGrantedPermissions.network.whitelist) {
       nextNetworkMap.set(networkKey(entry), entry);

@@ -82,7 +82,7 @@ fn update_app_permissions_internal_persists_required_network_entries() {
 
     let granted = SageGrantedPermissions::new(&app.common.requested_permissions, [], []).unwrap();
 
-    let updated = update_app_permissions(dir.path(), &app.common.id, granted).unwrap();
+    let updated = update_app_permissions(dir.path(), &app.common.id, &granted).unwrap();
 
     assert_eq!(
         entries(

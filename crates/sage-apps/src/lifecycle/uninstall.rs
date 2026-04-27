@@ -1,6 +1,6 @@
 use crate::host::{AppState, Result};
 use crate::lifecycle::{
-    apps_clear_runtime_browsing_data, apps_root, enqueue_pending_storage_cleanup,
+    apps_clear_runtime_browsing_data, apps_root, record_storage_cleanup_failure,
     enqueue_retired_app_origin, read_installed_app_by_id,
 };
 use std::{fs, io};
@@ -32,7 +32,7 @@ pub async fn uninstall_app(
                 })?;
             }
             Err(err) => {
-                enqueue_pending_storage_cleanup(&base_path, installed, &err).map_err(
+                record_storage_cleanup_failure(&base_path, installed, &err).map_err(
                     |queue_err| {
                         io::Error::other(format!(
                             "failed to enqueue pending storage cleanup after clear failure ({err}): {queue_err}"

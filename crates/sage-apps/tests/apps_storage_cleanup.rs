@@ -1,7 +1,7 @@
 mod common;
 
 use common::sample_manifest_file;
-use sage_apps::lifecycle::storage::{enqueue_pending_storage_cleanup, enqueue_retired_app_origin};
+use sage_apps::lifecycle::storage::{record_storage_cleanup_failure, enqueue_retired_app_origin};
 use sage_apps::lifecycle::{read_pending_storage_cleanup_entries, read_retired_app_origins};
 use sage_apps::types::{
     InstalledSageAppStorage, PendingStorageCleanupTarget, SageAppCommon, SageAppPackageManifest,
@@ -60,7 +60,7 @@ fn enqueue_pending_storage_cleanup_creates_unmanaged_target() {
     let dir = tempdir().unwrap();
     let app = sample_app(InstalledSageAppStorage::Unmanaged);
 
-    enqueue_pending_storage_cleanup(dir.path(), &app, "boom").unwrap();
+    record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
     let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
     assert_eq!(entries.len(), 1);
@@ -76,7 +76,7 @@ fn enqueue_pending_storage_cleanup_creates_apple_target() {
         identifier_hex: "abc123".into(),
     });
 
-    enqueue_pending_storage_cleanup(dir.path(), &app, "boom").unwrap();
+    record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
     let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
     assert_eq!(entries.len(), 1);
@@ -95,7 +95,7 @@ fn enqueue_pending_storage_cleanup_creates_windows_target() {
         directory_name: "profile-1".into(),
     });
 
-    enqueue_pending_storage_cleanup(dir.path(), &app, "boom").unwrap();
+    record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
     let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
     assert_eq!(entries.len(), 1);
@@ -112,13 +112,13 @@ fn enqueue_pending_storage_cleanup_updates_existing_entry_by_target_not_app_id()
     let dir = tempdir().unwrap();
 
     let app_a = sample_app(InstalledSageAppStorage::Unmanaged);
-    enqueue_pending_storage_cleanup(dir.path(), &app_a, "first").unwrap();
+    record_storage_cleanup_failure(dir.path(), &app_a, "first").unwrap();
 
     let mut app_b = sample_app(InstalledSageAppStorage::Unmanaged);
     app_b.common.id = "url-other".into();
     app_b.common.name = "Other App".into();
 
-    enqueue_pending_storage_cleanup(dir.path(), &app_b, "second").unwrap();
+    record_storage_cleanup_failure(dir.path(), &app_b, "second").unwrap();
 
     let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
     assert_eq!(entries.len(), 1);

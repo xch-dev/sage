@@ -311,16 +311,16 @@ fn read_installed_app_by_origin_id_errors_when_missing() {
 fn pending_storage_cleanup_entries_roundtrip() {
     let base = tempdir().unwrap();
 
-    let entries = vec![PendingStorageCleanupEntry {
-        id: "cleanup-1".to_string(),
-        app_id: "app-1".to_string(),
-        app_name: "App".to_string(),
-        target: PendingStorageCleanupTarget::Unmanaged,
-        created_at_ms: 1,
-        last_attempt_at_ms: Some(2),
-        attempt_count: 3,
-        last_error: Some("boom".to_string()),
-    }];
+    let entries = vec![PendingStorageCleanupEntry::new_for_tests(
+        "cleanup-1",
+        "app-1",
+        "App",
+        PendingStorageCleanupTarget::Unmanaged,
+        1,
+        Some(2),
+        3,
+        Some("boom".to_string()),
+    )];
 
     write_pending_storage_cleanup_entries(base.path(), &entries).unwrap();
     let loaded = read_pending_storage_cleanup_entries(base.path()).unwrap();
@@ -331,15 +331,15 @@ fn pending_storage_cleanup_entries_roundtrip() {
 fn retired_app_origins_roundtrip() {
     let base = tempdir().unwrap();
 
-    let entries = vec![RetiredAppOriginEntry {
-        id: "retired-1".to_string(),
-        app_id: "app-1".to_string(),
-        app_name: "App".to_string(),
-        origin_id: "origin-1".to_string(),
-        created_at_ms: 1,
-        storage_may_contain_secrets: true,
-        cleanup_pending: true,
-    }];
+    let entries = vec![RetiredAppOriginEntry::new_for_tests(
+        "retired-1",
+        "app-1",
+        "App",
+        "origin-1",
+        1,
+        true,
+        true,
+    )];
 
     write_retired_app_origins(base.path(), &entries).unwrap();
     let loaded = read_retired_app_origins(base.path()).unwrap();

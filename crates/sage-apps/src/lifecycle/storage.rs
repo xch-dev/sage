@@ -17,7 +17,6 @@ use crate::types::{
     InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
     RetiredAppOriginEntry, UserSageApp, UserSageAppSource,
 };
-use crate::utils::unix_timestamp_ms;
 use anyhow::{Result as AnyResult, anyhow};
 use tauri::{AppHandle, Manager, State, command};
 use uuid::Uuid;
@@ -73,7 +72,7 @@ pub async fn allocate_new_storage(
     Ok(InstalledSageAppStorage::Unmanaged)
 }
 
-pub fn enqueue_pending_storage_cleanup(
+pub fn record_storage_cleanup_failure(
     base_path: &Path,
     app: &UserSageApp,
     error: &str,
@@ -81,33 +80,20 @@ pub fn enqueue_pending_storage_cleanup(
     let mut entries = read_pending_storage_cleanup_entries(base_path)?;
 
     let target = cleanup_target_from_storage(&app.common.storage);
-    let existing = entries.iter_mut().find(|entry| entry.target == target);
 
-    let now = unix_timestamp_ms();
-    match existing {
-        Some(entry) => {
-            entry.last_attempt_at_ms = Some(now);
-            entry.attempt_count = entry.attempt_count.saturating_add(1);
-            entry.last_error = Some(error.to_string());
-            entry.app_id = app.common.id.clone();
-            entry.app_name = app.common.name.clone();
-        }
-        None => entries.push(PendingStorageCleanupEntry {
-            id: Uuid::new_v4().to_string(),
-            app_id: app.common.id.clone(),
-            app_name: app.common.name.clone(),
-            target,
-            created_at_ms: now,
-            last_attempt_at_ms: Some(now),
-            attempt_count: 1,
-            last_error: Some(error.to_string()),
-        }),
+    if let Some(entry) = entries.iter_mut().find(|entry| entry.target() == &target) {
+        entry.record_failed_attempt(error);
+    } else {
+        entries.push(PendingStorageCleanupEntry::new(app, target, error));
     }
 
     write_pending_storage_cleanup_entries(base_path, &entries)
 }
 
-pub async fn retry_pending_storage_cleanup(app: &AppHandle, base_path: &Path) -> AnyResult<()> {
+pub async fn process_pending_storage_cleanup(
+    app: &AppHandle,
+    base_path: &Path,
+) -> AnyResult<()> {
     let entries = read_pending_storage_cleanup_entries(base_path)?;
     if entries.is_empty() {
         return Ok(());
@@ -116,13 +102,10 @@ pub async fn retry_pending_storage_cleanup(app: &AppHandle, base_path: &Path) ->
     let mut remaining = Vec::new();
 
     for mut entry in entries {
-        entry.last_attempt_at_ms = Some(unix_timestamp_ms());
-        entry.attempt_count = entry.attempt_count.saturating_add(1);
-
-        match clear_app_storage_by_target(app, &entry.target).await {
+        match clear_app_storage_by_target(app, entry.target()).await {
             Ok(()) => {}
             Err(err) => {
-                entry.last_error = Some(err);
+                entry.record_failed_attempt(&err);
                 remaining.push(entry);
             }
         }
@@ -194,23 +177,11 @@ pub fn enqueue_retired_app_origin(
 
     if let Some(existing) = entries
         .iter_mut()
-        .find(|entry| entry.origin_id == app.common.origin_id)
+        .find(|entry| entry.origin_id() == app.common.origin_id)
     {
-        existing.app_id = app.common.id.clone();
-        existing.app_name = app.common.name.clone();
-        existing.cleanup_pending = cleanup_pending;
-        existing.storage_may_contain_secrets =
-            app.common.capability_flags.storage_may_contain_secrets;
+        existing.refresh_from_app(app, cleanup_pending);
     } else {
-        entries.push(RetiredAppOriginEntry {
-            id: Uuid::new_v4().to_string(),
-            app_id: app.common.id.clone(),
-            app_name: app.common.name.clone(),
-            origin_id: app.common.origin_id.clone(),
-            created_at_ms: unix_timestamp_ms(),
-            storage_may_contain_secrets: app.common.capability_flags.storage_may_contain_secrets,
-            cleanup_pending,
-        });
+        entries.push(RetiredAppOriginEntry::new(app, cleanup_pending));
     }
 
     write_retired_app_origins(base_path, &entries)

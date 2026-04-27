@@ -109,13 +109,13 @@ pub struct ResolveBridgeApprovalArgs {
 }
 
 impl RustBridgeResponse {
-    pub fn success(channel: &str, id: &str, result: Value) -> RustBridgeResponse {
+    pub fn success(channel: &str, id: &str, result: &Value) -> RustBridgeResponse {
         RustBridgeResponse::Success(RustBridgeSuccessResponse {
             channel: channel.into(),
             bridge_version: "v1".into(),
             id: id.into(),
             ok: true,
-            result_json: serde_json::to_string(&result).unwrap_or_else(|_| "null".to_string()),
+            result_json: serde_json::to_string(result).unwrap_or_else(|_| "null".to_string()),
         })
     }
     pub fn error(

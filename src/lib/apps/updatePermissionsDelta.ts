@@ -3,7 +3,7 @@ import type {
   SageAppPackageManifest,
   SageAppUrlPreview,
   SageGrantedPermissions,
-  SageNetworkPermissionTarget,
+  SageNetworkWhitelistEntry,
   SageRequestedPermissions,
   UserBridgeCapability,
 } from '@/bindings';
@@ -57,15 +57,15 @@ export interface AppUpdatePermissionsDelta {
     optional: UserBridgeCapability[];
   };
   addedRequestedNetwork: {
-    required: SageNetworkPermissionTarget[];
-    optional: SageNetworkPermissionTarget[];
+    required: SageNetworkWhitelistEntry[];
+    optional: SageNetworkWhitelistEntry[];
   };
 
   requiredCapabilitiesToGrant: UserBridgeCapability[];
-  requiredNetworkToGrant: SageNetworkPermissionTarget[];
+  requiredNetworkToGrant: SageNetworkWhitelistEntry[];
 
   removedGrantedCapabilities: UserBridgeCapability[];
-  removedGrantedNetwork: SageNetworkPermissionTarget[];
+  removedGrantedNetwork: SageNetworkWhitelistEntry[];
 
   nextGrantedPermissions: SageGrantedPermissions;
   requiresUserReview: boolean;
@@ -171,7 +171,7 @@ export function getAppUpdatePermissionsDelta(
     nextAllowedNetworkSet.has(networkKey(entry)),
   );
 
-  const nextGrantedNetworkMap = new Map<string, SageNetworkPermissionTarget>();
+  const nextGrantedNetworkMap = new Map<string, SageNetworkWhitelistEntry>();
 
   for (const entry of retainedGrantedNetwork) {
     nextGrantedNetworkMap.set(networkKey(entry), {

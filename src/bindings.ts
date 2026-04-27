@@ -410,8 +410,8 @@ async downloadAppUpdate(appId: string) : Promise<UserSageApp> {
 async applyAppUpdate(appId: string, grantedPermissions: SageGrantedPermissions) : Promise<UserSageApp> {
     return await TAURI_INVOKE("apply_app_update", { appId, grantedPermissions });
 },
-async appsUpdatePermissions(appId: string, grantedPermissions: SageGrantedPermissions, clearStorageTaint: boolean) : Promise<null> {
-    return await TAURI_INVOKE("apps_update_permissions", { appId, grantedPermissions, clearStorageTaint });
+async appsUpdatePermissions(appId: string, grantedPermissions: SageGrantedPermissions) : Promise<null> {
+    return await TAURI_INVOKE("apps_update_permissions", { appId, grantedPermissions });
 },
 async appsMarkStorageMayContainSecrets(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_mark_storage_may_contain_secrets", { appId });
@@ -2248,7 +2248,7 @@ export type ResyncCatResponse = Record<string, never>
 export type ResyncResponse = Record<string, never>
 export type RuntimeTargetParams = { appId: string }
 export type RustBridgeApprovalEvent = { approvalId: string; approval: RustBridgeApprovalRequest }
-export type RustBridgeApprovalRequest = ({ kind: "getSecretKey"; fingerprint: number } | { kind: "sendXch"; summary: WalletSendXchParams } | { kind: "capabilityGrant"; capability: UserBridgeCapability; definition: SageAppCapabilityDefinitionView } | { kind: "networkWhitelistGrant"; entry: SageNetworkPermissionTarget }) & { app: SageApp; sourceLabel: string; requestId: string }
+export type RustBridgeApprovalRequest = ({ kind: "getSecretKey"; fingerprint: number } | { kind: "sendXch"; summary: WalletSendXchParams } | { kind: "capabilityGrant"; capability: UserBridgeCapability; definition: SageAppCapabilityDefinitionView } | { kind: "networkWhitelistGrant"; entry: SageNetworkWhitelistEntry }) & { app: SageApp; sourceLabel: string; requestId: string }
 export type RustBridgeErrorPayload = { code: string; message: string }
 export type RustBridgeErrorResponse = { channel: string; bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }
 export type RustBridgeInvokeResult = { kind: "immediate"; response: RustBridgeResponse } | { kind: "pending" }
@@ -2258,10 +2258,10 @@ export type RustBridgeSuccessResponse = { channel: string; bridgeVersion: string
 export type SageApp = ({ kind: "system" } & SystemSageApp) | ({ kind: "user" } & UserSageApp)
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
-export type SageAppCapabilityFlags = { hasSecretAccess: boolean; hasExternalAccess: boolean; storageMayContainSecrets: boolean; isolated: boolean }
 export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
-export type SageAppCommon = { id: string; originId: string; name: string; version: string; appDir: string; entryFile: string; iconFile: string; requestedPermissions: SageRequestedPermissions; grantedPermissions: SageGrantedPermissions; capabilityFlags: SageAppCapabilityFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
+export type SageAppCommon = { id: string; originId: string; name: string; version: string; appDir: string; entryFile: string; iconFile: string; requestedPermissions: SageRequestedPermissions; grantedPermissions: SageGrantedPermissions; capabilityFlags: SageAppFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
 export type SageAppDonation = { address: string }
+export type SageAppFlags = { hasSecretAccess: boolean; hasExternalAccess: boolean; storageMayContainSecrets: boolean; isolated: boolean }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
 export type SageAppPackageManifest = { name: string; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; entry: string | null; icon: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppRuntimeKind = "user" | "system"
@@ -2269,13 +2269,13 @@ export type SageAppRuntimeRecord = { runtimeId: string; appId: string; appName: 
 export type SageAppSnapshot = { manifestHash: string; snapshotDir: string; totalBytes: number; manifest: SageAppPackageManifest }
 export type SageAppUrlPreview = { appUrl: string; manifestUrl: string; manifestHash: string; manifest: SageAppPackageManifest }
 export type SageAppsError = { kind: ErrorKind; reason: string }
-export type SageGrantedNetworkPermissions = { whitelist: SageNetworkPermissionTarget[] }
+export type SageGrantedNetworkPermissions = { whitelist: SageNetworkWhitelistEntry[] }
 export type SageGrantedPermissions = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissions }
 export type SageGrantedSystemPermissions = { capabilities: SystemBridgeCapability[] }
-export type SageNetworkPermissionTarget = { scheme: string; host: string }
+export type SageNetworkWhitelistEntry = { scheme: string; host: string }
 export type SageRequestedCapabilities = { required: UserBridgeCapability[]; optional: UserBridgeCapability[] }
 export type SageRequestedNetworkPermissions = { whitelist: SageRequestedNetworkWhitelist }
-export type SageRequestedNetworkWhitelist = { required: SageNetworkPermissionTarget[]; optional: SageNetworkPermissionTarget[] }
+export type SageRequestedNetworkWhitelist = { required: SageNetworkWhitelistEntry[]; optional: SageNetworkWhitelistEntry[] }
 export type SageRequestedPermissions = { network: SageRequestedNetworkPermissions; capabilities: SageRequestedCapabilities }
 export type SandboxCapability = "storage_isolation_from_sage" | "storage_persistence_normal" | "storage_non_persistence_incognito" | "storage_clear_cycle" | "network_allowlist_enforced"
 export type SandboxCapabilityResult = { status: SandboxCapabilityStatus; checkedAt: number | null; details: string | null }

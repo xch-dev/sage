@@ -125,10 +125,7 @@ fn find_existing_installed_app_by_name(
 mod tests {
     use super::*;
     use crate::lifecycle::write_installed_app_metadata;
-    use crate::types::{
-        InstalledSageAppStorage, SageAppFlags, SageAppManifestFile, SageAppPackageManifestParts,
-        SageGrantedPermissions, SageRequestedPermissions,
-    };
+    use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     fn sample_manifest_named(name: &str) -> SageAppPackageManifest {
@@ -180,22 +177,23 @@ mod tests {
         let granted_permissions =
             SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
-        let installed = super::super::build_installed_app(
+        let common = SageAppCommon::new(
             app_id.into(),
             app_id.into(),
-            &app_dir,
+            app_dir.to_string_lossy().to_string(),
             &manifest,
             granted_permissions,
-            SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
-            UserSageAppSource::Zip,
             SageAppSnapshot {
                 manifest_hash: "hash".into(),
                 snapshot_dir: app_dir.to_string_lossy().to_string(),
                 total_bytes: 123,
                 manifest: manifest.clone(),
             },
-        );
+        )
+            .unwrap();
+
+        let installed = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
         write_installed_app_metadata(&installed, &app_dir).unwrap();
 

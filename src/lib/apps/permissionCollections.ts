@@ -1,9 +1,9 @@
 import type {
-  SageNetworkPermissionTarget,
+  SageNetworkWhitelistEntry,
   UserBridgeCapability,
 } from '@/bindings';
 
-export function networkKey(entry: SageNetworkPermissionTarget): string {
+export function networkKey(entry: SageNetworkWhitelistEntry): string {
   return `${entry.scheme}://${entry.host}`;
 }
 
@@ -14,14 +14,14 @@ export function sortCapabilities(
 }
 
 export function sortNetwork(
-  values: Iterable<SageNetworkPermissionTarget>,
-): SageNetworkPermissionTarget[] {
+  values: Iterable<SageNetworkWhitelistEntry>,
+): SageNetworkWhitelistEntry[] {
   return [...values].sort((a, b) => networkKey(a).localeCompare(networkKey(b)));
 }
 
 export function cloneNetwork(
-  values: Iterable<SageNetworkPermissionTarget>,
-): SageNetworkPermissionTarget[] {
+  values: Iterable<SageNetworkWhitelistEntry>,
+): SageNetworkWhitelistEntry[] {
   return [...values].map((entry) => ({
     scheme: entry.scheme,
     host: entry.host,

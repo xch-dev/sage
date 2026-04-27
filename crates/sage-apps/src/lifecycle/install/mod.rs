@@ -7,15 +7,8 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 use tauri::AppHandle;
 
-use crate::lifecycle::flags::get_app_flags;
-use crate::lifecycle::{
-    allocate_new_storage, apps_root, manifest_entry_file, manifest_icon_file,
-    write_installed_app_metadata,
-};
-use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppFlags, SageAppPackageManifest, SageAppSnapshot,
-    SageGrantedPermissions, UserSageApp, UserSageAppSource,
-};
+use crate::lifecycle::{allocate_new_storage, apps_root, write_installed_app_metadata};
+use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource};
 
 pub mod commands;
 pub mod url;
@@ -122,13 +115,6 @@ where
         granted_permissions,
     )?;
 
-    let effective_capabilities = manifest
-        .permissions()
-        .capabilities
-        .resolve_effective_grants(granted_permissions.capabilities().copied())?;
-
-    let app_flags = get_app_flags(&effective_capabilities, None)?;
-
     let (app_id, app_dir, existing_app) = source.resolve_target(&root, base_path, &prepared)?;
 
     let storage = if let Some(storage) = storage_resolver.resolve_storage(existing_app.as_ref())? {
@@ -146,52 +132,21 @@ where
 
     source.after_origin_selected(base_path, &app_id, &origin_id)?;
 
-    let installed = build_installed_app(
+    let common = SageAppCommon::new(
         app_id.clone(),
         origin_id,
-        &app_dir,
+        app_dir.to_string_lossy().to_string(),
         manifest,
         granted_permissions,
-        app_flags,
         storage,
-        source.source(&prepared),
         snapshot,
-    );
+    )?;
+
+    let installed = UserSageApp::new_installed(common, source.source(&prepared));
 
     write_installed_app_metadata(&installed, &app_dir)?;
 
     Ok(installed)
-}
-
-pub fn build_installed_app(
-    app_id: String,
-    origin_id: String,
-    app_dir: &Path,
-    manifest: &SageAppPackageManifest,
-    granted_permissions: SageGrantedPermissions,
-    permission_flags: SageAppFlags,
-    storage: InstalledSageAppStorage,
-    source: UserSageAppSource,
-    snapshot: SageAppSnapshot,
-) -> UserSageApp {
-    UserSageApp {
-        common: SageAppCommon {
-            id: app_id,
-            origin_id,
-            name: manifest.name().to_string(),
-            version: manifest.version().to_string(),
-            app_dir: app_dir.to_string_lossy().to_string(),
-            entry_file: manifest_entry_file(manifest).to_string(),
-            icon_file: manifest_icon_file(manifest).to_string(),
-            requested_permissions: manifest.permissions().clone(),
-            granted_permissions,
-            capability_flags: permission_flags,
-            storage,
-            active_snapshot: snapshot,
-        },
-        source,
-        pending_update: None,
-    }
 }
 
 pub fn recreate_app_dir(app_dir: &Path) -> AnyResult<()> {
@@ -209,10 +164,7 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{
-        SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
-    };
+    use crate::types::{SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     struct TestStorageResolver {
@@ -417,22 +369,22 @@ mod tests {
         )
         .unwrap();
 
-        let app = build_installed_app(
+        let common = SageAppCommon::new(
             "url-abc123".into(),
             "r123-url-abc123".into(),
-            &app_dir,
+            app_dir.to_string_lossy().to_string(),
             &manifest,
             granted_permissions,
-            SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
-            UserSageAppSource::Zip,
             SageAppSnapshot {
                 manifest_hash: "hash".into(),
                 snapshot_dir: app_dir.to_string_lossy().to_string(),
                 total_bytes: 1,
                 manifest: manifest.clone(),
             },
-        );
+        )
+            .unwrap();
+        let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
         assert_eq!(app.common.id, "url-abc123");
         assert_eq!(app.common.origin_id, "r123-url-abc123");
