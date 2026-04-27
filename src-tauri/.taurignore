@@ -1,1 +1,2 @@
-crates/sage-apps/builtin-apps/dist
+../crates/sage-apps/builtin-apps/dist/**
+../docs/generated/**
