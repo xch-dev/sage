@@ -95,10 +95,15 @@ fn inject_manifest_files(app_dir: &Path) -> Result<(), String> {
 
     manifest["files"] = serde_json::Value::Array(files);
 
-    let out = serde_json::to_string_pretty(&manifest)
+    let next_text = serde_json::to_string_pretty(&manifest)
         .map_err(|err| format!("failed to serialize {}: {err}", manifest_path.display()))?;
+    let next_text = format!("{next_text}\n");
 
-    fs::write(&manifest_path, format!("{out}\n"))
+    if manifest_text == next_text {
+        return Ok(());
+    }
+
+    fs::write(&manifest_path, next_text)
         .map_err(|err| format!("failed to write {}: {err}", manifest_path.display()))?;
 
     Ok(())

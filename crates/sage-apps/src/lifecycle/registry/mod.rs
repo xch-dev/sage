@@ -231,34 +231,47 @@ pub fn read_installed_user_app_by_origin_id(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lifecycle::storage::record_storage_cleanup_failure;
+    use crate::types::{
+        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry,
+        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry,
+        SageRequestedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+    };
+    use std::fs;
     use tempfile::tempdir;
 
-    use crate::types::{
-        InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
-    };
+    fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
+        SageAppManifestFile {
+            path: path.to_string(),
+            sha256: "a".repeat(64),
+            size,
+        }
+    }
 
-    fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
-        let dir = app_dir(base, app_id);
-        fs::create_dir_all(&dir).unwrap();
-
-        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
-            name: "Test App".into(),
-            version: "1.0.0".into(),
+    fn sample_manifest(name: &str) -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            name: name.to_string(),
+            version: "1.0.0".to_string(),
             permissions: SageRequestedPermissions::empty(),
-            files: Vec::from([SageAppManifestFile {
-                path: "index.html".into(),
-                sha256: "a".repeat(64),
-                size: 1,
-            }]),
-            entry: Some("index.html".into()),
-            icon: Some("icon.png".into()),
+            files: vec![sample_manifest_file("index.html", 1)],
+            entry: Some("index.html".to_string()),
+            icon: Some("icon.png".to_string()),
             author: None,
             donation: None,
         })
-        .unwrap();
+            .unwrap()
+    }
 
+    fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
+        sample_app_named(base, app_id, origin_id, "Test App")
+    }
+
+    fn sample_app_named(base: &Path, app_id: &str, origin_id: &str, name: &str) -> UserSageApp {
+        let dir = app_dir(base, app_id);
+        fs::create_dir_all(&dir).unwrap();
+
+        let manifest = sample_manifest(name);
         let granted_permissions =
             SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
@@ -278,7 +291,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-        .unwrap();
+            .unwrap();
 
         UserSageApp {
             common,
@@ -288,6 +301,13 @@ mod tests {
             },
             pending_update: None,
         }
+    }
+
+    fn without_system_apps(listed: Vec<ListedSageApp>) -> Vec<ListedSageApp> {
+        listed
+            .into_iter()
+            .filter(|entry| !matches!(entry, ListedSageApp::System(_)))
+            .collect()
     }
 
     #[test]
@@ -303,6 +323,233 @@ mod tests {
         assert_eq!(read_back.common.id, app.common.id);
         assert_eq!(read_back.common.origin_id, app.common.origin_id);
         assert_eq!(read_back.common.storage, app.common.storage);
+        assert_eq!(read_back.common.granted_permissions, app.common.granted_permissions);
+        assert!(!read_back.common.capability_flags.has_external_access);
+    }
+
+    #[test]
+    fn installed_app_metadata_round_trips_pending_update() {
+        let base = tempdir().unwrap();
+        let app_id = "app-1";
+
+        let mut app = sample_app_named(base.path(), app_id, "app-1", "Alpha");
+        app.pending_update = Some(UserSageAppPendingUpdate {
+            app_url: "https://example.com/app/".to_string(),
+            manifest_url: "https://example.com/app/sage-manifest.json".to_string(),
+            manifest_hash: "pending-hash".to_string(),
+            manifest: sample_manifest("Alpha Updated"),
+        });
+
+        let dir = app_dir(base.path(), app_id);
+        write_installed_app_metadata(&app, &dir).unwrap();
+
+        let loaded = read_installed_app_by_id(base.path(), app_id).unwrap();
+        let pending = loaded
+            .pending_update
+            .expect("pending update should survive roundtrip");
+
+        assert_eq!(pending.manifest_hash, "pending-hash");
+        assert_eq!(pending.manifest.name(), "Alpha Updated");
+    }
+
+    #[test]
+    fn corrupted_metadata_is_reported_as_corrupted_listing() {
+        let base = tempdir().unwrap();
+        let dir = app_dir(base.path(), "broken-app");
+        fs::create_dir_all(&dir).unwrap();
+
+        fs::write(dir.join(".sage-installed.json"), "{ definitely not json").unwrap();
+
+        let listed =
+            without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+        assert_eq!(listed.len(), 1);
+
+        match &listed[0] {
+            ListedSageApp::Corrupted(app) => {
+                assert_eq!(app.id, "broken-app");
+                assert!(!app.error.is_empty());
+            }
+            ListedSageApp::User(_) | ListedSageApp::System(_) => {
+                panic!("expected corrupted app listing");
+            }
+        }
+    }
+
+    #[test]
+    fn corrupted_persisted_network_entry_is_reported_as_corrupted_listing() {
+        let base = tempdir().unwrap();
+        let dir = app_dir(base.path(), "broken-app");
+        fs::create_dir_all(&dir).unwrap();
+
+        fs::write(
+            dir.join(".sage-installed.json"),
+            r#"{
+  "id": "broken-app",
+  "originId": "broken-app",
+  "name": "Broken App",
+  "version": "1.0.0",
+  "appDir": "/tmp/broken-app",
+  "entryFile": "index.html",
+  "iconFile": "icon.png",
+  "requestedPermissions": {
+    "network": {
+      "whitelist": {
+        "required": ["https://ok.example.com/path"],
+        "optional": []
+      }
+    },
+    "capabilities": {
+      "required": [],
+      "optional": []
+    }
+  },
+  "grantedPermissions": {
+    "capabilities": [],
+    "network": {
+      "whitelist": []
+    }
+  },
+  "capabilityFlags": {
+    "hasSecretAccess": false,
+    "hasExternalAccess": false,
+    "storageMayContainSecrets": false,
+    "isolated": false
+  },
+  "storage": {
+    "kind": "unmanaged"
+  },
+  "source": {
+    "kind": "zip"
+  },
+  "activeSnapshot": {
+    "manifestHash": "hash",
+    "snapshotDir": "/tmp/snapshot",
+    "totalBytes": 1,
+    "manifest": {
+      "name": "Broken App",
+      "version": "1.0.0",
+      "permissions": {
+        "network": {
+          "whitelist": {
+            "required": [],
+            "optional": []
+          }
+        },
+        "capabilities": {
+          "required": [],
+          "optional": []
+        }
+      },
+      "files": [
+        {
+          "path": "index.html",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "size": 1
+        }
+      ],
+      "entry": "index.html",
+      "icon": "icon.png"
+    }
+  },
+  "pendingUpdate": null
+}"#,
+        )
+            .unwrap();
+
+        let listed =
+            without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+        assert_eq!(listed.len(), 1);
+
+        match &listed[0] {
+            ListedSageApp::Corrupted(app) => {
+                assert!(
+                    app.error.contains("network entry")
+                        || app.error.contains("invalid host")
+                        || app.error.contains("failed to parse installed app metadata"),
+                    "unexpected error: {}",
+                    app.error
+                );
+            }
+            ListedSageApp::User(_) | ListedSageApp::System(_) => {
+                panic!("expected corrupted app listing");
+            }
+        }
+    }
+
+    #[test]
+    fn installed_apps_are_sorted_by_name() {
+        let base = tempdir().unwrap();
+
+        let alpha = sample_app_named(base.path(), "a", "a", "Alpha");
+        write_installed_app_metadata(&alpha, Path::new(&alpha.common.app_dir)).unwrap();
+
+        let zeta = sample_app_named(base.path(), "z", "z", "Zeta");
+        write_installed_app_metadata(&zeta, Path::new(&zeta.common.app_dir)).unwrap();
+
+        let listed =
+            without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+
+        let names: Vec<_> = listed
+            .into_iter()
+            .map(|entry| match entry {
+                ListedSageApp::User(app) => app.common.name,
+                ListedSageApp::System(app) => app.common.name,
+                ListedSageApp::Corrupted(app) => app.id,
+            })
+            .collect();
+
+        assert_eq!(names, vec!["Alpha".to_string(), "Zeta".to_string()]);
+    }
+
+    #[test]
+    fn list_installed_apps_ignores_tmp_directories() {
+        let base = tempdir().unwrap();
+        let root = apps_root(base.path());
+        fs::create_dir_all(root.join(".tmp-123")).unwrap();
+
+        let listed =
+            without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+        assert!(listed.is_empty());
+    }
+
+    #[test]
+    fn list_installed_apps_ignores_directories_without_metadata() {
+        let base = tempdir().unwrap();
+        let root = apps_root(base.path());
+        fs::create_dir_all(root.join("missing-metadata")).unwrap();
+
+        let listed =
+            without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
+        assert!(listed.is_empty());
+    }
+
+    #[test]
+    fn parse_network_permission_target_normalizes_case() {
+        let parsed = parse_network_permission_target("HTTPS://Example.COM").unwrap();
+        assert_eq!(
+            parsed,
+            SageNetworkWhitelistEntry::new("https", "example.com").unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_network_permission_target_rejects_missing_scheme_separator() {
+        let err = parse_network_permission_target("example.com").unwrap_err();
+        assert!(err.contains("missing scheme"));
+    }
+
+    #[test]
+    fn parse_network_permission_target_rejects_unsupported_scheme() {
+        let err = parse_network_permission_target("http://example.com").unwrap_err();
+        assert!(err.contains("only https and wss allowed"));
+    }
+
+    #[test]
+    fn parse_network_permission_target_rejects_invalid_host_chars() {
+        assert!(parse_network_permission_target("https://example.com/path").is_err());
+        assert!(parse_network_permission_target("https://example.com?x=1").is_err());
+        assert!(parse_network_permission_target("https://example.com#frag").is_err());
+        assert!(parse_network_permission_target("https://exa mple.com").is_err());
     }
 
     #[test]
@@ -323,9 +570,39 @@ mod tests {
     fn read_installed_app_by_origin_id_errors_when_missing() {
         let dir = tempdir().unwrap();
         let err = read_installed_user_app_by_origin_id(dir.path(), "missing").unwrap_err();
+
         assert!(
             err.to_string()
                 .contains("no installed app found for origin id")
         );
+    }
+
+    #[test]
+    fn pending_storage_cleanup_entries_round_trip() {
+        let base = tempdir().unwrap();
+
+        let app = sample_app(base.path(), "app-1", "origin-1");
+        record_storage_cleanup_failure(base.path(), &app, "boom").unwrap();
+
+        let entries = read_pending_storage_cleanup_entries(base.path()).unwrap();
+        write_pending_storage_cleanup_entries(base.path(), &entries).unwrap();
+
+        let loaded = read_pending_storage_cleanup_entries(base.path()).unwrap();
+        assert_eq!(loaded, entries);
+        assert_eq!(loaded[0].target(), &PendingStorageCleanupTarget::Unmanaged);
+    }
+
+    #[test]
+    fn retired_app_origins_round_trip() {
+        let base = tempdir().unwrap();
+
+        let mut app = sample_app(base.path(), "app-1", "origin-1");
+        app.common.capability_flags.storage_may_contain_secrets = true;
+
+        let entries = vec![RetiredAppOriginEntry::new(&app, true)];
+        write_retired_app_origins(base.path(), &entries).unwrap();
+
+        let loaded = read_retired_app_origins(base.path()).unwrap();
+        assert_eq!(loaded, entries);
     }
 }

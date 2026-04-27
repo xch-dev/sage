@@ -207,7 +207,7 @@ impl SageGrantedPermissions {
         let capabilities = capabilities.into_iter().collect::<BTreeSet<_>>();
 
         for cap in &capabilities {
-            if !requested.is_allowed(cap) {
+            if !requested.is_allowed(*cap) {
                 anyhow::bail!(
                     "granted capability not requested in manifest: {}",
                     cap.key()
@@ -329,15 +329,15 @@ impl SageRequestedCapabilities {
         self.optional.iter()
     }
 
-    pub fn is_required(&self, cap: &UserBridgeCapability) -> bool {
-        self.required.contains(cap)
+    pub fn is_required(&self, cap: UserBridgeCapability) -> bool {
+        self.required.contains(&cap)
     }
 
-    pub fn is_optional(&self, cap: &UserBridgeCapability) -> bool {
-        self.optional.contains(cap)
+    pub fn is_optional(&self, cap: UserBridgeCapability) -> bool {
+        self.optional.contains(&cap)
     }
 
-    pub fn is_allowed(&self, cap: &UserBridgeCapability) -> bool {
+    pub fn is_allowed(&self, cap: UserBridgeCapability) -> bool {
         self.is_required(cap) || self.is_optional(cap)
     }
 
@@ -375,7 +375,7 @@ impl SageRequestedCapabilities {
         let user_granted = user_granted.into_iter().collect::<BTreeSet<_>>();
 
         for capability in &user_granted {
-            if !self.is_allowed(capability) {
+            if !self.is_allowed(*capability) {
                 anyhow::bail!(
                     "granted capability not requested in manifest: {}",
                     capability.key()

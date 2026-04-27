@@ -233,20 +233,19 @@ mod tests {
     };
     use tempfile::{TempDir, tempdir};
 
-    fn fake_retired_app_origins(dir: &TempDir, storage_may_contain_secrets: bool, cleanup_pending: bool) {
+    fn fake_retired_app_origins(
+        dir: &TempDir,
+        storage_may_contain_secrets: bool,
+        cleanup_pending: bool,
+    ) {
+        let mut app = sample_app_in(dir.path(), "url-abc123", "url-abc123");
+        app.common.capability_flags.storage_may_contain_secrets = storage_may_contain_secrets;
+
         write_retired_app_origins(
             dir.path(),
-            &[RetiredAppOriginEntry::new_for_tests(
-                "retired-1",
-                "url-abc123",
-                "Test App",
-                "url-abc123",
-                1,
-                storage_may_contain_secrets,
-                cleanup_pending,
-            )],
+            &[RetiredAppOriginEntry::new(&app, cleanup_pending)],
         )
-        .unwrap();
+            .unwrap();
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -276,9 +275,8 @@ mod tests {
         .unwrap()
     }
 
-    fn sample_app(app_id: &str, origin_id: &str) -> UserSageApp {
-        let dir = tempdir().unwrap();
-        let app_dir = dir.path().join(app_id);
+    fn sample_app_in(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
+        let app_dir = crate::lifecycle::registry::app_dir(base, app_id);
         std::fs::create_dir_all(&app_dir).unwrap();
 
         let manifest = sample_manifest();
@@ -291,7 +289,7 @@ mod tests {
                 "api.example.com",
             )],
         )
-        .unwrap();
+            .unwrap();
 
         let snapshot = SageAppSnapshot {
             manifest_hash: "hash".into(),
@@ -309,7 +307,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-        .unwrap();
+            .unwrap();
 
         UserSageApp {
             common,
@@ -409,7 +407,7 @@ mod tests {
     fn should_rotate_url_origin_when_retired_storage_may_contain_secrets_even_if_cleanup_pending() {
         let dir = tempdir().unwrap();
 
-        fake_retired_app_origins(&dir, true, false);
+        fake_retired_app_origins(&dir, true, true);
 
         assert!(should_rotate_url_origin_on_install(dir.path(), "url-abc123").unwrap());
     }
@@ -417,7 +415,7 @@ mod tests {
     #[test]
     fn url_origin_id_reuses_existing_origin() {
         let dir = tempdir().unwrap();
-        let existing = sample_app("url-abc123", "existing-origin");
+        let existing = sample_app_in(dir.path(), "url-abc123", "existing-origin");
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),
@@ -522,5 +520,21 @@ mod tests {
         assert_eq!(retired.len(), 1);
         assert!(retired[0].cleanup_pending());
         assert!(retired[0].storage_may_contain_secrets());
+    }
+
+    #[test]
+    fn normalize_app_url_allows_loopback_http() {
+        assert_eq!(
+            normalize_app_url("http://127.0.0.1:4173").unwrap(),
+            "http://127.0.0.1:4173/"
+        );
+    }
+
+    #[test]
+    fn normalize_app_url_rejects_unsupported_scheme() {
+        let err = normalize_app_url("ftp://example.com/app")
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("unsupported app URL scheme"));
     }
 }

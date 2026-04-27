@@ -273,7 +273,7 @@ impl SageAppCommon {
         snapshot: SageAppSnapshot,
     ) -> anyhow::Result<Self> {
         let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
-            &manifest.permissions(),
+            manifest.permissions(),
             granted_permissions,
         )?;
 
@@ -308,7 +308,7 @@ impl SageAppCommon {
         snapshot: SageAppSnapshot,
     ) -> anyhow::Result<()> {
         let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
-            &pending.manifest.permissions(),
+            pending.manifest.permissions(),
             granted_permissions,
         )?;
 
@@ -326,7 +326,7 @@ impl SageAppCommon {
         self.name.clone_from(&pending.manifest.name().to_string());
         self.version.clone_from(&pending.manifest.version().to_string());
         self.requested_permissions
-            .clone_from(&pending.manifest.permissions());
+            .clone_from(pending.manifest.permissions());
         self.granted_permissions = granted_permissions;
         self.capability_flags = capability_flags;
         self.entry_file = manifest_entry_file(&snapshot.manifest).to_string();

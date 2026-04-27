@@ -15,6 +15,7 @@ use crate::types::{
 };
 use uuid::Uuid;
 
+#[allow(clippy::needless_pass_by_value)]
 #[command]
 #[specta::specta]
 pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
