@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::lifecycle::update::types::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::types::SageNetworkPermissionTarget;
+use crate::types::SageNetworkWhitelistEntry;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub enum EventForApp {
@@ -27,9 +27,9 @@ pub struct GrantedNetworkWhitelistChangeEvent {
     pub channel: String,
     #[serde(rename = "type")]
     pub event_type: String,
-    pub removed_granted_network_whitelist: Vec<SageNetworkPermissionTarget>,
-    pub added_granted_network_whitelist: Vec<SageNetworkPermissionTarget>,
-    pub full_granted_network_whitelist: Vec<SageNetworkPermissionTarget>,
+    pub removed_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
+    pub added_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
+    pub full_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
 }
 
 impl EventForApp {

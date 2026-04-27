@@ -8,11 +8,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use super::AppInstallSource;
-use crate::lifecycle::{
-    detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest,
-    unzip_to_dir, validate_package_structure,
-};
-use crate::permissions::normalize_and_validate_requested_permissions;
+use crate::lifecycle::{detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest, unzip_to_dir, validate_package_structure};
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
 };
@@ -59,7 +55,7 @@ impl AppInstallSource for ZipInstallSource {
         let package_root = detect_package_root(&self.unpack_dir)?;
         validate_package_structure(&package_root)?;
 
-        let manifest = normalize_manifest_permissions(read_manifest(&package_root)?)?;
+        let manifest = read_manifest(&package_root)?;
 
         Ok(PreparedZipInstall {
             package_root,
@@ -81,7 +77,7 @@ impl AppInstallSource for ZipInstallSource {
         _base_path: &Path,
         prepared: &Self::Prepared,
     ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-        resolve_zip_install_target(root, &prepared.manifest.name)
+        resolve_zip_install_target(root, &prepared.manifest.name())
     }
 
     async fn create_snapshot(
@@ -122,41 +118,18 @@ fn find_existing_installed_app_by_name(
         }))
 }
 
-fn normalize_manifest_permissions(
-    mut manifest: SageAppPackageManifest,
-) -> AnyResult<SageAppPackageManifest> {
-    manifest.permissions = normalize_and_validate_requested_permissions(&manifest.permissions)?;
-    Ok(manifest)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_installed_app_metadata;
-    use crate::types::{
-        InstalledSageAppStorage, SageAppFlags, SageAppManifestFile,
-        SageGrantedNetworkPermissions, SageGrantedPermissions, SageRequestedCapabilities,
-        SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions,
-    };
+    use crate::types::{InstalledSageAppStorage, SageAppFlags, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     fn sample_manifest_named(name: &str) -> SageAppPackageManifest {
-        SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: name.into(),
             version: "1.0.0".into(),
-            permissions: SageRequestedPermissions {
-                network: SageRequestedNetworkPermissions {
-                    whitelist: SageRequestedNetworkWhitelist {
-                        required: vec![],
-                        optional: vec![],
-                    },
-                },
-                capabilities: SageRequestedCapabilities {
-                    required: vec![],
-                    optional: vec![],
-                },
-            },
+            permissions: SageRequestedPermissions::empty(),
             files: vec![SageAppManifestFile {
                 path: "index.html".into(),
                 sha256: "a".repeat(64),
@@ -166,7 +139,7 @@ mod tests {
             icon: Some("icon.png".into()),
             author: None,
             donation: None,
-        }
+        }).unwrap()
     }
 
     #[test]
@@ -197,16 +170,18 @@ mod tests {
         fs::create_dir_all(&app_dir).unwrap();
 
         let manifest = sample_manifest_named("Test App");
+        let granted_permissions = SageGrantedPermissions::new(
+            &manifest.permissions(),
+            [],
+            [],
+        ).unwrap();
 
         let installed = super::super::build_installed_app(
             app_id.into(),
             app_id.into(),
             &app_dir,
             &manifest,
-            SageGrantedPermissions {
-                capabilities: vec![UserBridgeCapability::PersistentStorage],
-                network: SageGrantedNetworkPermissions { whitelist: vec![] },
-            },
+            granted_permissions,
             SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
             UserSageAppSource::Zip,

@@ -11,7 +11,6 @@ use crate::lifecycle::{
     write_retired_app_origins,
 };
 use crate::lifecycle::registry::read_installed_app_by_id;
-use crate::permissions::normalize_and_validate_requested_permissions;
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrlPreview, UserSageApp, UserSageAppSource,
 };
@@ -103,7 +102,6 @@ pub async fn preview_app_url_internal(app_url: String) -> AnyResult<SageAppUrlPr
 
     let manifest_url = derive_manifest_url(&app_url)?;
     let (manifest, manifest_hash) = fetch_url_manifest(&manifest_url).await?;
-    let manifest = normalize_manifest_permissions(manifest)?;
 
     Ok(SageAppUrlPreview {
         app_url,
@@ -211,13 +209,6 @@ pub fn resolve_url_install_target(
     Ok((app_id.clone(), app_dir, existing))
 }
 
-fn normalize_manifest_permissions(
-    mut manifest: SageAppPackageManifest,
-) -> AnyResult<SageAppPackageManifest> {
-    manifest.permissions = normalize_and_validate_requested_permissions(&manifest.permissions)?;
-    Ok(manifest)
-}
-
 fn slugify_host(input: &str) -> String {
     if let Ok(url) = Url::parse(input) {
         if let Some(host) = url.host_str() {
@@ -233,12 +224,7 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
-    use crate::types::{
-        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppFlags, SageAppCommon,
-        SageAppManifestFile, SageGrantedNetworkPermissions, SageGrantedPermissions,
-        SageNetworkPermissionTarget, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedNetworkWhitelist, SageRequestedPermissions,
-    };
+    use crate::types::{InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::{tempdir, TempDir};
 
     fn fake_retired_app_origins(dir: &TempDir, storage_may_contain_secrets: bool) {
@@ -258,21 +244,22 @@ mod tests {
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
-        SageAppPackageManifest {
+        let permissions = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [],
+                [SageNetworkWhitelistEntry::new("https", "api.example.com").unwrap()],
+            ),
+            SageRequestedCapabilities::new(
+                [],
+                [UserBridgeCapability::PersistentStorage],
+            ),
+        )
+            .unwrap();
+
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".into(),
             version: "1.0.0".into(),
-            permissions: SageRequestedPermissions {
-                network: SageRequestedNetworkPermissions {
-                    whitelist: SageRequestedNetworkWhitelist {
-                        required: vec![],
-                        optional: vec![],
-                    },
-                },
-                capabilities: SageRequestedCapabilities {
-                    required: vec![],
-                    optional: vec![],
-                },
-            },
+            permissions,
             files: vec![SageAppManifestFile {
                 path: "index.html".into(),
                 sha256: "a".repeat(64),
@@ -282,7 +269,8 @@ mod tests {
             icon: Some("icon.png".into()),
             author: None,
             donation: None,
-        }
+        })
+            .unwrap()
     }
 
     fn sample_app(app_id: &str, origin_id: &str) -> UserSageApp {
@@ -290,34 +278,35 @@ mod tests {
         let app_dir = dir.path().join(app_id);
         std::fs::create_dir_all(&app_dir).unwrap();
 
+        let manifest = sample_manifest();
+
+        let granted_permissions = SageGrantedPermissions::new(
+            manifest.permissions(),
+            [UserBridgeCapability::PersistentStorage],
+            [SageNetworkWhitelistEntry::new_unchecked("https", "api.example.com")],
+        )
+            .unwrap();
+
+        let snapshot = SageAppSnapshot {
+            manifest_hash: "hash".into(),
+            snapshot_dir: app_dir.to_string_lossy().to_string(),
+            total_bytes: 123,
+            manifest: manifest.clone(),
+        };
+
+        let common = SageAppCommon::new(
+            app_id.into(),
+            origin_id.into(),
+            app_dir.to_string_lossy().to_string(),
+            &manifest,
+            granted_permissions,
+            InstalledSageAppStorage::Unmanaged,
+            snapshot,
+        )
+            .unwrap();
+
         UserSageApp {
-            common: SageAppCommon {
-                id: app_id.into(),
-                origin_id: origin_id.into(),
-                name: "Test App".into(),
-                version: "1.0.0".into(),
-                app_dir: app_dir.to_string_lossy().to_string(),
-                entry_file: "index.html".into(),
-                icon_file: "icon.png".into(),
-                requested_permissions: sample_manifest().permissions.clone(),
-                granted_permissions: SageGrantedPermissions {
-                    capabilities: vec![UserBridgeCapability::PersistentStorage],
-                    network: SageGrantedNetworkPermissions {
-                        whitelist: vec![SageNetworkPermissionTarget {
-                            scheme: "https".into(),
-                            host: "api.example.com".into(),
-                        }],
-                    },
-                },
-                capability_flags: SageAppFlags::default(),
-                storage: InstalledSageAppStorage::Unmanaged,
-                active_snapshot: SageAppSnapshot {
-                    manifest_hash: "hash".into(),
-                    snapshot_dir: app_dir.to_string_lossy().to_string(),
-                    total_bytes: 123,
-                    manifest: sample_manifest(),
-                },
-            },
+            common,
             source: UserSageAppSource::Url {
                 app_url: "https://example.com/app/".into(),
                 manifest_url: "https://example.com/app/sage-manifest.json".into(),

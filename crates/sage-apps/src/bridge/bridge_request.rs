@@ -9,7 +9,6 @@ use crate::bridge::registry::BridgeRegistry;
 use crate::bridge::state::write_pending_approval;
 use crate::host::AppState;
 use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
-use crate::permissions::resolve_and_validate_effective_granted_capabilities;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
@@ -218,10 +217,17 @@ fn verify_user_capability(
     }
 
     let effective_capabilities = match app {
-        SageApp::User(user_app) => resolve_and_validate_effective_granted_capabilities(
-            &user_app.common.requested_permissions.capabilities,
-            &user_app.common.granted_permissions.capabilities,
-        )
+        SageApp::User(user_app) => user_app
+            .common
+            .requested_permissions
+            .capabilities
+            .resolve_effective_grants(
+                user_app
+                    .common
+                    .granted_permissions
+                    .capabilities()
+                    .copied(),
+            )
             .map_err(|err| {
                 RustBridgeResponse::error(
                     &request.channel,
@@ -230,7 +236,12 @@ fn verify_user_capability(
                     format!("failed to resolve effective permissions: {err}"),
                 )
             })?,
-        SageApp::System(_) => app.granted_permissions().capabilities.clone(),
+
+        SageApp::System(_) => app
+            .granted_permissions()
+            .capabilities()
+            .copied()
+            .collect(),
     };
 
     if !effective_capabilities.contains(&capability) {

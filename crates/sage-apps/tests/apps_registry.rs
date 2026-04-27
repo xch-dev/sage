@@ -10,9 +10,9 @@ use sage_apps::lifecycle::registry::{
     write_installed_app_metadata, write_pending_storage_cleanup_entries,
     write_retired_app_origins,
 };
-use sage_apps::types::{ListedSageApp, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppPackageManifest, SageNetworkPermissionTarget, UserSageAppPendingUpdate};
+use sage_apps::types::{ListedSageApp, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageAppPendingUpdate};
 use tempfile::tempdir;
-use crate::common::{empty_permissions, sample_manifest_file};
+use crate::common::{sample_manifest_file};
 
 #[test]
 fn installed_app_metadata_roundtrips() {
@@ -59,7 +59,7 @@ fn installed_app_metadata_roundtrips_pending_update() {
 
     let pending = loaded.pending_update.expect("pending update should survive roundtrip");
     assert_eq!(pending.manifest_hash, "pending-hash");
-    assert_eq!(pending.manifest.name, "Alpha Updated");
+    assert_eq!(pending.manifest.name(), "Alpha Updated");
 }
 
 #[test]
@@ -238,10 +238,7 @@ fn parse_network_permission_target_normalizes_case() {
     let parsed = parse_network_permission_target("HTTPS://Example.COM").unwrap();
     assert_eq!(
         parsed,
-        SageNetworkPermissionTarget {
-            scheme: "https".to_string(),
-            host: "example.com".to_string(),
-        }
+        SageNetworkWhitelistEntry::new("https", "example.com").unwrap()
     );
 }
 
@@ -334,14 +331,14 @@ fn retired_app_origins_roundtrip() {
 }
 
 fn sample_manifest(name: &str) -> SageAppPackageManifest {
-    SageAppPackageManifest {
+    SageAppPackageManifest::try_from(SageAppPackageManifestParts {
         name: name.to_string(),
         version: "1.0.0".to_string(),
-        permissions: empty_permissions(),
+        permissions: SageRequestedPermissions::empty(),
         files: vec![sample_manifest_file("index.html", 1)],
         entry: Some("index.html".to_string()),
         icon: Some("icon.png".to_string()),
         author: None,
         donation: None,
-    }
+    }).unwrap()
 }

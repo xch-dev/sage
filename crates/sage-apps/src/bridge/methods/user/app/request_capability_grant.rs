@@ -54,7 +54,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         if ctx
             .app
             .granted_permissions()
-            .capabilities
+            .capabilities_vec()
             .contains(&params.capability)
         {
             return Ok(None);

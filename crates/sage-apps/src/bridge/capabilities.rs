@@ -106,27 +106,26 @@ impl BridgeCapability {
     }
 }
 
-impl UserBridgeCapability {
-    pub fn shared_from_granted(
-        granted: &[UserBridgeCapability],
-    ) -> Vec<UserBridgeCapability> {
-        let mut shared = BTreeSet::new();
+pub trait SharedCapabilitiesExt {
+    fn shared(self) -> Vec<UserBridgeCapability>;
+}
 
-        for capability in granted {
-            let definition = get_user_capability_definition(*capability);
-
-            if definition.flags.shared_with_app {
-                shared.insert(*capability);
-            }
-        }
-
-        shared.into_iter().collect()
+impl<I> SharedCapabilitiesExt for I
+where
+    I: IntoIterator<Item = UserBridgeCapability>,
+{
+    fn shared(self) -> Vec<UserBridgeCapability> {
+        self.into_iter()
+            .filter(|cap| get_user_capability_definition(*cap).flags.shared_with_app)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .collect()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::bridge::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
     use crate::permissions::user_registry;
 
     fn first_shared_capability() -> UserBridgeCapability {
@@ -154,10 +153,10 @@ mod tests {
         let shared = first_shared_capability();
         let non_shared = first_non_shared_capability();
 
-        let shared_capabilities = UserBridgeCapability::shared_from_granted(&vec![
+        let shared_capabilities = [
             shared.clone(),
             non_shared.clone(),
-        ]);
+        ].shared();
 
         assert!(
             shared_capabilities.contains(&shared),
@@ -174,11 +173,11 @@ mod tests {
         let shared = first_shared_capability();
         let non_shared = first_non_shared_capability();
 
-        let shared_capabilities = UserBridgeCapability::shared_from_granted(&vec![
+        let shared_capabilities = [
             non_shared.clone(),
             shared.clone(),
             shared.clone(),
-        ]);
+        ].shared();
 
         assert_eq!(shared_capabilities, vec![shared]);
     }

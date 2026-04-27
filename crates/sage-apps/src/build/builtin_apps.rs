@@ -1,5 +1,6 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use sha2::Digest;
 use crate::build::{runtime_apps, system_apps, test_apps};
 
 pub fn build_builtin_apps() -> Result<(), String> {
@@ -51,6 +52,103 @@ pub fn build_builtin_apps() -> Result<(), String> {
         &system_out_dir,
         &system_sdk_dist,
     )?;
+
+    inject_all_manifests(&test_out_dir)?;
+    inject_all_manifests(&runtime_out_dir)?;
+    inject_all_manifests(&system_out_dir)?;
+
+    Ok(())
+}
+
+fn inject_all_manifests(root: &Path) -> Result<(), String> {
+    for entry in fs::read_dir(root)
+        .map_err(|err| format!("failed to read {}: {err}", root.display()))?
+    {
+        let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
+        let app_dir = entry.path();
+
+        if app_dir.is_dir() && app_dir.join("sage-manifest.json").is_file() {
+            inject_manifest_files(&app_dir)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn inject_manifest_files(app_dir: &Path) -> Result<(), String> {
+    let manifest_path = app_dir.join("sage-manifest.json");
+
+    let manifest_text = fs::read_to_string(&manifest_path)
+        .map_err(|err| format!("failed to read {}: {err}", manifest_path.display()))?;
+
+    let mut manifest: serde_json::Value = serde_json::from_str(&manifest_text)
+        .map_err(|err| format!("failed to parse {}: {err}", manifest_path.display()))?;
+
+    let mut files = Vec::new();
+    collect_manifest_files(app_dir, app_dir, &mut files)?;
+
+    files.sort_by(|a, b| {
+        a["path"]
+            .as_str()
+            .unwrap_or_default()
+            .cmp(b["path"].as_str().unwrap_or_default())
+    });
+
+    manifest["files"] = serde_json::Value::Array(files);
+
+    let out = serde_json::to_string_pretty(&manifest)
+        .map_err(|err| format!("failed to serialize {}: {err}", manifest_path.display()))?;
+
+    fs::write(&manifest_path, format!("{out}\n"))
+        .map_err(|err| format!("failed to write {}: {err}", manifest_path.display()))?;
+
+    Ok(())
+}
+
+fn collect_manifest_files(
+    root: &Path,
+    dir: &Path,
+    files: &mut Vec<serde_json::Value>,
+) -> Result<(), String> {
+    for entry in fs::read_dir(dir)
+        .map_err(|err| format!("failed to read {}: {err}", dir.display()))?
+    {
+        let entry = entry.map_err(|err| format!("failed to read dir entry: {err}"))?;
+        let path = entry.path();
+        let metadata = entry
+            .metadata()
+            .map_err(|err| format!("failed to stat {}: {err}", path.display()))?;
+
+        if metadata.is_dir() {
+            collect_manifest_files(root, &path, files)?;
+            continue;
+        }
+
+        if !metadata.is_file() {
+            continue;
+        }
+
+        let rel = path
+            .strip_prefix(root)
+            .map_err(|err| format!("failed to relativize {}: {err}", path.display()))?
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        if rel == "sage-manifest.json" {
+            continue;
+        }
+
+        let bytes = fs::read(&path)
+            .map_err(|err| format!("failed to read {}: {err}", path.display()))?;
+
+        let sha256 = hex::encode(sha2::Sha256::digest(&bytes));
+
+        files.push(serde_json::json!({
+            "path": rel,
+            "sha256": sha256,
+            "size": metadata.len(),
+        }));
+    }
 
     Ok(())
 }

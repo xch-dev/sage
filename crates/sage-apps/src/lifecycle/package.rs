@@ -59,7 +59,7 @@ pub fn detect_package_root(unpack_dir: &Path) -> AnyResult<PathBuf> {
 pub fn validate_package_structure(package_root: &Path) -> AnyResult<()> {
     let manifest = read_manifest(package_root)?;
 
-    for file in &manifest.files {
+    for file in manifest.files() {
         let path = package_root.join(&file.path);
         if !path.is_file() {
             anyhow::bail!("manifest file missing from package: {}", file.path);

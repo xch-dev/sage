@@ -4,7 +4,7 @@ use specta::Type;
 use tauri_specta::Event;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::types::{SageApp, SageAppCapabilityDefinitionView, SageNetworkPermissionTarget};
+use crate::types::{SageApp, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry};
 
 #[derive(Debug, Clone)]
 pub struct PendingBridgeApproval {
@@ -83,7 +83,7 @@ pub enum RustBridgeApprovalBody {
         definition: SageAppCapabilityDefinitionView,
     },
     NetworkWhitelistGrant {
-        entry: SageNetworkPermissionTarget,
+        entry: SageNetworkWhitelistEntry,
     },
 }
 

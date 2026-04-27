@@ -1,58 +1,53 @@
 mod common;
 
-use common::{empty_permissions, sample_manifest_file};
+use common::{sample_manifest_file};
 use sage_apps::lifecycle::storage::{
     enqueue_pending_storage_cleanup, enqueue_retired_app_origin,
 };
 use sage_apps::lifecycle::{
     read_pending_storage_cleanup_entries, read_retired_app_origins,
 };
-use sage_apps::types::{
-    InstalledSageAppStorage, PendingStorageCleanupTarget, SageAppFlags,
-    SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
-    SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageApp,
-    UserSageAppSource,
-};
+use sage_apps::types::{InstalledSageAppStorage, PendingStorageCleanupTarget, SageAppCommon, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource, SageAppPackageManifestParts, SageRequestedPermissions};
 use tempfile::tempdir;
 
 fn sample_app(storage: InstalledSageAppStorage) -> UserSageApp {
+    let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+        name: "Test App".into(),
+        version: "1.0.0".into(),
+        permissions: SageRequestedPermissions::empty(),
+        files: vec![sample_manifest_file("index.html", 1)],
+        entry: Some("index.html".into()),
+        icon: Some("icon.png".into()),
+        author: None,
+        donation: None,
+    })
+        .unwrap();
+
+    let granted_permissions =
+        SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
+
+    let snapshot = SageAppSnapshot {
+        manifest_hash: "hash".into(),
+        snapshot_dir: "/tmp/test-app".into(),
+        total_bytes: 1,
+        manifest: manifest.clone(),
+    };
+
+    let mut common = SageAppCommon::new(
+        "url-abc123".into(),
+        "origin-1".into(),
+        "/tmp/test-app".into(),
+        &manifest,
+        granted_permissions,
+        storage,
+        snapshot,
+    )
+        .unwrap();
+
+    common.capability_flags.storage_may_contain_secrets = true;
+
     UserSageApp {
-        common: SageAppCommon {
-            id: "url-abc123".into(),
-            origin_id: "origin-1".into(),
-            name: "Test App".into(),
-            version: "1.0.0".into(),
-            app_dir: "/tmp/test-app".into(),
-            entry_file: "index.html".into(),
-            icon_file: "icon.png".into(),
-            requested_permissions: empty_permissions(),
-            granted_permissions: SageGrantedPermissions {
-                capabilities: vec![],
-                network: SageGrantedNetworkPermissions { whitelist: vec![] },
-            },
-            capability_flags: SageAppFlags {
-                has_secret_access: false,
-                has_external_access: false,
-                storage_may_contain_secrets: true,
-                isolated: false,
-            },
-            storage,
-            active_snapshot: SageAppSnapshot {
-                manifest_hash: "hash".into(),
-                snapshot_dir: "/tmp/test-app".into(),
-                total_bytes: 1,
-                manifest: SageAppPackageManifest {
-                    name: "Test App".into(),
-                    version: "1.0.0".into(),
-                    permissions: empty_permissions(),
-                    files: vec![sample_manifest_file("index.html", 1)],
-                    entry: Some("index.html".into()),
-                    icon: Some("icon.png".into()),
-                    author: None,
-                    donation: None,
-                },
-            },
-        },
+        common,
         source: UserSageAppSource::Url {
             app_url: "https://example.com/app/".into(),
             manifest_url: "https://example.com/app/sage-manifest.json".into(),

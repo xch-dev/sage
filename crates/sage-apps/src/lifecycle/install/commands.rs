@@ -4,7 +4,6 @@ use tauri::{command, AppHandle, State};
 
 use crate::host::{AppState, Result};
 use crate::lifecycle::{apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir, validate_package_structure};
-use crate::permissions::normalize_and_validate_requested_permissions;
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppUrlPreview, SageGrantedPermissions, UserSageApp,
 };
@@ -23,10 +22,6 @@ pub async fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest>
         let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
         let manifest = read_manifest(&package_root)?;
         validate_package_structure(&package_root)?;
-
-        let mut manifest = manifest;
-        manifest.permissions =
-            normalize_and_validate_requested_permissions(&manifest.permissions)?;
 
         Ok(manifest)
     })();

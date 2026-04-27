@@ -32,7 +32,7 @@ fn app_requires_sandbox_gate(app: &SageApp) -> bool {
 
 fn app_has_capability(app: &SageApp, capability: UserBridgeCapability) -> bool {
     app.granted_permissions()
-        .capabilities
+        .capabilities_vec()
         .contains(&capability)
 }
 

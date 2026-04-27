@@ -6,13 +6,10 @@ use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::host::AppState;
-use crate::lifecycle::{download_url_snapshot, manifest_entry_file, manifest_icon_file, read_installed_app_by_id, write_installed_app_metadata};
-use crate::lifecycle::flags::get_app_flags;
+use crate::lifecycle::{download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata};
 use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
-use crate::permissions::{resolve_and_validate_effective_granted_capabilities, normalize_and_validate_user_granted_capabilities};
-use crate::permissions::normalize_and_validate_granted_network;
-use crate::types::{SageAppUrlPreview, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 #[command]
 #[specta::specta]
@@ -125,35 +122,6 @@ pub async fn apply_app_update(
         .clone()
         .ok_or_else(|| io::Error::other(format!("app {} has no pending update", app_id)))?;
 
-    let normalized_capabilities = normalize_and_validate_user_granted_capabilities(
-        &app.common.requested_permissions.capabilities,
-        &granted_permissions.capabilities
-    ).map_err(|err| io::Error::other(format!("invalid granted permissions for update: {err}")))?;
-
-    let granted_network_whitelist = normalize_and_validate_granted_network(
-        &pending.manifest.permissions.network,
-        &granted_permissions.network.whitelist,
-    )
-        .map_err(|err| {
-            io::Error::other(format!("invalid granted network whitelist for update: {err}"))
-        })?;
-
-    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
-        &pending.manifest.permissions.capabilities,
-        &normalized_capabilities,
-    )
-        .map_err(|err| {
-            io::Error::other(format!("invalid granted permission policy for update: {err}"))
-        })?;
-
-    let permission_flags = get_app_flags(
-        &effective_capabilities,
-        Some(&app.common.capability_flags),
-    )
-        .map_err(|err| {
-            io::Error::other(format!("invalid granted permission policy for update: {err}"))
-        })?;
-
     let app_dir = PathBuf::from(&app.common.app_dir);
 
     let snapshot = download_url_snapshot(
@@ -165,23 +133,12 @@ pub async fn apply_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
-    app.common.name = pending.manifest.name.clone();
-    app.common.version = pending.manifest.version.clone();
-    app.common.requested_permissions = pending.manifest.permissions.clone();
+    app.common
+        .apply_update(&pending, granted_permissions, snapshot)
+        .map_err(|err| {
+            io::Error::other(format!("failed to apply app update permissions: {err}"))
+        })?;
 
-    app.common.granted_permissions = SageGrantedPermissions {
-        capabilities: normalized_capabilities,
-        network: SageGrantedNetworkPermissions {
-            whitelist: granted_network_whitelist,
-        },
-    };
-
-    app.common.capability_flags = permission_flags;
-    app.common.active_snapshot = snapshot;
-    app.common.entry_file =
-        manifest_entry_file(&app.common.active_snapshot.manifest).to_string();
-    app.common.icon_file =
-        manifest_icon_file(&app.common.active_snapshot.manifest).to_string();
     app.pending_update = None;
 
     write_installed_app_metadata(&app, &app_dir)

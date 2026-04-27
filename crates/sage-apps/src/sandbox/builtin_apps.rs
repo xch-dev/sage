@@ -1,17 +1,11 @@
 use std::{fs, path::PathBuf};
-
+use std::path::Path;
 use anyhow::{Context, Result as AnyResult, anyhow};
 use sha2::{Digest, Sha256};
 use tauri::command;
 
 use crate::host::Result;
-use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
-use crate::lifecycle::flags::get_app_flags;
-use crate::permissions::{normalize_and_validate_granted_permissions,
-     normalize_and_validate_requested_permissions, requested_user_grantable_capabilities,
-                         resolve_and_validate_effective_granted_capabilities
-};
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedNetworkPermissions, SageGrantedPermissions, UserSageAppSource, UserSageApp};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppSnapshot, SageAppPackageManifest, SageGrantedPermissions, UserSageAppSource, UserSageApp};
 
 macro_rules! sandbox_test_id_prefix {
     () => {
@@ -122,7 +116,7 @@ fn builtin_storage(_app_id: &str) -> InstalledSageAppStorage {
     InstalledSageAppStorage::Unmanaged
 }
 
-fn read_builtin_manifest(app_dir: &PathBuf) -> AnyResult<SageAppPackageManifest> {
+fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
     let manifest_path = app_dir.join("sage-manifest.json");
 
     let manifest_text = fs::read_to_string(&manifest_path).with_context(|| {
@@ -187,33 +181,34 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         ));
     }
 
-    let mut manifest = read_builtin_manifest(&app_dir)?;
-    manifest.permissions =
-        normalize_and_validate_requested_permissions(&manifest.permissions)?;
+    let manifest = read_builtin_manifest(&app_dir)?;
 
-    let user_grantable_capabilities = requested_user_grantable_capabilities(&manifest.permissions.capabilities);
-
-    let granted_permissions = normalize_and_validate_granted_permissions(
-        &manifest.permissions,
-        SageGrantedPermissions {
-            capabilities: user_grantable_capabilities,
-            network: SageGrantedNetworkPermissions {
-                whitelist: manifest.permissions.network.whitelist.required.clone(),
-            },
-        }
+    let granted_permissions = SageGrantedPermissions::new(
+        manifest.permissions(),
+        manifest.permissions().capabilities.user_grantable(),
+        manifest.permissions().network.whitelist.required().cloned(),
     )?;
 
-    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
-        &manifest.permissions.capabilities,
-        &granted_permissions.capabilities,
+    let total_bytes = compute_total_bytes(&app_dir)?;
+
+    let snapshot = SageAppSnapshot {
+        manifest_hash: format!("builtin:{}", spec.app_id),
+        snapshot_dir: app_dir.to_string_lossy().to_string(),
+        total_bytes,
+        manifest: manifest.clone(),
+    };
+
+    let common = SageAppCommon::new(
+        spec.app_id.to_string(),
+        spec.app_id.to_string(),
+        app_dir.to_string_lossy().to_string(),
+        &manifest,
+        granted_permissions,
+        builtin_storage(spec.app_id),
+        snapshot,
     )?;
 
-    let capability_flags = get_app_flags(&effective_capabilities, None)?;
-
-    let entry_file_name = manifest_entry_file(&manifest).to_string();
-    let icon_file_name = manifest_icon_file(&manifest).to_string();
-
-    let entry_file = app_dir.join(&entry_file_name);
+    let entry_file = app_dir.join(&common.entry_file);
     if !entry_file.is_file() {
         return Err(anyhow!(
             "builtin test app entry file does not exist: {}",
@@ -221,7 +216,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         ));
     }
 
-    let icon_file = app_dir.join(&icon_file_name);
+    let icon_file = app_dir.join(&common.icon_file);
     if !icon_file.is_file() {
         return Err(anyhow!(
             "builtin test app icon file does not exist: {}",
@@ -229,28 +224,8 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         ));
     }
 
-    let total_bytes = compute_total_bytes(&app_dir)?;
-
     let app = UserSageApp {
-        common: SageAppCommon {
-            id: spec.app_id.to_string(),
-            origin_id: spec.app_id.to_string(),
-            name: manifest.name.clone(),
-            version: manifest.version.clone(),
-            app_dir: app_dir.to_string_lossy().to_string(),
-            entry_file: entry_file_name,
-            icon_file: icon_file_name,
-            requested_permissions: manifest.permissions.clone(),
-            granted_permissions,
-            capability_flags,
-            storage: builtin_storage(spec.app_id),
-            active_snapshot: SageAppSnapshot {
-                manifest_hash: format!("builtin:{}", spec.app_id),
-                snapshot_dir: app_dir.to_string_lossy().to_string(),
-                total_bytes,
-                manifest,
-            },
-        },
+        common,
         source: UserSageAppSource::Zip,
         pending_update: None,
     };

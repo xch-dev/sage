@@ -1,34 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::types::{SageApp, SageNetworkPermissionTarget};
+use crate::types::{SageApp};
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
-}
-
-fn is_allowed_scheme(s: &str) -> bool {
-    matches!(s, "https" | "wss")
-}
-
-fn network_permission_to_csp_source(
-    permission: &SageNetworkPermissionTarget,
-) -> Option<String> {
-    let scheme = permission.scheme.trim().to_ascii_lowercase();
-    let host = permission.host.trim().to_ascii_lowercase();
-
-    if host.is_empty() {
-        return None;
-    }
-
-    if !is_allowed_scheme(scheme.as_str()) {
-        return None;
-    }
-
-    if host.contains('/') || host.contains('?') || host.contains('#') || host.contains(' ') {
-        return None;
-    }
-
-    Some(format!("{scheme}://{host}"))
 }
 
 pub fn build_app_csp(app: &SageApp) -> String {
@@ -63,10 +38,8 @@ pub fn build_app_csp(app: &SageApp) -> String {
 
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
-    for entry in &app.granted_permissions().network.whitelist {
-        if let Some(source) = network_permission_to_csp_source(entry) {
-            connect_sources.insert(source);
-        }
+    for entry in app.granted_permissions().network().whitelist() {
+        connect_sources.insert(entry.as_permission_string());
     }
 
     let connect_src = csp_source_list(

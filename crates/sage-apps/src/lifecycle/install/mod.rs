@@ -12,10 +12,6 @@ use crate::lifecycle::{
     write_installed_app_metadata,
 };
 use crate::lifecycle::flags::get_app_flags;
-use crate::permissions::{
-    normalize_and_validate_granted_permissions,
-};
-use crate::permissions::resolve_and_validate_effective_granted_capabilities;
 use crate::types::{
     InstalledSageAppStorage, SageAppFlags, SageAppCommon, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
@@ -123,13 +119,15 @@ where
     let prepared = source.prepare().await?;
     let manifest = source.manifest(&prepared);
 
-    let granted_permissions =
-        normalize_and_validate_granted_permissions(&manifest.permissions, granted_permissions)?;
-
-    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
-        &manifest.permissions.capabilities,
-        &granted_permissions.capabilities,
+    let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
+        &manifest.permissions(),
+        granted_permissions,
     )?;
+
+    let effective_capabilities = manifest
+        .permissions()
+        .capabilities
+        .resolve_effective_grants(granted_permissions.capabilities().copied())?;
 
     let app_flags = get_app_flags(&effective_capabilities, None)?;
 
@@ -184,12 +182,12 @@ pub fn build_installed_app(
         common: SageAppCommon {
             id: app_id,
             origin_id,
-            name: manifest.name.clone(),
-            version: manifest.version.clone(),
+            name: manifest.name().to_string(),
+            version: manifest.version().to_string(),
             app_dir: app_dir.to_string_lossy().to_string(),
             entry_file: manifest_entry_file(manifest).to_string(),
             icon_file: manifest_icon_file(manifest).to_string(),
-            requested_permissions: manifest.permissions.clone(),
+            requested_permissions: manifest.permissions().clone(),
             granted_permissions,
             capability_flags: permission_flags,
             storage,
@@ -215,11 +213,7 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{
-        SageAppManifestFile, SageGrantedNetworkPermissions, SageNetworkPermissionTarget,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedNetworkWhitelist, SageRequestedPermissions,
-    };
+    use crate::types::{SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     struct TestStorageResolver {
@@ -236,24 +230,19 @@ mod tests {
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
-        SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".into(),
             version: "1.0.0".into(),
-            permissions: SageRequestedPermissions {
-                network: SageRequestedNetworkPermissions {
-                    whitelist: SageRequestedNetworkWhitelist {
-                        required: vec![SageNetworkPermissionTarget {
-                            scheme: "https".into(),
-                            host: "api.example.com".into(),
-                        }],
-                        optional: vec![],
-                    },
-                },
-                capabilities: SageRequestedCapabilities {
-                    required: vec![UserBridgeCapability::PersistentStorage],
-                    optional: vec![UserBridgeCapability::WalletSendXch],
-                },
-            },
+            permissions: SageRequestedPermissions::new(
+                SageRequestedNetworkPermissions::new(
+                    [SageNetworkWhitelistEntry::new_unchecked("https", "api.example.com")],
+                    []
+                ),
+                SageRequestedCapabilities::new(
+                    [UserBridgeCapability::PersistentStorage],
+                    [UserBridgeCapability::WalletSendXch],
+                )
+            ).unwrap(),
             files: vec![SageAppManifestFile {
                 path: "index.html".into(),
                 sha256: "a".repeat(64),
@@ -263,7 +252,7 @@ mod tests {
             icon: Some("icon.png".into()),
             author: None,
             donation: None,
-        }
+        }).unwrap()
     }
 
     struct FakeInstallSource {
@@ -332,19 +321,20 @@ mod tests {
     async fn shared_installer_builds_and_writes_installed_app() {
         let dir = tempdir().unwrap();
 
+        let manifest = sample_manifest();
+
+        let granted = SageGrantedPermissions::new(
+            &manifest.permissions(),
+            [UserBridgeCapability::PersistentStorage],
+            [SageNetworkWhitelistEntry::new_unchecked("https", "api.example.com")],
+        )
+            .unwrap();
+
         let installed = install_app_from_source_with_storage(
             dir.path(),
-            SageGrantedPermissions {
-                capabilities: vec![UserBridgeCapability::PersistentStorage],
-                network: SageGrantedNetworkPermissions {
-                    whitelist: vec![SageNetworkPermissionTarget {
-                        scheme: "https".into(),
-                        host: "api.example.com".into(),
-                    }],
-                },
-            },
+            granted,
             FakeInstallSource {
-                manifest: sample_manifest(),
+                manifest,
                 app_id: "fake-app".into(),
                 origin_id: "fake-origin".into(),
                 source: UserSageAppSource::Zip,
@@ -374,17 +364,14 @@ mod tests {
     async fn shared_installer_rejects_unrequested_granted_permission() {
         let dir = tempdir().unwrap();
 
+        let granted = SageGrantedPermissions::new_unchecked(
+            [UserBridgeCapability::PersistentStorage],
+            [SageNetworkWhitelistEntry::new_unchecked("https", "evil.example.com")],
+        );
+
         let err = install_app_from_source_with_storage(
             dir.path(),
-            SageGrantedPermissions {
-                capabilities: vec![UserBridgeCapability::PersistentStorage],
-                network: SageGrantedNetworkPermissions {
-                    whitelist: vec![SageNetworkPermissionTarget {
-                        scheme: "https".into(),
-                        host: "evil.example.com".into(),
-                    }],
-                },
-            },
+            granted,
             FakeInstallSource {
                 manifest: sample_manifest(),
                 app_id: "fake-app".into(),
@@ -412,15 +399,19 @@ mod tests {
 
         let manifest = sample_manifest();
 
+        let granted_permissions = SageGrantedPermissions::new(
+            &manifest.permissions(),
+            [UserBridgeCapability::PersistentStorage],
+            [],
+        )
+            .unwrap();
+
         let app = build_installed_app(
             "url-abc123".into(),
             "r123-url-abc123".into(),
             &app_dir,
             &manifest,
-            SageGrantedPermissions {
-                capabilities: vec![UserBridgeCapability::PersistentStorage],
-                network: SageGrantedNetworkPermissions { whitelist: vec![] },
-            },
+            granted_permissions,
             SageAppFlags::default(),
             InstalledSageAppStorage::Unmanaged,
             UserSageAppSource::Zip,

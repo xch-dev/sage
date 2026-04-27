@@ -5,43 +5,50 @@ use sage_apps::bridge::capabilities::UserBridgeCapability;
 use sage_apps::lifecycle::install::url::normalize_app_url;
 use sage_apps::lifecycle::manifest::{manifest_entry_file, manifest_icon_file};
 use sage_apps::types::{
-    SageAppPackageManifest, SageNetworkPermissionTarget, SageRequestedCapabilities,
-    SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
-    SageRequestedPermissions,
+    SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+    SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
 };
 
-fn requested_permissions() -> SageRequestedPermissions {
-    SageRequestedPermissions {
-        network: SageRequestedNetworkPermissions {
-            whitelist: SageRequestedNetworkWhitelist {
-                required: vec![SageNetworkPermissionTarget {
-                    scheme: "https".to_string(),
-                    host: "required.example.com".to_string(),
-                }],
-                optional: vec![SageNetworkPermissionTarget {
-                    scheme: "wss".to_string(),
-                    host: "optional.example.com".to_string(),
-                }],
-            },
-        },
-        capabilities: SageRequestedCapabilities {
-            required: vec![UserBridgeCapability::WalletSendXch],
-            optional: vec![UserBridgeCapability::PersistentStorage],
-        },
-    }
+fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
+    SageNetworkWhitelistEntry::new(scheme, host).unwrap()
 }
 
-fn sample_manifest() -> SageAppPackageManifest {
-    SageAppPackageManifest {
+fn requested_permissions() -> SageRequestedPermissions {
+    SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::new(
+            [entry("https", "required.example.com")],
+            [entry("wss", "optional.example.com")],
+        ),
+        SageRequestedCapabilities::new(
+            [UserBridgeCapability::WalletSendXch],
+            [UserBridgeCapability::PersistentStorage],
+        ),
+    )
+        .unwrap()
+}
+
+fn sample_manifest_with(
+    entry_file: Option<String>,
+    icon_file: Option<String>,
+) -> SageAppPackageManifest {
+    SageAppPackageManifest::try_from(SageAppPackageManifestParts {
         name: "Test App".to_string(),
         version: "1.0.0".to_string(),
         permissions: requested_permissions(),
         files: vec![sample_manifest_file("index.html", 1)],
-        entry: Some("entry.html".to_string()),
-        icon: Some("icon.svg".to_string()),
+        entry: entry_file,
+        icon: icon_file,
         author: None,
         donation: None,
-    }
+    })
+        .unwrap()
+}
+
+fn sample_manifest() -> SageAppPackageManifest {
+    sample_manifest_with(
+        Some("entry.html".to_string()),
+        Some("icon.svg".to_string()),
+    )
 }
 
 #[test]
@@ -94,8 +101,7 @@ fn manifest_entry_file_uses_explicit_entry() {
 
 #[test]
 fn manifest_entry_file_defaults_to_index_html() {
-    let mut manifest = sample_manifest();
-    manifest.entry = None;
+    let manifest = sample_manifest_with(None, Some("icon.svg".to_string()));
     assert_eq!(manifest_entry_file(&manifest), "index.html");
 }
 
@@ -107,7 +113,6 @@ fn manifest_icon_file_uses_explicit_icon() {
 
 #[test]
 fn manifest_icon_file_defaults_to_icon_png() {
-    let mut manifest = sample_manifest();
-    manifest.icon = None;
+    let manifest = sample_manifest_with(Some("entry.html".to_string()), None);
     assert_eq!(manifest_icon_file(&manifest), "icon.png");
 }

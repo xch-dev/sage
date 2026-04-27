@@ -1,13 +1,18 @@
 use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
+
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::lifecycle::{parse_network_permission_target, read_installed_app_by_id, write_installed_app_metadata};
-use crate::lifecycle::flags::{get_app_flags};
-use crate::lifecycle::update::types::{GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::permissions::{get_user_capability_definition};
-use crate::permissions::{resolve_and_validate_effective_granted_capabilities, normalize_and_validate_user_granted_capabilities};
-use crate::permissions::normalize_and_validate_granted_network;
-use crate::types::{SageGrantedNetworkPermissions, SageGrantedPermissions, SageNetworkPermissionTarget, UserSageApp};
+use crate::lifecycle::{
+    read_installed_app_by_id, write_installed_app_metadata,
+};
+use crate::lifecycle::update::types::{
+    GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange,
+    GrantedNetworkWhitelistChange,
+};
+use crate::permissions::get_user_capability_definition;
+use crate::types::{
+    SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp,
+};
 
 pub fn update_app_permissions(
     base_path: &Path,
@@ -16,46 +21,7 @@ pub fn update_app_permissions(
 ) -> anyhow::Result<UserSageApp> {
     let mut app = read_installed_app_by_id(base_path, app_id)?;
 
-    let normalized_capabilities = normalize_and_validate_user_granted_capabilities(
-        &app.common.requested_permissions.capabilities,
-        &granted_permissions.capabilities,
-    )?;
-
-    let effective_capabilities = resolve_and_validate_effective_granted_capabilities(
-        &app.common.requested_permissions.capabilities,
-        &normalized_capabilities,
-    )?;
-
-    let mut requested_network_whitelist = app
-        .common
-        .active_snapshot
-        .manifest
-        .permissions
-        .network
-        .whitelist
-        .required
-        .clone();
-
-    requested_network_whitelist.extend(granted_permissions.network.whitelist);
-
-    let granted_network_whitelist = normalize_and_validate_granted_network(
-        &app.common.active_snapshot.manifest.permissions.network,
-        &requested_network_whitelist,
-    )?;
-
-    let permission_flags = get_app_flags(
-        &effective_capabilities,
-        Some(&app.common.capability_flags),
-    )?;
-
-    app.common.granted_permissions = SageGrantedPermissions {
-        capabilities: normalized_capabilities,
-        network: SageGrantedNetworkPermissions {
-            whitelist: granted_network_whitelist,
-        },
-    };
-
-    app.common.capability_flags = permission_flags;
+    app.common.update_permissions(&granted_permissions)?;
 
     let app_dir = PathBuf::from(&app.common.app_dir);
     write_installed_app_metadata(&app, &app_dir)?;
@@ -64,41 +30,38 @@ pub fn update_app_permissions(
 }
 
 fn sort_unique_network(
-    values: impl IntoIterator<Item = SageNetworkPermissionTarget>,
-) -> Vec<SageNetworkPermissionTarget> {
-    let set: BTreeSet<SageNetworkPermissionTarget> = values.into_iter().collect();
-    set.into_iter().collect()
+    values: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
+) -> Vec<SageNetworkWhitelistEntry> {
+    values.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
+}
+
+fn sort_unique_capabilities(
+    values: impl IntoIterator<Item = UserBridgeCapability>,
+) -> Vec<UserBridgeCapability> {
+    values.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
 }
 
 fn requested_capability_set(app: &UserSageApp) -> BTreeSet<UserBridgeCapability> {
-    let mut out = BTreeSet::new();
-    out.extend(app.common.requested_permissions.capabilities.required.iter().copied());
-    out.extend(app.common.requested_permissions.capabilities.optional.iter().copied());
-    out
+    app.common
+        .requested_permissions
+        .capabilities
+        .required()
+        .chain(app.common.requested_permissions.capabilities.optional())
+        .copied()
+        .collect()
 }
 
-fn requested_network_set(app: &UserSageApp) -> anyhow::Result<BTreeSet<(String, String)>> {
-    let mut out = BTreeSet::new();
+fn granted_capabilities(app: &UserSageApp) -> Vec<UserBridgeCapability> {
+    app.common.granted_permissions.capabilities().copied().collect()
+}
 
-    for entry in &app.common.requested_permissions.network.whitelist.required {
-        let normalized = parse_network_permission_target(&format!(
-            "{}://{}",
-            entry.scheme, entry.host
-        ))
-            .map_err(anyhow::Error::msg)?;
-        out.insert((normalized.scheme, normalized.host));
-    }
-
-    for entry in &app.common.requested_permissions.network.whitelist.optional {
-        let normalized = parse_network_permission_target(&format!(
-            "{}://{}",
-            entry.scheme, entry.host
-        ))
-            .map_err(anyhow::Error::msg)?;
-        out.insert((normalized.scheme, normalized.host));
-    }
-
-    Ok(out)
+fn granted_network_whitelist(app: &UserSageApp) -> Vec<SageNetworkWhitelistEntry> {
+    app.common
+        .granted_permissions
+        .network()
+        .whitelist()
+        .cloned()
+        .collect()
 }
 
 fn diff_capabilities(
@@ -118,23 +81,19 @@ fn diff_capabilities(
 }
 
 fn diff_network_whitelist(
-    previous: &[SageNetworkPermissionTarget],
-    next: &[SageNetworkPermissionTarget],
+    previous: &[SageNetworkWhitelistEntry],
+    next: &[SageNetworkWhitelistEntry],
 ) -> GrantedNetworkWhitelistChange {
-    let previous_set: BTreeSet<SageNetworkPermissionTarget> = previous.iter().cloned().collect();
-    let next_set: BTreeSet<SageNetworkPermissionTarget> = next.iter().cloned().collect();
+    let previous_set: BTreeSet<SageNetworkWhitelistEntry> =
+        previous.iter().cloned().collect();
+    let next_set: BTreeSet<SageNetworkWhitelistEntry> =
+        next.iter().cloned().collect();
 
     GrantedNetworkWhitelistChange {
         removed: previous_set.difference(&next_set).cloned().collect(),
         added: next_set.difference(&previous_set).cloned().collect(),
         full: next.to_vec(),
     }
-}
-
-fn sort_unique_capabilities(
-    capabilities: Vec<UserBridgeCapability>,
-) -> Vec<UserBridgeCapability> {
-    capabilities.into_iter().collect::<BTreeSet<_>>().into_iter().collect()
 }
 
 pub fn grant_requested_capability_internal(
@@ -151,8 +110,8 @@ pub fn grant_requested_capability_internal(
             capability.key()
         );
     }
-    let definition = get_user_capability_definition(capability);
 
+    let definition = get_user_capability_definition(capability);
     if !definition.flags.user_grantable {
         anyhow::bail!(
             "Capability is not user-grantable and cannot be persisted as a user grant: {}",
@@ -160,32 +119,37 @@ pub fn grant_requested_capability_internal(
         );
     }
 
-    if app.common.granted_permissions.capabilities.contains(&capability) {
-        let full_granted_capabilities =
-            sort_unique_capabilities(app.common.granted_permissions.capabilities.clone());
+    let previous_capabilities = granted_capabilities(&app);
 
+    if previous_capabilities.contains(&capability) {
         return Ok(GrantCapabilityOutcome::AlreadyGranted {
             capability,
-            full_granted_capabilities,
+            full_granted_capabilities: sort_unique_capabilities(previous_capabilities),
         });
     }
 
-    let mut next_capabilities = app.common.granted_permissions.capabilities.clone();
-    next_capabilities.push(capability);
-    next_capabilities = sort_unique_capabilities(next_capabilities);
+    let next_capabilities = sort_unique_capabilities(
+        previous_capabilities
+            .iter()
+            .copied()
+            .chain([capability]),
+    );
 
-    let updated = update_app_permissions(
-        base_path,
-        app_id,
-        SageGrantedPermissions {
-            capabilities: next_capabilities,
-            network: app.common.granted_permissions.network.clone(),
-        },
+    let previous_network = granted_network_whitelist(&app);
+
+    let granted_permissions = SageGrantedPermissions::new(
+        &app.common.requested_permissions,
+        next_capabilities.clone(),
+        previous_network.clone(),
     )?;
 
+    let updated = update_app_permissions(base_path, app_id, granted_permissions)?;
+
+    let updated_capabilities = granted_capabilities(&updated);
+
     let change = diff_capabilities(
-        &app.common.granted_permissions.capabilities,
-        &updated.common.granted_permissions.capabilities,
+        &previous_capabilities,
+        &updated_capabilities,
     );
 
     Ok(GrantCapabilityOutcome::Granted { capability, change })
@@ -194,69 +158,58 @@ pub fn grant_requested_capability_internal(
 pub fn grant_requested_network_whitelist_entry_internal(
     base_path: &Path,
     app_id: &str,
-    entry: &SageNetworkPermissionTarget,
+    entry: &SageNetworkWhitelistEntry,
 ) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
     let app = read_installed_app_by_id(base_path, app_id)?;
 
-    let normalized = parse_network_permission_target(&format!(
-        "{}://{}",
-        entry.scheme, entry.host
-    ))
-        .map_err(anyhow::Error::msg)?;
-    let entry = SageNetworkPermissionTarget {
-        scheme: normalized.scheme,
-        host: normalized.host,
-    };
-
-    let requested = requested_network_set(&app)?;
-    let entry_key = (entry.scheme.clone(), entry.host.clone());
-
-    if !requested.contains(&entry_key) {
+    if !app
+        .common
+        .requested_permissions
+        .network
+        .whitelist()
+        .is_allowed(entry)
+    {
         anyhow::bail!(
-            "Network whitelist entry was not requested by app manifest: {}://{}",
-            entry.scheme,
-            entry.host
+            "Network whitelist entry was not requested by app manifest: {}",
+            entry.as_permission_string(),
         );
     }
 
-    if app
-        .common
-        .granted_permissions
-        .network
-        .whitelist
-        .iter()
-        .any(|existing| existing == &entry)
-    {
-        let full_granted_network_whitelist =
-            sort_unique_network(app.common.granted_permissions.network.whitelist.clone());
+    let previous_whitelist = granted_network_whitelist(&app);
 
+    if previous_whitelist.iter().any(|existing| existing == entry) {
         return Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
-            entry,
-            full_granted_network_whitelist,
+            entry: entry.clone(),
+            full_granted_network_whitelist: sort_unique_network(previous_whitelist),
         });
     }
 
-    let mut next_whitelist = app.common.granted_permissions.network.whitelist.clone();
-    next_whitelist.push(entry.clone());
-    next_whitelist = sort_unique_network(next_whitelist);
-
-    let updated = update_app_permissions(
-        base_path,
-        app_id,
-        SageGrantedPermissions {
-            capabilities: app.common.granted_permissions.capabilities.clone(),
-            network: SageGrantedNetworkPermissions {
-                whitelist: next_whitelist,
-            },
-        },
-    )?;
-
-    let change = diff_network_whitelist(
-        &app.common.granted_permissions.network.whitelist,
-        &updated.common.granted_permissions.network.whitelist,
+    let next_whitelist = sort_unique_network(
+        previous_whitelist
+            .iter()
+            .cloned()
+            .chain([entry.clone()]),
     );
 
-    Ok(GrantNetworkWhitelistOutcome::Granted { entry, change })
+    let granted_permissions = SageGrantedPermissions::new(
+        &app.common.requested_permissions,
+        granted_capabilities(&app),
+        next_whitelist.clone(),
+    )?;
+
+    let updated = update_app_permissions(base_path, app_id, granted_permissions)?;
+
+    let updated_whitelist = granted_network_whitelist(&updated);
+
+    let change = diff_network_whitelist(
+        &previous_whitelist,
+        &updated_whitelist,
+    );
+
+    Ok(GrantNetworkWhitelistOutcome::Granted {
+        entry: entry.clone(),
+        change,
+    })
 }
 
 pub fn update_app_permissions_with_change_internal(
@@ -270,21 +223,19 @@ pub fn update_app_permissions_with_change_internal(
 )> {
     let previous = read_installed_app_by_id(base_path, app_id)?;
 
-    let updated = update_app_permissions(
-        base_path,
-        app_id,
-        granted_permissions,
-    )?;
+    let previous_capabilities = granted_capabilities(&previous);
+    let previous_network = granted_network_whitelist(&previous);
 
-    let capability_change = diff_capabilities(
-        &previous.common.granted_permissions.capabilities,
-        &updated.common.granted_permissions.capabilities,
-    );
+    let updated = update_app_permissions(base_path, app_id, granted_permissions)?;
 
-    let network_change = diff_network_whitelist(
-        &previous.common.granted_permissions.network.whitelist,
-        &updated.common.granted_permissions.network.whitelist,
-    );
+    let updated_capabilities = granted_capabilities(&updated);
+    let updated_network = granted_network_whitelist(&updated);
+
+    let capability_change =
+        diff_capabilities(&previous_capabilities, &updated_capabilities);
+
+    let network_change =
+        diff_network_whitelist(&previous_network, &updated_network);
 
     Ok((updated, capability_change, network_change))
 }

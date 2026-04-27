@@ -1,5 +1,5 @@
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::types::SageNetworkPermissionTarget;
+use crate::types::SageNetworkWhitelistEntry;
 
 #[derive(Debug, Clone)]
 pub struct GrantedCapabilitiesChange {
@@ -10,9 +10,9 @@ pub struct GrantedCapabilitiesChange {
 
 #[derive(Debug, Clone)]
 pub struct GrantedNetworkWhitelistChange {
-    pub removed: Vec<SageNetworkPermissionTarget>,
-    pub added: Vec<SageNetworkPermissionTarget>,
-    pub full: Vec<SageNetworkPermissionTarget>,
+    pub removed: Vec<SageNetworkWhitelistEntry>,
+    pub added: Vec<SageNetworkWhitelistEntry>,
+    pub full: Vec<SageNetworkWhitelistEntry>,
 }
 
 #[derive(Debug, Clone)]
@@ -30,11 +30,11 @@ pub enum GrantCapabilityOutcome {
 #[derive(Debug, Clone)]
 pub enum GrantNetworkWhitelistOutcome {
     AlreadyGranted {
-        entry: SageNetworkPermissionTarget,
-        full_granted_network_whitelist: Vec<SageNetworkPermissionTarget>,
+        entry: SageNetworkWhitelistEntry,
+        full_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
     },
     Granted {
-        entry: SageNetworkPermissionTarget,
+        entry: SageNetworkWhitelistEntry,
         change: GrantedNetworkWhitelistChange,
     },
 }

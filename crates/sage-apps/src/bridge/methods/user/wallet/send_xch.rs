@@ -64,7 +64,7 @@ impl BridgeMethod for WalletSendXch {
         if ctx
             .app
             .granted_permissions()
-            .capabilities
+            .capabilities_vec()
             .contains(&UserBridgeCapability::WalletSendXchAutoSubmit)
         {
             return Ok(None);

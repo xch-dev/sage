@@ -1,26 +1,27 @@
 mod common;
 
-use common::{empty_permissions, sample_manifest_file};
+use common::{sample_manifest_file};
 use sage_apps::lifecycle::limits::{
     MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES,
 };
 use sage_apps::lifecycle::manifest::{
-    validate_manifest_file_path, validate_manifest_files, validate_package_manifest,
+    validate_manifest_file_path, validate_manifest_files,
     validate_sha256_hex,
 };
-use sage_apps::types::SageAppPackageManifest;
+use sage_apps::types::{SageAppManifestFile, SageAppPackageManifest, SageRequestedPermissions, SageAppPackageManifestParts};
 
 fn sample_manifest() -> SageAppPackageManifest {
-    SageAppPackageManifest {
+    SageAppPackageManifest::try_from(SageAppPackageManifestParts {
         name: "Test App".to_string(),
         version: "1.0.0".to_string(),
-        permissions: empty_permissions(),
+        permissions: SageRequestedPermissions::empty(),
         files: vec![sample_manifest_file("dist/index.html", 123)],
         entry: Some("dist/index.html".to_string()),
         icon: Some("dist/icon.png".to_string()),
         author: None,
         donation: None,
-    }
+    })
+        .unwrap()
 }
 
 #[test]
@@ -126,26 +127,49 @@ fn validate_manifest_files_returns_total_size_when_valid() {
 }
 
 #[test]
-fn validate_package_manifest_rejects_blank_name() {
-    let mut manifest = sample_manifest();
-    manifest.name = "   ".to_string();
+fn manifest_rejects_blank_name() {
+    let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+        name: "   ".to_string(),
+        version: "1.0.0".to_string(),
+        permissions: SageRequestedPermissions::empty(),
+        files: vec![sample_file()],
+        entry: Some("index.html".to_string()),
+        icon: Some("icon.png".to_string()),
+        author: None,
+        donation: None,
+    }).unwrap_err();
 
-    let err = validate_package_manifest(&manifest).unwrap_err();
-    assert!(err.to_string().contains("manifest name cannot be empty"));
+    assert!(err.to_string().contains("name cannot be empty"));
 }
 
 #[test]
-fn validate_package_manifest_rejects_blank_version() {
-    let mut manifest = sample_manifest();
-    manifest.version = "   ".to_string();
+fn manifest_rejects_blank_version() {
+    let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+        name: "Test".to_string(),
+        version: "   ".to_string(),
+        permissions: SageRequestedPermissions::empty(),
+        files: vec![sample_file()],
+        entry: Some("index.html".to_string()),
+        icon: Some("icon.png".to_string()),
+        author: None,
+        donation: None,
+    }).unwrap_err();
 
-    let err = validate_package_manifest(&manifest).unwrap_err();
-    assert!(err.to_string().contains("manifest version cannot be empty"));
+    assert!(err.to_string().contains("version cannot be empty"));
 }
 
 #[test]
-fn validate_package_manifest_returns_total_size_when_valid() {
+fn manifest_total_size_is_computed() {
     let manifest = sample_manifest();
-    let total = validate_package_manifest(&manifest).unwrap();
+    let total = manifest.total_bytes().unwrap();
+
     assert_eq!(total, 123);
+}
+
+fn sample_file() -> SageAppManifestFile {
+    SageAppManifestFile {
+        path: "index.html".into(),
+        sha256: "a".repeat(64),
+        size: 123,
+    }
 }

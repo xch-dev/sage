@@ -1,14 +1,11 @@
-use std::collections::BTreeSet;
-
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
+use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
 use crate::bridge::{RustBridgeRequest};
-use crate::lifecycle::parse_network_permission_target;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;
@@ -56,18 +53,15 @@ impl BridgeMethod for AppGetInfo {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let required_network = required_network_set(&ctx)?;
-
         let network = ctx
             .app
             .granted_permissions()
-            .network
-            .whitelist
-            .iter()
+            .network()
+            .whitelist()
             .map(|entry| SageNetworkPermissionInfo {
-                scheme: entry.scheme.clone(),
-                host: entry.host.clone(),
-                required: required_network.contains(&(entry.scheme.clone(), entry.host.clone())),
+                scheme: entry.scheme().to_string(),
+                host: entry.host().to_string(),
+                required: ctx.app.requested_permissions().network.whitelist.is_required(entry),
             })
             .collect::<Vec<_>>();
 
@@ -76,26 +70,8 @@ impl BridgeMethod for AppGetInfo {
             name: ctx.app.name().to_string(),
             version: ctx.app.version().to_string(),
             requested_permissions: ctx.app.requested_permissions().clone(),
-            capabilities: UserBridgeCapability::shared_from_granted(&ctx.app.granted_permissions().capabilities),
+            capabilities: ctx.app.granted_permissions().shared_capabilities(),
             network,
         }))
     }
-}
-
-fn required_network_set(
-    ctx: &BridgeContext<'_>,
-) -> Result<BTreeSet<(String, String)>, BridgeMethodHandleError> {
-    let mut out = BTreeSet::new();
-
-    for entry in &ctx.app.requested_permissions().network.whitelist.required {
-        let normalized = parse_network_permission_target(&format!(
-            "{}://{}",
-            entry.scheme, entry.host
-        ))
-            .map_err(BridgeMethodHandleError::internal_error)?;
-
-        out.insert((normalized.scheme, normalized.host));
-    }
-
-    Ok(out)
 }

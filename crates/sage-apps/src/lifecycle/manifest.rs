@@ -6,7 +6,6 @@ use crate::{
     lifecycle::limits::{
         MAX_APP_FILE_COUNT, MAX_APP_PATH_LENGTH, MAX_APP_TOTAL_SIZE_BYTES,
     },
-    permissions::normalize_and_validate_requested_permissions,
     types::{SageAppManifestFile, SageAppPackageManifest},
 };
 use crate::utils::bytes_sha256_hex;
@@ -14,11 +13,11 @@ use crate::utils::bytes_sha256_hex;
 const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
 pub fn manifest_entry_file(manifest: &SageAppPackageManifest) -> &str {
-    manifest.entry.as_deref().unwrap_or("index.html")
+    manifest.entry().unwrap_or("index.html")
 }
 
 pub fn manifest_icon_file(manifest: &SageAppPackageManifest) -> &str {
-    manifest.icon.as_deref().unwrap_or("icon.png")
+    manifest.icon().unwrap_or("icon.png")
 }
 
 pub fn derive_manifest_url(app_url: &str) -> AnyResult<String> {
@@ -52,8 +51,6 @@ pub async fn fetch_url_manifest(
     let manifest: SageAppPackageManifest = serde_json::from_str(manifest_text)
         .with_context(|| format!("failed to parse manifest json from {manifest_url}"))?;
 
-    validate_package_manifest(&manifest)?;
-
     Ok((manifest, manifest_hash))
 }
 
@@ -63,7 +60,6 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
         .with_context(|| format!("failed to read {}", manifest_path.display()))?;
     let manifest: SageAppPackageManifest =
         serde_json::from_str(&manifest_text).context("failed to parse manifest")?;
-    validate_package_manifest(&manifest)?;
     Ok(manifest)
 }
 
@@ -109,18 +105,6 @@ pub fn validate_sha256_hex(value: &str) -> AnyResult<()> {
     Ok(())
 }
 
-fn validate_donation(address: &str) -> AnyResult<()> {
-    if address.trim().is_empty() {
-        return Err(anyhow!("donation address cannot be empty"));
-    }
-
-    if !address.starts_with("xch") && !address.starts_with("txch") {
-        return Err(anyhow!("invalid donation address format"));
-    }
-
-    Ok(())
-}
-
 pub fn validate_manifest_files(files: &[SageAppManifestFile]) -> AnyResult<u64> {
     if files.is_empty() {
         return Err(anyhow!("manifest files cannot be empty"));
@@ -159,29 +143,4 @@ pub fn validate_manifest_files(files: &[SageAppManifestFile]) -> AnyResult<u64> 
     }
 
     Ok(total)
-}
-
-pub fn validate_package_manifest(
-    manifest: &SageAppPackageManifest,
-) -> AnyResult<u64> {
-    if manifest.name.trim().is_empty() {
-        return Err(anyhow!("manifest name cannot be empty"));
-    }
-
-    if manifest.version.trim().is_empty() {
-        return Err(anyhow!("manifest version cannot be empty"));
-    }
-
-    normalize_and_validate_requested_permissions(&manifest.permissions)?;
-    if let Some(donation) = &manifest.donation {
-        validate_donation(&donation.address)?;
-    }
-
-    if let Some(author) = &manifest.author {
-        if author.name.trim().is_empty() {
-            return Err(anyhow!("author name cannot be empty"));
-        }
-    }
-
-    validate_manifest_files(&manifest.files)
 }

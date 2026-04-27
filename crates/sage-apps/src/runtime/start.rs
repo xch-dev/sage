@@ -230,7 +230,7 @@ fn inline_label_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
 fn should_use_incognito(app: &SageApp) -> bool {
     let has_persistent_storage = app
         .granted_permissions()
-        .capabilities
+        .capabilities_vec()
         .contains(&UserBridgeCapability::PersistentStorage);
 
     if !has_persistent_storage {

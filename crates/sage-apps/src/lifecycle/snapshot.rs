@@ -95,7 +95,7 @@ pub async fn download_url_snapshot(
     fs::create_dir_all(&snapshot_dir)
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
-    for file in &manifest.files {
+    for file in manifest.files() {
         let url = join_app_url(app_url, &file.path)?;
         let bytes = download_bytes(&url).await?;
 

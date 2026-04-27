@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, Result as AnyResult};
 use crate::lifecycle::types::PersistedUserSageApp;
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageNetworkPermissionTarget, UserSageApp, SageApp};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageNetworkWhitelistEntry, UserSageApp, SageApp};
 use crate::system_apps::list_builtin_system_apps;
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
@@ -34,48 +34,16 @@ pub fn retired_app_origins_path(base_path: &Path) -> PathBuf {
     apps_root(base_path).join(RETIRED_APP_ORIGINS_FILE)
 }
 
-fn format_network_target(value: &SageNetworkPermissionTarget) -> String {
-    format!("{}://{}", value.scheme, value.host)
-}
-
-pub fn normalize_network_permission_target(
-    entry: SageNetworkPermissionTarget,
-) -> Result<SageNetworkPermissionTarget, String> {
-    let scheme = entry.scheme.trim().to_ascii_lowercase();
-    let host = entry.host.trim().to_ascii_lowercase();
-
-    if scheme != "https" && scheme != "wss" {
-        return Err(format!(
-            "invalid scheme '{}', only https and wss allowed",
-            scheme
-        ));
-    }
-
-    if host.is_empty()
-        || host.contains('/')
-        || host.contains('?')
-        || host.contains('#')
-        || host.contains(' ')
-    {
-        return Err(format!("invalid host in network entry: {}://{}", scheme, host));
-    }
-
-    Ok(SageNetworkPermissionTarget { scheme, host })
-}
-
 pub fn parse_network_permission_target(
     value: &str,
-) -> Result<SageNetworkPermissionTarget, String> {
+) -> Result<SageNetworkWhitelistEntry, String> {
     let value = value.trim().to_ascii_lowercase();
 
     let (scheme, host) = value
         .split_once("://")
         .ok_or_else(|| format!("invalid network entry (missing scheme): {}", value))?;
 
-    normalize_network_permission_target(SageNetworkPermissionTarget {
-        scheme: scheme.to_string(),
-        host: host.to_string(),
-    })
+    SageNetworkWhitelistEntry::new(scheme, host).map_err(|err| err.to_string())
 }
 
 pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
@@ -255,17 +223,12 @@ pub fn read_installed_user_app_by_origin_id(
     let root = apps_root(base_path);
 
     for entry in list_installed_apps_internal(&root)? {
-        if let ListedSageApp::User(app) = entry {
-            if app.common.origin_id == origin_id {
-                return Ok(app);
-            }
+        if let ListedSageApp::User(app) = entry && app.common.origin_id == origin_id {
+            return Ok(app);
         }
     }
 
-    Err(anyhow::anyhow!(
-        "no installed app found for origin id {}",
-        origin_id
-    ))
+    Err(anyhow::anyhow!("no installed app found for origin id {origin_id}"))
 }
 
 #[cfg(test)]
@@ -273,53 +236,50 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
-    use crate::types::{
-        InstalledSageAppStorage, SageAppFlags, SageAppCommon,
-        SageAppManifestFile, SageAppPackageManifest, SageAppSnapshot,
-        SageGrantedNetworkPermissions, SageGrantedPermissions,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
-    };
+    use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource};
 
     fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
         let dir = app_dir(base, app_id);
         fs::create_dir_all(&dir).unwrap();
 
+        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            name: "Test App".into(),
+            version: "1.0.0".into(),
+            permissions: SageRequestedPermissions::empty(),
+            files: Vec::from([SageAppManifestFile {
+                path: "index.html".into(),
+                sha256: "a".repeat(64),
+                size: 1,
+            }]),
+            entry: Some("index.html".into()),
+            icon: Some("icon.png".into()),
+            author: None,
+            donation: None,
+        }).unwrap();
+
+        let granted_permissions =
+            SageGrantedPermissions::new(&manifest.permissions(), [], []).unwrap();
+
+        let snapshot = SageAppSnapshot {
+            manifest_hash: "hash".into(),
+            snapshot_dir: dir.to_string_lossy().to_string(),
+            total_bytes: 1,
+            manifest: manifest.clone(),
+        };
+
+        let common = SageAppCommon::new(
+            app_id.into(),
+            origin_id.into(),
+            dir.to_string_lossy().to_string(),
+            &manifest,
+            granted_permissions,
+            InstalledSageAppStorage::Unmanaged,
+            snapshot,
+        )
+            .unwrap();
+
         UserSageApp {
-            common: SageAppCommon {
-                id: app_id.into(),
-                origin_id: origin_id.into(),
-                name: "Test App".into(),
-                version: "1.0.0".into(),
-                app_dir: dir.to_string_lossy().to_string(),
-                entry_file: "index.html".into(),
-                icon_file: "icon.png".into(),
-                requested_permissions: SageRequestedPermissions::default(),
-                granted_permissions: SageGrantedPermissions {
-                    capabilities: vec![],
-                    network: SageGrantedNetworkPermissions { whitelist: vec![] },
-                },
-                capability_flags: SageAppFlags::default(),
-                storage: InstalledSageAppStorage::Unmanaged,
-                active_snapshot: SageAppSnapshot {
-                    manifest_hash: "hash".into(),
-                    snapshot_dir: dir.to_string_lossy().to_string(),
-                    total_bytes: 1,
-                    manifest: SageAppPackageManifest {
-                        name: "Test App".into(),
-                        version: "1.0.0".into(),
-                        permissions: SageRequestedPermissions::default(),
-                        files: vec![SageAppManifestFile {
-                            path: "index.html".into(),
-                            sha256: "a".repeat(64),
-                            size: 1,
-                        }],
-                        entry: Some("index.html".into()),
-                        icon: Some("icon.png".into()),
-                        author: None,
-                        donation: None,
-                    },
-                },
-            },
+            common,
             source: UserSageAppSource::Url {
                 app_url: "https://example.com/app/".into(),
                 manifest_url: "https://example.com/app/sage-manifest.json".into(),
