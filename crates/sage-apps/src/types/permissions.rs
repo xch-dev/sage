@@ -2,6 +2,10 @@ use crate::bridge::capabilities::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
 use crate::capabilities::{CapabilityDefinition, CapabilityFlags, get_user_capability_definition};
+use crate::types::invariants::{
+    build_user_grantable_capability_set, validate_permissions_policy,
+    validate_requested_capabilities_are_requestable,
+};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
@@ -193,7 +197,8 @@ impl SageGrantedPermissions {
         capabilities: impl IntoIterator<Item = UserBridgeCapability>,
         network_whitelist: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     ) -> anyhow::Result<Self> {
-        let capabilities = Self::build_capabilities(&requested.capabilities, capabilities)?;
+        let capabilities =
+            build_user_grantable_capability_set(&requested.capabilities, capabilities)?;
 
         let network = SageGrantedNetworkPermissions::new(&requested.network, network_whitelist)?;
 
@@ -244,41 +249,6 @@ impl SageGrantedPermissions {
         )
     }
 
-    fn build_capabilities(
-        requested: &SageRequestedCapabilities,
-        capabilities: impl IntoIterator<Item = UserBridgeCapability>,
-    ) -> anyhow::Result<BTreeSet<UserBridgeCapability>> {
-        let capabilities = capabilities.into_iter().collect::<BTreeSet<_>>();
-
-        for cap in &capabilities {
-            if !requested.is_allowed(*cap) {
-                anyhow::bail!(
-                    "granted capability not requested in manifest: {}",
-                    cap.key()
-                );
-            }
-
-            if !get_user_capability_definition(*cap)
-                .flags()
-                .user_grantable()
-            {
-                anyhow::bail!("granted capability is not user grantable: {}", cap.key());
-            }
-        }
-
-        for cap in requested.required() {
-            if get_user_capability_definition(*cap)
-                .flags()
-                .user_grantable()
-                && !capabilities.contains(cap)
-            {
-                anyhow::bail!("missing required capability: {}", cap.key());
-            }
-        }
-
-        Ok(capabilities)
-    }
-
     #[cfg(test)]
     pub fn new_unchecked(
         capabilities: impl IntoIterator<Item = UserBridgeCapability>,
@@ -293,43 +263,12 @@ impl SageGrantedPermissions {
     }
 }
 
-fn validate_permissions_policy(
-    capabilities: impl IntoIterator<Item = UserBridgeCapability>,
-    network: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
-    context: &str,
-) -> anyhow::Result<()> {
-    let capability_flags = capabilities
-        .into_iter()
-        .fold(CapabilityFlags::EMPTY, |flags, cap| {
-            flags.union(get_user_capability_definition(cap).flags())
-        });
-
-    let has_secret_access = capability_flags.accesses_sensitive_secret();
-    let has_external_access =
-        capability_flags.externally_observable() || network.into_iter().next().is_some();
-
-    if has_secret_access && has_external_access {
-        anyhow::bail!("{context} cannot include both external access and sensitive secret access");
-    }
-
-    Ok(())
-}
-
 impl SageRequestedPermissions {
     pub fn new(
         network: SageRequestedNetworkPermissions,
         capabilities: SageRequestedCapabilities,
     ) -> anyhow::Result<Self> {
-        for capability in capabilities.required().chain(capabilities.optional()) {
-            let definition = get_user_capability_definition(*capability);
-
-            if !definition.flags().requestable_by_app() {
-                anyhow::bail!(
-                    "capability is not requestable by app manifest: {}",
-                    capability.key()
-                );
-            }
-        }
+        validate_requested_capabilities_are_requestable(&capabilities)?;
 
         validate_permissions_policy(
             capabilities.required().copied(),
@@ -432,35 +371,7 @@ impl SageRequestedCapabilities {
         &self,
         user_granted: impl IntoIterator<Item = UserBridgeCapability>,
     ) -> anyhow::Result<BTreeSet<UserBridgeCapability>> {
-        let user_granted = user_granted.into_iter().collect::<BTreeSet<_>>();
-
-        for capability in &user_granted {
-            if !self.is_allowed(*capability) {
-                anyhow::bail!(
-                    "granted capability not requested in manifest: {}",
-                    capability.key()
-                );
-            }
-
-            let definition = get_user_capability_definition(*capability);
-
-            if !definition.flags().user_grantable() {
-                anyhow::bail!(
-                    "granted capability is not user grantable: {}",
-                    capability.key()
-                );
-            }
-        }
-
-        for capability in self.required() {
-            let definition = get_user_capability_definition(*capability);
-
-            if definition.flags().user_grantable() && !user_granted.contains(capability) {
-                anyhow::bail!("missing required capability: {}", capability.key());
-            }
-        }
-
-        Ok(user_granted)
+        build_user_grantable_capability_set(self, user_granted)
     }
 }
 

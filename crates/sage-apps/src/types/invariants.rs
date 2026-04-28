@@ -2,13 +2,20 @@ use std::path::PathBuf;
 
 use anyhow::anyhow;
 
+use std::collections::BTreeSet;
+
+use super::app::SageAppFlags;
+
+use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::{CapabilityFlags, get_user_capability_definition};
 use crate::lifecycle::{
     MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES, validate_manifest_file_path, validate_sha256_hex,
 };
-use super::app::SageAppFlags;
 use crate::types::SageAppSnapshot;
 use crate::types::manifest::SageAppManifestFile;
+use crate::types::network::SageNetworkWhitelistEntry;
 use crate::types::normalizers::{normalized_non_empty_string, normalized_optional_string};
+use crate::types::permissions::SageRequestedCapabilities;
 
 pub(super) struct NormalizedAppIdentity {
     pub id: String,
@@ -129,6 +136,97 @@ pub(super) fn validate_snapshot_entry_and_icon_exist(
 
         if !icon_file.is_file() {
             anyhow::bail!("{label} icon file does not exist: {}", icon_file.display());
+        }
+    }
+
+    Ok(())
+}
+
+pub(super) fn validate_permissions_policy(
+    capabilities: impl IntoIterator<Item = UserBridgeCapability>,
+    network: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
+    context: &str,
+) -> anyhow::Result<()> {
+    let capability_flags = capabilities
+        .into_iter()
+        .fold(CapabilityFlags::EMPTY, |flags, cap| {
+            flags.union(get_user_capability_definition(cap).flags())
+        });
+
+    let has_secret_access = capability_flags.accesses_sensitive_secret();
+    let has_external_access =
+        capability_flags.externally_observable() || network.into_iter().next().is_some();
+
+    if has_secret_access && has_external_access {
+        anyhow::bail!("{context} cannot include both external access and sensitive secret access");
+    }
+
+    Ok(())
+}
+
+pub(super) fn validate_requested_capabilities_are_requestable(
+    capabilities: &SageRequestedCapabilities,
+) -> anyhow::Result<()> {
+    for capability in capabilities.required().chain(capabilities.optional()) {
+        let definition = get_user_capability_definition(*capability);
+
+        if !definition.flags().requestable_by_app() {
+            anyhow::bail!(
+                "capability is not requestable by app manifest: {}",
+                capability.key()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+pub(super) fn build_user_grantable_capability_set(
+    requested: &SageRequestedCapabilities,
+    capabilities: impl IntoIterator<Item = UserBridgeCapability>,
+) -> anyhow::Result<BTreeSet<UserBridgeCapability>> {
+    let capabilities = capabilities.into_iter().collect::<BTreeSet<_>>();
+
+    validate_user_granted_capabilities(requested, &capabilities)?;
+    validate_required_user_grantable_capabilities_present(requested, &capabilities)?;
+
+    Ok(capabilities)
+}
+
+pub(super) fn validate_user_granted_capabilities(
+    requested: &SageRequestedCapabilities,
+    user_granted: &BTreeSet<UserBridgeCapability>,
+) -> anyhow::Result<()> {
+    for capability in user_granted {
+        if !requested.is_allowed(*capability) {
+            anyhow::bail!(
+                "granted capability not requested in manifest: {}",
+                capability.key()
+            );
+        }
+
+        let definition = get_user_capability_definition(*capability);
+
+        if !definition.flags().user_grantable() {
+            anyhow::bail!(
+                "granted capability is not user grantable: {}",
+                capability.key()
+            );
+        }
+    }
+
+    Ok(())
+}
+
+pub(super) fn validate_required_user_grantable_capabilities_present(
+    requested: &SageRequestedCapabilities,
+    user_granted: &BTreeSet<UserBridgeCapability>,
+) -> anyhow::Result<()> {
+    for capability in requested.required() {
+        let definition = get_user_capability_definition(*capability);
+
+        if definition.flags().user_grantable() && !user_granted.contains(capability) {
+            anyhow::bail!("missing required capability: {}", capability.key());
         }
     }
 
