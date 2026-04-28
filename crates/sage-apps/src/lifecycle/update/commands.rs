@@ -1,5 +1,4 @@
 use std::io;
-use std::path::PathBuf;
 
 use tauri::{AppHandle, State, command};
 
@@ -94,8 +93,7 @@ pub async fn download_app_update(
 
     app.set_pending_update(Some(pending));
 
-    let app_dir = PathBuf::from(app.common().app_dir());
-    write_installed_app_metadata(&app, &app_dir)
+    write_installed_app_metadata(&app, &app.app_path())
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
 
     Ok(app)
@@ -123,10 +121,8 @@ pub async fn apply_app_update(
             .ok_or_else(|| io::Error::other(format!("app {app_id} has no available update")))?,
     };
 
-    let app_dir = PathBuf::from(app.common().app_dir());
-
     let snapshot = download_url_snapshot(
-        &app_dir,
+        &app.app_path(),
         pending.app_url(),
         pending.manifest(),
         pending.manifest_hash(),
@@ -142,7 +138,7 @@ pub async fn apply_app_update(
 
     app.set_pending_update(None);
 
-    write_installed_app_metadata(&app, &app_dir)
+    write_installed_app_metadata(&app, &app.app_path())
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
 
     Ok(app)

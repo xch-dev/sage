@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -87,6 +88,10 @@ impl UserSageApp {
     pub fn pending_update(&self) -> Option<&UserSageAppPendingUpdate> {
         self.pending_update.as_ref()
     }
+
+    pub fn app_path(&self) -> PathBuf {
+        self.common().app_path()
+    }
 }
 
 impl SageApp {
@@ -122,6 +127,10 @@ impl SageApp {
 
     pub fn app_dir(&self) -> &str {
         self.common().app_dir()
+    }
+
+    pub fn app_path(&self) -> PathBuf {
+        self.common().app_path()
     }
 
     pub fn entry_file(&self) -> &str {

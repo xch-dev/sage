@@ -177,6 +177,10 @@ impl SageAppCommon {
         &self.app_dir
     }
 
+    pub fn app_path(&self) -> PathBuf {
+        PathBuf::from(&self.app_dir)
+    }
+
     pub fn entry_file(&self) -> &str {
         &self.entry_file
     }

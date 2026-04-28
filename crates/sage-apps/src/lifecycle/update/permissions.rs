@@ -1,5 +1,5 @@
 use std::collections::BTreeSet;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::capabilities::get_user_capability_definition;
@@ -19,8 +19,7 @@ pub fn update_app_permissions(
 
     app.common_mut().update_permissions(granted_permissions)?;
 
-    let app_dir = PathBuf::from(app.common().app_dir());
-    write_installed_app_metadata(&app, &app_dir)?;
+    write_installed_app_metadata(&app, &app.app_path())?;
 
     Ok(app)
 }
