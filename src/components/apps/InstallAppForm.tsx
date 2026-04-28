@@ -25,7 +25,7 @@ interface Props {
   ) => Promise<void>;
 }
 
-type InstallSource =
+export type InstallSource =
   | {
       kind: 'zip';
       zipPath: string;

@@ -1,6 +1,5 @@
 import type {
   SageAppPackageManifest,
-  SageAppUrlPreview,
   SageGrantedPermissions,
   UserSageApp,
 } from '@/bindings';
@@ -14,18 +13,8 @@ import {
 } from '@/components/ui/dialog';
 import { PermissionsEditor } from '@/components/apps/permissions/PermissionsEditor';
 import { Globe, Package } from 'lucide-react';
-
-type InstallSource =
-  | {
-      kind: 'zip';
-      zipPath: string;
-      manifest: SageAppPackageManifest;
-    }
-  | {
-      kind: 'url';
-      appUrl: string;
-      preview: SageAppUrlPreview;
-    };
+import { InstallSource } from '@/components/apps/InstallAppForm.tsx';
+import { AppIconContent } from '@/components/apps/AppIcon.tsx';
 
 interface Props {
   source: InstallSource | null;
@@ -108,57 +97,32 @@ function resolveInstallIconUrl(
   source: InstallSource,
   manifest: SageAppPackageManifest,
 ): string | null {
-  const candidates: string[] = [];
+  if (source.kind !== 'url') return null;
+  if (!manifest.icon) return null;
 
-  if (manifest.icon) {
-    candidates.push(manifest.icon);
-  }
-
-  candidates.push('icon.png');
-
-  const existing = candidates.find((candidate) =>
-    manifest.files.some((file) => file.path === candidate),
-  );
-
-  if (!existing) {
+  try {
+    return new URL(manifest.icon, source.preview.appUrl).toString();
+  } catch {
     return null;
   }
-
-  if (source.kind !== 'url') {
-    return null;
-  }
-
-  const bases = [source.preview.appUrl, source.preview.manifestUrl];
-
-  for (const base of bases) {
-    try {
-      return new URL(existing, base).toString();
-    } catch {
-      //
-    }
-  }
-
-  return null;
 }
-
 function computeManifestSize(manifest: SageAppPackageManifest): number {
   return manifest.files.reduce((sum, f) => sum + (f.size ?? 0), 0);
 }
 
-function AppIcon({ name, iconUrl }: { name: string; iconUrl: string | null }) {
-  const initial = name.trim().charAt(0).toUpperCase() || 'A';
-
-  if (iconUrl) {
-    return (
-      <div className='h-16 w-16 overflow-hidden rounded-2xl border bg-background shadow-sm'>
-        <img src={iconUrl} alt='' className='h-full w-full object-cover' />
-      </div>
-    );
-  }
-
+function InstallAppIcon({
+  source,
+  manifest,
+}: {
+  source: InstallSource;
+  manifest: SageAppPackageManifest;
+}) {
   return (
     <div className='flex h-16 w-16 items-center justify-center rounded-2xl border bg-muted/30 text-lg font-semibold shadow-sm'>
-      {initial}
+      <AppIconContent
+        name={manifest.name}
+        iconUrl={resolveInstallIconUrl(source, manifest)}
+      />
     </div>
   );
 }
@@ -170,13 +134,12 @@ function InstallAppSummary({
   source: InstallSource;
   manifest: SageAppPackageManifest;
 }) {
-  const iconUrl = resolveInstallIconUrl(source, manifest);
   const previewSizeBytes = computeManifestSize(manifest);
 
   return (
     <div className='rounded-2xl border bg-muted/20 p-4'>
       <div className='flex items-start gap-4'>
-        <AppIcon name={manifest.name} iconUrl={iconUrl} />
+        <InstallAppIcon source={source} manifest={manifest} />
 
         <div className='min-w-0 flex-1'>
           <div className='flex flex-wrap items-center gap-2'>

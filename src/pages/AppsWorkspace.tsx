@@ -119,9 +119,11 @@ export function AppsWorkspace() {
       }
 
       const iconSrc =
-        installedApp.kind === 'system'
-          ? `sage-system-app://${installedApp.common.originId}/${installedApp.common.iconFile}`
-          : `sage-app://${installedApp.common.originId}/${installedApp.common.iconFile}`;
+        installedApp.common.iconFile == null
+          ? null
+          : installedApp.kind === 'system'
+            ? `sage-system-app://${installedApp.common.originId}/${installedApp.common.iconFile}`
+            : `sage-app://${installedApp.common.originId}/${installedApp.common.iconFile}`;
 
       out.push({
         appId: runtime.appId,

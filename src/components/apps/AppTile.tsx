@@ -1,5 +1,6 @@
 import type { SageApp } from '@/bindings';
 import type { SandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
+import { AppIcon } from '@/components/apps/AppIcon.tsx';
 
 interface Props {
   app: SageApp;
@@ -9,11 +10,6 @@ interface Props {
 }
 
 export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
-  const iconSrc =
-    app.kind === 'system'
-      ? `sage-system-app://${app.common.originId}/${app.common.iconFile}`
-      : `sage-app://${app.common.originId}/${app.common.iconFile}`;
-
   const isChecking =
     !launchDecision.allowed &&
     launchDecision.title === 'Sandbox tests are still running';
@@ -46,7 +42,7 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
       ) : null}
 
       <div className='flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border bg-background shadow-sm'>
-        <img src={iconSrc} alt='' className='h-full w-full object-cover' />
+        <AppIcon app={app} />
       </div>
 
       <div className='min-w-0 w-full'>

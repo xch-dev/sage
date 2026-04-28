@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button.tsx';
 import { Blocks, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { AppIconContent } from '@/components/apps/AppIcon.tsx';
 
 export interface AppTaskBarTab {
   appId: string;
@@ -310,17 +311,9 @@ export function AppTaskBar({
                       : 'bg-muted text-muted-foreground hover:bg-muted/80',
                   )}
                 >
-                  {tab.iconSrc ? (
-                    <img
-                      src={tab.iconSrc}
-                      alt=''
-                      className='h-4 w-4 shrink-0 rounded-sm'
-                    />
-                  ) : (
-                    <div className='flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-border text-[10px] font-semibold'>
-                      {tab.name.slice(0, 1).toUpperCase()}
-                    </div>
-                  )}
+                  <div className='flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-sm'>
+                    <AppIconContent name={tab.name} iconUrl={tab.iconSrc} />
+                  </div>
 
                   <span className='min-w-0 flex-1 truncate text-sm font-medium'>
                     {tab.name}
