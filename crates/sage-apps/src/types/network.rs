@@ -2,6 +2,7 @@ use std::collections::BTreeSet;
 
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
+use crate::types::invariants::split_required_optional_set;
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntry {
@@ -100,13 +101,7 @@ impl SageRequestedNetworkWhitelist {
         required: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
         optional: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     ) -> Self {
-        let required = required.into_iter().collect::<BTreeSet<_>>();
-
-        let optional = optional
-            .into_iter()
-            .filter(|entry| !required.contains(entry))
-            .collect::<BTreeSet<_>>();
-
+        let (required, optional) = split_required_optional_set(required, optional);
         Self { required, optional }
     }
 

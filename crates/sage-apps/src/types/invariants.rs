@@ -232,3 +232,17 @@ pub(super) fn validate_required_user_grantable_capabilities_present(
 
     Ok(())
 }
+
+pub(super) fn split_required_optional_set<T: Ord>(
+    required: impl IntoIterator<Item = T>,
+    optional: impl IntoIterator<Item = T>,
+) -> (BTreeSet<T>, BTreeSet<T>) {
+    let required = required.into_iter().collect::<BTreeSet<_>>();
+
+    let optional = optional
+        .into_iter()
+        .filter(|item| !required.contains(item))
+        .collect::<BTreeSet<_>>();
+
+    (required, optional)
+}

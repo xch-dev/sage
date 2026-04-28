@@ -2,10 +2,7 @@ use crate::bridge::capabilities::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
 use crate::capabilities::{CapabilityDefinition, CapabilityFlags, get_user_capability_definition};
-use crate::types::invariants::{
-    build_user_grantable_capability_set, validate_permissions_policy,
-    validate_requested_capabilities_are_requestable,
-};
+use crate::types::invariants::{build_user_grantable_capability_set, split_required_optional_set, validate_permissions_policy, validate_requested_capabilities_are_requestable};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
@@ -302,13 +299,7 @@ impl SageRequestedCapabilities {
         required: impl IntoIterator<Item = UserBridgeCapability>,
         optional: impl IntoIterator<Item = UserBridgeCapability>,
     ) -> Self {
-        let required = required.into_iter().collect::<BTreeSet<_>>();
-
-        let optional = optional
-            .into_iter()
-            .filter(|cap| !required.contains(cap))
-            .collect::<BTreeSet<_>>();
-
+        let (required, optional) = split_required_optional_set(required, optional);
         Self { required, optional }
     }
 
