@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::types::app::common::SageAppCommon;
-use crate::types::app::user::SageApp;
 use crate::types::permissions::SageGrantedSystemPermissions;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -30,10 +29,6 @@ impl SystemSageApp {
             system_granted_permissions,
             presentation,
         }
-    }
-
-    pub fn into_sage_app(self) -> SageApp {
-        SageApp::System(self)
     }
 
     pub fn common(&self) -> &SageAppCommon {

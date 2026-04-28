@@ -24,10 +24,10 @@ fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
         SandboxCapability::NetworkAllowlistEnforced,
     ];
 
-    if app
+    let has_persistent_storage = app
         .granted_permissions()
-        .has_capability(UserBridgeCapability::PersistentStorage)
-    {
+        .has_capability(UserBridgeCapability::PersistentStorage);
+    if has_persistent_storage {
         caps.push(SandboxCapability::StoragePersistenceNormal);
 
         if app.capability_flags().has_secret_access() {

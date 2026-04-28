@@ -36,14 +36,6 @@ impl SageAppSnapshot {
         Ok(snapshot)
     }
 
-    pub fn new_builtin(
-        app_id: &str,
-        snapshot_dir: impl Into<String>,
-        manifest: SageAppPackageManifest,
-    ) -> anyhow::Result<Self> {
-        Self::new(format!("builtin:{app_id}"), snapshot_dir, manifest)
-    }
-
     pub fn new_builtin_system(
         app_id: &str,
         snapshot_dir: impl Into<String>,
