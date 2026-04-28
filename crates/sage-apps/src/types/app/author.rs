@@ -10,10 +10,7 @@ pub struct SageAppAuthor {
 }
 
 impl SageAppAuthor {
-    pub fn new(
-        name: impl Into<String>,
-        avatar: Option<impl Into<String>>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(name: impl Into<String>, avatar: Option<impl Into<String>>) -> anyhow::Result<Self> {
         Ok(Self {
             name: normalized_non_empty_string(name, "author name")?,
             avatar: normalized_optional_string(avatar),

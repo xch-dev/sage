@@ -19,7 +19,7 @@ pub fn build_builtin_apps() -> Result<(), String> {
     let runtime_src_dir = builtin_root.join("runtime-apps-src");
     let system_apps_workspace_dir = builtin_root.join("system-apps-src");
     let system_apps_src_dir = system_apps_workspace_dir.join("apps");
-    
+
     let workspace_root = manifest_dir
         .parent()
         .and_then(|p| p.parent())

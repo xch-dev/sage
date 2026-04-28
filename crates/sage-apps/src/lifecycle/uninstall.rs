@@ -1,7 +1,7 @@
 use crate::host::{AppState, Result};
 use crate::lifecycle::{
-    apps_clear_runtime_browsing_data, apps_root, record_storage_cleanup_failure,
-    enqueue_retired_app_origin, read_installed_app_by_id,
+    apps_clear_runtime_browsing_data, apps_root, enqueue_retired_app_origin,
+    read_installed_app_by_id, record_storage_cleanup_failure,
 };
 use std::{fs, io};
 use tauri::{AppHandle, State, command};

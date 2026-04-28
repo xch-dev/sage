@@ -1,4 +1,4 @@
-use std::path::{PathBuf};
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -7,7 +7,9 @@ use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::normalizers::normalized_non_empty_string;
+use crate::types::invariants::{
+    normalize_app_identity, validate_app_flags_policy, validate_snapshot_entry_and_icon_exist,
+};
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
 
@@ -118,17 +120,14 @@ impl SageAppCommon {
         snapshot: SageAppSnapshot,
         previous_flags: Option<&SageAppFlags>,
     ) -> anyhow::Result<Self> {
-        let id = normalized_non_empty_string(id, "app id")?;
-        let origin_id = normalized_non_empty_string(origin_id, "app origin id")?;
-        let app_dir = normalized_non_empty_string(app_dir, "app directory")?;
+        let identity = normalize_app_identity(id, origin_id, app_dir)?;
 
         let manifest = snapshot.manifest();
 
-        let granted_permissions =
-            SageGrantedPermissions::from_requested_and_granted(
-                manifest.permissions(),
-                granted_permissions,
-            )?;
+        let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
+            manifest.permissions(),
+            granted_permissions,
+        )?;
 
         let effective_capabilities = manifest
             .permissions()
@@ -137,14 +136,14 @@ impl SageAppCommon {
 
         let capability_flags =
             SageAppFlags::from_granted_capabilities(&effective_capabilities, previous_flags)?;
-        Self::validate_app_flags_policy(capability_flags)?;
+        validate_app_flags_policy(capability_flags)?;
 
         let common = Self {
-            id,
-            origin_id,
+            id: identity.id,
+            origin_id: identity.origin_id,
             name: manifest.name().to_string(),
             version: manifest.version().to_string(),
-            app_dir,
+            app_dir: identity.app_dir,
             entry_file: manifest_entry_file(manifest).to_string(),
             icon_file: manifest_icon_file(manifest).map(str::to_string),
             requested_permissions: manifest.permissions().clone(),
@@ -154,25 +153,14 @@ impl SageAppCommon {
             active_snapshot: snapshot,
         };
 
-        common.validate_files_exist_internal("app")?;
+        validate_snapshot_entry_and_icon_exist(
+            &common.active_snapshot,
+            &common.entry_file,
+            common.icon_file.as_deref(),
+            "app",
+        )?;
 
         Ok(common)
-    }
-
-    fn validate_app_flags_policy(flags: SageAppFlags) -> anyhow::Result<()> {
-        if flags.has_external_access() && flags.has_secret_access() {
-            anyhow::bail!(
-                "app permissions cannot include both external access and sensitive secret access"
-            );
-        }
-
-        if flags.has_external_access() && flags.storage_may_contain_secrets() {
-            anyhow::bail!(
-                "app permissions cannot include external access while storage may contain secrets"
-            );
-        }
-
-        Ok(())
     }
 
     pub fn id(&self) -> &str {
@@ -231,21 +219,5 @@ impl SageAppCommon {
         self.icon_file
             .as_ref()
             .map(|icon_file| self.active_snapshot.file_path(icon_file))
-    }
-
-    fn validate_files_exist_internal(&self, label: &str) -> anyhow::Result<()> {
-        let entry_file = self.entry_path();
-
-        if !entry_file.is_file() {
-            anyhow::bail!("{label} entry file does not exist: {}", entry_file.display());
-        }
-
-        if let Some(icon_file) = self.icon_path()
-            && !icon_file.is_file()
-        {
-            anyhow::bail!("{label} icon file does not exist: {}", icon_file.display());
-        }
-
-        Ok(())
     }
 }

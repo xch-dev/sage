@@ -8,8 +8,7 @@ use uuid::Uuid;
 use super::AppInstallSource;
 use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::lifecycle::{
-    download_url_snapshot, read_retired_app_origins,
-    write_retired_app_origins,
+    download_url_snapshot, read_retired_app_origins, write_retired_app_origins,
 };
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrlPreview, UserSageApp, UserSageAppSource,
@@ -212,13 +211,13 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
+    use crate::runtime::state::types::SageAppRuntimeRecord;
     use crate::types::{
         InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile,
         SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
     };
     use tempfile::{TempDir, tempdir};
-    use crate::runtime::state::types::SageAppRuntimeRecord;
 
     fn fake_retired_app_origins(
         dir: &TempDir,
@@ -236,7 +235,7 @@ mod tests {
             dir.path(),
             &[RetiredAppOriginEntry::new(&app, cleanup_pending)],
         )
-            .unwrap();
+        .unwrap();
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -245,12 +244,15 @@ mod tests {
                 [],
                 [SageNetworkWhitelistEntry::new("https", "api.example.com").unwrap()],
             ),
-            SageRequestedCapabilities::new([], [
-                UserBridgeCapability::PersistentStorage,
-                UserBridgeCapability::WalletGetSecretKey,
-            ]),
+            SageRequestedCapabilities::new(
+                [],
+                [
+                    UserBridgeCapability::PersistentStorage,
+                    UserBridgeCapability::WalletGetSecretKey,
+                ],
+            ),
         )
-            .unwrap();
+        .unwrap();
 
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".into(),
@@ -262,7 +264,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     fn sample_app_in(
@@ -300,7 +302,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         let user_app = UserSageApp::new_installed(
             common,
@@ -316,14 +318,11 @@ mod tests {
 
         let mut app = user_app.into_sage_app();
 
-        let _runtime = SageAppRuntimeRecord::new_inline(
-            &mut app,
-            "sage-app://test/index.html",
-            true,
-            false,
-        );
+        let _runtime =
+            SageAppRuntimeRecord::new_inline(&mut app, "sage-app://test/index.html", true, false);
 
-        app.into_user().expect("sample app should remain a user app")
+        app.into_user()
+            .expect("sample app should remain a user app")
     }
 
     #[test]

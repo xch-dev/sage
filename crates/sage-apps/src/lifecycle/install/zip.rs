@@ -116,7 +116,9 @@ fn find_existing_installed_app_by_name(
     Ok(list_installed_apps_internal(root)?
         .into_iter()
         .find_map(|app| match app {
-            ListedSageApp::User(installed) if installed.common().name() == app_name => Some(installed),
+            ListedSageApp::User(installed) if installed.common().name() == app_name => {
+                Some(installed)
+            }
             _ => None,
         }))
 }
@@ -125,7 +127,10 @@ fn find_existing_installed_app_by_name(
 mod tests {
     use super::*;
     use crate::lifecycle::write_installed_app_metadata;
-    use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions};
+    use crate::types::{
+        InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts,
+        SageGrantedPermissions, SageRequestedPermissions,
+    };
     use tempfile::tempdir;
 
     fn sample_manifest_named(name: &str) -> SageAppPackageManifest {
@@ -133,11 +138,9 @@ mod tests {
             name: name.into(),
             version: "1.0.0".into(),
             permissions: SageRequestedPermissions::empty(),
-            files: vec![SageAppManifestFile::new(
-                "index.html".to_string(),
-                "a".repeat(64),
-                123,
-            ).unwrap()],
+            files: vec![
+                SageAppManifestFile::new("index.html".to_string(), "a".repeat(64), 123).unwrap(),
+            ],
             entry: Some("index.html".into()),
             icon: None,
             author: None,
@@ -188,9 +191,10 @@ mod tests {
                 "hash".to_string(),
                 app_dir.to_string_lossy().to_string(),
                 manifest.clone(),
-            ).unwrap(),
+            )
+            .unwrap(),
         )
-            .unwrap();
+        .unwrap();
 
         let installed = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 

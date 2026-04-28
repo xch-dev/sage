@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result as AnyResult};
+use anyhow::{Context, Result as AnyResult, anyhow};
 use zip::ZipArchive;
 
 use crate::utils::bytes_sha256_hex;

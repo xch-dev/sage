@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::capabilities::CapabilityFlags;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, Default)]
@@ -79,11 +79,9 @@ mod tests {
 
     #[test]
     fn from_granted_capabilities_sets_expected_flags_for_shared_send_capability() {
-        let flags = SageAppFlags::from_granted_capabilities(
-            &[UserBridgeCapability::WalletSendXch],
-            None,
-        )
-            .unwrap();
+        let flags =
+            SageAppFlags::from_granted_capabilities(&[UserBridgeCapability::WalletSendXch], None)
+                .unwrap();
 
         assert!(flags.has_external_access());
         assert!(!flags.has_secret_access());
@@ -99,7 +97,7 @@ mod tests {
             &[UserBridgeCapability::WalletSendXch],
             Some(&previous),
         )
-            .unwrap_err();
+        .unwrap_err();
 
         assert_eq!(err.to_string(), "STORAGE_TAINTED");
     }
@@ -109,8 +107,9 @@ mod tests {
         let err = SageAppFlags::new(true, true, false).unwrap_err();
 
         assert!(
-            err.to_string()
-                .contains("externally observable permissions together with sensitive secret access")
+            err.to_string().contains(
+                "externally observable permissions together with sensitive secret access"
+            )
         );
     }
 

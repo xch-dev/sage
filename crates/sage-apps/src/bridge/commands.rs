@@ -6,8 +6,8 @@ use crate::bridge::{
     ResolveBridgeApprovalArgs, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
     response_channel_for_runtime_kind,
 };
+use crate::capabilities::user_registry;
 use crate::host::AppState;
-use crate::capabilities::{user_registry};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::types::SageAppCapabilityDefinitionView;
@@ -46,8 +46,7 @@ pub async fn apps_resolve_bridge_approval(
     let pending = get_pending_approval(&apps_state, &args.approval_id).await?;
     remove_pending_approval(&apps_state, &args.approval_id).await;
 
-    let (app_id, runtime_kind) =
-        assert_bridge_origin(&app, &pending.app_webview_label)?;
+    let (app_id, runtime_kind) = assert_bridge_origin(&app, &pending.app_webview_label)?;
     let app_model = resolve_app(&app, &app_id)?;
 
     let response = if args.approved {
@@ -75,11 +74,6 @@ pub async fn apps_resolve_bridge_approval(
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_user_capability_definitions()
--> Result<Vec<SageAppCapabilityDefinitionView>, String> {
-    Ok(user_registry()
-        .values()
-        .copied()
-        .map(Into::into)
-        .collect())
+pub fn get_user_capability_definitions() -> Result<Vec<SageAppCapabilityDefinitionView>, String> {
+    Ok(user_registry().values().copied().map(Into::into).collect())
 }

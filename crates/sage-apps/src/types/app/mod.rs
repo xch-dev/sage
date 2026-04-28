@@ -18,3 +18,5 @@ pub(crate) use system::{SystemAppPresentation, SystemSageApp};
 pub(crate) use user::{
     CorruptedInstalledSageApp, ListedSageApp, SageApp, UserSageApp, UserSageAppSource,
 };
+
+pub(super) use flags::SageAppFlags;

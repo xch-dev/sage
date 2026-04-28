@@ -250,9 +250,11 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let cleanup_base_path = path.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(err) =
-                    apps::lifecycle::process_pending_storage_cleanup(&app_handle, &cleanup_base_path)
-                        .await
+                if let Err(err) = apps::lifecycle::process_pending_storage_cleanup(
+                    &app_handle,
+                    &cleanup_base_path,
+                )
+                .await
                 {
                     eprintln!("failed to retry pending storage cleanup on startup: {err}");
                 }

@@ -8,7 +8,7 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
 
 use crate::lifecycle::write_installed_app_metadata;
 use crate::runtime::state::types::{
-    inline_label_for, runtime_id_for, SageAppRuntimeKind, SageAppRuntimeRecord,
+    SageAppRuntimeKind, SageAppRuntimeRecord, inline_label_for, runtime_id_for,
 };
 use crate::runtime::state::write::{write_runtime_and_emit_changed, write_runtime_id_by_app_id};
 use crate::runtime::webview_locator::{
@@ -17,7 +17,7 @@ use crate::runtime::webview_locator::{
 use crate::runtime::{build_entry_src, is_allowed_app_url, resolve_app, runtime_kind_for_app};
 use crate::storage::parse_data_store_id;
 use crate::types::{InstalledSageAppStorage, SageApp};
-use crate::{sandbox, AppsHostState};
+use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -54,7 +54,7 @@ pub async fn create_inline_runtime(
             visible: args.visible,
             internal: args.internal,
         })
-            .await;
+        .await;
     }
 
     if !args.internal && !resolved.is_sandbox_test() {
@@ -82,8 +82,8 @@ pub async fn create_inline_runtime(
                 .map_err(|e| format!("invalid entry url: {e}"))?,
         ),
     )
-        .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
-        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+    .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
+    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     if use_incognito {
         builder = builder.incognito(true);
@@ -119,12 +119,8 @@ pub async fn create_inline_runtime(
         )
         .map_err(|e| format!("failed to create child webview: {e}"))?;
 
-    let record = SageAppRuntimeRecord::new_inline(
-        &mut resolved,
-        entry_src,
-        args.visible,
-        args.internal,
-    );
+    let record =
+        SageAppRuntimeRecord::new_inline(&mut resolved, entry_src, args.visible, args.internal);
 
     persist_runtime_side_effects(&resolved)?;
 
@@ -192,17 +188,17 @@ async fn reuse_existing_inline_runtime(
         let by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
         by_runtime_id.get(&runtime_id).cloned()
     }
-        .unwrap_or_else(|| {
-            SageAppRuntimeRecord::new_existing_inline_fallback(
-                runtime_id.clone(),
-                app_id.clone(),
-                app_name,
-                entry_src,
-                webview_label.clone(),
-                runtime_kind,
-                internal,
-            )
-        });
+    .unwrap_or_else(|| {
+        SageAppRuntimeRecord::new_existing_inline_fallback(
+            runtime_id.clone(),
+            app_id.clone(),
+            app_name,
+            entry_src,
+            webview_label.clone(),
+            runtime_kind,
+            internal,
+        )
+    });
 
     record.mark_inline_reused(visible, internal);
 

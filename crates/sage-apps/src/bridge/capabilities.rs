@@ -116,7 +116,11 @@ where
 {
     fn shared(self) -> Vec<UserBridgeCapability> {
         self.into_iter()
-            .filter(|cap| get_user_capability_definition(*cap).flags().shared_with_app())
+            .filter(|cap| {
+                get_user_capability_definition(*cap)
+                    .flags()
+                    .shared_with_app()
+            })
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect()

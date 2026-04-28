@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{anyhow, Context, Result as AnyResult};
+use anyhow::{Context, Result as AnyResult, anyhow};
 use tauri::command;
 
 use crate::bridge::capabilities::SystemBridgeCapability;
@@ -99,7 +99,12 @@ pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
         requested_capabilities,
-        manifest.permissions().network().whitelist().required().cloned(),
+        manifest
+            .permissions()
+            .network()
+            .whitelist()
+            .required()
+            .cloned(),
     )?;
 
     let snapshot = SageAppSnapshot::new_builtin_system(

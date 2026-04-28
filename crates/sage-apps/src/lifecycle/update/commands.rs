@@ -1,11 +1,11 @@
 use std::io;
 use std::path::PathBuf;
 
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State, command};
 
+use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
-use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
@@ -131,8 +131,8 @@ pub async fn apply_app_update(
         pending.manifest(),
         pending.manifest_hash(),
     )
-        .await
-        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+    .await
+    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
     app.common_mut()
         .apply_update(&pending, granted_permissions, snapshot)
@@ -171,7 +171,7 @@ pub async fn apps_update_permissions(
             &app_id,
             EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
         )
-            .await;
+        .await;
     }
 
     if !network_change.added.is_empty() || !network_change.removed.is_empty() {
@@ -180,7 +180,7 @@ pub async fn apps_update_permissions(
             &app_id,
             EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
         )
-            .await;
+        .await;
     }
 
     Ok(())

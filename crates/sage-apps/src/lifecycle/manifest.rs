@@ -48,10 +48,10 @@ pub async fn fetch_url_manifest(manifest_url: &str) -> AnyResult<(SageAppPackage
     let manifest: SageAppPackageManifest = serde_path_to_error::deserialize(&mut deserializer)
         .map_err(|err| {
             anyhow::anyhow!(
-            "failed to parse manifest json from {manifest_url} at {}: {}",
-            err.path(),
-            err.inner()
-        )
+                "failed to parse manifest json from {manifest_url} at {}: {}",
+                err.path(),
+                err.inner()
+            )
         })?;
 
     Ok((manifest, manifest_hash))
@@ -65,11 +65,11 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
     let manifest: SageAppPackageManifest = serde_path_to_error::deserialize(&mut deserializer)
         .map_err(|err| {
             anyhow::anyhow!(
-            "failed to parse manifest {} at {}: {}",
-            manifest_path.display(),
-            err.path(),
-            err.inner()
-        )
+                "failed to parse manifest {} at {}: {}",
+                manifest_path.display(),
+                err.path(),
+                err.inner()
+            )
         })?;
     Ok(manifest)
 }
@@ -163,11 +163,7 @@ mod tests {
     };
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
-        SageAppManifestFile::new(
-            path.to_string(),
-            "a".repeat(64),
-            size,
-        ).unwrap()
+        SageAppManifestFile::new(path.to_string(), "a".repeat(64), size).unwrap()
     }
 
     fn sample_file() -> SageAppManifestFile {
@@ -186,10 +182,13 @@ mod tests {
             ),
             SageRequestedCapabilities::new(
                 [UserBridgeCapability::WalletSendXch],
-                [UserBridgeCapability::PersistentStorage, UserBridgeCapability::WalletGetSecretKey],
+                [
+                    UserBridgeCapability::PersistentStorage,
+                    UserBridgeCapability::WalletGetSecretKey,
+                ],
             ),
         )
-            .unwrap()
+        .unwrap()
     }
 
     fn sample_manifest_with(
@@ -218,7 +217,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -331,7 +330,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("name cannot be empty"));
     }
@@ -348,7 +347,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("version cannot be empty"));
     }
@@ -365,17 +364,15 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
         assert_eq!(manifest.total_bytes(), 123);
     }
 
     #[test]
     fn manifest_entry_file_uses_explicit_entry() {
-        let manifest = sample_manifest_with(
-            Some("entry.html".to_string()),
-            Some("icon.svg".to_string()),
-        );
+        let manifest =
+            sample_manifest_with(Some("entry.html".to_string()), Some("icon.svg".to_string()));
 
         assert_eq!(manifest_entry_file(&manifest), "entry.html");
     }
@@ -388,10 +385,8 @@ mod tests {
 
     #[test]
     fn manifest_icon_file_uses_explicit_icon() {
-        let manifest = sample_manifest_with(
-            Some("entry.html".to_string()),
-            Some("icon.svg".to_string()),
-        );
+        let manifest =
+            sample_manifest_with(Some("entry.html".to_string()), Some("icon.svg".to_string()));
 
         assert_eq!(manifest_icon_file(&manifest).unwrap(), "icon.svg");
     }

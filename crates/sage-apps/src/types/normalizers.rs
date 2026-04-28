@@ -11,9 +11,7 @@ pub(crate) fn normalized_non_empty_string(
     Ok(value)
 }
 
-pub(crate) fn normalized_optional_string(
-    value: Option<impl Into<String>>,
-) -> Option<String> {
+pub(crate) fn normalized_optional_string(value: Option<impl Into<String>>) -> Option<String> {
     value
         .map(|value| value.into().trim().to_string())
         .filter(|value| !value.is_empty())

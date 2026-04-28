@@ -33,12 +33,13 @@ impl RetiredAppOriginEntry {
         }
     }
 
-    pub fn refresh_from_app(&mut self, app: &UserSageApp, cleanup_pending: bool) {
-        self.app_id = app.common().id().to_string();
-        self.app_name = app.common().name().to_string();
+    pub fn update_retirement_state(&mut self, app: &UserSageApp, cleanup_pending: bool) {
         self.cleanup_pending = cleanup_pending;
-        self.storage_may_contain_secrets =
-            app.common().capability_flags().storage_may_contain_secrets();
+        self.storage_may_contain_secrets = self.storage_may_contain_secrets
+            || app
+                .common()
+                .capability_flags()
+                .storage_may_contain_secrets();
     }
 
     pub fn matches_app_origin(&self, app_id: &str, origin_id: &str) -> bool {

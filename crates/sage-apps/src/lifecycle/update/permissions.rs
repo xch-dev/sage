@@ -2,12 +2,12 @@ use std::collections::BTreeSet;
 use std::path::{Path, PathBuf};
 
 use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::get_user_capability_definition;
 use crate::lifecycle::update::types::{
     GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChange,
     GrantedNetworkWhitelistChange,
 };
 use crate::lifecycle::{read_installed_app_by_id, write_installed_app_metadata};
-use crate::capabilities::get_user_capability_definition;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
 
 pub fn update_app_permissions(
@@ -50,7 +50,12 @@ fn requested_capability_set(app: &UserSageApp) -> BTreeSet<UserBridgeCapability>
         .requested_permissions()
         .capabilities()
         .required()
-        .chain(app.common().requested_permissions().capabilities().optional())
+        .chain(
+            app.common()
+                .requested_permissions()
+                .capabilities()
+                .optional(),
+        )
         .copied()
         .collect()
 }
@@ -278,34 +283,25 @@ mod tests {
                 ],
             ),
         )
-            .unwrap();
+        .unwrap();
 
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".to_string(),
             version: "1.0.0".to_string(),
             permissions: requested_permissions.clone(),
-            files: Vec::from([SageAppManifestFile::new(
-                "index.html",
-                "a".repeat(64),
-                4,
-            )
-                .unwrap()]),
+            files: Vec::from([SageAppManifestFile::new("index.html", "a".repeat(64), 4).unwrap()]),
             entry: Some("index.html".to_string()),
             icon: None,
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
-        let granted_permissions = SageGrantedPermissions::new(&requested_permissions, [], [])
-            .unwrap();
+        let granted_permissions =
+            SageGrantedPermissions::new(&requested_permissions, [], []).unwrap();
 
-        let snapshot = SageAppSnapshot::new(
-            "hash",
-            app_dir.to_string_lossy().to_string(),
-            manifest,
-        )
-            .unwrap();
+        let snapshot =
+            SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
             app_id,
@@ -315,7 +311,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         UserSageApp::new_installed(
             common,
@@ -333,8 +329,8 @@ mod tests {
         let app_path = app_dir(dir.path(), app.common().id());
         write_installed_app_metadata(&app, &app_path).unwrap();
 
-        let granted = SageGrantedPermissions::new(app.common().requested_permissions(), [], [])
-            .unwrap();
+        let granted =
+            SageGrantedPermissions::new(app.common().requested_permissions(), [], []).unwrap();
 
         let updated = update_app_permissions(dir.path(), app.common().id(), &granted).unwrap();
 
@@ -376,8 +372,8 @@ mod tests {
             [UserBridgeCapability::WalletSendXchAutoSubmit],
             [],
         )
-            .unwrap_err()
-            .to_string();
+        .unwrap_err()
+        .to_string();
 
         assert!(err.contains("not requested in manifest"));
         assert!(err.contains(UserBridgeCapability::WalletSendXchAutoSubmit.key()));
@@ -395,7 +391,7 @@ mod tests {
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
         )
-            .unwrap();
+        .unwrap();
 
         match outcome {
             GrantCapabilityOutcome::Granted { capability, change } => {
@@ -411,7 +407,13 @@ mod tests {
 
         let reloaded = read_installed_app_by_id(dir.path(), app.common().id()).unwrap();
         assert_eq!(
-            caps(reloaded.common().granted_permissions().capabilities().copied()),
+            caps(
+                reloaded
+                    .common()
+                    .granted_permissions()
+                    .capabilities()
+                    .copied()
+            ),
             [UserBridgeCapability::WalletSendXch]
         );
     }
@@ -426,7 +428,7 @@ mod tests {
             [UserBridgeCapability::WalletSendXch],
             [network_whitelist_entry("https", "required.example.com")],
         )
-            .unwrap();
+        .unwrap();
 
         app.common_mut()
             .update_permissions(&granted_permissions)
@@ -440,7 +442,7 @@ mod tests {
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
         )
-            .unwrap();
+        .unwrap();
 
         match outcome {
             GrantCapabilityOutcome::AlreadyGranted {
@@ -471,7 +473,7 @@ mod tests {
             app.common().id(),
             UserBridgeCapability::WalletSendXchAutoSubmit,
         )
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(
             err.to_string()
@@ -491,7 +493,7 @@ mod tests {
             app.common().id(),
             &network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM"),
         )
-            .unwrap();
+        .unwrap();
 
         match outcome {
             GrantNetworkWhitelistOutcome::Granted { entry, change } => {
@@ -547,7 +549,7 @@ mod tests {
             [],
             [network_whitelist_entry("https", "required.example.com")],
         )
-            .unwrap();
+        .unwrap();
 
         app.common_mut()
             .update_permissions(&granted_permissions)
@@ -561,7 +563,7 @@ mod tests {
             app.common().id(),
             &network_whitelist_entry("https", "required.example.com"),
         )
-            .unwrap();
+        .unwrap();
 
         match outcome {
             GrantNetworkWhitelistOutcome::AlreadyGranted {
@@ -595,7 +597,7 @@ mod tests {
             app.common().id(),
             &network_whitelist_entry("https", "evil.example.com"),
         )
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(
             err.to_string()

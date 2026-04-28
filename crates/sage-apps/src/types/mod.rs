@@ -1,31 +1,27 @@
 mod app;
-mod permissions;
+mod invariants;
 mod manifest;
-mod storage;
 mod network;
 mod normalizers;
+mod permissions;
+mod storage;
 
 pub(crate) use app::{
-    SageApp, SageAppCommon,
-    UserSageApp, UserSageAppSource,
-    SystemSageApp,
-    SageAppSnapshot,
-    ListedSageApp, SystemAppPresentation,
-    UserSageAppPendingUpdate, SageAppUrlPreview,
-    CorruptedInstalledSageApp, RetiredAppOriginEntry,
+    CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
+    SageAppSnapshot, SageAppUrlPreview, SystemAppPresentation, SystemSageApp, UserSageApp,
+    UserSageAppPendingUpdate, UserSageAppSource,
 };
+pub(crate) use manifest::{SageAppManifestFile, SageAppPackageManifest};
+pub(crate) use network::SageNetworkWhitelistEntry;
 pub(crate) use permissions::{
-    SageRequestedPermissions, SageGrantedPermissions, SageGrantedSystemPermissions,
-    SageAppCapabilityDefinitionView,
+    SageAppCapabilityDefinitionView, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SageRequestedPermissions,
 };
-pub(crate) use manifest::{SageAppPackageManifest, SageAppManifestFile};
 pub(crate) use storage::{
-    InstalledSageAppStorage, PendingStorageCleanupTarget, PendingStorageCleanupEntry
+    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
 };
-pub(crate) use network::{SageNetworkWhitelistEntry};
 
-#[cfg(test)]
-pub(crate) use permissions::{SageRequestedCapabilities, SageRequestedNetworkPermissions};
 #[cfg(test)]
 pub(crate) use manifest::SageAppPackageManifestParts;
-
+#[cfg(test)]
+pub(crate) use permissions::{SageRequestedCapabilities, SageRequestedNetworkPermissions};

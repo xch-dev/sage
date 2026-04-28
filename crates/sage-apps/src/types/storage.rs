@@ -1,8 +1,8 @@
+use crate::types::app::UserSageApp;
+use crate::utils::unix_timestamp_ms;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
-use crate::types::app::UserSageApp;
-use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -55,10 +55,18 @@ impl PendingStorageCleanupEntry {
         self.last_error = Some(error.to_string());
     }
 
-    pub fn app_id(&self) -> &str { &self.app_id }
-    pub fn app_name(&self) -> &str { &self.app_name }
-    pub fn attempt_count(&self) -> u32 { self.attempt_count }
-    pub fn last_error(&self) -> Option<&str> { self.last_error.as_deref() }
+    pub fn app_id(&self) -> &str {
+        &self.app_id
+    }
+    pub fn app_name(&self) -> &str {
+        &self.app_name
+    }
+    pub fn attempt_count(&self) -> u32 {
+        self.attempt_count
+    }
+    pub fn last_error(&self) -> Option<&str> {
+        self.last_error.as_deref()
+    }
     pub fn target(&self) -> &PendingStorageCleanupTarget {
         &self.target
     }

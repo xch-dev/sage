@@ -115,13 +115,11 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
 
         match read_installed_user_app_from_dir(&path) {
             Ok(app) => apps.push(ListedSageApp::User(app)),
-            Err(err) => apps.push(ListedSageApp::Corrupted(
-                CorruptedInstalledSageApp::new(
-                    id,
-                    path.to_string_lossy().to_string(),
-                    err.to_string(),
-                ),
-            )),
+            Err(err) => apps.push(ListedSageApp::Corrupted(CorruptedInstalledSageApp::new(
+                id,
+                path.to_string_lossy().to_string(),
+                err.to_string(),
+            ))),
         }
     }
 
@@ -240,10 +238,10 @@ mod tests {
 
     use crate::lifecycle::storage::record_storage_cleanup_failure;
     use crate::types::{
-        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget,
-        RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource,
+        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry,
+        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry,
+        SageRequestedPermissions, UserSageApp, UserSageAppSource,
     };
     use std::fs;
     use tempfile::tempdir;
@@ -268,7 +266,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
@@ -294,7 +292,7 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         UserSageApp::new_installed(
             common,
@@ -413,7 +411,7 @@ mod tests {
 }}"#
             ),
         )
-            .unwrap();
+        .unwrap();
 
         let listed =
             without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
@@ -424,7 +422,9 @@ mod tests {
                 assert!(
                     app.error().contains("network entry")
                         || app.error().contains("invalid host")
-                        || app.error().contains("failed to parse installed app metadata"),
+                        || app
+                            .error()
+                            .contains("failed to parse installed app metadata"),
                     "unexpected error: {}",
                     app.error()
                 );

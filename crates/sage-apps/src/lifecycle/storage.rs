@@ -2,13 +2,14 @@ use std::path::Path;
 
 #[cfg(target_os = "windows")]
 use anyhow::Context;
-use anyhow::{anyhow, Result as AnyResult};
+use anyhow::{Result as AnyResult, anyhow};
 #[cfg(target_os = "windows")]
 use std::fs;
-use tauri::{command, AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State, command};
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use uuid::Uuid;
 
+use crate::AppsHostState;
 use crate::lifecycle::{
     read_pending_storage_cleanup_entries, read_retired_app_origins,
     write_pending_storage_cleanup_entries, write_retired_app_origins,
@@ -20,7 +21,6 @@ use crate::types::{
     InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
     RetiredAppOriginEntry, UserSageApp, UserSageAppSource,
 };
-use crate::AppsHostState;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn allocate_new_storage(
@@ -91,10 +91,7 @@ pub fn record_storage_cleanup_failure(
     write_pending_storage_cleanup_entries(base_path, &entries)
 }
 
-pub async fn process_pending_storage_cleanup(
-    app: &AppHandle,
-    base_path: &Path,
-) -> AnyResult<()> {
+pub async fn process_pending_storage_cleanup(app: &AppHandle, base_path: &Path) -> AnyResult<()> {
     let entries = read_pending_storage_cleanup_entries(base_path)?;
     if entries.is_empty() {
         return Ok(());
@@ -180,7 +177,7 @@ pub fn enqueue_retired_app_origin(
         .iter_mut()
         .find(|entry| entry.origin_id() == app.common().origin_id())
     {
-        existing.refresh_from_app(app, cleanup_pending);
+        existing.update_retirement_state(app, cleanup_pending);
     } else {
         entries.push(RetiredAppOriginEntry::new(app, cleanup_pending));
     }
@@ -216,14 +213,16 @@ mod tests {
     use super::*;
 
     use crate::bridge::capabilities::UserBridgeCapability;
-    use crate::lifecycle::{app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins};
+    use crate::lifecycle::{
+        app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
+    };
+    use crate::runtime::state::types::SageAppRuntimeRecord;
     use crate::types::{
         SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities,
         SageRequestedPermissions, UserSageAppSource,
     };
     use tempfile::tempdir;
-    use crate::runtime::state::types::SageAppRuntimeRecord;
 
     fn write_index(app_dir: &Path) {
         std::fs::create_dir_all(app_dir).unwrap();
@@ -248,7 +247,7 @@ mod tests {
                 [UserBridgeCapability::WalletGetSecretKey],
             ),
         )
-            .unwrap();
+        .unwrap();
 
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: name.to_string(),
@@ -260,7 +259,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
         let granted_capabilities = if storage_may_contain_secrets {
             vec![
@@ -285,7 +284,7 @@ mod tests {
             storage,
             snapshot,
         )
-            .unwrap();
+        .unwrap();
 
         let mut app = UserSageApp::new_installed(common, source).into_sage_app();
 

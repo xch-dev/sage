@@ -8,7 +8,10 @@ use async_trait::async_trait;
 use tauri::AppHandle;
 
 use crate::lifecycle::{allocate_new_storage, apps_root, write_installed_app_metadata};
-use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource};
+use crate::types::{
+    InstalledSageAppStorage, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
+    SageGrantedPermissions, UserSageApp, UserSageAppSource,
+};
 
 pub mod commands;
 pub mod url;
@@ -167,7 +170,10 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
+    use crate::types::{
+        SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
     use tempfile::tempdir;
 
     struct TestStorageResolver {
@@ -202,11 +208,7 @@ mod tests {
             )
             .unwrap(),
             files: vec![
-                SageAppManifestFile::new(
-                    "index.html".to_string(),
-                    "a".repeat(64),
-                    123,
-                ).unwrap()
+                SageAppManifestFile::new("index.html".to_string(), "a".repeat(64), 123).unwrap(),
             ],
             entry: Some("index.html".into()),
             icon: None,
@@ -387,9 +389,10 @@ mod tests {
                 "hash".to_string(),
                 app_dir.to_string_lossy().to_string(),
                 manifest.clone(),
-            ).unwrap(),
+            )
+            .unwrap(),
         )
-            .unwrap();
+        .unwrap();
         let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
         assert_eq!(app.common().id(), "url-abc123");

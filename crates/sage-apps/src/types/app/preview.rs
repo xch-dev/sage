@@ -58,8 +58,7 @@ impl SageAppUrlPreview {
     pub async fn new(app_url: impl Into<String>) -> anyhow::Result<Self> {
         let app_url = crate::lifecycle::install::url::normalize_app_url(&app_url.into())?;
         let manifest_url = crate::lifecycle::derive_manifest_url(&app_url)?;
-        let (manifest, manifest_hash) =
-            crate::lifecycle::fetch_url_manifest(&manifest_url).await?;
+        let (manifest, manifest_hash) = crate::lifecycle::fetch_url_manifest(&manifest_url).await?;
 
         Ok(Self {
             app_url,

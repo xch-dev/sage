@@ -1,6 +1,6 @@
-use std::cmp::Reverse;
 use crate::AppsHostState;
 use crate::runtime::state::types::SageAppRuntimeRecord;
+use std::cmp::Reverse;
 use tauri::State;
 
 pub async fn find_runtime_id_by_app_id_optional(
@@ -41,8 +41,7 @@ pub async fn find_runtime_by_app_id_optional(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Option<SageAppRuntimeRecord> {
-    let runtime_id =
-        find_runtime_id_by_app_id_optional(apps_state, app_id).await?;
+    let runtime_id = find_runtime_id_by_app_id_optional(apps_state, app_id).await?;
 
     find_runtime_by_runtime_id_optional(apps_state, &runtime_id).await
 }

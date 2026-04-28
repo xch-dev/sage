@@ -152,7 +152,12 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
         manifest.permissions().capabilities().user_grantable(),
-        manifest.permissions().network().whitelist().required().cloned(),
+        manifest
+            .permissions()
+            .network()
+            .whitelist()
+            .required()
+            .cloned(),
     )?;
 
     let snapshot = SageAppSnapshot::new(
@@ -178,10 +183,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         ));
     }
 
-    let app = UserSageApp::new_installed(
-        common,
-        UserSageAppSource::Zip,
-    );
+    let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
     Ok(Some(SageApp::User(app)))
 }

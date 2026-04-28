@@ -1,14 +1,10 @@
 use std::fmt::Write;
 use std::{fs, path::PathBuf};
 
-use crate::bridge::capabilities::{
-    BridgeCapability, SystemBridgeCapability, UserBridgeCapability,
-};
+use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::capabilities::{
-    get_system_capability_definition, get_user_capability_definition,
-};
+use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -32,11 +28,7 @@ fn write_if_changed(path: PathBuf, content: String) -> anyhow::Result<()> {
 }
 
 fn bool_cell(value: bool) -> &'static str {
-    if value {
-        "`true`"
-    } else {
-        "`false`"
-    }
+    if value { "`true`" } else { "`false`" }
 }
 
 fn bridge_capability_key(capability: BridgeCapability) -> &'static str {
@@ -73,35 +65,35 @@ pub fn user_capabilities_markdown() -> String {
             "| Requestable by app | {} |",
             bool_cell(definition.flags().requestable_by_app())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| User grantable | {} |",
             bool_cell(definition.flags().user_grantable())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Shared with app | {} |",
             bool_cell(definition.flags().shared_with_app())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Externally observable | {} |",
             bool_cell(definition.flags().externally_observable())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Accesses sensitive secret | {} |\n",
             bool_cell(definition.flags().accesses_sensitive_secret())
         )
-            .unwrap();
+        .unwrap();
     }
 
     out
@@ -125,35 +117,35 @@ pub fn system_capabilities_markdown() -> String {
             "| Requestable by app | {} |",
             bool_cell(definition.flags().requestable_by_app())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| User grantable | {} |",
             bool_cell(definition.flags().user_grantable())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Shared with app | {} |",
             bool_cell(definition.flags().shared_with_app())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Externally observable | {} |",
             bool_cell(definition.flags().externally_observable())
         )
-            .unwrap();
+        .unwrap();
 
         writeln!(
             out,
             "| Accesses sensitive secret | {} |\n",
             bool_cell(definition.flags().accesses_sensitive_secret())
         )
-            .unwrap();
+        .unwrap();
     }
 
     out
@@ -182,7 +174,7 @@ pub fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
             "| Capability | {} |",
             method_capability_cell(method.capability())
         )
-            .unwrap();
+        .unwrap();
 
         out.push('\n');
     }

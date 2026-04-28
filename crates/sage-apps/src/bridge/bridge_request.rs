@@ -8,8 +8,8 @@ use crate::bridge::{
     RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest,
     RustBridgeResponse, response_channel_for_runtime_kind,
 };
-use crate::host::AppState;
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
+use crate::host::AppState;
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
 use crate::runtime::{assert_bridge_origin, resolve_app};
@@ -175,13 +175,23 @@ fn verify_capability(
         BridgeCapability::User(capability) => {
             let definition = get_user_capability_definition(capability);
 
-            verify_user_capability(app, request, capability, definition.flags().shared_with_app())
+            verify_user_capability(
+                app,
+                request,
+                capability,
+                definition.flags().shared_with_app(),
+            )
         }
 
         BridgeCapability::System(capability) => {
             let definition = get_system_capability_definition(capability);
 
-            verify_system_capability(app, request, capability, definition.flags().shared_with_app())
+            verify_system_capability(
+                app,
+                request,
+                capability,
+                definition.flags().shared_with_app(),
+            )
         }
     }
 }
@@ -206,7 +216,13 @@ fn verify_user_capability(
             .common()
             .requested_permissions()
             .capabilities()
-            .resolve_effective_grants(user_app.common().granted_permissions().capabilities().copied())
+            .resolve_effective_grants(
+                user_app
+                    .common()
+                    .granted_permissions()
+                    .capabilities()
+                    .copied(),
+            )
             .map_err(|err| {
                 RustBridgeResponse::error(
                     &request.channel,

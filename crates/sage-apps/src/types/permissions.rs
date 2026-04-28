@@ -1,9 +1,11 @@
-use std::collections::BTreeSet;
+use crate::bridge::capabilities::{
+    SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
+};
+use crate::capabilities::{CapabilityDefinition, CapabilityFlags, get_user_capability_definition};
+use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
-use crate::bridge::capabilities::{SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability};
-use crate::capabilities::{get_user_capability_definition, CapabilityDefinition, CapabilityFlags};
-use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedNetworkPermissions {
@@ -115,7 +117,7 @@ impl<'de> Deserialize<'de> for SageRequestedPermissions {
             SageRequestedNetworkPermissions::new(required_network, optional_network),
             raw.capabilities.unwrap_or_default(),
         )
-            .map_err(serde::de::Error::custom)
+        .map_err(serde::de::Error::custom)
     }
 }
 
@@ -142,9 +144,7 @@ impl From<CapabilityDefinition<UserBridgeCapability>> for SageAppCapabilityDefin
 }
 
 impl SageGrantedSystemPermissions {
-    pub fn new(
-        capabilities: impl IntoIterator<Item = SystemBridgeCapability>,
-    ) -> Self {
+    pub fn new(capabilities: impl IntoIterator<Item = SystemBridgeCapability>) -> Self {
         Self {
             capabilities: capabilities.into_iter().collect(),
         }
@@ -258,13 +258,18 @@ impl SageGrantedPermissions {
                 );
             }
 
-            if !get_user_capability_definition(*cap).flags().user_grantable() {
+            if !get_user_capability_definition(*cap)
+                .flags()
+                .user_grantable()
+            {
                 anyhow::bail!("granted capability is not user grantable: {}", cap.key());
             }
         }
 
         for cap in requested.required() {
-            if get_user_capability_definition(*cap).flags().user_grantable()
+            if get_user_capability_definition(*cap)
+                .flags()
+                .user_grantable()
                 && !capabilities.contains(cap)
             {
                 anyhow::bail!("missing required capability: {}", cap.key());
@@ -345,8 +350,12 @@ impl SageRequestedPermissions {
         }
     }
 
-    pub fn network(&self) -> &SageRequestedNetworkPermissions { &self.network }
-    pub fn capabilities(&self) -> &SageRequestedCapabilities { &self.capabilities }
+    pub fn network(&self) -> &SageRequestedNetworkPermissions {
+        &self.network
+    }
+    pub fn capabilities(&self) -> &SageRequestedCapabilities {
+        &self.capabilities
+    }
 }
 
 impl SageRequestedCapabilities {
@@ -392,7 +401,11 @@ impl SageRequestedCapabilities {
         self.required()
             .chain(self.optional())
             .copied()
-            .filter(|cap| get_user_capability_definition(*cap).flags().user_grantable())
+            .filter(|cap| {
+                get_user_capability_definition(*cap)
+                    .flags()
+                    .user_grantable()
+            })
             .collect()
     }
 

@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::{Mutex, oneshot};
 
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::runtime::runtime_kind_for_app;
@@ -269,8 +269,7 @@ impl SageApp {
             && has_persistent_storage
             && !self.capability_flags().storage_may_contain_secrets()
         {
-            self.common_mut()
-                .mark_storage_may_contain_secrets();
+            self.common_mut().mark_storage_may_contain_secrets();
         }
     }
 }
@@ -296,9 +295,5 @@ pub fn inline_label_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> Strin
 }
 
 fn runtime_state_for_visible(visible: bool) -> &'static str {
-    if visible {
-        "running"
-    } else {
-        "hidden"
-    }
+    if visible { "running" } else { "hidden" }
 }
