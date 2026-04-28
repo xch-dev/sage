@@ -7,10 +7,10 @@ use specta::Type;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppFlags {
-    pub(super) has_secret_access: bool,
-    pub(super) has_external_access: bool,
-    pub(super) storage_may_contain_secrets: bool,
-    pub(super) isolated: bool,
+    has_secret_access: bool,
+    has_external_access: bool,
+    storage_may_contain_secrets: bool,
+    isolated: bool,
 }
 
 impl SageAppFlags {

@@ -17,12 +17,7 @@ use crate::types::storage::InstalledSageAppStorage;
 pub struct SageAppCommon {
     id: String,
     origin_id: String,
-    name: String,
-    version: String,
     app_dir: String,
-    entry_file: String,
-    icon_file: Option<String>,
-    requested_permissions: SageRequestedPermissions,
     granted_permissions: SageGrantedPermissions,
     capability_flags: SageAppFlags,
     storage: InstalledSageAppStorage,
@@ -78,7 +73,8 @@ impl SageAppCommon {
         granted_permissions: &SageGrantedPermissions,
     ) -> anyhow::Result<()> {
         let required_network = self
-            .requested_permissions
+            .active_manifest()
+            .permissions()
             .network()
             .whitelist()
             .required()
@@ -87,7 +83,7 @@ impl SageAppCommon {
         let granted_network = granted_permissions.network().whitelist().cloned();
 
         let granted_permissions = SageGrantedPermissions::new(
-            &self.requested_permissions,
+            self.active_manifest().permissions(),
             granted_permissions.capabilities().copied(),
             required_network.chain(granted_network),
         )?;
@@ -134,12 +130,7 @@ impl SageAppCommon {
         let common = Self {
             id: identity.id,
             origin_id: identity.origin_id,
-            name: manifest.name().to_string(),
-            version: manifest.version().to_string(),
             app_dir: identity.app_dir,
-            entry_file: manifest.entry().to_string(),
-            icon_file: manifest.icon().map(str::to_string),
-            requested_permissions: manifest.permissions().clone(),
             granted_permissions,
             capability_flags,
             storage,
@@ -148,8 +139,8 @@ impl SageAppCommon {
 
         validate_snapshot_entry_and_icon_exist(
             &common.active_snapshot,
-            &common.entry_file,
-            common.icon_file.as_deref(),
+            common.entry_file(),
+            common.icon_file(),
             "app",
         )?;
 
@@ -165,11 +156,11 @@ impl SageAppCommon {
     }
 
     pub fn name(&self) -> &str {
-        &self.name
+        self.active_manifest().name()
     }
 
     pub fn version(&self) -> &str {
-        &self.version
+        self.active_manifest().version()
     }
 
     pub fn app_dir(&self) -> &str {
@@ -181,15 +172,15 @@ impl SageAppCommon {
     }
 
     pub fn entry_file(&self) -> &str {
-        &self.entry_file
+        self.active_manifest().entry()
     }
 
     pub fn icon_file(&self) -> Option<&str> {
-        self.icon_file.as_deref()
+        self.active_manifest().icon()
     }
 
     pub fn requested_permissions(&self) -> &SageRequestedPermissions {
-        &self.requested_permissions
+        self.active_manifest().permissions()
     }
 
     pub fn granted_permissions(&self) -> &SageGrantedPermissions {
@@ -208,12 +199,18 @@ impl SageAppCommon {
         &self.active_snapshot
     }
 
+    pub fn active_manifest(&self) -> &crate::types::manifest::SageAppPackageManifest {
+        self.active_snapshot.manifest()
+    }
+
     pub fn entry_path(&self) -> PathBuf {
-        self.active_snapshot.file_path(&self.entry_file)
+        self.active_snapshot
+            .file_path(self.active_manifest().entry())
     }
 
     pub fn icon_path(&self) -> Option<PathBuf> {
-        self.icon_file
+        self.active_manifest()
+            .icon()
             .as_ref()
             .map(|icon_file| self.active_snapshot.file_path(icon_file))
     }
