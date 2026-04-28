@@ -15,7 +15,7 @@ use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::lifecycle::update::permissions::grant_requested_capability_internal;
 use crate::lifecycle::update::types::GrantCapabilityOutcome;
-use crate::permissions::{get_user_capability_definition};
+use crate::capabilities::{get_user_capability_definition};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppRequestCapabilityGrant;

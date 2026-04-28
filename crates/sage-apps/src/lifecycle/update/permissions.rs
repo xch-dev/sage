@@ -7,7 +7,7 @@ use crate::lifecycle::update::types::{
     GrantedNetworkWhitelistChange,
 };
 use crate::lifecycle::{read_installed_app_by_id, write_installed_app_metadata};
-use crate::permissions::get_user_capability_definition;
+use crate::capabilities::get_user_capability_definition;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
 
 pub fn update_app_permissions(

@@ -9,7 +9,7 @@ use crate::bridge::{
     RustBridgeResponse, response_channel_for_runtime_kind,
 };
 use crate::host::AppState;
-use crate::permissions::{get_system_capability_definition, get_user_capability_definition};
+use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
 use crate::runtime::{assert_bridge_origin, resolve_app};

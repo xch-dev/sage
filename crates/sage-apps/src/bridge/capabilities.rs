@@ -1,4 +1,4 @@
-use crate::permissions::get_user_capability_definition;
+use crate::capabilities::get_user_capability_definition;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::BTreeSet;
@@ -126,7 +126,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::bridge::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
-    use crate::permissions::user_registry;
+    use crate::capabilities::user_registry;
 
     fn first_shared_capability() -> UserBridgeCapability {
         user_registry()

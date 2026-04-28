@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use crate::bridge::capabilities::{SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability};
-use crate::permissions::{get_user_capability_definition, CapabilityDefinition, CapabilityFlags};
+use crate::capabilities::{get_user_capability_definition, CapabilityDefinition, CapabilityFlags};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]

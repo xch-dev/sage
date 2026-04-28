@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
-use crate::permissions::capabilities::types::{
+use crate::capabilities::types::{
     CapabilityDefinition, CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition,
 };
 

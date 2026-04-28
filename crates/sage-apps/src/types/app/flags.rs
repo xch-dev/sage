@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::permissions::CapabilityFlags;
+use crate::capabilities::CapabilityFlags;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, Default)]

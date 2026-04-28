@@ -7,7 +7,7 @@ use crate::bridge::{
     response_channel_for_runtime_kind,
 };
 use crate::host::AppState;
-use crate::permissions::{user_registry};
+use crate::capabilities::{user_registry};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::types::SageAppCapabilityDefinitionView;
