@@ -32,27 +32,13 @@ function buildPreviewApp(
 ): UserSageApp {
   return {
     common: {
-      id: '__install_preview__',
-      originId: '__install_preview__',
-      name: manifest.name,
-      version: manifest.version,
-      appDir: '',
-      entryFile: manifest.entry ?? 'index.html',
-      iconFile: manifest.icon ?? 'icon.png',
-      requestedPermissions: manifest.permissions ?? {
-        network: {
-          whitelist: {
-            required: [],
-            optional: [],
-          },
-        },
-        capabilities: {
-          required: [],
-          optional: [],
-        },
+      identity: {
+        id: '__install_preview__',
+        originId: '__install_preview__',
+        appDir: '',
       },
       grantedPermissions,
-      capabilityFlags: {
+      flags: {
         hasSecretAccess: false,
         hasExternalAccess: false,
         storageMayContainSecrets: false,

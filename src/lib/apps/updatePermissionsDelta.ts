@@ -75,7 +75,7 @@ export function getAppUpdatePermissionsDelta(
   app: UserSageApp,
   preview: SageAppUrlPreview | SageAppPackageManifest,
 ): AppUpdatePermissionsDelta {
-  const previousRequested = app.common.requestedPermissions;
+  const previousRequested = app.common.activeSnapshot.manifest.permissions;
   const nextRequested = getManifestRequestedPermissions(preview);
 
   const previousCaps = getRequestedCapabilities(previousRequested);

@@ -13,8 +13,8 @@ export async function restartAppRuntime(
 ) {
   const visible = options?.visible ?? false;
 
-  await closeAppRuntime(app.common.id, { timeoutMs: 8000 });
+  await closeAppRuntime(app.common.identity.id, { timeoutMs: 8000 });
   const runtime = await ensureInlineRuntime(app);
-  await markRuntimeVisible(app.common.id, visible);
+  await markRuntimeVisible(app.common.identity.id, visible);
   return runtime;
 }

@@ -138,7 +138,7 @@ export async function ensureInlineRuntime(
   app: AppLike,
 ): Promise<SageAppRuntimeRecord> {
   const args: CreateInlineRuntimeArgs = {
-    appId: app.common.id,
+    appId: app.common.identity.id,
     visible: true,
     internal: false,
     debugLayout: false,

@@ -42,7 +42,7 @@ export function AppHost() {
 
   const userLaunchDecision =
     app?.kind === 'user'
-      ? formatSandboxLaunchDecision(getLaunchGate(app.common.id))
+      ? formatSandboxLaunchDecision(getLaunchGate(app.common.identity.id))
       : null;
 
   const routeableSystemApp =

@@ -2256,15 +2256,17 @@ export type SageApp = ({ kind: "system" } & SystemSageApp) | ({ kind: "user" } &
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
 export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
-export type SageAppCommon = { id: string; originId: string; name: string; version: string; appDir: string; entryFile: string; iconFile: string | null; requestedPermissions: SageRequestedPermissions; grantedPermissions: SageGrantedPermissions; capabilityFlags: SageAppFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
+export type SageAppCommon = { identity: SageAppIdentity; grantedPermissions: SageGrantedPermissions; flags: SageAppFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
 export type SageAppDonation = { address: string }
 export type SageAppFlags = { hasSecretAccess: boolean; hasExternalAccess: boolean; storageMayContainSecrets: boolean; isolated: boolean }
+export type SageAppIdentity = { id: string; originId: string; appDir: string }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
 export type SageAppPackageManifest = { name: string; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; total_bytes: number; entry: string | null; icon: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppRuntimeKind = "user" | "system"
 export type SageAppRuntimeRecord = { runtimeId: string; appId: string; appName: string; entrySrc: string; webviewLabel: string; hostWindowLabel: string; runtimeKind: SageAppRuntimeKind; mode: string; state: string; startedAt: number; lastActiveAt: number; visible: boolean; internal: boolean }
 export type SageAppSnapshot = { manifestHash: string; snapshotDir: string; totalBytes: number; manifest: SageAppPackageManifest }
-export type SageAppUrlPreview = { appUrl: string; manifestUrl: string; manifestHash: string; manifest: SageAppPackageManifest }
+export type SageAppUrl = string
+export type SageAppUrlPreview = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest }
 export type SageAppsError = { kind: ErrorKind; reason: string }
 export type SageGrantedNetworkPermissions = { whitelist: SageNetworkWhitelistEntry[] }
 export type SageGrantedPermissions = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissions }
@@ -2843,8 +2845,8 @@ visible: boolean }
 export type UpdateOptionResponse = Record<string, never>
 export type UserBridgeCapability = "persistent_storage" | "bridge.send" | "app.get_capabilities" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_keys" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.check_address" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions"
 export type UserSageApp = { common: SageAppCommon; source: UserSageAppSource; pendingUpdate: UserSageAppPendingUpdate | null }
-export type UserSageAppPendingUpdate = { appUrl: string; manifestUrl: string; manifestHash: string; manifest: SageAppPackageManifest }
-export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: string; manifest_url: string }
+export type UserSageAppPendingUpdate = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest }
+export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: SageAppUrl }
 /**
  * View coin spends without signing
  */

@@ -30,7 +30,7 @@ export function NetworkWhitelistGrantApprovalCard({ approval }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.name} wants to contact an additional network
+            {approval.app.common.activeSnapshot.manifest.name} wants to contact an additional network
             target.
           </div>
         </div>

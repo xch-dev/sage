@@ -41,15 +41,15 @@ export function routeForApp(
 ): string | null {
   if ('kind' in app) {
     if (app.kind === 'user') {
-      return `/apps/${app.common.id}`;
+      return `/apps/${app.common.identity.id}`;
     }
 
-    return canRouteToApp(app) ? `/system-apps/${app.common.id}` : null;
+    return canRouteToApp(app) ? `/system-apps/${app.common.identity.id}` : null;
   }
 
   if ('source' in app) {
-    return `/apps/${app.common.id}`;
+    return `/apps/${app.common.identity.id}`;
   }
 
-  return canRouteToApp(app) ? `/system-apps/${app.common.id}` : null;
+  return canRouteToApp(app) ? `/system-apps/${app.common.identity.id}` : null;
 }

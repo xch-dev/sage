@@ -58,7 +58,7 @@ export function SendXchApprovalCard({ approval, expanded }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.name} wants to send funds from your wallet.
+            {approval.app.common.activeSnapshot.manifest.name} wants to send funds from your wallet.
           </div>
         </div>
       </div>

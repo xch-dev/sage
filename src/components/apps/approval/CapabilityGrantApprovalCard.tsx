@@ -28,7 +28,7 @@ export function CapabilityGrantApprovalCard({ approval, expanded }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.name} wants access to an additional capability.
+            {approval.app.common.activeSnapshot.manifest.name} wants access to an additional capability.
           </div>
         </div>
       </div>

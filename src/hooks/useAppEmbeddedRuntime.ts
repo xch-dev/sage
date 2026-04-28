@@ -115,13 +115,13 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
         return;
       }
 
-      await syncBounds(installedApp.common.id);
+      await syncBounds(installedApp.common.identity.id);
 
       if (disposed) {
         return;
       }
 
-      await markRuntimeVisible(installedApp.common.id, true);
+      await markRuntimeVisible(installedApp.common.identity.id, true);
 
       if (disposed) {
         return;
@@ -131,18 +131,18 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
       setAttachError(null);
       setAttaching(false);
 
-      scheduleSyncBounds(installedApp.common.id);
+      scheduleSyncBounds(installedApp.common.identity.id);
 
       delayedSyncTimers = [0, 50, 150, 300].map((delay) =>
         window.setTimeout(() => {
           if (!disposed) {
-            scheduleSyncBounds(installedApp.common.id);
+            scheduleSyncBounds(installedApp.common.identity.id);
           }
         }, delay),
       );
       resizeObserver = new ResizeObserver(() => {
         if (!disposed) {
-          scheduleSyncBounds(installedApp.common.id);
+          scheduleSyncBounds(installedApp.common.identity.id);
         }
       });
       const container = containerRef.current;
@@ -153,7 +153,7 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
       resizeObserver.observe(container);
       const handleWindowResize = () => {
         if (!disposed) {
-          scheduleSyncBounds(installedApp.common.id);
+          scheduleSyncBounds(installedApp.common.identity.id);
         }
       };
       window.addEventListener('resize', handleWindowResize);
@@ -182,7 +182,7 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
       setAttaching(false);
 
       if (runtimeCreated) {
-        void markRuntimeVisible(installedApp.common.id, false).catch(() => {
+        void markRuntimeVisible(installedApp.common.identity.id, false).catch(() => {
           //
         });
       }

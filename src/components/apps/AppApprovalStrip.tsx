@@ -67,7 +67,7 @@ export function AppApprovalStrip({
 
               <div className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
                 <BadgeCheck className='h-3.5 w-3.5' />
-                <span>{approval.approval.app.common.name}</span>
+                <span>{approval.approval.app.common.activeSnapshot.manifest.name}</span>
                 <span>·</span>
                 <span>{approval.approval.requestId}</span>
               </div>

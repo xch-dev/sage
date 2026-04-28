@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use app_state::{AppState, Initialized, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
@@ -14,12 +12,10 @@ mod commands;
 mod error;
 
 use sage_apps::bridge::RustBridgeApprovalEvent;
-use sage_apps::lifecycle::{read_installed_app_by_id, read_installed_user_app_by_origin_id};
-use sage_apps::runtime::{app_id_from_webview_label, find_runtime_by_app_id_optional};
 use sage_apps::security::handle_user_app_protocol_request;
-use sage_apps::types::SageApp;
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
+use sage_apps::{handle_system_app_protocol_request, AppsHostState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -223,7 +219,7 @@ pub fn run() {
             app.manage(Initialized(Mutex::new(false)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
-            app.manage(apps::state::AppsHostState::default());
+            app.manage(AppsHostState::default());
 
             let app_handle = app.handle().clone();
             let cleanup_base_path = path.clone();

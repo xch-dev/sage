@@ -27,7 +27,7 @@ export function GetSecretKeyApprovalCard({ approval }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.name} wants to get your secret key.
+            {approval.app.common.activeSnapshot.manifest.name} wants to get your secret key.
           </div>
         </div>
       </div>

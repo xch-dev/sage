@@ -79,10 +79,10 @@ export function AppsWorkspace() {
 
   const activeApp: UserSageApp | null = appId ? (getApp(appId) ?? null) : null;
   const activeUpdatePreview: SageAppUrlPreview | null = activeApp
-    ? (updateAvailability[activeApp.common.id] ?? null)
+    ? (updateAvailability[activeApp.common.identity.id] ?? null)
     : null;
   const activeBusy = activeApp
-    ? (busyAppIds[activeApp.common.id] ?? false)
+    ? (busyAppIds[activeApp.common.identity.id] ?? false)
     : false;
   const [donationOpen, setDonationOpen] = useState(false);
   const activeManifest = activeApp?.common.activeSnapshot.manifest;
@@ -119,16 +119,16 @@ export function AppsWorkspace() {
       }
 
       const iconSrc =
-        installedApp.common.iconFile == null
+        installedApp.common.activeSnapshot.manifest.icon == null
           ? null
           : installedApp.kind === 'system'
-            ? `sage-system-app://${installedApp.common.originId}/${installedApp.common.iconFile}`
-            : `sage-app://${installedApp.common.originId}/${installedApp.common.iconFile}`;
+            ? `sage-system-app://${installedApp.common.identity.originId}/${installedApp.common.activeSnapshot.manifest.icon}`
+            : `sage-app://${installedApp.common.identity.originId}/${installedApp.common.activeSnapshot.manifest.icon}`;
 
       out.push({
         appId: runtime.appId,
         runtimeKind: installedApp.kind,
-        name: installedApp.common.name ?? runtime.appName,
+        name: installedApp.common.activeSnapshot.manifest.name ?? runtime.appName,
         iconSrc,
         isActive: runtime.appId === appId,
       });
@@ -147,7 +147,7 @@ export function AppsWorkspace() {
         setApplyingUpdate(true);
         setUpdateDialogError(null);
 
-        await performAppUpdate(activeApp.common.id, nextGrantedPermissions, {
+        await performAppUpdate(activeApp.common.identity.id, nextGrantedPermissions, {
           restartIfRunning: true,
           visibleAfterRestart: true,
         });
@@ -217,7 +217,7 @@ export function AppsWorkspace() {
 
       {activeApp &&
       currentApproval &&
-      currentApproval.request.app.common.id === activeApp.common.id ? (
+      currentApproval.request.app.common.identity.id === activeApp.common.identity.id ? (
         <AppApprovalStrip
           approval={{
             approvalId: currentApproval.id,
@@ -236,11 +236,11 @@ export function AppsWorkspace() {
 
       {donationOpen && activeApp && activeManifest?.donation ? (
         <AppDonationStrip
-          appName={activeApp.common.name}
+          appName={activeApp.common.activeSnapshot.manifest.name}
           authorName={activeManifest.author?.name}
           authorAvatarSrc={
             activeManifest.author?.avatar
-              ? `sage-app://${activeApp.common.originId}/${activeManifest.author.avatar}`
+              ? `sage-app://${activeApp.common.identity.originId}/${activeManifest.author.avatar}`
               : null
           }
           donationAddress={activeManifest.donation.address}
@@ -265,7 +265,7 @@ export function AppsWorkspace() {
           <AlertDescription className='flex items-center justify-between gap-4'>
             <span>
               Version {activeUpdatePreview.manifest.version} is available for{' '}
-              {activeApp.common.name}.
+              {activeApp.common.activeSnapshot.manifest.name}.
             </span>
 
             <Button

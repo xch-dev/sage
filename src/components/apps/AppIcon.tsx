@@ -15,14 +15,14 @@ export function AppIconContent({
 }
 
 export function AppIcon({ app }: { app: ListedSageApp }) {
-  const name = app.kind === 'corrupted' ? app.id : app.common.name;
+  const name = app.kind === 'corrupted' ? app.id : app.common.activeSnapshot.manifest.name;
 
   const iconUrl =
-    app.kind === 'corrupted' || !app.common.iconFile
+    app.kind === 'corrupted' || !app.common.activeSnapshot.manifest.icon
       ? null
       : app.kind === 'system'
-        ? `sage-system-app://${app.common.originId}/${app.common.iconFile}`
-        : `sage-app://${app.common.originId}/${app.common.iconFile}`;
+        ? `sage-system-app://${app.common.identity.originId}/${app.common.activeSnapshot.manifest.icon}`
+        : `sage-app://${app.common.identity.originId}/${app.common.activeSnapshot.manifest.icon}`;
 
   return <AppIconContent name={name} iconUrl={iconUrl} />;
 }

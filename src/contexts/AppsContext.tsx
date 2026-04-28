@@ -143,12 +143,12 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         listed.filter(isInstalledEntry).map(async (app) => {
           try {
             return [
-              app.common.id,
-              await commands.appsGetAppLaunchGate(app.common.id),
+              app.common.identity.id,
+              await commands.appsGetAppLaunchGate(app.common.identity.id),
             ] as const;
           } catch (err) {
             console.error(
-              `Failed to refresh launch gate for ${app.common.id}:`,
+              `Failed to refresh launch gate for ${app.common.identity.id}:`,
               err,
             );
             return null;
@@ -180,12 +180,12 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         listed.filter(isInstalledEntry).map(async (app) => {
           try {
             return [
-              app.common.id,
-              await commands.appsGetAppLaunchGate(app.common.id),
+              app.common.identity.id,
+              await commands.appsGetAppLaunchGate(app.common.identity.id),
             ] as const;
           } catch (err) {
             console.error(
-              `Failed to refresh launch gate for ${app.common.id}:`,
+              `Failed to refresh launch gate for ${app.common.identity.id}:`,
               err,
             );
             return null;
@@ -276,7 +276,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     (appId: string): InstalledEntry | undefined => {
       return apps.find(
         (item): item is InstalledEntry =>
-          isInstalledEntry(item) && item.common.id === appId,
+          isInstalledEntry(item) && item.common.identity.id === appId,
       );
     },
     [apps],
@@ -292,7 +292,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     (appId: string): UserSageApp | undefined => {
       return apps.find(
         (item): item is { kind: 'user' } & UserSageApp =>
-          isUserListedApp(item) && item.common.id === appId,
+          isUserListedApp(item) && item.common.identity.id === appId,
       );
     },
     [apps],

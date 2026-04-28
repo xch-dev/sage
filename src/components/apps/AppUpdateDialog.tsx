@@ -68,8 +68,6 @@ function buildReviewApp(
     ...app,
     common: {
       ...app.common,
-      version: preview.manifest.version,
-      requestedPermissions: reviewManifest.permissions,
       grantedPermissions,
       activeSnapshot: {
         ...app.common.activeSnapshot,
@@ -112,8 +110,6 @@ function buildRemovedPermissionsApp(
     ...app,
     common: {
       ...app.common,
-      version: preview.manifest.version,
-      requestedPermissions: manifest.permissions,
       grantedPermissions: {
         capabilities: delta.removedGrantedCapabilities,
         network: {
@@ -267,9 +263,9 @@ export function AppUpdateDialog({
 
         <div className='space-y-5'>
           <div className='space-y-1 text-sm text-muted-foreground'>
-            <div>{app.common.name}</div>
+            <div>{app.common.activeSnapshot.manifest.name}</div>
             <div>
-              v{app.common.version} → v{preview.manifest.version}
+              v{app.common.activeSnapshot.manifest.version} → v{preview.manifest.version}
             </div>
           </div>
 

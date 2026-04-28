@@ -191,27 +191,27 @@ export function Apps() {
   const corruptedApps = useMemo(() => apps.filter(isCorruptedEntry), [apps]);
 
   const contextMenuPreview = contextMenu
-    ? updateAvailability[contextMenu.app.common.id]
+    ? updateAvailability[contextMenu.app.common.identity.id]
     : null;
 
   const contextMenuBusy = contextMenu
-    ? (busyAppIds[contextMenu.app.common.id] ?? false)
+    ? (busyAppIds[contextMenu.app.common.identity.id] ?? false)
     : false;
 
   const contextMenuCheckState = contextMenu
-    ? (updateCheckStateByAppId[contextMenu.app.common.id] ?? 'idle')
+    ? (updateCheckStateByAppId[contextMenu.app.common.identity.id] ?? 'idle')
     : 'idle';
 
   const contextMenuAppIsRunning = contextMenu
-    ? runningAppIds.has(contextMenu.app.common.id)
+    ? runningAppIds.has(contextMenu.app.common.identity.id)
     : false;
 
   const contextMenuClearDataBusy = contextMenu
-    ? (clearingDataByAppId[contextMenu.app.common.id] ?? false)
+    ? (clearingDataByAppId[contextMenu.app.common.identity.id] ?? false)
     : false;
 
   const contextMenuClearDataError = contextMenu
-    ? (clearDataErrorByAppId[contextMenu.app.common.id] ?? null)
+    ? (clearDataErrorByAppId[contextMenu.app.common.identity.id] ?? null)
     : null;
 
   function openUpdateDialog(
@@ -240,9 +240,9 @@ export function Apps() {
         setUpdateDialogBusy(true);
         setUpdateDialogError(null);
 
-        await performAppUpdate(app.common.id, nextGrantedPermissions, {
+        await performAppUpdate(app.common.identity.id, nextGrantedPermissions, {
           restartIfRunning: true,
-          visibleAfterRestart: runningAppIds.has(app.common.id),
+          visibleAfterRestart: runningAppIds.has(app.common.identity.id),
         });
 
         closeUpdateDialog();
@@ -274,13 +274,13 @@ export function Apps() {
     setContextMenu((prevContextMenu) => {
       if (prevContextMenu) {
         setUpdateCheckStateByAppId((prev) => {
-          if (prev[prevContextMenu.app.common.id] !== 'up_to_date') {
+          if (prev[prevContextMenu.app.common.identity.id] !== 'up_to_date') {
             return prev;
           }
 
           return {
             ...prev,
-            [prevContextMenu.app.common.id]: 'idle',
+            [prevContextMenu.app.common.identity.id]: 'idle',
           };
         });
       }
@@ -349,7 +349,7 @@ export function Apps() {
 
   const handleClearData = useCallback(
     async (app: InstalledEntry, reopen: boolean) => {
-      const appId = app.common.id;
+      const appId = app.common.identity.id;
 
       setClearingDataByAppId((prev) => ({
         ...prev,
@@ -400,7 +400,7 @@ export function Apps() {
       app: UserInstalledEntry,
       nextGrantedPermissions: SageGrantedPermissions,
     ): Promise<void> => {
-      const appId = app.common.id;
+      const appId = app.common.identity.id;
 
       setPermissionsDialogBusy(true);
       setPermissionsDialogError(null);
@@ -454,21 +454,21 @@ export function Apps() {
     setPermissionsDialogError(null);
 
     try {
-      await clearAppStorage(permissionsDialogApp.common.id);
+      await clearAppStorage(permissionsDialogApp.common.identity.id);
 
       await invoke('apps_update_permissions', {
-        appId: permissionsDialogApp.common.id,
+        appId: permissionsDialogApp.common.identity.id,
         grantedPermissions: pendingPermissionsRetry.nextGrantedPermissions,
         clearStorageTaint: true,
       });
 
-      const isRunning = runningAppIds.has(permissionsDialogApp.common.id);
+      const isRunning = runningAppIds.has(permissionsDialogApp.common.identity.id);
       if (isRunning) {
         const { restartAppRuntime } =
           await import('@/lib/apps/restartAppRuntime');
 
         await restartAppRuntime(permissionsDialogApp, { visible: true });
-        navigate(`/apps/${permissionsDialogApp.common.id}`);
+        navigate(`/apps/${permissionsDialogApp.common.identity.id}`);
       }
 
       await refresh();
@@ -494,13 +494,13 @@ export function Apps() {
 
     const timeoutId = window.setTimeout(() => {
       setUpdateCheckStateByAppId((prev) => {
-        if (prev[contextMenu.app.common.id] !== 'up_to_date') {
+        if (prev[contextMenu.app.common.identity.id] !== 'up_to_date') {
           return prev;
         }
 
         return {
           ...prev,
-          [contextMenu.app.common.id]: 'idle',
+          [contextMenu.app.common.identity.id]: 'idle',
         };
       });
     }, 3000);
@@ -516,7 +516,7 @@ export function Apps() {
     }
 
     const handleClose = () => {
-      if (clearingDataByAppId[contextMenu.app.common.id]) {
+      if (clearingDataByAppId[contextMenu.app.common.identity.id]) {
         return;
       }
 
@@ -525,7 +525,7 @@ export function Apps() {
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (clearingDataByAppId[contextMenu.app.common.id]) {
+        if (clearingDataByAppId[contextMenu.app.common.identity.id]) {
           return;
         }
 
@@ -707,7 +707,7 @@ export function Apps() {
             <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'>
               {installedApps.map((app) => (
                 <AppTile
-                  key={app.common.id}
+                  key={app.common.identity.id}
                   app={app}
                   launchDecision={
                     app.kind === 'system'
@@ -717,11 +717,11 @@ export function Apps() {
                           description: 'System apps are managed by Sage.',
                         }
                       : formatSandboxLaunchDecision(
-                          getLaunchGate(app.common.id),
+                          getLaunchGate(app.common.identity.id),
                         )
                   }
                   onOpen={() => {
-                    navigate(`/apps/${app.common.id}`);
+                    navigate(`/apps/${app.common.identity.id}`);
                   }}
                   onContextMenu={(event) => {
                     event.preventDefault();
@@ -745,7 +745,7 @@ export function Apps() {
 
                     setClearDataErrorByAppId((prev) => ({
                       ...prev,
-                      [app.common.id]: null,
+                      [app.common.identity.id]: null,
                     }));
 
                     setContextMenu({
@@ -801,9 +801,9 @@ export function Apps() {
 
             setUpdateCheckStateByAppId((prev) => ({
               ...prev,
-              [contextMenu.app.common.id]: 'idle',
+              [contextMenu.app.common.identity.id]: 'idle',
             }));
-            navigate(`/apps/${contextMenu.app.common.id}`);
+            navigate(`/apps/${contextMenu.app.common.identity.id}`);
             closeContextMenu();
           }}
           onCheckForUpdate={() => {
@@ -811,7 +811,7 @@ export function Apps() {
               return;
             }
 
-            void handleCheckForUpdate(contextMenu.app.common.id);
+            void handleCheckForUpdate(contextMenu.app.common.identity.id);
           }}
           onUpdate={() => {
             if (
@@ -841,7 +841,7 @@ export function Apps() {
             }
 
             const targetApp = contextMenu.app;
-            const shouldReopen = runningAppIds.has(targetApp.common.id);
+            const shouldReopen = runningAppIds.has(targetApp.common.identity.id);
 
             void handleClearData(targetApp, shouldReopen);
           }}
@@ -852,10 +852,10 @@ export function Apps() {
 
             setUpdateCheckStateByAppId((prev) => ({
               ...prev,
-              [contextMenu.app.common.id]: 'idle',
+              [contextMenu.app.common.identity.id]: 'idle',
             }));
 
-            void uninstallApp(contextMenu.app.common.id).finally(() => {
+            void uninstallApp(contextMenu.app.common.identity.id).finally(() => {
               closeContextMenu();
             });
           }}
