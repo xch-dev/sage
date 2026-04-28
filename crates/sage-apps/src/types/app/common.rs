@@ -26,7 +26,7 @@ pub struct SageAppIdentity {
 pub struct SageAppCommon {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
-    capability_flags: SageAppFlags,
+    flags: SageAppFlags,
     storage: InstalledSageAppStorage,
     active_snapshot: SageAppSnapshot,
 }
@@ -52,7 +52,7 @@ impl SageAppCommon {
             granted_permissions,
             self.storage.clone(),
             snapshot,
-            Some(&self.capability_flags),
+            Some(&self.flags),
         )?;
 
         if next.active_snapshot.manifest() != pending.manifest() {
@@ -88,7 +88,7 @@ impl SageAppCommon {
             granted_permissions,
             self.storage.clone(),
             self.active_snapshot.clone(),
-            Some(&self.capability_flags),
+            Some(&self.flags),
         )?;
 
         *self = next;
@@ -96,7 +96,7 @@ impl SageAppCommon {
     }
 
     pub fn mark_storage_may_contain_secrets(&mut self) {
-        self.capability_flags.mark_storage_may_contain_secrets();
+        self.flags.mark_storage_may_contain_secrets();
     }
 
     fn build(
@@ -119,7 +119,7 @@ impl SageAppCommon {
         let common = Self {
             identity,
             granted_permissions,
-            capability_flags,
+            flags: capability_flags,
             storage,
             active_snapshot: snapshot,
         };
@@ -174,8 +174,8 @@ impl SageAppCommon {
         &self.granted_permissions
     }
 
-    pub fn capability_flags(&self) -> &SageAppFlags {
-        &self.capability_flags
+    pub fn flags(&self) -> &SageAppFlags {
+        &self.flags
     }
 
     pub fn storage(&self) -> &InstalledSageAppStorage {

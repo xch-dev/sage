@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
 
-use crate::types::app::user::UserSageApp;
+use crate::types::app::user_apps::UserSageApp;
 use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -25,21 +25,15 @@ impl RetiredAppOriginEntry {
             app_name: app.common().name().to_string(),
             origin_id: app.common().origin_id().to_string(),
             created_at_ms: unix_timestamp_ms(),
-            storage_may_contain_secrets: app
-                .common()
-                .capability_flags()
-                .storage_may_contain_secrets(),
+            storage_may_contain_secrets: app.common().flags().storage_may_contain_secrets(),
             cleanup_pending,
         }
     }
 
     pub fn update_retirement_state(&mut self, app: &UserSageApp, cleanup_pending: bool) {
         self.cleanup_pending = cleanup_pending;
-        self.storage_may_contain_secrets = self.storage_may_contain_secrets
-            || app
-                .common()
-                .capability_flags()
-                .storage_may_contain_secrets();
+        self.storage_may_contain_secrets =
+            self.storage_may_contain_secrets || app.common().flags().storage_may_contain_secrets();
     }
 
     pub fn matches_app_origin(&self, app_id: &str, origin_id: &str) -> bool {

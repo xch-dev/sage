@@ -5,8 +5,8 @@ mod flags;
 mod preview;
 mod retired_origin;
 mod snapshot;
-mod system;
-mod user;
+mod system_apps;
+mod user_apps;
 
 pub(crate) use author::SageAppAuthor;
 pub(crate) use common::{SageAppCommon, SageAppIdentity};
@@ -14,8 +14,8 @@ pub(crate) use donation::SageAppDonation;
 pub(crate) use preview::{SageAppUrlPreview, UserSageAppPendingUpdate};
 pub(crate) use retired_origin::RetiredAppOriginEntry;
 pub(crate) use snapshot::SageAppSnapshot;
-pub(crate) use system::{SystemAppPresentation, SystemSageApp};
-pub(crate) use user::{
+pub(crate) use system_apps::{SystemAppPresentation, SystemSageApp};
+pub(crate) use user_apps::{
     CorruptedInstalledSageApp, ListedSageApp, SageApp, UserSageApp, UserSageAppSource,
 };
 

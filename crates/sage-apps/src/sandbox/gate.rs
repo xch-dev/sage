@@ -30,7 +30,7 @@ fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
     if has_persistent_storage {
         caps.push(SandboxCapability::StoragePersistenceNormal);
 
-        if app.capability_flags().has_secret_access() {
+        if app.flags().has_secret_access() {
             caps.push(SandboxCapability::StorageClearCycle);
         }
     } else {

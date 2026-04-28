@@ -218,7 +218,7 @@ fn should_use_incognito(app: &SageApp) -> bool {
         .capabilities()
         .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage);
 
-    !has_persistent_storage || app.capability_flags().storage_may_contain_secrets()
+    !has_persistent_storage || app.flags().storage_may_contain_secrets()
 }
 
 fn fallback_debug_slot(app_id: &str) -> usize {

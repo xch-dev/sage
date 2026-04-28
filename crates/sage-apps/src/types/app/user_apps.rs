@@ -8,7 +8,7 @@ use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::app::system::SystemSageApp;
+use crate::types::app::system_apps::SystemSageApp;
 use crate::types::permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
@@ -162,8 +162,8 @@ impl SageApp {
         }
     }
 
-    pub fn capability_flags(&self) -> &SageAppFlags {
-        self.common().capability_flags()
+    pub fn flags(&self) -> &SageAppFlags {
+        self.common().flags()
     }
 
     pub fn storage(&self) -> &InstalledSageAppStorage {

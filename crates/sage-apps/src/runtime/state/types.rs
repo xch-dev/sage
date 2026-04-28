@@ -265,9 +265,9 @@ impl SageApp {
             .capabilities()
             .any(|cap| *cap == UserBridgeCapability::PersistentStorage);
 
-        if self.capability_flags().has_secret_access()
+        if self.flags().has_secret_access()
             && has_persistent_storage
-            && !self.capability_flags().storage_may_contain_secrets()
+            && !self.flags().storage_may_contain_secrets()
         {
             self.common_mut().mark_storage_may_contain_secrets();
         }
