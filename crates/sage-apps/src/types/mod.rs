@@ -5,6 +5,7 @@ mod network;
 mod normalizers;
 mod permissions;
 mod storage;
+mod url;
 
 pub(crate) use app::{
     CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
@@ -25,3 +26,4 @@ pub(crate) use storage::{
 pub(crate) use manifest::SageAppPackageManifestParts;
 #[cfg(test)]
 pub(crate) use permissions::{SageRequestedCapabilities, SageRequestedNetworkPermissions};
+pub(crate) use url::{MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppUrl};

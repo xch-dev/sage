@@ -1,25 +1,13 @@
-use std::collections::BTreeSet;
+use anyhow::{Context, Result as AnyResult};
 
-use anyhow::{Context, Result as AnyResult, anyhow};
-
+use crate::types::{MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppPackageManifest};
 use crate::utils::bytes_sha256_hex;
-use crate::{
-    lifecycle::limits::{MAX_APP_FILE_COUNT, MAX_APP_PATH_LENGTH, MAX_APP_TOTAL_SIZE_BYTES},
-    types::{SageAppManifestFile, SageAppPackageManifest},
-};
 
-const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
+pub async fn fetch_url_manifest(
+    manifest_url: &SageAppManifestUrl,
+) -> AnyResult<(SageAppPackageManifest, String)> {
+    let manifest_url = manifest_url.as_str();
 
-pub fn derive_manifest_url(app_url: &str) -> AnyResult<String> {
-    let base =
-        reqwest::Url::parse(app_url).with_context(|| format!("invalid app url: {app_url}"))?;
-
-    base.join(MANIFEST_FILE_NAME)
-        .map(|url| url.to_string())
-        .with_context(|| format!("failed to derive manifest url from app url: {app_url}"))
-}
-
-pub async fn fetch_url_manifest(manifest_url: &str) -> AnyResult<(SageAppPackageManifest, String)> {
     let response = reqwest::get(manifest_url)
         .await
         .with_context(|| format!("failed to GET manifest url {manifest_url}"))?
@@ -66,88 +54,9 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
     Ok(manifest)
 }
 
-pub fn validate_manifest_file_path(path: &str) -> AnyResult<()> {
-    if path.is_empty() {
-        return Err(anyhow!("manifest file path cannot be empty"));
-    }
-
-    if path.len() > MAX_APP_PATH_LENGTH {
-        return Err(anyhow!(
-            "manifest file path exceeds max length {MAX_APP_PATH_LENGTH}: {path}"
-        ));
-    }
-
-    if path.starts_with('/') || path.starts_with('\\') {
-        return Err(anyhow!("manifest file path must be relative: {path}"));
-    }
-
-    if path.contains('\\') {
-        return Err(anyhow!(
-            "manifest file path must use forward slashes: {path}"
-        ));
-    }
-
-    if path
-        .split('/')
-        .any(|part| part == "." || part == ".." || part.is_empty())
-    {
-        return Err(anyhow!("manifest file path is invalid: {path}"));
-    }
-
-    Ok(())
-}
-
-pub fn validate_sha256_hex(value: &str) -> AnyResult<()> {
-    if value.len() != 64 || !value.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(anyhow!("invalid sha256 hex: {value}"));
-    }
-
-    Ok(())
-}
-
-pub fn validate_manifest_files(files: &[SageAppManifestFile]) -> AnyResult<u64> {
-    if files.is_empty() {
-        return Err(anyhow!("manifest files cannot be empty"));
-    }
-
-    if files.len() > MAX_APP_FILE_COUNT {
-        return Err(anyhow!(
-            "manifest file count {} exceeds limit {}",
-            files.len(),
-            MAX_APP_FILE_COUNT
-        ));
-    }
-
-    let mut seen = BTreeSet::new();
-    let mut total: u64 = 0;
-
-    for file in files {
-        validate_manifest_file_path(file.path())?;
-        validate_sha256_hex(file.sha256())?;
-
-        if !seen.insert(file.path().to_string()) {
-            return Err(anyhow!("duplicate manifest file path: {}", file.path()));
-        }
-
-        total = total
-            .checked_add(file.size())
-            .ok_or_else(|| anyhow!("manifest total size overflow"))?;
-    }
-
-    if total > MAX_APP_TOTAL_SIZE_BYTES {
-        return Err(anyhow!(
-            "manifest total size {total} exceeds limit {MAX_APP_TOTAL_SIZE_BYTES}"
-        ));
-    }
-
-    Ok(total)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
-    use crate::lifecycle::limits::{MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES};
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
@@ -210,104 +119,6 @@ mod tests {
             donation: None,
         })
         .unwrap()
-    }
-
-    #[test]
-    fn validate_manifest_file_path_accepts_normal_relative_path() {
-        validate_manifest_file_path("dist/index.html").unwrap();
-    }
-
-    #[test]
-    fn validate_manifest_file_path_rejects_absolute_path() {
-        assert!(validate_manifest_file_path("/etc/passwd").is_err());
-    }
-
-    #[test]
-    fn validate_manifest_file_path_rejects_parent_traversal() {
-        assert!(validate_manifest_file_path("../secret.txt").is_err());
-    }
-
-    #[test]
-    fn validate_manifest_file_path_rejects_current_dir_segment() {
-        assert!(validate_manifest_file_path("./index.html").is_err());
-        assert!(validate_manifest_file_path("dist/./index.html").is_err());
-    }
-
-    #[test]
-    fn validate_manifest_file_path_rejects_empty_segment() {
-        assert!(validate_manifest_file_path("dist//index.html").is_err());
-    }
-
-    #[test]
-    fn validate_manifest_file_path_rejects_backslashes() {
-        assert!(validate_manifest_file_path(r"dist\index.html").is_err());
-    }
-
-    #[test]
-    fn validate_sha256_hex_accepts_valid_hash() {
-        validate_sha256_hex("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-            .unwrap();
-    }
-
-    #[test]
-    fn validate_sha256_hex_rejects_invalid_hash() {
-        assert!(validate_sha256_hex("not-a-sha").is_err());
-    }
-
-    #[test]
-    fn validate_manifest_files_rejects_empty_list() {
-        let err = validate_manifest_files(&[]).unwrap_err();
-        assert!(err.to_string().contains("cannot be empty"));
-    }
-
-    #[test]
-    fn validate_manifest_files_rejects_duplicate_paths() {
-        let files = vec![
-            sample_manifest_file("dist/index.html", 1),
-            sample_manifest_file("dist/index.html", 2),
-        ];
-
-        let err = validate_manifest_files(&files).unwrap_err();
-        assert!(err.to_string().contains("duplicate manifest file path"));
-    }
-
-    #[test]
-    fn validate_manifest_files_rejects_invalid_nested_path() {
-        let err = SageAppManifestFile::new("dist//index.html", "a".repeat(64), 1).unwrap_err();
-        assert!(err.to_string().contains("manifest file path is invalid"));
-    }
-
-    #[test]
-    fn validate_manifest_files_rejects_file_count_over_limit() {
-        let files: Vec<_> = (0..=MAX_APP_FILE_COUNT)
-            .map(|i| sample_manifest_file(&format!("dist/file-{i}.txt"), 1))
-            .collect();
-
-        let err = validate_manifest_files(&files).unwrap_err();
-        assert!(err.to_string().contains("exceeds limit"));
-    }
-
-    #[test]
-    fn validate_manifest_files_rejects_total_size_over_limit() {
-        let files = vec![
-            sample_manifest_file("dist/a.bin", MAX_APP_TOTAL_SIZE_BYTES),
-            sample_manifest_file("dist/b.bin", 1),
-        ];
-
-        let err = validate_manifest_files(&files).unwrap_err();
-        assert!(err.to_string().contains("manifest total size"));
-        assert!(err.to_string().contains("exceeds limit"));
-    }
-
-    #[test]
-    fn validate_manifest_files_returns_total_size_when_valid() {
-        let files = vec![
-            sample_manifest_file("dist/index.html", 100),
-            sample_manifest_file("dist/icon.png", 23),
-        ];
-
-        let total = validate_manifest_files(&files).unwrap();
-        assert_eq!(total, 123);
     }
 
     #[test]

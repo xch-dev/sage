@@ -3,6 +3,7 @@ use specta::Type;
 
 use crate::types::manifest::SageAppPackageManifest;
 use crate::types::normalizers::normalized_non_empty_string;
+use crate::types::{SageAppManifestUrl, SageAppUrl};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -57,12 +58,13 @@ impl UserSageAppPendingUpdate {
 impl SageAppUrlPreview {
     pub async fn new(app_url: impl Into<String>) -> anyhow::Result<Self> {
         let app_url = crate::lifecycle::install::url::normalize_app_url(&app_url.into())?;
-        let manifest_url = crate::lifecycle::derive_manifest_url(&app_url)?;
+        let app_url = SageAppUrl::parse(app_url)?;
+        let manifest_url = SageAppManifestUrl::derive_from_app_url(&app_url)?;
         let (manifest, manifest_hash) = crate::lifecycle::fetch_url_manifest(&manifest_url).await?;
 
         Ok(Self {
-            app_url,
-            manifest_url,
+            app_url: app_url.into_string(),
+            manifest_url: manifest_url.into_string(),
             manifest_hash: normalized_non_empty_string(manifest_hash, "manifest hash")?,
             manifest,
         })

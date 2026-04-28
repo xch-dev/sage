@@ -1,11 +1,10 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-use crate::lifecycle::{validate_manifest_file_path, validate_sha256_hex};
 use crate::types::app::{SageAppAuthor, SageAppDonation};
 use crate::types::invariants::{
     normalize_optional_manifest_path, validate_declared_manifest_asset_exists,
-    validate_manifest_files,
+    validate_manifest_file_path, validate_manifest_files, validate_sha256_hex,
 };
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::SageRequestedPermissions;
