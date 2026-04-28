@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -70,10 +68,6 @@ impl UserSageApp {
         self.pending_update = pending_update;
     }
 
-    pub fn clear_pending_update(&mut self) {
-        self.pending_update = None;
-    }
-
     pub fn into_sage_app(self) -> SageApp {
         SageApp::User(self)
     }
@@ -88,10 +82,6 @@ impl UserSageApp {
 
     pub fn source(&self) -> &UserSageAppSource {
         &self.source
-    }
-
-    pub fn set_source(&mut self, source: UserSageAppSource) {
-        self.source = source;
     }
 
     pub fn pending_update(&self) -> Option<&UserSageAppPendingUpdate> {
@@ -142,14 +132,6 @@ impl SageApp {
         self.common().icon_file()
     }
 
-    pub fn entry_path(&self) -> PathBuf {
-        self.common().entry_path()
-    }
-
-    pub fn icon_path(&self) -> Option<PathBuf> {
-        self.common().icon_path()
-    }
-
     pub fn requested_permissions(&self) -> &SageRequestedPermissions {
         self.common().requested_permissions()
     }
@@ -184,21 +166,7 @@ impl SageApp {
         }
     }
 
-    pub fn as_user_mut(&mut self) -> Option<&mut UserSageApp> {
-        match self {
-            Self::User(app) => Some(app),
-            Self::System(_) => None,
-        }
-    }
-
     pub fn as_system(&self) -> Option<&SystemSageApp> {
-        match self {
-            Self::System(app) => Some(app),
-            Self::User(_) => None,
-        }
-    }
-
-    pub fn as_system_mut(&mut self) -> Option<&mut SystemSageApp> {
         match self {
             Self::System(app) => Some(app),
             Self::User(_) => None,

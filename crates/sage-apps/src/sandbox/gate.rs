@@ -26,8 +26,7 @@ fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
 
     if app
         .granted_permissions()
-        .capabilities_vec()
-        .contains(&UserBridgeCapability::PersistentStorage)
+        .has_capability(UserBridgeCapability::PersistentStorage)
     {
         caps.push(SandboxCapability::StoragePersistenceNormal);
 

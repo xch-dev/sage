@@ -181,14 +181,6 @@ impl SageGrantedNetworkPermissions {
     pub fn whitelist(&self) -> impl Iterator<Item = &SageNetworkWhitelistEntry> {
         self.whitelist.iter()
     }
-
-    pub fn contains(&self, entry: &SageNetworkWhitelistEntry) -> bool {
-        self.whitelist.contains(entry)
-    }
-
-    pub fn into_vec(self) -> Vec<SageNetworkWhitelistEntry> {
-        self.whitelist.into_iter().collect()
-    }
 }
 
 impl SageGrantedPermissions {
@@ -228,9 +220,8 @@ impl SageGrantedPermissions {
     pub fn capabilities(&self) -> impl Iterator<Item = &UserBridgeCapability> {
         self.capabilities.iter()
     }
-
-    pub fn capabilities_vec(&self) -> Vec<UserBridgeCapability> {
-        self.capabilities.iter().copied().collect()
+    pub fn has_capability(&self, capability: UserBridgeCapability) -> bool {
+        self.capabilities.contains(&capability)
     }
 
     pub fn network(&self) -> &SageGrantedNetworkPermissions {
