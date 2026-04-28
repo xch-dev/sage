@@ -2,7 +2,10 @@ use crate::bridge::capabilities::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
 use crate::capabilities::{CapabilityDefinition, CapabilityFlags, get_user_capability_definition};
-use crate::types::invariants::{build_user_grantable_capability_set, split_required_optional_set, validate_permissions_policy, validate_requested_capabilities_are_requestable};
+use crate::types::invariants::{
+    build_user_grantable_capability_set, split_required_optional_set, validate_permissions_policy,
+    validate_requested_capabilities_are_requestable,
+};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;

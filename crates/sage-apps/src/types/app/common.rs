@@ -8,7 +8,7 @@ use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::invariants::{
-    normalize_app_identity, validate_app_flags_policy, validate_snapshot_entry_and_icon_exist,
+    normalize_app_identity, resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
 };
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
@@ -129,14 +129,8 @@ impl SageAppCommon {
             granted_permissions,
         )?;
 
-        let effective_capabilities = manifest
-            .permissions()
-            .capabilities()
-            .resolve_effective_grants(granted_permissions.capabilities().copied())?;
-
         let capability_flags =
-            SageAppFlags::from_granted_capabilities(&effective_capabilities, previous_flags)?;
-        validate_app_flags_policy(capability_flags)?;
+            resolve_app_capability_flags(manifest, &granted_permissions, previous_flags)?;
 
         let common = Self {
             id: identity.id,
