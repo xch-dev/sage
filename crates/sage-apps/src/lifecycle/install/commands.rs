@@ -6,10 +6,7 @@ use crate::host::{AppState, Result};
 use crate::lifecycle::install::install_app_from_source;
 use crate::lifecycle::install::url::UrlInstallSource;
 use crate::lifecycle::install::zip::ZipInstallSource;
-use crate::lifecycle::{
-    apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir,
-    validate_package_structure,
-};
+use crate::lifecycle::{apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir};
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppUrlPreview, SageGrantedPermissions, UserSageApp,
 };
@@ -25,7 +22,7 @@ pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
         unzip_to_dir(Path::new(&zip_path), &unpack_dir)?;
         let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
         let manifest = read_manifest(&package_root)?;
-        validate_package_structure(&package_root)?;
+        manifest.validate_package_files(&package_root)?;
 
         Ok(manifest)
     })();

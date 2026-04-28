@@ -6,13 +6,9 @@ use std::{
 use anyhow::{Context, Result as AnyResult, anyhow};
 use zip::ZipArchive;
 
+use crate::types::MANIFEST_FILE_NAME;
+use crate::types::{SageAppPackageManifest, SageAppSnapshot};
 use crate::utils::bytes_sha256_hex;
-use crate::{
-    lifecycle::manifest::read_manifest,
-    types::{SageAppPackageManifest, SageAppSnapshot},
-};
-
-const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
 pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
     let file = fs::File::open(zip_path)
@@ -58,44 +54,6 @@ pub fn detect_package_root(unpack_dir: &Path) -> AnyResult<PathBuf> {
     }
 
     anyhow::bail!("could not find {MANIFEST_FILE_NAME}")
-}
-
-pub fn validate_package_structure(package_root: &Path) -> AnyResult<()> {
-    let manifest = read_manifest(package_root)?;
-
-    for file in manifest.files() {
-        validate_package_file(package_root, file.path(), file.sha256(), file.size())?;
-    }
-
-    Ok(())
-}
-
-fn validate_package_file(
-    package_root: &Path,
-    relative_path: &str,
-    expected_sha256: &str,
-    expected_size: u64,
-) -> AnyResult<()> {
-    let path = package_root.join(relative_path);
-
-    if !path.is_file() {
-        anyhow::bail!("manifest file missing from package: {relative_path}");
-    }
-
-    let bytes = fs::read(&path)
-        .with_context(|| format!("failed to read package file {}", path.display()))?;
-
-    let actual_hash = bytes_sha256_hex(&bytes);
-    if actual_hash != expected_sha256 {
-        anyhow::bail!("sha256 mismatch for {relative_path}");
-    }
-
-    let actual_size = u64::try_from(bytes.len()).context("file too large")?;
-    if actual_size != expected_size {
-        anyhow::bail!("size mismatch for {relative_path}");
-    }
-
-    Ok(())
 }
 
 fn copy_dir_recursive(src: &Path, dst: &Path) -> AnyResult<()> {

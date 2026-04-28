@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::AppInstallSource;
 use crate::lifecycle::{
     detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest,
-    unzip_to_dir, validate_package_structure,
+    unzip_to_dir,
 };
 use crate::types::{
     ListedSageApp, SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
@@ -56,7 +56,8 @@ impl AppInstallSource for ZipInstallSource {
         unzip_to_dir(Path::new(&self.zip_path), &self.unpack_dir)?;
 
         let package_root = detect_package_root(&self.unpack_dir)?;
-        validate_package_structure(&package_root)?;
+        let manifest = read_manifest(&package_root)?;
+        manifest.validate_package_files(&package_root)?;
 
         let manifest = read_manifest(&package_root)?;
 

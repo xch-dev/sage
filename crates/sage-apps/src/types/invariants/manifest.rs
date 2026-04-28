@@ -1,7 +1,13 @@
-use crate::lifecycle::limits::{MAX_APP_FILE_COUNT, MAX_APP_PATH_LENGTH, MAX_APP_TOTAL_SIZE_BYTES};
 use crate::types::SageAppManifestFile;
 use crate::types::normalizers::normalized_optional_string;
-use anyhow::anyhow;
+use crate::utils::bytes_sha256_hex;
+use anyhow::{Context, anyhow};
+use std::fs;
+use std::path::Path;
+
+pub const MAX_APP_FILE_COUNT: usize = 2000;
+pub const MAX_APP_TOTAL_SIZE_BYTES: u64 = 50 * 1024 * 1024;
+pub const MAX_APP_PATH_LENGTH: usize = 512;
 
 pub fn normalize_optional_manifest_path(
     path: Option<String>,
@@ -98,6 +104,35 @@ pub fn validate_declared_manifest_asset_exists(
 
     if !files.iter().any(|file| file.path() == path) {
         anyhow::bail!("manifest {label} file is not listed in files: {path}");
+    }
+
+    Ok(())
+}
+
+pub fn validate_package_files_match_manifest(
+    package_root: &Path,
+    files: &[SageAppManifestFile],
+) -> anyhow::Result<()> {
+    for file in files {
+        let relative_path = file.path();
+        let path = package_root.join(relative_path);
+
+        if !path.is_file() {
+            anyhow::bail!("manifest file missing from package: {relative_path}");
+        }
+
+        let bytes = fs::read(&path)
+            .with_context(|| format!("failed to read package file {}", path.display()))?;
+
+        let actual_hash = bytes_sha256_hex(&bytes);
+        if actual_hash != file.sha256() {
+            anyhow::bail!("sha256 mismatch for {relative_path}");
+        }
+
+        let actual_size = u64::try_from(bytes.len()).context("file too large")?;
+        if actual_size != file.size() {
+            anyhow::bail!("size mismatch for {relative_path}");
+        }
     }
 
     Ok(())

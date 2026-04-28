@@ -1,10 +1,12 @@
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
+use std::path::Path;
 
 use crate::types::app::{SageAppAuthor, SageAppDonation};
 use crate::types::invariants::{
     normalize_optional_manifest_path, validate_declared_manifest_asset_exists,
-    validate_manifest_file_path, validate_manifest_files, validate_sha256_hex,
+    validate_manifest_file_path, validate_manifest_files, validate_package_files_match_manifest,
+    validate_sha256_hex,
 };
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::SageRequestedPermissions;
@@ -128,6 +130,10 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
 }
 
 impl SageAppPackageManifest {
+    pub fn validate_package_files(&self, package_root: &Path) -> anyhow::Result<()> {
+        validate_package_files_match_manifest(package_root, self.files())
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
