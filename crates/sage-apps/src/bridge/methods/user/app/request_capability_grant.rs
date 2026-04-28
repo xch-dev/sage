@@ -14,7 +14,7 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::capabilities::get_user_capability_definition;
-use crate::lifecycle::update::permissions::grant_requested_capability_internal;
+use crate::lifecycle::update::permissions::grant_capability;
 use crate::lifecycle::update::types::GrantCapabilityOutcome;
 
 #[derive(Debug, Clone, Copy)]
@@ -84,11 +84,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         let base_path = resolve_app_base_path(&tools)?;
 
-        let result = match grant_requested_capability_internal(
-            &base_path,
-            ctx.app.id(),
-            params.capability,
-        ) {
+        let result = match grant_capability(&base_path, ctx.app.id(), params.capability) {
             Ok(GrantCapabilityOutcome::AlreadyGranted {
                 capability,
                 full_granted_capabilities,

@@ -1,13 +1,11 @@
 use std::path::Path;
 
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::capabilities::get_user_capability_definition;
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
 use crate::lifecycle::{read_installed_app_by_id, write_installed_app_metadata};
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry};
-use crate::utils::sorted_unique;
 
 pub fn update_app_permissions(
     base_path: &Path,
@@ -28,53 +26,26 @@ pub fn update_app_permissions(
     Ok(AppUpdateResult::new(app, change))
 }
 
-pub fn grant_requested_capability_internal(
+pub fn grant_capability(
     base_path: &Path,
     app_id: &str,
     capability: UserBridgeCapability,
 ) -> anyhow::Result<GrantCapabilityOutcome> {
     let app = read_installed_app_by_id(base_path, app_id)?;
 
-    let is_requested = app
-        .common()
-        .requested_permissions()
-        .capabilities()
-        .contains(capability);
-
-    if !is_requested {
-        anyhow::bail!(
-            "Capability was not requested by app manifest: {}",
-            capability.key()
-        );
-    }
-
-    let definition = get_user_capability_definition(capability);
-    if !definition.flags().user_grantable() {
-        anyhow::bail!(
-            "Capability is not user-grantable and cannot be persisted as a user grant: {}",
-            capability.key()
-        );
-    }
-
     let previous_capabilities = app.common().granted_permissions().capabilities_vec();
 
     if previous_capabilities.contains(&capability) {
         return Ok(GrantCapabilityOutcome::AlreadyGranted {
             capability,
-            full_granted_capabilities: sorted_unique(previous_capabilities),
+            full_granted_capabilities: previous_capabilities,
         });
     }
 
-    let next_capabilities =
-        sorted_unique(previous_capabilities.iter().copied().chain([capability]));
-
-    let previous_network = app.common().granted_permissions().network_whitelist_vec();
-
-    let granted_permissions = SageGrantedPermissions::new(
-        app.common().requested_permissions(),
-        next_capabilities,
-        previous_network.clone(),
-    )?;
+    let granted_permissions = app
+        .common()
+        .granted_permissions()
+        .with_capability_added(app.common().requested_permissions(), capability)?;
 
     let update_result = update_app_permissions(base_path, app_id, &granted_permissions)?;
 
@@ -84,42 +55,26 @@ pub fn grant_requested_capability_internal(
     })
 }
 
-pub fn grant_requested_network_whitelist_entry_internal(
+pub fn grant_network_whitelist_entry(
     base_path: &Path,
     app_id: &str,
     entry: &SageNetworkWhitelistEntry,
 ) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
     let app = read_installed_app_by_id(base_path, app_id)?;
 
-    let is_whitelist_entry_requested = app
-        .common()
-        .requested_permissions()
-        .network()
-        .whitelist()
-        .is_allowed(entry);
-    if !is_whitelist_entry_requested {
-        anyhow::bail!(
-            "Network whitelist entry was not requested by app manifest: {}",
-            entry.as_permission_string(),
-        );
-    }
-
     let previous_whitelist = app.common().granted_permissions().network_whitelist_vec();
 
     if previous_whitelist.iter().any(|existing| existing == entry) {
         return Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
             entry: entry.clone(),
-            full_granted_network_whitelist: sorted_unique(previous_whitelist),
+            full_granted_network_whitelist: previous_whitelist,
         });
     }
 
-    let next_whitelist = sorted_unique(previous_whitelist.iter().cloned().chain([entry.clone()]));
-
-    let granted_permissions = SageGrantedPermissions::new(
-        app.common().requested_permissions(),
-        app.common().granted_permissions().capabilities_vec(),
-        next_whitelist,
-    )?;
+    let granted_permissions = app
+        .common()
+        .granted_permissions()
+        .with_network_whitelist_entry_added(app.common().requested_permissions(), entry.clone())?;
 
     let update_result = update_app_permissions(base_path, app_id, &granted_permissions)?;
 
@@ -257,23 +212,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn update_app_permissions_rejects_unrequested_capability() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-        write_installed_app_metadata(&app).unwrap();
-
-        let err = SageGrantedPermissions::new(
-            app.common().requested_permissions(),
-            [UserBridgeCapability::WalletSendXchAutoSubmit],
-            [],
-        )
-        .unwrap_err()
-        .to_string();
-
-        assert!(err.contains("not requested in manifest"));
-        assert!(err.contains(UserBridgeCapability::WalletSendXchAutoSubmit.key()));
-    }
 
     #[test]
     fn grant_requested_capability_grants_optional_capability() {
@@ -281,7 +219,7 @@ mod tests {
         let app = sample_app(dir.path(), "app-1");
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_requested_capability_internal(
+        let outcome = grant_capability(
             dir.path(),
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
@@ -331,7 +269,7 @@ mod tests {
 
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_requested_capability_internal(
+        let outcome = grant_capability(
             dir.path(),
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
@@ -355,24 +293,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn grant_requested_capability_rejects_unrequested_capability() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-        write_installed_app_metadata(&app).unwrap();
-
-        let err = grant_requested_capability_internal(
-            dir.path(),
-            app.common().id(),
-            UserBridgeCapability::WalletSendXchAutoSubmit,
-        )
-        .unwrap_err();
-
-        assert!(
-            err.to_string()
-                .contains("Capability was not requested by app manifest")
-        );
-    }
 
     #[test]
     fn grant_requested_network_whitelist_entry_grants_optional_entry() {
@@ -380,7 +300,7 @@ mod tests {
         let app = sample_app(dir.path(), "app-1");
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_requested_network_whitelist_entry_internal(
+        let outcome = grant_network_whitelist_entry(
             dir.path(),
             app.common().id(),
             &network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM"),
@@ -449,7 +369,7 @@ mod tests {
 
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_requested_network_whitelist_entry_internal(
+        let outcome = grant_network_whitelist_entry(
             dir.path(),
             app.common().id(),
             &network_whitelist_entry("https", "required.example.com"),
@@ -474,24 +394,5 @@ mod tests {
                 panic!("expected already-granted outcome");
             }
         }
-    }
-
-    #[test]
-    fn grant_requested_network_whitelist_entry_rejects_unrequested_entry() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-        write_installed_app_metadata(&app).unwrap();
-
-        let err = grant_requested_network_whitelist_entry_internal(
-            dir.path(),
-            app.common().id(),
-            &network_whitelist_entry("https", "evil.example.com"),
-        )
-        .unwrap_err();
-
-        assert!(
-            err.to_string()
-                .contains("Network whitelist entry was not requested by app manifest")
-        );
     }
 }

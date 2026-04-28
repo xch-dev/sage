@@ -217,6 +217,30 @@ impl SageGrantedPermissions {
         Self::new(requested, granted.capabilities, granted.network.whitelist)
     }
 
+    pub fn with_capability_added(
+        &self,
+        requested: &SageRequestedPermissions,
+        capability: UserBridgeCapability,
+    ) -> anyhow::Result<Self> {
+        Self::new(
+            requested,
+            self.capabilities.iter().copied().chain([capability]),
+            self.network.whitelist().cloned(),
+        )
+    }
+
+    pub fn with_network_whitelist_entry_added(
+        &self,
+        requested: &SageRequestedPermissions,
+        entry: SageNetworkWhitelistEntry,
+    ) -> anyhow::Result<Self> {
+        Self::new(
+            requested,
+            self.capabilities.iter().copied(),
+            self.network.whitelist().cloned().chain([entry]),
+        )
+    }
+
     pub fn capabilities(&self) -> impl Iterator<Item = &UserBridgeCapability> {
         self.capabilities.iter()
     }
@@ -392,5 +416,82 @@ impl SageRequestedNetworkPermissions {
 
     pub fn whitelist(&self) -> &SageRequestedNetworkWhitelist {
         &self.whitelist
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn network_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
+        SageNetworkWhitelistEntry::new(scheme, host).unwrap()
+    }
+
+    fn requested_permissions() -> SageRequestedPermissions {
+        SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [network_entry("https", "required.example.com")],
+                [network_entry("wss", "optional.example.com")],
+            ),
+            SageRequestedCapabilities::new(
+                [],
+                [
+                    UserBridgeCapability::WalletSendXch,
+                    UserBridgeCapability::PersistentStorage,
+                ],
+            ),
+        )
+            .unwrap()
+    }
+
+    #[test]
+    fn granted_permissions_reject_unrequested_capability() {
+        let requested = requested_permissions();
+
+        let err = SageGrantedPermissions::new(
+            &requested,
+            [UserBridgeCapability::WalletSendXchAutoSubmit],
+            [],
+        )
+            .unwrap_err();
+
+        assert!(err.to_string().contains("not requested in manifest"));
+        assert!(
+            err.to_string()
+                .contains(UserBridgeCapability::WalletSendXchAutoSubmit.key())
+        );
+    }
+
+    #[test]
+    fn with_capability_added_rejects_unrequested_capability() {
+        let requested = requested_permissions();
+        let granted = SageGrantedPermissions::new(&requested, [], []).unwrap();
+
+        let err = granted
+            .with_capability_added(&requested, UserBridgeCapability::WalletSendXchAutoSubmit)
+            .unwrap_err();
+
+        assert!(err.to_string().contains("not requested in manifest"));
+        assert!(
+            err.to_string()
+                .contains(UserBridgeCapability::WalletSendXchAutoSubmit.key())
+        );
+    }
+
+    #[test]
+    fn with_network_whitelist_entry_added_rejects_unrequested_entry() {
+        let requested = requested_permissions();
+        let granted = SageGrantedPermissions::new(&requested, [], []).unwrap();
+
+        let entry = network_entry("https", "evil.example.com");
+
+        let err = granted
+            .with_network_whitelist_entry_added(&requested, entry)
+            .unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("granted network whitelist entry not requested in manifest")
+        );
     }
 }

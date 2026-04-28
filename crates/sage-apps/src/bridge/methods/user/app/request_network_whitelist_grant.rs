@@ -13,7 +13,7 @@ use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
-use crate::lifecycle::update::permissions::grant_requested_network_whitelist_entry_internal;
+use crate::lifecycle::update::permissions::grant_network_whitelist_entry;
 use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
 use crate::types::SageNetworkWhitelistEntry;
 
@@ -83,11 +83,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
 
         let base_path = resolve_app_base_path(&tools)?;
 
-        let result = match grant_requested_network_whitelist_entry_internal(
-            &base_path,
-            ctx.app.id(),
-            &params.entry,
-        ) {
+        let result = match grant_network_whitelist_entry(&base_path, ctx.app.id(), &params.entry) {
             Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
                 entry,
                 full_granted_network_whitelist,
