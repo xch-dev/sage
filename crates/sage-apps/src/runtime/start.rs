@@ -254,11 +254,11 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
     let origin_x = 40.0;
     let origin_y = 40.0;
 
-    let col = slot % cols;
-    let row = slot / cols;
+    let col = u32::try_from(slot % cols).expect("debug layout column should fit u32");
+    let row = u32::try_from(slot / cols).expect("debug layout row should fit u32");
 
-    let x = origin_x + (col as f64) * (cell_w + margin_x);
-    let y = origin_y + (row as f64) * (cell_h + margin_y);
+    let x = origin_x + f64::from(col) * (cell_w + margin_x);
+    let y = origin_y + f64::from(row) * (cell_h + margin_y);
 
     (x, y, cell_w, cell_h)
 }

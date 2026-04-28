@@ -94,7 +94,7 @@ pub async fn download_url_snapshot(
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
     for file in manifest.files() {
-        let url = join_app_url(app_url, &file.path())?;
+        let url = join_app_url(app_url, file.path())?;
         let bytes = download_bytes(&url).await?;
 
         let actual_hash = bytes_sha256_hex(&bytes);
@@ -111,9 +111,9 @@ pub async fn download_url_snapshot(
         write_file(&output_path, &bytes)?;
     }
 
-    Ok(SageAppSnapshot::new(
+    SageAppSnapshot::new(
         manifest_hash.to_string(),
         snapshot_dir.to_string_lossy().to_string(),
         manifest.clone(),
-    )?)
+    )
 }

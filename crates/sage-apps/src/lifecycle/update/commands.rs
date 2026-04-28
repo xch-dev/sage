@@ -64,15 +64,14 @@ pub async fn check_app_update(
         return Ok(None);
     };
 
-    if let Some(existing_pending) = app.pending_update() {
-        if existing_pending.manifest_hash() == pending.manifest_hash()
-            && existing_pending.manifest() == pending.manifest()
-        {
-            return Ok(None);
-        }
+    if let Some(existing_pending) = app.pending_update()
+        && existing_pending.manifest_hash() == pending.manifest_hash()
+        && existing_pending.manifest() == pending.manifest()
+    {
+        return Ok(None);
     }
 
-    Ok(Some(SageAppUrlPreview::from_pending_update(pending)))
+    Ok(Some(SageAppUrlPreview::from_pending_update(&pending)))
 }
 
 #[command]

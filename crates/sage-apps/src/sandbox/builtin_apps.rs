@@ -170,7 +170,7 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         snapshot,
     )?;
 
-    let entry_file = app_dir.join(&common.entry_file());
+    let entry_file = app_dir.join(common.entry_file());
     if !entry_file.is_file() {
         return Err(anyhow!(
             "builtin test app entry file does not exist: {}",

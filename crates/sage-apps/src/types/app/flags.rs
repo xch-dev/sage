@@ -23,7 +23,7 @@ impl SageAppFlags {
         Self::new(
             granted_capability_flags.accesses_sensitive_secret(),
             granted_capability_flags.externally_observable(),
-            previous_flags.is_some_and(Self::storage_may_contain_secrets),
+            previous_flags.is_some_and(|f| f.storage_may_contain_secrets()),
         )
     }
 
@@ -55,19 +55,19 @@ impl SageAppFlags {
         self.isolated = true;
     }
 
-    pub fn has_secret_access(&self) -> bool {
+    pub fn has_secret_access(self) -> bool {
         self.has_secret_access
     }
 
-    pub fn has_external_access(&self) -> bool {
+    pub fn has_external_access(self) -> bool {
         self.has_external_access
     }
 
-    pub fn storage_may_contain_secrets(&self) -> bool {
+    pub fn storage_may_contain_secrets(self) -> bool {
         self.storage_may_contain_secrets
     }
 
-    pub fn isolated(&self) -> bool {
+    pub fn isolated(self) -> bool {
         self.isolated
     }
 }

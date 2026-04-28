@@ -67,7 +67,7 @@ pub async fn close_runtime_internal_with_reason(
 
     let _ = wait_for_before_stop_ack(app, apps_state, &runtime, reason).await;
 
-    if let Some(webview) = find_webview_in_sage_window(app, &runtime.webview_label()) {
+    if let Some(webview) = find_webview_in_sage_window(app, runtime.webview_label()) {
         let _ = webview.close();
     }
 
@@ -97,7 +97,7 @@ async fn wait_for_before_stop_ack(
     if !has_listener {
         return Ok(());
     }
-    let Some(app_webview) = find_webview_in_sage_window(app, &runtime.webview_label()) else {
+    let Some(app_webview) = find_webview_in_sage_window(app, runtime.webview_label()) else {
         return Ok(());
     };
 

@@ -131,7 +131,7 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
         }
     }
 
-    apps.sort_by(|a, b| listed_app_sort_key(a).cmp(&listed_app_sort_key(b)));
+    apps.sort_by_key(listed_app_sort_key);
 
     Ok(apps)
 }

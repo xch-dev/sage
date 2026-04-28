@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use crate::AppsHostState;
 use crate::runtime::state::types::SageAppRuntimeRecord;
 use tauri::State;
@@ -64,7 +65,7 @@ pub async fn list_runtimes(
     };
 
     records.retain(|record| !record.internal());
-    records.sort_by(|a, b| b.started_at().cmp(&a.started_at()));
+    records.sort_by_key(|record| Reverse(record.started_at()));
 
     Ok(records)
 }
