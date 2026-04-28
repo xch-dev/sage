@@ -11,4 +11,6 @@ pub use commands::*;
 pub use manager::*;
 pub use resolve::*;
 
+pub use state::find_runtime_by_app_id_optional;
+
 pub(crate) use state::*;

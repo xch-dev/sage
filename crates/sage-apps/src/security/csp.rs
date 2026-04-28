@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
-use crate::types::SageApp;
+use crate::types::SageAppCommon;
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
 }
 
-pub fn build_app_csp(app: &SageApp) -> String {
+pub fn build_app_csp(app: &SageAppCommon) -> String {
     let default_src = csp_source_list(&["'self'".to_string()]);
     let script_src = csp_source_list(&["'self'".to_string(), "'wasm-unsafe-eval'".to_string()]);
     let style_src = csp_source_list(&["'self'".to_string(), "'unsafe-inline'".to_string()]);

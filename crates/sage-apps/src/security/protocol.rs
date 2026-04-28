@@ -1,247 +1,120 @@
-use std::{fs, path::Path};
-
+use crate::lifecycle::read_installed_app_by_id;
+use crate::runtime::{SageAppRuntimeKind, app_id_from_webview_label};
+use crate::sandbox::builtin_runtime_apps_root;
+use crate::types::SageAppCommon;
+use crate::{AppsHostState, security::build_app_csp};
 use anyhow::{Result as AnyResult, anyhow};
+use std::fs;
+use std::path::PathBuf;
 use tauri::http::{Response, StatusCode};
+use tauri::{Manager, State, UriSchemeContext, Wry};
 
-use crate::{
-    lifecycle::{read_installed_user_app_by_origin_id, read_snapshot_file},
-    sandbox::{
-        build_builtin_test_app, builtin_runtime_apps_root, builtin_test_app_dir,
-        builtin_test_app_spec,
-    },
-    security::build_app_csp,
-    system_apps::{build_builtin_system_app, builtin_system_app_dir, builtin_system_app_spec},
-    types::SageApp,
-};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppProtocolKind {
-    User,
-    System,
-}
-
-fn serve_runtime_app_asset(request_path: &str, csp: &str) -> AnyResult<Response<Vec<u8>>> {
-    let runtime_root = builtin_runtime_apps_root();
-    let relative_path = request_path
-        .strip_prefix("/__sage/runtime-apps/")
-        .ok_or_else(|| anyhow!("invalid runtime app path"))?;
-
-    let safe_path = format!("/{relative_path}");
-    let file_path = read_snapshot_file(&runtime_root, &safe_path)?;
-
-    if request_path.ends_with("/index.html") {
-        let html = fs::read_to_string(&file_path)?;
-
-        return Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/html; charset=utf-8")
-            .header("Cache-Control", "no-store")
-            .header("Content-Security-Policy", csp)
-            .header("X-Content-Type-Options", "nosniff")
-            .body(html.into_bytes())
-            .map_err(|err| anyhow!("failed to build runtime app HTML response: {err}"));
-    }
-
-    let bytes = fs::read(&file_path)?;
-    let mime = mime_guess::from_path(&file_path)
-        .first_or_octet_stream()
-        .essence_str()
-        .to_string();
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", mime)
-        .header("Cache-Control", "no-store")
-        .header("Content-Security-Policy", csp)
-        .header("X-Content-Type-Options", "nosniff")
-        .body(bytes)
-        .map_err(|err| anyhow!("failed to build runtime app response: {err}"))
-}
-
-fn handle_builtin_test_app_request(
-    app_id: &str,
-    request: &tauri::http::Request<Vec<u8>>,
-) -> AnyResult<Response<Vec<u8>>> {
-    let app = build_builtin_test_app(app_id)?
-        .ok_or_else(|| anyhow!("unknown builtin test app {app_id}"))?;
-
-    let request_path = request.uri().path();
-    let csp = build_app_csp(&app);
-
-    if request_path.starts_with("/__sage/runtime-apps/") {
-        return serve_runtime_app_asset(request_path, &csp);
-    }
-
-    let app_dir = builtin_test_app_dir(app_id)?
-        .ok_or_else(|| anyhow!("missing builtin test app dir for {app_id}"))?;
-
-    let file_path = read_snapshot_file(&app_dir, request_path)?;
-
-    if request_path.is_empty() || request_path == "/" || request_path == "/index.html" {
-        let html = fs::read_to_string(&file_path)?;
-
-        return Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/html; charset=utf-8")
-            .header("Cache-Control", "no-store")
-            .header("Content-Security-Policy", &csp)
-            .header("X-Content-Type-Options", "nosniff")
-            .body(html.into_bytes())
-            .map_err(|err| anyhow!("failed to build builtin test app HTML response: {err}"));
-    }
-
-    let bytes = fs::read(&file_path)?;
-    let mime = mime_guess::from_path(&file_path)
-        .first_or_octet_stream()
-        .essence_str()
-        .to_string();
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", mime)
-        .header("Cache-Control", "no-store")
-        .header("Content-Security-Policy", csp)
-        .header("X-Content-Type-Options", "nosniff")
-        .body(bytes)
-        .map_err(|err| anyhow!("failed to build builtin test app response: {err}"))
-}
-
-fn handle_builtin_system_app_request(
-    app_id: &str,
-    request: &tauri::http::Request<Vec<u8>>,
-) -> AnyResult<Response<Vec<u8>>> {
-    let app = build_builtin_system_app(app_id)?
-        .ok_or_else(|| anyhow!("unknown builtin system app {app_id}"))?;
-
-    let request_path = request.uri().path();
-    let csp = build_app_csp(&app);
-
-    if request_path.starts_with("/__sage/runtime-apps/") {
-        return serve_runtime_app_asset(request_path, &csp);
-    }
-
-    let app_dir = builtin_system_app_dir(app_id)?
-        .ok_or_else(|| anyhow!("missing builtin system app dir for {app_id}"))?;
-
-    let file_path = read_snapshot_file(&app_dir, request_path)?;
-
-    if request_path.is_empty() || request_path == "/" || request_path == "/index.html" {
-        let html = fs::read_to_string(&file_path)?;
-
-        return Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/html; charset=utf-8")
-            .header("Cache-Control", "no-store")
-            .header("Content-Security-Policy", &csp)
-            .header("X-Content-Type-Options", "nosniff")
-            .body(html.into_bytes())
-            .map_err(|err| anyhow!("failed to build builtin system app HTML response: {err}"));
-    }
-
-    let bytes = fs::read(&file_path)?;
-    let mime = mime_guess::from_path(&file_path)
-        .first_or_octet_stream()
-        .essence_str()
-        .to_string();
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", mime)
-        .header("Cache-Control", "no-store")
-        .header("Content-Security-Policy", csp)
-        .header("X-Content-Type-Options", "nosniff")
-        .body(bytes)
-        .map_err(|err| anyhow!("failed to build builtin system app response: {err}"))
-}
-
-pub fn handle_app_protocol_request(
-    base_path: &Path,
-    request: &tauri::http::Request<Vec<u8>>,
-    protocol_kind: AppProtocolKind,
-) -> AnyResult<Response<Vec<u8>>> {
-    let uri = request.uri();
-
-    let host = uri
-        .host()
-        .ok_or_else(|| anyhow!("missing host in app URL"))?;
-
-    if builtin_test_app_spec(host).is_some() {
-        if protocol_kind != AppProtocolKind::User {
-            return Err(anyhow!(
-                "builtin sandbox test app {host} cannot be served through system protocol"
-            ));
-        }
-
-        return handle_builtin_test_app_request(host, request);
-    }
-
-    if builtin_system_app_spec(host).is_some() {
-        if protocol_kind != AppProtocolKind::System {
-            return Err(anyhow!(
-                "builtin system app {host} cannot be served through user protocol"
-            ));
-        }
-
-        return handle_builtin_system_app_request(host, request);
-    }
-
-    if protocol_kind != AppProtocolKind::User {
-        return Err(anyhow!(
-            "user-installed app {host} cannot be served through system protocol"
-        ));
-    }
-
-    let app = SageApp::User(read_installed_user_app_by_origin_id(base_path, host)?);
-    let request_path = uri.path();
-    let csp = build_app_csp(&app);
-
-    if request_path.starts_with("/__sage/runtime-apps/") {
-        return serve_runtime_app_asset(request_path, &csp);
-    }
-
-    let snapshot = app.active_snapshot();
-    let snapshot_dir = Path::new(snapshot.snapshot_dir());
-    let file_path = read_snapshot_file(snapshot_dir, request_path)?;
-
-    if request_path.is_empty() || request_path == "/" || request_path == "/index.html" {
-        let html = fs::read_to_string(&file_path)?;
-
-        return Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", "text/html; charset=utf-8")
-            .header("Cache-Control", "no-store")
-            .header("Content-Security-Policy", &csp)
-            .header("X-Content-Type-Options", "nosniff")
-            .body(html.into_bytes())
-            .map_err(|err| anyhow!("failed to build protocol response: {err}"));
-    }
-
-    let bytes = fs::read(&file_path)?;
-    let mime = mime_guess::from_path(&file_path)
-        .first_or_octet_stream()
-        .essence_str()
-        .to_string();
-
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", mime)
-        .header("Cache-Control", "no-store")
-        .header("Content-Security-Policy", csp)
-        .header("X-Content-Type-Options", "nosniff")
-        .body(bytes)
-        .map_err(|err| anyhow!("failed to build protocol response: {err}"))
-}
+pub const RUNTIME_APPS_PREFIX: &str = "/__sage/runtime-apps/";
 
 pub fn handle_user_app_protocol_request(
-    base_path: &Path,
+    ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
-) -> AnyResult<Response<Vec<u8>>> {
-    handle_app_protocol_request(base_path, request, AppProtocolKind::User)
+) -> Response<Vec<u8>> {
+    let result = (|| -> anyhow::Result<_> {
+        let webview_label = ctx.webview_label();
+
+        let (runtime_kind, app_id) = app_id_from_webview_label(webview_label)
+            .ok_or_else(|| anyhow!("invalid webview label"))?;
+
+        if runtime_kind != SageAppRuntimeKind::User {
+            anyhow::bail!("not a user runtime");
+        }
+
+        let app_handle = ctx.app_handle();
+        let base_path = app_handle.path().app_data_dir()?;
+
+        let app = read_installed_app_by_id(&base_path, app_id)?;
+
+        if request.uri().host() != Some(app.common().origin_id()) {
+            anyhow::bail!("host mismatch");
+        }
+
+        handle_app_protocol_request(app.common(), request)
+    })();
+
+    result.unwrap_or_else(|_| not_found_response())
 }
 
 pub fn handle_system_app_protocol_request(
-    base_path: &Path,
+    ctx: &UriSchemeContext<'_, Wry>,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> Response<Vec<u8>> {
+    let result = (|| {
+        let webview_label = ctx.webview_label();
+
+        let (runtime_kind, app_id) = app_id_from_webview_label(webview_label)
+            .ok_or_else(|| anyhow!("invalid webview label"))?;
+
+        if runtime_kind != SageAppRuntimeKind::System {
+            anyhow::bail!("not a system runtime");
+        }
+        let state: State<'_, AppsHostState> = ctx.app_handle().state();
+        let app = state
+            .system_apps
+            .get(app_id)
+            .ok_or_else(|| anyhow!("unknown system app"))?;
+
+        if request.uri().host() != Some(app.common().origin_id()) {
+            anyhow::bail!("host mismatch");
+        }
+
+        handle_app_protocol_request(app.common(), request)
+    })();
+
+    result.unwrap_or_else(|_| not_found_response())
+}
+
+fn handle_app_protocol_request(
+    app_common: &SageAppCommon,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
-    handle_app_protocol_request(base_path, request, AppProtocolKind::System)
+    let request_path = request.uri().path();
+
+    let file_path = match resolve_runtime_app_file(request_path)? {
+        Some(file_path) => file_path,
+        None => app_common
+            .active_snapshot()
+            .resolve_file_path(request_path)?,
+    };
+
+    let mime = mime_guess::from_path(&file_path)
+        .first_or_octet_stream()
+        .essence_str()
+        .to_string();
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header("Content-Type", mime)
+        .header("Cache-Control", "no-store")
+        .header("Content-Security-Policy", build_app_csp(app_common))
+        .header("X-Content-Type-Options", "nosniff")
+        .body(fs::read(&file_path)?)
+        .map_err(|err| anyhow!("failed to build app protocol response: {err}"))
+}
+
+fn resolve_runtime_app_file(request_path: &str) -> AnyResult<Option<PathBuf>> {
+    let Some(relative_path) = request_path.strip_prefix(RUNTIME_APPS_PREFIX) else {
+        return Ok(None);
+    };
+
+    let runtime_root = builtin_runtime_apps_root();
+    let request_path = format!("/{relative_path}");
+
+    Ok(Some(crate::lifecycle::read_snapshot_file(
+        &runtime_root,
+        &request_path,
+    )?))
+}
+
+fn not_found_response() -> Response<Vec<u8>> {
+    Response::builder()
+        .status(404)
+        .header("Content-Type", "text/plain; charset=utf-8")
+        .body("Not found".to_string().into_bytes())
+        .expect("failed to build error response")
 }

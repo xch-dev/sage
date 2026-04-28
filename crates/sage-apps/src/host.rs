@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::Arc;
 
 use crate::bridge::state::BridgeState;
 use crate::runtime::AppRuntimeState;
 use crate::sandbox::SandboxStateStore;
+use crate::types::SystemSageApp;
 use sage::Sage;
 use sage_api::ErrorKind;
 use serde::{Deserialize, Serialize};
@@ -14,6 +16,7 @@ pub type AppState = Arc<Mutex<Sage>>;
 
 #[derive(Debug, Default)]
 pub struct AppsHostState {
+    pub system_apps: BTreeMap<String, SystemSageApp>,
     pub runtime: AppRuntimeState,
     pub bridge: BridgeState,
     pub sandbox: SandboxStateStore,

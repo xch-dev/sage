@@ -2,11 +2,10 @@ use crate::AppsHostState;
 use crate::runtime::apps_create_inline_runtime;
 use crate::runtime::start::CreateInlineRuntimeArgs;
 use crate::runtime::stop::close_runtime_internal;
+use crate::security::RUNTIME_APPS_PREFIX;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
-
-const STORAGE_CLEAR_PROBE_PATH: &str = "/__sage/runtime-apps/storage-clear-probe/index.html";
 
 pub(crate) async fn stop_test_apps(
     app: &AppHandle,
@@ -63,7 +62,7 @@ pub(crate) async fn run_clear_cycle_phase_runtime(
         apps_state,
         app_id,
         false,
-        Some(STORAGE_CLEAR_PROBE_PATH.into()),
+        Some(RuntimeApp::StorageClearProbe.path()),
         query,
     )
     .await
@@ -95,6 +94,22 @@ async fn start_internal_runtime_for_sandbox(
     apps_create_inline_runtime(app.clone(), apps_state.clone(), args)
         .await
         .map(|_| ())
+}
+
+enum RuntimeApp {
+    StorageClearProbe,
+}
+
+impl RuntimeApp {
+    fn base(&self) -> &'static str {
+        match self {
+            Self::StorageClearProbe => "storage-clear-probe",
+        }
+    }
+
+    fn path(&self) -> String {
+        format!("{RUNTIME_APPS_PREFIX}{}/{}", self.base(), "index.html")
+    }
 }
 
 fn debug_test_apps_enabled() -> bool {

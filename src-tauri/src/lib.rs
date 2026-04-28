@@ -14,6 +14,10 @@ mod commands;
 mod error;
 
 use sage_apps::bridge::RustBridgeApprovalEvent;
+use sage_apps::lifecycle::{read_installed_app_by_id, read_installed_user_app_by_origin_id};
+use sage_apps::runtime::{app_id_from_webview_label, find_runtime_by_app_id_optional};
+use sage_apps::security::handle_user_app_protocol_request;
+use sage_apps::types::SageApp;
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
@@ -206,36 +210,10 @@ pub fn run() {
 
     tauri_builder
         .register_uri_scheme_protocol("sage-app", move |ctx, request| {
-            let app_handle = ctx.app_handle();
-
-            let base_path: PathBuf = app_handle
-                .path()
-                .app_data_dir()
-                .expect("failed to resolve app data dir");
-
-            apps::handle_user_app_protocol_request(&base_path, &request).unwrap_or_else(|err| {
-                tauri::http::Response::builder()
-                    .status(404)
-                    .header("Content-Type", "text/plain; charset=utf-8")
-                    .body(format!("sage-app error: {err}").into_bytes())
-                    .expect("failed to build error response")
-            })
+            handle_user_app_protocol_request(&ctx, &request)
         })
         .register_uri_scheme_protocol("sage-system-app", move |ctx, request| {
-            let app_handle = ctx.app_handle();
-
-            let base_path: PathBuf = app_handle
-                .path()
-                .app_data_dir()
-                .expect("failed to resolve app data dir");
-
-            apps::handle_system_app_protocol_request(&base_path, &request).unwrap_or_else(|err| {
-                tauri::http::Response::builder()
-                    .status(404)
-                    .header("Content-Type", "text/plain; charset=utf-8")
-                    .body(format!("sage-system-app error: {err}").into_bytes())
-                    .expect("failed to build error response")
-            })
+            handle_system_app_protocol_request(&ctx, &request)
         })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {

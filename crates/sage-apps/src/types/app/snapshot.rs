@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -42,6 +42,43 @@ impl SageAppSnapshot {
         manifest: SageAppPackageManifest,
     ) -> anyhow::Result<Self> {
         Self::new(format!("builtin-system:{app_id}"), snapshot_dir, manifest)
+    }
+
+    pub fn resolve_file_path(&self, request_path: &str) -> anyhow::Result<PathBuf> {
+        let normalized = if request_path.is_empty() || request_path == "/" {
+            self.manifest().entry()
+        } else {
+            request_path.trim_start_matches('/')
+        };
+
+        let relative = Path::new(normalized);
+
+        if relative.is_absolute() {
+            anyhow::bail!("snapshot path must be relative");
+        }
+
+        for component in relative.components() {
+            match component {
+                Component::Normal(_) => {}
+                _ => anyhow::bail!("invalid snapshot path component in {request_path}"),
+            }
+        }
+
+        let root = Path::new(self.snapshot_dir());
+        let path = root.join(relative);
+
+        if !path.is_file() {
+            anyhow::bail!("snapshot file not found: {request_path}");
+        }
+
+        let canonical_root = root.canonicalize()?;
+        let canonical_path = path.canonicalize()?;
+
+        if !canonical_path.starts_with(&canonical_root) {
+            anyhow::bail!("snapshot path escapes root: {request_path}");
+        }
+
+        Ok(canonical_path)
     }
 
     pub fn manifest_hash(&self) -> &str {

@@ -3,7 +3,7 @@ use crate::runtime::state::types::SageAppRuntimeRecord;
 use std::cmp::Reverse;
 use tauri::State;
 
-pub(crate) async fn find_runtime_by_app_id_optional(
+pub async fn find_runtime_by_app_id_optional(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Option<SageAppRuntimeRecord> {
@@ -26,7 +26,7 @@ pub(crate) async fn list_runtimes(
     Ok(records)
 }
 
-pub(in crate::runtime) async fn find_runtime_id_by_app_id_optional(
+pub(crate) async fn find_runtime_id_by_app_id_optional(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Option<String> {
@@ -34,7 +34,7 @@ pub(in crate::runtime) async fn find_runtime_id_by_app_id_optional(
     runtime_by_app_id.get(app_id).cloned()
 }
 
-pub(in crate::runtime) async fn find_runtime_by_runtime_id_optional(
+pub(crate) async fn find_runtime_by_runtime_id_optional(
     apps_state: &State<'_, AppsHostState>,
     runtime_id: &str,
 ) -> Option<SageAppRuntimeRecord> {
@@ -42,7 +42,7 @@ pub(in crate::runtime) async fn find_runtime_by_runtime_id_optional(
     by_runtime_id.get(runtime_id).cloned()
 }
 
-pub(in crate::runtime) async fn get_runtime_by_app_id(
+pub(crate) async fn get_runtime_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SageAppRuntimeRecord, String> {

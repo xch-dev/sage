@@ -7,8 +7,10 @@ mod permissions;
 mod storage;
 mod url;
 
+pub use app::SageApp;
+
 pub(crate) use app::{
-    CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
+    CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageAppCommon,
     SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, SystemAppPresentation, SystemSageApp,
     UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
 };
