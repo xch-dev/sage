@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   publicDir: resolve(__dirname, 'public'),
   build: {
-    outDir: resolve(__dirname, '../../../dist/system-apps/task-manager'),
+    outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     rollupOptions: {
       input: resolve(__dirname, 'index.html'),
