@@ -6,7 +6,8 @@ use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::update::permissions::update_app_permissions;
 use crate::lifecycle::{
-    download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata,
+    download_url_snapshot, fetch_url_manifest, read_installed_app_by_id,
+    write_installed_app_metadata,
 };
 use crate::types::{
     SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate,
@@ -19,8 +20,10 @@ async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPen
         UserSageAppSource::Zip => return Ok(None),
     };
 
-    let preview = SageAppUrlPreview::new(&app_url)
+    let (manifest, manifest_hash) = fetch_url_manifest(&app_url.manifest_url())
         .await
+        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
+    let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     let active_snapshot = app.common().active_snapshot();

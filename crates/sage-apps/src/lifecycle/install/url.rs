@@ -1,14 +1,13 @@
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result as AnyResult, anyhow};
+use anyhow::Result as AnyResult;
 use async_trait::async_trait;
-use url::Url;
 use uuid::Uuid;
 
 use super::AppInstallSource;
 use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::lifecycle::{
-    download_url_snapshot, read_retired_app_origins, write_retired_app_origins,
+    download_url_snapshot, fetch_url_manifest, read_retired_app_origins, write_retired_app_origins,
 };
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageApp,
@@ -26,8 +25,10 @@ impl AppInstallSource for SageAppUrl {
     type Prepared = PreparedUrlInstall;
 
     async fn prepare(&self) -> AnyResult<Self::Prepared> {
+        let (manifest, manifest_hash) = fetch_url_manifest(&self.manifest_url()).await?;
+
         Ok(PreparedUrlInstall {
-            preview: SageAppUrlPreview::new(self).await?,
+            preview: SageAppUrlPreview::new(self, manifest, manifest_hash)?,
         })
     }
 
@@ -89,44 +90,6 @@ impl AppInstallSource for SageAppUrl {
     ) -> AnyResult<()> {
         clear_pending_cleanup_for_reused_url_origin(base_path, app_id, origin_id)
     }
-}
-
-pub fn normalize_app_url(url: &str) -> AnyResult<String> {
-    let mut parsed = Url::parse(url).context("invalid app URL")?;
-
-    let scheme = parsed.scheme();
-    let host = parsed
-        .host_str()
-        .ok_or_else(|| anyhow!("app URL is missing host"))?
-        .to_ascii_lowercase();
-
-    let is_local_dev_host = host == "localhost" || host == "127.0.0.1" || host == "::1";
-
-    match scheme {
-        "https" => {}
-        "http" if is_local_dev_host => {}
-        "http" => {
-            return Err(anyhow!(
-                "URL app install requires HTTPS, except for localhost/127.0.0.1 development URLs"
-            ));
-        }
-        other => {
-            return Err(anyhow!("unsupported app URL scheme: {other}"));
-        }
-    }
-
-    parsed.set_fragment(None);
-
-    let path = parsed.path();
-    if !path.ends_with('/') {
-        parsed.set_path(&format!("{path}/"));
-    }
-
-    if parsed.query().is_some() {
-        parsed.set_query(None);
-    }
-
-    Ok(parsed.to_string())
 }
 
 pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
@@ -308,33 +271,6 @@ mod tests {
     }
 
     #[test]
-    fn normalize_app_url_keeps_https_and_adds_trailing_slash() {
-        let out = normalize_app_url("https://example.com/app").unwrap();
-        assert_eq!(out, "https://example.com/app/");
-    }
-
-    #[test]
-    fn normalize_app_url_strips_query_and_fragment() {
-        let out = normalize_app_url("https://example.com/app?x=1#frag").unwrap();
-        assert_eq!(out, "https://example.com/app/");
-    }
-
-    #[test]
-    fn normalize_app_url_allows_localhost_http() {
-        let out = normalize_app_url("http://localhost:4173").unwrap();
-        assert_eq!(out, "http://localhost:4173/");
-    }
-
-    #[test]
-    fn normalize_app_url_rejects_non_local_http() {
-        let err = normalize_app_url("http://example.com/app")
-            .unwrap_err()
-            .to_string();
-
-        assert!(err.contains("requires HTTPS"));
-    }
-
-    #[test]
     fn generate_url_app_id_is_stable_for_same_app_url() {
         let a = generate_url_app_id(&SageAppUrl::parse("https://example.com/app").unwrap());
         let b = generate_url_app_id(&SageAppUrl::parse("https://example.com/app").unwrap());
@@ -496,21 +432,5 @@ mod tests {
         assert_eq!(retired.len(), 1);
         assert!(retired[0].cleanup_pending());
         assert!(retired[0].storage_may_contain_secrets());
-    }
-
-    #[test]
-    fn normalize_app_url_allows_loopback_http() {
-        assert_eq!(
-            normalize_app_url("http://127.0.0.1:4173").unwrap(),
-            "http://127.0.0.1:4173/"
-        );
-    }
-
-    #[test]
-    fn normalize_app_url_rejects_unsupported_scheme() {
-        let err = normalize_app_url("ftp://example.com/app")
-            .unwrap_err()
-            .to_string();
-        assert!(err.contains("unsupported app URL scheme"));
     }
 }

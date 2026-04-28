@@ -48,20 +48,16 @@ impl UserSageAppPendingUpdate {
 }
 
 impl SageAppUrlPreview {
-    pub async fn new(app_url: &SageAppUrl) -> anyhow::Result<Self> {
-        let manifest_url = app_url.manifest_url();
-        let (manifest, manifest_hash) = crate::lifecycle::fetch_url_manifest(&manifest_url).await?;
-
+    pub fn new(
+        app_url: &SageAppUrl,
+        manifest: SageAppPackageManifest,
+        manifest_hash: String,
+    ) -> anyhow::Result<Self> {
         Ok(Self {
             app_url: app_url.clone(),
             manifest_hash: normalized_non_empty_string(manifest_hash, "manifest hash")?,
             manifest,
         })
-    }
-
-    pub async fn parse(app_url: &str) -> anyhow::Result<Self> {
-        let app_url = SageAppUrl::parse(app_url)?;
-        Self::new(&app_url).await
     }
 
     pub fn from_pending_update(pending: &UserSageAppPendingUpdate) -> Self {

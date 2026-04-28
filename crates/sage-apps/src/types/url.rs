@@ -98,3 +98,50 @@ impl fmt::Display for SageAppManifestUrl {
         f.write_str(self.as_str())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn app_url_keeps_https_and_adds_trailing_slash() {
+        let out = SageAppUrl::parse("https://example.com/app").unwrap();
+        assert_eq!(out.as_str(), "https://example.com/app/");
+    }
+
+    #[test]
+    fn app_url_strips_query_and_fragment() {
+        let out = SageAppUrl::parse("https://example.com/app?x=1#frag").unwrap();
+        assert_eq!(out.as_str(), "https://example.com/app/");
+    }
+
+    #[test]
+    fn app_url_allows_localhost_http() {
+        let out = SageAppUrl::parse("http://localhost:4173").unwrap();
+        assert_eq!(out.as_str(), "http://localhost:4173/");
+    }
+
+    #[test]
+    fn app_url_allows_loopback_http() {
+        let out = SageAppUrl::parse("http://127.0.0.1:4173").unwrap();
+        assert_eq!(out.as_str(), "http://127.0.0.1:4173/");
+    }
+
+    #[test]
+    fn app_url_rejects_non_local_http() {
+        let err = SageAppUrl::parse("http://example.com/app")
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("requires HTTPS") || err.contains("only https"));
+    }
+
+    #[test]
+    fn app_url_rejects_unsupported_scheme() {
+        let err = SageAppUrl::parse("ftp://example.com/app")
+            .unwrap_err()
+            .to_string();
+
+        assert!(err.contains("unsupported app URL scheme") || err.contains("only https"));
+    }
+}
