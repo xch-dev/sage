@@ -9,8 +9,8 @@ use tauri::AppHandle;
 
 use crate::lifecycle::{allocate_new_storage, apps_root, write_installed_app_metadata};
 use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
-    SageGrantedPermissions, UserSageApp, UserSageAppSource,
+    InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
 
 pub mod commands;
@@ -140,9 +140,11 @@ where
     source.after_origin_selected(base_path, &app_id, &origin_id)?;
 
     let common = SageAppCommon::new(
-        app_id.clone(),
-        origin_id,
-        app_dir.to_string_lossy().to_string(),
+        SageAppIdentity::new(
+            app_id.clone(),
+            origin_id,
+            app_dir.to_string_lossy().to_string(),
+        )?,
         granted_permissions,
         storage,
         snapshot,
@@ -171,8 +173,9 @@ mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
     use crate::types::{
-        SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts,
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions,
     };
     use tempfile::tempdir;
 
@@ -380,9 +383,12 @@ mod tests {
         .unwrap();
 
         let common = SageAppCommon::new(
-            "url-abc123".to_string(),
-            "r123-url-abc123".to_string(),
-            app_dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(
+                "url-abc123".to_string(),
+                "r123-url-abc123".to_string(),
+                app_dir.to_string_lossy().to_string(),
+            )
+            .unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             SageAppSnapshot::new(

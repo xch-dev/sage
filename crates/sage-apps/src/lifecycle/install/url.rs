@@ -161,9 +161,10 @@ mod tests {
     use crate::lifecycle::write_retired_app_origins;
     use crate::runtime::state::types::SageAppRuntimeRecord;
     use crate::types::{
-        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile,
-        SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity,
+        SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions,
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions,
     };
     use tempfile::{TempDir, tempdir};
 
@@ -243,9 +244,7 @@ mod tests {
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
-            app_id,
-            origin_id,
-            app_dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(app_id, origin_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,

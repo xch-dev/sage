@@ -7,17 +7,24 @@ use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::invariants::{
-    normalize_app_identity, resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
+    resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
 };
+use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SageAppCommon {
+pub struct SageAppIdentity {
     id: String,
     origin_id: String,
     app_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SageAppCommon {
+    identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
     capability_flags: SageAppFlags,
     storage: InstalledSageAppStorage,
@@ -26,22 +33,12 @@ pub struct SageAppCommon {
 
 impl SageAppCommon {
     pub fn new(
-        id: impl Into<String>,
-        origin_id: impl Into<String>,
-        app_dir: impl Into<String>,
+        identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
         storage: InstalledSageAppStorage,
         snapshot: SageAppSnapshot,
     ) -> anyhow::Result<Self> {
-        Self::build(
-            id.into(),
-            origin_id.into(),
-            app_dir.into(),
-            granted_permissions,
-            storage,
-            snapshot,
-            None,
-        )
+        Self::build(identity, granted_permissions, storage, snapshot, None)
     }
 
     pub fn apply_update(
@@ -51,9 +48,7 @@ impl SageAppCommon {
         snapshot: SageAppSnapshot,
     ) -> anyhow::Result<()> {
         let next = Self::build(
-            self.id.clone(),
-            self.origin_id.clone(),
-            self.app_dir.clone(),
+            self.identity.clone(),
             granted_permissions,
             self.storage.clone(),
             snapshot,
@@ -89,9 +84,7 @@ impl SageAppCommon {
         )?;
 
         let next = Self::build(
-            self.id.clone(),
-            self.origin_id.clone(),
-            self.app_dir.clone(),
+            self.identity.clone(),
             granted_permissions,
             self.storage.clone(),
             self.active_snapshot.clone(),
@@ -107,16 +100,12 @@ impl SageAppCommon {
     }
 
     fn build(
-        id: String,
-        origin_id: String,
-        app_dir: String,
+        identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
         storage: InstalledSageAppStorage,
         snapshot: SageAppSnapshot,
         previous_flags: Option<&SageAppFlags>,
     ) -> anyhow::Result<Self> {
-        let identity = normalize_app_identity(id, origin_id, app_dir)?;
-
         let manifest = snapshot.manifest();
 
         let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
@@ -128,9 +117,7 @@ impl SageAppCommon {
             resolve_app_capability_flags(manifest, &granted_permissions, previous_flags)?;
 
         let common = Self {
-            id: identity.id,
-            origin_id: identity.origin_id,
-            app_dir: identity.app_dir,
+            identity,
             granted_permissions,
             capability_flags,
             storage,
@@ -148,11 +135,11 @@ impl SageAppCommon {
     }
 
     pub fn id(&self) -> &str {
-        &self.id
+        &self.identity.id
     }
 
     pub fn origin_id(&self) -> &str {
-        &self.origin_id
+        &self.identity.origin_id
     }
 
     pub fn name(&self) -> &str {
@@ -164,11 +151,11 @@ impl SageAppCommon {
     }
 
     pub fn app_dir(&self) -> &str {
-        &self.app_dir
+        &self.identity.app_dir
     }
 
     pub fn app_path(&self) -> PathBuf {
-        PathBuf::from(&self.app_dir)
+        PathBuf::from(&self.identity.app_dir)
     }
 
     pub fn entry_file(&self) -> &str {
@@ -213,5 +200,19 @@ impl SageAppCommon {
             .icon()
             .as_ref()
             .map(|icon_file| self.active_snapshot.file_path(icon_file))
+    }
+}
+
+impl SageAppIdentity {
+    pub fn new(
+        id: impl Into<String>,
+        origin_id: impl Into<String>,
+        app_dir: impl Into<String>,
+    ) -> anyhow::Result<Self> {
+        Ok(Self {
+            id: normalized_non_empty_string(id, "app id")?,
+            origin_id: normalized_non_empty_string(origin_id, "app origin id")?,
+            app_dir: normalized_non_empty_string(app_dir, "app directory")?,
+        })
     }
 }

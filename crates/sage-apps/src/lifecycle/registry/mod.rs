@@ -239,9 +239,9 @@ mod tests {
     use crate::lifecycle::storage::record_storage_cleanup_failure;
     use crate::types::{
         InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry,
-        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
+        SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource,
     };
     use std::fs;
     use tempfile::tempdir;
@@ -285,9 +285,7 @@ mod tests {
             SageAppSnapshot::new("hash", dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
-            app_id,
-            origin_id,
-            dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(app_id, origin_id, dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,

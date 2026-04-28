@@ -6,8 +6,8 @@ use tauri::command;
 
 use crate::host::Result;
 use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
-    SageGrantedPermissions, UserSageApp, UserSageAppSource,
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
 use crate::utils::builtin_apps_root;
 
@@ -167,9 +167,11 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     )?;
 
     let common = SageAppCommon::new(
-        spec.app_id.to_string(),
-        spec.app_id.to_string(),
-        app_dir.to_string_lossy().to_string(),
+        SageAppIdentity::new(
+            spec.app_id.to_string(),
+            spec.app_id.to_string(),
+            app_dir.to_string_lossy().to_string(),
+        )?,
         granted_permissions,
         builtin_storage(spec.app_id),
         snapshot,

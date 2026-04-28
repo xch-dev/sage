@@ -9,8 +9,9 @@ use tauri::command;
 use crate::bridge::capabilities::SystemBridgeCapability;
 use crate::host::Result;
 use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
-    SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp,
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation,
+    SystemSageApp,
 };
 use crate::utils::builtin_apps_root;
 
@@ -114,9 +115,11 @@ pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     )?;
 
     let common = SageAppCommon::new(
-        spec.app_id,
-        spec.app_id,
-        app_dir.to_string_lossy().to_string(),
+        SageAppIdentity::new(
+            spec.app_id,
+            spec.app_id,
+            app_dir.to_string_lossy().to_string(),
+        )?,
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,

@@ -129,8 +129,8 @@ mod tests {
     use super::*;
     use crate::lifecycle::write_installed_app_metadata;
     use crate::types::{
-        InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifestParts,
-        SageGrantedPermissions, SageRequestedPermissions,
+        InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppManifestFile,
+        SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions,
     };
     use tempfile::tempdir;
 
@@ -183,9 +183,12 @@ mod tests {
             SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
         let common = SageAppCommon::new(
-            app_id.to_string(),
-            app_id.to_string(),
-            app_dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(
+                app_id.to_string(),
+                app_id.to_string(),
+                app_dir.to_string_lossy().to_string(),
+            )
+            .unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             SageAppSnapshot::new(

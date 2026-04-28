@@ -9,8 +9,8 @@ mod url;
 
 pub(crate) use app::{
     CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
-    SageAppSnapshot, SageAppUrlPreview, SystemAppPresentation, SystemSageApp, UserSageApp,
-    UserSageAppPendingUpdate, UserSageAppSource,
+    SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, SystemAppPresentation, SystemSageApp,
+    UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
 };
 pub(crate) use manifest::{SageAppManifestFile, SageAppPackageManifest};
 pub(crate) use network::SageNetworkWhitelistEntry;

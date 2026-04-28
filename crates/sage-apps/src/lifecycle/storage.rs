@@ -218,9 +218,9 @@ mod tests {
     };
     use crate::runtime::state::types::SageAppRuntimeRecord;
     use crate::types::{
-        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities,
-        SageRequestedPermissions, UserSageAppSource,
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
+        SageRequestedCapabilities, SageRequestedPermissions, UserSageAppSource,
     };
     use tempfile::tempdir;
 
@@ -277,9 +277,7 @@ mod tests {
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
-            app_id,
-            app_id,
-            app_dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             storage,
             snapshot,

@@ -1,26 +1,7 @@
 use std::path::PathBuf;
 
 use crate::types::app::SageAppFlags;
-use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::{SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions};
-
-pub struct NormalizedAppIdentity {
-    pub id: String,
-    pub origin_id: String,
-    pub app_dir: String,
-}
-
-pub fn normalize_app_identity(
-    id: String,
-    origin_id: String,
-    app_dir: String,
-) -> anyhow::Result<NormalizedAppIdentity> {
-    Ok(NormalizedAppIdentity {
-        id: normalized_non_empty_string(id, "app id")?,
-        origin_id: normalized_non_empty_string(origin_id, "app origin id")?,
-        app_dir: normalized_non_empty_string(app_dir, "app directory")?,
-    })
-}
 
 pub fn validate_app_flags_policy(flags: SageAppFlags) -> anyhow::Result<()> {
     if flags.has_external_access() && flags.has_secret_access() {

@@ -133,10 +133,10 @@ mod tests {
         app_dir, read_installed_app_by_id, write_installed_app_metadata,
     };
     use crate::types::{
-        InstalledSageAppStorage, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+        InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppManifestFile,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot,
+        SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource,
     };
     use std::path::Path;
     use tempfile::tempdir;
@@ -198,9 +198,7 @@ mod tests {
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
-            app_id,
-            app_id,
-            app_dir.to_string_lossy().to_string(),
+            SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,

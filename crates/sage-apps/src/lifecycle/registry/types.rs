@@ -3,8 +3,8 @@ use std::convert::TryFrom;
 use serde::{Deserialize, Serialize};
 
 use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppSnapshot, SageGrantedPermissions, UserSageApp,
-    UserSageAppSource,
+    InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppSnapshot,
+    SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -46,9 +46,7 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
 
     fn try_from(persisted: PersistedUserSageApp) -> Result<Self, Self::Error> {
         let common = SageAppCommon::new(
-            persisted.id,
-            persisted.origin_id,
-            persisted.app_dir,
+            SageAppIdentity::new(persisted.id, persisted.origin_id, persisted.app_dir)?,
             persisted.granted_permissions,
             persisted.storage,
             persisted.active_snapshot,
