@@ -17,6 +17,35 @@ use crate::types::{
     UserSageAppSource,
 };
 
+async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
+    let (app_url, manifest_url) = match app.source() {
+        UserSageAppSource::Url {
+            app_url,
+            manifest_url,
+        } => (app_url.clone(), manifest_url.clone()),
+        UserSageAppSource::Zip => return Ok(None),
+    };
+
+    let preview = SageAppUrlPreview::new(app_url.clone())
+        .await
+        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
+
+    let active_snapshot = app.common().active_snapshot();
+
+    if preview.manifest_hash() == active_snapshot.manifest_hash()
+        && preview.manifest() == active_snapshot.manifest()
+    {
+        return Ok(None);
+    }
+
+    Ok(Some(UserSageAppPendingUpdate::new(
+        app_url,
+        manifest_url,
+        preview.manifest_hash().to_string(),
+        preview.manifest().clone(),
+    )))
+}
+
 #[command]
 #[specta::specta]
 pub async fn check_app_update(
@@ -31,34 +60,19 @@ pub async fn check_app_update(
     let app = read_installed_app_by_id(&base_path, &app_id)
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    let app_url = match app.source() {
-        UserSageAppSource::Url { app_url, .. } => app_url.clone(),
-        UserSageAppSource::Zip => return Ok(None),
+    let Some(pending) = fetch_pending_update(&app).await? else {
+        return Ok(None);
     };
 
-    let preview = SageAppUrlPreview::new(app_url)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
-
-    let active_snapshot = app.common().active_snapshot();
-
-    let same_manifest_hash = preview.manifest_hash() == active_snapshot.manifest_hash();
-    let same_manifest_content = preview.manifest() == active_snapshot.manifest();
-
-    if same_manifest_hash && same_manifest_content {
-        return Ok(None);
-    }
-
-    if let Some(pending) = app.pending_update() {
-        let same_pending_hash = pending.manifest_hash() == preview.manifest_hash();
-        let same_pending_manifest = pending.manifest() == preview.manifest();
-
-        if same_pending_hash && same_pending_manifest {
+    if let Some(existing_pending) = app.pending_update() {
+        if existing_pending.manifest_hash() == pending.manifest_hash()
+            && existing_pending.manifest() == pending.manifest()
+        {
             return Ok(None);
         }
     }
 
-    Ok(Some(preview))
+    Ok(Some(SageAppUrlPreview::from_pending_update(pending)))
 }
 
 #[command]
@@ -75,28 +89,11 @@ pub async fn download_app_update(
     let mut app = read_installed_app_by_id(&base_path, &app_id)
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    let (app_url, manifest_url) = match app.source() {
-        UserSageAppSource::Url {
-            app_url,
-            manifest_url,
-        } => (app_url.clone(), manifest_url.clone()),
-        UserSageAppSource::Zip => {
-            return Err(io::Error::other("zip apps do not support URL update download").into());
-        }
-    };
-
-    let Some(preview) = check_app_update(state, app_id.clone()).await? else {
+    let Some(pending) = fetch_pending_update(&app).await? else {
         return Ok(app);
     };
 
-    app.set_pending_update(Some(
-        UserSageAppPendingUpdate::new(
-            app_url,
-            manifest_url,
-            preview.manifest_hash().to_string(),
-            preview.manifest().clone(),
-        ),
-    ));
+    app.set_pending_update(Some(pending));
 
     let app_dir = PathBuf::from(app.common().app_dir());
     write_installed_app_metadata(&app, &app_dir)
@@ -120,10 +117,12 @@ pub async fn apply_app_update(
     let mut app = read_installed_app_by_id(&base_path, &app_id)
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    let pending = app
-        .pending_update()
-        .cloned()
-        .ok_or_else(|| io::Error::other(format!("app {app_id} has no pending update")))?;
+    let pending = match app.pending_update().cloned() {
+        Some(pending) => pending,
+        None => fetch_pending_update(&app)
+            .await?
+            .ok_or_else(|| io::Error::other(format!("app {app_id} has no available update")))?,
+    };
 
     let app_dir = PathBuf::from(app.common().app_dir());
 

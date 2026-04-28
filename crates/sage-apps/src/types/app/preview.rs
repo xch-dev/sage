@@ -69,6 +69,15 @@ impl SageAppUrlPreview {
         })
     }
 
+    pub fn from_pending_update(pending: UserSageAppPendingUpdate) -> Self {
+        Self {
+            app_url: pending.app_url().to_string(),
+            manifest_url: pending.manifest_url().to_string(),
+            manifest_hash: pending.manifest_hash().to_string(),
+            manifest: pending.manifest().clone(),
+        }
+    }
+
     pub fn app_url(&self) -> &str {
         &self.app_url
     }
