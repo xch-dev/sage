@@ -56,7 +56,7 @@ pub async fn create_inline_runtime(
         .await;
     }
 
-    if !args.internal && !resolved.is_sandbox_test() {
+    if !args.internal && !resolved.common().is_sandbox_test() {
         let baseline = apps_state.sandbox.baseline.lock().await.clone();
         let current_run = apps_state.sandbox.current_run.lock().await.clone();
         let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
-
+use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
@@ -200,6 +200,10 @@ impl SageAppCommon {
             .icon()
             .as_ref()
             .map(|icon_file| self.active_snapshot.file_path(icon_file))
+    }
+
+    pub fn is_sandbox_test(&self) -> bool {
+        self.id().starts_with(SANDBOX_TEST_ID_PREFIX)
     }
 }
 

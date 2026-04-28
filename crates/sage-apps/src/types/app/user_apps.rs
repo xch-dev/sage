@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::PathBuf;
 
-use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::SageAppUrl;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
@@ -200,10 +199,6 @@ impl SageApp {
             Self::System(app) => Some(app),
             Self::User(_) => None,
         }
-    }
-
-    pub fn is_sandbox_test(&self) -> bool {
-        self.id().starts_with(SANDBOX_TEST_ID_PREFIX)
     }
 }
 

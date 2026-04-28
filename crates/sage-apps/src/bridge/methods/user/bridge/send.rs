@@ -71,7 +71,7 @@ impl BridgeMethod for BridgeSend {
 }
 
 fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
-    if !ctx.app.is_sandbox_test() {
+    if !ctx.app.common().is_sandbox_test() {
         return Err(BridgeMethodHandleError::invalid_request(
             "Method use is not allowed",
         ));
