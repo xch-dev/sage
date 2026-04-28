@@ -3,12 +3,10 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
@@ -84,7 +82,14 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         let base_path = resolve_app_base_path(&tools)?;
 
-        let result = match grant_capability(&base_path, ctx.app.id(), params.capability) {
+        let result = match grant_capability(
+            tools.app_handle,
+            &base_path,
+            ctx.app.id(),
+            params.capability,
+        )
+        .await
+        {
             Ok(GrantCapabilityOutcome::AlreadyGranted {
                 capability,
                 full_granted_capabilities,
@@ -96,20 +101,11 @@ impl BridgeMethod for AppRequestCapabilityGrant {
             },
 
             Ok(GrantCapabilityOutcome::Granted { capability, change }) => {
-                let full_granted_capabilities = change.full.clone();
-
-                let _ = emit_bridge_event_to_app_id(
-                    tools.app_handle,
-                    ctx.app.id(),
-                    EventForApp::from_capabilities_change(&request.channel, change),
-                )
-                .await;
-
                 RequestCapabilityGrantResult {
                     granted: true,
                     already_granted: None,
                     capability,
-                    full_granted_capabilities,
+                    full_granted_capabilities: change.full,
                 }
             }
 

@@ -2,9 +2,6 @@ use std::io;
 
 use tauri::{AppHandle, State, command};
 
-use crate::bridge::USER_BRIDGE_CHANNEL;
-use crate::bridge::event_emit::emit_bridge_event_to_app_id;
-use crate::bridge::methods::user::app::events::EventForApp;
 use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::update::permissions::update_app_permissions;
@@ -153,28 +150,9 @@ pub async fn apps_update_permissions(
         state.path.clone()
     };
 
-    let update_result = update_app_permissions(&base_path, &app_id, &granted_permissions)
+    update_app_permissions(&app, &base_path, &app_id, &granted_permissions)
+        .await
         .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
-
-    let capability_change = update_result.change().capabilities();
-    if !capability_change.added.is_empty() || !capability_change.removed.is_empty() {
-        let _ = emit_bridge_event_to_app_id(
-            &app,
-            &app_id,
-            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change.clone()),
-        )
-        .await;
-    }
-
-    let network_change = update_result.change().network_whitelist();
-    if !network_change.added.is_empty() || !network_change.removed.is_empty() {
-        let _ = emit_bridge_event_to_app_id(
-            &app,
-            &app_id,
-            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change.clone()),
-        )
-        .await;
-    }
 
     Ok(())
 }

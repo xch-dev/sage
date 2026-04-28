@@ -73,7 +73,7 @@ impl SageAppCommon {
         Ok(())
     }
 
-    pub fn update_permissions(
+    pub(crate) fn update_permissions(
         &mut self,
         granted_permissions: &SageGrantedPermissions,
     ) -> anyhow::Result<()> {

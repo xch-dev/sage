@@ -441,7 +441,7 @@ mod tests {
                 ],
             ),
         )
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -453,7 +453,7 @@ mod tests {
             [UserBridgeCapability::WalletSendXchAutoSubmit],
             [],
         )
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("not requested in manifest"));
         assert!(

@@ -1,13 +1,55 @@
-use std::path::Path;
-
+use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::event_emit::emit_bridge_event_to_app_id;
+use crate::bridge::methods::user::app::events::EventForApp;
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
 use crate::lifecycle::{read_installed_app_by_id, write_installed_app_metadata};
-use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry};
+use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
+use std::path::Path;
+use tauri::AppHandle;
 
-pub fn update_app_permissions(
+pub async fn update_app_permissions(
+    app: &AppHandle,
+    base_path: &Path,
+    app_id: &str,
+    granted_permissions: &SageGrantedPermissions,
+) -> anyhow::Result<UserSageApp> {
+    let update_result = update_app_permissions_internal(base_path, app_id, granted_permissions)?;
+
+    emit_granted_permissions_change(app, app_id, update_result.change()).await;
+
+    Ok(update_result.into_app())
+}
+
+pub async fn grant_capability(
+    app: &AppHandle,
+    base_path: &Path,
+    app_id: &str,
+    capability: UserBridgeCapability,
+) -> anyhow::Result<GrantCapabilityOutcome> {
+    let update = grant_capability_internal(base_path, app_id, capability)?;
+
+    emit_granted_permissions_change(app, app_id, update.change()).await;
+
+    Ok(GrantCapabilityOutcome::from_update(capability, &update))
+}
+
+pub async fn grant_network_whitelist_entry(
+    app_handle: &AppHandle,
+    base_path: &Path,
+    app_id: &str,
+    entry: &SageNetworkWhitelistEntry,
+) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
+    let update = grant_network_whitelist_entry_internal(base_path, app_id, entry)?;
+
+    emit_granted_permissions_change(app_handle, app_id, update.change()).await;
+
+    Ok(GrantNetworkWhitelistOutcome::from_update(entry, &update))
+}
+
+fn update_app_permissions_internal(
     base_path: &Path,
     app_id: &str,
     granted_permissions: &SageGrantedPermissions,
@@ -26,62 +68,60 @@ pub fn update_app_permissions(
     Ok(AppUpdateResult::new(app, change))
 }
 
-pub fn grant_capability(
+fn grant_capability_internal(
     base_path: &Path,
     app_id: &str,
     capability: UserBridgeCapability,
-) -> anyhow::Result<GrantCapabilityOutcome> {
+) -> anyhow::Result<AppUpdateResult> {
     let app = read_installed_app_by_id(base_path, app_id)?;
-
-    let previous_capabilities = app.common().granted_permissions().capabilities_vec();
-
-    if previous_capabilities.contains(&capability) {
-        return Ok(GrantCapabilityOutcome::AlreadyGranted {
-            capability,
-            full_granted_capabilities: previous_capabilities,
-        });
-    }
 
     let granted_permissions = app
         .common()
         .granted_permissions()
         .with_capability_added(app.common().requested_permissions(), capability)?;
 
-    let update_result = update_app_permissions(base_path, app_id, &granted_permissions)?;
-
-    Ok(GrantCapabilityOutcome::Granted {
-        capability,
-        change: update_result.change().capabilities().clone(),
-    })
+    update_app_permissions_internal(base_path, app_id, &granted_permissions)
 }
 
-pub fn grant_network_whitelist_entry(
+fn grant_network_whitelist_entry_internal(
     base_path: &Path,
     app_id: &str,
     entry: &SageNetworkWhitelistEntry,
-) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
+) -> anyhow::Result<AppUpdateResult> {
     let app = read_installed_app_by_id(base_path, app_id)?;
-
-    let previous_whitelist = app.common().granted_permissions().network_whitelist_vec();
-
-    if previous_whitelist.iter().any(|existing| existing == entry) {
-        return Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
-            entry: entry.clone(),
-            full_granted_network_whitelist: previous_whitelist,
-        });
-    }
 
     let granted_permissions = app
         .common()
         .granted_permissions()
         .with_network_whitelist_entry_added(app.common().requested_permissions(), entry.clone())?;
 
-    let update_result = update_app_permissions(base_path, app_id, &granted_permissions)?;
+    update_app_permissions_internal(base_path, app_id, &granted_permissions)
+}
 
-    Ok(GrantNetworkWhitelistOutcome::Granted {
-        entry: entry.clone(),
-        change: update_result.change().network_whitelist().clone(),
-    })
+async fn emit_granted_permissions_change(
+    app: &AppHandle,
+    app_id: &str,
+    change: &GrantedPermissionsChange,
+) {
+    let capability_change = change.capabilities();
+    if !capability_change.is_empty() {
+        let _ = emit_bridge_event_to_app_id(
+            app,
+            app_id,
+            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change.clone()),
+        )
+        .await;
+    }
+    let network_change = change.network_whitelist();
+
+    if !network_change.is_empty() {
+        let _ = emit_bridge_event_to_app_id(
+            app,
+            app_id,
+            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change.clone()),
+        )
+        .await;
+    }
 }
 
 #[cfg(test)]
@@ -183,7 +223,7 @@ mod tests {
             SageGrantedPermissions::new(app.common().requested_permissions(), [], []).unwrap();
 
         let update_result =
-            update_app_permissions(dir.path(), app.common().id(), &granted).unwrap();
+            update_app_permissions_internal(dir.path(), app.common().id(), &granted).unwrap();
 
         assert_eq!(
             entries(
@@ -212,19 +252,22 @@ mod tests {
         );
     }
 
-
     #[test]
     fn grant_requested_capability_grants_optional_capability() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_capability(
+        let update_result = grant_capability_internal(
             dir.path(),
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
         )
         .unwrap();
+        let outcome = GrantCapabilityOutcome::from_update(
+            UserBridgeCapability::WalletSendXch,
+            &update_result,
+        );
 
         match outcome {
             GrantCapabilityOutcome::Granted { capability, change } => {
@@ -269,12 +312,16 @@ mod tests {
 
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_capability(
+        let update_result = grant_capability_internal(
             dir.path(),
             app.common().id(),
             UserBridgeCapability::WalletSendXch,
         )
         .unwrap();
+        let outcome = GrantCapabilityOutcome::from_update(
+            UserBridgeCapability::WalletSendXch,
+            &update_result,
+        );
 
         match outcome {
             GrantCapabilityOutcome::AlreadyGranted {
@@ -293,19 +340,16 @@ mod tests {
         }
     }
 
-
     #[test]
     fn grant_requested_network_whitelist_entry_grants_optional_entry() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_network_whitelist_entry(
-            dir.path(),
-            app.common().id(),
-            &network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM"),
-        )
-        .unwrap();
+        let entry = network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM");
+        let update_result =
+            grant_network_whitelist_entry_internal(dir.path(), app.common().id(), &entry).unwrap();
+        let outcome = GrantNetworkWhitelistOutcome::from_update(&entry, &update_result);
 
         match outcome {
             GrantNetworkWhitelistOutcome::Granted { entry, change } => {
@@ -369,12 +413,10 @@ mod tests {
 
         write_installed_app_metadata(&app).unwrap();
 
-        let outcome = grant_network_whitelist_entry(
-            dir.path(),
-            app.common().id(),
-            &network_whitelist_entry("https", "required.example.com"),
-        )
-        .unwrap();
+        let entry = network_whitelist_entry("https", "required.example.com");
+        let update_result =
+            grant_network_whitelist_entry_internal(dir.path(), app.common().id(), &entry).unwrap();
+        let outcome = GrantNetworkWhitelistOutcome::from_update(&entry, &update_result);
 
         match outcome {
             GrantNetworkWhitelistOutcome::AlreadyGranted {

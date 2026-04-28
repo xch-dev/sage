@@ -3,12 +3,10 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
@@ -83,7 +81,14 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
 
         let base_path = resolve_app_base_path(&tools)?;
 
-        let result = match grant_network_whitelist_entry(&base_path, ctx.app.id(), &params.entry) {
+        let result = match grant_network_whitelist_entry(
+            tools.app_handle,
+            &base_path,
+            ctx.app.id(),
+            &params.entry,
+        )
+        .await
+        {
             Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
                 entry,
                 full_granted_network_whitelist,
@@ -95,20 +100,11 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
             },
 
             Ok(GrantNetworkWhitelistOutcome::Granted { entry, change }) => {
-                let full = change.full.clone();
-
-                let _ = emit_bridge_event_to_app_id(
-                    tools.app_handle,
-                    ctx.app.id(),
-                    EventForApp::from_network_whitelist_change(&request.channel, change),
-                )
-                .await;
-
                 RequestNetworkWhitelistGrantResult {
                     granted: true,
                     already_granted: None,
                     entry,
-                    full_granted_network_whitelist: full,
+                    full_granted_network_whitelist: change.full,
                 }
             }
 

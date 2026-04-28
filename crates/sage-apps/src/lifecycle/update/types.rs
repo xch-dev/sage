@@ -40,6 +40,25 @@ pub enum GrantCapabilityOutcome {
     },
 }
 
+impl GrantCapabilityOutcome {
+    pub fn from_update(capability: UserBridgeCapability, update_result: &AppUpdateResult) -> Self {
+        Self::from_change(capability, update_result.change().capabilities())
+    }
+    fn from_change(capability: UserBridgeCapability, change: &GrantedCapabilitiesChange) -> Self {
+        if change.added.is_empty() && change.removed.is_empty() {
+            Self::AlreadyGranted {
+                capability,
+                full_granted_capabilities: change.full.clone(),
+            }
+        } else {
+            Self::Granted {
+                capability,
+                change: change.clone(),
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum GrantNetworkWhitelistOutcome {
     AlreadyGranted {
@@ -50,6 +69,28 @@ pub enum GrantNetworkWhitelistOutcome {
         entry: SageNetworkWhitelistEntry,
         change: GrantedNetworkWhitelistChange,
     },
+}
+
+impl GrantNetworkWhitelistOutcome {
+    pub fn from_update(entry: &SageNetworkWhitelistEntry, update_result: &AppUpdateResult) -> Self {
+        Self::from_change(entry, update_result.change().network_whitelist())
+    }
+    fn from_change(
+        entry: &SageNetworkWhitelistEntry,
+        change: &GrantedNetworkWhitelistChange,
+    ) -> Self {
+        if change.added.is_empty() && change.removed.is_empty() {
+            Self::AlreadyGranted {
+                entry: entry.clone(),
+                full_granted_network_whitelist: change.full.clone(),
+            }
+        } else {
+            Self::Granted {
+                entry: entry.clone(),
+                change: change.clone(),
+            }
+        }
+    }
 }
 
 impl GrantedPermissionsChange {
@@ -84,6 +125,10 @@ impl AppUpdateResult {
         &self.app
     }
 
+    pub fn into_app(self) -> UserSageApp {
+        self.app
+    }
+
     pub fn change(&self) -> &GrantedPermissionsChange {
         &self.change
     }
@@ -100,6 +145,10 @@ impl GrantedCapabilitiesChange {
             full: next.to_vec(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.removed.is_empty() && self.added.is_empty()
+    }
 }
 
 impl GrantedNetworkWhitelistChange {
@@ -115,5 +164,9 @@ impl GrantedNetworkWhitelistChange {
             added: next_set.difference(&previous_set).cloned().collect(),
             full: next.to_vec(),
         }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.removed.is_empty() && self.added.is_empty()
     }
 }
