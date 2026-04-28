@@ -3,10 +3,12 @@ pub mod resolve;
 
 pub mod commands;
 pub mod start;
-pub mod state;
+mod state;
 pub mod stop;
 pub mod webview_locator;
 
 pub use commands::*;
 pub use manager::*;
 pub use resolve::*;
+
+pub(crate) use state::*;

@@ -7,7 +7,7 @@ use super::super::types::{
     SandboxPersistenceWriteProbeResult, SandboxStorageClearProbePhase,
     SandboxStorageClearProbeResult,
 };
-use crate::state::AppsHostState;
+use crate::AppsHostState;
 use crate::utils::unix_timestamp_ms;
 
 pub async fn poll_isolation(

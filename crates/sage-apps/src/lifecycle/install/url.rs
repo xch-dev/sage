@@ -159,7 +159,7 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
-    use crate::runtime::state::types::SageAppRuntimeRecord;
+    use crate::runtime::SageAppRuntimeRecord;
     use crate::types::{
         InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity,
         SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions,

@@ -1,6 +1,9 @@
 use std::fmt;
 use std::sync::Arc;
 
+use crate::bridge::state::BridgeState;
+use crate::runtime::AppRuntimeState;
+use crate::sandbox::SandboxStateStore;
 use sage::Sage;
 use sage_api::ErrorKind;
 use serde::{Deserialize, Serialize};
@@ -8,6 +11,13 @@ use specta::Type;
 use tokio::sync::Mutex;
 
 pub type AppState = Arc<Mutex<Sage>>;
+
+#[derive(Debug, Default)]
+pub struct AppsHostState {
+    pub runtime: AppRuntimeState,
+    pub bridge: BridgeState,
+    pub sandbox: SandboxStateStore,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 pub struct SageAppsError {

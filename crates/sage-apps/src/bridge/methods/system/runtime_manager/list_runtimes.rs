@@ -7,7 +7,7 @@ use crate::bridge::methods::shared::{
     BridgeMethodHandleError,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::state::read::list_runtimes;
+use crate::runtime::list_runtimes;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RuntimeManagerListRuntimes;

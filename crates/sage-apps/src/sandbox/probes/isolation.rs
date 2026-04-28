@@ -1,14 +1,14 @@
 use tauri::{AppHandle, State};
 
+use crate::AppsHostState;
 use crate::sandbox::{
     BUILTIN_STORAGE_ISOLATION_INCOGNITO_ID, BUILTIN_STORAGE_ISOLATION_PERSISTENT_ID,
 };
-use crate::state::AppsHostState;
 
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
 use super::poll::poll_isolation;
 
-pub async fn run_isolation_test(
+pub(in crate::sandbox) async fn run_isolation_test(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(bool, Option<String>), String> {

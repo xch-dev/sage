@@ -1,37 +1,14 @@
+use crate::AppsHostState;
 use crate::lifecycle::clear_runtime_browsing_data_internal;
 use crate::runtime::stop::close_runtime_internal;
 use crate::sandbox::BUILTIN_STORAGE_CLEAR_PERSISTENT_ID;
-use crate::state::AppsHostState;
 use tauri::{AppHandle, State};
 
 use super::super::runtime::{run_clear_cycle_phase_runtime, unique_run_id};
 use super::super::types::{SandboxStorageClearProbePhase, SandboxStorageClearProbeResult};
 use super::poll::poll_clear_cycle_phase;
 
-async fn run_clear_cycle_phase(
-    app: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-    app_id: &str,
-    run_id: &str,
-    phase: SandboxStorageClearProbePhase,
-) -> Result<SandboxStorageClearProbeResult, String> {
-    let phase_string = match phase {
-        SandboxStorageClearProbePhase::Write => "write",
-        SandboxStorageClearProbePhase::CheckPresent => "check_present",
-        SandboxStorageClearProbePhase::CheckAbsent => "check_absent",
-    }
-    .to_string();
-
-    run_clear_cycle_phase_runtime(app, apps_state, app_id, run_id, phase_string).await?;
-
-    let out = poll_clear_cycle_phase(apps_state, run_id, app_id, phase, 10_000).await;
-
-    let _ = close_runtime_internal(app, apps_state, app_id).await;
-
-    out
-}
-
-pub async fn run_clear_cycle_test(
+pub(in crate::sandbox) async fn run_clear_cycle_test(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(bool, Option<String>), String> {
@@ -105,4 +82,27 @@ pub async fn run_clear_cycle_test(
                 .into()
         }),
     ))
+}
+
+async fn run_clear_cycle_phase(
+    app: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+    run_id: &str,
+    phase: SandboxStorageClearProbePhase,
+) -> Result<SandboxStorageClearProbeResult, String> {
+    let phase_string = match phase {
+        SandboxStorageClearProbePhase::Write => "write",
+        SandboxStorageClearProbePhase::CheckPresent => "check_present",
+        SandboxStorageClearProbePhase::CheckAbsent => "check_absent",
+    }
+    .to_string();
+
+    run_clear_cycle_phase_runtime(app, apps_state, app_id, run_id, phase_string).await?;
+
+    let out = poll_clear_cycle_phase(apps_state, run_id, app_id, phase, 10_000).await;
+
+    let _ = close_runtime_internal(app, apps_state, app_id).await;
+
+    out
 }

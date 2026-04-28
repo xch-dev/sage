@@ -1,25 +1,14 @@
+use crate::AppsHostState;
 use crate::runtime::apps_create_inline_runtime;
 use crate::runtime::start::CreateInlineRuntimeArgs;
 use crate::runtime::stop::close_runtime_internal;
-use crate::state::AppsHostState;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
 
-pub const STORAGE_CLEAR_PROBE_PATH: &str = "/__sage/runtime-apps/storage-clear-probe/index.html";
+const STORAGE_CLEAR_PROBE_PATH: &str = "/__sage/runtime-apps/storage-clear-probe/index.html";
 
-pub fn unique_run_id(prefix: &str) -> String {
-    format!("{prefix}-{}", Uuid::new_v4())
-}
-
-fn debug_test_apps_enabled() -> bool {
-    cfg!(debug_assertions)
-        && std::env::var("SAGE_DEBUG_TEST_APPS")
-            .map(|v| v == "1")
-            .unwrap_or(false)
-}
-
-pub async fn stop_test_apps(
+pub(crate) async fn stop_test_apps(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_ids: &[&str],
@@ -29,7 +18,7 @@ pub async fn stop_test_apps(
     }
 }
 
-pub async fn start_test_app(
+pub(crate) async fn start_test_app(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
@@ -55,7 +44,7 @@ pub async fn start_test_app(
     .await
 }
 
-pub async fn run_clear_cycle_phase_runtime(
+pub(crate) async fn run_clear_cycle_phase_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
@@ -80,6 +69,10 @@ pub async fn run_clear_cycle_phase_runtime(
     .await
 }
 
+pub(super) fn unique_run_id(prefix: &str) -> String {
+    format!("{prefix}-{}", Uuid::new_v4())
+}
+
 async fn start_internal_runtime_for_sandbox(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
@@ -102,4 +95,11 @@ async fn start_internal_runtime_for_sandbox(
     apps_create_inline_runtime(app.clone(), apps_state.clone(), args)
         .await
         .map(|_| ())
+}
+
+fn debug_test_apps_enabled() -> bool {
+    cfg!(debug_assertions)
+        && std::env::var("SAGE_DEBUG_TEST_APPS")
+            .map(|v| v == "1")
+            .unwrap_or(false)
 }

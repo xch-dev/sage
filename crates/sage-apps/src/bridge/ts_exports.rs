@@ -13,11 +13,11 @@ use crate::bridge::methods::user::app::{
 use crate::bridge::methods::user::bridge::ping::BridgePingResult;
 use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::runtime::state::types::{
+use crate::runtime::stop::SystemKillRuntimeResult;
+use crate::runtime::{
     ReadyToStopParams, RuntimeAckResult, SageAppRuntimeRecord, SageLifecycleBeforeStopDetail,
     SetBeforeStopListenerParams,
 };
-use crate::runtime::stop::SystemKillRuntimeResult;
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
     GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys,

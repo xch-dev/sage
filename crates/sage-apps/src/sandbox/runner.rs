@@ -6,28 +6,10 @@ use super::types::{
     SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,
     build_running_sandbox_state, mark_cap,
 };
+use crate::AppsHostState;
 use crate::runtime::webview_locator::get_sage_webview;
-use crate::state::AppsHostState;
 use crate::utils::unix_timestamp_ms;
 use tauri::{AppHandle, Emitter, Manager, State};
-
-async fn emit_state_view(app: &AppHandle, apps_state: &State<'_, AppsHostState>) {
-    let baseline = apps_state.sandbox.baseline.lock().await.clone();
-    let current_run = apps_state.sandbox.current_run.lock().await.clone();
-    let view = build_state_view(&baseline, current_run.as_ref());
-
-    if let Ok(webview) = get_sage_webview(app) {
-        let _ = webview.emit("apps:sandbox-state-updated", view);
-    }
-}
-
-fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {
-    state.storage_isolation_from_sage.status == SandboxCapabilityStatus::Pending
-        && state.storage_persistence_normal.status == SandboxCapabilityStatus::Pending
-        && state.storage_non_persistence_incognito.status == SandboxCapabilityStatus::Pending
-        && state.storage_clear_cycle.status == SandboxCapabilityStatus::Pending
-        && state.network_allowlist_enforced.status == SandboxCapabilityStatus::Pending
-}
 
 pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     let apps_state = app.state::<AppsHostState>();
@@ -59,7 +41,7 @@ pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub async fn begin_sandbox_run(
+pub(super) async fn begin_sandbox_run(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<super::types::SandboxStateView, String> {
@@ -279,4 +261,22 @@ pub async fn sandbox_runner(app: AppHandle) {
     *apps_state.sandbox.running.lock().await = false;
 
     emit_state_view(&app, &apps_state).await;
+}
+
+async fn emit_state_view(app: &AppHandle, apps_state: &State<'_, AppsHostState>) {
+    let baseline = apps_state.sandbox.baseline.lock().await.clone();
+    let current_run = apps_state.sandbox.current_run.lock().await.clone();
+    let view = build_state_view(&baseline, current_run.as_ref());
+
+    if let Ok(webview) = get_sage_webview(app) {
+        let _ = webview.emit("apps:sandbox-state-updated", view);
+    }
+}
+
+fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {
+    state.storage_isolation_from_sage.status == SandboxCapabilityStatus::Pending
+        && state.storage_persistence_normal.status == SandboxCapabilityStatus::Pending
+        && state.storage_non_persistence_incognito.status == SandboxCapabilityStatus::Pending
+        && state.storage_clear_cycle.status == SandboxCapabilityStatus::Pending
+        && state.network_allowlist_enforced.status == SandboxCapabilityStatus::Pending
 }

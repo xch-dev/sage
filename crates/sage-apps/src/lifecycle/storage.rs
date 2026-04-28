@@ -216,7 +216,7 @@ mod tests {
     use crate::lifecycle::{
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
-    use crate::runtime::state::types::SageAppRuntimeRecord;
+    use crate::runtime::SageAppRuntimeRecord;
     use crate::types::{
         SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
         SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,

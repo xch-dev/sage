@@ -5,7 +5,7 @@ use crate::runtime::emit_runtime_manager_runtimes_changed;
 use crate::runtime::state::types::SageAppRuntimeRecord;
 use crate::types::SageApp;
 
-pub async fn write_runtime_and_emit_changed(
+pub(in crate::runtime) async fn write_runtime_and_emit_changed(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     record: SageAppRuntimeRecord,
@@ -14,7 +14,7 @@ pub async fn write_runtime_and_emit_changed(
     emit_runtime_manager_runtimes_changed(app, apps_state).await;
 }
 
-pub async fn write_runtime_id_by_app_id(
+pub(in crate::runtime) async fn write_runtime_id_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app: &SageApp,
     runtime_id: String,
@@ -23,7 +23,7 @@ pub async fn write_runtime_id_by_app_id(
     runtime_by_app_id.insert(app.id().to_string(), runtime_id);
 }
 
-pub async fn write_pending_stop_ready(
+pub(in crate::runtime) async fn write_pending_stop_ready(
     apps_state: &State<'_, AppsHostState>,
     request_id: &str,
     tx: tokio::sync::oneshot::Sender<()>,

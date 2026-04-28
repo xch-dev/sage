@@ -1,4 +1,4 @@
-use crate::runtime::state::types::SageAppRuntimeRecord;
+use crate::runtime::SageAppRuntimeRecord;
 use serde::Serialize;
 use specta::Type;
 

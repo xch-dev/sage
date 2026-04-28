@@ -1,12 +1,12 @@
 use tauri::{AppHandle, State};
 
+use crate::AppsHostState;
 use crate::sandbox::{BUILTIN_NETWORK_ALLOW_A_ID, BUILTIN_NETWORK_ALLOW_B_ID};
-use crate::state::AppsHostState;
 
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
 use super::poll::poll_network;
 
-pub async fn run_network_test(
+pub(in crate::sandbox) async fn run_network_test(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(bool, Option<String>), String> {

@@ -1,7 +1,7 @@
+use crate::AppsHostState;
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::host::AppState;
-use crate::state::AppsHostState;
 use crate::types::SageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;

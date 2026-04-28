@@ -1,7 +1,7 @@
 use serde_json::Value;
 use tauri::State;
 
-use crate::state::AppsHostState;
+use crate::AppsHostState;
 
 use super::store::{SandboxAppResult, replace_by_app_id};
 use super::types::{

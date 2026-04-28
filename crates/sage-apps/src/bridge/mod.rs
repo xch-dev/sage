@@ -8,7 +8,7 @@ pub mod state;
 pub mod ts_exports;
 pub mod types;
 
-use crate::runtime::state::types::SageAppRuntimeKind;
+use crate::runtime::SageAppRuntimeKind;
 pub use types::{
     ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest,
     RustBridgeErrorPayload, RustBridgeErrorResponse, RustBridgeInvokeResult, RustBridgeRequest,

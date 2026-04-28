@@ -6,9 +6,7 @@ use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::state::types::{
-    ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams,
-};
+use crate::runtime::{ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppLifecycleSetBeforeStopListener;

@@ -39,9 +39,11 @@ impl BridgeMethod for BridgeSend {
 
     fn approval_request(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
+        check_ctx(&ctx)?;
+
         Ok(None)
     }
 
@@ -51,6 +53,8 @@ impl BridgeMethod for BridgeSend {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
+        check_ctx(&ctx)?;
+
         let payload: BridgeSendRequest = parse_required_params(self, request)?;
 
         let payload_value = serde_json::to_value(&payload).map_err(|err| {
@@ -64,4 +68,14 @@ impl BridgeMethod for BridgeSend {
 
         Ok(Box::new(BridgeSendResult { ok: true }))
     }
+}
+
+fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
+    if !ctx.app.is_sandbox_test() {
+        return Err(BridgeMethodHandleError::invalid_request(
+            "Method use is not allowed",
+        ));
+    }
+
+    Ok(())
 }

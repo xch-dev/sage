@@ -16,39 +16,6 @@ pub enum SageAppRuntimeKind {
     System,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SageLifecycleBeforeStopDetail {
-    pub request_id: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reason: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub app_id: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub runtime_id: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct SetBeforeStopListenerParams {
-    active: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct ReadyToStopParams {
-    request_id: String,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct RuntimeAckResult {
-    pub ok: bool,
-}
-
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppRuntimeRecord {
@@ -75,40 +42,41 @@ pub struct AppRuntimeState {
     pub pending_stop_ready: Mutex<BTreeMap<String, oneshot::Sender<()>>>,
 }
 
-impl SageLifecycleBeforeStopDetail {
-    pub fn new(
-        request_id: impl Into<String>,
-        reason: Option<impl Into<String>>,
-        app_id: Option<impl Into<String>>,
-        runtime_id: Option<impl Into<String>>,
-    ) -> Self {
-        Self {
-            request_id: request_id.into(),
-            reason: reason.map(Into::into),
-            app_id: app_id.map(Into::into),
-            runtime_id: runtime_id.map(Into::into),
-        }
-    }
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SageLifecycleBeforeStopDetail {
+    pub request_id: String,
 
-    pub fn request_id(&self) -> &str {
-        &self.request_id
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 
-    pub fn reason(&self) -> Option<&str> {
-        self.reason.as_deref()
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub app_id: Option<String>,
 
-    pub fn app_id(&self) -> Option<&str> {
-        self.app_id.as_deref()
-    }
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runtime_id: Option<String>,
+}
 
-    pub fn runtime_id(&self) -> Option<&str> {
-        self.runtime_id.as_deref()
-    }
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct SetBeforeStopListenerParams {
+    active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct ReadyToStopParams {
+    request_id: String,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct RuntimeAckResult {
+    pub ok: bool,
 }
 
 impl SetBeforeStopListenerParams {
-    pub fn active(&self) -> bool {
+    pub fn active(self) -> bool {
         self.active
     }
 }
@@ -116,16 +84,6 @@ impl SetBeforeStopListenerParams {
 impl ReadyToStopParams {
     pub fn request_id(&self) -> &str {
         &self.request_id
-    }
-}
-
-impl RuntimeAckResult {
-    pub fn ok() -> Self {
-        Self { ok: true }
-    }
-
-    pub fn ok_value(&self) -> bool {
-        self.ok
     }
 }
 
@@ -280,14 +238,17 @@ impl std::fmt::Debug for AppRuntimeState {
     }
 }
 
-pub fn runtime_id_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
+pub(in crate::runtime) fn runtime_id_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
     match runtime_kind {
         SageAppRuntimeKind::User => format!("runtime-{app_id}"),
         SageAppRuntimeKind::System => format!("system-runtime-{app_id}"),
     }
 }
 
-pub fn inline_label_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
+pub(in crate::runtime) fn inline_label_for(
+    app_id: &str,
+    runtime_kind: SageAppRuntimeKind,
+) -> String {
     match runtime_kind {
         SageAppRuntimeKind::User => format!("app-inline-{app_id}"),
         SageAppRuntimeKind::System => format!("system-app-inline-{app_id}"),

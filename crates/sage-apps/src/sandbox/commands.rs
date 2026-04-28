@@ -1,7 +1,7 @@
 use tauri::{AppHandle, State};
 
+use crate::AppsHostState;
 use crate::runtime::resolve_app;
-use crate::state::AppsHostState;
 
 use super::gate::evaluate_app_launch_gate;
 use super::runner::{begin_sandbox_run, sandbox_runner};

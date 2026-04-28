@@ -10,7 +10,7 @@ use crate::bridge::{
 };
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::state::types::SageAppRuntimeKind;
+use crate::runtime::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::types::SageApp;

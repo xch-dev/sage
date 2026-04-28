@@ -1,14 +1,11 @@
 use crate::AppsHostState;
 use crate::runtime::emit_runtime_manager_runtimes_changed;
-use crate::runtime::state::read::{
-    find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-};
-use crate::runtime::state::remove::{
+use crate::runtime::state::{
+    SageAppRuntimeRecord, SageLifecycleBeforeStopDetail, find_runtime_by_runtime_id_optional,
+    find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
     remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
-    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready,
 };
-use crate::runtime::state::types::{SageAppRuntimeRecord, SageLifecycleBeforeStopDetail};
-use crate::runtime::state::write::write_pending_stop_ready;
 use crate::runtime::webview_locator::find_webview_in_sage_window;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -27,7 +24,7 @@ pub struct SystemKillRuntimeResult {
     pub app_id: String,
 }
 
-pub async fn kill_runtime(
+pub(crate) async fn kill_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
@@ -43,7 +40,7 @@ pub async fn kill_runtime(
     })
 }
 
-pub async fn close_runtime_internal(
+pub(crate) async fn close_runtime_internal(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
@@ -51,7 +48,7 @@ pub async fn close_runtime_internal(
     close_runtime_internal_with_reason(app, apps_state, app_id, "host_close").await
 }
 
-pub async fn close_runtime_internal_with_reason(
+pub(super) async fn close_runtime_internal_with_reason(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,

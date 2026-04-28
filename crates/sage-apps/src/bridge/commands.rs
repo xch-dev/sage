@@ -8,8 +8,7 @@ use crate::bridge::{
 };
 use crate::capabilities::user_registry;
 use crate::host::AppState;
-use crate::runtime::state::types::SageAppRuntimeKind;
-use crate::runtime::{assert_bridge_origin, resolve_app};
+use crate::runtime::{SageAppRuntimeKind, assert_bridge_origin, resolve_app};
 use crate::types::SageAppCapabilityDefinitionView;
 use tauri::{AppHandle, State, Webview};
 
