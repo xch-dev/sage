@@ -296,10 +296,7 @@ mod tests {
 
         UserSageApp::new_installed(
             common,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/app/".into(),
-                manifest_url: "https://example.com/app/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/app/").unwrap(),
         )
     }
 

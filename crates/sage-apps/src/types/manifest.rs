@@ -199,7 +199,6 @@ impl SageAppManifestFile {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::bridge::capabilities::UserBridgeCapability;
@@ -235,7 +234,7 @@ mod tests {
                 ],
             ),
         )
-            .unwrap()
+        .unwrap()
     }
 
     fn sample_manifest_with(
@@ -264,7 +263,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -279,7 +278,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("name cannot be empty"));
     }
@@ -296,7 +295,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("version cannot be empty"));
     }
@@ -313,7 +312,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
         assert_eq!(manifest.total_bytes(), 123);
     }
@@ -346,4 +345,3 @@ mod tests {
         assert_eq!(manifest.icon(), None);
     }
 }
-

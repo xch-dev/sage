@@ -307,10 +307,7 @@ mod tests {
             "url-abc123",
             "Test App",
             storage,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/app/".into(),
-                manifest_url: "https://example.com/app/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/app/").unwrap(),
             true,
         )
     }
@@ -419,10 +416,7 @@ mod tests {
             "url-other",
             "Other App",
             InstalledSageAppStorage::Unmanaged,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/other/".into(),
-                manifest_url: "https://example.com/other/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/other/").unwrap(),
             true,
         );
 
@@ -491,10 +485,7 @@ mod tests {
             "url-abc123",
             "Test App",
             InstalledSageAppStorage::Unmanaged,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/app/".into(),
-                manifest_url: "https://example.com/app/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/app/").unwrap(),
             false,
         );
 
@@ -505,10 +496,7 @@ mod tests {
             "url-abc123",
             "Test App",
             InstalledSageAppStorage::Unmanaged,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/app/".into(),
-                manifest_url: "https://example.com/app/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/app/").unwrap(),
             true,
         );
 

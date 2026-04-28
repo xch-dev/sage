@@ -7081,6 +7081,7 @@ dependencies = [
  "paste",
  "specta-macros",
  "thiserror 1.0.69",
+ "url",
 ]
 
 [[package]]

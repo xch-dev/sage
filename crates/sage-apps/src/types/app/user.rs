@@ -3,6 +3,7 @@ use specta::Type;
 use std::path::PathBuf;
 
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
+use crate::types::SageAppUrl;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -17,10 +18,7 @@ use crate::types::storage::InstalledSageAppStorage;
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum UserSageAppSource {
     Zip,
-    Url {
-        app_url: String,
-        manifest_url: String,
-    },
+    Url { app_url: SageAppUrl },
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -54,6 +52,14 @@ pub enum ListedSageApp {
     User(UserSageApp),
     System(SystemSageApp),
     Corrupted(CorruptedInstalledSageApp),
+}
+
+impl UserSageAppSource {
+    pub fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
+        let app_url = SageAppUrl::parse(app_url.as_ref())?;
+
+        Ok(Self::Url { app_url })
+    }
 }
 
 impl UserSageApp {

@@ -11,7 +11,7 @@ sage = { workspace = true }
 sage-api = { workspace = true, features = ["tauri"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-specta = { workspace = true, features = ["derive", "function"] }
+specta = { workspace = true, features = ["derive", "function", "url"] }
 tauri-specta = { workspace = true, features = ["derive"] }
 specta-typescript = { workspace = true }
 tauri = { workspace = true, features = [] }

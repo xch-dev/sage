@@ -8,7 +8,8 @@ use crate::lifecycle::install::url::UrlInstallSource;
 use crate::lifecycle::install::zip::ZipInstallSource;
 use crate::lifecycle::{apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir};
 use crate::types::{
-    ListedSageApp, SageAppPackageManifest, SageAppUrlPreview, SageGrantedPermissions, UserSageApp,
+    ListedSageApp, SageAppPackageManifest, SageAppUrl, SageAppUrlPreview, SageGrantedPermissions,
+    UserSageApp,
 };
 use uuid::Uuid;
 
@@ -37,7 +38,7 @@ pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
 #[command]
 #[specta::specta]
 pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
-    SageAppUrlPreview::new(app_url)
+    SageAppUrlPreview::parse(&app_url)
         .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")).into())
 }
@@ -111,13 +112,14 @@ pub async fn install_app_url(
         let state = state.lock().await;
         state.path.clone()
     };
-
+    let parsed_app_url = SageAppUrl::parse(&app_url)
+        .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
     install_app_from_source(
         &app,
         &base_path,
         granted_permissions,
         UrlInstallSource {
-            app_url: app_url.clone(),
+            app_url: parsed_app_url,
         },
     )
     .await

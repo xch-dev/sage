@@ -1,4 +1,4 @@
-use crate::types::{SageAppPackageManifest, SageAppSnapshot};
+use crate::types::{SageAppPackageManifest, SageAppSnapshot, SageAppUrl};
 use crate::utils::bytes_sha256_hex;
 use anyhow::{Context, Result as AnyResult, anyhow};
 use std::path::Component;
@@ -64,18 +64,9 @@ fn write_file(path: &Path, bytes: &[u8]) -> AnyResult<()> {
     Ok(())
 }
 
-fn join_app_url(base_url: &str, relative_path: &str) -> AnyResult<String> {
-    let base =
-        reqwest::Url::parse(base_url).with_context(|| format!("invalid app url {base_url}"))?;
-    let joined = base
-        .join(relative_path)
-        .with_context(|| format!("failed to join app url {base_url} with path {relative_path}"))?;
-    Ok(joined.to_string())
-}
-
 pub async fn download_url_snapshot(
     app_dir: &Path,
-    app_url: &str,
+    app_url: &SageAppUrl,
     manifest: &SageAppPackageManifest,
     manifest_hash: &str,
 ) -> AnyResult<SageAppSnapshot> {
@@ -94,7 +85,7 @@ pub async fn download_url_snapshot(
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
     for file in manifest.files() {
-        let url = join_app_url(app_url, file.path())?;
+        let url = app_url.join(file.path())?;
         let bytes = download_bytes(&url).await?;
 
         let actual_hash = bytes_sha256_hex(&bytes);

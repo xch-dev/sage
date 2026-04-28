@@ -17,15 +17,12 @@ use crate::types::{
 };
 
 async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
-    let (app_url, manifest_url) = match app.source() {
-        UserSageAppSource::Url {
-            app_url,
-            manifest_url,
-        } => (app_url.clone(), manifest_url.clone()),
+    let app_url = match app.source() {
+        UserSageAppSource::Url { app_url } => app_url.clone(),
         UserSageAppSource::Zip => return Ok(None),
     };
 
-    let preview = SageAppUrlPreview::new(app_url.clone())
+    let preview = SageAppUrlPreview::new(&app_url)
         .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
@@ -39,7 +36,6 @@ async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPen
 
     Ok(Some(UserSageAppPendingUpdate::new(
         app_url,
-        manifest_url,
         preview.manifest_hash().to_string(),
         preview.manifest().clone(),
     )))

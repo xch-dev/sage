@@ -11,18 +11,26 @@ use crate::lifecycle::{
     download_url_snapshot, read_retired_app_origins, write_retired_app_origins,
 };
 use crate::types::{
-    SageAppPackageManifest, SageAppSnapshot, SageAppUrlPreview, UserSageApp, UserSageAppSource,
+    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageApp,
+    UserSageAppSource,
 };
-use crate::utils::{bytes_sha256_hex, slugify_app_name};
+use crate::utils::bytes_sha256_hex;
 
 #[derive(Debug, Clone)]
 pub struct UrlInstallSource {
-    pub app_url: String,
+    pub app_url: SageAppUrl,
 }
 
 #[derive(Debug, Clone)]
 pub struct PreparedUrlInstall {
     pub preview: SageAppUrlPreview,
+}
+
+impl UrlInstallSource {
+    pub fn parse(app_url: &str) -> AnyResult<Self> {
+        let app_url = SageAppUrl::parse(app_url)?;
+        Ok(Self { app_url })
+    }
 }
 
 #[async_trait]
@@ -31,7 +39,7 @@ impl AppInstallSource for UrlInstallSource {
 
     async fn prepare(&self) -> AnyResult<Self::Prepared> {
         Ok(PreparedUrlInstall {
-            preview: SageAppUrlPreview::new(self.app_url.clone()).await?,
+            preview: SageAppUrlPreview::new(&self.app_url).await?,
         })
     }
 
@@ -41,8 +49,7 @@ impl AppInstallSource for UrlInstallSource {
 
     fn source(&self, prepared: &Self::Prepared) -> UserSageAppSource {
         UserSageAppSource::Url {
-            app_url: prepared.preview.app_url().to_string(),
-            manifest_url: prepared.preview.manifest_url().to_string(),
+            app_url: prepared.preview.app_url().clone(),
         }
     }
 
@@ -52,7 +59,7 @@ impl AppInstallSource for UrlInstallSource {
         _base_path: &Path,
         prepared: &Self::Prepared,
     ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-        resolve_url_install_target(root, prepared.preview.manifest_url())
+        resolve_url_install_target(root, prepared.preview.app_url())
     }
 
     async fn create_snapshot(
@@ -134,9 +141,9 @@ pub fn normalize_app_url(url: &str) -> AnyResult<String> {
     Ok(parsed.to_string())
 }
 
-pub fn generate_url_app_id(manifest_url: &str) -> String {
-    let hash = bytes_sha256_hex(manifest_url.as_bytes());
-    format!("url-{}-{}", slugify_host(manifest_url), &hash[..16])
+pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
+    let hash = bytes_sha256_hex(app_url.manifest_url().as_bytes());
+    format!("url-{}-{}", app_url.slug(), &hash[..16])
 }
 
 pub fn default_url_origin_id(app_id: &str) -> String {
@@ -179,9 +186,9 @@ pub fn clear_pending_cleanup_for_reused_url_origin(
 
 pub fn resolve_url_install_target(
     root: &Path,
-    manifest_url: &str,
+    app_url: &SageAppUrl,
 ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-    let app_id = generate_url_app_id(manifest_url);
+    let app_id = generate_url_app_id(app_url);
     let app_dir = root.join(&app_id);
 
     let existing = if app_dir.exists() {
@@ -194,16 +201,6 @@ pub fn resolve_url_install_target(
     };
 
     Ok((app_id.clone(), app_dir, existing))
-}
-
-fn slugify_host(input: &str) -> String {
-    if let Ok(url) = Url::parse(input)
-        && let Some(host) = url.host_str()
-    {
-        return slugify_app_name(host);
-    }
-
-    slugify_app_name(input)
 }
 
 #[cfg(test)]
@@ -306,10 +303,7 @@ mod tests {
 
         let user_app = UserSageApp::new_installed(
             common,
-            UserSageAppSource::Url {
-                app_url: "https://example.com/app/".into(),
-                manifest_url: "https://example.com/app/sage-manifest.json".into(),
-            },
+            UserSageAppSource::url("https://example.com/app/").unwrap(),
         );
 
         if !storage_may_contain_secrets {
@@ -353,9 +347,9 @@ mod tests {
     }
 
     #[test]
-    fn generate_url_app_id_is_stable_for_same_manifest_url() {
-        let a = generate_url_app_id("https://example.com/app/sage-manifest.json");
-        let b = generate_url_app_id("https://example.com/app/sage-manifest.json");
+    fn generate_url_app_id_is_stable_for_same_app_url() {
+        let a = generate_url_app_id(&SageAppUrl::parse("https://example.com/app").unwrap());
+        let b = generate_url_app_id(&SageAppUrl::parse("https://example.com/app").unwrap());
 
         assert_eq!(a, b);
         assert!(a.starts_with("url-example-com-"));
@@ -423,9 +417,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let existing = sample_app_in(dir.path(), "url-abc123", "existing-origin", false);
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let origin = source
             .origin_id(dir.path(), "url-abc123", Some(&existing))
@@ -438,9 +430,7 @@ mod tests {
     fn url_origin_id_defaults_to_app_id_without_retired_origin() {
         let dir = tempdir().unwrap();
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -453,9 +443,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, false, false);
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -468,9 +456,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, true, false);
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -488,9 +474,7 @@ mod tests {
         let before = read_retired_app_origins(dir.path()).unwrap();
         assert!(before[0].cleanup_pending());
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
         assert_eq!(origin, "url-abc123");
@@ -511,9 +495,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, true, true);
 
-        let source = UrlInstallSource {
-            app_url: "https://example.com/app/".into(),
-        };
+        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
 
         let rotated = source.origin_id(dir.path(), "url-abc123", None).unwrap();
         assert_ne!(rotated, "url-abc123");
