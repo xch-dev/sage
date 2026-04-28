@@ -20,15 +20,10 @@ pub fn build_system_apps(
 ) -> Result<(), String> {
     for system_app in SYSTEM_BUILD_PLAN {
         let app_src_dir = system_apps_src_dir.join(system_app.app_dir_name);
-        let built_dir = system_out_dir.join(system_app.out_dir_name);
         let manifest_src = app_src_dir.join("sage-manifest.json");
+        let out_dir = system_out_dir.join(system_app.out_dir_name);
 
-        finalize_prebuilt_app(
-            &built_dir,
-            &manifest_src,
-            &system_out_dir.join(system_app.out_dir_name),
-            system_sdk_dist,
-        )?;
+        finalize_prebuilt_app(&app_src_dir, &manifest_src, &out_dir, system_sdk_dist)?;
     }
 
     Ok(())

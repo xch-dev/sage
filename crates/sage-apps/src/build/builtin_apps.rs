@@ -3,6 +3,14 @@ use sha2::Digest;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+const SAGE_BUILTIN_APPS_DIST_ENV: &str = "SAGE_BUILTIN_APPS_DIST";
+
+const SAGE_RUNTIME_METADATA_FILES: &[&str] = &[
+    ".sage-installed.json",
+    ".sage-pending-storage-cleanup.json",
+    ".sage-retired-app-origins.json",
+];
+
 pub fn build_builtin_apps() -> Result<(), String> {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let builtin_root = manifest_dir.join("builtin-apps");
@@ -11,8 +19,15 @@ pub fn build_builtin_apps() -> Result<(), String> {
     let runtime_src_dir = builtin_root.join("runtime-apps-src");
     let system_apps_workspace_dir = builtin_root.join("system-apps-src");
     let system_apps_src_dir = system_apps_workspace_dir.join("apps");
-
-    let dist_root = builtin_root.join("dist");
+    
+    let workspace_root = manifest_dir
+        .parent()
+        .and_then(|p| p.parent())
+        .ok_or_else(|| "crates/sage-apps should have workspace root above it".to_string())?;
+    let dist_root = workspace_root
+        .join("target")
+        .join("sage-builtin-apps")
+        .join("dist");
     let test_out_dir = dist_root.join("test-apps");
     let runtime_out_dir = dist_root.join("runtime-apps");
     let system_out_dir = dist_root.join("system-apps");
@@ -40,6 +55,16 @@ pub fn build_builtin_apps() -> Result<(), String> {
     );
     println!("cargo:rerun-if-changed={}", user_sdk_dist.display());
     println!("cargo:rerun-if-changed={}", system_sdk_dist.display());
+
+    println!(
+        "cargo:rustc-env={SAGE_BUILTIN_APPS_DIST_ENV}={}",
+        dist_root.display()
+    );
+
+    if dist_root.exists() {
+        fs::remove_dir_all(&dist_root)
+            .map_err(|err| format!("failed to remove {}: {err}", dist_root.display()))?;
+    }
 
     fs::create_dir_all(&test_out_dir)
         .map_err(|err| format!("failed to create {}: {err}", test_out_dir.display()))?;
@@ -138,7 +163,7 @@ fn collect_manifest_files(
             .to_string_lossy()
             .replace('\\', "/");
 
-        if rel == "sage-manifest.json" {
+        if rel == "sage-manifest.json" || SAGE_RUNTIME_METADATA_FILES.contains(&rel.as_str()) {
             continue;
         }
 

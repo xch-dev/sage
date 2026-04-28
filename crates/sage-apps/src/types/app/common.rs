@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -224,13 +224,13 @@ impl SageAppCommon {
     }
 
     pub fn entry_path(&self) -> PathBuf {
-        Path::new(&self.app_dir).join(&self.entry_file)
+        self.active_snapshot.file_path(&self.entry_file)
     }
 
     pub fn icon_path(&self) -> Option<PathBuf> {
         self.icon_file
             .as_ref()
-            .map(|icon_file| Path::new(&self.app_dir).join(icon_file))
+            .map(|icon_file| self.active_snapshot.file_path(icon_file))
     }
 
     fn validate_files_exist_internal(&self, label: &str) -> anyhow::Result<()> {

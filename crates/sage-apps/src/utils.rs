@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -35,4 +36,16 @@ pub fn slugify_app_name(name: &str) -> String {
     } else {
         out
     }
+}
+
+pub fn builtin_apps_root() -> PathBuf {
+    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+
+    manifest_dir
+        .parent()
+        .and_then(|path| path.parent())
+        .expect("crates/sage-apps should have workspace root above it")
+        .join("target")
+        .join("sage-builtin-apps")
+        .join("dist")
 }

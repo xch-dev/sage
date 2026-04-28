@@ -9,6 +9,7 @@ use crate::types::{
     InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
     SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
+use crate::utils::builtin_apps_root;
 
 macro_rules! sandbox_test_id_prefix {
     () => {
@@ -70,12 +71,6 @@ const BUILTIN_TEST_APPS: &[BuiltinTestAppSpec] = &[
 
 pub fn builtin_test_app_spec(app_id: &str) -> Option<&'static BuiltinTestAppSpec> {
     BUILTIN_TEST_APPS.iter().find(|spec| spec.app_id == app_id)
-}
-
-pub fn builtin_apps_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("builtin-apps")
-        .join("dist")
 }
 
 pub fn builtin_test_apps_root() -> PathBuf {

@@ -12,6 +12,7 @@ use crate::types::{
     InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
     SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp,
 };
+use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 
@@ -40,12 +41,6 @@ pub fn builtin_system_app_spec(app_id: &str) -> Option<&'static BuiltinSystemApp
     BUILTIN_SYSTEM_APPS
         .iter()
         .find(|spec| spec.app_id == app_id)
-}
-
-pub fn builtin_apps_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("builtin-apps")
-        .join("dist")
 }
 
 pub fn builtin_system_apps_root() -> PathBuf {

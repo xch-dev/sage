@@ -15,5 +15,5 @@
   },
   "files": [],
   "entry": "index.html",
-  "icon": "icon.svg"
+  "icon": "public/icon.svg"
 }
