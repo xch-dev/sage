@@ -7,7 +7,7 @@ use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
 use crate::host::AppState;
 use crate::host::Result;
-use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
+use crate::lifecycle::update::permissions::update_app_permissions;
 use crate::lifecycle::{
     download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata,
 };
@@ -153,24 +153,25 @@ pub async fn apps_update_permissions(
         state.path.clone()
     };
 
-    let (_updated, capability_change, network_change) =
-        update_app_permissions_with_change_internal(&base_path, &app_id, &granted_permissions)
-            .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
+    let update_result = update_app_permissions(&base_path, &app_id, &granted_permissions)
+        .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
 
+    let capability_change = update_result.change().capabilities();
     if !capability_change.added.is_empty() || !capability_change.removed.is_empty() {
         let _ = emit_bridge_event_to_app_id(
             &app,
             &app_id,
-            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
+            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change.clone()),
         )
         .await;
     }
 
+    let network_change = update_result.change().network_whitelist();
     if !network_change.added.is_empty() || !network_change.removed.is_empty() {
         let _ = emit_bridge_event_to_app_id(
             &app,
             &app_id,
-            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
+            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change.clone()),
         )
         .await;
     }

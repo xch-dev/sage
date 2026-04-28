@@ -224,8 +224,16 @@ impl SageGrantedPermissions {
         self.capabilities.contains(&capability)
     }
 
+    pub fn capabilities_vec(&self) -> Vec<UserBridgeCapability> {
+        self.capabilities.iter().copied().collect()
+    }
+
     pub fn network(&self) -> &SageGrantedNetworkPermissions {
         &self.network
+    }
+
+    pub fn network_whitelist_vec(&self) -> Vec<SageNetworkWhitelistEntry> {
+        self.network.whitelist().cloned().collect()
     }
 
     pub fn shared_capabilities(&self) -> Vec<UserBridgeCapability> {
@@ -295,6 +303,14 @@ impl SageRequestedCapabilities {
     ) -> Self {
         let (required, optional) = split_required_optional_set(required, optional);
         Self { required, optional }
+    }
+
+    pub fn all(&self) -> impl Iterator<Item = &UserBridgeCapability> {
+        self.required().chain(self.optional())
+    }
+
+    pub fn contains(&self, capability: UserBridgeCapability) -> bool {
+        self.is_allowed(capability)
     }
 
     pub fn empty() -> Self {

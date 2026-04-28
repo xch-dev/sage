@@ -1,4 +1,5 @@
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -48,4 +49,12 @@ pub fn builtin_apps_root() -> PathBuf {
         .join("target")
         .join("sage-builtin-apps")
         .join("dist")
+}
+
+pub fn sorted_unique<T: Ord>(values: impl IntoIterator<Item = T>) -> Vec<T> {
+    values
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
