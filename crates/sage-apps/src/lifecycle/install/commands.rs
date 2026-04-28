@@ -4,7 +4,7 @@ use tauri::{AppHandle, State, command};
 
 use crate::host::{AppState, Result};
 use crate::lifecycle::install::install_app_from_source;
-use crate::lifecycle::install::url::{UrlInstallSource, preview_app_url_internal};
+use crate::lifecycle::install::url::{UrlInstallSource};
 use crate::lifecycle::install::zip::ZipInstallSource;
 use crate::lifecycle::{
     apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir,
@@ -40,8 +40,7 @@ pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
 #[command]
 #[specta::specta]
 pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
-    preview_app_url_internal(app_url)
-        .await
+    SageAppUrlPreview::new(app_url).await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")).into())
 }
 

@@ -116,7 +116,7 @@ where
 {
     fn shared(self) -> Vec<UserBridgeCapability> {
         self.into_iter()
-            .filter(|cap| get_user_capability_definition(*cap).flags.shared_with_app)
+            .filter(|cap| get_user_capability_definition(*cap).flags().shared_with_app())
             .collect::<BTreeSet<_>>()
             .into_iter()
             .collect()
@@ -131,21 +131,21 @@ mod tests {
     fn first_shared_capability() -> UserBridgeCapability {
         user_registry()
             .values()
-            .find(|definition| definition.flags.shared_with_app)
+            .find(|definition| definition.flags().shared_with_app())
             .unwrap_or_else(|| {
                 panic!("test requires at least one capability with shared_with_app = true")
             })
-            .capability
+            .capability()
     }
 
     fn first_non_shared_capability() -> UserBridgeCapability {
         user_registry()
             .values()
-            .find(|definition| !definition.flags.shared_with_app)
+            .find(|definition| !definition.flags().shared_with_app())
             .unwrap_or_else(|| {
                 panic!("test requires at least one capability with shared_with_app = false")
             })
-            .capability
+            .capability()
     }
 
     #[test]

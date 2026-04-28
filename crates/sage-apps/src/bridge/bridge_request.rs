@@ -175,13 +175,13 @@ fn verify_capability(
         BridgeCapability::User(capability) => {
             let definition = get_user_capability_definition(capability);
 
-            verify_user_capability(app, request, capability, definition.flags.shared_with_app)
+            verify_user_capability(app, request, capability, definition.flags().shared_with_app())
         }
 
         BridgeCapability::System(capability) => {
             let definition = get_system_capability_definition(capability);
 
-            verify_system_capability(app, request, capability, definition.flags.shared_with_app)
+            verify_system_capability(app, request, capability, definition.flags().shared_with_app())
         }
     }
 }
@@ -203,10 +203,10 @@ fn verify_user_capability(
 
     let effective_capabilities = match app {
         SageApp::User(user_app) => user_app
-            .common
-            .requested_permissions
-            .capabilities
-            .resolve_effective_grants(user_app.common.granted_permissions.capabilities().copied())
+            .common()
+            .requested_permissions()
+            .capabilities()
+            .resolve_effective_grants(user_app.common().granted_permissions().capabilities().copied())
             .map_err(|err| {
                 RustBridgeResponse::error(
                     &request.channel,
@@ -248,7 +248,7 @@ fn verify_system_capability(
 
     let granted = app
         .system_granted_permissions()
-        .is_some_and(|permissions| permissions.capabilities.contains(&capability));
+        .is_some_and(|permissions| permissions.capabilities().contains(&capability));
 
     if !granted {
         return Err(RustBridgeResponse::error(

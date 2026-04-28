@@ -199,7 +199,8 @@ pub fn handle_app_protocol_request(
         return serve_runtime_app_asset(request_path, &csp);
     }
 
-    let snapshot_dir = Path::new(&app.active_snapshot().snapshot_dir);
+    let snapshot = app.active_snapshot();
+    let snapshot_dir = Path::new(snapshot.snapshot_dir());
     let file_path = read_snapshot_file(snapshot_dir, request_path)?;
 
     if request_path.is_empty() || request_path == "/" || request_path == "/index.html" {

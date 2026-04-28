@@ -43,7 +43,11 @@ pub trait AppInstallSource {
         app_id: &str,
         existing: Option<&UserSageApp>,
     ) -> AnyResult<String> {
-        Ok(existing.map_or_else(|| app_id.to_string(), |app| app.common.origin_id.clone()))
+        if let Some(app) = existing {
+            return Ok(app.common().origin_id().to_string());
+        }
+
+        Ok(app_id.to_string())
     }
 
     fn after_origin_selected(
@@ -70,7 +74,7 @@ impl InstallStorageResolver for TauriStorageResolver {
         &self,
         existing: Option<&UserSageApp>,
     ) -> AnyResult<Option<InstalledSageAppStorage>> {
-        Ok(existing.map(|app| app.common.storage.clone()))
+        Ok(existing.map(|app| app.common().storage().clone()))
     }
 }
 
@@ -136,7 +140,6 @@ where
         app_id.clone(),
         origin_id,
         app_dir.to_string_lossy().to_string(),
-        manifest,
         granted_permissions,
         storage,
         snapshot,
@@ -198,13 +201,15 @@ mod tests {
                 ),
             )
             .unwrap(),
-            files: vec![SageAppManifestFile {
-                path: "index.html".into(),
-                sha256: "a".repeat(64),
-                size: 123,
-            }],
+            files: vec![
+                SageAppManifestFile::new(
+                    "index.html".to_string(),
+                    "a".repeat(64),
+                    123,
+                ).unwrap()
+            ],
             entry: Some("index.html".into()),
-            icon: Some("icon.png".into()),
+            icon: None,
             author: None,
             donation: None,
         })
@@ -255,12 +260,13 @@ mod tests {
             app_dir: &Path,
             prepared: &Self::Prepared,
         ) -> AnyResult<SageAppSnapshot> {
-            Ok(SageAppSnapshot {
-                manifest_hash: "fake-hash".into(),
-                snapshot_dir: app_dir.to_string_lossy().to_string(),
-                total_bytes: 123,
-                manifest: prepared.manifest.clone(),
-            })
+            fs::write(app_dir.join("index.html"), "x")?;
+
+            Ok(SageAppSnapshot::new(
+                "fake-hash",
+                app_dir.to_string_lossy().to_string(),
+                prepared.manifest.clone(),
+            )?)
         }
 
         fn origin_id(
@@ -306,17 +312,18 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(installed.common.id, "fake-app");
-        assert_eq!(installed.common.origin_id, "fake-origin");
-        assert_eq!(installed.common.name, "Test App");
-        assert_eq!(installed.common.entry_file, "index.html");
-        assert_eq!(installed.common.icon_file, "icon.png");
-        assert_eq!(installed.common.storage, InstalledSageAppStorage::Unmanaged);
-        assert_eq!(installed.source, UserSageAppSource::Zip);
+        let common = installed.common();
+        assert_eq!(common.id(), "fake-app");
+        assert_eq!(common.origin_id(), "fake-origin");
+        assert_eq!(common.name(), "Test App");
+        assert_eq!(common.entry_file(), "index.html");
+        assert_eq!(common.icon_file(), None);
+        assert_eq!(common.storage(), &InstalledSageAppStorage::Unmanaged);
+        assert_eq!(installed.source(), &UserSageAppSource::Zip);
 
         let reread = read_installed_app_by_id(dir.path(), "fake-app").unwrap();
-        assert_eq!(reread.common.id, "fake-app");
-        assert_eq!(reread.common.origin_id, "fake-origin");
+        assert_eq!(reread.common().id(), "fake-app");
+        assert_eq!(reread.common().origin_id(), "fake-origin");
     }
 
     #[tokio::test]
@@ -359,6 +366,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let app_dir = dir.path().join("url-abc123");
         fs::create_dir_all(&app_dir).unwrap();
+        fs::write(app_dir.join("index.html"), "x").unwrap();
 
         let manifest = sample_manifest();
 
@@ -370,23 +378,21 @@ mod tests {
         .unwrap();
 
         let common = SageAppCommon::new(
-            "url-abc123".into(),
-            "r123-url-abc123".into(),
+            "url-abc123".to_string(),
+            "r123-url-abc123".to_string(),
             app_dir.to_string_lossy().to_string(),
-            &manifest,
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
-            SageAppSnapshot {
-                manifest_hash: "hash".into(),
-                snapshot_dir: app_dir.to_string_lossy().to_string(),
-                total_bytes: 1,
-                manifest: manifest.clone(),
-            },
+            SageAppSnapshot::new(
+                "hash".to_string(),
+                app_dir.to_string_lossy().to_string(),
+                manifest.clone(),
+            ).unwrap(),
         )
             .unwrap();
         let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
-        assert_eq!(app.common.id, "url-abc123");
-        assert_eq!(app.common.origin_id, "r123-url-abc123");
+        assert_eq!(app.common().id(), "url-abc123");
+        assert_eq!(app.common().origin_id(), "r123-url-abc123");
     }
 }

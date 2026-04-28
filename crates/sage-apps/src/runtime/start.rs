@@ -1,5 +1,15 @@
-use crate::bridge::capabilities::UserBridgeCapability;
-use crate::runtime::state::types::{SageAppRuntimeKind, SageAppRuntimeRecord};
+use std::collections::BTreeMap;
+use std::path::PathBuf;
+
+use serde::Deserialize;
+use specta::Type;
+use tauri::webview::NewWindowResponse;
+use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
+
+use crate::lifecycle::write_installed_app_metadata;
+use crate::runtime::state::types::{
+    inline_label_for, runtime_id_for, SageAppRuntimeKind, SageAppRuntimeRecord,
+};
 use crate::runtime::state::write::{write_runtime_and_emit_changed, write_runtime_id_by_app_id};
 use crate::runtime::webview_locator::{
     find_webview_in_sage_window, get_sage_window, get_webview_in_sage_window,
@@ -7,13 +17,7 @@ use crate::runtime::webview_locator::{
 use crate::runtime::{build_entry_src, is_allowed_app_url, resolve_app, runtime_kind_for_app};
 use crate::storage::parse_data_store_id;
 use crate::types::{InstalledSageAppStorage, SageApp};
-use crate::utils::unix_timestamp_ms;
-use crate::{AppsHostState, sandbox};
-use serde::Deserialize;
-use specta::Type;
-use std::collections::BTreeMap;
-use tauri::webview::NewWindowResponse;
-use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
+use crate::{sandbox, AppsHostState};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -31,7 +35,7 @@ pub async fn create_inline_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateInlineRuntimeArgs,
 ) -> Result<SageAppRuntimeRecord, String> {
-    let resolved = resolve_app(&app, &args.app_id)?;
+    let mut resolved = resolve_app(&app, &args.app_id)?;
     let runtime_kind = runtime_kind_for_app(&resolved);
     let webview_label = inline_label_for(resolved.id(), runtime_kind);
     let runtime_id = runtime_id_for(resolved.id(), runtime_kind);
@@ -49,7 +53,8 @@ pub async fn create_inline_runtime(
             runtime_kind,
             visible: args.visible,
             internal: args.internal,
-        }).await;
+        })
+            .await;
     }
 
     if !args.internal && !resolved.is_sandbox_test() {
@@ -65,6 +70,7 @@ pub async fn create_inline_runtime(
         }
     }
 
+    let use_incognito = should_use_incognito(&resolved);
     let origin_id_for_nav = resolved.origin_id().to_string();
     let runtime_kind_for_nav = runtime_kind;
 
@@ -76,10 +82,10 @@ pub async fn create_inline_runtime(
                 .map_err(|e| format!("invalid entry url: {e}"))?,
         ),
     )
-    .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
-    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+        .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
+        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
-    if should_use_incognito(&resolved) {
+    if use_incognito {
         builder = builder.incognito(true);
     } else {
         match resolved.storage() {
@@ -99,8 +105,7 @@ pub async fn create_inline_runtime(
         }
     }
 
-    let debug = args.debug_layout;
-    let (x, y, width, height) = if debug {
+    let (x, y, width, height) = if args.debug_layout {
         debug_layout_for_app(resolved.id())
     } else {
         (0.0, 0.0, 1.0, 1.0)
@@ -114,37 +119,35 @@ pub async fn create_inline_runtime(
         )
         .map_err(|e| format!("failed to create child webview: {e}"))?;
 
-    let now = unix_timestamp_ms();
-
-    let record = SageAppRuntimeRecord {
-        runtime_id: runtime_id.clone(),
-        app_id: resolved.id().to_string(),
-        app_name: resolved.name().to_string(),
+    let record = SageAppRuntimeRecord::new_inline(
+        &mut resolved,
         entry_src,
-        webview_label: webview_label.clone(),
-        host_window_label: "main".into(),
-        runtime_kind,
-        mode: "inline".into(),
-        state: if args.visible {
-            "running".into()
-        } else {
-            "hidden".into()
-        },
-        started_at: now,
-        last_active_at: now,
-        visible: args.visible,
-        internal: args.internal,
-    };
+        args.visible,
+        args.internal,
+    );
+
+    persist_runtime_side_effects(&resolved)?;
 
     if !args.visible {
-        let _ = get_webview_in_sage_window(&app, &webview_label)?.hide();
+        let _ = get_webview_in_sage_window(&app, record.webview_label())?.hide();
     }
-    write_runtime_id_by_app_id(&apps_state, &resolved, runtime_id).await;
+
+    write_runtime_id_by_app_id(&apps_state, &resolved, record.runtime_id().to_string()).await;
     write_runtime_and_emit_changed(&app, &apps_state, record.clone()).await;
 
     Ok(record)
 }
 
+fn persist_runtime_side_effects(app: &SageApp) -> Result<(), String> {
+    let Some(user_app) = app.as_user() else {
+        return Ok(());
+    };
+
+    let app_dir = PathBuf::from(user_app.common().app_dir());
+
+    write_installed_app_metadata(user_app, &app_dir)
+        .map_err(|err| format!("failed to persist app runtime side effects: {err}"))
+}
 
 struct ReuseInlineRuntimeParams<'a> {
     apps_state: &'a State<'a, AppsHostState>,
@@ -175,8 +178,6 @@ async fn reuse_existing_inline_runtime(
         internal,
     } = params;
 
-    let now = unix_timestamp_ms();
-
     if visible {
         webview
             .show()
@@ -191,30 +192,19 @@ async fn reuse_existing_inline_runtime(
         let by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
         by_runtime_id.get(&runtime_id).cloned()
     }
-    .unwrap_or_else(|| SageAppRuntimeRecord {
-        runtime_id: runtime_id.clone(),
-        app_id: app_id.clone(),
-        app_name,
-        entry_src,
-        webview_label: webview_label.clone(),
-        host_window_label: "main".into(),
-        runtime_kind,
-        mode: "inline".into(),
-        state: "hidden".into(),
-        started_at: now,
-        last_active_at: now,
-        visible: false,
-        internal,
-    });
+        .unwrap_or_else(|| {
+            SageAppRuntimeRecord::new_existing_inline_fallback(
+                runtime_id.clone(),
+                app_id.clone(),
+                app_name,
+                entry_src,
+                webview_label.clone(),
+                runtime_kind,
+                internal,
+            )
+        });
 
-    record.visible = visible;
-    record.state = if visible {
-        "running".into()
-    } else {
-        "hidden".into()
-    };
-    record.last_active_at = now;
-    record.internal = internal;
+    record.mark_inline_reused(visible, internal);
 
     {
         let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
@@ -229,35 +219,13 @@ async fn reuse_existing_inline_runtime(
     Ok(record)
 }
 
-fn runtime_id_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
-    match runtime_kind {
-        SageAppRuntimeKind::User => format!("runtime-{app_id}"),
-        SageAppRuntimeKind::System => format!("system-runtime-{app_id}"),
-    }
-}
-
-fn inline_label_for(app_id: &str, runtime_kind: SageAppRuntimeKind) -> String {
-    match runtime_kind {
-        SageAppRuntimeKind::User => format!("app-inline-{app_id}"),
-        SageAppRuntimeKind::System => format!("system-app-inline-{app_id}"),
-    }
-}
-
 fn should_use_incognito(app: &SageApp) -> bool {
     let has_persistent_storage = app
         .granted_permissions()
-        .capabilities_vec()
-        .contains(&UserBridgeCapability::PersistentStorage);
+        .capabilities()
+        .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage);
 
-    if !has_persistent_storage {
-        return true;
-    }
-
-    if app.capability_flags().storage_may_contain_secrets {
-        return true;
-    }
-
-    false
+    !has_persistent_storage || app.capability_flags().storage_may_contain_secrets()
 }
 
 fn fallback_debug_slot(app_id: &str) -> usize {
@@ -289,8 +257,8 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
     let col = slot % cols;
     let row = slot / cols;
 
-    let x = origin_x + (col as u32 as f64) * (cell_w + margin_x);
-    let y = origin_y + (row as u32 as f64) * (cell_h + margin_y);
+    let x = origin_x + (col as f64) * (cell_w + margin_x);
+    let y = origin_y + (row as f64) * (cell_h + margin_y);
 
     (x, y, cell_w, cell_h)
 }

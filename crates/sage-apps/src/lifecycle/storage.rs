@@ -1,14 +1,17 @@
-use std::io;
-#[cfg(target_os = "windows")]
-use std::path::PathBuf;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use crate::AppsHostState;
-use crate::host::AppState;
-use crate::lifecycle::flags::mark_storage_may_contain_secrets;
+#[cfg(target_os = "windows")]
+use anyhow::Context;
+use anyhow::{anyhow, Result as AnyResult};
+#[cfg(target_os = "windows")]
+use std::fs;
+use tauri::{command, AppHandle, Manager, State};
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use uuid::Uuid;
+
 use crate::lifecycle::{
-    read_installed_app_by_id, read_pending_storage_cleanup_entries, read_retired_app_origins,
-    write_installed_app_metadata, write_pending_storage_cleanup_entries, write_retired_app_origins,
+    read_pending_storage_cleanup_entries, read_retired_app_origins,
+    write_pending_storage_cleanup_entries, write_retired_app_origins,
 };
 use crate::runtime::resolve_app;
 use crate::runtime::stop::close_runtime_internal;
@@ -17,9 +20,7 @@ use crate::types::{
     InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
     RetiredAppOriginEntry, UserSageApp, UserSageAppSource,
 };
-use anyhow::{Result as AnyResult, anyhow};
-use tauri::{AppHandle, Manager, State, command};
-use uuid::Uuid;
+use crate::AppsHostState;
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn allocate_new_storage(
@@ -79,7 +80,7 @@ pub fn record_storage_cleanup_failure(
 ) -> AnyResult<()> {
     let mut entries = read_pending_storage_cleanup_entries(base_path)?;
 
-    let target = cleanup_target_from_storage(&app.common.storage);
+    let target = cleanup_target_from_storage(app.common().storage());
 
     if let Some(entry) = entries.iter_mut().find(|entry| entry.target() == &target) {
         entry.record_failed_attempt(error);
@@ -169,7 +170,7 @@ pub fn enqueue_retired_app_origin(
     app: &UserSageApp,
     cleanup_pending: bool,
 ) -> AnyResult<()> {
-    let UserSageAppSource::Url { .. } = &app.source else {
+    let UserSageAppSource::Url { .. } = app.source() else {
         return Ok(());
     };
 
@@ -177,7 +178,7 @@ pub fn enqueue_retired_app_origin(
 
     if let Some(existing) = entries
         .iter_mut()
-        .find(|entry| entry.origin_id() == app.common.origin_id)
+        .find(|entry| entry.origin_id() == app.common().origin_id())
     {
         existing.refresh_from_app(app, cleanup_pending);
     } else {
@@ -210,100 +211,109 @@ pub async fn apps_clear_runtime_browsing_data(
     clear_app_storage_by_target(&app, &target).await
 }
 
-#[command]
-#[specta::specta]
-pub async fn apps_mark_storage_may_contain_secrets(
-    state: State<'_, AppState>,
-    app_id: String,
-) -> crate::host::Result<()> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let mut app = read_installed_app_by_id(&base_path, &app_id)
-        .map_err(|err| io::Error::other(format!("failed to read app {app_id}: {err}")))?;
-
-    if !app.common.capability_flags.has_secret_access {
-        return Ok(());
-    }
-
-    if app.common.capability_flags.storage_may_contain_secrets {
-        return Ok(());
-    }
-
-    app.common.capability_flags = mark_storage_may_contain_secrets(&app.common.capability_flags);
-
-    let app_dir = PathBuf::from(&app.common.app_dir);
-    write_installed_app_metadata(&app, &app_dir)
-        .map_err(|err| io::Error::other(format!("failed to write metadata: {err}")))?;
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lifecycle::{read_pending_storage_cleanup_entries, read_retired_app_origins};
+
+    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::lifecycle::{app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins};
     use crate::types::{
-        PendingStorageCleanupTarget, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities,
+        SageRequestedPermissions, UserSageAppSource,
     };
     use tempfile::tempdir;
+    use crate::runtime::state::types::SageAppRuntimeRecord;
 
-    fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
-        SageAppManifestFile {
-            path: path.to_string(),
-            sha256: "a".repeat(64),
-            size,
-        }
+    fn write_index(app_dir: &Path) {
+        std::fs::create_dir_all(app_dir).unwrap();
+        std::fs::write(app_dir.join("index.html"), "x").unwrap();
     }
 
-    fn sample_app(storage: InstalledSageAppStorage) -> UserSageApp {
+    fn sample_app_with(
+        base_path: &Path,
+        app_id: &str,
+        name: &str,
+        storage: InstalledSageAppStorage,
+        source: UserSageAppSource,
+        storage_may_contain_secrets: bool,
+    ) -> UserSageApp {
+        let app_dir = app_dir(base_path, app_id);
+        write_index(&app_dir);
+
+        let requested_permissions = SageRequestedPermissions::new(
+            crate::types::SageRequestedNetworkPermissions::empty(),
+            SageRequestedCapabilities::new(
+                [UserBridgeCapability::PersistentStorage],
+                [UserBridgeCapability::WalletGetSecretKey],
+            ),
+        )
+            .unwrap();
+
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
-            name: "Test App".into(),
-            version: "1.0.0".into(),
-            permissions: SageRequestedPermissions::empty(),
-            files: vec![sample_manifest_file("index.html", 1)],
-            entry: Some("index.html".into()),
-            icon: Some("icon.png".into()),
+            name: name.to_string(),
+            version: "1.0.0".to_string(),
+            permissions: requested_permissions.clone(),
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            icon: None,
             author: None,
             donation: None,
         })
             .unwrap();
 
-        let granted_permissions =
-            SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
-
-        let snapshot = SageAppSnapshot {
-            manifest_hash: "hash".into(),
-            snapshot_dir: "/tmp/test-app".into(),
-            total_bytes: 1,
-            manifest: manifest.clone(),
+        let granted_capabilities = if storage_may_contain_secrets {
+            vec![
+                UserBridgeCapability::PersistentStorage,
+                UserBridgeCapability::WalletGetSecretKey,
+            ]
+        } else {
+            vec![UserBridgeCapability::PersistentStorage]
         };
 
-        let mut common = SageAppCommon::new(
-            "url-abc123".into(),
-            "origin-1".into(),
-            "/tmp/test-app".into(),
-            &manifest,
+        let granted_permissions =
+            SageGrantedPermissions::new(&requested_permissions, granted_capabilities, []).unwrap();
+
+        let snapshot =
+            SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
+
+        let common = SageAppCommon::new(
+            app_id,
+            app_id,
+            app_dir.to_string_lossy().to_string(),
             granted_permissions,
             storage,
             snapshot,
         )
             .unwrap();
 
-        common.capability_flags.storage_may_contain_secrets = true;
+        let mut app = UserSageApp::new_installed(common, source).into_sage_app();
 
-        UserSageApp {
-            common,
-            source: UserSageAppSource::Url {
+        if storage_may_contain_secrets {
+            let _record = SageAppRuntimeRecord::new_inline(
+                &mut app,
+                "sage-app://test/index.html",
+                true,
+                false,
+            );
+        }
+
+        app.into_user()
+            .expect("sample app should remain a user app")
+    }
+
+    fn sample_app(base_path: &Path, storage: InstalledSageAppStorage) -> UserSageApp {
+        sample_app_with(
+            base_path,
+            "url-abc123",
+            "Test App",
+            storage,
+            UserSageAppSource::Url {
                 app_url: "https://example.com/app/".into(),
                 manifest_url: "https://example.com/app/sage-manifest.json".into(),
             },
-            pending_update: None,
-        }
+            true,
+        )
     }
 
     #[test]
@@ -343,7 +353,7 @@ mod tests {
     #[test]
     fn record_storage_cleanup_failure_creates_unmanaged_target() {
         let dir = tempdir().unwrap();
-        let app = sample_app(InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
 
         record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
@@ -357,9 +367,12 @@ mod tests {
     #[test]
     fn record_storage_cleanup_failure_creates_apple_target() {
         let dir = tempdir().unwrap();
-        let app = sample_app(InstalledSageAppStorage::AppleDataStore {
-            identifier_hex: "abc123".into(),
-        });
+        let app = sample_app(
+            dir.path(),
+            InstalledSageAppStorage::AppleDataStore {
+                identifier_hex: "abc123".into(),
+            },
+        );
 
         record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
@@ -376,9 +389,12 @@ mod tests {
     #[test]
     fn record_storage_cleanup_failure_creates_windows_target() {
         let dir = tempdir().unwrap();
-        let app = sample_app(InstalledSageAppStorage::WindowsProfile {
-            directory_name: "profile-1".into(),
-        });
+        let app = sample_app(
+            dir.path(),
+            InstalledSageAppStorage::WindowsProfile {
+                directory_name: "profile-1".into(),
+            },
+        );
 
         record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
@@ -393,22 +409,30 @@ mod tests {
     }
 
     #[test]
-    fn record_storage_cleanup_failure_updates_existing_entry_by_target_not_app_id() {
+    fn record_storage_cleanup_failure_merges_existing_entry_by_target() {
         let dir = tempdir().unwrap();
 
-        let app_a = sample_app(InstalledSageAppStorage::Unmanaged);
+        let app_a = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
         record_storage_cleanup_failure(dir.path(), &app_a, "first").unwrap();
 
-        let mut app_b = sample_app(InstalledSageAppStorage::Unmanaged);
-        app_b.common.id = "url-other".into();
-        app_b.common.name = "Other App".into();
+        let app_b = sample_app_with(
+            dir.path(),
+            "url-other",
+            "Other App",
+            InstalledSageAppStorage::Unmanaged,
+            UserSageAppSource::Url {
+                app_url: "https://example.com/other/".into(),
+                manifest_url: "https://example.com/other/sage-manifest.json".into(),
+            },
+            true,
+        );
 
         record_storage_cleanup_failure(dir.path(), &app_b, "second").unwrap();
 
         let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].app_id(), "url-other");
-        assert_eq!(entries[0].app_name(), "Other App");
+        assert_eq!(entries[0].app_id(), "url-abc123");
+        assert_eq!(entries[0].app_name(), "Test App");
         assert_eq!(entries[0].attempt_count(), 2);
         assert_eq!(entries[0].last_error(), Some("second"));
     }
@@ -416,8 +440,14 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_ignores_zip_apps() {
         let dir = tempdir().unwrap();
-        let mut app = sample_app(InstalledSageAppStorage::Unmanaged);
-        app.source = UserSageAppSource::Zip;
+        let app = sample_app_with(
+            dir.path(),
+            "url-abc123",
+            "Test App",
+            InstalledSageAppStorage::Unmanaged,
+            UserSageAppSource::Zip,
+            true,
+        );
 
         enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
 
@@ -428,14 +458,14 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_creates_new_entry_for_url_app() {
         let dir = tempdir().unwrap();
-        let app = sample_app(InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
 
         enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].app_id(), app.common.id);
-        assert_eq!(entries[0].origin_id(), app.common.origin_id);
+        assert_eq!(entries[0].app_id(), app.common().id());
+        assert_eq!(entries[0].origin_id(), app.common().origin_id());
         assert!(entries[0].cleanup_pending());
         assert!(entries[0].storage_may_contain_secrets());
     }
@@ -443,7 +473,7 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_updates_existing_origin_entry() {
         let dir = tempdir().unwrap();
-        let app = sample_app(InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
 
         enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
         enqueue_retired_app_origin(dir.path(), &app, false).unwrap();
@@ -456,13 +486,34 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_updates_secret_taint_flag() {
         let dir = tempdir().unwrap();
-        let mut app = sample_app(InstalledSageAppStorage::Unmanaged);
-        app.common.capability_flags.storage_may_contain_secrets = false;
 
-        enqueue_retired_app_origin(dir.path(), &app, false).unwrap();
+        let clean_app = sample_app_with(
+            dir.path(),
+            "url-abc123",
+            "Test App",
+            InstalledSageAppStorage::Unmanaged,
+            UserSageAppSource::Url {
+                app_url: "https://example.com/app/".into(),
+                manifest_url: "https://example.com/app/sage-manifest.json".into(),
+            },
+            false,
+        );
 
-        app.common.capability_flags.storage_may_contain_secrets = true;
-        enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
+        enqueue_retired_app_origin(dir.path(), &clean_app, false).unwrap();
+
+        let tainted_app = sample_app_with(
+            dir.path(),
+            "url-abc123",
+            "Test App",
+            InstalledSageAppStorage::Unmanaged,
+            UserSageAppSource::Url {
+                app_url: "https://example.com/app/".into(),
+                manifest_url: "https://example.com/app/sage-manifest.json".into(),
+            },
+            true,
+        );
+
+        enqueue_retired_app_origin(dir.path(), &tainted_app, true).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);

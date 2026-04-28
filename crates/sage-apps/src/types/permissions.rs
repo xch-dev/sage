@@ -2,12 +2,12 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use crate::bridge::capabilities::{SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability};
-use crate::permissions::{get_user_capability_definition, CapabilityFlags};
+use crate::permissions::{get_user_capability_definition, CapabilityDefinition, CapabilityFlags};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedNetworkPermissions {
-    pub whitelist: SageRequestedNetworkWhitelist,
+    whitelist: SageRequestedNetworkWhitelist,
 }
 
 #[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
@@ -18,8 +18,8 @@ pub struct SageRequestedCapabilities {
 
 #[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedPermissions {
-    pub network: SageRequestedNetworkPermissions,
-    pub capabilities: SageRequestedCapabilities,
+    network: SageRequestedNetworkPermissions,
+    capabilities: SageRequestedCapabilities,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
@@ -36,26 +36,26 @@ pub struct SageGrantedPermissions {
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageGrantedSystemPermissions {
-    pub capabilities: Vec<SystemBridgeCapability>,
+    capabilities: Vec<SystemBridgeCapability>,
 }
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppCapabilityFlagsView {
-    pub externally_observable: bool,
-    pub accesses_sensitive_secret: bool,
-    pub requestable_by_app: bool,
-    pub user_grantable: bool,
+    externally_observable: bool,
+    accesses_sensitive_secret: bool,
+    requestable_by_app: bool,
+    user_grantable: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppCapabilityDefinitionView {
-    pub key: String,
-    pub label: String,
-    pub description: String,
-    pub flags: SageAppCapabilityFlagsView,
+    key: String,
+    label: String,
+    description: String,
+    flags: SageAppCapabilityFlagsView,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -116,6 +116,42 @@ impl<'de> Deserialize<'de> for SageRequestedPermissions {
             raw.capabilities.unwrap_or_default(),
         )
             .map_err(serde::de::Error::custom)
+    }
+}
+
+impl From<CapabilityFlags> for SageAppCapabilityFlagsView {
+    fn from(flags: CapabilityFlags) -> Self {
+        Self {
+            externally_observable: flags.externally_observable(),
+            accesses_sensitive_secret: flags.accesses_sensitive_secret(),
+            requestable_by_app: flags.requestable_by_app(),
+            user_grantable: flags.user_grantable(),
+        }
+    }
+}
+
+impl From<CapabilityDefinition<UserBridgeCapability>> for SageAppCapabilityDefinitionView {
+    fn from(definition: CapabilityDefinition<UserBridgeCapability>) -> Self {
+        Self {
+            key: definition.capability().key().to_string(),
+            label: definition.label().to_string(),
+            description: definition.description().to_string(),
+            flags: definition.flags().into(),
+        }
+    }
+}
+
+impl SageGrantedSystemPermissions {
+    pub fn new(
+        capabilities: impl IntoIterator<Item = SystemBridgeCapability>,
+    ) -> Self {
+        Self {
+            capabilities: capabilities.into_iter().collect(),
+        }
+    }
+
+    pub fn capabilities(&self) -> &[SystemBridgeCapability] {
+        &self.capabilities
     }
 }
 
@@ -200,6 +236,14 @@ impl SageGrantedPermissions {
         self.capabilities().copied().shared()
     }
 
+    pub fn for_builtin_requested(requested: &SageRequestedPermissions) -> anyhow::Result<Self> {
+        Self::new(
+            requested,
+            requested.capabilities.user_grantable(),
+            requested.network.whitelist.required().cloned(),
+        )
+    }
+
     fn build_capabilities(
         requested: &SageRequestedCapabilities,
         capabilities: impl IntoIterator<Item = UserBridgeCapability>,
@@ -214,13 +258,13 @@ impl SageGrantedPermissions {
                 );
             }
 
-            if !get_user_capability_definition(*cap).flags.user_grantable {
+            if !get_user_capability_definition(*cap).flags().user_grantable() {
                 anyhow::bail!("granted capability is not user grantable: {}", cap.key());
             }
         }
 
         for cap in requested.required() {
-            if get_user_capability_definition(*cap).flags.user_grantable
+            if get_user_capability_definition(*cap).flags().user_grantable()
                 && !capabilities.contains(cap)
             {
                 anyhow::bail!("missing required capability: {}", cap.key());
@@ -252,12 +296,12 @@ fn validate_permissions_policy(
     let capability_flags = capabilities
         .into_iter()
         .fold(CapabilityFlags::EMPTY, |flags, cap| {
-            flags.union(get_user_capability_definition(cap).flags)
+            flags.union(get_user_capability_definition(cap).flags())
         });
 
-    let has_secret_access = capability_flags.accesses_sensitive_secret;
+    let has_secret_access = capability_flags.accesses_sensitive_secret();
     let has_external_access =
-        capability_flags.externally_observable || network.into_iter().next().is_some();
+        capability_flags.externally_observable() || network.into_iter().next().is_some();
 
     if has_secret_access && has_external_access {
         anyhow::bail!("{context} cannot include both external access and sensitive secret access");
@@ -274,7 +318,7 @@ impl SageRequestedPermissions {
         for capability in capabilities.required().chain(capabilities.optional()) {
             let definition = get_user_capability_definition(*capability);
 
-            if !definition.flags.requestable_by_app {
+            if !definition.flags().requestable_by_app() {
                 anyhow::bail!(
                     "capability is not requestable by app manifest: {}",
                     capability.key()
@@ -300,6 +344,9 @@ impl SageRequestedPermissions {
             capabilities: SageRequestedCapabilities::empty(),
         }
     }
+
+    pub fn network(&self) -> &SageRequestedNetworkPermissions { &self.network }
+    pub fn capabilities(&self) -> &SageRequestedCapabilities { &self.capabilities }
 }
 
 impl SageRequestedCapabilities {
@@ -345,7 +392,7 @@ impl SageRequestedCapabilities {
         self.required()
             .chain(self.optional())
             .copied()
-            .filter(|cap| get_user_capability_definition(*cap).flags.user_grantable)
+            .filter(|cap| get_user_capability_definition(*cap).flags().user_grantable())
             .collect()
     }
 
@@ -360,7 +407,7 @@ impl SageRequestedCapabilities {
         for capability in self.required().chain(self.optional()) {
             let definition = get_user_capability_definition(*capability);
 
-            if !definition.flags.user_grantable {
+            if !definition.flags().user_grantable() {
                 effective.insert(*capability);
             }
         }
@@ -384,7 +431,7 @@ impl SageRequestedCapabilities {
 
             let definition = get_user_capability_definition(*capability);
 
-            if !definition.flags.user_grantable {
+            if !definition.flags().user_grantable() {
                 anyhow::bail!(
                     "granted capability is not user grantable: {}",
                     capability.key()
@@ -395,7 +442,7 @@ impl SageRequestedCapabilities {
         for capability in self.required() {
             let definition = get_user_capability_definition(*capability);
 
-            if definition.flags.user_grantable && !user_granted.contains(capability) {
+            if definition.flags().user_grantable() && !user_granted.contains(capability) {
                 anyhow::bail!("missing required capability: {}", capability.key());
             }
         }

@@ -61,9 +61,9 @@ pub fn user_capabilities_markdown() -> String {
     for capability in UserBridgeCapability::ALL {
         let definition = get_user_capability_definition(*capability);
 
-        writeln!(out, "## `{}`\n", definition.capability.key()).unwrap();
-        writeln!(out, "**{}**\n", definition.label).unwrap();
-        writeln!(out, "{}\n", definition.description).unwrap();
+        writeln!(out, "## `{}`\n", definition.capability().key()).unwrap();
+        writeln!(out, "**{}**\n", definition.label()).unwrap();
+        writeln!(out, "{}\n", definition.description()).unwrap();
 
         out.push_str("| Flag | Value |\n");
         out.push_str("|---|---|\n");
@@ -71,35 +71,35 @@ pub fn user_capabilities_markdown() -> String {
         writeln!(
             out,
             "| Requestable by app | {} |",
-            bool_cell(definition.flags.requestable_by_app)
+            bool_cell(definition.flags().requestable_by_app())
         )
             .unwrap();
 
         writeln!(
             out,
             "| User grantable | {} |",
-            bool_cell(definition.flags.user_grantable)
+            bool_cell(definition.flags().user_grantable())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Shared with app | {} |",
-            bool_cell(definition.flags.shared_with_app)
+            bool_cell(definition.flags().shared_with_app())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Externally observable | {} |",
-            bool_cell(definition.flags.externally_observable)
+            bool_cell(definition.flags().externally_observable())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Accesses sensitive secret | {} |\n",
-            bool_cell(definition.flags.accesses_sensitive_secret)
+            bool_cell(definition.flags().accesses_sensitive_secret())
         )
             .unwrap();
     }
@@ -113,9 +113,9 @@ pub fn system_capabilities_markdown() -> String {
     for capability in SystemBridgeCapability::ALL {
         let definition = get_system_capability_definition(*capability);
 
-        writeln!(out, "## `{}`\n", definition.capability.key()).unwrap();
-        writeln!(out, "**{}**\n", definition.label).unwrap();
-        writeln!(out, "{}\n", definition.description).unwrap();
+        writeln!(out, "## `{}`\n", definition.capability().key()).unwrap();
+        writeln!(out, "**{}**\n", definition.label()).unwrap();
+        writeln!(out, "{}\n", definition.description()).unwrap();
 
         out.push_str("| Flag | Value |\n");
         out.push_str("|---|---|\n");
@@ -123,35 +123,35 @@ pub fn system_capabilities_markdown() -> String {
         writeln!(
             out,
             "| Requestable by app | {} |",
-            bool_cell(definition.flags.requestable_by_app)
+            bool_cell(definition.flags().requestable_by_app())
         )
             .unwrap();
 
         writeln!(
             out,
             "| User grantable | {} |",
-            bool_cell(definition.flags.user_grantable)
+            bool_cell(definition.flags().user_grantable())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Shared with app | {} |",
-            bool_cell(definition.flags.shared_with_app)
+            bool_cell(definition.flags().shared_with_app())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Externally observable | {} |",
-            bool_cell(definition.flags.externally_observable)
+            bool_cell(definition.flags().externally_observable())
         )
             .unwrap();
 
         writeln!(
             out,
             "| Accesses sensitive secret | {} |\n",
-            bool_cell(definition.flags.accesses_sensitive_secret)
+            bool_cell(definition.flags().accesses_sensitive_secret())
         )
             .unwrap();
     }

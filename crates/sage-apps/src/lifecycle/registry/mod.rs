@@ -5,13 +5,14 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anyhow::{Context, Result as AnyResult};
+
 use crate::lifecycle::types::PersistedUserSageApp;
 use crate::system_apps::list_builtin_system_apps;
 use crate::types::{
     CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry,
     SageApp, SageNetworkWhitelistEntry, UserSageApp,
 };
-use anyhow::{Context, Result as AnyResult};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -51,17 +52,23 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     let path = installed_metadata_path(dir);
     let text =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
-    let persisted: PersistedUserSageApp =
-        serde_json::from_str(&text).context("failed to parse installed app metadata")?;
+
+    let persisted: PersistedUserSageApp = serde_json::from_str(&text)
+        .with_context(|| format!("failed to parse installed app metadata {}", path.display()))?;
+
     persisted.try_into()
 }
 
 pub fn write_installed_app_metadata(app: &UserSageApp, app_dir: &Path) -> AnyResult<()> {
     let path = installed_metadata_path(app_dir);
-    let persisted: PersistedUserSageApp = app.into();
+    let persisted = PersistedUserSageApp::from(app);
+
     let text = serde_json::to_string_pretty(&persisted)
         .map_err(|err| anyhow::anyhow!("failed to serialize installed app metadata: {err}"))?;
-    fs::write(path, format!("{text}\n"))?;
+
+    fs::write(&path, format!("{text}\n"))
+        .with_context(|| format!("failed to write {}", path.display()))?;
+
     Ok(())
 }
 
@@ -96,7 +103,7 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
         let Some(id) = path
             .file_name()
             .and_then(|s| s.to_str())
-            .map(std::string::ToString::to_string)
+            .map(str::to_string)
         else {
             continue;
         };
@@ -108,36 +115,33 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
 
         match read_installed_user_app_from_dir(&path) {
             Ok(app) => apps.push(ListedSageApp::User(app)),
-            Err(err) => apps.push(ListedSageApp::Corrupted(CorruptedInstalledSageApp {
-                id,
-                app_dir: path.to_string_lossy().to_string(),
-                error: err.to_string(),
-            })),
+            Err(err) => apps.push(ListedSageApp::Corrupted(
+                CorruptedInstalledSageApp::new(
+                    id,
+                    path.to_string_lossy().to_string(),
+                    err.to_string(),
+                ),
+            )),
         }
     }
+
     for app in list_builtin_system_apps()? {
         if let SageApp::System(app) = app {
             apps.push(ListedSageApp::System(app));
         }
     }
 
-    apps.sort_by(|a, b| {
-        let a_key = match a {
-            ListedSageApp::User(app) => app.common.name.to_lowercase(),
-            ListedSageApp::System(app) => app.common.name.to_lowercase(),
-            ListedSageApp::Corrupted(app) => app.id.to_lowercase(),
-        };
-
-        let b_key = match b {
-            ListedSageApp::User(app) => app.common.name.to_lowercase(),
-            ListedSageApp::System(app) => app.common.name.to_lowercase(),
-            ListedSageApp::Corrupted(app) => app.id.to_lowercase(),
-        };
-
-        a_key.cmp(&b_key)
-    });
+    apps.sort_by(|a, b| listed_app_sort_key(a).cmp(&listed_app_sort_key(b)));
 
     Ok(apps)
+}
+
+fn listed_app_sort_key(app: &ListedSageApp) -> String {
+    match app {
+        ListedSageApp::User(app) => app.common().name().to_lowercase(),
+        ListedSageApp::System(app) => app.common().name().to_lowercase(),
+        ListedSageApp::Corrupted(app) => app.id().to_lowercase(),
+    }
 }
 
 pub fn read_pending_storage_cleanup_entries(
@@ -170,8 +174,10 @@ pub fn write_pending_storage_cleanup_entries(
     let text = serde_json::to_string_pretty(entries).map_err(|err| {
         anyhow::anyhow!("failed to serialize pending storage cleanup entries: {err}")
     })?;
+
     fs::write(&path, format!("{text}\n"))
         .with_context(|| format!("failed to write {}", path.display()))?;
+
     Ok(())
 }
 
@@ -217,7 +223,7 @@ pub fn read_installed_user_app_by_origin_id(
 
     for entry in list_installed_apps_internal(&root)? {
         if let ListedSageApp::User(app) = entry
-            && app.common.origin_id == origin_id
+            && app.common().origin_id() == origin_id
         {
             return Ok(app);
         }
@@ -231,22 +237,24 @@ pub fn read_installed_user_app_by_origin_id(
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use crate::lifecycle::storage::record_storage_cleanup_failure;
     use crate::types::{
-        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry,
-        SageAppCommon, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry,
-        SageRequestedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget,
+        RetiredAppOriginEntry, SageAppCommon, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
+        SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource,
     };
     use std::fs;
     use tempfile::tempdir;
 
+    fn write_index(dir: &Path) {
+        fs::create_dir_all(dir).unwrap();
+        fs::write(dir.join("index.html"), "x").unwrap();
+    }
+
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
-        SageAppManifestFile {
-            path: path.to_string(),
-            sha256: "a".repeat(64),
-            size,
-        }
+        SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()
     }
 
     fn sample_manifest(name: &str) -> SageAppPackageManifest {
@@ -256,7 +264,7 @@ mod tests {
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_manifest_file("index.html", 1)],
             entry: Some("index.html".to_string()),
-            icon: Some("icon.png".to_string()),
+            icon: None,
             author: None,
             donation: None,
         })
@@ -269,38 +277,32 @@ mod tests {
 
     fn sample_app_named(base: &Path, app_id: &str, origin_id: &str, name: &str) -> UserSageApp {
         let dir = app_dir(base, app_id);
-        fs::create_dir_all(&dir).unwrap();
+        write_index(&dir);
 
         let manifest = sample_manifest(name);
         let granted_permissions =
             SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
-        let snapshot = SageAppSnapshot {
-            manifest_hash: "hash".into(),
-            snapshot_dir: dir.to_string_lossy().to_string(),
-            total_bytes: 1,
-            manifest: manifest.clone(),
-        };
+        let snapshot =
+            SageAppSnapshot::new("hash", dir.to_string_lossy().to_string(), manifest).unwrap();
 
         let common = SageAppCommon::new(
-            app_id.into(),
-            origin_id.into(),
+            app_id,
+            origin_id,
             dir.to_string_lossy().to_string(),
-            &manifest,
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
             .unwrap();
 
-        UserSageApp {
+        UserSageApp::new_installed(
             common,
-            source: UserSageAppSource::Url {
+            UserSageAppSource::Url {
                 app_url: "https://example.com/app/".into(),
                 manifest_url: "https://example.com/app/sage-manifest.json".into(),
             },
-            pending_update: None,
-        }
+        )
     }
 
     fn without_system_apps(listed: Vec<ListedSageApp>) -> Vec<ListedSageApp> {
@@ -313,43 +315,21 @@ mod tests {
     #[test]
     fn installed_app_metadata_round_trips_origin_id_and_storage() {
         let tmp = tempdir().unwrap();
-        let mut app = sample_app(tmp.path(), "url-abc123", "origin-1");
-        app.common.storage = InstalledSageAppStorage::Unmanaged;
+        let app = sample_app(tmp.path(), "url-abc123", "origin-1");
 
-        let dir = app_dir(tmp.path(), &app.common.id);
+        let dir = app_dir(tmp.path(), app.common().id());
         write_installed_app_metadata(&app, &dir).unwrap();
 
-        let read_back = read_installed_app_by_id(tmp.path(), &app.common.id).unwrap();
-        assert_eq!(read_back.common.id, app.common.id);
-        assert_eq!(read_back.common.origin_id, app.common.origin_id);
-        assert_eq!(read_back.common.storage, app.common.storage);
-        assert_eq!(read_back.common.granted_permissions, app.common.granted_permissions);
-        assert!(!read_back.common.capability_flags.has_external_access);
-    }
+        let read_back = read_installed_app_by_id(tmp.path(), app.common().id()).unwrap();
 
-    #[test]
-    fn installed_app_metadata_round_trips_pending_update() {
-        let base = tempdir().unwrap();
-        let app_id = "app-1";
-
-        let mut app = sample_app_named(base.path(), app_id, "app-1", "Alpha");
-        app.pending_update = Some(UserSageAppPendingUpdate {
-            app_url: "https://example.com/app/".to_string(),
-            manifest_url: "https://example.com/app/sage-manifest.json".to_string(),
-            manifest_hash: "pending-hash".to_string(),
-            manifest: sample_manifest("Alpha Updated"),
-        });
-
-        let dir = app_dir(base.path(), app_id);
-        write_installed_app_metadata(&app, &dir).unwrap();
-
-        let loaded = read_installed_app_by_id(base.path(), app_id).unwrap();
-        let pending = loaded
-            .pending_update
-            .expect("pending update should survive roundtrip");
-
-        assert_eq!(pending.manifest_hash, "pending-hash");
-        assert_eq!(pending.manifest.name(), "Alpha Updated");
+        assert_eq!(read_back.common().id(), app.common().id());
+        assert_eq!(read_back.common().origin_id(), app.common().origin_id());
+        assert_eq!(read_back.common().storage(), app.common().storage());
+        assert_eq!(
+            read_back.common().granted_permissions(),
+            app.common().granted_permissions()
+        );
+        assert!(!read_back.common().capability_flags().has_external_access());
     }
 
     #[test]
@@ -366,8 +346,8 @@ mod tests {
 
         match &listed[0] {
             ListedSageApp::Corrupted(app) => {
-                assert_eq!(app.id, "broken-app");
-                assert!(!app.error.is_empty());
+                assert_eq!(app.id(), "broken-app");
+                assert!(!app.error().is_empty());
             }
             ListedSageApp::User(_) | ListedSageApp::System(_) => {
                 panic!("expected corrupted app listing");
@@ -380,79 +360,58 @@ mod tests {
         let base = tempdir().unwrap();
         let dir = app_dir(base.path(), "broken-app");
         fs::create_dir_all(&dir).unwrap();
+        let snapshot_dir = dir.to_string_lossy();
 
         fs::write(
             dir.join(".sage-installed.json"),
-            r#"{
+            format!(
+                r#"{{
   "id": "broken-app",
   "originId": "broken-app",
-  "name": "Broken App",
-  "version": "1.0.0",
-  "appDir": "/tmp/broken-app",
-  "entryFile": "index.html",
-  "iconFile": "icon.png",
-  "requestedPermissions": {
-    "network": {
-      "whitelist": {
-        "required": ["https://ok.example.com/path"],
-        "optional": []
-      }
-    },
-    "capabilities": {
-      "required": [],
-      "optional": []
-    }
-  },
-  "grantedPermissions": {
+  "appDir": "{snapshot_dir}",
+  "grantedPermissions": {{
     "capabilities": [],
-    "network": {
+    "network": {{
       "whitelist": []
-    }
-  },
-  "capabilityFlags": {
-    "hasSecretAccess": false,
-    "hasExternalAccess": false,
-    "storageMayContainSecrets": false,
-    "isolated": false
-  },
-  "storage": {
+    }}
+  }},
+  "storage": {{
     "kind": "unmanaged"
-  },
-  "source": {
+  }},
+  "source": {{
     "kind": "zip"
-  },
-  "activeSnapshot": {
+  }},
+  "activeSnapshot": {{
     "manifestHash": "hash",
-    "snapshotDir": "/tmp/snapshot",
-    "totalBytes": 1,
-    "manifest": {
+    "snapshotDir": "{snapshot_dir}",
+    "manifest": {{
       "name": "Broken App",
       "version": "1.0.0",
-      "permissions": {
-        "network": {
-          "whitelist": {
-            "required": [],
+      "permissions": {{
+        "network": {{
+          "whitelist": {{
+            "required": ["https://ok.example.com/path"],
             "optional": []
-          }
-        },
-        "capabilities": {
+          }}
+        }},
+        "capabilities": {{
           "required": [],
           "optional": []
-        }
-      },
+        }}
+      }},
       "files": [
-        {
+        {{
           "path": "index.html",
           "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "size": 1
-        }
+        }}
       ],
       "entry": "index.html",
-      "icon": "icon.png"
-    }
-  },
-  "pendingUpdate": null
-}"#,
+      "icon": null
+    }}
+  }}
+}}"#
+            ),
         )
             .unwrap();
 
@@ -463,11 +422,11 @@ mod tests {
         match &listed[0] {
             ListedSageApp::Corrupted(app) => {
                 assert!(
-                    app.error.contains("network entry")
-                        || app.error.contains("invalid host")
-                        || app.error.contains("failed to parse installed app metadata"),
+                    app.error().contains("network entry")
+                        || app.error().contains("invalid host")
+                        || app.error().contains("failed to parse installed app metadata"),
                     "unexpected error: {}",
-                    app.error
+                    app.error()
                 );
             }
             ListedSageApp::User(_) | ListedSageApp::System(_) => {
@@ -481,10 +440,10 @@ mod tests {
         let base = tempdir().unwrap();
 
         let alpha = sample_app_named(base.path(), "a", "a", "Alpha");
-        write_installed_app_metadata(&alpha, Path::new(&alpha.common.app_dir)).unwrap();
+        write_installed_app_metadata(&alpha, Path::new(alpha.common().app_dir())).unwrap();
 
         let zeta = sample_app_named(base.path(), "z", "z", "Zeta");
-        write_installed_app_metadata(&zeta, Path::new(&zeta.common.app_dir)).unwrap();
+        write_installed_app_metadata(&zeta, Path::new(zeta.common().app_dir())).unwrap();
 
         let listed =
             without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
@@ -492,9 +451,9 @@ mod tests {
         let names: Vec<_> = listed
             .into_iter()
             .map(|entry| match entry {
-                ListedSageApp::User(app) => app.common.name,
-                ListedSageApp::System(app) => app.common.name,
-                ListedSageApp::Corrupted(app) => app.id,
+                ListedSageApp::User(app) => app.common().name().to_string(),
+                ListedSageApp::System(app) => app.common().name().to_string(),
+                ListedSageApp::Corrupted(app) => app.id().to_string(),
             })
             .collect();
 
@@ -559,11 +518,11 @@ mod tests {
         let app_a = sample_app(dir.path(), "app-a", "origin-a");
         let app_b = sample_app(dir.path(), "app-b", "origin-b");
 
-        write_installed_app_metadata(&app_a, Path::new(&app_a.common.app_dir)).unwrap();
-        write_installed_app_metadata(&app_b, Path::new(&app_b.common.app_dir)).unwrap();
+        write_installed_app_metadata(&app_a, Path::new(app_a.common().app_dir())).unwrap();
+        write_installed_app_metadata(&app_b, Path::new(app_b.common().app_dir())).unwrap();
 
         let found = read_installed_user_app_by_origin_id(dir.path(), "origin-b").unwrap();
-        assert_eq!(found.common.id, "app-b");
+        assert_eq!(found.common().id(), "app-b");
     }
 
     #[test]
@@ -596,8 +555,7 @@ mod tests {
     fn retired_app_origins_round_trip() {
         let base = tempdir().unwrap();
 
-        let mut app = sample_app(base.path(), "app-1", "origin-1");
-        app.common.capability_flags.storage_may_contain_secrets = true;
+        let app = sample_app(base.path(), "app-1", "origin-1");
 
         let entries = vec![RetiredAppOriginEntry::new(&app, true)];
         write_retired_app_origins(base.path(), &entries).unwrap();

@@ -34,5 +34,5 @@ pub async fn write_pending_stop_ready(
 
 async fn write_runtime(apps_state: &State<'_, AppsHostState>, record: SageAppRuntimeRecord) {
     let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
-    by_runtime_id.insert(record.runtime_id.clone(), record);
+    by_runtime_id.insert(record.runtime_id().to_string(), record);
 }

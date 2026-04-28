@@ -49,7 +49,7 @@ impl BridgeMethod for AppLifecycleSetBeforeStopListener {
             .lock()
             .await;
 
-        if params.active {
+        if params.active() {
             listeners.insert(ctx.app.id().to_string());
         } else {
             listeners.remove(ctx.app.id());
@@ -87,7 +87,7 @@ impl BridgeMethod for AppLifecycleReadyToStop {
 
         let sender = {
             let mut pending = tools.host_state.runtime.pending_stop_ready.lock().await;
-            pending.remove(&params.request_id)
+            pending.remove(params.request_id())
         };
 
         if let Some(sender) = sender {

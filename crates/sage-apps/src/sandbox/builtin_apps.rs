@@ -138,36 +138,6 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
     Ok(manifest)
 }
 
-fn compute_total_bytes(app_dir: &PathBuf) -> AnyResult<u64> {
-    let mut total_bytes = 0_u64;
-
-    for entry in fs::read_dir(app_dir)
-        .with_context(|| format!("failed to read builtin test app dir {}", app_dir.display()))?
-    {
-        let entry = entry.with_context(|| {
-            format!(
-                "failed to read entry in builtin test app dir {}",
-                app_dir.display()
-            )
-        })?;
-
-        let metadata = entry.metadata().with_context(|| {
-            format!(
-                "failed to read metadata for builtin test app file {}",
-                entry.path().display()
-            )
-        })?;
-
-        if metadata.is_file() {
-            total_bytes = total_bytes
-                .checked_add(metadata.len())
-                .ok_or_else(|| anyhow!("builtin test app total size overflow"))?;
-        }
-    }
-
-    Ok(total_bytes)
-}
-
 pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     let Some(spec) = builtin_test_app_spec(app_id) else {
         return Ok(None);
@@ -186,30 +156,26 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
 
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
-        manifest.permissions().capabilities.user_grantable(),
-        manifest.permissions().network.whitelist.required().cloned(),
+        manifest.permissions().capabilities().user_grantable(),
+        manifest.permissions().network().whitelist().required().cloned(),
     )?;
 
-    let total_bytes = compute_total_bytes(&app_dir)?;
-
-    let snapshot = SageAppSnapshot {
-        manifest_hash: format!("builtin:{}", spec.app_id),
-        snapshot_dir: app_dir.to_string_lossy().to_string(),
-        total_bytes,
-        manifest: manifest.clone(),
-    };
+    let snapshot = SageAppSnapshot::new(
+        format!("builtin:{}", spec.app_id),
+        app_dir.to_string_lossy().to_string(),
+        manifest.clone(),
+    )?;
 
     let common = SageAppCommon::new(
         spec.app_id.to_string(),
         spec.app_id.to_string(),
         app_dir.to_string_lossy().to_string(),
-        &manifest,
         granted_permissions,
         builtin_storage(spec.app_id),
         snapshot,
     )?;
 
-    let entry_file = app_dir.join(&common.entry_file);
+    let entry_file = app_dir.join(&common.entry_file());
     if !entry_file.is_file() {
         return Err(anyhow!(
             "builtin test app entry file does not exist: {}",
@@ -217,19 +183,10 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
         ));
     }
 
-    let icon_file = app_dir.join(&common.icon_file);
-    if !icon_file.is_file() {
-        return Err(anyhow!(
-            "builtin test app icon file does not exist: {}",
-            icon_file.display()
-        ));
-    }
-
-    let app = UserSageApp {
+    let app = UserSageApp::new_installed(
         common,
-        source: UserSageAppSource::Zip,
-        pending_update: None,
-    };
+        UserSageAppSource::Zip,
+    );
 
     Ok(Some(SageApp::User(app)))
 }

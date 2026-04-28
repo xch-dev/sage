@@ -413,9 +413,6 @@ async applyAppUpdate(appId: string, grantedPermissions: SageGrantedPermissions) 
 async appsUpdatePermissions(appId: string, grantedPermissions: SageGrantedPermissions) : Promise<null> {
     return await TAURI_INVOKE("apps_update_permissions", { appId, grantedPermissions });
 },
-async appsMarkStorageMayContainSecrets(appId: string) : Promise<null> {
-    return await TAURI_INVOKE("apps_mark_storage_may_contain_secrets", { appId });
-},
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
 },
@@ -2259,11 +2256,11 @@ export type SageApp = ({ kind: "system" } & SystemSageApp) | ({ kind: "user" } &
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
 export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
-export type SageAppCommon = { id: string; originId: string; name: string; version: string; appDir: string; entryFile: string; iconFile: string; requestedPermissions: SageRequestedPermissions; grantedPermissions: SageGrantedPermissions; capabilityFlags: SageAppFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
+export type SageAppCommon = { id: string; originId: string; name: string; version: string; appDir: string; entryFile: string; iconFile: string | null; requestedPermissions: SageRequestedPermissions; grantedPermissions: SageGrantedPermissions; capabilityFlags: SageAppFlags; storage: InstalledSageAppStorage; activeSnapshot: SageAppSnapshot }
 export type SageAppDonation = { address: string }
 export type SageAppFlags = { hasSecretAccess: boolean; hasExternalAccess: boolean; storageMayContainSecrets: boolean; isolated: boolean }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
-export type SageAppPackageManifest = { name: string; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; entry: string | null; icon: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
+export type SageAppPackageManifest = { name: string; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; total_bytes: number; entry: string | null; icon: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppRuntimeKind = "user" | "system"
 export type SageAppRuntimeRecord = { runtimeId: string; appId: string; appName: string; entrySrc: string; webviewLabel: string; hostWindowLabel: string; runtimeKind: SageAppRuntimeKind; mode: string; state: string; startedAt: number; lastActiveAt: number; visible: boolean; internal: boolean }
 export type SageAppSnapshot = { manifestHash: string; snapshotDir: string; totalBytes: number; manifest: SageAppPackageManifest }

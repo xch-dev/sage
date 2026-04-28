@@ -37,11 +37,11 @@ impl BridgeMethod for AppGetCapabilities {
     ) -> BridgeHandleResult {
         let effective_capabilities = match ctx.app {
             SageApp::User(user_app) => user_app
-                .common
-                .requested_permissions
-                .capabilities
+                .common()
+                .requested_permissions()
+                .capabilities()
                 .resolve_effective_grants(
-                    user_app.common.granted_permissions.capabilities().copied(),
+                    user_app.common().granted_permissions().capabilities().copied(),
                 )
                 .unwrap_or_default(),
 

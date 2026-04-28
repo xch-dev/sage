@@ -1,13 +1,17 @@
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+use anyhow::{anyhow, Context, Result as AnyResult};
+use tauri::command;
+
 use crate::bridge::capabilities::SystemBridgeCapability;
 use crate::host::Result;
 use crate::types::{
     InstalledSageAppStorage, SageApp, SageAppCommon, SageAppPackageManifest, SageAppSnapshot,
     SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp,
 };
-use anyhow::{Context, Result as AnyResult, anyhow};
-use std::path::Path;
-use std::{fs, path::PathBuf};
-use tauri::command;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 
@@ -66,48 +70,12 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
         )
     })?;
 
-    let manifest: SageAppPackageManifest =
-        serde_json::from_str(&manifest_text).with_context(|| {
-            format!(
-                "failed to parse builtin system app manifest {}",
-                manifest_path.display()
-            )
-        })?;
-
-    Ok(manifest)
-}
-
-fn compute_total_bytes(app_dir: &PathBuf) -> AnyResult<u64> {
-    let mut total_bytes = 0_u64;
-
-    for entry in fs::read_dir(app_dir).with_context(|| {
+    serde_json::from_str(&manifest_text).with_context(|| {
         format!(
-            "failed to read builtin system app dir {}",
-            app_dir.display()
+            "failed to parse builtin system app manifest {}",
+            manifest_path.display()
         )
-    })? {
-        let entry = entry.with_context(|| {
-            format!(
-                "failed to read entry in builtin system app dir {}",
-                app_dir.display()
-            )
-        })?;
-
-        let metadata = entry.metadata().with_context(|| {
-            format!(
-                "failed to read metadata for builtin system app file {}",
-                entry.path().display()
-            )
-        })?;
-
-        if metadata.is_file() {
-            total_bytes = total_bytes
-                .checked_add(metadata.len())
-                .ok_or_else(|| anyhow!("builtin system app total size overflow"))?;
-        }
-    }
-
-    Ok(total_bytes)
+    })
 }
 
 pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
@@ -128,59 +96,37 @@ pub fn build_builtin_system_app(app_id: &str) -> AnyResult<Option<SageApp>> {
 
     let requested_capabilities = manifest
         .permissions()
-        .capabilities
+        .capabilities()
         .required()
-        .chain(manifest.permissions().capabilities.optional())
+        .chain(manifest.permissions().capabilities().optional())
         .copied();
 
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
         requested_capabilities,
-        manifest.permissions().network.whitelist.required().cloned(),
+        manifest.permissions().network().whitelist().required().cloned(),
     )?;
 
-    let total_bytes = compute_total_bytes(&app_dir)?;
-
-    let snapshot = SageAppSnapshot {
-        manifest_hash: format!("builtin-system:{}", spec.app_id),
-        snapshot_dir: app_dir.to_string_lossy().to_string(),
-        total_bytes,
-        manifest: manifest.clone(),
-    };
+    let snapshot = SageAppSnapshot::new_builtin_system(
+        spec.app_id,
+        app_dir.to_string_lossy().to_string(),
+        manifest,
+    )?;
 
     let common = SageAppCommon::new(
-        spec.app_id.to_string(),
-        spec.app_id.to_string(),
+        spec.app_id,
+        spec.app_id,
         app_dir.to_string_lossy().to_string(),
-        &manifest,
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
     )?;
 
-    let entry_file = app_dir.join(&common.entry_file);
-    if !entry_file.is_file() {
-        return Err(anyhow!(
-            "builtin system app entry file does not exist: {}",
-            entry_file.display()
-        ));
-    }
-
-    let icon_file = app_dir.join(&common.icon_file);
-    if !icon_file.is_file() {
-        return Err(anyhow!(
-            "builtin system app icon file does not exist: {}",
-            icon_file.display()
-        ));
-    }
-
-    let app = SystemSageApp {
+    let app = SystemSageApp::new(
         common,
-        presentation: spec.presentation,
-        system_granted_permissions: SageGrantedSystemPermissions {
-            capabilities: spec.system_capabilities.to_vec(),
-        },
-    };
+        SageGrantedSystemPermissions::new(spec.system_capabilities.iter().copied()),
+        spec.presentation,
+    );
 
     Ok(Some(SageApp::System(app)))
 }

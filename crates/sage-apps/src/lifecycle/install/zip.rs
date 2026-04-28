@@ -101,8 +101,8 @@ pub fn resolve_zip_install_target(
     app_name: &str,
 ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
     if let Some(existing) = find_existing_installed_app_by_name(root, app_name)? {
-        let app_dir = Path::new(&existing.common.app_dir).to_path_buf();
-        return Ok((existing.common.id.clone(), app_dir, Some(existing)));
+        let app_dir = Path::new(&existing.common().app_dir()).to_path_buf();
+        return Ok((existing.common().id().to_string(), app_dir, Some(existing)));
     }
 
     let app_id = generate_zip_app_id(app_name);
@@ -116,7 +116,7 @@ fn find_existing_installed_app_by_name(
     Ok(list_installed_apps_internal(root)?
         .into_iter()
         .find_map(|app| match app {
-            ListedSageApp::User(installed) if installed.common.name == app_name => Some(installed),
+            ListedSageApp::User(installed) if installed.common().name() == app_name => Some(installed),
             _ => None,
         }))
 }
@@ -133,13 +133,13 @@ mod tests {
             name: name.into(),
             version: "1.0.0".into(),
             permissions: SageRequestedPermissions::empty(),
-            files: vec![SageAppManifestFile {
-                path: "index.html".into(),
-                sha256: "a".repeat(64),
-                size: 123,
-            }],
+            files: vec![SageAppManifestFile::new(
+                "index.html".to_string(),
+                "a".repeat(64),
+                123,
+            ).unwrap()],
             entry: Some("index.html".into()),
-            icon: Some("icon.png".into()),
+            icon: None,
             author: None,
             donation: None,
         })
@@ -172,24 +172,23 @@ mod tests {
         let app_id = "existing-app";
         let app_dir = dir.path().join(app_id);
         fs::create_dir_all(&app_dir).unwrap();
+        fs::write(app_dir.join("index.html"), "x").unwrap();
 
         let manifest = sample_manifest_named("Test App");
         let granted_permissions =
             SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
         let common = SageAppCommon::new(
-            app_id.into(),
-            app_id.into(),
+            app_id.to_string(),
+            app_id.to_string(),
             app_dir.to_string_lossy().to_string(),
-            &manifest,
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
-            SageAppSnapshot {
-                manifest_hash: "hash".into(),
-                snapshot_dir: app_dir.to_string_lossy().to_string(),
-                total_bytes: 123,
-                manifest: manifest.clone(),
-            },
+            SageAppSnapshot::new(
+                "hash".to_string(),
+                app_dir.to_string_lossy().to_string(),
+                manifest.clone(),
+            ).unwrap(),
         )
             .unwrap();
 
@@ -203,7 +202,7 @@ mod tests {
         assert_eq!(resolved_id, app_id);
         assert_eq!(resolved_dir, app_dir);
         assert!(existing.is_some());
-        assert_eq!(existing.unwrap().common.id, app_id);
+        assert_eq!(existing.unwrap().common().id(), app_id);
     }
 
     #[test]

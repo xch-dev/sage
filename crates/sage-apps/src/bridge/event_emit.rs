@@ -30,8 +30,8 @@ pub(crate) async fn emit_bridge_event_to_app_id(
         return Ok(());
     };
 
-    get_webview_in_sage_window(app, &runtime.webview_label)?
-        .emit(&event_event_for_runtime_kind(runtime.runtime_kind), event)
+    get_webview_in_sage_window(app, &runtime.webview_label())?
+        .emit(&event_event_for_runtime_kind(runtime.runtime_kind()), event)
         .map_err(|err| format!("failed to emit bridge event: {err}"))
 }
 

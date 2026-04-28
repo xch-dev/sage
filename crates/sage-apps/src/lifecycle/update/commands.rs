@@ -1,9 +1,13 @@
-use crate::bridge::USER_BRIDGE_CHANNEL;
+use std::io;
+use std::path::PathBuf;
+
+use tauri::{command, AppHandle, State};
+
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
+use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::host::AppState;
 use crate::host::Result;
-use crate::lifecycle::install::url::preview_app_url_internal;
 use crate::lifecycle::update::permissions::update_app_permissions_with_change_internal;
 use crate::lifecycle::{
     download_url_snapshot, read_installed_app_by_id, write_installed_app_metadata,
@@ -12,9 +16,6 @@ use crate::types::{
     SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate,
     UserSageAppSource,
 };
-use std::io;
-use std::path::PathBuf;
-use tauri::{AppHandle, State, command};
 
 #[command]
 #[specta::specta]
@@ -30,25 +31,27 @@ pub async fn check_app_update(
     let app = read_installed_app_by_id(&base_path, &app_id)
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    let app_url = match &app.source {
+    let app_url = match app.source() {
         UserSageAppSource::Url { app_url, .. } => app_url.clone(),
         UserSageAppSource::Zip => return Ok(None),
     };
 
-    let preview = preview_app_url_internal(app_url)
+    let preview = SageAppUrlPreview::new(app_url)
         .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
-    let same_manifest_hash = preview.manifest_hash == app.common.active_snapshot.manifest_hash;
-    let same_manifest_content = preview.manifest == app.common.active_snapshot.manifest;
+    let active_snapshot = app.common().active_snapshot();
+
+    let same_manifest_hash = preview.manifest_hash() == active_snapshot.manifest_hash();
+    let same_manifest_content = preview.manifest() == active_snapshot.manifest();
 
     if same_manifest_hash && same_manifest_content {
         return Ok(None);
     }
 
-    if let Some(pending) = &app.pending_update {
-        let same_pending_hash = pending.manifest_hash == preview.manifest_hash;
-        let same_pending_manifest = pending.manifest == preview.manifest;
+    if let Some(pending) = app.pending_update() {
+        let same_pending_hash = pending.manifest_hash() == preview.manifest_hash();
+        let same_pending_manifest = pending.manifest() == preview.manifest();
 
         if same_pending_hash && same_pending_manifest {
             return Ok(None);
@@ -72,7 +75,7 @@ pub async fn download_app_update(
     let mut app = read_installed_app_by_id(&base_path, &app_id)
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    let (app_url, manifest_url) = match &app.source {
+    let (app_url, manifest_url) = match app.source() {
         UserSageAppSource::Url {
             app_url,
             manifest_url,
@@ -83,17 +86,19 @@ pub async fn download_app_update(
     };
 
     let Some(preview) = check_app_update(state, app_id.clone()).await? else {
-        return Ok(app)
+        return Ok(app);
     };
 
-    app.pending_update = Some(UserSageAppPendingUpdate {
-        app_url,
-        manifest_url,
-        manifest_hash: preview.manifest_hash,
-        manifest: preview.manifest,
-    });
+    app.set_pending_update(Some(
+        UserSageAppPendingUpdate::new(
+            app_url,
+            manifest_url,
+            preview.manifest_hash().to_string(),
+            preview.manifest().clone(),
+        ),
+    ));
 
-    let app_dir = PathBuf::from(&app.common.app_dir);
+    let app_dir = PathBuf::from(app.common().app_dir());
     write_installed_app_metadata(&app, &app_dir)
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
 
@@ -116,28 +121,28 @@ pub async fn apply_app_update(
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let pending = app
-        .pending_update
-        .clone()
+        .pending_update()
+        .cloned()
         .ok_or_else(|| io::Error::other(format!("app {app_id} has no pending update")))?;
 
-    let app_dir = PathBuf::from(&app.common.app_dir);
+    let app_dir = PathBuf::from(app.common().app_dir());
 
     let snapshot = download_url_snapshot(
         &app_dir,
-        &pending.app_url,
-        &pending.manifest,
-        &pending.manifest_hash,
+        pending.app_url(),
+        pending.manifest(),
+        pending.manifest_hash(),
     )
-    .await
-    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+        .await
+        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
-    app.common
+    app.common_mut()
         .apply_update(&pending, granted_permissions, snapshot)
         .map_err(|err| {
             io::Error::other(format!("failed to apply app update permissions: {err}"))
         })?;
 
-    app.pending_update = None;
+    app.set_pending_update(None);
 
     write_installed_app_metadata(&app, &app_dir)
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
@@ -168,7 +173,7 @@ pub async fn apps_update_permissions(
             &app_id,
             EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
         )
-        .await;
+            .await;
     }
 
     if !network_change.added.is_empty() || !network_change.removed.is_empty() {
@@ -177,7 +182,7 @@ pub async fn apps_update_permissions(
             &app_id,
             EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
         )
-        .await;
+            .await;
     }
 
     Ok(())

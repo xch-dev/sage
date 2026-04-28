@@ -63,8 +63,8 @@ pub async fn list_runtimes(
         by_runtime_id.values().cloned().collect::<Vec<_>>()
     };
 
-    records.retain(|record| !record.internal);
-    records.sort_by(|a, b| b.started_at.cmp(&a.started_at));
+    records.retain(|record| !record.internal());
+    records.sort_by(|a, b| b.started_at().cmp(&a.started_at()));
 
     Ok(records)
 }

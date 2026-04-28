@@ -14,8 +14,8 @@ pub fn manifest_entry_file(manifest: &SageAppPackageManifest) -> &str {
     manifest.entry().unwrap_or("index.html")
 }
 
-pub fn manifest_icon_file(manifest: &SageAppPackageManifest) -> &str {
-    manifest.icon().unwrap_or("icon.png")
+pub fn manifest_icon_file(manifest: &SageAppPackageManifest) -> Option<&str> {
+    manifest.icon()
 }
 
 pub fn derive_manifest_url(app_url: &str) -> AnyResult<String> {
@@ -130,15 +130,15 @@ pub fn validate_manifest_files(files: &[SageAppManifestFile]) -> AnyResult<u64> 
     let mut total: u64 = 0;
 
     for file in files {
-        validate_manifest_file_path(&file.path)?;
-        validate_sha256_hex(&file.sha256)?;
+        validate_manifest_file_path(file.path())?;
+        validate_sha256_hex(file.sha256())?;
 
-        if !seen.insert(file.path.clone()) {
-            return Err(anyhow!("duplicate manifest file path: {}", file.path));
+        if !seen.insert(file.path().to_string()) {
+            return Err(anyhow!("duplicate manifest file path: {}", file.path()));
         }
 
         total = total
-            .checked_add(file.size)
+            .checked_add(file.size())
             .ok_or_else(|| anyhow!("manifest total size overflow"))?;
     }
 
@@ -163,11 +163,11 @@ mod tests {
     };
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
-        SageAppManifestFile {
-            path: path.to_string(),
-            sha256: "a".repeat(64),
+        SageAppManifestFile::new(
+            path.to_string(),
+            "a".repeat(64),
             size,
-        }
+        ).unwrap()
     }
 
     fn sample_file() -> SageAppManifestFile {
@@ -186,7 +186,7 @@ mod tests {
             ),
             SageRequestedCapabilities::new(
                 [UserBridgeCapability::WalletSendXch],
-                [UserBridgeCapability::PersistentStorage],
+                [UserBridgeCapability::PersistentStorage, UserBridgeCapability::WalletGetSecretKey],
             ),
         )
             .unwrap()
@@ -196,11 +196,23 @@ mod tests {
         entry_file: Option<String>,
         icon_file: Option<String>,
     ) -> SageAppPackageManifest {
+        let mut files = vec![sample_manifest_file("index.html", 1)];
+
+        if let Some(entry_file) = &entry_file
+            && entry_file != "index.html"
+        {
+            files.push(sample_manifest_file(entry_file, 1));
+        }
+
+        if let Some(icon_file) = &icon_file {
+            files.push(sample_manifest_file(icon_file, 1));
+        }
+
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".to_string(),
             version: "1.0.0".to_string(),
             permissions: requested_permissions(),
-            files: vec![sample_manifest_file("index.html", 1)],
+            files,
             entry: entry_file,
             icon: icon_file,
             author: None,
@@ -270,9 +282,7 @@ mod tests {
 
     #[test]
     fn validate_manifest_files_rejects_invalid_nested_path() {
-        let files = vec![sample_manifest_file("dist//index.html", 1)];
-
-        let err = validate_manifest_files(&files).unwrap_err();
+        let err = SageAppManifestFile::new("dist//index.html", "a".repeat(64), 1).unwrap_err();
         assert!(err.to_string().contains("manifest file path is invalid"));
     }
 
@@ -351,13 +361,13 @@ mod tests {
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_manifest_file("dist/index.html", 123)],
             entry: Some("dist/index.html".to_string()),
-            icon: Some("dist/icon.png".to_string()),
+            icon: None,
             author: None,
             donation: None,
         })
             .unwrap();
 
-        assert_eq!(manifest.total_bytes().unwrap(), 123);
+        assert_eq!(manifest.total_bytes(), 123);
     }
 
     #[test]
@@ -383,12 +393,12 @@ mod tests {
             Some("icon.svg".to_string()),
         );
 
-        assert_eq!(manifest_icon_file(&manifest), "icon.svg");
+        assert_eq!(manifest_icon_file(&manifest).unwrap(), "icon.svg");
     }
 
     #[test]
-    fn manifest_icon_file_defaults_to_icon_png() {
+    fn manifest_icon_file_defaults_to_none() {
         let manifest = sample_manifest_with(Some("entry.html".to_string()), None);
-        assert_eq!(manifest_icon_file(&manifest), "icon.png");
+        assert_eq!(manifest_icon_file(&manifest), None);
     }
 }

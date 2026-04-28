@@ -1,4 +1,3 @@
-pub mod flags;
 pub mod install;
 pub mod limits;
 pub mod manifest;

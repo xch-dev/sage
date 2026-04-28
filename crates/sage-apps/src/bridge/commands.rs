@@ -7,7 +7,7 @@ use crate::bridge::{
     response_channel_for_runtime_kind,
 };
 use crate::host::AppState;
-use crate::permissions::{user_capability_definition_view, user_registry};
+use crate::permissions::{user_registry};
 use crate::runtime::state::types::SageAppRuntimeKind;
 use crate::runtime::{assert_bridge_origin, resolve_app};
 use crate::types::SageAppCapabilityDefinitionView;
@@ -80,6 +80,6 @@ pub fn get_user_capability_definitions()
     Ok(user_registry()
         .values()
         .copied()
-        .map(user_capability_definition_view)
+        .map(Into::into)
         .collect())
 }

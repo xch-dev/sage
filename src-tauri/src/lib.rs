@@ -162,7 +162,6 @@ pub fn run() {
             apps::lifecycle::update::commands::download_app_update,
             apps::lifecycle::update::commands::apply_app_update,
             apps::lifecycle::update::commands::apps_update_permissions,
-            apps::lifecycle::apps_mark_storage_may_contain_secrets,
             apps::lifecycle::apps_clear_runtime_browsing_data,
             apps::sandbox::get_builtin_test_app,
             apps::system_apps::get_builtin_system_app,

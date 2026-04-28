@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result as AnyResult, anyhow};
+use anyhow::{anyhow, Context, Result as AnyResult};
 use zip::ZipArchive;
 
 use crate::utils::bytes_sha256_hex;
@@ -22,11 +22,13 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
     if out_dir.exists() {
         fs::remove_dir_all(out_dir)?;
     }
+
     fs::create_dir_all(out_dir)?;
 
     archive
         .extract(out_dir)
         .context("failed to extract zip archive")?;
+
     Ok(())
 }
 
@@ -37,12 +39,12 @@ pub fn detect_package_root(unpack_dir: &Path) -> AnyResult<PathBuf> {
     }
 
     let mut dirs = fs::read_dir(unpack_dir)?
-        .filter_map(std::result::Result::ok)
+        .filter_map(Result::ok)
         .filter_map(|entry| {
             entry
                 .file_type()
                 .ok()
-                .filter(std::fs::FileType::is_dir)
+                .filter(fs::FileType::is_dir)
                 .map(|_| entry.path())
         })
         .collect::<Vec<_>>();
@@ -62,23 +64,35 @@ pub fn validate_package_structure(package_root: &Path) -> AnyResult<()> {
     let manifest = read_manifest(package_root)?;
 
     for file in manifest.files() {
-        let path = package_root.join(&file.path);
-        if !path.is_file() {
-            anyhow::bail!("manifest file missing from package: {}", file.path);
-        }
+        validate_package_file(package_root, file.path(), file.sha256(), file.size())?;
+    }
 
-        let bytes = fs::read(&path)
-            .with_context(|| format!("failed to read package file {}", path.display()))?;
+    Ok(())
+}
 
-        let actual_hash = bytes_sha256_hex(&bytes);
-        if actual_hash != file.sha256 {
-            anyhow::bail!("sha256 mismatch for {}", file.path);
-        }
+fn validate_package_file(
+    package_root: &Path,
+    relative_path: &str,
+    expected_sha256: &str,
+    expected_size: u64,
+) -> AnyResult<()> {
+    let path = package_root.join(relative_path);
 
-        let actual_size = u64::try_from(bytes.len()).context("file too large")?;
-        if actual_size != file.size {
-            anyhow::bail!("size mismatch for {}", file.path);
-        }
+    if !path.is_file() {
+        anyhow::bail!("manifest file missing from package: {relative_path}");
+    }
+
+    let bytes = fs::read(&path)
+        .with_context(|| format!("failed to read package file {}", path.display()))?;
+
+    let actual_hash = bytes_sha256_hex(&bytes);
+    if actual_hash != expected_sha256 {
+        anyhow::bail!("sha256 mismatch for {relative_path}");
+    }
+
+    let actual_size = u64::try_from(bytes.len()).context("file too large")?;
+    if actual_size != expected_size {
+        anyhow::bail!("size mismatch for {relative_path}");
     }
 
     Ok(())
@@ -156,13 +170,11 @@ pub fn prepare_zip_snapshot(
         )
     })?;
 
-    let total_bytes = compute_dir_size(&snapshot_dir)?;
     let manifest_hash = bytes_sha256_hex(&serde_json::to_vec(manifest)?);
 
-    Ok(SageAppSnapshot {
+    SageAppSnapshot::new(
         manifest_hash,
-        snapshot_dir: snapshot_dir.to_string_lossy().to_string(),
-        total_bytes,
-        manifest: manifest.clone(),
-    })
+        snapshot_dir.to_string_lossy().to_string(),
+        manifest.clone(),
+    )
 }

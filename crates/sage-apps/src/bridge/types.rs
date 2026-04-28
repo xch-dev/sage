@@ -57,7 +57,7 @@ pub enum RustBridgeResponse {
     Error(RustBridgeErrorResponse),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeApprovalRequest {
     pub app: SageApp,
@@ -86,7 +86,7 @@ pub enum RustBridgeApprovalBody {
     },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
+#[derive(Debug, Clone, Serialize, Type, Event)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeApprovalEvent {
     pub approval_id: String,

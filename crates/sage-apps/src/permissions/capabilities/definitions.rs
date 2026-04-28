@@ -2,239 +2,173 @@ use std::collections::BTreeMap;
 
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
 use crate::permissions::capabilities::types::{
-    CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition,
+    CapabilityDefinition, CapabilityFlags, SystemCapabilityDefinition, UserCapabilityDefinition,
 };
-use crate::types::{SageAppCapabilityDefinitionView, SageAppCapabilityFlagsView};
 
 pub(crate) fn get_user_capability_definition(
     capability: UserBridgeCapability,
 ) -> UserCapabilityDefinition {
     match capability {
-        UserBridgeCapability::PersistentStorage => UserCapabilityDefinition {
+        UserBridgeCapability::PersistentStorage => CapabilityDefinition::new(
             capability,
-            label: "Persistent storage",
-            description: "Allows the app to store data on this device between sessions.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: true,
-                shared_with_app: true,
-            },
-        },
+            "Persistent storage",
+            "Allows the app to store data on this device between sessions.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::BridgeSend => UserCapabilityDefinition {
+        UserBridgeCapability::BridgeSend => CapabilityDefinition::new(
             capability,
-            label: "Bridge messaging",
-            description: "Allows the app to send messages through the Sage bridge. (Only for sandbox tests)",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Bridge messaging",
+            "Allows the app to send messages through the Sage bridge. (Only for sandbox tests)",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppGetCapabilities => UserCapabilityDefinition {
+        UserBridgeCapability::AppGetCapabilities => CapabilityDefinition::new(
             capability,
-            label: "Read granted capabilities",
-            description: "Allows the app to read the capabilities currently visible to it.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Read granted capabilities",
+            "Allows the app to read the capabilities currently visible to it.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppGetInfo => UserCapabilityDefinition {
+        UserBridgeCapability::AppGetInfo => CapabilityDefinition::new(
             capability,
-            label: "Read app information",
-            description: "Allows the app to read its Sage app identity and permission information.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Read app information",
+            "Allows the app to read its Sage app identity and permission information.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppLifecycleReadyToStop => UserCapabilityDefinition {
+        UserBridgeCapability::AppLifecycleReadyToStop => CapabilityDefinition::new(
             capability,
-            label: "Acknowledge app shutdown",
-            description: "Allows the app to acknowledge that it is ready to stop after a lifecycle request.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Acknowledge app shutdown",
+            "Allows the app to acknowledge that it is ready to stop after a lifecycle request.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppLifecycleSetBeforeStopListener => UserCapabilityDefinition {
+        UserBridgeCapability::AppLifecycleSetBeforeStopListener => CapabilityDefinition::new(
             capability,
-            label: "Listen before app shutdown",
-            description: "Allows the app to register a before-stop lifecycle listener.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Listen before app shutdown",
+            "Allows the app to register a before-stop lifecycle listener.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppRequestCapabilityGrant => UserCapabilityDefinition {
+        UserBridgeCapability::AppRequestCapabilityGrant => CapabilityDefinition::new(
             capability,
-            label: "Request additional capability",
-            description: "Allows the app to request a capability grant after installation.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Request additional capability",
+            "Allows the app to request a capability grant after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::AppRequestNetworkWhitelistGrant => UserCapabilityDefinition {
+        UserBridgeCapability::AppRequestNetworkWhitelistGrant => CapabilityDefinition::new(
             capability,
-            label: "Request network access",
-            description: "Allows the app to request access to an additional network target after installation.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Request network access",
+            "Allows the app to request access to an additional network target after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        UserBridgeCapability::WalletGetKeys => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetKeys => CapabilityDefinition::new(
             capability,
-            label: "List wallet keys",
-            description: "Allows the app to list wallet keys configured in Sage.",
-            flags: read_wallet_flags(),
-        },
+            "List wallet keys",
+            "Allows the app to list wallet keys configured in Sage.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetKey => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
             capability,
-            label: "Read wallet key",
-            description: "Allows the app to read public information about a wallet key.",
-            flags: read_wallet_flags(),
-        },
+            "Read wallet key",
+            "Allows the app to read public information about a wallet key.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetSecretKey => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetSecretKey => CapabilityDefinition::new(
             capability,
-            label: "Read wallet secret key",
-            description: "Allows the app to read wallet secrets, including the mnemonic or private key when available.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: true,
-                requestable_by_app: true,
-                user_grantable: true,
-                shared_with_app: true,
-            },
-        },
+            "Read wallet secret key",
+            "Allows the app to read wallet secrets, including the mnemonic or private key when available.",
+            CapabilityFlags::new(false, true, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletSendXch => UserCapabilityDefinition {
+        UserBridgeCapability::WalletSendXch => CapabilityDefinition::new(
             capability,
-            label: "Send XCH",
-            description: "Allows the app to request XCH transactions from your wallet.",
-            flags: CapabilityFlags {
-                externally_observable: true,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: true,
-                shared_with_app: true,
-            },
-        },
+            "Send XCH",
+            "Allows the app to request XCH transactions from your wallet.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletSendXchAutoSubmit => UserCapabilityDefinition {
+        UserBridgeCapability::WalletSendXchAutoSubmit => CapabilityDefinition::new(
             capability,
-            label: "Automatic XCH send",
-            description: "Allows the app to submit XCH transactions without asking for per-transaction approval.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: false,
-                user_grantable: false,
-                shared_with_app: false,
-            },
-        },
-        UserBridgeCapability::WalletGetSyncStatus => UserCapabilityDefinition {
-            capability,
-            label: "Read sync status",
-            description: "Allows the app to read wallet sync status and current wallet balance summary.",
-            flags: read_wallet_flags(),
-        },
+            "Automatic XCH send",
+            "Allows the app to submit XCH transactions without asking for per-transaction approval.",
+            CapabilityFlags::new(false, false, false, false, false),
+        ),
 
-        UserBridgeCapability::WalletGetVersion => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetSyncStatus => CapabilityDefinition::new(
             capability,
-            label: "Read wallet version",
-            description: "Allows the app to read the current Sage wallet version.",
-            flags: read_wallet_flags(),
-        },
+            "Read sync status",
+            "Allows the app to read wallet sync status and current wallet balance summary.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletCheckAddress => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetVersion => CapabilityDefinition::new(
             capability,
-            label: "Check address",
-            description: "Allows the app to validate whether an address belongs to this wallet.",
-            flags: read_wallet_flags(),
-        },
+            "Read wallet version",
+            "Allows the app to read the current Sage wallet version.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetDerivations => UserCapabilityDefinition {
+        UserBridgeCapability::WalletCheckAddress => CapabilityDefinition::new(
             capability,
-            label: "Read derivations",
-            description: "Allows the app to read wallet derivation records and addresses.",
-            flags: read_wallet_flags(),
-        },
+            "Check address",
+            "Allows the app to validate whether an address belongs to this wallet.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetSpendableCoinCount => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetDerivations => CapabilityDefinition::new(
             capability,
-            label: "Read spendable coin count",
-            description: "Allows the app to read the number of spendable coins in the wallet.",
-            flags: read_wallet_flags(),
-        },
+            "Read derivations",
+            "Allows the app to read wallet derivation records and addresses.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetCoinsByIds => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetSpendableCoinCount => CapabilityDefinition::new(
             capability,
-            label: "Read coins by IDs",
-            description: "Allows the app to read specific wallet coin records by coin ID.",
-            flags: read_wallet_flags(),
-        },
+            "Read spendable coin count",
+            "Allows the app to read the number of spendable coins in the wallet.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetCoins => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetCoinsByIds => CapabilityDefinition::new(
             capability,
-            label: "Read coins",
-            description: "Allows the app to list wallet coins.",
-            flags: read_wallet_flags(),
-        },
+            "Read coins by IDs",
+            "Allows the app to read specific wallet coin records by coin ID.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetPendingTransactions => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetCoins => CapabilityDefinition::new(
             capability,
-            label: "Read pending transactions",
-            description: "Allows the app to read pending wallet transactions.",
-            flags: read_wallet_flags(),
-        },
+            "Read coins",
+            "Allows the app to list wallet coins.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetTransaction => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetPendingTransactions => CapabilityDefinition::new(
             capability,
-            label: "Read transaction",
-            description: "Allows the app to read a wallet transaction by height.",
-            flags: read_wallet_flags(),
-        },
+            "Read pending transactions",
+            "Allows the app to read pending wallet transactions.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
 
-        UserBridgeCapability::WalletGetTransactions => UserCapabilityDefinition {
+        UserBridgeCapability::WalletGetTransaction => CapabilityDefinition::new(
             capability,
-            label: "Read transactions",
-            description: "Allows the app to list wallet transactions.",
-            flags: read_wallet_flags(),
-        },
+            "Read transaction",
+            "Allows the app to read a wallet transaction by height.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+
+        UserBridgeCapability::WalletGetTransactions => CapabilityDefinition::new(
+            capability,
+            "Read transactions",
+            "Allows the app to list wallet transactions.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
     }
 }
 
@@ -242,86 +176,40 @@ pub(crate) fn get_system_capability_definition(
     capability: SystemBridgeCapability,
 ) -> SystemCapabilityDefinition {
     match capability {
-        SystemBridgeCapability::RuntimeManagerListRuntimes => SystemCapabilityDefinition {
+        SystemBridgeCapability::RuntimeManagerListRuntimes => CapabilityDefinition::new(
             capability,
-            label: "List app runtimes",
-            description: "Allows the system app to inspect running Sage app runtimes.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "List app runtimes",
+            "Allows the system app to inspect running Sage app runtimes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        SystemBridgeCapability::RuntimeManagerFocusRuntime => SystemCapabilityDefinition {
+        SystemBridgeCapability::RuntimeManagerFocusRuntime => CapabilityDefinition::new(
             capability,
-            label: "Focus app runtimes",
-            description: "Allows the system app to focus running Sage app runtimes.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Focus app runtimes",
+            "Allows the system app to focus running Sage app runtimes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        SystemBridgeCapability::RuntimeManagerHideRuntime => SystemCapabilityDefinition {
+        SystemBridgeCapability::RuntimeManagerHideRuntime => CapabilityDefinition::new(
             capability,
-            label: "Hide app runtimes",
-            description: "Allows the system app to hide running Sage app runtimes.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Hide app runtimes",
+            "Allows the system app to hide running Sage app runtimes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        SystemBridgeCapability::RuntimeManagerKillRuntime => SystemCapabilityDefinition {
+        SystemBridgeCapability::RuntimeManagerKillRuntime => CapabilityDefinition::new(
             capability,
-            label: "Kill app runtimes",
-            description: "Allows the system app to stop running Sage app runtimes.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
+            "Kill app runtimes",
+            "Allows the system app to stop running Sage app runtimes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
 
-        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => SystemCapabilityDefinition {
+        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => CapabilityDefinition::new(
             capability,
-            label: "Observe runtime changes",
-            description: "Allows the system app to receive events when Sage app runtimes change.",
-            flags: CapabilityFlags {
-                externally_observable: false,
-                accesses_sensitive_secret: false,
-                requestable_by_app: true,
-                user_grantable: false,
-                shared_with_app: true,
-            },
-        },
-    }
-}
-
-pub(crate) fn user_capability_definition_view(
-    definition: UserCapabilityDefinition,
-) -> SageAppCapabilityDefinitionView {
-    SageAppCapabilityDefinitionView {
-        key: definition.capability.key().to_string(),
-        label: definition.label.to_string(),
-        description: definition.description.to_string(),
-        flags: SageAppCapabilityFlagsView {
-            externally_observable: definition.flags.externally_observable,
-            accesses_sensitive_secret: definition.flags.accesses_sensitive_secret,
-            requestable_by_app: definition.flags.requestable_by_app,
-            user_grantable: definition.flags.user_grantable,
-        },
+            "Observe runtime changes",
+            "Allows the system app to receive events when Sage app runtimes change.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
     }
 }
 
@@ -329,19 +217,6 @@ pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDe
     UserBridgeCapability::ALL
         .iter()
         .copied()
-        .map(|capability| {
-            let definition = get_user_capability_definition(capability);
-            (capability, definition)
-        })
+        .map(|capability| (capability, get_user_capability_definition(capability)))
         .collect()
-}
-
-fn read_wallet_flags() -> CapabilityFlags {
-    CapabilityFlags {
-        externally_observable: false,
-        accesses_sensitive_secret: false,
-        requestable_by_app: true,
-        user_grantable: true,
-        shared_with_app: true,
-    }
 }

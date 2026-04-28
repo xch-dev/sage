@@ -39,8 +39,8 @@ impl PendingStorageCleanupEntry {
 
         Self {
             id: Uuid::new_v4().to_string(),
-            app_id: app.common.id.clone(),
-            app_name: app.common.name.clone(),
+            app_id: app.common().id().to_string(),
+            app_name: app.common().name().to_string(),
             target,
             created_at_ms: now,
             last_attempt_at_ms: Some(now),

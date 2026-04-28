@@ -66,8 +66,8 @@ impl BridgeMethod for AppGetInfo {
                 required: ctx
                     .app
                     .requested_permissions()
-                    .network
-                    .whitelist
+                    .network()
+                    .whitelist()
                     .is_required(entry),
             })
             .collect::<Vec<_>>();

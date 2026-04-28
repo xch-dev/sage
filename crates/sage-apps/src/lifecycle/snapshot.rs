@@ -1,4 +1,3 @@
-use crate::lifecycle::compute_dir_size;
 use crate::types::{SageAppPackageManifest, SageAppSnapshot};
 use crate::utils::bytes_sha256_hex;
 use anyhow::{Context, Result as AnyResult, anyhow};
@@ -95,29 +94,26 @@ pub async fn download_url_snapshot(
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
     for file in manifest.files() {
-        let url = join_app_url(app_url, &file.path)?;
+        let url = join_app_url(app_url, &file.path())?;
         let bytes = download_bytes(&url).await?;
 
         let actual_hash = bytes_sha256_hex(&bytes);
-        if actual_hash != file.sha256 {
+        if actual_hash != file.sha256() {
             return Err(anyhow!(
                 "hash mismatch for {}: expected {}, got {}",
-                file.path,
-                file.sha256,
+                file.path(),
+                file.sha256(),
                 actual_hash
             ));
         }
 
-        let output_path = snapshot_dir.join(PathBuf::from(&file.path));
+        let output_path = snapshot_dir.join(PathBuf::from(&file.path()));
         write_file(&output_path, &bytes)?;
     }
 
-    let total_bytes = compute_dir_size(&snapshot_dir)?;
-
-    Ok(SageAppSnapshot {
-        manifest_hash: manifest_hash.to_string(),
-        snapshot_dir: snapshot_dir.to_string_lossy().to_string(),
-        total_bytes,
-        manifest: manifest.clone(),
-    })
+    Ok(SageAppSnapshot::new(
+        manifest_hash.to_string(),
+        snapshot_dir.to_string_lossy().to_string(),
+        manifest.clone(),
+    )?)
 }

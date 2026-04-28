@@ -1,16 +1,22 @@
 use std::collections::BTreeSet;
+
 use anyhow::anyhow;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
-use crate::lifecycle::{validate_manifest_file_path, validate_sha256_hex, MAX_APP_FILE_COUNT, MAX_APP_TOTAL_SIZE_BYTES};
+
+use crate::lifecycle::{
+    validate_manifest_file_path, validate_sha256_hex, MAX_APP_FILE_COUNT,
+    MAX_APP_TOTAL_SIZE_BYTES,
+};
 use crate::types::app::{SageAppAuthor, SageAppDonation};
+use crate::types::normalizers::{normalized_non_empty_string, normalized_optional_string};
 use crate::types::permissions::SageRequestedPermissions;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub struct SageAppManifestFile {
-    pub path: String,
-    pub sha256: String,
-    pub size: u64,
+    path: String,
+    sha256: String,
+    size: u64,
 }
 
 #[derive(Debug)]
@@ -31,6 +37,7 @@ pub struct SageAppPackageManifest {
     version: String,
     permissions: SageRequestedPermissions,
     files: Vec<SageAppManifestFile>,
+    total_bytes: u64,
     entry: Option<String>,
     icon: Option<String>,
     author: Option<SageAppAuthor>,
@@ -71,9 +78,7 @@ impl<'de> Deserialize<'de> for SageAppPackageManifest {
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: raw.name,
             version: raw.version,
-            permissions: raw
-                .permissions
-                .unwrap_or_else(SageRequestedPermissions::empty),
+            permissions: raw.permissions.unwrap_or_else(SageRequestedPermissions::empty),
             files: raw.files,
             entry: raw.entry,
             icon: raw.icon,
@@ -88,35 +93,37 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
     type Error = anyhow::Error;
 
     fn try_from(value: SageAppPackageManifestParts) -> anyhow::Result<Self> {
-        if value.name.trim().is_empty() {
-            anyhow::bail!("manifest name cannot be empty");
-        }
+        let name = normalized_non_empty_string(value.name, "manifest name")?;
+        let version = normalized_non_empty_string(value.version, "manifest version")?;
 
-        if value.version.trim().is_empty() {
-            anyhow::bail!("manifest version cannot be empty");
-        }
+        let entry = normalize_optional_manifest_path(value.entry, "manifest entry")?;
+        let icon = normalize_optional_manifest_path(value.icon, "manifest icon")?;
 
-        if let Some(author) = &value.author
-            && author.name.trim().is_empty()
-        {
-            anyhow::bail!("author name cannot be empty");
-        }
+        let author = value
+            .author
+            .map(|author| SageAppAuthor::new(author.name(), author.avatar()))
+            .transpose()?;
 
-        if let Some(donation) = &value.donation {
-            Self::validate_donation(&donation.address)?;
-        }
+        let donation = value
+            .donation
+            .map(|donation| SageAppDonation::new(donation.address()))
+            .transpose()?;
 
-        Self::validate_files(&value.files)?;
+        let total_bytes = Self::validate_files(&value.files)?;
+
+        Self::validate_declared_asset_exists(entry.as_deref(), &value.files, "entry")?;
+        Self::validate_declared_asset_exists(icon.as_deref(), &value.files, "icon")?;
 
         Ok(Self {
-            name: value.name,
-            version: value.version,
+            name,
+            version,
             permissions: value.permissions,
             files: value.files,
-            entry: value.entry,
-            icon: value.icon,
-            author: value.author,
-            donation: value.donation,
+            total_bytes,
+            entry,
+            icon,
+            author,
+            donation,
         })
     }
 }
@@ -138,6 +145,10 @@ impl SageAppPackageManifest {
         &self.files
     }
 
+    pub fn total_bytes(&self) -> u64 {
+        self.total_bytes
+    }
+
     pub fn entry(&self) -> Option<&str> {
         self.entry.as_deref()
     }
@@ -154,23 +165,23 @@ impl SageAppPackageManifest {
         self.donation.as_ref()
     }
 
-    pub fn total_bytes(&self) -> anyhow::Result<u64> {
-        Self::compute_total_bytes(&self.files)
-    }
+    fn validate_declared_asset_exists(
+        path: Option<&str>,
+        files: &[SageAppManifestFile],
+        label: &str,
+    ) -> anyhow::Result<()> {
+        let Some(path) = path else {
+            return Ok(());
+        };
 
-    fn validate_donation(address: &str) -> anyhow::Result<()> {
-        if address.trim().is_empty() {
-            return Err(anyhow!("donation address cannot be empty"));
-        }
-
-        if !address.starts_with("xch") && !address.starts_with("txch") {
-            return Err(anyhow!("invalid donation address format"));
+        if !files.iter().any(|file| file.path == path) {
+            anyhow::bail!("manifest {label} file is not listed in files: {path}");
         }
 
         Ok(())
     }
 
-    fn validate_files(files: &[SageAppManifestFile]) -> anyhow::Result<()> {
+    fn validate_files(files: &[SageAppManifestFile]) -> anyhow::Result<u64> {
         if files.is_empty() {
             anyhow::bail!("manifest files cannot be empty");
         }
@@ -187,8 +198,8 @@ impl SageAppPackageManifest {
         let mut total: u64 = 0;
 
         for file in files {
-            validate_manifest_file_path(&file.path)?;
-            validate_sha256_hex(&file.sha256)?;
+            validate_manifest_file_path(file.path())?;
+            validate_sha256_hex(file.sha256())?;
 
             if !seen.insert(file.path.clone()) {
                 anyhow::bail!("duplicate manifest file path: {}", file.path);
@@ -203,18 +214,48 @@ impl SageAppPackageManifest {
             anyhow::bail!("manifest total size {total} exceeds limit {MAX_APP_TOTAL_SIZE_BYTES}");
         }
 
-        Ok(())
-    }
-
-    fn compute_total_bytes(files: &[SageAppManifestFile]) -> anyhow::Result<u64> {
-        let mut total: u64 = 0;
-
-        for file in files {
-            total = total
-                .checked_add(file.size)
-                .ok_or_else(|| anyhow!("manifest total size overflow"))?;
-        }
-
         Ok(total)
     }
+}
+
+impl SageAppManifestFile {
+    pub fn new(
+        path: impl Into<String>,
+        sha256: impl Into<String>,
+        size: u64,
+    ) -> anyhow::Result<Self> {
+        let path = normalized_non_empty_string(path, "manifest file path")?;
+        validate_manifest_file_path(&path)?;
+
+        let sha256 = normalized_non_empty_string(sha256, "manifest file sha256")?;
+        validate_sha256_hex(&sha256)?;
+
+        Ok(Self { path, sha256, size })
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+
+    pub fn sha256(&self) -> &str {
+        &self.sha256
+    }
+
+    pub fn size(&self) -> u64 {
+        self.size
+    }
+}
+
+fn normalize_optional_manifest_path(
+    path: Option<String>,
+    label: &str,
+) -> anyhow::Result<Option<String>> {
+    let path = normalized_optional_string(path);
+
+    if let Some(path) = &path {
+        validate_manifest_file_path(path)
+            .map_err(|err| anyhow!("{label} is invalid: {err}"))?;
+    }
+
+    Ok(path)
 }

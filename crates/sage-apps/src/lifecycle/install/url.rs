@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::AppInstallSource;
 use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::lifecycle::{
-    derive_manifest_url, download_url_snapshot, fetch_url_manifest, read_retired_app_origins,
+    download_url_snapshot, read_retired_app_origins,
     write_retired_app_origins,
 };
 use crate::types::{
@@ -32,18 +32,18 @@ impl AppInstallSource for UrlInstallSource {
 
     async fn prepare(&self) -> AnyResult<Self::Prepared> {
         Ok(PreparedUrlInstall {
-            preview: preview_app_url_internal(self.app_url.clone()).await?,
+            preview: SageAppUrlPreview::new(self.app_url.clone()).await?,
         })
     }
 
     fn manifest<'a>(&self, prepared: &'a Self::Prepared) -> &'a SageAppPackageManifest {
-        &prepared.preview.manifest
+        prepared.preview.manifest()
     }
 
     fn source(&self, prepared: &Self::Prepared) -> UserSageAppSource {
         UserSageAppSource::Url {
-            app_url: prepared.preview.app_url.clone(),
-            manifest_url: prepared.preview.manifest_url.clone(),
+            app_url: prepared.preview.app_url().to_string(),
+            manifest_url: prepared.preview.manifest_url().to_string(),
         }
     }
 
@@ -53,7 +53,7 @@ impl AppInstallSource for UrlInstallSource {
         _base_path: &Path,
         prepared: &Self::Prepared,
     ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-        resolve_url_install_target(root, &prepared.preview.manifest_url)
+        resolve_url_install_target(root, prepared.preview.manifest_url())
     }
 
     async fn create_snapshot(
@@ -63,9 +63,9 @@ impl AppInstallSource for UrlInstallSource {
     ) -> AnyResult<SageAppSnapshot> {
         download_url_snapshot(
             app_dir,
-            &prepared.preview.app_url,
-            &prepared.preview.manifest,
-            &prepared.preview.manifest_hash,
+            prepared.preview.app_url(),
+            prepared.preview.manifest(),
+            prepared.preview.manifest_hash(),
         )
         .await
     }
@@ -77,7 +77,7 @@ impl AppInstallSource for UrlInstallSource {
         existing: Option<&UserSageApp>,
     ) -> AnyResult<String> {
         if let Some(existing) = existing {
-            return Ok(existing.common.origin_id.clone());
+            return Ok(existing.common().origin_id().to_string());
         }
 
         if should_rotate_url_origin_on_install(base_path, app_id)? {
@@ -95,20 +95,6 @@ impl AppInstallSource for UrlInstallSource {
     ) -> AnyResult<()> {
         clear_pending_cleanup_for_reused_url_origin(base_path, app_id, origin_id)
     }
-}
-
-pub async fn preview_app_url_internal(app_url: String) -> AnyResult<SageAppUrlPreview> {
-    let app_url = normalize_app_url(&app_url)?;
-
-    let manifest_url = derive_manifest_url(&app_url)?;
-    let (manifest, manifest_hash) = fetch_url_manifest(&manifest_url).await?;
-
-    Ok(SageAppUrlPreview {
-        app_url,
-        manifest_url,
-        manifest_hash,
-        manifest,
-    })
 }
 
 pub fn normalize_app_url(url: &str) -> AnyResult<String> {
@@ -232,14 +218,19 @@ mod tests {
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
     };
     use tempfile::{TempDir, tempdir};
+    use crate::runtime::state::types::SageAppRuntimeRecord;
 
     fn fake_retired_app_origins(
         dir: &TempDir,
         storage_may_contain_secrets: bool,
         cleanup_pending: bool,
     ) {
-        let mut app = sample_app_in(dir.path(), "url-abc123", "url-abc123");
-        app.common.capability_flags.storage_may_contain_secrets = storage_may_contain_secrets;
+        let app = sample_app_in(
+            dir.path(),
+            "url-abc123",
+            "url-abc123",
+            storage_may_contain_secrets,
+        );
 
         write_retired_app_origins(
             dir.path(),
@@ -254,69 +245,85 @@ mod tests {
                 [],
                 [SageNetworkWhitelistEntry::new("https", "api.example.com").unwrap()],
             ),
-            SageRequestedCapabilities::new([], [UserBridgeCapability::PersistentStorage]),
+            SageRequestedCapabilities::new([], [
+                UserBridgeCapability::PersistentStorage,
+                UserBridgeCapability::WalletGetSecretKey,
+            ]),
         )
-        .unwrap();
+            .unwrap();
 
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
             name: "Test App".into(),
             version: "1.0.0".into(),
             permissions,
-            files: vec![SageAppManifestFile {
-                path: "index.html".into(),
-                sha256: "a".repeat(64),
-                size: 123,
-            }],
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 123).unwrap()],
             entry: Some("index.html".into()),
-            icon: Some("icon.png".into()),
+            icon: None,
             author: None,
             donation: None,
         })
-        .unwrap()
+            .unwrap()
     }
 
-    fn sample_app_in(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
+    fn sample_app_in(
+        base: &Path,
+        app_id: &str,
+        origin_id: &str,
+        storage_may_contain_secrets: bool,
+    ) -> UserSageApp {
         let app_dir = crate::lifecycle::registry::app_dir(base, app_id);
         std::fs::create_dir_all(&app_dir).unwrap();
+        std::fs::write(app_dir.join("index.html"), "x").unwrap();
 
         let manifest = sample_manifest();
 
-        let granted_permissions = SageGrantedPermissions::new(
-            manifest.permissions(),
-            [UserBridgeCapability::PersistentStorage],
-            [SageNetworkWhitelistEntry::new_unchecked(
-                "https",
-                "api.example.com",
-            )],
-        )
-            .unwrap();
-
-        let snapshot = SageAppSnapshot {
-            manifest_hash: "hash".into(),
-            snapshot_dir: app_dir.to_string_lossy().to_string(),
-            total_bytes: 123,
-            manifest: manifest.clone(),
+        let granted_capabilities = if storage_may_contain_secrets {
+            vec![
+                UserBridgeCapability::PersistentStorage,
+                UserBridgeCapability::WalletGetSecretKey,
+            ]
+        } else {
+            vec![UserBridgeCapability::PersistentStorage]
         };
 
+        let granted_permissions =
+            SageGrantedPermissions::new(manifest.permissions(), granted_capabilities, []).unwrap();
+
+        let snapshot =
+            SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
+
         let common = SageAppCommon::new(
-            app_id.into(),
-            origin_id.into(),
+            app_id,
+            origin_id,
             app_dir.to_string_lossy().to_string(),
-            &manifest,
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
             .unwrap();
 
-        UserSageApp {
+        let user_app = UserSageApp::new_installed(
             common,
-            source: UserSageAppSource::Url {
+            UserSageAppSource::Url {
                 app_url: "https://example.com/app/".into(),
                 manifest_url: "https://example.com/app/sage-manifest.json".into(),
             },
-            pending_update: None,
+        );
+
+        if !storage_may_contain_secrets {
+            return user_app;
         }
+
+        let mut app = user_app.into_sage_app();
+
+        let _runtime = SageAppRuntimeRecord::new_inline(
+            &mut app,
+            "sage-app://test/index.html",
+            true,
+            false,
+        );
+
+        app.into_user().expect("sample app should remain a user app")
     }
 
     #[test]
@@ -415,7 +422,7 @@ mod tests {
     #[test]
     fn url_origin_id_reuses_existing_origin() {
         let dir = tempdir().unwrap();
-        let existing = sample_app_in(dir.path(), "url-abc123", "existing-origin");
+        let existing = sample_app_in(dir.path(), "url-abc123", "existing-origin", false);
 
         let source = UrlInstallSource {
             app_url: "https://example.com/app/".into(),

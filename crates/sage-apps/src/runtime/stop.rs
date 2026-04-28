@@ -67,7 +67,7 @@ pub async fn close_runtime_internal_with_reason(
 
     let _ = wait_for_before_stop_ack(app, apps_state, &runtime, reason).await;
 
-    if let Some(webview) = find_webview_in_sage_window(app, &runtime.webview_label) {
+    if let Some(webview) = find_webview_in_sage_window(app, &runtime.webview_label()) {
         let _ = webview.close();
     }
 
@@ -91,13 +91,13 @@ async fn wait_for_before_stop_ack(
             .before_stop_listeners_by_app_id
             .lock()
             .await;
-        listeners.contains(&runtime.app_id)
+        listeners.contains(runtime.app_id())
     };
 
     if !has_listener {
         return Ok(());
     }
-    let Some(app_webview) = find_webview_in_sage_window(app, &runtime.webview_label) else {
+    let Some(app_webview) = find_webview_in_sage_window(app, &runtime.webview_label()) else {
         return Ok(());
     };
 
@@ -109,8 +109,8 @@ async fn wait_for_before_stop_ack(
     let detail = SageLifecycleBeforeStopDetail {
         request_id: request_id.clone(),
         reason: Some(reason.to_string()),
-        app_id: Some(runtime.app_id.clone()),
-        runtime_id: Some(runtime.runtime_id.clone()),
+        app_id: Some(runtime.app_id().to_string()),
+        runtime_id: Some(runtime.runtime_id().to_string()),
     };
 
     let _ = app_webview.emit("sage-lifecycle:before-stop", detail);

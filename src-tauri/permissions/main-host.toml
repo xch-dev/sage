@@ -139,7 +139,6 @@ commands.allow = [
     "download_app_update",
     "apply_app_update",
     "apps_update_permissions",
-    "apps_mark_storage_may_contain_secrets",
     "apps_list_runtimes",
     "apps_focus_runtime",
     "apps_hide_runtime",
