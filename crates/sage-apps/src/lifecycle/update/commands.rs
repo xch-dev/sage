@@ -89,7 +89,7 @@ pub async fn download_app_update(
 
     app.set_pending_update(Some(pending));
 
-    write_installed_app_metadata(&app, &app.app_path())
+    write_installed_app_metadata(&app)
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
 
     Ok(app)
@@ -134,7 +134,7 @@ pub async fn apply_app_update(
 
     app.set_pending_update(None);
 
-    write_installed_app_metadata(&app, &app.app_path())
+    write_installed_app_metadata(&app)
         .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
 
     Ok(app)

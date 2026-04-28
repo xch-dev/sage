@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 
 use serde::Deserialize;
 use specta::Type;
@@ -139,9 +138,7 @@ fn persist_runtime_side_effects(app: &SageApp) -> Result<(), String> {
         return Ok(());
     };
 
-    let app_dir = PathBuf::from(user_app.common().app_dir());
-
-    write_installed_app_metadata(user_app, &app_dir)
+    write_installed_app_metadata(user_app)
         .map_err(|err| format!("failed to persist app runtime side effects: {err}"))
 }
 

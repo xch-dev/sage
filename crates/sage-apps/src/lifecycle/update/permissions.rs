@@ -20,7 +20,7 @@ pub fn update_app_permissions(
 
     app.common_mut().update_permissions(granted_permissions)?;
 
-    write_installed_app_metadata(&app, &app.app_path())?;
+    write_installed_app_metadata(&app)?;
 
     let change =
         GrantedPermissionsChange::diff(&previous_permissions, app.common().granted_permissions());
@@ -222,8 +222,7 @@ mod tests {
     fn update_app_permissions_persists_required_network_entries() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let granted =
             SageGrantedPermissions::new(app.common().requested_permissions(), [], []).unwrap();
@@ -262,8 +261,7 @@ mod tests {
     fn update_app_permissions_rejects_unrequested_capability() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let err = SageGrantedPermissions::new(
             app.common().requested_permissions(),
@@ -281,8 +279,7 @@ mod tests {
     fn grant_requested_capability_grants_optional_capability() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let outcome = grant_requested_capability_internal(
             dir.path(),
@@ -332,8 +329,7 @@ mod tests {
             .update_permissions(&granted_permissions)
             .unwrap();
 
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let outcome = grant_requested_capability_internal(
             dir.path(),
@@ -363,8 +359,7 @@ mod tests {
     fn grant_requested_capability_rejects_unrequested_capability() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let err = grant_requested_capability_internal(
             dir.path(),
@@ -383,8 +378,7 @@ mod tests {
     fn grant_requested_network_whitelist_entry_grants_optional_entry() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let outcome = grant_requested_network_whitelist_entry_internal(
             dir.path(),
@@ -453,8 +447,7 @@ mod tests {
             .update_permissions(&granted_permissions)
             .unwrap();
 
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let outcome = grant_requested_network_whitelist_entry_internal(
             dir.path(),
@@ -487,8 +480,7 @@ mod tests {
     fn grant_requested_network_whitelist_entry_rejects_unrequested_entry() {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), "app-1");
-        let app_path = app_dir(dir.path(), app.common().id());
-        write_installed_app_metadata(&app, &app_path).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let err = grant_requested_network_whitelist_entry_internal(
             dir.path(),

@@ -150,7 +150,7 @@ where
 
     let installed = UserSageApp::new_installed(common, source.source(&prepared));
 
-    write_installed_app_metadata(&installed, &app_dir)?;
+    write_installed_app_metadata(&installed)?;
 
     Ok(installed)
 }

@@ -199,7 +199,7 @@ mod tests {
 
         let installed = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
-        write_installed_app_metadata(&installed, &app_dir).unwrap();
+        write_installed_app_metadata(&installed).unwrap();
 
         let (resolved_id, resolved_dir, existing) =
             resolve_zip_install_target(dir.path(), "Test App").unwrap();

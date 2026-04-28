@@ -59,8 +59,8 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     persisted.try_into()
 }
 
-pub fn write_installed_app_metadata(app: &UserSageApp, app_dir: &Path) -> AnyResult<()> {
-    let path = installed_metadata_path(app_dir);
+pub fn write_installed_app_metadata(app: &UserSageApp) -> AnyResult<()> {
+    let path = installed_metadata_path(&app.app_path());
     let persisted = PersistedUserSageApp::from(app);
 
     let text = serde_json::to_string_pretty(&persisted)
@@ -312,8 +312,7 @@ mod tests {
         let tmp = tempdir().unwrap();
         let app = sample_app(tmp.path(), "url-abc123", "origin-1");
 
-        let dir = app_dir(tmp.path(), app.common().id());
-        write_installed_app_metadata(&app, &dir).unwrap();
+        write_installed_app_metadata(&app).unwrap();
 
         let read_back = read_installed_app_by_id(tmp.path(), app.common().id()).unwrap();
 
@@ -437,10 +436,10 @@ mod tests {
         let base = tempdir().unwrap();
 
         let alpha = sample_app_named(base.path(), "a", "a", "Alpha");
-        write_installed_app_metadata(&alpha, Path::new(alpha.common().app_dir())).unwrap();
+        write_installed_app_metadata(&alpha).unwrap();
 
         let zeta = sample_app_named(base.path(), "z", "z", "Zeta");
-        write_installed_app_metadata(&zeta, Path::new(zeta.common().app_dir())).unwrap();
+        write_installed_app_metadata(&zeta).unwrap();
 
         let listed =
             without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
@@ -515,8 +514,8 @@ mod tests {
         let app_a = sample_app(dir.path(), "app-a", "origin-a");
         let app_b = sample_app(dir.path(), "app-b", "origin-b");
 
-        write_installed_app_metadata(&app_a, Path::new(app_a.common().app_dir())).unwrap();
-        write_installed_app_metadata(&app_b, Path::new(app_b.common().app_dir())).unwrap();
+        write_installed_app_metadata(&app_a).unwrap();
+        write_installed_app_metadata(&app_b).unwrap();
 
         let found = read_installed_user_app_by_origin_id(dir.path(), "origin-b").unwrap();
         assert_eq!(found.common().id(), "app-b");
