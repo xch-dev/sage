@@ -4,7 +4,6 @@ use tauri::{AppHandle, State, command};
 
 use crate::host::{AppState, Result};
 use crate::lifecycle::install::install_app_from_source;
-use crate::lifecycle::install::url::UrlInstallSource;
 use crate::lifecycle::install::zip::ZipInstallSource;
 use crate::lifecycle::{apps_root, list_installed_apps_internal, read_manifest, unzip_to_dir};
 use crate::types::{
@@ -114,14 +113,9 @@ pub async fn install_app_url(
     };
     let parsed_app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-    install_app_from_source(
-        &app,
-        &base_path,
-        granted_permissions,
-        UrlInstallSource {
-            app_url: parsed_app_url,
-        },
-    )
-    .await
-    .map_err(|err| io::Error::other(format!("failed to install app URL {app_url}: {err}")).into())
+    install_app_from_source(&app, &base_path, granted_permissions, parsed_app_url)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!("failed to install app URL {app_url}: {err}")).into()
+        })
 }

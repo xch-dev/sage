@@ -17,29 +17,17 @@ use crate::types::{
 use crate::utils::bytes_sha256_hex;
 
 #[derive(Debug, Clone)]
-pub struct UrlInstallSource {
-    pub app_url: SageAppUrl,
-}
-
-#[derive(Debug, Clone)]
 pub struct PreparedUrlInstall {
     pub preview: SageAppUrlPreview,
 }
 
-impl UrlInstallSource {
-    pub fn parse(app_url: &str) -> AnyResult<Self> {
-        let app_url = SageAppUrl::parse(app_url)?;
-        Ok(Self { app_url })
-    }
-}
-
 #[async_trait]
-impl AppInstallSource for UrlInstallSource {
+impl AppInstallSource for SageAppUrl {
     type Prepared = PreparedUrlInstall;
 
     async fn prepare(&self) -> AnyResult<Self::Prepared> {
         Ok(PreparedUrlInstall {
-            preview: SageAppUrlPreview::new(&self.app_url).await?,
+            preview: SageAppUrlPreview::new(self).await?,
         })
     }
 
@@ -417,7 +405,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let existing = sample_app_in(dir.path(), "url-abc123", "existing-origin", false);
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let origin = source
             .origin_id(dir.path(), "url-abc123", Some(&existing))
@@ -430,7 +418,7 @@ mod tests {
     fn url_origin_id_defaults_to_app_id_without_retired_origin() {
         let dir = tempdir().unwrap();
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -443,7 +431,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, false, false);
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -456,7 +444,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, true, false);
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
 
@@ -474,7 +462,7 @@ mod tests {
         let before = read_retired_app_origins(dir.path()).unwrap();
         assert!(before[0].cleanup_pending());
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let origin = source.origin_id(dir.path(), "url-abc123", None).unwrap();
         assert_eq!(origin, "url-abc123");
@@ -495,7 +483,7 @@ mod tests {
 
         fake_retired_app_origins(&dir, true, true);
 
-        let source = UrlInstallSource::parse("https://example.com/app/").unwrap();
+        let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
         let rotated = source.origin_id(dir.path(), "url-abc123", None).unwrap();
         assert_ne!(rotated, "url-abc123");
