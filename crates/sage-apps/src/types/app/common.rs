@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::lifecycle::{manifest_entry_file, manifest_icon_file};
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
@@ -138,8 +137,8 @@ impl SageAppCommon {
             name: manifest.name().to_string(),
             version: manifest.version().to_string(),
             app_dir: identity.app_dir,
-            entry_file: manifest_entry_file(manifest).to_string(),
-            icon_file: manifest_icon_file(manifest).map(str::to_string),
+            entry_file: manifest.entry().to_string(),
+            icon_file: manifest.icon().map(str::to_string),
             requested_permissions: manifest.permissions().clone(),
             granted_permissions,
             capability_flags,

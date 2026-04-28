@@ -10,14 +10,6 @@ use crate::{
 
 const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
-pub fn manifest_entry_file(manifest: &SageAppPackageManifest) -> &str {
-    manifest.entry().unwrap_or("index.html")
-}
-
-pub fn manifest_icon_file(manifest: &SageAppPackageManifest) -> Option<&str> {
-    manifest.icon()
-}
-
 pub fn derive_manifest_url(app_url: &str) -> AnyResult<String> {
     let base =
         reqwest::Url::parse(app_url).with_context(|| format!("invalid app url: {app_url}"))?;
@@ -374,13 +366,13 @@ mod tests {
         let manifest =
             sample_manifest_with(Some("entry.html".to_string()), Some("icon.svg".to_string()));
 
-        assert_eq!(manifest_entry_file(&manifest), "entry.html");
+        assert_eq!(manifest.entry(), "entry.html");
     }
 
     #[test]
     fn manifest_entry_file_defaults_to_index_html() {
         let manifest = sample_manifest_with(None, Some("icon.svg".to_string()));
-        assert_eq!(manifest_entry_file(&manifest), "index.html");
+        assert_eq!(manifest.entry(), "index.html");
     }
 
     #[test]
@@ -388,12 +380,12 @@ mod tests {
         let manifest =
             sample_manifest_with(Some("entry.html".to_string()), Some("icon.svg".to_string()));
 
-        assert_eq!(manifest_icon_file(&manifest).unwrap(), "icon.svg");
+        assert_eq!(manifest.icon().unwrap(), "icon.svg");
     }
 
     #[test]
     fn manifest_icon_file_defaults_to_none() {
         let manifest = sample_manifest_with(Some("entry.html".to_string()), None);
-        assert_eq!(manifest_icon_file(&manifest), None);
+        assert_eq!(manifest.icon(), None);
     }
 }

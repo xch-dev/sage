@@ -149,8 +149,8 @@ impl SageAppPackageManifest {
         self.total_bytes
     }
 
-    pub fn entry(&self) -> Option<&str> {
-        self.entry.as_deref()
+    pub fn entry(&self) -> &str {
+        self.entry.as_deref().unwrap_or("index.html")
     }
 
     pub fn icon(&self) -> Option<&str> {
