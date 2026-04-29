@@ -51,11 +51,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
     ) -> BridgeApprovalRequestResult {
         let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
 
-        if ctx
-            .app
-            .granted_permissions()
-            .has_capability(params.capability)
-        {
+        if ctx.app.is_capability_granted(params.capability) {
             return Ok(None);
         }
 

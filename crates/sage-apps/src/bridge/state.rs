@@ -1,7 +1,7 @@
 use crate::AppsHostState;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::types::PendingBridgeApproval;
-use crate::types::SageApp;
+use crate::types::{SharedSageApp};
 use std::collections::BTreeMap;
 use tauri::State;
 use tokio::sync::Mutex;
@@ -14,7 +14,7 @@ pub struct BridgeState {
 pub(crate) async fn write_pending_approval(
     apps_state: &State<'_, AppsHostState>,
     approval_id: &str,
-    sage_app: &SageApp,
+    sage_app: &SharedSageApp,
     webview_label: &str,
     request: &RustBridgeRequest,
 ) {

@@ -197,15 +197,15 @@ pub async fn clear_runtime_browsing_data_internal(
 #[command]
 #[specta::specta]
 pub async fn apps_clear_runtime_browsing_data(
-    app: AppHandle,
+    app_handle: AppHandle,
     app_id: String,
 ) -> Result<(), String> {
-    let resolved = resolve_app(&app, &app_id)?;
+    close_runtime_internal(&app_handle, &app_handle.state(), &app_id).await?;
 
-    close_runtime_internal(&app, &app.state(), &app_id).await?;
+    let app = resolve_app(&app_handle, &app_id)?;
 
-    let target = cleanup_target_from_storage(resolved.storage());
-    clear_app_storage_by_target(&app, &target).await
+    let target = cleanup_target_from_storage(&app);
+    clear_app_storage_by_target(&app_handle, &target).await
 }
 
 #[cfg(test)]
@@ -216,7 +216,7 @@ mod tests {
     use crate::lifecycle::{
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
-    use crate::runtime::SageAppRuntimeRecord;
+    use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
     use crate::types::{
         SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
         SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
@@ -287,10 +287,12 @@ mod tests {
         let mut app = UserSageApp::new_installed(common, source).into_sage_app();
 
         if storage_may_contain_secrets {
-            let _record = SageAppRuntimeRecord::new_inline(
-                &mut app,
+            let _record = SageAppRuntimeRecord::new(
+                &app,
+                "test",
                 "sage-app://test/index.html",
-                true,
+                SageAppRuntimeMode::Inline,
+                SageAppRuntimeVisibility::Visible,
                 false,
             );
         }

@@ -3,222 +3,109 @@ use std::collections::BTreeMap;
 use serde::Deserialize;
 use specta::Type;
 use tauri::webview::NewWindowResponse;
-use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewUrl};
+use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
 use crate::lifecycle::write_installed_app_metadata;
-use crate::runtime::state::{
-    SageAppRuntimeKind, SageAppRuntimeRecord, inline_label_for, runtime_id_for,
-    write_runtime_and_emit_changed, write_runtime_id_by_app_id,
-};
+use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id};
 use crate::runtime::webview_locator::{
-    find_webview_in_sage_window, get_sage_window, get_webview_in_sage_window,
+    get_sage_window, get_webview_in_sage_window,
 };
-use crate::runtime::{build_entry_src, is_allowed_app_url, resolve_app, runtime_kind_for_app};
+use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, find_runtime_by_app_id_optional, is_allowed_app_url, resolve_app, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
 use crate::storage::parse_data_store_id;
-use crate::types::{InstalledSageAppStorage, SageApp};
+use crate::types::{InstalledSageAppStorage, SageApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateInlineRuntimeArgs {
+pub struct CreateRuntimeArgs {
     pub app_id: String,
-    pub visible: bool,
-    pub internal: bool,
+    pub mode: SageAppRuntimeMode,
+    pub visibility: SageAppRuntimeVisibility,
     pub debug_layout: bool,
     pub path: Option<String>,
     pub query: BTreeMap<String, String>,
 }
 
-pub async fn create_inline_runtime(
-    app: AppHandle,
+pub async fn create_runtime(
+    app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
-    args: CreateInlineRuntimeArgs,
-) -> Result<SageAppRuntimeRecord, String> {
-    let mut resolved = resolve_app(&app, &args.app_id)?;
-    let runtime_kind = runtime_kind_for_app(&resolved);
-    let webview_label = inline_label_for(resolved.id(), runtime_kind);
-    let runtime_id = runtime_id_for(resolved.id(), runtime_kind);
-    let entry_src = build_entry_src(&resolved, args.path.clone(), args.query.clone());
-
-    if let Some(existing) = find_webview_in_sage_window(&app, &webview_label) {
-        return reuse_existing_inline_runtime(ReuseInlineRuntimeParams {
-            apps_state: &apps_state,
-            webview: &existing,
-            runtime_id,
-            app_id: resolved.id().to_string(),
-            app_name: resolved.name().to_string(),
-            entry_src,
-            webview_label,
-            runtime_kind,
-            visible: args.visible,
-            internal: args.internal,
-        })
-        .await;
+    args: CreateRuntimeArgs,
+) -> Result<SharedRuntime, String> {
+    if let Some(existing) = find_runtime_by_app_id_optional(&apps_state, &args.app_id).await {
+        return Ok(existing);
     }
 
-    if !args.internal && !resolved.common().is_sandbox_test() {
-        let baseline = apps_state.sandbox.baseline.lock().await.clone();
-        let current_run = apps_state.sandbox.current_run.lock().await.clone();
-        let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
-        let gate = sandbox::evaluate_app_launch_gate(&resolved, &effective);
+    let mut app = resolve_app(&app_handle, &args.app_id)?;
 
-        if !gate.allowed {
-            return Err(gate
-                .message
-                .unwrap_or_else(|| "App launch blocked by sandbox policy".into()));
-        }
+    let is_internal = app.with(|app| app.common().is_sandbox_test());
+    if !is_internal {
+        check_gates(&apps_state, &app).await?;
     }
 
-    let use_incognito = should_use_incognito(&resolved);
-    let origin_id_for_nav = resolved.origin_id().to_string();
-    let runtime_kind_for_nav = runtime_kind;
+    app.taint_storage_if_runtime_can_persist_secrets();
+    persist_runtime_side_effects(&app)?;
 
-    let mut builder = tauri::webview::WebviewBuilder::new(
+    let sage_window = get_sage_window(&app_handle)?;
+    let webview_label = app.webview_label();
+    let runtime = SageAppRuntimeRecord::new(
+        &app,
+        sage_window.label(),
         &webview_label,
-        WebviewUrl::CustomProtocol(
-            entry_src
-                .parse()
-                .map_err(|e| format!("invalid entry url: {e}"))?,
-        ),
+        SageAppRuntimeMode::Inline,
+        args.visibility,
+        is_internal,
+    );
+    let shared_runtime = write_runtime(&apps_state, runtime).await;
+
+    let runtime_for_nav = shared_runtime.clone();
+    let builder = WebviewBuilder::new(
+        &webview_label.to_string(),
+        WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
-    .on_navigation(move |url| is_allowed_app_url(url, &origin_id_for_nav, runtime_kind_for_nav))
-    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+        .on_navigation(move |url| {
+            runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, runtime.app()));
+        })
+        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
-    if use_incognito {
-        builder = builder.incognito(true);
-    } else {
-        match resolved.storage() {
-            #[cfg(any(target_os = "macos", target_os = "ios"))]
-            InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
-                let identifier = parse_data_store_id(identifier_hex)?;
-                builder = builder.data_store_identifier(identifier);
-            }
-
-            #[cfg(target_os = "windows")]
-            InstalledSageAppStorage::WindowsProfile { directory_name } => {
-                builder =
-                    builder.data_directory(crate::storage::data_directory_for(directory_name));
-            }
-
-            _ => {}
-        }
-    }
+    let builder = build_storage(builder, &app)?;
 
     let (x, y, width, height) = if args.debug_layout {
-        debug_layout_for_app(resolved.id())
+        debug_layout_for_app(&app.id())
     } else {
         (0.0, 0.0, 1.0, 1.0)
     };
-
-    get_sage_window(&app)?
+    let add_child_result = get_sage_window(&app_handle)?
         .add_child(
             builder,
             LogicalPosition::new(x, y),
             LogicalSize::new(width, height),
-        )
-        .map_err(|e| format!("failed to create child webview: {e}"))?;
-
-    let record =
-        SageAppRuntimeRecord::new_inline(&mut resolved, entry_src, args.visible, args.internal);
-
-    persist_runtime_side_effects(&resolved)?;
-
-    if !args.visible {
-        let _ = get_webview_in_sage_window(&app, record.webview_label())?.hide();
+        );
+    if let Err(e) = add_child_result {
+        let (runtime_id, app_id) = shared_runtime.with_runtime(|runtime| {
+            (runtime.runtime_id(), runtime.app().id())
+        });
+        drop(shared_runtime);
+        remove_runtime_by_runtime_id(&apps_state, &runtime_id).await;
+        remove_runtime_id_by_app_id(&apps_state, &app_id).await;
+        return Err(format!("failed to create child webview: {e}"));
     }
 
-    write_runtime_id_by_app_id(&apps_state, &resolved, record.runtime_id().to_string()).await;
-    write_runtime_and_emit_changed(&app, &apps_state, record.clone()).await;
+    if args.visibility == SageAppRuntimeVisibility::Hidden {
+        let _ = get_webview_in_sage_window(&app_handle, &webview_label)?.hide();
+    }
 
-    Ok(record)
+    emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
+
+    Ok(shared_runtime)
 }
 
-fn persist_runtime_side_effects(app: &SageApp) -> Result<(), String> {
+fn persist_runtime_side_effects(app: &SharedSageApp) -> Result<(), String> {
     let Some(user_app) = app.as_user() else {
         return Ok(());
     };
 
     write_installed_app_metadata(user_app)
         .map_err(|err| format!("failed to persist app runtime side effects: {err}"))
-}
-
-struct ReuseInlineRuntimeParams<'a> {
-    apps_state: &'a State<'a, AppsHostState>,
-    webview: &'a tauri::Webview,
-    runtime_id: String,
-    app_id: String,
-    app_name: String,
-    entry_src: String,
-    webview_label: String,
-    runtime_kind: SageAppRuntimeKind,
-    visible: bool,
-    internal: bool,
-}
-
-async fn reuse_existing_inline_runtime(
-    params: ReuseInlineRuntimeParams<'_>,
-) -> Result<SageAppRuntimeRecord, String> {
-    let ReuseInlineRuntimeParams {
-        apps_state,
-        webview,
-        runtime_id,
-        app_id,
-        app_name,
-        entry_src,
-        webview_label,
-        runtime_kind,
-        visible,
-        internal,
-    } = params;
-
-    if visible {
-        webview
-            .show()
-            .map_err(|e| format!("failed to show existing child webview: {e}"))?;
-    } else {
-        webview
-            .hide()
-            .map_err(|e| format!("failed to hide existing child webview: {e}"))?;
-    }
-
-    let mut record = {
-        let by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
-        by_runtime_id.get(&runtime_id).cloned()
-    }
-    .unwrap_or_else(|| {
-        SageAppRuntimeRecord::new_existing_inline_fallback(
-            runtime_id.clone(),
-            app_id.clone(),
-            app_name,
-            entry_src,
-            webview_label.clone(),
-            runtime_kind,
-            internal,
-        )
-    });
-
-    record.mark_inline_reused(visible, internal);
-
-    {
-        let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
-        by_runtime_id.insert(runtime_id.clone(), record.clone());
-    }
-
-    {
-        let mut runtime_by_app_id = apps_state.runtime.runtime_id_by_app_id.lock().await;
-        runtime_by_app_id.insert(app_id, runtime_id);
-    }
-
-    Ok(record)
-}
-
-fn should_use_incognito(app: &SageApp) -> bool {
-    let has_persistent_storage = app
-        .granted_permissions()
-        .capabilities()
-        .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage);
-
-    !has_persistent_storage || app.flags().storage_may_contain_secrets()
 }
 
 fn fallback_debug_slot(app_id: &str) -> usize {
@@ -254,4 +141,53 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
     let y = origin_y + f64::from(row) * (cell_h + margin_y);
 
     (x, y, cell_w, cell_h)
+}
+
+async fn check_gates(apps_state: &State<'_, AppsHostState>, app: &SharedSageApp) -> Result<(), String> {
+    let baseline = apps_state.sandbox.baseline.lock().await.clone();
+    let current_run = apps_state.sandbox.current_run.lock().await.clone();
+    let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
+    let gate = sandbox::evaluate_app_launch_gate(&app, &effective);
+
+    if !gate.allowed {
+        return Err(gate
+            .message
+            .unwrap_or_else(|| "App launch blocked by sandbox policy".into()));
+    }
+
+    Ok(())
+}
+
+fn build_storage(mut builder: WebviewBuilder<Wry>, app: &SharedSageApp)-> Result<WebviewBuilder<Wry>, String> {
+    let (has_persistent_storage, storage) = app.with(|app| {
+        let has_persistent_storage = app.granted_permissions()
+            .capabilities()
+            .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage);
+
+        (has_persistent_storage, app.storage().clone())
+    });
+
+    let should_use_incognito = !has_persistent_storage || app.storage_may_contain_secrets();
+
+    if should_use_incognito {
+        builder = builder.incognito(true);
+    } else {
+        match storage {
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
+                let identifier = parse_data_store_id(&identifier_hex)?;
+                builder = builder.data_store_identifier(identifier);
+            }
+
+            #[cfg(target_os = "windows")]
+            InstalledSageAppStorage::WindowsProfile { directory_name } => {
+                builder =
+                    builder.data_directory(crate::storage::data_directory_for(directory_name));
+            }
+
+            _ => {}
+        }
+    }
+
+    Ok(builder)
 }

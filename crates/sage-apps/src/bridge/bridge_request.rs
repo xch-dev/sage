@@ -1,43 +1,39 @@
 use crate::AppsHostState;
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::BridgeMethodCapability;
-use crate::bridge::methods::{BridgeContext, BridgeTools};
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::BridgeRegistry;
 use crate::bridge::state::write_pending_approval;
-use crate::bridge::{
-    RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest,
-    RustBridgeResponse, response_channel_for_runtime_kind,
-};
+use crate::bridge::{RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_sage_webview;
-use crate::runtime::{assert_bridge_origin, resolve_app};
-use crate::types::SageApp;
+use crate::runtime::assert_bridge_origin;
+use crate::types::{SageApp, SharedSageApp};
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
 
 pub async fn process(
-    app: AppHandle,
+    app_handle: AppHandle,
     webview: Webview,
     app_state: State<'_, AppState>,
     request: RustBridgeRequest,
-    expected_runtime_kind: SageAppRuntimeKind,
 ) -> Result<RustBridgeInvokeResult, String> {
-    let expected_channel = response_channel_for_runtime_kind(expected_runtime_kind);
-
-    if let Err(response) = validate_request_basics(&request, expected_channel) {
-        return Ok(RustBridgeInvokeResult::Immediate { response });
+    if let Some(version) = &request.bridge_version && version != "v1" {
+        return Ok(RustBridgeInvokeResult::Immediate { response: RustBridgeResponse::error(
+            &request.id,
+            "unsupported_bridge_version",
+            format!("Unsupported Sage bridge version: {version}"),
+        ) });
     }
 
     let webview_label = webview.label().to_string();
 
-    let (app_id, runtime_kind) = match assert_bridge_origin(&app, &webview_label) {
+    let app = match assert_bridge_origin(&app_handle, &webview_label).await {
         Ok(value) => value,
         Err(err) => {
             return Ok(RustBridgeInvokeResult::Immediate {
                 response: RustBridgeResponse::error(
-                    expected_channel,
                     &request.id,
                     "permission_denied",
                     format!("Bridge origin denied: {err}"),
@@ -46,10 +42,18 @@ pub async fn process(
         }
     };
 
-    if runtime_kind != expected_runtime_kind {
+    if app.webview_label_matches(&webview_label) {
         return Ok(RustBridgeInvokeResult::Immediate {
             response: RustBridgeResponse::error(
-                expected_channel,
+                &request.id,
+                "permission_denied",
+                "This bridge is not available for this runtime kind",
+            ),
+        });
+    }
+    if !app.bridge_channel_matches(&request.channel) {
+        return Ok(RustBridgeInvokeResult::Immediate {
+            response: RustBridgeResponse::error(
                 &request.id,
                 "permission_denied",
                 "This bridge is not available for this runtime kind",
@@ -57,24 +61,17 @@ pub async fn process(
         });
     }
 
-    let app_model = resolve_app(&app, &app_id)?;
-    let registry = BridgeRegistry::new_for_app(&app_model);
+    let registry = BridgeRegistry::new_for_app(&app);
 
-    let Some(method) = registry.get(&request.method) else {
-        return Ok(RustBridgeInvokeResult::Immediate {
-            response: RustBridgeResponse::error(
-                expected_channel,
-                &request.id,
-                "method_not_found",
-                format!("Unknown bridge method: {}", request.method),
-            ),
-        });
+    let method = match assert_method(&registry, &request) {
+        Ok(method) => method,
+        Err(response) => return Ok(RustBridgeInvokeResult::Immediate { response })
     };
 
     match method.capability() {
         BridgeMethodCapability::Ungated => {}
         BridgeMethodCapability::Required(capability) => {
-            if let Err(response) = verify_capability(&app_model, &request, capability) {
+            if let Err(response) = verify_capability(&app, &request, capability) {
                 return Ok(RustBridgeInvokeResult::Immediate { response });
             }
         }
@@ -82,7 +79,7 @@ pub async fn process(
 
     match method.approval_request(
         BridgeContext {
-            app: &app_model,
+            app: &app,
             source_label: &webview_label,
         },
         &request,
@@ -90,24 +87,23 @@ pub async fn process(
         Ok(Some(approval)) => {
             let approval_id = Uuid::new_v4().to_string();
 
-            let apps_state = app.state::<AppsHostState>();
+            let apps_state = app_handle.state::<AppsHostState>();
             write_pending_approval(
                 &apps_state,
                 &approval_id,
-                &app_model,
+                &app,
                 &webview_label,
                 &request,
             )
             .await;
 
-            emit_sage_approval_requested(&app, approval_id, approval)?;
+            emit_sage_approval_requested(&app_handle, approval_id, approval)?;
             return Ok(RustBridgeInvokeResult::Pending {});
         }
         Ok(None) => {}
         Err(err) => {
             return Ok(RustBridgeInvokeResult::Immediate {
                 response: RustBridgeResponse::error(
-                    expected_channel,
                     &request.id,
                     err.code,
                     err.message,
@@ -117,7 +113,7 @@ pub async fn process(
     }
 
     let response =
-        execute_bridge_request(&app, &app_state, &app_model, &webview_label, &request).await;
+        execute_bridge_request(&app_handle, &app_state, &app, &webview_label, &request).await;
 
     Ok(RustBridgeInvokeResult::Immediate { response })
 }
@@ -125,19 +121,15 @@ pub async fn process(
 pub(crate) async fn execute_bridge_request(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
-    app: &SageApp,
+    app: &SharedSageApp,
     source_label: &str,
     request: &RustBridgeRequest,
 ) -> RustBridgeResponse {
     let registry = BridgeRegistry::new_for_app(app);
 
-    let Some(method) = registry.get(&request.method) else {
-        return RustBridgeResponse::error(
-            &request.channel,
-            &request.id,
-            "method_not_found",
-            format!("Unknown bridge method: {}", request.method),
-        );
+    let method = match assert_method(&registry, &request) {
+        Ok(method) => method,
+        Err(response) => return response
     };
 
     let result = method
@@ -154,20 +146,19 @@ pub(crate) async fn execute_bridge_request(
 
     match result {
         Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-            Ok(value) => RustBridgeResponse::success(&request.channel, &request.id, &value),
+            Ok(value) => RustBridgeResponse::success(&request.id, &value),
             Err(err) => RustBridgeResponse::error(
-                &request.channel,
                 &request.id,
                 "internal_error",
                 format!("failed to encode {} result: {err}", method.name()),
             ),
         },
-        Err(err) => RustBridgeResponse::error(&request.channel, &request.id, err.code, err.message),
+        Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
     }
 }
 
 fn verify_capability(
-    app: &SageApp,
+    app: &SharedSageApp,
     request: &RustBridgeRequest,
     capability: BridgeCapability,
 ) -> Result<(), RustBridgeResponse> {
@@ -197,47 +188,48 @@ fn verify_capability(
 }
 
 fn verify_user_capability(
-    app: &SageApp,
+    app: &SharedSageApp,
     request: &RustBridgeRequest,
     capability: UserBridgeCapability,
     shared_with_app: bool,
 ) -> Result<(), RustBridgeResponse> {
     if !shared_with_app {
         return Err(RustBridgeResponse::error(
-            &request.channel,
             &request.id,
             "permission_denied",
             format!("Capability {} is not shared with apps", capability.key()),
         ));
     }
 
-    let effective_capabilities = match app {
-        SageApp::User(user_app) => user_app
-            .common()
-            .requested_permissions()
-            .capabilities()
-            .resolve_effective_grants(
-                user_app
-                    .common()
-                    .granted_permissions()
-                    .capabilities()
-                    .copied(),
-            )
-            .map_err(|err| {
-                RustBridgeResponse::error(
-                    &request.channel,
-                    &request.id,
-                    "internal_error",
-                    format!("failed to resolve effective permissions: {err}"),
+    let effective_capabilities = app.with(|app| {
+        let effective = match app {
+            SageApp::User(user_app) => user_app
+                .common()
+                .requested_permissions()
+                .capabilities()
+                .resolve_effective_grants(
+                    user_app
+                        .common()
+                        .granted_permissions()
+                        .capabilities()
+                        .copied(),
                 )
-            })?,
+                .map_err(|err| {
+                    RustBridgeResponse::error(
+                        &request.id,
+                        "internal_error",
+                        format!("failed to resolve effective permissions: {err}"),
+                    )
+                })?,
 
-        SageApp::System(_) => app.granted_permissions().capabilities().copied().collect(),
-    };
+            SageApp::System(_) => app.granted_permissions().capabilities().copied().collect(),
+        };
+
+        Ok(effective)
+    })?;
 
     if !effective_capabilities.contains(&capability) {
         return Err(RustBridgeResponse::error(
-            &request.channel,
             &request.id,
             "permission_denied",
             format!("Permission denied for {}", capability.key()),
@@ -248,27 +240,25 @@ fn verify_user_capability(
 }
 
 fn verify_system_capability(
-    app: &SageApp,
+    app: &SharedSageApp,
     request: &RustBridgeRequest,
     capability: SystemBridgeCapability,
     shared_with_app: bool,
 ) -> Result<(), RustBridgeResponse> {
     if !shared_with_app {
         return Err(RustBridgeResponse::error(
-            &request.channel,
             &request.id,
             "permission_denied",
             format!("Capability {} is not shared with apps", capability.key()),
         ));
     }
 
-    let granted = app
+    let granted = app.with(|app| app
         .system_granted_permissions()
-        .is_some_and(|permissions| permissions.capabilities().contains(&capability));
+        .is_some_and(|permissions| permissions.capabilities().contains(&capability)));
 
     if !granted {
         return Err(RustBridgeResponse::error(
-            &request.channel,
             &request.id,
             "permission_denied",
             format!("Permission denied for {}", capability.key()),
@@ -278,32 +268,6 @@ fn verify_system_capability(
     Ok(())
 }
 
-fn validate_request_basics(
-    request: &RustBridgeRequest,
-    expected_channel: &str,
-) -> Result<(), RustBridgeResponse> {
-    if request.channel != expected_channel {
-        return Err(RustBridgeResponse::error(
-            expected_channel,
-            &request.id,
-            "invalid_request",
-            "Invalid bridge channel",
-        ));
-    }
-
-    if let Some(version) = &request.bridge_version
-        && version != "v1"
-    {
-        return Err(RustBridgeResponse::error(
-            expected_channel,
-            &request.id,
-            "unsupported_bridge_version",
-            format!("Unsupported Sage bridge version: {version}"),
-        ));
-    }
-
-    Ok(())
-}
 
 fn emit_sage_approval_requested(
     app: &AppHandle,
@@ -319,4 +283,19 @@ fn emit_sage_approval_requested(
             },
         )
         .map_err(|err| format!("failed to emit approval request event: {err}"))
+}
+
+fn assert_method<'a>(
+    registry: &'a BridgeRegistry,
+    request: &RustBridgeRequest,
+) -> Result<&'a dyn BridgeMethod, RustBridgeResponse> {
+    let Some(method) = registry.get(&request.method) else {
+        return Err(RustBridgeResponse::error(
+            &request.id,
+            "method_not_found",
+            format!("Unknown bridge method: {}", request.method),
+        ));
+    };
+
+    Ok(method)
 }

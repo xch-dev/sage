@@ -2,13 +2,13 @@ use crate::AppsHostState;
 use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::host::AppState;
-use crate::types::SageApp;
+use crate::types::SharedSageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
 #[derive(Debug)]
 pub struct BridgeContext<'a> {
-    pub app: &'a SageApp,
+    pub app: &'a SharedSageApp,
     pub source_label: &'a str,
 }
 

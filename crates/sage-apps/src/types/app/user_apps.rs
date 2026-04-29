@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::PathBuf;
-
+use std::sync::Arc;
+use crate::bridge::capabilities::UserBridgeCapability;
+use crate::bridge::{SYSTEM_BRIDGE_CHANNEL, USER_BRIDGE_CHANNEL};
 use crate::types::SageAppUrl;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
@@ -13,6 +15,89 @@ use crate::types::permissions::{
 };
 use crate::types::storage::InstalledSageAppStorage;
 
+#[derive(Debug, Clone)]
+pub struct SharedSageApp {
+    inner: Arc<parking_lot::RwLock<SageApp>>,
+}
+
+impl SharedSageApp {
+    pub fn new(app: SageApp) -> Self {
+        Self {
+            inner: Arc::new(parking_lot::RwLock::new(app)),
+        }
+    }
+
+    pub fn with<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {
+        let app = self.inner.read();
+        f(&app)
+    }
+
+    pub fn with_mut<T>(&self, f: impl FnOnce(&mut SageApp) -> T) -> T {
+        let mut app = self.inner.write();
+        f(&mut app)
+    }
+
+    pub fn is_user_app(&self) -> bool {
+        self.with(|app| app.is_user())
+    }
+
+    pub fn is_system_app(&self) -> bool {
+        self.with(|app| app.is_system())
+    }
+
+    pub fn id(&self) -> String {
+        self.with(|app| app.id().to_string())
+    }
+    
+    pub fn name(&self) -> String {
+        self.with(|app| app.name().to_string())
+    }
+
+    pub fn origin_id(&self) -> String { self.with(|app| app.origin_id().to_string()) }
+
+    pub fn is_capability_granted(&self, capability: UserBridgeCapability) -> bool {
+        self.with(|app| app.granted_permissions().has_capability(capability))
+    }
+
+    pub fn has_secret_access(&self) -> bool {
+        self.with(|app| app.flags().has_secret_access())
+    }
+
+    pub fn storage_may_contain_secrets(&self) -> bool {
+        self.with(|app| app.flags().storage_may_contain_secrets())
+    }
+
+    pub fn webview_label_matches(&self, label: &str) -> bool {
+        let app_id = self.id();
+        if let Some(extracted_app_id) = label.strip_prefix("app-") {
+            return self.is_user_app() && extracted_app_id == app_id;
+        }
+        if let Some(extracted_app_id) = label.strip_prefix("system-app-") {
+            return self.is_system_app() && extracted_app_id == app_id;
+        }
+
+        false
+    }
+
+    pub fn bridge_channel_matches(&self, channel: &str) -> bool {
+        if self.is_system_app() {
+            return USER_BRIDGE_CHANNEL == channel || SYSTEM_BRIDGE_CHANNEL == channel;
+        }
+        if self.is_user_app() {
+            return USER_BRIDGE_CHANNEL == channel;
+        }
+
+        false
+    }
+}
+
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum SageApp {
+    System(SystemSageApp),
+    User(UserSageApp),
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum UserSageAppSource {
@@ -20,20 +105,11 @@ pub enum UserSageAppSource {
     Url { app_url: SageAppUrl },
 }
 
-#[derive(Debug, Clone, Serialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct UserSageApp {
     common: SageAppCommon,
     source: UserSageAppSource,
     pending_update: Option<UserSageAppPendingUpdate>,
-}
-
-#[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-#[allow(clippy::large_enum_variant)]
-pub enum SageApp {
-    System(SystemSageApp),
-    User(UserSageApp),
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -44,8 +120,7 @@ pub struct CorruptedInstalledSageApp {
     error: String,
 }
 
-#[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum ListedSageApp {
     User(UserSageApp),
@@ -100,6 +175,14 @@ impl UserSageApp {
 }
 
 impl SageApp {
+    pub fn is_user(&self) -> bool {
+        matches!(self, Self::User(_))
+    }
+
+    pub fn is_system(&self) -> bool {
+        matches!(self, Self::System(_))
+    }
+
     pub fn common(&self) -> &SageAppCommon {
         match self {
             Self::System(app) => app.common(),
@@ -138,8 +221,8 @@ impl SageApp {
         self.common().app_path()
     }
 
-    pub fn entry_file(&self) -> &str {
-        self.common().entry_file()
+    pub fn entry_file(&self) -> String {
+        self.common().entry_file().to_string()
     }
 
     pub fn icon_file(&self) -> Option<&str> {

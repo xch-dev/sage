@@ -11,8 +11,7 @@ pub enum SystemAppPresentation {
     Modal,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct SystemSageApp {
     common: SageAppCommon,
     system_granted_permissions: SageGrantedSystemPermissions,

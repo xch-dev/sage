@@ -33,26 +33,26 @@ pub struct GrantedNetworkWhitelistChangeEvent {
 }
 
 impl EventForApp {
-    pub fn from_capabilities_change(channel: &str, change: GrantedCapabilitiesChange) -> Self {
+    pub fn from_capabilities_change(channel: &str, change: &GrantedCapabilitiesChange) -> Self {
         EventForApp::GrantedCapabilitiesChange(GrantedCapabilitiesChangeEvent {
             channel: channel.to_string(),
             event_type: "grantedCapabilitiesChange".to_string(),
-            removed_granted_capabilities: change.removed,
-            added_granted_capabilities: change.added,
-            full_granted_capabilities: change.full,
+            removed_granted_capabilities: change.removed.clone(),
+            added_granted_capabilities: change.added.clone(),
+            full_granted_capabilities: change.full.clone(),
         })
     }
 
     pub fn from_network_whitelist_change(
         channel: &str,
-        change: GrantedNetworkWhitelistChange,
+        change: &GrantedNetworkWhitelistChange,
     ) -> Self {
         EventForApp::GrantedNetworkWhitelistChange(GrantedNetworkWhitelistChangeEvent {
             channel: channel.to_string(),
             event_type: "grantedNetworkWhitelistChange".to_string(),
-            removed_granted_network_whitelist: change.removed,
-            added_granted_network_whitelist: change.added,
-            full_granted_network_whitelist: change.full,
+            removed_granted_network_whitelist: change.removed.clone(),
+            added_granted_network_whitelist: change.added.clone(),
+            full_granted_network_whitelist: change.full.clone(),
         })
     }
 }

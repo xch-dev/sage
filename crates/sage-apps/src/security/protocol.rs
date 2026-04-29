@@ -1,5 +1,5 @@
 use crate::lifecycle::read_installed_app_by_id;
-use crate::runtime::{SageAppRuntimeKind, app_id_from_webview_label};
+use crate::runtime::{app_id_from_webview_label, find_runtime_by_app_id_optional};
 use crate::sandbox::{build_builtin_test_app, builtin_runtime_apps_root, SANDBOX_TEST_ID_PREFIX};
 use crate::types::SageAppCommon;
 use crate::{AppsHostState, security::build_app_csp};
@@ -11,17 +11,20 @@ use tauri::{Manager, State, UriSchemeContext, Wry};
 
 pub const RUNTIME_APPS_PREFIX: &str = "/__sage/runtime-apps/";
 
-pub fn handle_user_app_protocol_request(
+pub async fn handle_user_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
-    let result = (|| -> anyhow::Result<Response<Vec<u8>>> {
+    let result = (async || -> anyhow::Result<Response<Vec<u8>>> {
         let webview_label = ctx.webview_label();
 
-        let (runtime_kind, app_id) = app_id_from_webview_label(webview_label)
+        let app_id = app_id_from_webview_label(webview_label)
             .ok_or_else(|| anyhow!("invalid webview label"))?;
 
-        if runtime_kind != SageAppRuntimeKind::User {
+        let runtime = find_runtime_by_app_id_optional(&ctx.app_handle().state(), app_id).await
+            .ok_or_else(|| anyhow!("unknown app"))?;
+
+        if runtime.is_user_app() {
             anyhow::bail!("not a user runtime");
         }
 
@@ -49,22 +52,25 @@ pub fn handle_user_app_protocol_request(
             Err(err) if app_common.is_sandbox_test() => Ok(protocol_error_response("sage-app", err)),
             Err(_) => Ok(not_found_response()),
         }
-    })();
+    })().await;
 
     result.unwrap_or_else(|_| not_found_response())
 }
 
-pub fn handle_system_app_protocol_request(
+pub async fn handle_system_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
-    let result = (|| -> anyhow::Result<Response<Vec<u8>>> {
+    let result = (async || -> anyhow::Result<Response<Vec<u8>>> {
         let webview_label = ctx.webview_label();
 
-        let (runtime_kind, app_id) = app_id_from_webview_label(webview_label)
+        let app_id = app_id_from_webview_label(webview_label)
             .ok_or_else(|| anyhow!("invalid webview label"))?;
 
-        if runtime_kind != SageAppRuntimeKind::System {
+        let runtime = find_runtime_by_app_id_optional(&ctx.app_handle().state(), app_id).await
+            .ok_or_else(|| anyhow!("unknown app"))?;
+
+        if runtime.is_system_app() {
             anyhow::bail!("not a system runtime");
         }
 
@@ -81,7 +87,7 @@ pub fn handle_system_app_protocol_request(
 
         handle_app_protocol_request(app.common(), request)
             .map_err(|err| anyhow!("sage-system-app error: {err}"))
-    })();
+    })().await;
 
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", err))
 }

@@ -1,13 +1,8 @@
 use std::path::{Component, Path, PathBuf};
-
-use serde::{Deserialize, Serialize};
-use specta::Type;
-
 use crate::types::manifest::SageAppPackageManifest;
 use crate::types::normalizers::normalized_non_empty_string;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct SageAppSnapshot {
     manifest_hash: String,
     snapshot_dir: String,

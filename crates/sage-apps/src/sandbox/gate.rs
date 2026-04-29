@@ -1,5 +1,5 @@
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::types::SageApp;
+use crate::types::{SharedSageApp};
 
 use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};
 
@@ -18,19 +18,16 @@ fn capability_status(
     }
 }
 
-fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
+fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> {
     let mut caps = vec![
         SandboxCapability::StorageIsolationFromSage,
         SandboxCapability::NetworkAllowlistEnforced,
     ];
 
-    let has_persistent_storage = app
-        .granted_permissions()
-        .has_capability(UserBridgeCapability::PersistentStorage);
-    if has_persistent_storage {
+    if app.is_capability_granted(UserBridgeCapability::PersistentStorage) {
         caps.push(SandboxCapability::StoragePersistenceNormal);
 
-        if app.flags().has_secret_access() {
+        if app.has_secret_access() {
             caps.push(SandboxCapability::StorageClearCycle);
         }
     } else {
@@ -40,7 +37,7 @@ fn required_capabilities_for_app(app: &SageApp) -> Vec<SandboxCapability> {
     caps
 }
 
-pub fn evaluate_app_launch_gate(app: &SageApp, effective: &SandboxState) -> AppLaunchGateResult {
+pub fn evaluate_app_launch_gate(app: &SharedSageApp, effective: &SandboxState) -> AppLaunchGateResult {
     if app.id().starts_with("__sage_test_") {
         return AppLaunchGateResult {
             allowed: true,

@@ -2,13 +2,13 @@ use crate::bridge::capabilities::UserBridgeCapability;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
 use std::collections::BTreeSet;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppUpdateResult {
     app: UserSageApp,
     change: GrantedPermissionsChange,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct GrantedPermissionsChange {
     network_whitelist: GrantedNetworkWhitelistChange,
     capabilities: GrantedCapabilitiesChange,
@@ -28,7 +28,7 @@ pub struct GrantedNetworkWhitelistChange {
     pub full: Vec<SageNetworkWhitelistEntry>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum GrantCapabilityOutcome {
     AlreadyGranted {
         capability: UserBridgeCapability,
@@ -59,7 +59,7 @@ impl GrantCapabilityOutcome {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum GrantNetworkWhitelistOutcome {
     AlreadyGranted {
         entry: SageNetworkWhitelistEntry,

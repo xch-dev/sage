@@ -7,7 +7,7 @@ use crate::bridge::methods::shared::{
     BridgeMethodHandleError,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::list_runtimes;
+use crate::runtime::{list_runtimes, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RuntimeManagerListRuntimes;
@@ -36,10 +36,12 @@ impl BridgeMethod for RuntimeManagerListRuntimes {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let records = list_runtimes(tools.host_state)
+        let runtimes = list_runtimes(tools.host_state)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(records))
+        let runtime_views = runtimes.iter().map(Into::into).collect::<Vec<SageAppRuntimeRecordView>>();
+        
+        Ok(Box::new(runtime_views))
     }
 }

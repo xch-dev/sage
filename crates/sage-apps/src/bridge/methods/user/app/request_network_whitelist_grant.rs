@@ -53,16 +53,17 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
 
         if ctx
             .app
-            .granted_permissions()
-            .network()
-            .whitelist()
-            .any(|entry| entry == &params.entry)
+            .with(|app| app.granted_permissions()
+                .network()
+                .whitelist()
+                .any(|entry| entry == &params.entry)
+            )
         {
             return Ok(None);
         }
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.clone(),
+            app: ctx.app.into(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::NetworkWhitelistGrant {
@@ -84,7 +85,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         let result = match grant_network_whitelist_entry(
             tools.app_handle,
             &base_path,
-            ctx.app.id(),
+            &ctx.app.id(),
             &params.entry,
         )
         .await

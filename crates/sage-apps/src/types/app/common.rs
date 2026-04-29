@@ -1,7 +1,5 @@
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -13,16 +11,14 @@ use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct SageAppIdentity {
     id: String,
     origin_id: String,
     app_dir: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct SageAppCommon {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
@@ -75,7 +71,7 @@ impl SageAppCommon {
             .required()
             .cloned();
 
-        let granted_network = granted_permissions.network().whitelist().cloned();
+        let granted_network = granted_permissions.network().whitelist_iter().cloned();
 
         let granted_permissions = SageGrantedPermissions::new(
             self.active_manifest().permissions(),
@@ -134,6 +130,7 @@ impl SageAppCommon {
         Ok(common)
     }
 
+    pub fn identity(&self) -> &SageAppIdentity { &self.identity }
     pub fn id(&self) -> &str {
         &self.identity.id
     }
@@ -218,5 +215,17 @@ impl SageAppIdentity {
             origin_id: normalized_non_empty_string(origin_id, "app origin id")?,
             app_dir: normalized_non_empty_string(app_dir, "app directory")?,
         })
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn origin_id(&self) -> &str {
+        &self.origin_id
+    }
+
+    pub fn app_dir(&self) -> &str {
+        &self.app_dir
     }
 }

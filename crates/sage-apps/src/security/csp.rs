@@ -29,7 +29,7 @@ pub fn build_app_csp(app: &SageAppCommon) -> String {
 
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
-    for entry in app.granted_permissions().network().whitelist() {
+    for entry in app.granted_permissions().network().whitelist_iter() {
         connect_sources.insert(entry.as_permission_string());
     }
 

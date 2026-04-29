@@ -4,11 +4,10 @@ use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::bridge::state::{get_pending_approval, remove_pending_approval};
 use crate::bridge::{
     ResolveBridgeApprovalArgs, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
-    response_channel_for_runtime_kind,
 };
 use crate::capabilities::user_registry;
 use crate::host::AppState;
-use crate::runtime::{SageAppRuntimeKind, assert_bridge_origin, resolve_app};
+use crate::runtime::assert_bridge_origin;
 use crate::types::SageAppCapabilityDefinitionView;
 use tauri::{AppHandle, State, Webview};
 
@@ -20,24 +19,13 @@ pub async fn apps_invoke_bridge(
     app_state: State<'_, AppState>,
     request: RustBridgeRequest,
 ) -> Result<RustBridgeInvokeResult, String> {
-    process(app, webview, app_state, request, SageAppRuntimeKind::User).await
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn apps_invoke_system_bridge(
-    app: AppHandle,
-    webview: Webview,
-    app_state: State<'_, AppState>,
-    request: RustBridgeRequest,
-) -> Result<RustBridgeInvokeResult, String> {
-    process(app, webview, app_state, request, SageAppRuntimeKind::System).await
+    process(app, webview, app_state, request).await
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn apps_resolve_bridge_approval(
-    app: AppHandle,
+    app_handle: AppHandle,
     app_state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
     args: ResolveBridgeApprovalArgs,
@@ -45,21 +33,19 @@ pub async fn apps_resolve_bridge_approval(
     let pending = get_pending_approval(&apps_state, &args.approval_id).await?;
     remove_pending_approval(&apps_state, &args.approval_id).await;
 
-    let (app_id, runtime_kind) = assert_bridge_origin(&app, &pending.app_webview_label)?;
-    let app_model = resolve_app(&app, &app_id)?;
+    let app = assert_bridge_origin(&app_handle, &pending.app_webview_label).await?;
 
     let response = if args.approved {
         execute_bridge_request(
-            &app,
+            &app_handle,
             &app_state,
-            &app_model,
+            &app,
             &pending.app_webview_label,
             &pending.request,
         )
         .await
     } else {
         RustBridgeResponse::error(
-            response_channel_for_runtime_kind(runtime_kind),
             &pending.request.id,
             "user_denied",
             args.reason
@@ -67,7 +53,7 @@ pub async fn apps_resolve_bridge_approval(
         )
     };
 
-    emit_bridge_response_to_source(&app, &pending.app_webview_label, &response)?;
+    emit_bridge_response_to_source(&app_handle, &pending.app_webview_label, &response).await?;
     Ok(())
 }
 

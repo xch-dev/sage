@@ -108,7 +108,7 @@ async fn emit_granted_permissions_change(
         let _ = emit_bridge_event_to_app_id(
             app,
             app_id,
-            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change.clone()),
+            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
         )
         .await;
     }
@@ -118,7 +118,7 @@ async fn emit_granted_permissions_change(
         let _ = emit_bridge_event_to_app_id(
             app,
             app_id,
-            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change.clone()),
+            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
         )
         .await;
     }
@@ -230,7 +230,7 @@ mod tests {
                     .common()
                     .granted_permissions()
                     .network()
-                    .whitelist()
+                    .whitelist_iter()
                     .cloned()
             ),
             [network_whitelist_entry("https", "required.example.com")]
@@ -243,7 +243,7 @@ mod tests {
                     .common()
                     .granted_permissions()
                     .network()
-                    .whitelist()
+                    .whitelist_iter()
                     .cloned()
             ),
             [network_whitelist_entry("https", "required.example.com")]
@@ -383,7 +383,7 @@ mod tests {
                     .common()
                     .granted_permissions()
                     .network()
-                    .whitelist()
+                    .whitelist_iter()
                     .cloned()
             ),
             [

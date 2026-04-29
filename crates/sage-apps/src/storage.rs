@@ -1,4 +1,4 @@
-use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
+use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget, SharedSageApp};
 
 #[cfg(target_os = "windows")]
 pub fn data_directory_for(directory_name: &str) -> PathBuf {
@@ -23,19 +23,21 @@ pub fn parse_data_store_id(identifier_hex: &str) -> Result<[u8; 16], String> {
 }
 
 pub fn cleanup_target_from_storage(
-    storage: &InstalledSageAppStorage,
+    app: &SharedSageApp,
 ) -> PendingStorageCleanupTarget {
-    match storage {
-        InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
-            PendingStorageCleanupTarget::AppleDataStore {
-                identifier_hex: identifier_hex.clone(),
+    app.with(|app| 
+        match app.storage() {
+            InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
+                PendingStorageCleanupTarget::AppleDataStore {
+                    identifier_hex: identifier_hex.clone(),
+                }
             }
-        }
-        InstalledSageAppStorage::WindowsProfile { directory_name } => {
-            PendingStorageCleanupTarget::WindowsProfile {
-                directory_name: directory_name.clone(),
+            InstalledSageAppStorage::WindowsProfile { directory_name } => {
+                PendingStorageCleanupTarget::WindowsProfile {
+                    directory_name: directory_name.clone(),
+                }
             }
+            InstalledSageAppStorage::Unmanaged => PendingStorageCleanupTarget::Unmanaged,
         }
-        InstalledSageAppStorage::Unmanaged => PendingStorageCleanupTarget::Unmanaged,
-    }
+    )
 }

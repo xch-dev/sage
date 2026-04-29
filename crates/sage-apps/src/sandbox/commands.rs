@@ -22,18 +22,20 @@ pub async fn apps_get_sandbox_state(
 #[tauri::command]
 #[specta::specta]
 pub async fn apps_get_app_launch_gate(
-    app: AppHandle,
+    app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     app_id: String,
 ) -> Result<AppLaunchGateResult, String> {
-    let installed = resolve_app(&app, &app_id)?;
+    let app = resolve_app(&app_handle, &app_id)?;
 
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
 
     let effective = build_effective_state(&baseline, current_run.as_ref());
 
-    Ok(evaluate_app_launch_gate(&installed, &effective))
+    let evaluated_gate = evaluate_app_launch_gate(&app, &effective);
+    
+    Ok(evaluated_gate)
 }
 
 #[tauri::command]

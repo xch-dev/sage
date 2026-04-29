@@ -60,7 +60,7 @@ export function initSageSystemRuntimeBridge(): boolean {
   const core = createBridgeRuntimeCore({
     channel: SAGE_SYSTEM_BRIDGE_CHANNEL,
     version: SAGE_SYSTEM_BRIDGE_VERSION,
-    invokeCommand: 'apps_invoke_system_bridge',
+    invokeCommand: 'apps_invoke_bridge',
     requestIdPrefix: 'sage-system',
   });
 

@@ -1,6 +1,6 @@
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::types::{SageApp, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry};
+use crate::types::{SageAppCapabilityDefinitionView, SageAppView, SageNetworkWhitelistEntry};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -33,7 +33,6 @@ pub struct RustBridgeErrorPayload {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeSuccessResponse {
-    pub channel: String,
     pub bridge_version: String,
     pub id: String,
     pub ok: bool,
@@ -43,7 +42,6 @@ pub struct RustBridgeSuccessResponse {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeErrorResponse {
-    pub channel: String,
     pub bridge_version: String,
     pub id: String,
     pub ok: bool,
@@ -60,7 +58,7 @@ pub enum RustBridgeResponse {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeApprovalRequest {
-    pub app: SageApp,
+    pub app: SageAppView,
     pub source_label: String,
     pub request_id: String,
 
@@ -109,9 +107,8 @@ pub struct ResolveBridgeApprovalArgs {
 }
 
 impl RustBridgeResponse {
-    pub fn success(channel: &str, id: &str, result: &Value) -> RustBridgeResponse {
+    pub fn success(id: &str, result: &Value) -> RustBridgeResponse {
         RustBridgeResponse::Success(RustBridgeSuccessResponse {
-            channel: channel.into(),
             bridge_version: "v1".into(),
             id: id.into(),
             ok: true,
@@ -119,13 +116,11 @@ impl RustBridgeResponse {
         })
     }
     pub fn error(
-        channel: &str,
         id: &str,
         code: &str,
         message: impl Into<String>,
     ) -> RustBridgeResponse {
         RustBridgeResponse::Error(RustBridgeErrorResponse {
-            channel: channel.into(),
             bridge_version: "v1".into(),
             id: id.into(),
             ok: false,

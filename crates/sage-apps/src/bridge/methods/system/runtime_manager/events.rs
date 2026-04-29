@@ -1,4 +1,4 @@
-use crate::runtime::SageAppRuntimeRecord;
+use crate::runtime::{SageAppRuntimeRecord, SageAppRuntimeRecordView};
 use serde::Serialize;
 use specta::Type;
 
@@ -8,11 +8,11 @@ pub struct RuntimeManagerRuntimesChangedEvent {
     pub channel: String,
     #[serde(rename = "type")]
     pub event_type: String,
-    pub runtimes: Vec<SageAppRuntimeRecord>,
+    pub runtimes: Vec<SageAppRuntimeRecordView>,
 }
 
 impl RuntimeManagerRuntimesChangedEvent {
-    pub fn new(channel: String, runtimes: Vec<SageAppRuntimeRecord>) -> Self {
+    pub fn new(channel: String, runtimes: Vec<SageAppRuntimeRecordView>) -> Self {
         Self {
             channel,
             event_type: "runtimeManager.runtimesChanged".to_string(),

@@ -28,19 +28,18 @@ pub struct SageRequestedPermissions {
     capabilities: SageRequestedCapabilities,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct SageGrantedNetworkPermissions {
     whitelist: BTreeSet<SageNetworkWhitelistEntry>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct SageGrantedPermissions {
     capabilities: BTreeSet<UserBridgeCapability>,
     network: SageGrantedNetworkPermissions,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Type)]
 pub struct SageGrantedSystemPermissions {
     capabilities: Vec<SystemBridgeCapability>,
 }
@@ -178,7 +177,11 @@ impl SageGrantedNetworkPermissions {
         Ok(Self { whitelist })
     }
 
-    pub fn whitelist(&self) -> impl Iterator<Item = &SageNetworkWhitelistEntry> {
+    pub fn whitelist(&self) -> &BTreeSet<SageNetworkWhitelistEntry> {
+        &self.whitelist
+    }
+
+    pub fn whitelist_iter(&self) -> impl Iterator<Item = &SageNetworkWhitelistEntry> {
         self.whitelist.iter()
     }
 }
@@ -200,7 +203,7 @@ impl SageGrantedPermissions {
 
         validate_permissions_policy(
             effective_capabilities,
-            network.whitelist().cloned(),
+            network.whitelist_iter().cloned(),
             "granted permissions",
         )?;
 
@@ -225,7 +228,7 @@ impl SageGrantedPermissions {
         Self::new(
             requested,
             self.capabilities.iter().copied().chain([capability]),
-            self.network.whitelist().cloned(),
+            self.network.whitelist_iter().cloned(),
         )
     }
 
@@ -237,7 +240,7 @@ impl SageGrantedPermissions {
         Self::new(
             requested,
             self.capabilities.iter().copied(),
-            self.network.whitelist().cloned().chain([entry]),
+            self.network.whitelist_iter().cloned().chain([entry]),
         )
     }
 
@@ -257,7 +260,7 @@ impl SageGrantedPermissions {
     }
 
     pub fn network_whitelist_vec(&self) -> Vec<SageNetworkWhitelistEntry> {
-        self.network.whitelist().cloned().collect()
+        self.network.whitelist_iter().cloned().collect()
     }
 
     pub fn shared_capabilities(&self) -> Vec<UserBridgeCapability> {

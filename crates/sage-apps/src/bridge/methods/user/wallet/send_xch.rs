@@ -62,11 +62,7 @@ impl BridgeMethod for WalletSendXch {
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        if ctx
-            .app
-            .granted_permissions()
-            .has_capability(UserBridgeCapability::WalletSendXchAutoSubmit)
-        {
+        if ctx.app.is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit) {
             return Ok(None);
         }
 

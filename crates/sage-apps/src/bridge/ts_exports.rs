@@ -15,7 +15,7 @@ use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{
-    ReadyToStopParams, RuntimeAckResult, SageAppRuntimeRecord, SageLifecycleBeforeStopDetail,
+    ReadyToStopParams, RuntimeAckResult, SageLifecycleBeforeStopDetail,
     SetBeforeStopListenerParams,
 };
 use sage_api::{
@@ -33,7 +33,7 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
 
     types.register::<RuntimeTargetParams>();
-    types.register::<SageAppRuntimeRecord>();
+    //types.register::<SageAppRuntimeRecord>();
     types.register::<SystemKillRuntimeResult>();
     types.register::<RuntimeManagerRuntimesChangedEvent>();
 

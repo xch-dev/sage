@@ -1,8 +1,8 @@
 use crate::AppsHostState;
-use crate::runtime::start::{CreateInlineRuntimeArgs, create_inline_runtime};
-use crate::runtime::state::{SageAppRuntimeRecord, list_runtimes};
+use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
+use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::{SystemKillRuntimeResult, kill_runtime};
-use crate::runtime::{RuntimeTargetParams, focus_runtime, hide_runtime};
+use crate::runtime::{RuntimeTargetParams, focus_runtime, hide_runtime, SageAppRuntimeRecordView};
 use tauri::{AppHandle, State};
 
 #[tauri::command]
@@ -10,17 +10,17 @@ use tauri::{AppHandle, State};
 pub async fn apps_create_inline_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
-    args: CreateInlineRuntimeArgs,
-) -> Result<SageAppRuntimeRecord, String> {
-    create_inline_runtime(app, apps_state, args).await
+    args: CreateRuntimeArgs,
+) -> Result<SageAppRuntimeRecordView, String> {
+    create_runtime(app, apps_state, args).await.into()
 }
 
 #[tauri::command]
 #[specta::specta]
 pub async fn apps_list_runtimes(
     apps_state: State<'_, AppsHostState>,
-) -> Result<Vec<SageAppRuntimeRecord>, String> {
-    list_runtimes(&apps_state).await
+) -> Result<Vec<SageAppRuntimeRecordView>, String> {
+    list_runtimes(&apps_state).await.map(Into::into)
 }
 
 #[tauri::command]
@@ -29,8 +29,8 @@ pub async fn apps_focus_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
-) -> Result<SageAppRuntimeRecord, String> {
-    focus_runtime(&app, &apps_state, &params.app_id).await
+) -> Result<SageAppRuntimeRecordView, String> {
+    focus_runtime(&app, &apps_state, &params.app_id).await.into()
 }
 
 #[tauri::command]
@@ -39,8 +39,8 @@ pub async fn apps_hide_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
-) -> Result<SageAppRuntimeRecord, String> {
-    hide_runtime(&app, &apps_state, &params.app_id).await
+) -> Result<SageAppRuntimeRecordView, String> {
+    hide_runtime(&app, &apps_state, &params.app_id).await.into()
 }
 
 #[tauri::command]

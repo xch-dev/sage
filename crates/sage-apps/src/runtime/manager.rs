@@ -4,9 +4,9 @@ use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::AppsHostState;
 use crate::bridge::methods::system::RuntimeManagerRuntimesChangedEvent;
+use crate::runtime::{SageAppRuntimeRecordView, SharedRuntime};
 use crate::runtime::state::{
-    SageAppRuntimeKind, SageAppRuntimeRecord, get_runtime_by_app_id, list_runtimes,
-    write_runtime_and_emit_changed,
+    get_runtime_by_app_id, list_runtimes,
 };
 use crate::runtime::webview_locator::{find_sage_window, get_webview_in_sage_window};
 
@@ -24,19 +24,32 @@ pub(crate) async fn emit_runtime_manager_runtimes_changed(
         return;
     };
 
-    let system_runtime_webview_labels = {
-        let by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
+    let system_runtime_webview_labels = runtimes
+        .iter()
+        .filter_map(|runtime| {
+            runtime.with_runtime(|record| {
+                if record.internal() {
+                    return None;
+                }
 
-        by_runtime_id
-            .values()
-            .filter(|record| {
-                !record.internal() && record.runtime_kind() == SageAppRuntimeKind::System
+                if !record.app().is_system_app() {
+                    return None;
+                }
+
+                Some(record.webview_label().to_string())
             })
-            .map(|record| record.webview_label().to_string())
-            .collect::<Vec<_>>()
-    };
+        })
+        .collect::<Vec<_>>();
 
-    let event = RuntimeManagerRuntimesChangedEvent::new("sage-system-bridge".to_string(), runtimes);
+    let runtime_records = runtimes
+        .iter()
+        .map(Into::into)
+        .collect::<Vec<SageAppRuntimeRecordView>>();
+
+    let event = RuntimeManagerRuntimesChangedEvent::new(
+        "sage-system-bridge".to_string(),
+        runtime_records,
+    );
 
     let Some(sage_window) = find_sage_window(app) else {
         return;
@@ -53,9 +66,12 @@ pub(crate) async fn focus_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-) -> Result<SageAppRuntimeRecord, String> {
-    let mut runtime = get_runtime_by_app_id(apps_state, app_id).await?;
-    let webview = get_webview_in_sage_window(app, runtime.webview_label())?;
+) -> Result<SharedRuntime, String> {
+    let runtime = get_runtime_by_app_id(apps_state, app_id).await?;
+
+    let webview_label = runtime.with_runtime(|record| record.webview_label().to_string());
+
+    let webview = get_webview_in_sage_window(app, &webview_label)?;
 
     webview
         .show()
@@ -65,9 +81,10 @@ pub(crate) async fn focus_runtime(
         .set_focus()
         .map_err(|err| format!("failed to focus webview: {err}"))?;
 
-    runtime.mark_visible();
+    runtime.with_runtime_mut(|runtime| runtime.mark_visible());
 
-    write_runtime_and_emit_changed(app, apps_state, runtime.clone()).await;
+    emit_runtime_manager_runtimes_changed(app, apps_state).await;
+
     Ok(runtime)
 }
 
@@ -75,16 +92,20 @@ pub(crate) async fn hide_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-) -> Result<SageAppRuntimeRecord, String> {
-    let mut runtime = get_runtime_by_app_id(apps_state, app_id).await?;
-    let webview = get_webview_in_sage_window(app, runtime.webview_label())?;
+) -> Result<SharedRuntime, String> {
+    let runtime = get_runtime_by_app_id(apps_state, app_id).await?;
+
+    let webview_label = runtime.with_runtime(|record| record.webview_label().to_string());
+
+    let webview = get_webview_in_sage_window(app, &webview_label)?;
 
     webview
         .hide()
         .map_err(|err| format!("failed to hide webview: {err}"))?;
 
-    runtime.mark_hidden();
+    runtime.with_runtime_mut(|runtime| runtime.mark_hidden());
 
-    write_runtime_and_emit_changed(app, apps_state, runtime.clone()).await;
+    emit_runtime_manager_runtimes_changed(app, apps_state).await;
+
     Ok(runtime)
 }

@@ -45,8 +45,8 @@ impl BridgeMethod for BridgePing {
     ) -> BridgeHandleResult {
         Ok(Box::new(BridgePingResult {
             ok: true,
-            app_id: ctx.app.id().to_string(),
-            app_name: ctx.app.name().to_string(),
+            app_id: ctx.app.id(),
+            app_name: ctx.app.name(),
         }))
     }
 }

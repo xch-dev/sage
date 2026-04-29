@@ -31,7 +31,7 @@ impl BridgeMethod for WalletGetSecretKey {
         let params: GetSecretKey = parse_required_params(self, request)?;
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.clone(),
+            app: ctx.app.into(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::GetSecretKey {

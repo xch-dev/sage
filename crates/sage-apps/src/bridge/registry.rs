@@ -11,7 +11,7 @@ use super::methods::user::{
     WalletGetSyncStatus, WalletGetTransaction, WalletGetTransactions, WalletGetVersion,
     WalletSendXch,
 };
-use crate::types::SageApp;
+use crate::types::SharedSageApp;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,11 +36,12 @@ impl BridgeRegistry {
         }
     }
 
-    pub fn new_for_app(app: &SageApp) -> Self {
-        match app {
-            SageApp::User(_) => Self::new(BridgeRegistryKind::User),
-            SageApp::System(_) => Self::new(BridgeRegistryKind::System),
+    pub fn new_for_app(app: &SharedSageApp) -> Self {
+        if app.is_system_app() {
+            return Self::new(BridgeRegistryKind::System);
         }
+
+        Self::new(BridgeRegistryKind::User)
     }
 
     pub fn get(&self, method: &str) -> Option<&dyn BridgeMethod> {

@@ -8,7 +8,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::hide_runtime;
+use crate::runtime::{hide_runtime, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RuntimeManagerHideRuntime;
@@ -39,10 +39,11 @@ impl BridgeMethod for RuntimeManagerHideRuntime {
     ) -> BridgeHandleResult {
         let params: RuntimeTargetParams = parse_required_params(self, request)?;
 
-        let record = hide_runtime(tools.app_handle, tools.host_state, &params.app_id)
+        let runtime = hide_runtime(tools.app_handle, tools.host_state, &params.app_id)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(record))
+        let runtime_view: SageAppRuntimeRecordView = runtime.into();
+        Ok(Box::new(runtime_view))
     }
 }

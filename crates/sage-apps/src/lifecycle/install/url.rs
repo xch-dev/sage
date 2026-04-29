@@ -263,7 +263,7 @@ mod tests {
         let mut app = user_app.into_sage_app();
 
         let _runtime =
-            SageAppRuntimeRecord::new_inline(&mut app, "sage-app://test/index.html", true, false);
+            SageAppRuntimeRecord::new(&mut app, "sage-app://test/index.html", true, false);
 
         app.into_user()
             .expect("sample app should remain a user app")

@@ -13,8 +13,16 @@ pub(in crate::runtime) async fn remove_runtime_by_runtime_id(
     apps_state: &State<'_, AppsHostState>,
     runtime_id: &str,
 ) {
-    let mut runtime_by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
-    runtime_by_runtime_id.remove(runtime_id);
+    let runtime = {
+        let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
+        by_runtime_id.remove(runtime_id)
+    };
+
+    let Some(runtime) = runtime else {
+        return;
+    };
+
+    remove_runtime_id_by_app_id(apps_state, &runtime.app_id()).await;
 }
 
 pub(in crate::runtime) async fn remove_before_stop_listeners_by_app_id(

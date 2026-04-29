@@ -1,6 +1,6 @@
 use crate::AppsHostState;
-use crate::runtime::apps_create_inline_runtime;
-use crate::runtime::start::CreateInlineRuntimeArgs;
+use crate::runtime::{apps_create_inline_runtime, SageAppRuntimeMode, SageAppRuntimeVisibility};
+use crate::runtime::start::CreateRuntimeArgs;
 use crate::runtime::stop::close_runtime_internal;
 use crate::security::RUNTIME_APPS_PREFIX;
 use std::collections::{BTreeMap, HashMap};
@@ -36,7 +36,7 @@ pub(crate) async fn start_test_app(
         app,
         apps_state,
         app_id,
-        false,
+        SageAppRuntimeVisibility::Hidden,
         path,
         query_map.into_iter().collect(),
     )
@@ -44,13 +44,13 @@ pub(crate) async fn start_test_app(
 }
 
 pub(crate) async fn run_clear_cycle_phase_runtime(
-    app: &AppHandle,
+    app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     run_id: &str,
     phase_string: String,
 ) -> Result<(), String> {
-    let _ = close_runtime_internal(app, apps_state, app_id).await;
+    let _ = close_runtime_internal(app_handle, apps_state, app_id).await;
 
     let mut query = BTreeMap::new();
     query.insert("runId".to_string(), run_id.to_string());
@@ -58,10 +58,10 @@ pub(crate) async fn run_clear_cycle_phase_runtime(
     query.insert("appId".to_string(), app_id.to_string());
 
     start_internal_runtime_for_sandbox(
-        app,
+        app_handle,
         apps_state,
         app_id,
-        false,
+        SageAppRuntimeVisibility::Hidden,
         Some(RuntimeApp::StorageClearProbe.path()),
         query,
     )
@@ -76,16 +76,16 @@ async fn start_internal_runtime_for_sandbox(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-    visible: bool,
+    visibility: SageAppRuntimeVisibility,
     path: Option<String>,
     query: BTreeMap<String, String>,
 ) -> Result<(), String> {
     let debug_test_apps = debug_test_apps_enabled();
 
-    let args = CreateInlineRuntimeArgs {
+    let args = CreateRuntimeArgs {
         app_id: app_id.to_string(),
-        visible: if debug_test_apps { true } else { visible },
-        internal: true,
+        mode: SageAppRuntimeMode::Inline,
+        visibility: if debug_test_apps { SageAppRuntimeVisibility::Visible } else { visibility },
         debug_layout: debug_test_apps,
         path,
         query,

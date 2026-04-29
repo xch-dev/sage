@@ -63,7 +63,7 @@ impl BridgeMethod for BridgeSend {
             ))
         })?;
 
-        crate::sandbox::ingest_bridge_send_payload(ctx.app.id(), &payload_value, tools.host_state)
+        crate::sandbox::ingest_bridge_send_payload(&ctx.app.id(), &payload_value, tools.host_state)
             .await;
 
         Ok(Box::new(BridgeSendResult { ok: true }))
@@ -71,7 +71,7 @@ impl BridgeMethod for BridgeSend {
 }
 
 fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
-    if !ctx.app.common().is_sandbox_test() {
+    if !ctx.app.with(|app| app.common().is_sandbox_test()) {
         return Err(BridgeMethodHandleError::invalid_request(
             "Method use is not allowed",
         ));
