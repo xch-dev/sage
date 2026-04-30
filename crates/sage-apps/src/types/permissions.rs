@@ -1,7 +1,7 @@
 use crate::bridge::capabilities::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
-use crate::capabilities::{CapabilityDefinition, CapabilityFlags, get_user_capability_definition};
+use crate::capabilities::{get_user_capability_definition};
 use crate::types::invariants::{
     build_user_grantable_capability_set, split_required_optional_set, validate_permissions_policy,
     validate_requested_capabilities_are_requestable,
@@ -11,7 +11,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 use std::collections::BTreeSet;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedNetworkPermissions {
     whitelist: SageRequestedNetworkWhitelist,
 }
@@ -28,12 +28,12 @@ pub struct SageRequestedPermissions {
     capabilities: SageRequestedCapabilities,
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct SageGrantedNetworkPermissions {
     whitelist: BTreeSet<SageNetworkWhitelistEntry>,
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Serialize, PartialEq, Eq)]
 pub struct SageGrantedPermissions {
     capabilities: BTreeSet<UserBridgeCapability>,
     network: SageGrantedNetworkPermissions,
@@ -42,25 +42,6 @@ pub struct SageGrantedPermissions {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq, Type)]
 pub struct SageGrantedSystemPermissions {
     capabilities: Vec<SystemBridgeCapability>,
-}
-
-#[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct SageAppCapabilityFlagsView {
-    externally_observable: bool,
-    accesses_sensitive_secret: bool,
-    requestable_by_app: bool,
-    user_grantable: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct SageAppCapabilityDefinitionView {
-    key: String,
-    label: String,
-    description: String,
-    flags: SageAppCapabilityFlagsView,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -121,28 +102,6 @@ impl<'de> Deserialize<'de> for SageRequestedPermissions {
             raw.capabilities.unwrap_or_default(),
         )
         .map_err(serde::de::Error::custom)
-    }
-}
-
-impl From<CapabilityFlags> for SageAppCapabilityFlagsView {
-    fn from(flags: CapabilityFlags) -> Self {
-        Self {
-            externally_observable: flags.externally_observable(),
-            accesses_sensitive_secret: flags.accesses_sensitive_secret(),
-            requestable_by_app: flags.requestable_by_app(),
-            user_grantable: flags.user_grantable(),
-        }
-    }
-}
-
-impl From<CapabilityDefinition<UserBridgeCapability>> for SageAppCapabilityDefinitionView {
-    fn from(definition: CapabilityDefinition<UserBridgeCapability>) -> Self {
-        Self {
-            key: definition.capability().key().to_string(),
-            label: definition.label().to_string(),
-            description: definition.description().to_string(),
-            flags: definition.flags().into(),
-        }
     }
 }
 
@@ -419,6 +378,57 @@ impl SageRequestedNetworkPermissions {
 
     pub fn whitelist(&self) -> &SageRequestedNetworkWhitelist {
         &self.whitelist
+    }
+}
+
+impl<'de> Deserialize<'de> for SageGrantedPermissions {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct RawSageGrantedPermissions {
+            #[serde(default)]
+            capabilities: BTreeSet<UserBridgeCapability>,
+
+            #[serde(default)]
+            network: SageGrantedNetworkPermissions,
+        }
+
+        let raw = RawSageGrantedPermissions::deserialize(deserializer)?;
+
+        validate_permissions_policy(
+            raw.capabilities.iter().copied(),
+            raw.network.whitelist_iter().cloned(),
+            "granted permissions",
+        )
+            .map_err(serde::de::Error::custom)?;
+
+        Ok(Self {
+            capabilities: raw.capabilities,
+            network: raw.network,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for SageGrantedNetworkPermissions {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Raw {
+            #[serde(default)]
+            whitelist: BTreeSet<SageNetworkWhitelistEntry>,
+        }
+
+        let raw = Raw::deserialize(deserializer)?;
+
+        Ok(Self {
+            whitelist: raw.whitelist,
+        })
     }
 }
 

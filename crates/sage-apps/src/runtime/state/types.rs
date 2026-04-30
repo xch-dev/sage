@@ -4,9 +4,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::{Mutex, oneshot};
 use parking_lot::RwLock;
-
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::types::{SageApp, SageAppView, SharedSageApp};
+use crate::types::{SageApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -28,6 +27,7 @@ pub enum SageAppRuntimeVisibility {
     Hidden,
 }
 
+#[derive(Debug)]
 pub struct SageAppRuntimeRecord {
     runtime_id: String,
     app: SharedSageApp,
@@ -40,7 +40,7 @@ pub struct SageAppRuntimeRecord {
     internal: bool,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SharedRuntime {
     inner: Arc<RwLock<SageAppRuntimeRecord>>,
 }
@@ -111,7 +111,7 @@ impl SageAppRuntimeRecord {
 
         Self {
             runtime_id: runtime_id_for(app),
-            app: app.clone(),
+            app: app.clone_for_runtime_owner(),
             host_window_label: host_window_label.to_string(),
             webview_label: webview_label.to_string(),
             mode,
@@ -138,24 +138,24 @@ impl SageAppRuntimeRecord {
         self.last_active_at = unix_timestamp_ms();
     }
 
-    pub fn runtime_id(&self) -> &str {
-        &self.runtime_id
+    pub fn runtime_id(&self) -> String {
+        self.runtime_id.to_string()
     }
 
-    pub fn app(&self) -> &SharedSageApp {
-        &self.app
+    pub fn app(&self) -> SharedSageApp {
+        self.app.clone_for_runtime_owner()
     }
 
     pub fn app_id(&self) -> String {
-        self.app.with(|app| app.id().to_string())
+        self.app.id()
     }
 
     pub fn app_name(&self) -> String {
-        self.app.with(|app| app.name().to_string())
+        self.app.name()
     }
 
     pub fn entry_src(&self) -> String {
-        self.app.with(|app| app.common().entry_file().to_string())
+        self.app.with(SageApp::entry_file)
     }
 
     pub fn webview_label(&self) -> &str {
@@ -166,12 +166,12 @@ impl SageAppRuntimeRecord {
         &self.host_window_label
     }
 
-    pub fn mode(&self) -> &SageAppRuntimeMode {
-        &self.mode
+    pub fn mode(&self) -> SageAppRuntimeMode {
+        self.mode
     }
 
-    pub fn state(&self) -> &SageAppRuntimeVisibility {
-        &self.visibility
+    pub fn visibility(&self) -> SageAppRuntimeVisibility {
+        self.visibility
     }
 
     pub fn started_at(&self) -> i64 {
@@ -248,11 +248,12 @@ impl SharedRuntime {
     }
 
     pub fn app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.app.clone())
+        self.with_runtime(|runtime| runtime.app.clone_for_resolved_running_app())
     }
 
     pub fn with_app<T>(&self, f: impl FnOnce(&SharedSageApp) -> T) -> T {
-        self.with_runtime(|runtime| f(runtime.app()))
+        let app = self.app();
+        f(&app)
     }
 
     pub fn with_app_inner<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {
@@ -260,60 +261,18 @@ impl SharedRuntime {
     }
 
     pub fn is_user_app(&self) -> bool {
-        self.with_app(|shared_app| shared_app.is_user_app())
+        self.with_app(SharedSageApp::is_user_app)
     }
 
     pub fn is_system_app(&self) -> bool {
-        self.with_app(|shared_app| shared_app.is_system_app())
+        self.with_app(SharedSageApp::is_system_app)
+    }
+
+    pub fn runtime_id(&self) -> String {
+        self.with_runtime(|runtime| runtime.runtime_id().to_string())
     }
 
     pub fn app_id(&self) -> String {
         self.with_app_inner(|app| app.id().to_string())
     }
 }
-
-fn runtime_state_for_visible(visible: bool) -> &'static str {
-    if visible { "running" } else { "hidden" }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-pub struct SageAppRuntimeRecordView {
-    runtime_id: String,
-    app: SageAppView,
-    mode: SageAppRuntimeMode,
-    visibility: SageAppRuntimeVisibility,
-    started_at: i64,
-    last_active_at: i64,
-    internal: bool,
-}
-
-impl From<&SharedRuntime> for SageAppRuntimeRecordView {
-    fn from(value: &SharedRuntime) -> Self {
-        value.with_runtime(|runtime| Self {
-            runtime_id: runtime.runtime_id.clone(),
-            app: runtime.app.into(),
-            mode: runtime.mode,
-            visibility: runtime.visibility,
-            started_at: runtime.started_at,
-            last_active_at: runtime.last_active_at,
-            internal: runtime.internal,
-        })
-    }
-}
-
-
-
-

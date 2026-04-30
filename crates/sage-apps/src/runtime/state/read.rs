@@ -1,7 +1,20 @@
 use crate::AppsHostState;
 use crate::runtime::state::types::{SharedRuntime};
 use std::cmp::Reverse;
+use std::fmt::Display;
 use tauri::State;
+
+pub enum GetRuntimeError {
+    NotFound,
+}
+
+impl Display for GetRuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            GetRuntimeError::NotFound => String::from("Runtime not found"),
+        })
+    }
+}
 
 pub async fn find_runtime_by_app_id_optional(
     apps_state: &State<'_, AppsHostState>,
@@ -30,10 +43,10 @@ pub(crate) async fn find_runtime_by_runtime_id_optional(
 pub(crate) async fn get_runtime_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-) -> Result<SharedRuntime, String> {
+) -> Result<SharedRuntime, GetRuntimeError> {
     find_runtime_by_app_id_optional(apps_state, app_id)
         .await
-        .ok_or_else(|| format!("runtime record not found for app id: {app_id}"))
+        .ok_or(GetRuntimeError::NotFound)
 }
 
 pub(crate) async fn list_runtimes(
@@ -45,11 +58,11 @@ pub(crate) async fn list_runtimes(
     };
 
     runtimes.retain(|runtime| {
-        !runtime.with_runtime(|runtime| runtime.internal())
+        !runtime.with_runtime(super::types::SageAppRuntimeRecord::internal)
     });
 
     runtimes.sort_by_key(|runtime| {
-        Reverse(runtime.with_runtime(|runtime| runtime.started_at()))
+        Reverse(runtime.with_runtime(super::types::SageAppRuntimeRecord::started_at))
     });
 
     Ok(runtimes)

@@ -9,10 +9,7 @@ use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
 use crate::system_apps::list_builtin_system_apps;
-use crate::types::{
-    CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry,
-    SageApp, SageNetworkWhitelistEntry, UserSageApp,
-};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageNetworkWhitelistEntry, SharedSageApp, UserSageApp};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -59,9 +56,14 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     persisted.try_into()
 }
 
-pub fn write_installed_app_metadata(app: &UserSageApp) -> AnyResult<()> {
-    let path = installed_metadata_path(&app.app_path());
-    let persisted = PersistedUserSageApp::from(app);
+pub fn write_installed_app_metadata(app: &SharedSageApp) -> AnyResult<()> {
+    if app.is_system_app() {
+        return Ok(());
+    }
+
+    let app_path = app.app_path();
+    let path = installed_metadata_path(&app_path);
+    let persisted = PersistedUserSageApp::try_from(app)?;
 
     let text = serde_json::to_string_pretty(&persisted)
         .map_err(|err| anyhow::anyhow!("failed to serialize installed app metadata: {err}"))?;
@@ -213,6 +215,19 @@ pub fn write_retired_app_origins(
     Ok(())
 }
 
+pub fn write_user_app_metadata(app: &UserSageApp) -> AnyResult<()> {
+    let path = installed_metadata_path(&app.app_path());
+    let persisted = PersistedUserSageApp::try_from(app)?;
+
+    let text = serde_json::to_string_pretty(&persisted)
+        .map_err(|err| anyhow::anyhow!("failed to serialize installed app metadata: {err}"))?;
+
+    fs::write(&path, format!("{text}\n"))
+        .with_context(|| format!("failed to write {}", path.display()))?;
+
+    Ok(())
+}
+
 pub fn read_installed_user_app_by_origin_id(
     base_path: &Path,
     origin_id: &str,
@@ -269,11 +284,10 @@ mod tests {
         .unwrap()
     }
 
-    fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> UserSageApp {
+    fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> SharedSageApp {
         sample_app_named(base, app_id, origin_id, "Test App")
     }
-
-    fn sample_app_named(base: &Path, app_id: &str, origin_id: &str, name: &str) -> UserSageApp {
+    fn sample_app_named(base: &Path, app_id: &str, origin_id: &str, name: &str) -> SharedSageApp {
         let dir = app_dir(base, app_id);
         write_index(&dir);
 
@@ -292,10 +306,10 @@ mod tests {
         )
         .unwrap();
 
-        UserSageApp::new_installed(
+        SharedSageApp::new(SageApp::User(UserSageApp::new_installed(
             common,
             UserSageAppSource::url("https://example.com/app/").unwrap(),
-        )
+        )))
     }
 
     fn without_system_apps(listed: Vec<ListedSageApp>) -> Vec<ListedSageApp> {
@@ -312,16 +326,18 @@ mod tests {
 
         write_installed_app_metadata(&app).unwrap();
 
-        let read_back = read_installed_app_by_id(tmp.path(), app.common().id()).unwrap();
+        let read_back = read_installed_app_by_id(tmp.path(), &app.id()).unwrap();
 
-        assert_eq!(read_back.common().id(), app.common().id());
-        assert_eq!(read_back.common().origin_id(), app.common().origin_id());
-        assert_eq!(read_back.common().storage(), app.common().storage());
-        assert_eq!(
-            read_back.common().granted_permissions(),
-            app.common().granted_permissions()
-        );
-        assert!(!read_back.common().flags().has_external_access());
+        app.with(|app| {
+            assert_eq!(read_back.common().id(), app.id());
+            assert_eq!(read_back.common().origin_id(), app.origin_id());
+            assert_eq!(read_back.common().storage(), app.common().storage());
+            assert_eq!(
+                read_back.common().granted_permissions(),
+                app.common().granted_permissions()
+            );
+            assert!(!read_back.common().flags().has_external_access());
+        });
     }
 
     #[test]

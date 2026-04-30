@@ -12,7 +12,7 @@ pub async fn apps_create_inline_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    create_runtime(app, apps_state, args).await.into()
+    create_runtime(app, apps_state, args).await.map(Into::into)
 }
 
 #[tauri::command]
@@ -20,7 +20,9 @@ pub async fn apps_create_inline_runtime(
 pub async fn apps_list_runtimes(
     apps_state: State<'_, AppsHostState>,
 ) -> Result<Vec<SageAppRuntimeRecordView>, String> {
-    list_runtimes(&apps_state).await.map(Into::into)
+    list_runtimes(&apps_state)
+        .await
+        .map(|runtimes| runtimes.into_iter().map(Into::into).collect())
 }
 
 #[tauri::command]
@@ -30,7 +32,9 @@ pub async fn apps_focus_runtime(
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    focus_runtime(&app, &apps_state, &params.app_id).await.into()
+    focus_runtime(&app, &apps_state, &params.app_id)
+        .await
+        .map(Into::into)
 }
 
 #[tauri::command]
@@ -40,7 +44,9 @@ pub async fn apps_hide_runtime(
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    hide_runtime(&app, &apps_state, &params.app_id).await.into()
+    hide_runtime(&app, &apps_state, &params.app_id)
+        .await
+        .map(Into::into)
 }
 
 #[tauri::command]
@@ -50,5 +56,12 @@ pub async fn apps_kill_runtime(
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SystemKillRuntimeResult, String> {
-    kill_runtime(&app, &apps_state, &params.app_id, "user_kill").await
+    kill_runtime(&app, &apps_state, &params.app_id, "user_kill")
+        .await
+        .map_err(|_| "Runtime not found".to_string())?;
+
+    Ok(SystemKillRuntimeResult {
+        ok: true,
+        app_id: params.app_id,
+    })
 }

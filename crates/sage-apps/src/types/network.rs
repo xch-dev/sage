@@ -10,7 +10,7 @@ pub struct SageNetworkWhitelistEntry {
     host: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 pub struct SageRequestedNetworkWhitelist {
     required: BTreeSet<SageNetworkWhitelistEntry>,
     optional: BTreeSet<SageNetworkWhitelistEntry>,

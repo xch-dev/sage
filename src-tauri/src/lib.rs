@@ -162,7 +162,7 @@ pub fn run() {
             apps::lifecycle::update::commands::apply_app_update,
             apps::lifecycle::update::commands::apps_update_permissions,
             apps::lifecycle::apps_clear_runtime_browsing_data,
-            apps::sandbox::get_builtin_test_app,
+            apps::sandbox::commands::get_builtin_test_app,
             apps::system_apps::get_builtin_system_app,
             apps::runtime::commands::apps_create_inline_runtime,
             apps::runtime::commands::apps_list_runtimes,
@@ -205,10 +205,14 @@ pub fn run() {
 
     tauri_builder
         .register_uri_scheme_protocol("sage-app", move |ctx, request| {
-            handle_user_app_protocol_request(&ctx, &request)
+            tauri::async_runtime::block_on(
+                handle_user_app_protocol_request(&ctx, &request)
+            )
         })
         .register_uri_scheme_protocol("sage-system-app", move |ctx, request| {
-            handle_system_app_protocol_request(&ctx, &request)
+            tauri::async_runtime::block_on(
+                handle_system_app_protocol_request(&ctx, &request)
+            )
         })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {

@@ -1,7 +1,7 @@
 use crate::AppsHostState;
-use crate::runtime::emit_runtime_manager_runtimes_changed;
+use crate::runtime::{emit_runtime_manager_runtimes_changed, GetRuntimeError, SharedRuntime};
 use crate::runtime::state::{
-    SageAppRuntimeRecord, SageLifecycleBeforeStopDetail, find_runtime_by_runtime_id_optional,
+    SageLifecycleBeforeStopDetail, find_runtime_by_runtime_id_optional,
     find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
     remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
     remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready,
@@ -24,27 +24,31 @@ pub struct SystemKillRuntimeResult {
     pub app_id: String,
 }
 
+
+#[derive(Debug, Copy, Clone)]
+pub enum SystemKillRuntimeError {
+    NotFound
+}
+
 pub(crate) async fn kill_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     reason: &str,
-) -> Result<SystemKillRuntimeResult, String> {
-    let _ = get_runtime_by_app_id(apps_state, app_id).await?;
+) -> Result<(), SystemKillRuntimeError> {
+    let _ = get_runtime_by_app_id(apps_state, app_id).await.map_err(|e| match e {
+        GetRuntimeError::NotFound => SystemKillRuntimeError::NotFound
+    });
 
-    close_runtime_internal_with_reason(app, apps_state, app_id, reason).await?;
-
-    Ok(SystemKillRuntimeResult {
-        ok: true,
-        app_id: app_id.to_string(),
-    })
+    close_runtime_internal_with_reason(app, apps_state, app_id, reason).await;
+    Ok(())
 }
 
 pub(crate) async fn close_runtime_internal(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-) -> Result<(), String> {
+) {
     close_runtime_internal_with_reason(app, apps_state, app_id, "host_close").await
 }
 
@@ -53,18 +57,18 @@ pub(super) async fn close_runtime_internal_with_reason(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     reason: &str,
-) -> Result<(), String> {
+) {
     let Some(runtime_id) = find_runtime_id_by_app_id_optional(apps_state, app_id).await else {
-        return Ok(());
+        return;
     };
     let Some(runtime) = find_runtime_by_runtime_id_optional(apps_state, &runtime_id).await else {
         remove_runtime_id_by_app_id(apps_state, app_id).await;
-        return Ok(());
+        return;
     };
 
     let _ = wait_for_before_stop_ack(app, apps_state, &runtime, reason).await;
 
-    if let Some(webview) = find_webview_in_sage_window(app, runtime.webview_label()) {
+    if let Some(webview) = find_webview_in_sage_window(app, &runtime.app().webview_label()) {
         let _ = webview.close();
     }
 
@@ -72,14 +76,12 @@ pub(super) async fn close_runtime_internal_with_reason(
     remove_runtime_id_by_app_id(apps_state, app_id).await;
     remove_before_stop_listeners_by_app_id(apps_state, app_id).await;
     emit_runtime_manager_runtimes_changed(app, apps_state).await;
-
-    Ok(())
 }
 
 async fn wait_for_before_stop_ack(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    runtime: &SageAppRuntimeRecord,
+    runtime: &SharedRuntime,
     reason: &str,
 ) -> Result<(), String> {
     let has_listener = {
@@ -88,13 +90,13 @@ async fn wait_for_before_stop_ack(
             .before_stop_listeners_by_app_id
             .lock()
             .await;
-        listeners.contains(runtime.app_id())
+        listeners.contains(&runtime.app_id())
     };
 
     if !has_listener {
         return Ok(());
     }
-    let Some(app_webview) = find_webview_in_sage_window(app, runtime.webview_label()) else {
+    let Some(app_webview) = find_webview_in_sage_window(app, &runtime.app().webview_label()) else {
         return Ok(());
     };
 

@@ -1,8 +1,8 @@
-use crate::types::app::UserSageApp;
 use crate::utils::unix_timestamp_ms;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
+use crate::types::SharedSageApp;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -34,13 +34,13 @@ pub struct PendingStorageCleanupEntry {
 }
 
 impl PendingStorageCleanupEntry {
-    pub fn new(app: &UserSageApp, target: PendingStorageCleanupTarget, error: &str) -> Self {
+    pub fn new(app: &SharedSageApp, target: PendingStorageCleanupTarget, error: &str) -> Self {
         let now = unix_timestamp_ms();
 
         Self {
             id: Uuid::new_v4().to_string(),
-            app_id: app.common().id().to_string(),
-            app_name: app.common().name().to_string(),
+            app_id: app.id(),
+            app_name: app.name(),
             target,
             created_at_ms: now,
             last_attempt_at_ms: Some(now),

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
 
-use crate::types::app::user_apps::UserSageApp;
+use crate::types::SharedSageApp;
 use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -18,22 +18,22 @@ pub struct RetiredAppOriginEntry {
 }
 
 impl RetiredAppOriginEntry {
-    pub fn new(app: &UserSageApp, cleanup_pending: bool) -> Self {
+    pub fn new(app: &SharedSageApp, cleanup_pending: bool) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
-            app_id: app.common().id().to_string(),
-            app_name: app.common().name().to_string(),
-            origin_id: app.common().origin_id().to_string(),
+            app_id: app.id().to_string(),
+            app_name: app.name().to_string(),
+            origin_id: app.origin_id().to_string(),
             created_at_ms: unix_timestamp_ms(),
-            storage_may_contain_secrets: app.common().flags().storage_may_contain_secrets(),
+            storage_may_contain_secrets: app.storage_may_contain_secrets(),
             cleanup_pending,
         }
     }
 
-    pub fn update_retirement_state(&mut self, app: &UserSageApp, cleanup_pending: bool) {
+    pub fn update_retirement_state(&mut self, app: &SharedSageApp, cleanup_pending: bool) {
         self.cleanup_pending = cleanup_pending;
         self.storage_may_contain_secrets =
-            self.storage_may_contain_secrets || app.common().flags().storage_may_contain_secrets();
+            self.storage_may_contain_secrets || app.storage_may_contain_secrets();
     }
 
     pub fn matches_app_origin(&self, app_id: &str, origin_id: &str) -> bool {

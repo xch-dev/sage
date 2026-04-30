@@ -1,8 +1,8 @@
-use tauri::{AppHandle, State};
+use tauri::{command, AppHandle, State};
 
 use crate::AppsHostState;
 use crate::runtime::resolve_app;
-
+use crate::sandbox::build_builtin_test_app;
 use super::gate::evaluate_app_launch_gate;
 use super::runner::{begin_sandbox_run, sandbox_runner};
 use super::state_view::{build_effective_state, build_state_view};
@@ -19,26 +19,30 @@ pub async fn apps_get_sandbox_state(
     Ok(build_state_view(&baseline, current_run.as_ref()))
 }
 
-#[tauri::command]
+#[command]
 #[specta::specta]
 pub async fn apps_get_app_launch_gate(
     app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     app_id: String,
 ) -> Result<AppLaunchGateResult, String> {
-    let app = resolve_app(&app_handle, &app_id)?;
+    let resolved_app = resolve_app(&app_handle, &app_id)
+        .await
+        .map_err(|_| "app not found".to_string())?;
 
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
 
     let effective = build_effective_state(&baseline, current_run.as_ref());
 
-    let evaluated_gate = evaluate_app_launch_gate(&app, &effective);
+    let evaluated_gate = resolved_app.with_app(|app| {
+        evaluate_app_launch_gate(app, &effective)
+    });
     
     Ok(evaluated_gate)
 }
 
-#[tauri::command]
+#[command]
 #[specta::specta]
 pub async fn apps_rerun_sandbox_tests(
     app: AppHandle,
@@ -53,4 +57,14 @@ pub async fn apps_rerun_sandbox_tests(
     });
 
     Ok(view)
+}
+
+#[command]
+#[specta::specta]
+pub fn get_builtin_test_app(app_id: String) -> crate::host::Result<Option<crate::types::SageAppView>> {
+    build_builtin_test_app(&app_id)
+        .map(|app| app.map(|app| crate::types::SharedSageApp::new(app).into()))
+        .map_err(|err| {
+            std::io::Error::other(format!("failed to load builtin test app: {err}")).into()
+        })
 }

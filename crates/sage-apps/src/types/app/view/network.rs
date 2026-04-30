@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 use crate::types::SageNetworkWhitelistEntry;
 
-#[derive(Debug, Clone, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntryView {
     scheme: String,
     host: String,

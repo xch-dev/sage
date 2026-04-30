@@ -35,7 +35,7 @@ impl BridgeMethod for AppGetCapabilities {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let effective_capabilities = match ctx.app {
+        let effective_capabilities = ctx.app.with(|app| match app {
             SageApp::User(user_app) => user_app
                 .common()
                 .requested_permissions()
@@ -49,13 +49,12 @@ impl BridgeMethod for AppGetCapabilities {
                 )
                 .unwrap_or_default(),
 
-            SageApp::System(_) => ctx
-                .app
+            SageApp::System(_) => app
                 .granted_permissions()
                 .capabilities()
                 .copied()
                 .collect(),
-        };
+        });
 
         let shared_capabilities = effective_capabilities.shared();
 

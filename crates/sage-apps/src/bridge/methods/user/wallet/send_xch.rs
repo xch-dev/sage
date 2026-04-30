@@ -69,7 +69,7 @@ impl BridgeMethod for WalletSendXch {
         let params = parse_required_params::<WalletSendXchParams>(self, request)?;
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.clone(),
+            app: ctx.app.into(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::SendXch { summary: params },

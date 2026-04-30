@@ -1,12 +1,12 @@
 use std::collections::BTreeSet;
 
-use crate::types::SageAppCommon;
+use crate::types::{SharedSageApp};
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
 }
 
-pub fn build_app_csp(app: &SageAppCommon) -> String {
+pub fn build_app_csp(app: &SharedSageApp) -> String {
     let default_src = csp_source_list(&["'self'".to_string()]);
     let script_src = csp_source_list(&["'self'".to_string(), "'wasm-unsafe-eval'".to_string()]);
     let style_src = csp_source_list(&["'self'".to_string(), "'unsafe-inline'".to_string()]);
@@ -29,9 +29,11 @@ pub fn build_app_csp(app: &SageAppCommon) -> String {
 
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
-    for entry in app.granted_permissions().network().whitelist_iter() {
-        connect_sources.insert(entry.as_permission_string());
-    }
+    app.with(|app| {
+        for entry in app.granted_permissions().network().whitelist_iter() {
+            connect_sources.insert(entry.as_permission_string());
+        }
+    });
 
     let connect_src = csp_source_list(&connect_sources.into_iter().collect::<Vec<_>>());
 

@@ -5,7 +5,7 @@ use anyhow::Context;
 use anyhow::{Result as AnyResult, anyhow};
 #[cfg(target_os = "windows")]
 use std::fs;
-use tauri::{AppHandle, Manager, State, command};
+use tauri::{AppHandle, State, command};
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use uuid::Uuid;
 
@@ -14,13 +14,10 @@ use crate::lifecycle::{
     read_pending_storage_cleanup_entries, read_retired_app_origins,
     write_pending_storage_cleanup_entries, write_retired_app_origins,
 };
-use crate::runtime::resolve_app;
+use crate::runtime::resolve_stopped_app;
 use crate::runtime::stop::close_runtime_internal;
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
-use crate::types::{
-    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
-    RetiredAppOriginEntry, UserSageApp, UserSageAppSource,
-};
+use crate::types::{InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SharedSageApp};
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn allocate_new_storage(
@@ -75,12 +72,12 @@ pub async fn allocate_new_storage(
 
 pub fn record_storage_cleanup_failure(
     base_path: &Path,
-    app: &UserSageApp,
+    app: &SharedSageApp,
     error: &str,
 ) -> AnyResult<()> {
     let mut entries = read_pending_storage_cleanup_entries(base_path)?;
 
-    let target = cleanup_target_from_storage(app.common().storage());
+    let target = cleanup_target_from_storage(&app.with(|app| app.storage().clone()));
 
     if let Some(entry) = entries.iter_mut().find(|entry| entry.target() == &target) {
         entry.record_failed_attempt(error);
@@ -163,26 +160,36 @@ pub async fn clear_app_storage_by_target(
 }
 
 pub fn enqueue_retired_app_origin(
-    base_path: &Path,
-    app: &UserSageApp,
+    app: &SharedSageApp,
     cleanup_pending: bool,
 ) -> AnyResult<()> {
-    let UserSageAppSource::Url { .. } = app.source() else {
-        return Ok(());
+    let app_parent_path = app.with(|app| {
+        let user = app.as_user()?;
+
+        match user.source() {
+            crate::types::UserSageAppSource::Url { .. } => {}
+            crate::types::UserSageAppSource::Zip => return None,
+        }
+
+        let app_path = app.app_path();
+        app_path.parent().map(|path| path.to_path_buf())
+    });
+    let Some(app_parent_path) = app_parent_path else {
+         return Ok(());
     };
 
-    let mut entries = read_retired_app_origins(base_path)?;
+    let mut entries = read_retired_app_origins(&app_parent_path)?;
 
     if let Some(existing) = entries
         .iter_mut()
-        .find(|entry| entry.origin_id() == app.common().origin_id())
+        .find(|entry| entry.origin_id() == app.origin_id())
     {
         existing.update_retirement_state(app, cleanup_pending);
     } else {
         entries.push(RetiredAppOriginEntry::new(app, cleanup_pending));
     }
 
-    write_retired_app_origins(base_path, &entries)
+    write_retired_app_origins(&app_parent_path, &entries)
 }
 
 pub async fn clear_runtime_browsing_data_internal(
@@ -200,11 +207,12 @@ pub async fn apps_clear_runtime_browsing_data(
     app_handle: AppHandle,
     app_id: String,
 ) -> Result<(), String> {
-    close_runtime_internal(&app_handle, &app_handle.state(), &app_id).await?;
+    let resolved_app = resolve_stopped_app(&app_handle, &app_id).await.map_err(|e| e.to_string())?;
 
-    let app = resolve_app(&app_handle, &app_id)?;
-
-    let target = cleanup_target_from_storage(&app);
+    let storage = resolved_app.with_app(|app| {
+        app.with(|app| app.storage().clone())
+    });
+    let target = cleanup_target_from_storage(&storage);
     clear_app_storage_by_target(&app_handle, &target).await
 }
 
@@ -217,11 +225,7 @@ mod tests {
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{
-        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageRequestedCapabilities, SageRequestedPermissions, UserSageAppSource,
-    };
+    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
     use tempfile::tempdir;
 
     fn write_index(app_dir: &Path) {
@@ -236,7 +240,7 @@ mod tests {
         storage: InstalledSageAppStorage,
         source: UserSageAppSource,
         storage_may_contain_secrets: bool,
-    ) -> UserSageApp {
+    ) -> SharedSageApp {
         let app_dir = app_dir(base_path, app_id);
         write_index(&app_dir);
 
@@ -284,7 +288,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut app = UserSageApp::new_installed(common, source).into_sage_app();
+        let app = SharedSageApp::new(UserSageApp::new_installed(common, source).into_sage_app());
 
         if storage_may_contain_secrets {
             let _record = SageAppRuntimeRecord::new(
@@ -297,11 +301,12 @@ mod tests {
             );
         }
 
-        app.into_user()
-            .expect("sample app should remain a user app")
+        assert!(app.is_user_app(), "sample app should remain a user app");
+
+        app
     }
 
-    fn sample_app(base_path: &Path, storage: InstalledSageAppStorage) -> UserSageApp {
+    fn sample_app(base_path: &Path, storage: InstalledSageAppStorage) -> SharedSageApp {
         sample_app_with(
             base_path,
             "url-abc123",
@@ -442,7 +447,7 @@ mod tests {
             true,
         );
 
-        enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
+        enqueue_retired_app_origin(&app, true).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert!(entries.is_empty());
@@ -453,12 +458,12 @@ mod tests {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
 
-        enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
+        enqueue_retired_app_origin(&app, true).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].app_id(), app.common().id());
-        assert_eq!(entries[0].origin_id(), app.common().origin_id());
+        assert_eq!(entries[0].app_id(), app.id());
+        assert_eq!(entries[0].origin_id(), app.origin_id());
         assert!(entries[0].cleanup_pending());
         assert!(entries[0].storage_may_contain_secrets());
     }
@@ -468,8 +473,8 @@ mod tests {
         let dir = tempdir().unwrap();
         let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
 
-        enqueue_retired_app_origin(dir.path(), &app, true).unwrap();
-        enqueue_retired_app_origin(dir.path(), &app, false).unwrap();
+        enqueue_retired_app_origin(&app, true).unwrap();
+        enqueue_retired_app_origin(&app, false).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);
@@ -489,7 +494,7 @@ mod tests {
             false,
         );
 
-        enqueue_retired_app_origin(dir.path(), &clean_app, false).unwrap();
+        enqueue_retired_app_origin(&clean_app, false).unwrap();
 
         let tainted_app = sample_app_with(
             dir.path(),
@@ -500,7 +505,7 @@ mod tests {
             true,
         );
 
-        enqueue_retired_app_origin(dir.path(), &tainted_app, true).unwrap();
+        enqueue_retired_app_origin(&tainted_app, true).unwrap();
 
         let entries = read_retired_app_origins(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);

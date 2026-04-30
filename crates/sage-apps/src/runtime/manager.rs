@@ -67,7 +67,7 @@ pub(crate) async fn focus_runtime(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, String> {
-    let runtime = get_runtime_by_app_id(apps_state, app_id).await?;
+    let runtime = get_runtime_by_app_id(apps_state, app_id).await.map_err(|e| e.to_string())?;
 
     let webview_label = runtime.with_runtime(|record| record.webview_label().to_string());
 
@@ -93,7 +93,7 @@ pub(crate) async fn hide_runtime(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, String> {
-    let runtime = get_runtime_by_app_id(apps_state, app_id).await?;
+    let runtime = get_runtime_by_app_id(apps_state, app_id).await.map_err(|e| e.to_string())?;
 
     let webview_label = runtime.with_runtime(|record| record.webview_label().to_string());
 

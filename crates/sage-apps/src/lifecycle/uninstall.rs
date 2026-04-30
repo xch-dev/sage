@@ -1,10 +1,10 @@
 use crate::host::{AppState, Result};
 use crate::lifecycle::{
-    apps_clear_runtime_browsing_data, apps_root, enqueue_retired_app_origin,
-    read_installed_app_by_id, record_storage_cleanup_failure,
+    apps_clear_runtime_browsing_data, apps_root, enqueue_retired_app_origin, record_storage_cleanup_failure,
 };
 use std::{fs, io};
 use tauri::{AppHandle, State, command};
+use crate::runtime::{resolve_stopped_app, ResolveStoppedError};
 
 #[command]
 #[specta::specta]
@@ -18,36 +18,37 @@ pub async fn uninstall_app(
         state.path.clone()
     };
 
-    let installed = read_installed_app_by_id(&base_path, &app_id).ok();
-
-    if let Some(installed) = &installed {
-        let cleanup_result = apps_clear_runtime_browsing_data(app.clone(), app_id.clone()).await;
-
-        match cleanup_result {
-            Ok(()) => {
-                enqueue_retired_app_origin(&base_path, installed, false).map_err(|err| {
-                    io::Error::other(format!(
-                        "failed to retire app origin after uninstall cleanup: {err}"
-                    ))
-                })?;
-            }
-            Err(err) => {
-                record_storage_cleanup_failure(&base_path, installed, &err).map_err(
-                    |queue_err| {
-                        io::Error::other(format!(
-                            "failed to enqueue pending storage cleanup after clear failure ({err}): {queue_err}"
-                        ))
-                    },
-                )?;
-
-                enqueue_retired_app_origin(&base_path, installed, true).map_err(|origin_err| {
-                    io::Error::other(format!(
-                        "failed to retire app origin after cleanup failure ({err}): {origin_err}"
-                    ))
-                })?;
-            }
+    let resolved_app = match resolve_stopped_app(&app, &app_id).await {
+        Ok(app) => app,
+        Err(ResolveStoppedError::AppDirMissing) => return Ok(()),
+        Err(ResolveStoppedError::CloseAttemptsHit) => {
+            return Err(io::Error::other(
+                "failed to uninstall app because runtime could not be stopped",
+            )
+                .into());
         }
-    }
+    };
+
+    let cleanup_result = apps_clear_runtime_browsing_data(app.clone(), app_id.clone()).await;
+
+    resolved_app.try_with_app(|installed| {
+        if let Ok(()) = cleanup_result {
+            enqueue_retired_app_origin(installed, false).map_err(|_| {
+                io::Error::other("failed to retire app origin")
+            })?;
+        } else {
+            record_storage_cleanup_failure(&base_path, installed, "storage cleanup failed")
+                .map_err(|_| {
+                    io::Error::other("failed to record storage cleanup failure")
+                })?;
+
+            enqueue_retired_app_origin(installed, true).map_err(|_| {
+                io::Error::other("failed to retire app origin")
+            })?;
+        }
+
+        Ok::<(), crate::host::SageAppsError>(())
+    })?;
 
     let dir = apps_root(&base_path).join(&app_id);
 

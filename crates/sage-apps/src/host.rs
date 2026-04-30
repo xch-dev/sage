@@ -1,6 +1,7 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 use std::sync::Arc;
+use parking_lot::RwLock;
 use crate::bridge::state::BridgeState;
 use crate::runtime::AppRuntimeState;
 use crate::sandbox::SandboxStateStore;
@@ -16,9 +17,24 @@ pub type AppState = Arc<Mutex<Sage>>;
 #[derive(Debug, Default)]
 pub struct AppsHostState {
     pub system_apps: BTreeMap<String, SystemSageApp>,
+    pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub runtime: AppRuntimeState,
     pub bridge: BridgeState,
     pub sandbox: SandboxStateStore,
+}
+
+impl AppsHostState {
+    pub fn operation_lock_for_app(&self, app_id: &str) -> Arc<Mutex<()>> {
+        if let Some(lock) = self.app_operation_locks.read().get(app_id) {
+            return lock.clone();
+        }
+
+        self.app_operation_locks
+            .write()
+            .entry(app_id.to_string())
+            .or_insert_with(|| Arc::new(Mutex::new(())))
+            .clone()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -47,6 +63,15 @@ impl From<reqwest::Error> for SageAppsError {
 
 impl From<std::io::Error> for SageAppsError {
     fn from(error: std::io::Error) -> Self {
+        Self {
+            kind: ErrorKind::Internal,
+            reason: error.to_string(),
+        }
+    }
+}
+
+impl From<anyhow::Error> for SageAppsError {
+    fn from(error: anyhow::Error) -> Self {
         Self {
             kind: ErrorKind::Internal,
             reason: error.to_string(),

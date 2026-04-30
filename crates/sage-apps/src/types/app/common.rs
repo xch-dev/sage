@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-
+use serde::{Deserialize, Deserializer, Serialize};
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -11,7 +11,7 @@ use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SageAppIdentity {
     id: String,
     origin_id: String,
@@ -227,5 +227,29 @@ impl SageAppIdentity {
 
     pub fn app_dir(&self) -> &str {
         &self.app_dir
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SageAppIdentityRaw {
+    id: String,
+    origin_id: String,
+    app_dir: String,
+}
+
+impl<'de> Deserialize<'de> for SageAppIdentity {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw = SageAppIdentityRaw::deserialize(deserializer)?;
+
+        SageAppIdentity::new(
+            raw.id,
+            raw.origin_id,
+            raw.app_dir,
+        )
+            .map_err(serde::de::Error::custom)
     }
 }

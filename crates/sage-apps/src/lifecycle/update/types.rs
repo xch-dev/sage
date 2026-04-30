@@ -1,10 +1,9 @@
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, UserSageApp};
+use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry};
 use std::collections::BTreeSet;
 
 #[derive(Debug)]
 pub struct AppUpdateResult {
-    app: UserSageApp,
     change: GrantedPermissionsChange,
 }
 
@@ -117,16 +116,8 @@ impl GrantedPermissionsChange {
 }
 
 impl AppUpdateResult {
-    pub fn new(app: UserSageApp, change: GrantedPermissionsChange) -> Self {
-        Self { app, change }
-    }
-
-    pub fn app(&self) -> &UserSageApp {
-        &self.app
-    }
-
-    pub fn into_app(self) -> UserSageApp {
-        self.app
+    pub fn new(change: GrantedPermissionsChange) -> Self {
+        Self { change }
     }
 
     pub fn change(&self) -> &GrantedPermissionsChange {

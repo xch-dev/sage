@@ -127,7 +127,7 @@ pub(crate) async fn execute_bridge_request(
 ) -> RustBridgeResponse {
     let registry = BridgeRegistry::new_for_app(app);
 
-    let method = match assert_method(&registry, &request) {
+    let method = match assert_method(&registry, request) {
         Ok(method) => method,
         Err(response) => return response
     };

@@ -58,7 +58,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         let definition = get_user_capability_definition(params.capability);
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.clone(),
+            app: ctx.app.into(),
             source_label: ctx.source_label.to_string(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::CapabilityGrant {
@@ -81,7 +81,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         let result = match grant_capability(
             tools.app_handle,
             &base_path,
-            ctx.app.id(),
+            &ctx.app.id(),
             params.capability,
         )
         .await

@@ -2,14 +2,16 @@ mod read;
 mod remove;
 mod types;
 mod write;
+mod view;
 
-pub use types::{AppRuntimeState, SageAppRuntimeKind, SharedRuntime, SageAppRuntimeRecord, SageAppRuntimeRecordView};
+pub use view::SageAppRuntimeRecordView;
+pub use types::{AppRuntimeState, SageAppRuntimeKind, SharedRuntime, SageAppRuntimeRecord};
 
 pub use read::find_runtime_by_app_id_optional;
 
 pub(crate) use read::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    list_runtimes,
+    list_runtimes, GetRuntimeError
 };
 pub(crate) use types::{
     ReadyToStopParams, RuntimeAckResult, SageLifecycleBeforeStopDetail, SetBeforeStopListenerParams,

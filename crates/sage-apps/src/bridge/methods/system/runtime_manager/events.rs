@@ -1,4 +1,4 @@
-use crate::runtime::{SageAppRuntimeRecord, SageAppRuntimeRecordView};
+use crate::runtime::SageAppRuntimeRecordView;
 use serde::Serialize;
 use specta::Type;
 

@@ -1,10 +1,9 @@
-use anyhow::{Context, Result as AnyResult, anyhow};
+use anyhow::{Context, Result as AnyResult};
 use std::path::Path;
 use std::{fs, path::PathBuf};
 use sha2::{Digest, Sha256};
-use tauri::command;
 
-use crate::host::Result;
+use crate::system_apps::AppBuildError;
 use crate::types::{
     InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
@@ -133,7 +132,7 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
     Ok(manifest)
 }
 
-pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
+pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildError> {
     let Some(spec) = builtin_test_app_spec(app_id) else {
         return Ok(None);
     };
@@ -141,13 +140,10 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
     let app_dir = builtin_test_apps_root().join(spec.dir_name);
 
     if !app_dir.is_dir() {
-        return Err(anyhow!(
-            "builtin test app directory does not exist: {}",
-            app_dir.display()
-        ));
+        return Err(AppBuildError::AppDirMissing);
     }
 
-    let manifest = read_builtin_manifest(&app_dir)?;
+    let manifest = read_builtin_manifest(&app_dir).map_err(|_| AppBuildError::ManifestFailure)?;
 
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
@@ -158,42 +154,33 @@ pub fn build_builtin_test_app(app_id: &str) -> AnyResult<Option<SageApp>> {
             .whitelist()
             .required()
             .cloned(),
-    )?;
+    ).map_err(|_| AppBuildError::InternalError)?;
 
     let snapshot = SageAppSnapshot::new(
         format!("builtin:{}", spec.app_id),
         app_dir.to_string_lossy().to_string(),
         manifest.clone(),
-    )?;
+    ).map_err(|_| AppBuildError::InternalError)?;
 
     let common = SageAppCommon::new(
         SageAppIdentity::new(
             spec.app_id.to_string(),
             spec.app_id.to_string(),
             app_dir.to_string_lossy().to_string(),
-        )?,
+        ).map_err(|_| AppBuildError::InternalError)?,
         granted_permissions,
         builtin_storage(spec.app_id),
         snapshot,
-    )?;
+    ).map_err(|_| AppBuildError::InternalError)?;
+
+
 
     let entry_file = app_dir.join(common.entry_file());
     if !entry_file.is_file() {
-        return Err(anyhow!(
-            "builtin test app entry file does not exist: {}",
-            entry_file.display()
-        ));
+        return Err(AppBuildError::EntryFileNotFound);
     }
 
     let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
 
     Ok(Some(SageApp::User(app)))
-}
-
-#[command]
-#[specta::specta]
-pub fn get_builtin_test_app(app_id: &str) -> Result<Option<SageApp>> {
-    build_builtin_test_app(app_id).map_err(|err| {
-        std::io::Error::other(format!("failed to load builtin test app: {err}")).into()
-    })
 }

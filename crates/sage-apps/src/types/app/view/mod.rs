@@ -5,5 +5,5 @@ mod snapshot;
 mod permission;
 mod network;
 
-pub(crate) use user_apps::{SageAppView, UserSageAppView};
+pub(crate) use user_apps::{ListedSageAppView, SageAppView, UserSageAppView};
 

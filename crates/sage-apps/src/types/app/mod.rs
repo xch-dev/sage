@@ -19,8 +19,8 @@ pub(crate) use retired_origin::RetiredAppOriginEntry;
 pub(crate) use snapshot::SageAppSnapshot;
 pub(crate) use system_apps::{SystemAppPresentation, SystemSageApp};
 pub(crate) use user_apps::{
-    CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp
+    CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp
 };
-pub(crate) use view::{SageAppView, UserSageAppView};
+pub(crate) use view::{ListedSageAppView, SageAppView, UserSageAppView};
 
 pub(super) use flags::SageAppFlags;

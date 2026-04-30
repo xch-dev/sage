@@ -13,7 +13,7 @@ pub(crate) async fn emit_bridge_response_to_source(
 ) -> Result<(), String> {
     let app_id = app_id_from_webview_label(app_webview_label)
         .ok_or_else(|| format!("invalid webview label for bridge response: {app_webview_label}"))?;
-    let shared_runtime = get_runtime_by_app_id(&app.state(), app_id).await?;
+    let shared_runtime = get_runtime_by_app_id(&app.state(), app_id).await.map_err(|e| e.to_string())?;
     let response_event = shared_runtime.with_app(response_event_for_app);
 
     get_webview_in_sage_window(app, app_webview_label)?
@@ -22,11 +22,11 @@ pub(crate) async fn emit_bridge_response_to_source(
 }
 
 pub(crate) async fn emit_bridge_event_to_app_id(
-    app: &AppHandle,
+    app_handle: &AppHandle,
     app_id: &str,
     event: EventForApp,
 ) -> Result<(), String> {
-    let apps_state = app.state::<AppsHostState>();
+    let apps_state = app_handle.state::<AppsHostState>();
 
     let Some(runtime) = find_runtime_by_app_id_optional(&apps_state, app_id).await else {
         return Ok(());
@@ -35,11 +35,11 @@ pub(crate) async fn emit_bridge_event_to_app_id(
     let (webview_label, event_name) = runtime.with_runtime(|runtime| {
         (
             runtime.webview_label().to_string(),
-            event_event_for_app(runtime.app()),
+            event_event_for_app(&runtime.app()),
         )
     });
 
-    get_webview_in_sage_window(app, &webview_label)?
+    get_webview_in_sage_window(app_handle, &webview_label)?
         .emit(&event_name, event)
         .map_err(|err| format!("failed to emit bridge event: {err}"))
 }

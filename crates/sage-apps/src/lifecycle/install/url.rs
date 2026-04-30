@@ -159,13 +159,8 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
-    use crate::runtime::SageAppRuntimeRecord;
-    use crate::types::{
-        InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity,
-        SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions,
-        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions,
-    };
+    use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
+    use crate::types::{InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp};
     use tempfile::{TempDir, tempdir};
 
     fn fake_retired_app_origins(
@@ -221,7 +216,7 @@ mod tests {
         app_id: &str,
         origin_id: &str,
         storage_may_contain_secrets: bool,
-    ) -> UserSageApp {
+    ) -> SharedSageApp {
         let app_dir = crate::lifecycle::registry::app_dir(base, app_id);
         std::fs::create_dir_all(&app_dir).unwrap();
         std::fs::write(app_dir.join("index.html"), "x").unwrap();
@@ -249,24 +244,28 @@ mod tests {
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
-        .unwrap();
+            .unwrap();
 
-        let user_app = UserSageApp::new_installed(
-            common,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
+        let app = SharedSageApp::new(
+            UserSageApp::new_installed(
+                common,
+                UserSageAppSource::url("https://example.com/app/").unwrap(),
+            )
+                .into_sage_app(),
         );
 
-        if !storage_may_contain_secrets {
-            return user_app;
+        if storage_may_contain_secrets {
+            let _runtime = SageAppRuntimeRecord::new(
+                &app,
+                "test",
+                "sage-app://test/index.html",
+                SageAppRuntimeMode::Inline,
+                SageAppRuntimeVisibility::Visible,
+                false,
+            );
         }
 
-        let mut app = user_app.into_sage_app();
-
-        let _runtime =
-            SageAppRuntimeRecord::new(&mut app, "sage-app://test/index.html", true, false);
-
-        app.into_user()
-            .expect("sample app should remain a user app")
+        app
     }
 
     #[test]
@@ -342,8 +341,14 @@ mod tests {
 
         let source = SageAppUrl::parse("https://example.com/app/").unwrap();
 
-        let origin = source
-            .origin_id(dir.path(), "url-abc123", Some(&existing))
+        let origin = existing
+            .try_with(|app| {
+                let user_app = app
+                    .as_user()
+                    .ok_or_else(|| anyhow::anyhow!("expected user app"))?;
+
+                source.origin_id(dir.path(), "url-abc123", Some(user_app))
+            })
             .unwrap();
 
         assert_eq!(origin, "existing-origin");

@@ -7,11 +7,8 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 use tauri::AppHandle;
 
-use crate::lifecycle::{allocate_new_storage, apps_root, write_installed_app_metadata};
-use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
-    SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
-};
+use crate::lifecycle::{allocate_new_storage, apps_root, write_user_app_metadata};
+use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
 
 pub mod commands;
 pub mod url;
@@ -84,7 +81,7 @@ impl InstallStorageResolver for TauriStorageResolver {
 pub async fn install_app_from_source<S>(
     app: &AppHandle,
     base_path: &Path,
-    granted_permissions: SageGrantedPermissions,
+    granted_permissions_input: SageGrantedPermissionsInput,
     source: S,
 ) -> AnyResult<UserSageApp>
 where
@@ -92,7 +89,7 @@ where
 {
     install_app_from_source_with_storage(
         base_path,
-        granted_permissions,
+        granted_permissions_input,
         source,
         &TauriStorageResolver,
         Some(app),
@@ -102,7 +99,7 @@ where
 
 async fn install_app_from_source_with_storage<S, R>(
     base_path: &Path,
-    granted_permissions: SageGrantedPermissions,
+    sage_granted_permissions_input: SageGrantedPermissionsInput,
     source: S,
     storage_resolver: &R,
     app: Option<&AppHandle>,
@@ -117,10 +114,7 @@ where
     let prepared = source.prepare().await?;
     let manifest = source.manifest(&prepared);
 
-    let granted_permissions = SageGrantedPermissions::from_requested_and_granted(
-        manifest.permissions(),
-        granted_permissions,
-    )?;
+    let granted_permissions = sage_granted_permissions_input.resolve(manifest.permissions())?;
 
     let (app_id, app_dir, existing_app) = source.resolve_target(&root, base_path, &prepared)?;
 
@@ -152,7 +146,7 @@ where
 
     let installed = UserSageApp::new_installed(common, source.source(&prepared));
 
-    write_installed_app_metadata(&installed)?;
+    write_user_app_metadata(&installed)?;
 
     Ok(installed)
 }
@@ -172,11 +166,7 @@ mod tests {
     use super::*;
     use crate::bridge::capabilities::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{
-        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts,
-        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions,
-    };
+    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     struct TestStorageResolver {
@@ -290,15 +280,13 @@ mod tests {
 
         let manifest = sample_manifest();
 
-        let granted = SageGrantedPermissions::new(
-            manifest.permissions(),
+        let granted = SageGrantedPermissionsInput::new(
             [UserBridgeCapability::PersistentStorage],
             [SageNetworkWhitelistEntry::new_unchecked(
                 "https",
                 "api.example.com",
             )],
-        )
-        .unwrap();
+        );
 
         let installed = install_app_from_source_with_storage(
             dir.path(),
@@ -335,7 +323,7 @@ mod tests {
     async fn shared_installer_rejects_unrequested_granted_permission() {
         let dir = tempdir().unwrap();
 
-        let granted = SageGrantedPermissions::new_unchecked(
+        let granted = SageGrantedPermissionsInput::new_unchecked(
             [UserBridgeCapability::PersistentStorage],
             [SageNetworkWhitelistEntry::new_unchecked(
                 "https",

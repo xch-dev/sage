@@ -1,12 +1,13 @@
+use serde::{Deserialize, Deserializer};
 use std::path::{Component, Path, PathBuf};
+use serde::Serialize;
 use crate::types::manifest::SageAppPackageManifest;
 use crate::types::normalizers::normalized_non_empty_string;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct SageAppSnapshot {
     manifest_hash: String,
     snapshot_dir: String,
-    total_bytes: u64,
     manifest: SageAppPackageManifest,
 }
 
@@ -22,7 +23,6 @@ impl SageAppSnapshot {
         let snapshot = Self {
             manifest_hash,
             snapshot_dir,
-            total_bytes: manifest.total_bytes(),
             manifest,
         };
 
@@ -84,10 +84,6 @@ impl SageAppSnapshot {
         &self.snapshot_dir
     }
 
-    pub fn total_bytes(&self) -> u64 {
-        self.total_bytes
-    }
-
     pub fn manifest(&self) -> &SageAppPackageManifest {
         &self.manifest
     }
@@ -106,5 +102,29 @@ impl SageAppSnapshot {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SageAppSnapshotDeserialize {
+    manifest_hash: String,
+    snapshot_dir: String,
+    manifest: SageAppPackageManifest,
+}
+
+impl<'de> Deserialize<'de> for SageAppSnapshot {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let raw = SageAppSnapshotDeserialize::deserialize(deserializer)?;
+
+        SageAppSnapshot::new(
+            raw.manifest_hash,
+            raw.snapshot_dir,
+            raw.manifest,
+        )
+            .map_err(serde::de::Error::custom)
     }
 }

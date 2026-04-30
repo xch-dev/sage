@@ -8,10 +8,7 @@ use crate::lifecycle::install::zip::ZipInstallSource;
 use crate::lifecycle::{
     apps_root, fetch_url_manifest, list_installed_apps_internal, read_manifest, unzip_to_dir,
 };
-use crate::types::{
-    ListedSageApp, SageAppPackageManifest, SageAppUrl, SageAppUrlPreview, SageGrantedPermissions,
-    UserSageApp,
-};
+use crate::types::{ListedSageAppView, SageAppPackageManifest, SageAppUrl, SageAppUrlPreview, SageGrantedPermissionsInput, UserSageAppView};
 use uuid::Uuid;
 
 #[allow(clippy::needless_pass_by_value)]
@@ -52,7 +49,7 @@ pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
 
 #[command]
 #[specta::specta]
-pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<ListedSageApp>> {
+pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<ListedSageAppView>> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()
@@ -68,6 +65,7 @@ pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<Liste
     })?;
 
     list_installed_apps_internal(&root)
+        .map(|apps| apps.iter().map(Into::into).collect())
         .map_err(|err| io::Error::other(format!("failed to list installed apps: {err}")).into())
 }
 
@@ -77,8 +75,8 @@ pub async fn install_app_zip(
     app: AppHandle,
     state: State<'_, AppState>,
     zip_path: String,
-    granted_permissions: SageGrantedPermissions,
-) -> Result<UserSageApp> {
+    granted_permissions_input: SageGrantedPermissionsInput,
+) -> Result<UserSageAppView> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()
@@ -96,15 +94,15 @@ pub async fn install_app_zip(
     let source = ZipInstallSource::new(&root, zip_path.clone());
     let unpack_dir = source.unpack_dir.clone();
 
-    let result = install_app_from_source(&app, &base_path, granted_permissions, source).await;
+    let result = install_app_from_source(&app, &base_path, granted_permissions_input, source).await;
 
     if unpack_dir.exists() {
         let _ = fs::remove_dir_all(&unpack_dir);
     }
 
-    result.map_err(|err| {
-        io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into()
-    })
+    result
+        .map(|app| (&app).into())
+        .map_err(|err| io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into())
 }
 
 #[command]
@@ -113,16 +111,19 @@ pub async fn install_app_url(
     app: AppHandle,
     state: State<'_, AppState>,
     app_url: String,
-    granted_permissions: SageGrantedPermissions,
-) -> Result<UserSageApp> {
+    granted_permissions_input: SageGrantedPermissionsInput,
+) -> Result<UserSageAppView> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()
     };
     let parsed_app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-    install_app_from_source(&app, &base_path, granted_permissions, parsed_app_url)
-        .await
+    let result = install_app_from_source(&app, &base_path, granted_permissions_input, parsed_app_url)
+        .await;
+
+    result
+        .map(|app| (&app).into())
         .map_err(|err| {
             io::Error::other(format!("failed to install app URL {app_url}: {err}")).into()
         })

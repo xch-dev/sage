@@ -5,17 +5,182 @@ use tauri::{AppHandle, State, command};
 use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::update::permissions::update_app_permissions;
-use crate::lifecycle::{
-    download_url_snapshot, fetch_url_manifest, read_installed_app_by_id,
-    write_installed_app_metadata,
-};
-use crate::types::{
-    SageAppUrlPreview, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate,
-    UserSageAppSource,
-};
+use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, write_installed_app_metadata};
+use crate::runtime::resolve_app;
+use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
-async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
-    let app_url = match app.source() {
+#[command]
+#[specta::specta]
+pub async fn check_app_update(
+    app_handle: AppHandle,
+    app_id: String,
+) -> Result<Option<SageAppUrlPreview>> {
+    let app = resolve_app(&app_handle, &app_id).await
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+
+    let app = app.clone_app_for_operation();
+    let Some(pending) = fetch_pending_update(&app).await? else {
+        return Ok(None);
+    };
+
+    app.with(|app| {
+        let SageApp::User(app) = app else {
+            return Ok(None);
+        };
+
+        if let Some(existing_pending) = app.pending_update()
+            && existing_pending.manifest_hash() == pending.manifest_hash()
+            && existing_pending.manifest() == pending.manifest()
+        {
+            return Ok(None);
+        }
+        Ok(Some(SageAppUrlPreview::from_pending_update(&pending)))
+    })
+}
+
+#[command]
+#[specta::specta]
+pub async fn download_app_update(
+    app_handle: AppHandle,
+    app_id: String,
+) -> Result<SageAppView> {
+    let app = resolve_app(&app_handle, &app_id).await
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+
+    let app = app.clone_app_for_operation();
+
+    let Some(pending) = fetch_pending_update(&app).await? else {
+        return Ok(app.into());
+    };
+
+    app.try_with_mut(|app| app.set_pending_update(Some(pending)))?;
+
+    write_installed_app_metadata(&app)
+        .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
+
+    Ok((&app).into())
+}
+
+#[command]
+#[specta::specta]
+pub async fn apply_app_update(
+    state: State<'_, AppState>,
+    app_handle: AppHandle,
+    app_id: String,
+    granted_permissions_input: SageGrantedPermissionsInput,
+) -> Result<SageAppView> {
+    let _base_path = {
+        let state = state.lock().await;
+        state.path.clone()
+    };
+
+    let resolved = crate::runtime::resolve_stopped_app(&app_handle, &app_id)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!(
+                "failed to resolve stopped app {app_id} for update: {err}"
+            ))
+        })?;
+
+    let pending = resolved.try_with_app(|app| {
+        app.try_with(|sage_app| {
+            let user_app = sage_app
+                .as_user()
+                .ok_or_else(|| anyhow::anyhow!("system app cannot receive user update"))?;
+
+            Ok::<_, anyhow::Error>(user_app.pending_update().cloned())
+        })
+    })?;
+
+    let pending = match pending {
+        Some(pending) => pending,
+        None => fetch_pending_update_for_resolved_stopped_app(&resolved)
+            .await?
+            .ok_or_else(|| io::Error::other(format!("app {app_id} has no available update")))?,
+    };
+
+    let app_path = resolved.with_app(|app| app.with(SageApp::app_path));
+
+    let snapshot = download_url_snapshot(
+        &app_path,
+        pending.app_url(),
+        pending.manifest(),
+        pending.manifest_hash(),
+    )
+        .await
+        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+
+    resolved.try_with_app(|app| {
+        app.try_with_mut(|sage_app| {
+            let user_app = sage_app
+                .as_user_mut()
+                .ok_or_else(|| anyhow::anyhow!("system app cannot receive user update"))?;
+
+            let granted_permissions = granted_permissions_input
+                .resolve(pending.manifest().permissions())
+                .map_err(|err| io::Error::other(format!("invalid update permissions: {err}")))?;
+            user_app
+                .common_mut()
+                .apply_update(&pending, granted_permissions, snapshot)
+                .map_err(|err| anyhow::anyhow!("failed to apply app update permissions: {err}"))?;
+
+            user_app.set_pending_update(None);
+
+            Ok::<_, anyhow::Error>(())
+        })
+    })?;
+
+    resolved.try_with_app(|app| {
+        write_installed_app_metadata(app)
+            .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))
+    })?;
+
+    Ok(resolved.with_app(|app| app.into()))
+}
+
+#[command]
+#[specta::specta]
+pub async fn apps_update_permissions(
+    app_handle: AppHandle,
+    app_id: String,
+    granted_permissions_input: SageGrantedPermissionsInput,
+) -> Result<()> {
+    let resolved = resolve_app(&app_handle, &app_id)
+        .await
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+
+    let requested = resolved.with_app(|app| {
+        app.with(|sage_app| sage_app.requested_permissions().clone())
+    });
+
+    let granted_permissions = granted_permissions_input
+        .resolve(&requested)
+        .map_err(|err| io::Error::other(format!("invalid granted permissions: {err}")))?;
+
+    update_app_permissions(&app_handle, &app_id, &granted_permissions)
+        .await
+        .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
+
+    Ok(())
+}
+
+async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
+    struct FetchDeps {
+        source: UserSageAppSource,
+        active_snapshot: SageAppSnapshot,
+    }
+
+    let deps = app.with(|app| match app {
+        SageApp::System(_) => None,
+        SageApp::User(user_app) => Some(FetchDeps {
+            source: user_app.source().clone(),
+            active_snapshot: user_app.common().active_snapshot().clone(),
+        }),
+    });
+    let Some(deps) = deps else {
+        return Ok(None);
+    };
+    let app_url = match deps.source {
         UserSageAppSource::Url { app_url } => app_url.clone(),
         UserSageAppSource::Zip => return Ok(None),
     };
@@ -26,7 +191,50 @@ async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPen
     let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
-    let active_snapshot = app.common().active_snapshot();
+    if preview.manifest_hash() == deps.active_snapshot.manifest_hash()
+        && preview.manifest() == deps.active_snapshot.manifest()
+    {
+        return Ok(None);
+    }
+
+    Ok(Some(UserSageAppPendingUpdate::new(
+        app_url,
+        preview.manifest_hash().to_string(),
+        preview.manifest().clone(),
+    )))
+}
+
+async fn fetch_pending_update_for_resolved_stopped_app(
+    resolved: &ResolvedStoppedApp,
+) -> Result<Option<UserSageAppPendingUpdate>> {
+    let deps = resolved.try_with_app(|app| {
+        app.try_with(|sage_app| {
+            let Some(user_app) = sage_app.as_user() else {
+                return Ok(None);
+            };
+
+            Ok::<_, anyhow::Error>(Some((
+                user_app.source().clone(),
+                user_app.common().active_snapshot().clone(),
+            )))
+        })
+    })?;
+
+    let Some((source, active_snapshot)) = deps else {
+        return Ok(None);
+    };
+
+    let app_url = match source {
+        UserSageAppSource::Url { app_url } => app_url,
+        UserSageAppSource::Zip => return Ok(None),
+    };
+
+    let (manifest, manifest_hash) = fetch_url_manifest(&app_url.manifest_url())
+        .await
+        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
+
+    let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
+        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     if preview.manifest_hash() == active_snapshot.manifest_hash()
         && preview.manifest() == active_snapshot.manifest()
@@ -39,123 +247,4 @@ async fn fetch_pending_update(app: &UserSageApp) -> Result<Option<UserSageAppPen
         preview.manifest_hash().to_string(),
         preview.manifest().clone(),
     )))
-}
-
-#[command]
-#[specta::specta]
-pub async fn check_app_update(
-    state: State<'_, AppState>,
-    app_id: String,
-) -> Result<Option<SageAppUrlPreview>> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let app = read_installed_app_by_id(&base_path, &app_id)
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    let Some(pending) = fetch_pending_update(&app).await? else {
-        return Ok(None);
-    };
-
-    if let Some(existing_pending) = app.pending_update()
-        && existing_pending.manifest_hash() == pending.manifest_hash()
-        && existing_pending.manifest() == pending.manifest()
-    {
-        return Ok(None);
-    }
-
-    Ok(Some(SageAppUrlPreview::from_pending_update(&pending)))
-}
-
-#[command]
-#[specta::specta]
-pub async fn download_app_update(
-    state: State<'_, AppState>,
-    app_id: String,
-) -> Result<UserSageApp> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let mut app = read_installed_app_by_id(&base_path, &app_id)
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    let Some(pending) = fetch_pending_update(&app).await? else {
-        return Ok(app);
-    };
-
-    app.set_pending_update(Some(pending));
-
-    write_installed_app_metadata(&app)
-        .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
-
-    Ok(app)
-}
-
-#[command]
-#[specta::specta]
-pub async fn apply_app_update(
-    state: State<'_, AppState>,
-    app_id: String,
-    granted_permissions: SageGrantedPermissions,
-) -> Result<UserSageApp> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let mut app = read_installed_app_by_id(&base_path, &app_id)
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    let pending = match app.pending_update().cloned() {
-        Some(pending) => pending,
-        None => fetch_pending_update(&app)
-            .await?
-            .ok_or_else(|| io::Error::other(format!("app {app_id} has no available update")))?,
-    };
-
-    let snapshot = download_url_snapshot(
-        &app.app_path(),
-        pending.app_url(),
-        pending.manifest(),
-        pending.manifest_hash(),
-    )
-    .await
-    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
-
-    app.common_mut()
-        .apply_update(&pending, granted_permissions, snapshot)
-        .map_err(|err| {
-            io::Error::other(format!("failed to apply app update permissions: {err}"))
-        })?;
-
-    app.set_pending_update(None);
-
-    write_installed_app_metadata(&app)
-        .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
-
-    Ok(app)
-}
-
-#[command]
-#[specta::specta]
-pub async fn apps_update_permissions(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    app_id: String,
-    granted_permissions: SageGrantedPermissions,
-) -> Result<()> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    update_app_permissions(&app, &base_path, &app_id, &granted_permissions)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
-
-    Ok(())
 }

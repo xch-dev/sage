@@ -1,15 +1,52 @@
 use std::collections::BTreeMap;
-
+use std::fmt::Display;
 use crate::lifecycle::read_installed_app_by_id;
 use crate::runtime::state::SageAppRuntimeKind;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::sandbox::build_builtin_test_app;
-use crate::system_apps::build_builtin_system_app;
-use crate::types::{SageApp, SharedSageApp};
+use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 use crate::AppsHostState;
 use crate::runtime::find_runtime_by_app_id_optional;
+use crate::runtime::stop::close_runtime_internal;
+use tokio::time::{sleep, Duration};
+
+const MAX_STOP_RESOLVE_ATTEMPTS: usize = 5;
+
+#[derive(Debug)]
+pub enum ResolveError {
+    AppDirMissing,
+    NotFound(String),
+    BuildFailed(String),
+}
+
+#[derive(Debug, Copy, Clone)]
+pub enum ResolveStoppedError {
+    AppDirMissing,
+    CloseAttemptsHit
+}
+
+impl Display for ResolveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ResolveError::AppDirMissing => "app dir missing".to_string(),
+            ResolveError::NotFound(msg) => msg.clone(),
+            ResolveError::BuildFailed(msg) => msg.clone(),
+        };
+        write!(f, "{}", str)
+    }
+}
+
+impl Display for ResolveStoppedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ResolveStoppedError::CloseAttemptsHit => "too many close attempts".to_string(),
+            ResolveStoppedError::AppDirMissing => "app dir missing".to_string(),
+        };
+        write!(f, "{}", str)
+    }
+}
 
 pub fn app_id_from_webview_label(label: &str) -> Option<&str> {
     if let Some(app_id) = label.strip_prefix("app-") {
@@ -59,28 +96,78 @@ pub fn build_entry_src(
     url
 }
 
-pub fn resolve_app(app: &AppHandle, app_id: &str) -> Result<SharedSageApp, String> {
+pub async fn resolve_stopped_app(
+    app: &AppHandle,
+    app_id: &str,
+) -> Result<ResolvedStoppedApp, ResolveStoppedError> {
+    let apps_state: State<'_, AppsHostState> = app.state();
+    let mut delay = Duration::from_millis(25);
+
+    for attempt in 1..=MAX_STOP_RESOLVE_ATTEMPTS {
+        let resolved_app = resolve_app(app, app_id).await.map_err(|e| match e {
+            ResolveError::AppDirMissing
+            | ResolveError::NotFound(_)
+            | ResolveError::BuildFailed(_) => ResolveStoppedError::AppDirMissing,
+        })?;
+        match resolved_app {
+            ResolvedApp::Stopped(stopped) => {
+                return Ok(stopped);
+            }
+
+            ResolvedApp::Running(running) => {
+                drop(running);
+
+                close_runtime_internal(app, &apps_state, app_id).await;
+
+                if attempt < MAX_STOP_RESOLVE_ATTEMPTS {
+                    sleep(delay).await;
+                    delay *= 2;
+                }
+            }
+        }
+    }
+
+    Err(ResolveStoppedError::CloseAttemptsHit)
+}
+
+pub async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, ResolveError> {
     let state: State<'_, AppsHostState> = app.state();
+    let lock = state.inner().operation_lock_for_app(app_id);
+
+    let guard = lock.lock_owned().await;
+
+    if let Some(runtime) = find_runtime_by_app_id_optional(&state, app_id).await {
+        drop(guard);
+
+        return Ok(ResolvedApp::Running(ResolvedRunningApp::new(runtime)));
+    }
 
     let base_path = app
         .path()
         .app_data_dir()
-        .map_err(|e| format!("failed to resolve app data dir: {e}"))?;
+        .map_err(|_| ResolveError::AppDirMissing)?;
 
     if let Ok(app) = read_installed_app_by_id(&base_path, app_id) {
-        return Ok(SharedSageApp::new(SageApp::User(app)));
+        return Ok(
+            ResolvedApp::Stopped(ResolvedStoppedApp::new(
+                SharedSageApp::new(SageApp::User(app)),
+                guard
+            ))
+        );
     }
 
-    if let Some(app) = build_builtin_system_app(app_id)
-        .map_err(|err| format!("failed to resolve builtin system app {app_id}: {err}"))?
-    {
-        return Ok(SharedSageApp::new(app));
-    }
+    let Some(app) = build_builtin_test_app(app_id)
+        .map_err(|err| ResolveError::BuildFailed(format!(
+            "failed to resolve builtin sandbox app {app_id}: {err}"
+        )))?
+    else {
+        return Err(ResolveError::NotFound(format!("failed to resolve app {app_id}")));
+    };
 
-    build_builtin_test_app(app_id)
-        .map_err(|err| format!("failed to resolve builtin sandbox app {app_id}: {err}"))?
-        .map(SharedSageApp::new)
-        .ok_or_else(|| format!("failed to resolve app {app_id}"))
+    Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
+        SharedSageApp::new(app),
+        guard,
+    )))
 }
 
 pub(crate) async fn assert_bridge_origin(

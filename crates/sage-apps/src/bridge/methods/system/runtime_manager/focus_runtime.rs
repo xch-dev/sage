@@ -8,7 +8,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::focus_runtime;
+use crate::runtime::{focus_runtime, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
 pub struct RuntimeManagerFocusRuntime;
@@ -39,10 +39,12 @@ impl BridgeMethod for RuntimeManagerFocusRuntime {
     ) -> BridgeHandleResult {
         let params: RuntimeTargetParams = parse_required_params(self, request)?;
 
-        let record = focus_runtime(tools.app_handle, tools.host_state, &params.app_id)
+        let runtime = focus_runtime(tools.app_handle, tools.host_state, &params.app_id)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(record))
+        let runtime_view: SageAppRuntimeRecordView = runtime.into();
+
+        Ok(Box::new(runtime_view))
     }
 }

@@ -55,7 +55,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
             .app
             .with(|app| app.granted_permissions()
                 .network()
-                .whitelist()
+                .whitelist_iter()
                 .any(|entry| entry == &params.entry)
             )
         {

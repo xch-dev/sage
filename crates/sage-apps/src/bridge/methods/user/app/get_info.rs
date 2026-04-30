@@ -55,30 +55,34 @@ impl BridgeMethod for AppGetInfo {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let network = ctx
+        let result = ctx
             .app
-            .granted_permissions()
-            .network()
-            .whitelist()
-            .map(|entry| SageNetworkPermissionInfo {
-                scheme: entry.scheme().to_string(),
-                host: entry.host().to_string(),
-                required: ctx
-                    .app
-                    .requested_permissions()
+            .with(|app| {
+                let network = app
+                    .granted_permissions()
                     .network()
-                    .whitelist()
-                    .is_required(entry),
-            })
-            .collect::<Vec<_>>();
+                    .whitelist_iter()
+                    .map(|entry| SageNetworkPermissionInfo {
+                        scheme: entry.scheme().to_string(),
+                        host: entry.host().to_string(),
+                        required: app
+                            .requested_permissions()
+                            .network()
+                            .whitelist()
+                            .is_required(entry),
+                    })
+                    .collect::<Vec<_>>();
+                AppGetInfoResult {
+                    id: app.id().to_string(),
+                    name: app.name().to_string(),
+                    version: app.version().to_string(),
+                    requested_permissions: app.requested_permissions().clone(),
+                    capabilities: app.granted_permissions().shared_capabilities(),
+                    network,
+                }
+            }
+        );
 
-        Ok(Box::new(AppGetInfoResult {
-            id: ctx.app.id().to_string(),
-            name: ctx.app.name().to_string(),
-            version: ctx.app.version().to_string(),
-            requested_permissions: ctx.app.requested_permissions().clone(),
-            capabilities: ctx.app.granted_permissions().shared_capabilities(),
-            network,
-        }))
+        Ok(Box::new(result))
     }
 }

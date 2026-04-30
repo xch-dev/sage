@@ -10,9 +10,9 @@ use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_
 use crate::runtime::webview_locator::{
     get_sage_window, get_webview_in_sage_window,
 };
-use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, find_runtime_by_app_id_optional, is_allowed_app_url, resolve_app, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
 use crate::storage::parse_data_store_id;
-use crate::types::{InstalledSageAppStorage, SageApp, SharedSageApp};
+use crate::types::{InstalledSageAppStorage, ResolvedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Deserialize, Type)]
@@ -31,11 +31,10 @@ pub async fn create_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    if let Some(existing) = find_runtime_by_app_id_optional(&apps_state, &args.app_id).await {
-        return Ok(existing);
-    }
-
-    let mut app = resolve_app(&app_handle, &args.app_id)?;
+    let app = match resolve_app(&app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
+        ResolvedApp::Running(running) => return Ok(running.runtime()),
+        ResolvedApp::Stopped(stopped) => stopped.into_app()
+    };
 
     let is_internal = app.with(|app| app.common().is_sandbox_test());
     if !is_internal {
@@ -59,11 +58,11 @@ pub async fn create_runtime(
 
     let runtime_for_nav = shared_runtime.clone();
     let builder = WebviewBuilder::new(
-        &webview_label.to_string(),
+        webview_label.to_string(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
         .on_navigation(move |url| {
-            runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, runtime.app()));
+            runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
         })
         .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
@@ -100,11 +99,11 @@ pub async fn create_runtime(
 }
 
 fn persist_runtime_side_effects(app: &SharedSageApp) -> Result<(), String> {
-    let Some(user_app) = app.as_user() else {
+    if app.is_system_app() {
         return Ok(());
-    };
+    }
 
-    write_installed_app_metadata(user_app)
+    write_installed_app_metadata(app)
         .map_err(|err| format!("failed to persist app runtime side effects: {err}"))
 }
 
@@ -147,7 +146,7 @@ async fn check_gates(apps_state: &State<'_, AppsHostState>, app: &SharedSageApp)
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
     let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
-    let gate = sandbox::evaluate_app_launch_gate(&app, &effective);
+    let gate = sandbox::evaluate_app_launch_gate(app, &effective);
 
     if !gate.allowed {
         return Err(gate

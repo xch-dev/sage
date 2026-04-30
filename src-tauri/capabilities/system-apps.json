@@ -6,7 +6,7 @@
   "permissions": [
     "core:event:default",
     "core:webview:default",
-    "allow-apps-invoke-bridge",
+    "allow-apps-invoke-bridge"
   ]
 }
 
