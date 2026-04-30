@@ -38,7 +38,7 @@ fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> 
 }
 
 pub fn evaluate_app_launch_gate(app: &SharedSageApp, effective: &SandboxState) -> AppLaunchGateResult {
-    if app.id().starts_with("__sage_test_") {
+    if app.is_system_app() || app.id().starts_with("__sage_test_") {
         return AppLaunchGateResult {
             allowed: true,
             kind: "allowed".into(),

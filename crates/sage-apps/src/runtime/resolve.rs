@@ -11,6 +11,7 @@ use crate::AppsHostState;
 use crate::runtime::find_runtime_by_app_id_optional;
 use crate::runtime::stop::close_runtime_internal;
 use tokio::time::{sleep, Duration};
+use crate::system_apps::build_builtin_system_app;
 
 const MAX_STOP_RESOLVE_ATTEMPTS: usize = 5;
 
@@ -154,6 +155,18 @@ pub async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, R
                 guard
             ))
         );
+    }
+    if let Some(app) = build_builtin_system_app(app_id)
+        .map_err(|err| {
+            ResolveError::BuildFailed(format!(
+                "failed to resolve builtin system app {app_id}: {err}"
+            ))
+        })?
+    {
+        return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
+            SharedSageApp::new(app),
+            guard,
+        )));
     }
 
     let Some(app) = build_builtin_test_app(app_id)

@@ -323,7 +323,7 @@ mod tests {
     async fn shared_installer_rejects_unrequested_granted_permission() {
         let dir = tempdir().unwrap();
 
-        let granted = SageGrantedPermissionsInput::new_unchecked(
+        let granted = SageGrantedPermissionsInput::new(
             [UserBridgeCapability::PersistentStorage],
             [SageNetworkWhitelistEntry::new_unchecked(
                 "https",
