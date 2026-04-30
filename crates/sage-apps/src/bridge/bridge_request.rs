@@ -42,12 +42,12 @@ pub async fn process(
         }
     };
 
-    if app.webview_label_matches(&webview_label) {
+    if !app.webview_label_matches(&webview_label) {
         return Ok(RustBridgeInvokeResult::Immediate {
             response: RustBridgeResponse::error(
                 &request.id,
                 "permission_denied",
-                "This bridge is not available for this runtime kind",
+                format!("Webview label doesn't match what app expects. Actual webview label: {}, app_id: {}", webview_label, app.id()),
             ),
         });
     }
@@ -56,7 +56,7 @@ pub async fn process(
             response: RustBridgeResponse::error(
                 &request.id,
                 "permission_denied",
-                "This bridge is not available for this runtime kind",
+                format!("Bridge channel doesn't match what app expects. Actual bridge channel: {}, app_id: {}", request.channel, app.id()),
             ),
         });
     }

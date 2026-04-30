@@ -106,7 +106,6 @@ impl SageAppSnapshot {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct SageAppSnapshotDeserialize {
     manifest_hash: String,
     snapshot_dir: String,

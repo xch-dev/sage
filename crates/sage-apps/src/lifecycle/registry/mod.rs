@@ -51,7 +51,12 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
     let persisted: PersistedUserSageApp = serde_json::from_str(&text)
-        .with_context(|| format!("failed to parse installed app metadata {}", path.display()))?;
+        .map_err(|err| {
+            anyhow::anyhow!(
+            "failed to parse installed app metadata {}: {err}\n\n{text}",
+            path.display()
+        )
+        })?;
 
     persisted.try_into()
 }

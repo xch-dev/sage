@@ -2,7 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "app-webview",
   "description": "Minimal IPC for installed app windows and embedded user app webviews",
-  "webviews": ["app-inline-*"],
+  "webviews": ["app-*"],
   "permissions": [
     "core:event:default",
     "core:webview:default",

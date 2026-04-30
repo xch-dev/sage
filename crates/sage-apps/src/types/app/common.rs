@@ -231,7 +231,6 @@ impl SageAppIdentity {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct SageAppIdentityRaw {
     id: String,
     origin_id: String,

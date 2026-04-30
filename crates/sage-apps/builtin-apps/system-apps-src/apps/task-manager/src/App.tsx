@@ -119,7 +119,7 @@ function runtimeAppName(runtime: SageAppRuntimeRecordView): string {
 }
 
 function runtimeKind(runtime: SageAppRuntimeRecordView): 'User' | 'System' {
-  return 'User' in runtime.app ? 'User' : 'System';
+  return runtime.app.kind === 'user' ? 'User' : 'System';
 }
 
 function runtimeVisible(runtime: SageAppRuntimeRecordView): boolean {

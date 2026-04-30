@@ -6,7 +6,6 @@ use crate::types::{
 };
 
 #[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct PersistedUserSageApp {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
@@ -69,7 +68,6 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct PersistedUserSageAppRaw {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
