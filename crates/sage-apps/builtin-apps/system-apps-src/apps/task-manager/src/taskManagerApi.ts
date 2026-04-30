@@ -2,13 +2,13 @@ import {
   getSageSystemClient,
   type RuntimeManagerRuntimesChangedEvent,
   type RuntimeTargetParams,
-  type SageAppRuntimeRecord,
+  type SageAppRuntimeRecordView,
   type SystemKillRuntimeResult,
 } from '@sage-system-app/sdk';
 
 const client = await getSageSystemClient();
 
-export type { SageAppRuntimeRecord as RuntimeRecord };
+export type { SageAppRuntimeRecordView as RuntimeRecord };
 
 export function onRuntimesChanged(
   handler: (event: RuntimeManagerRuntimesChangedEvent) => void,
@@ -16,21 +16,17 @@ export function onRuntimesChanged(
   return client.runtimeManager.onRuntimesChanged(handler);
 }
 
-export async function listRuntimes(): Promise<SageAppRuntimeRecord[]> {
+export async function listRuntimes(): Promise<SageAppRuntimeRecordView[]> {
   return await client.runtimeManager.listRuntimes();
 }
 
-export async function focusRuntime(
-  appId: string,
-): Promise<SageAppRuntimeRecord> {
+export async function focusRuntime(appId: string): Promise<SageAppRuntimeRecordView> {
   return await client.runtimeManager.focusRuntime({
     appId,
   } satisfies RuntimeTargetParams);
 }
 
-export async function hideRuntime(
-  appId: string,
-): Promise<SageAppRuntimeRecord> {
+export async function hideRuntime(appId: string): Promise<SageAppRuntimeRecordView> {
   return await client.runtimeManager.hideRuntime({
     appId,
   } satisfies RuntimeTargetParams);

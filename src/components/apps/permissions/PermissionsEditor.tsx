@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import type {
-  SageApp,
   SageAppCapabilityDefinitionView,
-  SageGrantedPermissions,
+  SageGrantedPermissionsInput,
+  SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
-  SystemSageApp,
+  SystemSageAppView,
   UserBridgeCapability,
-  UserSageApp,
+  UserSageAppView,
 } from '@/bindings';
 import { commands } from '@/bindings';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,9 +29,9 @@ import {
 } from 'lucide-react';
 
 interface Props {
-  app: SageApp | UserSageApp | SystemSageApp;
-  grantedPermissions: SageGrantedPermissions;
-  onGrantedPermissionsChange?: (next: SageGrantedPermissions) => void;
+  app: UserSageAppView | SystemSageAppView;
+  grantedPermissions: SageGrantedPermissionsView;
+  onGrantedPermissionsChange?: (next: SageGrantedPermissionsInput) => void;
   editable?: boolean;
 }
 
@@ -707,7 +707,7 @@ export function PermissionsEditor({
     [ungrantedOptionalEntries],
   );
 
-  function emitGrantedPermissions(next: SageGrantedPermissions) {
+  function emitGrantedPermissions(next: SageGrantedPermissionsInput) {
     onGrantedPermissionsChange?.(next);
   }
 
@@ -730,8 +730,10 @@ export function PermissionsEditor({
       }
 
       emitGrantedPermissions({
-        ...grantedPermissions,
         capabilities: [...nextSet].sort((a, b) => a.localeCompare(b)),
+        network: {
+          whitelist: grantedNetworkWhitelist
+        },
       });
 
       return;
@@ -758,12 +760,12 @@ export function PermissionsEditor({
     });
 
     emitGrantedPermissions({
-      ...grantedPermissions,
+      capabilities: grantedCapabilities,
       network: {
         whitelist: sortNetworkEntries([
           ...requestedRequiredNetwork,
           ...nextOptional,
-        ]),
+        ])
       },
     });
   }

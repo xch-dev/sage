@@ -1,11 +1,9 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
-use crate::types::{
-    CorruptedInstalledSageApp, ListedSageApp, SageApp, SharedSageApp, UserSageApp,
-    UserSageAppSource,
-};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, SageApp, SharedSageApp, UserSageApp, UserSageAppSource};
 use crate::types::app::view::system_apps::SystemSageAppView;
 use crate::types::app::view::common::SageAppCommonView;
+use crate::types::app::view::preview::UserSageAppPendingUpdateView;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -16,17 +14,22 @@ pub enum ListedSageAppView {
     Corrupted(CorruptedInstalledSageApp),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub enum SageAppView {
     System(SystemSageAppView),
     User(UserSageAppView),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSageAppView {
     common: SageAppCommonView,
     source: UserSageAppSource,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pending_update: Option<UserSageAppPendingUpdateView>,
 }
 
 impl From<&SharedSageApp> for SageAppView {
@@ -49,6 +52,7 @@ impl From<&UserSageApp> for UserSageAppView {
         Self {
             common: app.common().into(),
             source: app.source().clone(),
+            pending_update: app.pending_update().map(Into::into),
         }
     }
 }

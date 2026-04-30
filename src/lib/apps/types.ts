@@ -1,17 +1,17 @@
-import type { SageApp, SystemSageApp, UserSageApp } from '@/bindings';
+import type { SageAppView, SystemSageAppView, UserSageAppView } from '@/bindings';
 
-export type UserApp = Extract<SageApp, { kind: 'user' }>;
-export type SystemApp = Extract<SageApp, { kind: 'system' }>;
-export type RouteableApp = UserApp | SystemApp;
+export type UserAppView = Extract<SageAppView, { kind: 'user' }>;
+export type SystemAppView = Extract<SageAppView, { kind: 'system' }>;
+export type RouteableApp = UserAppView | SystemAppView;
 
-export function asUserApp(app: UserSageApp): UserApp {
+export function asUserApp(app: UserSageAppView): UserAppView {
   return {
     kind: 'user',
     ...app,
   };
 }
 
-export function asSystemApp(app: SystemSageApp): SystemApp {
+export function asSystemApp(app: SystemSageAppView): SystemAppView {
   return {
     kind: 'system',
     ...app,
@@ -19,7 +19,7 @@ export function asSystemApp(app: SystemSageApp): SystemApp {
 }
 
 export function canRouteToApp(
-  app: SageApp | UserSageApp | SystemSageApp,
+  app: SageAppView | UserSageAppView | SystemSageAppView,
 ): boolean {
   if ('kind' in app) {
     if (app.kind === 'user') {
@@ -37,7 +37,7 @@ export function canRouteToApp(
 }
 
 export function routeForApp(
-  app: SageApp | UserSageApp | SystemSageApp,
+  app: SageAppView | UserSageAppView | SystemSageAppView,
 ): string | null {
   if ('kind' in app) {
     if (app.kind === 'user') {

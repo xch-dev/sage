@@ -1,7 +1,8 @@
 import type {
   SageAppPackageManifest,
-  SageGrantedPermissions,
-  UserSageApp,
+  SageGrantedPermissionsInput,
+  SageGrantedPermissionsView,
+  UserSageAppView,
 } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,35 +21,24 @@ interface Props {
   source: InstallSource | null;
   error: string | null;
   installing: boolean;
-  grantedPermissions: SageGrantedPermissions;
-  onGrantedPermissionsChange: (next: SageGrantedPermissions) => void;
+  grantedPermissions: SageGrantedPermissionsView;
+  onGrantedPermissionsChange: (next: SageGrantedPermissionsInput) => void;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
 function buildPreviewApp(
   manifest: SageAppPackageManifest,
-  grantedPermissions: SageGrantedPermissions,
-): UserSageApp {
+  grantedPermissions: SageGrantedPermissionsView,
+): UserSageAppView {
   return {
     common: {
       identity: {
         id: '__install_preview__',
         originId: '__install_preview__',
-        appDir: '',
       },
       grantedPermissions,
-      flags: {
-        hasSecretAccess: false,
-        hasExternalAccess: false,
-        storageMayContainSecrets: false,
-        isolated: false,
-      },
-      storage: { kind: 'unmanaged' },
       activeSnapshot: {
-        manifestHash: '__install_preview__',
-        snapshotDir: '',
-        totalBytes: 0,
         manifest,
       },
     },

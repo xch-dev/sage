@@ -1,9 +1,9 @@
-import type { SageApp } from '@/bindings';
+import type { SageAppView } from '@/bindings';
 import type { SandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
 import { AppIcon } from '@/components/apps/AppIcon.tsx';
 
 interface Props {
-  app: SageApp;
+  app: SageAppView;
   launchDecision: SandboxLaunchDecision;
   onOpen: () => void;
   onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;

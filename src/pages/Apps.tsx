@@ -11,12 +11,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type {
-  ListedSageApp,
+  ListedSageAppView,
   SageAppPackageManifest,
   SageAppUrlPreview,
-  SageGrantedPermissions,
-  SystemSageApp,
-  UserSageApp,
+  SageGrantedPermissionsInput,
+  SageGrantedPermissionsView,
+  SystemSageAppView,
+  UserSageAppView,
 } from '@/bindings.ts';
 import { invoke } from '@tauri-apps/api/core';
 import { useApps } from '@/contexts/AppsContext.tsx';
@@ -38,10 +39,10 @@ import { formatAppError } from '@/lib/apps/formatAppError.ts';
 import { AppUpdateDialog } from '@/components/apps/AppUpdateDialog.tsx';
 import { getAppUpdatePermissionsDelta } from '@/lib/apps/updatePermissionsDelta.ts';
 
-type UserInstalledEntry = { kind: 'user' } & UserSageApp;
-type SystemInstalledEntry = { kind: 'system' } & SystemSageApp;
+type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
+type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
 type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
-type CorruptedEntry = Extract<ListedSageApp, { kind: 'corrupted' }>;
+type CorruptedEntry = Extract<ListedSageAppView, { kind: 'corrupted' }>;
 
 type AppContextMenuState = {
   app: InstalledEntry;
@@ -49,7 +50,7 @@ type AppContextMenuState = {
   y: number;
 } | null;
 
-function isInstalledEntry(entry: ListedSageApp): entry is InstalledEntry {
+function isInstalledEntry(entry: ListedSageAppView): entry is InstalledEntry {
   return entry.kind === 'user' || entry.kind === 'system';
 }
 
@@ -59,13 +60,13 @@ function isUserInstalledEntry(
   return entry.kind === 'user';
 }
 
-function isCorruptedEntry(entry: ListedSageApp): entry is CorruptedEntry {
+function isCorruptedEntry(entry: ListedSageAppView): entry is CorruptedEntry {
   return entry.kind === 'corrupted';
 }
 
 type PendingPermissionsRetry = {
   appId: string;
-  nextGrantedPermissions: SageGrantedPermissions;
+  nextGrantedPermissions: SageGrantedPermissionsView;
 } | null;
 
 function clampContextMenuPosition(args: {
@@ -144,9 +145,11 @@ export function Apps() {
   const [pendingPermissionsRetry, setPendingPermissionsRetry] =
     useState<PendingPermissionsRetry>(null);
   const [editingGrantedPermissions, setEditingGrantedPermissions] =
-    useState<SageGrantedPermissions>({
+    useState<SageGrantedPermissionsInput>({
       capabilities: [],
-      network: { whitelist: [] },
+      network: {
+        whitelist: []
+      },
     });
 
   const showSandboxDebugResults =
@@ -175,7 +178,7 @@ export function Apps() {
   const baselineSandboxState = getBaselineSandboxState(sandboxState);
 
   const runningAppIds = useMemo(() => {
-    return new Set(runtimes.map((runtime) => runtime.appId));
+    return new Set(runtimes.map((runtime) => runtime.app.common.identity.id));
   }, [runtimes]);
 
   const installedApps = useMemo(
@@ -234,7 +237,7 @@ export function Apps() {
   const handleConfirmUpdate = useCallback(
     async (
       app: UserInstalledEntry,
-      nextGrantedPermissions: SageGrantedPermissions,
+      nextGrantedPermissions: SageGrantedPermissionsView,
     ) => {
       try {
         setUpdateDialogBusy(true);
@@ -398,7 +401,7 @@ export function Apps() {
   const handleApplyPermissions = useCallback(
     async (
       app: UserInstalledEntry,
-      nextGrantedPermissions: SageGrantedPermissions,
+      nextGrantedPermissions: SageGrantedPermissionsView,
     ): Promise<void> => {
       const appId = app.common.identity.id;
 
@@ -841,7 +844,9 @@ export function Apps() {
             }
 
             const targetApp = contextMenu.app;
-            const shouldReopen = runningAppIds.has(targetApp.common.identity.id);
+            const shouldReopen = runningAppIds.has(
+              targetApp.common.identity.id,
+            );
 
             void handleClearData(targetApp, shouldReopen);
           }}
@@ -855,9 +860,11 @@ export function Apps() {
               [contextMenu.app.common.identity.id]: 'idle',
             }));
 
-            void uninstallApp(contextMenu.app.common.identity.id).finally(() => {
-              closeContextMenu();
-            });
+            void uninstallApp(contextMenu.app.common.identity.id).finally(
+              () => {
+                closeContextMenu();
+              },
+            );
           }}
         />
       </div>
@@ -916,7 +923,12 @@ export function Apps() {
 
               <PermissionsEditor
                 app={permissionsDialogApp}
-                grantedPermissions={editingGrantedPermissions}
+                grantedPermissions={{
+                  capabilities: editingGrantedPermissions.capabilities,
+                  network: {
+                    whitelist: editingGrantedPermissions.network.whitelist,
+                  },
+                }}
                 onGrantedPermissionsChange={setEditingGrantedPermissions}
               />
 

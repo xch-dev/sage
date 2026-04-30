@@ -30,7 +30,13 @@ pub struct SageAppCapabilityDefinitionView {
 #[serde(rename_all = "camelCase")]
 pub struct SageGrantedPermissionsInput {
     capabilities: BTreeSet<UserBridgeCapability>,
-    network_whitelist: BTreeSet<SageNetworkWhitelistEntry>,
+    network: SageGrantedNetworkPermissionsInput,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SageGrantedNetworkPermissionsInput {
+    whitelist: BTreeSet<SageNetworkWhitelistEntry>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
@@ -53,16 +59,10 @@ impl SageGrantedPermissionsInput {
     ) -> Self {
         Self {
             capabilities: capabilities.into_iter().collect(),
-            network_whitelist: network_whitelist.into_iter().collect(),
+            network: SageGrantedNetworkPermissionsInput {
+                whitelist: network_whitelist.into_iter().collect(),
+            },
         }
-    }
-
-    #[cfg(test)]
-    pub fn new_unchecked(
-        capabilities: impl IntoIterator<Item = UserBridgeCapability>,
-        network_whitelist: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
-    ) -> Self {
-        Self::new(capabilities, network_whitelist)
     }
 
     pub fn resolve(
@@ -71,8 +71,8 @@ impl SageGrantedPermissionsInput {
     ) -> anyhow::Result<SageGrantedPermissions> {
         SageGrantedPermissions::new(
             requested,
-            self.capabilities(),
-            self.network_whitelist(),
+            self.capabilities.iter().copied(),
+            self.network.whitelist.iter().cloned(),
         )
     }
 
@@ -81,7 +81,7 @@ impl SageGrantedPermissionsInput {
     }
 
     pub fn network_whitelist(&self) -> impl Iterator<Item = SageNetworkWhitelistEntry> + '_ {
-        self.network_whitelist.iter().cloned()
+        self.network.whitelist.iter().cloned()
     }
 }
 

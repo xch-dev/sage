@@ -3,6 +3,7 @@ use specta::Type;
 use crate::types::SageNetworkWhitelistEntry;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "camelCase")]
 pub struct SageNetworkWhitelistEntryView {
     scheme: String,
     host: String,

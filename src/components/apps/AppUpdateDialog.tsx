@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import type {
   SageAppPackageManifest,
   SageAppUrlPreview,
-  SageGrantedPermissions,
+  SageGrantedPermissionsInput,
+  SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
-  UserSageApp,
+  UserSageAppView,
 } from '@/bindings';
 import {
   networkKey,
@@ -27,12 +28,12 @@ import {
 
 interface Props {
   open: boolean;
-  app: UserSageApp | null;
+  app: UserSageAppView | null;
   preview: SageAppUrlPreview | null;
   submitting: boolean;
   error: string | null;
   onCancel: () => void;
-  onConfirm: (nextGranted: SageGrantedPermissions) => void;
+  onConfirm: (nextGranted: SageGrantedPermissionsInput) => void;
 }
 
 function buildReviewManifest(
@@ -57,11 +58,11 @@ function buildReviewManifest(
 }
 
 function buildReviewApp(
-  app: UserSageApp,
+  app: UserSageAppView,
   preview: SageAppUrlPreview,
   delta: AppUpdatePermissionsDelta,
-  grantedPermissions: SageGrantedPermissions,
-): UserSageApp {
+  grantedPermissions: SageGrantedPermissionsView,
+): UserSageAppView {
   const reviewManifest = buildReviewManifest(preview, delta);
 
   return {
@@ -78,10 +79,10 @@ function buildReviewApp(
 }
 
 function buildRemovedPermissionsApp(
-  app: UserSageApp,
+  app: UserSageAppView,
   preview: SageAppUrlPreview,
   delta: AppUpdatePermissionsDelta,
-): UserSageApp | null {
+): UserSageAppView | null {
   const hasRemoved =
     delta.removedGrantedCapabilities.length > 0 ||
     delta.removedGrantedNetwork.length > 0;
@@ -137,10 +138,10 @@ export function AppUpdateDialog({
   const [
     selectedOptionalGrantedPermissions,
     setSelectedOptionalGrantedPermissions,
-  ] = useState<SageGrantedPermissions>({
+  ] = useState<SageGrantedPermissionsInput>({
     capabilities: [],
     network: {
-      whitelist: [],
+      whitelist: []
     },
   });
 
@@ -180,7 +181,7 @@ export function AppUpdateDialog({
           ...selectedOptionalGrantedPermissions.network.whitelist,
         ]),
       },
-    } satisfies SageGrantedPermissions;
+    } satisfies SageGrantedPermissionsView;
   }, [delta, selectedOptionalGrantedPermissions]);
 
   const finalGranted = useMemo(() => {
@@ -206,9 +207,9 @@ export function AppUpdateDialog({
     return {
       capabilities: nextCapabilities,
       network: {
-        whitelist: sortNetwork(nextNetworkMap.values()),
+        whitelist: sortNetwork(nextNetworkMap.values())
       },
-    } satisfies SageGrantedPermissions;
+    } satisfies SageGrantedPermissionsInput;
   }, [delta, selectedOptionalGrantedPermissions]);
 
   const reviewApp = useMemo(() => {

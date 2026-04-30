@@ -1,4 +1,4 @@
-import { ListedSageApp } from '@/bindings.ts';
+import { ListedSageAppView } from '@/bindings.ts';
 
 export function AppIconContent({
   name,
@@ -14,8 +14,9 @@ export function AppIconContent({
   return <>{name.trim().charAt(0).toUpperCase() || 'A'}</>;
 }
 
-export function AppIcon({ app }: { app: ListedSageApp }) {
-  const name = app.kind === 'corrupted' ? app.id : app.common.activeSnapshot.manifest.name;
+export function AppIcon({ app }: { app: ListedSageAppView }) {
+  const name =
+    app.kind === 'corrupted' ? app.id : app.common.activeSnapshot.manifest.name;
 
   const iconUrl =
     app.kind === 'corrupted' || !app.common.activeSnapshot.manifest.icon

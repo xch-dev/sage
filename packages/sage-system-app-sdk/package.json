@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "generate:types": "node ./scripts/export-types.mjs",
-    "build": "pnpm run generate:types && tsup",
+    "build": "pnpm run clean && pnpm run generate:types && tsup && tsc -p tsconfig.build.json",
     "dev": "pnpm run generate:types && tsup --watch",
     "clean": "rm -rf dist"
   },

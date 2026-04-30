@@ -7,6 +7,9 @@ import {
   onRuntimesChanged,
   type RuntimeRecord,
 } from './taskManagerApi';
+import type {
+  SageAppRuntimeRecordView,
+} from '@sage-system-app/sdk';
 
 function formatDuration(ms: number) {
   const safeMs = Math.max(0, ms);
@@ -34,10 +37,8 @@ function formatTime(value: number) {
   }).format(new Date(value));
 }
 
-function statusColor(state: string) {
-  const normalized = state.toLowerCase();
-
-  if (normalized.includes('running') || normalized.includes('active')) {
+function statusColor() {
+  /*if (normalized.includes('running') || normalized.includes('active')) {
     return '#34d399';
   }
 
@@ -47,7 +48,7 @@ function statusColor(state: string) {
 
   if (normalized.includes('failed') || normalized.includes('error')) {
     return '#fb7185';
-  }
+  }*/
 
   return '#94a3b8';
 }
@@ -109,6 +110,22 @@ function Metric({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function runtimeAppId(runtime: SageAppRuntimeRecordView): string {
+  return runtime.app.common.identity.id;
+}
+
+function runtimeAppName(runtime: SageAppRuntimeRecordView): string {
+  return runtime.app.common.activeSnapshot.manifest.name;
+}
+
+function runtimeKind(runtime: SageAppRuntimeRecordView): 'User' | 'System' {
+  return 'User' in runtime.app ? 'User' : 'System';
+}
+
+function runtimeVisible(runtime: SageAppRuntimeRecordView): boolean {
+  return runtime.visibility === 'Visible';
+}
+
 export function App() {
   const [runtimes, setRuntimes] = useState<RuntimeRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +172,10 @@ export function App() {
   }, []);
 
   const sorted = useMemo(
-    () => [...runtimes].sort((a, b) => a.appName.localeCompare(b.appName)),
+    () =>
+      [...runtimes].sort((a, b) =>
+        runtimeAppName(a).localeCompare(runtimeAppName(b)),
+      ),
     [runtimes],
   );
 
@@ -298,8 +318,8 @@ export function App() {
             </div>
           ) : (
             sorted.map((runtime, index) => {
-              const busy = busyAppId === runtime.appId;
-              const color = statusColor(runtime.state);
+              const busy = busyAppId === runtimeAppId(runtime);
+              const color = statusColor();
 
               return (
                 <div
@@ -350,10 +370,10 @@ export function App() {
                           letterSpacing: '-0.01em',
                         }}
                       >
-                        {runtime.appName}
+                        {runtimeAppName(runtime)}
                       </div>
 
-                      {runtime.visible ? (
+                      {runtimeVisible(runtime) ? (
                         <span
                           style={{
                             padding: '3px 8px',
@@ -394,7 +414,7 @@ export function App() {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {runtime.appId}
+                      {runtimeAppId(runtime)}
                     </div>
 
                     <div
@@ -413,8 +433,10 @@ export function App() {
                         label='Started'
                         value={formatTime(runtime.startedAt)}
                       />
-                      <Metric label='Kind' value={runtime.runtimeKind} />
-                      <Metric label='State' value={runtime.state} />
+                      <Metric
+                        label='Kind'
+                        value={runtimeKind(runtime)}
+                      />
                       <Metric label='Mode' value={runtime.mode} />
                     </div>
                   </div>
@@ -430,8 +452,8 @@ export function App() {
                     <ActionButton
                       disabled={busy}
                       onClick={() =>
-                        runAction(runtime.appId, () =>
-                          focusRuntime(runtime.appId),
+                        runAction(runtimeAppId(runtime), () =>
+                          focusRuntime(runtimeAppId(runtime)),
                         )
                       }
                     >
@@ -441,8 +463,8 @@ export function App() {
                     <ActionButton
                       disabled={busy}
                       onClick={() =>
-                        runAction(runtime.appId, () =>
-                          hideRuntime(runtime.appId),
+                        runAction(runtimeAppId(runtime), () =>
+                          hideRuntime(runtimeAppId(runtime)),
                         )
                       }
                     >
@@ -453,8 +475,8 @@ export function App() {
                       danger
                       disabled={busy}
                       onClick={() =>
-                        runAction(runtime.appId, async () => {
-                          await killRuntime(runtime.appId);
+                        runAction(runtimeAppId(runtime), async () => {
+                          await killRuntime(runtimeAppId(runtime));
                           await refresh();
                         })
                       }

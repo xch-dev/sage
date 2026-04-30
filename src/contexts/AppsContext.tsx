@@ -11,12 +11,13 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import {
   type AppLaunchGateResult,
   commands,
-  type ListedSageApp,
+  type ListedSageAppView,
   type SageAppUrlPreview,
-  type SageGrantedPermissions,
+  SageAppView,
+  SageGrantedPermissionsInput,
   type SandboxStateView,
-  type SystemSageApp,
-  type UserSageApp,
+  type SystemSageAppView,
+  type UserSageAppView,
 } from '@/bindings';
 import { useAppPendingApprovals } from '@/hooks/useAppPendingApprovals';
 import { useBridgeHost } from '@/hooks/useBridgeHost';
@@ -27,12 +28,12 @@ interface PerformAppUpdateOptions {
   visibleAfterRestart?: boolean;
 }
 
-type UserInstalledEntry = { kind: 'user' } & UserSageApp;
-type SystemInstalledEntry = { kind: 'system' } & SystemSageApp;
+type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
+type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
 type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
 
 interface AppsContextValue {
-  apps: ListedSageApp[];
+  apps: ListedSageAppView[];
   loading: boolean;
   error: string | null;
   busyAppIds: Record<string, boolean>;
@@ -47,13 +48,13 @@ interface AppsContextValue {
   approveCurrentApproval: () => void;
   rejectCurrentApproval: () => void;
 
-  getApp: (appId: string) => UserSageApp | undefined;
+  getApp: (appId: string) => UserSageAppView | undefined;
   getListedApp: (appId: string) => InstalledEntry | undefined;
   getLaunchGate: (appId: string) => AppLaunchGateResult | null;
 
   refresh: () => Promise<void>;
   refreshInstalledApps: () => Promise<void>;
-  refreshLaunchGates: (listed?: ListedSageApp[]) => Promise<void>;
+  refreshLaunchGates: (listed?: ListedSageAppView[]) => Promise<void>;
   setBusy: (appId: string, busy: boolean) => void;
   setUpdateAvailability: (
     updater:
@@ -65,19 +66,19 @@ interface AppsContextValue {
 
   installApp: (
     zipPath: string,
-    grantedPermissions: SageGrantedPermissions,
-  ) => Promise<UserSageApp>;
+    grantedPermissions: SageGrantedPermissionsInput,
+  ) => Promise<UserSageAppView>;
   installUrlApp: (
     appUrl: string,
-    grantedPermissions: SageGrantedPermissions,
-  ) => Promise<UserSageApp>;
+    grantedPermissions: SageGrantedPermissionsInput,
+  ) => Promise<UserSageAppView>;
   uninstallApp: (appId: string) => Promise<void>;
   checkForUpdate: (appId: string) => Promise<SageAppUrlPreview | null>;
   performAppUpdate: (
     appId: string,
-    grantedPermissions: SageGrantedPermissions,
+    grantedPermissions: SageGrantedPermissionsInput,
     options?: PerformAppUpdateOptions,
-  ) => Promise<UserSageApp>;
+  ) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
   rerunSandboxTests: () => Promise<SandboxStateView>;
 }
@@ -101,18 +102,18 @@ function isLaunchGateEntry(
   return entry !== null;
 }
 
-function isInstalledEntry(entry: ListedSageApp): entry is InstalledEntry {
+function isInstalledEntry(entry: ListedSageAppView): entry is InstalledEntry {
   return entry.kind === 'user' || entry.kind === 'system';
 }
 
 function isUserListedApp(
-  entry: ListedSageApp,
-): entry is { kind: 'user' } & UserSageApp {
+  entry: ListedSageAppView,
+): entry is { kind: 'user' } & UserSageAppView {
   return entry.kind === 'user';
 }
 
 export function AppsProvider({ children }: { children: ReactNode }) {
-  const [apps, setApps] = useState<ListedSageApp[]>([]);
+  const [apps, setApps] = useState<ListedSageAppView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAppIds, setBusyAppIds] = useState<Record<string, boolean>>({});
@@ -138,7 +139,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const { isReady: bridgeHostReady } = useBridgeHost({ requestApproval });
 
   const refreshLaunchGates = useCallback(
-    async (listed: ListedSageApp[] = apps) => {
+    async (listed: ListedSageAppView[] = apps) => {
       const entries = await Promise.all(
         listed.filter(isInstalledEntry).map(async (app) => {
           try {
@@ -289,9 +290,9 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   );
 
   const getApp = useCallback(
-    (appId: string): UserSageApp | undefined => {
+    (appId: string): UserSageAppView | undefined => {
       return apps.find(
-        (item): item is { kind: 'user' } & UserSageApp =>
+        (item): item is { kind: 'user' } & UserSageAppView =>
           isUserListedApp(item) && item.common.identity.id === appId,
       );
     },
@@ -318,7 +319,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   );
 
   const installApp = useCallback(
-    async (zipPath: string, grantedPermissions: SageGrantedPermissions) => {
+    async (zipPath: string, grantedPermissions: SageGrantedPermissionsInput) => {
       const installed = await commands.installAppZip(
         zipPath,
         grantedPermissions,
@@ -330,7 +331,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   );
 
   const installUrlApp = useCallback(
-    async (appUrl: string, grantedPermissions: SageGrantedPermissions) => {
+    async (appUrl: string, grantedPermissions: SageGrantedPermissionsInput) => {
       const installed = await commands.installAppUrl(
         appUrl,
         grantedPermissions,
@@ -378,7 +379,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const performAppUpdate = useCallback(
     async (
       appId: string,
-      grantedPermissions: SageGrantedPermissions,
+      grantedPermissions: SageGrantedPermissionsInput,
       options?: PerformAppUpdateOptions,
     ) => {
       setBusy(appId, true);

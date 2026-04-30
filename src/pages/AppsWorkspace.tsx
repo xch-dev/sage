@@ -17,8 +17,8 @@ import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import {
   commands,
   type SageAppUrlPreview,
-  type SageGrantedPermissions,
-  type UserSageApp,
+  type SageGrantedPermissionsView,
+  type UserSageAppView,
 } from '@/bindings';
 import { AppUpdateDialog } from '@/components/apps/AppUpdateDialog.tsx';
 import { getAppUpdatePermissionsDelta } from '@/lib/apps/updatePermissionsDelta.ts';
@@ -54,7 +54,7 @@ export function AppsWorkspace() {
     setTabOrder((prev) => {
       const runtimeIds = runtimes
         .filter((runtime) => {
-          const installedApp = getListedApp(runtime.appId);
+          const installedApp = getListedApp(runtime.app.common.identity.id);
           if (!installedApp) {
             return false;
           }
@@ -65,7 +65,7 @@ export function AppsWorkspace() {
 
           return installedApp.presentation === 'Taskbar';
         })
-        .map((runtime) => runtime.appId);
+        .map((runtime) => runtime.app.common.identity.id);
 
       const kept = prev.filter((runtimeAppId) =>
         runtimeIds.includes(runtimeAppId),
@@ -77,7 +77,7 @@ export function AppsWorkspace() {
     });
   }, [runtimes, getListedApp]);
 
-  const activeApp: UserSageApp | null = appId ? (getApp(appId) ?? null) : null;
+  const activeApp: UserSageAppView | null = appId ? (getApp(appId) ?? null) : null;
   const activeUpdatePreview: SageAppUrlPreview | null = activeApp
     ? (updateAvailability[activeApp.common.identity.id] ?? null)
     : null;
@@ -95,7 +95,9 @@ export function AppsWorkspace() {
 
   const tabs = useMemo<AppTaskBarTab[]>(() => {
     const runtimeByAppId = new Map(
-      runtimes.map((runtime) => [runtime.appId, runtime] as const),
+      runtimes.map(
+        (runtime) => [runtime.app.common.identity.id, runtime] as const,
+      ),
     );
 
     const out: AppTaskBarTab[] = [];
@@ -106,7 +108,7 @@ export function AppsWorkspace() {
         continue;
       }
 
-      const installedApp = getListedApp(runtime.appId);
+      const installedApp = getListedApp(runtime.app.common.identity.id);
       if (!installedApp) {
         continue;
       }
@@ -126,11 +128,12 @@ export function AppsWorkspace() {
             : `sage-app://${installedApp.common.identity.originId}/${installedApp.common.activeSnapshot.manifest.icon}`;
 
       out.push({
-        appId: runtime.appId,
+        appId: runtime.app.common.identity.id,
         runtimeKind: installedApp.kind,
-        name: installedApp.common.activeSnapshot.manifest.name ?? runtime.appName,
+        name:
+          installedApp.common.activeSnapshot.manifest.name,
         iconSrc,
-        isActive: runtime.appId === appId,
+        isActive: runtime.app.common.identity.id === appId,
       });
     }
 
@@ -138,7 +141,7 @@ export function AppsWorkspace() {
   }, [runtimes, tabOrder, getListedApp, appId]);
 
   const handleConfirmUpdate = useCallback(
-    async (nextGrantedPermissions: SageGrantedPermissions) => {
+    async (nextGrantedPermissions: SageGrantedPermissionsView) => {
       if (!activeApp) {
         return;
       }

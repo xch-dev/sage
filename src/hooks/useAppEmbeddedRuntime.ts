@@ -6,7 +6,7 @@ import {
   getRuntimeWebview,
   markRuntimeVisible,
 } from '@/lib/apps/runtimeRegistry';
-import type { SageApp } from '@/bindings';
+import type { SageAppView } from '@/bindings';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 async function getMacWindowedTopInsetPx(): Promise<number> {
@@ -28,7 +28,7 @@ function formatError(err: unknown): string {
 }
 
 interface Args {
-  app: SageApp | null | undefined;
+  app: SageAppView | null | undefined;
   containerRef: React.RefObject<HTMLDivElement | null>;
 }
 

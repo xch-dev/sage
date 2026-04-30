@@ -1,12 +1,14 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
 use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
 use crate::types::SageAppView;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct SageAppRuntimeRecordView {
     runtime_id: String,
     app: SageAppView,
+    webview_label: String,
     mode: SageAppRuntimeMode,
     visibility: SageAppRuntimeVisibility,
     started_at: i64,
@@ -19,6 +21,7 @@ impl From<&SharedRuntime> for SageAppRuntimeRecordView {
         value.with_runtime(|runtime| Self {
             runtime_id: runtime.runtime_id().clone(),
             app: runtime.app().into(),
+            webview_label: runtime.webview_label().to_string(),
             mode: runtime.mode(),
             visibility: runtime.visibility(),
             started_at: runtime.started_at(),

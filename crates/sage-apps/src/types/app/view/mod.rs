@@ -4,6 +4,7 @@ mod common;
 mod snapshot;
 mod permission;
 mod network;
+mod preview;
 
 pub(crate) use user_apps::{ListedSageAppView, SageAppView, UserSageAppView};
 

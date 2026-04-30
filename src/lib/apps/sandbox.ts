@@ -2,12 +2,12 @@ import type {
   SandboxCapabilityResult,
   SandboxState,
   SandboxStateView,
-  SageApp,
-  SystemSageApp,
-  UserSageApp,
+  SageAppView,
+  SystemSageAppView,
+  UserSageAppView,
 } from '@/bindings';
 
-type AppLike = SageApp | UserSageApp | SystemSageApp;
+type AppLike = SageAppView | UserSageAppView | SystemSageAppView;
 
 export type SandboxCapability =
   | 'storage_isolation_from_sage'

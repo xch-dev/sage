@@ -7,12 +7,14 @@ use crate::types::app::view::network::SageNetworkWhitelistEntryView;
 use crate::types::permissions::SageGrantedNetworkPermissions;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SageGrantedPermissionsView {
     capabilities: BTreeSet<UserBridgeCapability>,
     network: SageGrantedNetworkPermissionsView,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SageGrantedNetworkPermissionsView {
     whitelist: BTreeSet<SageNetworkWhitelistEntryView>,
 }

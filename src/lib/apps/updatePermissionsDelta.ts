@@ -1,8 +1,8 @@
 import type {
-  UserSageApp,
+  UserSageAppView,
   SageAppPackageManifest,
   SageAppUrlPreview,
-  SageGrantedPermissions,
+  SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
   SageRequestedPermissions,
   UserBridgeCapability,
@@ -67,12 +67,12 @@ export interface AppUpdatePermissionsDelta {
   removedGrantedCapabilities: UserBridgeCapability[];
   removedGrantedNetwork: SageNetworkWhitelistEntry[];
 
-  nextGrantedPermissions: SageGrantedPermissions;
+  nextGrantedPermissions: SageGrantedPermissionsView;
   requiresUserReview: boolean;
 }
 
 export function getAppUpdatePermissionsDelta(
-  app: UserSageApp,
+  app: UserSageAppView,
   preview: SageAppUrlPreview | SageAppPackageManifest,
 ): AppUpdatePermissionsDelta {
   const previousRequested = app.common.activeSnapshot.manifest.permissions;
@@ -187,7 +187,7 @@ export function getAppUpdatePermissionsDelta(
     });
   }
 
-  const nextGrantedPermissions: SageGrantedPermissions = {
+  const nextGrantedPermissions: SageGrantedPermissionsView = {
     capabilities: nextGrantedCapabilities,
     network: {
       whitelist: sortNetwork(nextGrantedNetworkMap.values()),

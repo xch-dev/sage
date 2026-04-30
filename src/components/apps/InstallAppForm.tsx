@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type {
   SageAppPackageManifest,
   SageAppUrlPreview,
-  SageGrantedPermissions,
+  SageGrantedPermissionsInput,
 } from '@/bindings';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
 import { InstallSourceCard } from './InstallSourceCard';
@@ -17,11 +17,11 @@ interface Props {
   onPreviewUrl: (appUrl: string) => Promise<SageAppUrlPreview>;
   onInstallZip: (
     zipPath: string,
-    grantedPermissions: SageGrantedPermissions,
+    grantedPermissions: SageGrantedPermissionsInput,
   ) => Promise<void>;
   onInstallUrl: (
     appUrl: string,
-    grantedPermissions: SageGrantedPermissions,
+    grantedPermissions: SageGrantedPermissionsInput,
   ) => Promise<void>;
 }
 
@@ -48,7 +48,7 @@ export function InstallAppForm({
   const [urlInput, setUrlInput] = useState('');
   const [source, setSource] = useState<InstallSource | null>(null);
   const [grantedPermissions, setGrantedPermissions] =
-    useState<SageGrantedPermissions>(buildEmptyGrantedPermissions());
+    useState<SageGrantedPermissionsInput>(buildEmptyGrantedPermissions());
 
   async function handleSelectZipPath(zipPath: string) {
     try {

@@ -1,11 +1,15 @@
-import type { SageApp, SystemSageApp, UserSageApp } from '@/bindings';
+import type {
+  SageAppView,
+  SystemSageAppView,
+  UserSageAppView,
+} from '@/bindings';
 import {
   closeAppRuntime,
   ensureInlineRuntime,
   markRuntimeVisible,
 } from '@/lib/apps/runtimeRegistry';
 
-type AppLike = SageApp | UserSageApp | SystemSageApp;
+type AppLike = SageAppView | UserSageAppView | SystemSageAppView;
 
 export async function restartAppRuntime(
   app: AppLike,

@@ -1,25 +1,25 @@
 import { Webview } from '@tauri-apps/api/webview';
 import {
   commands,
-  type CreateInlineRuntimeArgs,
-  type SageAppRuntimeRecord,
-  type SystemSageApp,
-  type UserSageApp,
-  type SageApp,
+  type CreateRuntimeArgs,
+  type SageAppRuntimeRecordView,
+  type SystemSageAppView,
+  type UserSageAppView,
+  type SageAppView,
   type RuntimeTargetParams,
 } from '@/bindings';
 
-export type { SageAppRuntimeRecord };
+export type { SageAppRuntimeRecordView };
 
-type RuntimeListener = (records: SageAppRuntimeRecord[]) => void;
-type AppLike = SageApp | UserSageApp | SystemSageApp;
+type RuntimeListener = (records: SageAppRuntimeRecordView[]) => void;
+type AppLike = SageAppView | UserSageAppView | SystemSageAppView;
 
 const listeners = new Set<RuntimeListener>();
-let cachedRuntimes: SageAppRuntimeRecord[] = [];
+let cachedRuntimes: SageAppRuntimeRecordView[] = [];
 let pollTimer: number | null = null;
 let polling = false;
 
-async function refreshRuntimes(): Promise<SageAppRuntimeRecord[]> {
+async function refreshRuntimes(): Promise<SageAppRuntimeRecordView[]> {
   if (polling) {
     return cachedRuntimes;
   }
@@ -80,7 +80,7 @@ export function subscribeAppRuntimes(listener: RuntimeListener): () => void {
   };
 }
 
-export function listAppRuntimes(): SageAppRuntimeRecord[] {
+export function listAppRuntimes(): SageAppRuntimeRecordView[] {
   return cachedRuntimes;
 }
 
@@ -88,8 +88,10 @@ export async function getRuntimeWebview(
   appId: string,
 ): Promise<Webview | null> {
   const runtime =
-    cachedRuntimes.find((item) => item.appId === appId) ??
-    (await refreshRuntimes()).find((item) => item.appId === appId);
+    cachedRuntimes.find((item) => item.app.common.identity.id === appId) ??
+    (await refreshRuntimes()).find(
+      (item) => item.app.common.identity.id === appId,
+    );
 
   if (!runtime) {
     return null;
@@ -136,11 +138,11 @@ export async function closeAppRuntime(
 
 export async function ensureInlineRuntime(
   app: AppLike,
-): Promise<SageAppRuntimeRecord> {
-  const args: CreateInlineRuntimeArgs = {
+): Promise<SageAppRuntimeRecordView> {
+  const args: CreateRuntimeArgs = {
     appId: app.common.identity.id,
-    visible: true,
-    internal: false,
+    mode: 'Inline',
+    visibility: 'Visible',
     debugLayout: false,
     path: null,
     query: {},

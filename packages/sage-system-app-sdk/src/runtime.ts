@@ -1,6 +1,6 @@
 import type {
   RuntimeTargetParams,
-  SageAppRuntimeRecord,
+  SageAppRuntimeRecordView,
   SageSystemBridgeResponse,
   SageSystemClient,
   SageSystemBridgeVersion,
@@ -153,20 +153,20 @@ export function initSageSystemRuntimeBridge(): boolean {
   w.__SAGE_SYSTEM__ = {
     runtimeManager: {
       async listRuntimes() {
-        return await callHost<SageAppRuntimeRecord[]>(
+        return await callHost<SageAppRuntimeRecordView[]>(
           'runtimeManager.listRuntimes',
         );
       },
 
       async focusRuntime(input: RuntimeTargetParams) {
-        return await callHost<SageAppRuntimeRecord>(
+        return await callHost<SageAppRuntimeRecordView>(
           'runtimeManager.focusRuntime',
           input,
         );
       },
 
       async hideRuntime(input: RuntimeTargetParams) {
-        return await callHost<SageAppRuntimeRecord>(
+        return await callHost<SageAppRuntimeRecordView>(
           'runtimeManager.hideRuntime',
           input,
         );
