@@ -10,7 +10,7 @@ use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_
 use crate::runtime::webview_locator::{
     get_sage_window, get_webview_in_sage_window,
 };
-use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
 use crate::storage::parse_data_store_id;
 use crate::types::{InstalledSageAppStorage, ResolvedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
@@ -22,7 +22,13 @@ pub struct CreateRuntimeArgs {
     pub mode: SageAppRuntimeMode,
     pub visibility: SageAppRuntimeVisibility,
     pub debug_layout: bool,
-    pub path: Option<String>,
+    pub query: BTreeMap<String, String>,
+}
+
+pub(in crate::runtime) struct CreateImpostorRuntimeArgs {
+    pub kind: SageAppRuntimeImpostorKind,
+    pub visibility: SageAppRuntimeVisibility,
+    pub debug_layout: bool,
     pub query: BTreeMap<String, String>,
 }
 

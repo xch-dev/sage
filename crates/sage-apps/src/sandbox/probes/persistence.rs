@@ -23,7 +23,6 @@ pub(in crate::sandbox) async fn run_persistence_test(
         apps_state,
         BUILTIN_PERSISTENCE_PERSISTENT_ID,
         &[("runId", run_id.clone()), ("phase", "write".into())],
-        None,
     )
     .await?;
     start_test_app(
@@ -31,7 +30,6 @@ pub(in crate::sandbox) async fn run_persistence_test(
         apps_state,
         BUILTIN_PERSISTENCE_INCOGNITO_ID,
         &[("runId", run_id.clone()), ("phase", "write".into())],
-        None,
     )
     .await?;
 
@@ -119,7 +117,6 @@ pub(in crate::sandbox) async fn run_persistence_test(
         apps_state,
         BUILTIN_PERSISTENCE_PERSISTENT_ID,
         &[("runId", run_id.clone()), ("phase", "read".into())],
-        None,
     )
     .await?;
     start_test_app(
@@ -127,7 +124,6 @@ pub(in crate::sandbox) async fn run_persistence_test(
         apps_state,
         BUILTIN_PERSISTENCE_INCOGNITO_ID,
         &[("runId", run_id.clone()), ("phase", "read".into())],
-        None,
     )
     .await?;
 

@@ -1,8 +1,10 @@
-use crate::AppsHostState;
-use crate::runtime::state::types::{SharedRuntime};
 use std::cmp::Reverse;
 use std::fmt::Display;
+
 use tauri::State;
+
+use crate::AppsHostState;
+use crate::runtime::state::types::{SharedImpostorRuntime, SharedRuntime};
 
 pub enum GetRuntimeError {
     NotFound,
@@ -10,9 +12,13 @@ pub enum GetRuntimeError {
 
 impl Display for GetRuntimeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            GetRuntimeError::NotFound => String::from("Runtime not found"),
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                GetRuntimeError::NotFound => String::from("Runtime not found"),
+            },
+        )
     }
 }
 
@@ -40,11 +46,51 @@ pub(crate) async fn find_runtime_by_runtime_id_optional(
     by_runtime_id.get(runtime_id).cloned()
 }
 
+pub(crate) async fn find_impostor_runtime_by_victim_app_id_optional(
+    apps_state: &State<'_, AppsHostState>,
+    victim_app_id: &str,
+) -> Option<SharedImpostorRuntime> {
+    let runtime_id =
+        find_impostor_runtime_id_by_victim_app_id_optional(apps_state, victim_app_id).await?;
+
+    find_impostor_runtime_by_runtime_id_optional(apps_state, &runtime_id).await
+}
+
+pub(crate) async fn find_impostor_runtime_id_by_victim_app_id_optional(
+    apps_state: &State<'_, AppsHostState>,
+    victim_app_id: &str,
+) -> Option<String> {
+    let by_victim_app_id = apps_state
+        .runtime
+        .impostor_runtime_id_by_victim_app_id
+        .lock()
+        .await;
+
+    by_victim_app_id.get(victim_app_id).cloned()
+}
+
+pub(crate) async fn find_impostor_runtime_by_runtime_id_optional(
+    apps_state: &State<'_, AppsHostState>,
+    runtime_id: &str,
+) -> Option<SharedImpostorRuntime> {
+    let by_runtime_id = apps_state.runtime.impostor_by_runtime_id.lock().await;
+    by_runtime_id.get(runtime_id).cloned()
+}
+
 pub(crate) async fn get_runtime_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, GetRuntimeError> {
     find_runtime_by_app_id_optional(apps_state, app_id)
+        .await
+        .ok_or(GetRuntimeError::NotFound)
+}
+
+pub(crate) async fn get_impostor_runtime_by_victim_app_id(
+    apps_state: &State<'_, AppsHostState>,
+    victim_app_id: &str,
+) -> Result<SharedImpostorRuntime, GetRuntimeError> {
+    find_impostor_runtime_by_victim_app_id_optional(apps_state, victim_app_id)
         .await
         .ok_or(GetRuntimeError::NotFound)
 }

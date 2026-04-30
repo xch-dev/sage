@@ -2,7 +2,6 @@ use crate::AppsHostState;
 use crate::runtime::{apps_create_inline_runtime, SageAppRuntimeMode, SageAppRuntimeVisibility};
 use crate::runtime::start::CreateRuntimeArgs;
 use crate::runtime::stop::close_runtime_internal;
-use crate::security::RUNTIME_APPS_PREFIX;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
@@ -22,7 +21,6 @@ pub(crate) async fn start_test_app(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     query: &[(&str, String)],
-    path: Option<String>,
 ) -> Result<(), String> {
     let mut query_map = HashMap::new();
 
@@ -37,7 +35,6 @@ pub(crate) async fn start_test_app(
         apps_state,
         app_id,
         SageAppRuntimeVisibility::Hidden,
-        path,
         query_map.into_iter().collect(),
     )
     .await
@@ -62,7 +59,6 @@ pub(crate) async fn run_clear_cycle_phase_runtime(
         apps_state,
         app_id,
         SageAppRuntimeVisibility::Hidden,
-        Some(RuntimeApp::StorageClearProbe.path()),
         query,
     )
     .await
@@ -77,7 +73,6 @@ async fn start_internal_runtime_for_sandbox(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     visibility: SageAppRuntimeVisibility,
-    path: Option<String>,
     query: BTreeMap<String, String>,
 ) -> Result<(), String> {
     let debug_test_apps = debug_test_apps_enabled();
@@ -87,29 +82,12 @@ async fn start_internal_runtime_for_sandbox(
         mode: SageAppRuntimeMode::Inline,
         visibility: if debug_test_apps { SageAppRuntimeVisibility::Visible } else { visibility },
         debug_layout: debug_test_apps,
-        path,
         query,
     };
 
     apps_create_inline_runtime(app.clone(), apps_state.clone(), args)
         .await
         .map(|_| ())
-}
-
-enum RuntimeApp {
-    StorageClearProbe,
-}
-
-impl RuntimeApp {
-    fn base(&self) -> &'static str {
-        match self {
-            Self::StorageClearProbe => "storage-clear-probe",
-        }
-    }
-
-    fn path(&self) -> String {
-        format!("{RUNTIME_APPS_PREFIX}{}/{}", self.base(), "index.html")
-    }
 }
 
 fn debug_test_apps_enabled() -> bool {

@@ -2,13 +2,12 @@ use std::collections::BTreeMap;
 use std::fmt::Display;
 use crate::lifecycle::read_installed_app_by_id;
 use crate::runtime::state::SageAppRuntimeKind;
-use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::sandbox::build_builtin_test_app;
 use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 use crate::AppsHostState;
-use crate::runtime::find_runtime_by_app_id_optional;
+use crate::runtime::{find_impostor_runtime_by_victim_app_id_optional, find_runtime_by_app_id_optional, GetRuntimeError, SharedImpostorRuntime, SharedRuntime};
 use crate::runtime::stop::close_runtime_internal;
 use tokio::time::{sleep, Duration};
 use crate::system_apps::build_builtin_system_app;
@@ -26,6 +25,11 @@ pub enum ResolveError {
 pub enum ResolveStoppedError {
     AppDirMissing,
     CloseAttemptsHit
+}
+
+pub(in crate) enum PossiblyImpostorRuntime {
+    Legit(SharedRuntime),
+    Impostor(SharedImpostorRuntime),
 }
 
 impl Display for ResolveError {
@@ -183,37 +187,50 @@ pub async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, R
     )))
 }
 
-pub(crate) async fn assert_bridge_origin(
-    app_handle: &AppHandle,
-    webview_label: &String,
-) -> Result<SharedSageApp, String> {
-    let app_id = app_id_from_webview_label(webview_label)
-        .ok_or_else(|| format!("invalid app runtime label: {webview_label}"))?;
-
-    let runtime = find_runtime_by_app_id_optional(&app_handle.state(), app_id).await
-        .ok_or_else(|| format!("failed to find runtime for app {app_id}"))?;
-    let app = runtime.app();
-
-    if !app.webview_label_matches(webview_label) {
-        return Err(format!(
-            "bridge denied for {webview_label}: webview label mismatch"
-        ));
+pub(crate) async fn resolve_possibly_impostor_running_app(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<PossiblyImpostorRuntime, GetRuntimeError> {
+    if let Some(runtime) =
+        find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await
+    {
+        return Ok(PossiblyImpostorRuntime::Impostor(runtime));
     }
 
-    let app_webview = get_webview_in_sage_window(app_handle, webview_label)?;
-
-    let current_url = app_webview
-        .url()
-        .map_err(|e| format!("failed to read current webview url: {e}"))?;
-
-    if !is_allowed_app_url(&current_url, &app) {
-        return Err(format!(
-            "bridge denied for {webview_label}: current url {} is outside {}://{}/...",
-            current_url,
-            protocol_scheme_for_app(&app),
-            app.origin_id()
-        ));
+    if let Some(runtime) = find_runtime_by_app_id_optional(apps_state, app_id).await {
+        return Ok(PossiblyImpostorRuntime::Legit(runtime));
     }
 
-    Ok(app)
+    Err(GetRuntimeError::NotFound)
+}
+
+impl PossiblyImpostorRuntime {
+    pub(crate) fn identity_app(&self) -> SharedSageApp {
+        match self {
+            Self::Legit(runtime) => runtime.app(),
+            Self::Impostor(runtime) => runtime.victim_app(),
+        }
+    }
+
+    pub(crate) fn content_app(&self) -> SharedSageApp {
+        match self {
+            Self::Legit(runtime) => runtime.app(),
+            Self::Impostor(runtime) => runtime.impostor_app(),
+        }
+    }
+
+    pub(crate) fn is_user_app(&self) -> bool {
+        self.identity_app().is_user_app()
+    }
+
+    pub(crate) fn is_system_app(&self) -> bool {
+        self.identity_app().is_system_app()
+    }
+
+    pub(crate) fn webview_label(&self) -> String {
+        match self {
+            Self::Legit(runtime) => runtime.with_runtime(|r| r.webview_label().to_string()),
+            Self::Impostor(runtime) => runtime.webview_label(),
+        }
+    }
 }

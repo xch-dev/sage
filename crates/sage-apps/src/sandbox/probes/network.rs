@@ -20,7 +20,6 @@ pub(in crate::sandbox) async fn run_network_test(
         apps_state,
         BUILTIN_NETWORK_ALLOW_A_ID,
         &[("runId", run_id.clone())],
-        None,
     )
     .await?;
     start_test_app(
@@ -28,7 +27,6 @@ pub(in crate::sandbox) async fn run_network_test(
         apps_state,
         BUILTIN_NETWORK_ALLOW_B_ID,
         &[("runId", run_id.clone())],
-        None,
     )
     .await?;
 

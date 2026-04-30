@@ -25,7 +25,6 @@ pub(in crate::sandbox) async fn run_isolation_test(
         apps_state,
         BUILTIN_STORAGE_ISOLATION_PERSISTENT_ID,
         &[("runId", run_id.clone())],
-        None,
     )
     .await?;
     start_test_app(
@@ -33,7 +32,6 @@ pub(in crate::sandbox) async fn run_isolation_test(
         apps_state,
         BUILTIN_STORAGE_ISOLATION_INCOGNITO_ID,
         &[("runId", run_id.clone())],
-        None,
     )
     .await?;
 

@@ -5,17 +5,17 @@ mod write;
 mod view;
 
 pub use view::SageAppRuntimeRecordView;
-pub use types::{AppRuntimeState, SageAppRuntimeKind, SharedRuntime, SageAppRuntimeRecord};
+pub(crate) use types::{AppRuntimeState, SageAppRuntimeKind, SharedRuntime, SageAppRuntimeRecord};
 
 pub use read::find_runtime_by_app_id_optional;
 
 pub(crate) use read::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    list_runtimes, GetRuntimeError
+    list_runtimes, find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError
 };
 pub(crate) use types::{
     ReadyToStopParams, RuntimeAckResult, SageLifecycleBeforeStopDetail, SetBeforeStopListenerParams,
-    SageAppRuntimeMode, SageAppRuntimeVisibility,
+    SageAppRuntimeMode, SageAppRuntimeVisibility, SageAppRuntimeImpostorKind, SharedImpostorRuntime,
 };
 
 pub(super) use remove::{

@@ -1,7 +1,7 @@
 use tauri::State;
+
 use crate::AppsHostState;
-use crate::runtime::SharedRuntime;
-use crate::runtime::state::types::{SageAppRuntimeRecord};
+use crate::runtime::state::types::{SageAppRuntimeImpostorRecord, SageAppRuntimeRecord, SharedRuntime, SharedImpostorRuntime};
 
 pub(in crate::runtime) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,
@@ -19,6 +19,33 @@ pub(in crate::runtime) async fn write_runtime(
 
     {
         let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
+        by_runtime_id.insert(runtime_id, runtime.clone());
+    }
+
+    runtime
+}
+
+pub(in crate::runtime) async fn write_impostor_runtime(
+    apps_state: &State<'_, AppsHostState>,
+    runtime: SageAppRuntimeImpostorRecord,
+) -> SharedImpostorRuntime {
+    let runtime_id = runtime.runtime_id();
+    let victim_app_id = runtime.victim_app_id();
+
+    let runtime = SharedImpostorRuntime::new(runtime);
+
+    {
+        let mut by_victim_app_id = apps_state
+            .runtime
+            .impostor_runtime_id_by_victim_app_id
+            .lock()
+            .await;
+
+        by_victim_app_id.insert(victim_app_id, runtime_id.clone());
+    }
+
+    {
+        let mut by_runtime_id = apps_state.runtime.impostor_by_runtime_id.lock().await;
         by_runtime_id.insert(runtime_id, runtime.clone());
     }
 
