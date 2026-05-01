@@ -111,7 +111,7 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
     impostor_app: SharedSageApp,
     args: CreateImpostorRuntimeArgs,
 ) -> Result<SharedImpostorRuntime, String> {
-    let victim_app = stopped.with_app(|app| app.clone_for_runtime_owner());
+    let victim_app = stopped.with_app(SharedSageApp::clone_for_runtime_owner);
 
     if !impostor_app.with(|app| app.common().is_sandbox_test())
         && !impostor_app.id().starts_with("__sage_runtime_")
@@ -145,7 +145,7 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
         })
         .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
-    let builder = build_storage(builder, &victim_app)?;
+    let builder = build_persistent_storage_target(builder, &victim_app)?;
 
     let (x, y, width, height) = if args.debug_layout {
         debug_layout_for_app(&victim_app.id())
@@ -230,35 +230,42 @@ async fn check_gates(apps_state: &State<'_, AppsHostState>, app: &SharedSageApp)
     Ok(())
 }
 
-fn build_storage(mut builder: WebviewBuilder<Wry>, app: &SharedSageApp)-> Result<WebviewBuilder<Wry>, String> {
-    let (has_persistent_storage, storage) = app.with(|app| {
-        let has_persistent_storage = app.granted_permissions()
+fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> Result<WebviewBuilder<Wry>, String> {
+    let has_persistent_storage = app.with(|app| {
+        app.granted_permissions()
             .capabilities()
-            .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage);
-
-        (has_persistent_storage, app.storage().clone())
+            .any(|cap| *cap == crate::bridge::capabilities::UserBridgeCapability::PersistentStorage)
     });
 
-    let should_use_incognito = !has_persistent_storage || app.storage_may_contain_secrets();
+    if !has_persistent_storage {
+        return Ok(builder.incognito(true));
+    }
 
-    if should_use_incognito {
-        builder = builder.incognito(true);
-    } else {
-        match storage {
-            #[cfg(any(target_os = "macos", target_os = "ios"))]
-            InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
-                let identifier = parse_data_store_id(&identifier_hex)?;
-                builder = builder.data_store_identifier(identifier);
-            }
+    build_persistent_storage_target(builder, app)
+}
 
-            #[cfg(target_os = "windows")]
-            InstalledSageAppStorage::WindowsProfile { directory_name } => {
-                builder =
-                    builder.data_directory(crate::storage::data_directory_for(directory_name));
-            }
+fn build_persistent_storage_target(
+    mut builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+) -> Result<WebviewBuilder<Wry>, String> {
+    let storage = app.with(|app| app.storage().clone());
 
-            _ => {}
+    match storage {
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
+            let identifier = parse_data_store_id(&identifier_hex)?;
+            builder = builder.data_store_identifier(identifier);
         }
+
+        #[cfg(target_os = "windows")]
+        InstalledSageAppStorage::WindowsProfile { directory_name } => {
+            builder = builder.data_directory(crate::storage::data_directory_for(directory_name));
+        }
+
+        InstalledSageAppStorage::Unmanaged => {}
+
+        #[allow(unreachable_patterns)]
+        _ => {}
     }
 
     Ok(builder)
