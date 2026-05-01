@@ -1,6 +1,25 @@
 use crate::AppsHostState;
 use tauri::State;
 
+async fn clear_active_runtime_if_matches(
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+    runtime_id: &str,
+) {
+    let mut active = apps_state
+        .runtime
+        .active_runtime_id_by_host_window_label
+        .lock()
+        .await;
+
+    if active
+        .get(host_window_label)
+        .is_some_and(|active_runtime_id| active_runtime_id == runtime_id)
+    {
+        active.remove(host_window_label);
+    }
+}
+
 pub(in crate::runtime) async fn remove_runtime_id_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
@@ -22,7 +41,16 @@ pub(in crate::runtime) async fn remove_runtime_by_runtime_id(
         return;
     };
 
-    remove_runtime_id_by_app_id(apps_state, &runtime.app_id()).await;
+    let (host_window_label, removed_runtime_id, app_id) = runtime.with_runtime(|runtime| {
+        (
+            runtime.host_window_label().to_string(),
+            runtime.runtime_id(),
+            runtime.app_id(),
+        )
+    });
+
+    clear_active_runtime_if_matches(apps_state, &host_window_label, &removed_runtime_id).await;
+    remove_runtime_id_by_app_id(apps_state, &app_id).await;
 }
 
 pub(in crate::runtime) async fn remove_before_stop_listeners_by_app_id(

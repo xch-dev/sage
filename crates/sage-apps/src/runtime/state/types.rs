@@ -70,6 +70,7 @@ pub struct SharedImpostorRuntime {
 pub struct AppRuntimeState {
     pub runtime_by_runtime_id: Mutex<BTreeMap<String, SharedRuntime>>,
     pub runtime_id_by_app_id: Mutex<BTreeMap<String, String>>,
+    pub active_runtime_id_by_host_window_label: Mutex<BTreeMap<String, String>>,
 
     pub impostor_by_runtime_id: Mutex<BTreeMap<String, SharedImpostorRuntime>>,
     pub impostor_runtime_id_by_victim_app_id: Mutex<BTreeMap<String, String>>,
