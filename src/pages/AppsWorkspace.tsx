@@ -104,14 +104,10 @@ export function AppsWorkspace() {
 
     for (const runtimeAppId of tabOrder) {
       const runtime = runtimeByAppId.get(runtimeAppId);
-      if (!runtime) {
-        continue;
-      }
+      if (!runtime) continue;
 
       const installedApp = getListedApp(runtime.app.common.identity.id);
-      if (!installedApp) {
-        continue;
-      }
+      if (!installedApp) continue;
 
       if (
         installedApp.kind === 'system' &&
@@ -120,19 +116,8 @@ export function AppsWorkspace() {
         continue;
       }
 
-      const iconSrc =
-        installedApp.common.activeSnapshot.manifest.icon == null
-          ? null
-          : installedApp.kind === 'system'
-            ? `sage-system-app://${installedApp.common.identity.originId}/${installedApp.common.activeSnapshot.manifest.icon}`
-            : `sage-app://${installedApp.common.identity.originId}/${installedApp.common.activeSnapshot.manifest.icon}`;
-
       out.push({
-        appId: runtime.app.common.identity.id,
-        runtimeKind: installedApp.kind,
-        name:
-          installedApp.common.activeSnapshot.manifest.name,
-        iconSrc,
+        app: installedApp,
         isActive: runtime.app.common.identity.id === appId,
       });
     }
@@ -192,23 +177,20 @@ export function AppsWorkspace() {
           navigate('/apps');
         }}
         onSelectApp={(tab) => {
-          const targetApp = getListedApp(tab.appId);
-          if (!targetApp) {
-            return;
-          }
-
-          const nextRoute = routeForApp(targetApp);
+          const nextRoute = routeForApp(tab.app);
           if (!nextRoute) {
             return;
           }
 
-          void focusRuntime(tab.appId).then(() => {
+          void focusRuntime(tab.app.common.identity.id).then(() => {
             navigate(nextRoute);
           });
         }}
         onCloseApp={(tab) => {
-          void killRuntime(tab.appId).then(() => {
-            if (tab.appId === appId) {
+          const tabAppId = tab.app.common.identity.id;
+
+          void killRuntime(tabAppId).then(() => {
+            if (tabAppId === appId) {
               navigate('/apps');
             }
           });
@@ -220,7 +202,8 @@ export function AppsWorkspace() {
 
       {activeApp &&
       currentApproval &&
-      currentApproval.request.app.common.identity.id === activeApp.common.identity.id ? (
+      currentApproval.request.app.common.identity.id ===
+        activeApp.common.identity.id ? (
         <AppApprovalStrip
           approval={{
             approvalId: currentApproval.id,

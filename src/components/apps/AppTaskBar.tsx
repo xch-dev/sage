@@ -2,13 +2,13 @@ import { Button } from '@/components/ui/button.tsx';
 import { Blocks, X } from 'lucide-react';
 import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppIconContent } from '@/components/apps/AppIcon.tsx';
+import { AppIcon } from '@/components/apps/AppIcon.tsx';
+import { ListedSageAppView } from '@/bindings.ts';
+
+type InstalledAppView = Exclude<ListedSageAppView, { kind: 'corrupted' }>;
 
 export interface AppTaskBarTab {
-  appId: string;
-  runtimeKind: 'user' | 'system';
-  name: string;
-  iconSrc: string | null;
+  app: InstalledAppView;
   isActive: boolean;
 }
 
@@ -69,11 +69,11 @@ export function AppTaskBar({
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [tabsViewportWidthPx, setTabsViewportWidthPx] = useState(0);
 
-  const baseOrder = useMemo(() => tabs.map((tab) => tab.appId), [tabs]);
+  const baseOrder = useMemo(() => tabs.map((tab) => tab.app.common.identity.id), [tabs]);
   const activeOrder = previewOrder ?? baseOrder;
 
   const tabsById = useMemo(() => {
-    return new Map(tabs.map((tab) => [tab.appId, tab] as const));
+    return new Map(tabs.map((tab) => [tab.app.common.identity.id, tab] as const));
   }, [tabs]);
 
   const orderedTabs = useMemo<AppTaskBarTab[]>(() => {
@@ -258,11 +258,12 @@ export function AppTaskBar({
           }}
         >
           {orderedTabs.map((tab) => {
-            const isDragged = dragState?.draggedAppId === tab.appId;
+            const isDragged =
+              dragState?.draggedAppId === tab.app.common.identity.id;
 
             return (
               <div
-                key={tab.appId}
+                key={tab.app.common.identity.id}
                 className={clsx('shrink-0', isDragged && 'opacity-0')}
                 style={{ width: `${tabWidthPx}px` }}
               >
@@ -286,7 +287,9 @@ export function AppTaskBar({
                     }
 
                     const viewportRect = viewportEl.getBoundingClientRect();
-                    const currentIndex = activeOrder.indexOf(tab.appId);
+                    const currentIndex = activeOrder.indexOf(
+                      tab.app.common.identity.id,
+                    );
                     const slotLeftPx = currentIndex * slotSpanPx;
                     const pointerXWithinStripPx =
                       event.clientX - viewportRect.left + viewportEl.scrollLeft;
@@ -298,7 +301,7 @@ export function AppTaskBar({
 
                     setPreviewOrder((prev) => prev ?? baseOrder);
                     setDragState({
-                      draggedAppId: tab.appId,
+                      draggedAppId: tab.app.common.identity.id,
                       pointerOffsetWithinTab: pointerOffsetWithinTabPx,
                       currentPointerX: event.clientX,
                       overlayLeftPx: slotLeftPx,
@@ -312,11 +315,11 @@ export function AppTaskBar({
                   )}
                 >
                   <div className='flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-sm'>
-                    <AppIconContent name={tab.name} iconUrl={tab.iconSrc} />
+                    <AppIcon app={tab.app} />
                   </div>
 
                   <span className='min-w-0 flex-1 truncate text-sm font-medium'>
-                    {tab.name}
+                    {tab.app.common.activeSnapshot.manifest.name}
                   </span>
 
                   <span
@@ -368,20 +371,12 @@ export function AppTaskBar({
                           : 'bg-muted text-muted-foreground',
                       )}
                     >
-                      {draggedTab.iconSrc ? (
-                        <img
-                          src={draggedTab.iconSrc}
-                          alt=''
-                          className='h-4 w-4 shrink-0 rounded-sm'
-                        />
-                      ) : (
-                        <div className='flex h-4 w-4 shrink-0 items-center justify-center rounded-sm bg-border text-[10px] font-semibold'>
-                          {draggedTab.name.slice(0, 1).toUpperCase()}
-                        </div>
-                      )}
+                      <div className='flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-sm'>
+                        <AppIcon app={draggedTab.app} />
+                      </div>
 
                       <span className='min-w-0 flex-1 truncate text-sm font-medium'>
-                        {draggedTab.name}
+                        {draggedTab.app.common.activeSnapshot.manifest.name}
                       </span>
 
                       <span className='shrink-0 opacity-100'>
