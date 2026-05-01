@@ -1,23 +1,22 @@
-use crate::runtime::{app_id_from_webview_label, resolve_possibly_impostor_running_app, PossiblyImpostorRuntime};
+use crate::runtime::{app_id_from_webview_label, resolve_possibly_impostor_running_app_immediate, PossiblyImpostorRuntime};
 use crate::security::build_app_csp;
 use anyhow::{Result as AnyResult, anyhow};
 use std::fs;
 use tauri::http::{Response, StatusCode};
 use tauri::{Manager, UriSchemeContext, Wry};
 
-pub async fn handle_user_app_protocol_request(
+pub fn handle_user_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
-    let result = async {
+    let result = (|| {
         let webview_label = ctx.webview_label();
 
         let app_id = app_id_from_webview_label(webview_label)
             .ok_or_else(|| anyhow!("invalid webview label"))?;
 
         let runtime =
-            resolve_possibly_impostor_running_app(&ctx.app_handle().state(), app_id)
-                .await
+            resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
                 .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))?;
 
         if !runtime.is_user_app() {
@@ -37,25 +36,23 @@ pub async fn handle_user_app_protocol_request(
             Err(err) if is_sandbox_test => Ok(protocol_error_response("sage-app", &err)),
             Err(_) => Ok(not_found_response()),
         }
-    }
-        .await;
+    })();
 
     result.unwrap_or_else(|_| not_found_response())
 }
 
-pub async fn handle_system_app_protocol_request(
+pub fn handle_system_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
-    let result = async {
+    let result = (|| {
         let webview_label = ctx.webview_label();
 
         let app_id = app_id_from_webview_label(webview_label)
             .ok_or_else(|| anyhow!("invalid webview label"))?;
 
         let runtime =
-            resolve_possibly_impostor_running_app(&ctx.app_handle().state(), app_id)
-                .await
+            resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
                 .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))?;
 
         if !runtime.is_system_app() {
@@ -70,8 +67,7 @@ pub async fn handle_system_app_protocol_request(
 
         handle_app_protocol_request(&runtime, request)
             .map_err(|err| anyhow!("sage-system-app error: {err}"))
-    }
-        .await;
+    })();
 
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", &err))
 }

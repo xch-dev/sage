@@ -206,14 +206,10 @@ pub fn run() {
 
     tauri_builder
         .register_uri_scheme_protocol("sage-app", move |ctx, request| {
-            tauri::async_runtime::block_on(
-                handle_user_app_protocol_request(&ctx, &request)
-            )
+            handle_user_app_protocol_request(&ctx, &request)
         })
         .register_uri_scheme_protocol("sage-system-app", move |ctx, request| {
-            tauri::async_runtime::block_on(
-                handle_system_app_protocol_request(&ctx, &request)
-            )
+            handle_system_app_protocol_request(&ctx, &request)
         })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {

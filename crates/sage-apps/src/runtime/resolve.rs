@@ -7,7 +7,7 @@ use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp,
 use tauri::{AppHandle, Manager, State};
 use url::Url;
 use crate::AppsHostState;
-use crate::runtime::{find_impostor_runtime_by_victim_app_id_optional, find_runtime_by_app_id_optional, GetRuntimeError, SharedImpostorRuntime, SharedRuntime};
+use crate::runtime::{find_impostor_runtime_by_victim_app_id_optional, find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional, find_runtime_by_app_id_optional_immediate, GetRuntimeError, SharedImpostorRuntime, SharedRuntime};
 use crate::runtime::stop::close_runtime_internal;
 use tokio::time::{sleep, Duration};
 use crate::system_apps::build_builtin_system_app;
@@ -214,6 +214,22 @@ pub(crate) async fn resolve_possibly_impostor_running_app(
     }
 
     Err(GetRuntimeError::NotFound)
+}
+
+pub(crate) fn resolve_possibly_impostor_running_app_immediate(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<PossiblyImpostorRuntime, String> {
+    if let Some(runtime) =
+        find_impostor_runtime_by_victim_app_id_optional_immediate(apps_state, app_id)?
+    {
+        return Ok(PossiblyImpostorRuntime::Impostor(runtime));
+    }
+    if let Some(runtime) = find_runtime_by_app_id_optional_immediate(apps_state, app_id)? {
+        return Ok(PossiblyImpostorRuntime::Legit(runtime));
+    }
+
+    Err("runtime not found".to_string())
 }
 
 impl PossiblyImpostorRuntime {
