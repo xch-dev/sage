@@ -1,13 +1,12 @@
 import type {
   RuntimeTargetParams,
   SageAppRuntimeRecordView,
-  SageSystemBridgeResponse,
   SageSystemClient,
   SageSystemBridgeVersion,
   SystemKillRuntimeResult,
   RuntimeManagerRuntimesChangedEvent,
 } from './types';
-import { createBridgeRuntimeCore } from '@sage-app/sdk';
+import { createBridgeRuntimeCore, parseJsonOrNull } from '@sage-app/sdk';
 
 export const SAGE_SYSTEM_BRIDGE_VERSION: SageSystemBridgeVersion = 'v1';
 
@@ -31,18 +30,95 @@ type SageSystemWindow = Window &
     __SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__?: boolean;
   };
 
+type SystemRuntimeEventEnvelope<T = unknown> = {
+  type: string;
+  payload: T;
+};
+
+type RustLikeSystemBridgeSuccessResponse = {
+  bridgeVersion: SageSystemBridgeVersion;
+  id: string;
+  ok: true;
+  result?: unknown;
+  resultJson?: string;
+};
+
+type RustLikeSystemBridgeErrorResponse = {
+  bridgeVersion: SageSystemBridgeVersion;
+  id: string;
+  ok: false;
+  error: {
+    code: string;
+    message: string;
+  };
+};
+
+type RustLikeSystemBridgeResponse =
+  | RustLikeSystemBridgeSuccessResponse
+  | RustLikeSystemBridgeErrorResponse;
+
 function getSageWindow(): SageSystemWindow {
   return window as SageSystemWindow;
 }
 
-function isRuntimeManagerRuntimesChangedEvent(
+function isObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object';
+}
+
+function isSystemRuntimeEventEnvelope(
   value: unknown,
-): value is RuntimeManagerRuntimesChangedEvent {
+): value is SystemRuntimeEventEnvelope {
   return (
-    !!value &&
-    typeof value === 'object' &&
-    (value as { type?: unknown }).type === 'runtimeManager.runtimesChanged'
+    isObject(value) && typeof value.type === 'string' && 'payload' in value
   );
+}
+
+function dispatchSystemRuntimeEvent(data: SystemRuntimeEventEnvelope) {
+  window.dispatchEvent(
+    new CustomEvent<SystemRuntimeEventEnvelope>('sage-system:event', {
+      detail: data,
+    }),
+  );
+
+  window.dispatchEvent(
+    new CustomEvent<SystemRuntimeEventEnvelope>(
+      `sage-system:event:${data.type}`,
+
+      { detail: data },
+    ),
+  );
+}
+
+function onSystemRuntimeEventType<T>(
+  type: string,
+  handler: (event: T) => void,
+): () => void {
+  const listener = (event: Event) => {
+    const custom = event as CustomEvent<SystemRuntimeEventEnvelope<T>>;
+    handler(custom.detail.payload);
+  };
+
+  window.addEventListener(
+    `sage-system:event:${type}`,
+    listener as EventListener,
+  );
+
+  return () => {
+    window.removeEventListener(
+      `sage-system:event:${type}`,
+      listener as EventListener,
+    );
+  };
+}
+
+function bridgeResponseResult(
+  data: RustLikeSystemBridgeSuccessResponse,
+): unknown {
+  if ('result' in data) {
+    return data.result;
+  }
+
+  return parseJsonOrNull(data.resultJson);
 }
 
 export function initSageSystemRuntimeBridge(): boolean {
@@ -68,25 +144,30 @@ export function initSageSystemRuntimeBridge(): boolean {
 
   const webview = core.webview as SageWebviewHandle;
   const callHost = core.callHost;
-  const rejectAllPending = core.rejectAllPending;
 
   w.__SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__ = true;
 
   webview
-    .listen(
-      `sage-system-bridge:response`,
-      (event: SageSystemListenEvent<SageSystemBridgeResponse>) => {
+    .listen<RustLikeSystemBridgeResponse>(
+      'sage-system-bridge:response',
+      (event: SageSystemListenEvent<RustLikeSystemBridgeResponse>) => {
         const data = event.payload;
 
-        if (
-          !data ||
-          data.bridgeVersion !== SAGE_SYSTEM_BRIDGE_VERSION
-        ) {
+        if (!data || data.bridgeVersion !== SAGE_SYSTEM_BRIDGE_VERSION) {
+          console.warn(
+            '[Sage System SDK] Dropped malformed bridge response:',
+            data,
+          );
           return;
         }
 
         const pending = core.pendingRequests.get(data.id);
         if (!pending) {
+          console.warn(
+            '[Sage System SDK] Response for unknown request id:',
+            data.id,
+            data,
+          );
           return;
         }
 
@@ -94,7 +175,7 @@ export function initSageSystemRuntimeBridge(): boolean {
         window.clearTimeout(pending.timeoutId);
 
         if (data.ok) {
-          pending.resolve(data.result as unknown);
+          pending.resolve(bridgeResponseResult(data));
         } else {
           pending.reject(
             new Error(
@@ -105,46 +186,32 @@ export function initSageSystemRuntimeBridge(): boolean {
       },
     )
     .catch((error: unknown) => {
-      console.error(
-        `Failed to subscribe to response:`,
-        error,
-      );
+      console.error('Failed to subscribe to system bridge response:', error);
     });
 
   webview
-    .listen('sage-lifecycle:before-stop', () => {
-      rejectAllPending('Sage system runtime is stopping');
+    .listen('sage-system-bridge:event', (event: SageSystemListenEvent) => {
+      const data = event.payload;
+
+      if (!isSystemRuntimeEventEnvelope(data)) {
+        console.warn(
+          '[Sage System SDK] Dropped malformed runtime event:',
+          data,
+        );
+        return;
+      }
+
+      try {
+        dispatchSystemRuntimeEvent(data);
+      } catch (error: unknown) {
+        console.error(
+          'Failed to dispatch Sage system bridge runtime event:',
+          error,
+        );
+      }
     })
     .catch((error: unknown) => {
-      console.error(
-        'Failed to subscribe to sage-lifecycle:before-stop:',
-        error,
-      );
-    });
-
-  webview
-    .listen(
-      `sage-system-bridge:event`,
-      (event: SageSystemListenEvent) => {
-        const data = event.payload;
-
-        if (!isRuntimeManagerRuntimesChangedEvent(data)) {
-          return;
-        }
-
-        window.dispatchEvent(
-          new CustomEvent<RuntimeManagerRuntimesChangedEvent>(
-            'runtimeManager:runtimesChanged',
-            { detail: data },
-          ),
-        );
-      },
-    )
-    .catch((error: unknown) => {
-      console.error(
-        `Failed to subscribe to event:`,
-        error,
-      );
+      console.error('Failed to subscribe to system bridge event:', error);
     });
 
   w.__SAGE_SYSTEM__ = {
@@ -177,26 +244,10 @@ export function initSageSystemRuntimeBridge(): boolean {
       },
 
       onRuntimesChanged(handler) {
-        const listener = (event: Event) => {
-          const custom =
-            event as CustomEvent<RuntimeManagerRuntimesChangedEvent>;
-
-          handler(custom.detail);
-        };
-
-        window.addEventListener(
-          'runtimeManager:runtimesChanged',
-
-          listener as EventListener,
+        return onSystemRuntimeEventType<RuntimeManagerRuntimesChangedEvent>(
+          'runtimeManager.runtimesChanged',
+          handler,
         );
-
-        return () => {
-          window.removeEventListener(
-            'runtimeManager:runtimesChanged',
-
-            listener as EventListener,
-          );
-        };
       },
     },
   };

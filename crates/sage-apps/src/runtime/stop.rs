@@ -1,14 +1,16 @@
 use crate::AppsHostState;
 use crate::runtime::{emit_runtime_manager_runtimes_changed, find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError, SharedRuntime};
-use crate::runtime::state::{SageLifecycleBeforeStopDetail, find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id, remove_before_stop_listeners_by_app_id, remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready, remove_impostor_runtime_by_victim_app_id};
+use crate::runtime::state::{find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id, remove_before_stop_listeners_by_app_id, remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready, remove_impostor_runtime_by_victim_app_id};
 use crate::runtime::webview_locator::find_webview_in_sage_window;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use uuid::Uuid;
+use crate::bridge::event_emit::emit_runtime_event_to_app_id;
+use crate::bridge::methods::user::app::events::BeforeStopEvent;
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;
 
@@ -44,14 +46,14 @@ pub(crate) async fn close_runtime_internal(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) {
-    close_runtime_internal_with_reason(app, apps_state, app_id, "host_close").await
+    close_runtime_internal_with_reason(app, apps_state, app_id, "host_close").await;
 }
 
 pub(super) async fn close_runtime_internal_with_reason(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-    reason: &str,
+    _reason: &str,
 ) {
     // Impostor?
     if let Some(impostor) = find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await {
@@ -74,7 +76,7 @@ pub(super) async fn close_runtime_internal_with_reason(
         return;
     };
 
-    let _ = wait_for_before_stop_ack(app, apps_state, &runtime, reason).await;
+    let _ = wait_for_before_stop_ack(app, apps_state, &runtime).await;
 
     if let Some(webview) = find_webview_in_sage_window(app, &runtime.app().webview_label()) {
         let _ = webview.close();
@@ -87,10 +89,9 @@ pub(super) async fn close_runtime_internal_with_reason(
 }
 
 async fn wait_for_before_stop_ack(
-    app: &AppHandle,
+    app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     runtime: &SharedRuntime,
-    reason: &str,
 ) -> Result<(), String> {
     let has_listener = {
         let listeners = apps_state
@@ -104,23 +105,13 @@ async fn wait_for_before_stop_ack(
     if !has_listener {
         return Ok(());
     }
-    let Some(app_webview) = find_webview_in_sage_window(app, &runtime.app().webview_label()) else {
-        return Ok(());
-    };
 
     let request_id = Uuid::new_v4().to_string();
     let (tx, rx) = oneshot::channel();
 
     write_pending_stop_ready(apps_state, &request_id, tx).await;
 
-    let detail = SageLifecycleBeforeStopDetail {
-        request_id: request_id.clone(),
-        reason: Some(reason.to_string()),
-        app_id: Some(runtime.app_id().to_string()),
-        runtime_id: Some(runtime.runtime_id().to_string()),
-    };
-
-    let _ = app_webview.emit("sage-lifecycle:before-stop", detail);
+    let _ = emit_runtime_event_to_app_id(app_handle, &runtime.app_id(), BeforeStopEvent::new(&request_id)).await;
     let _ = timeout(Duration::from_millis(BEFORE_STOP_TIMEOUT_MS), rx).await;
 
     remove_pending_stop_ready(apps_state, &request_id).await;

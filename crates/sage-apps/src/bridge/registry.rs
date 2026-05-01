@@ -1,5 +1,5 @@
 use super::methods::BridgeMethod;
-use super::methods::system::runtime_manager::{
+use super::methods::system::{
     RuntimeManagerFocusRuntime, RuntimeManagerHideRuntime, RuntimeManagerKillRuntime,
     RuntimeManagerListRuntimes,
 };

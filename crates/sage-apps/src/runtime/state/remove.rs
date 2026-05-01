@@ -1,24 +1,6 @@
 use crate::AppsHostState;
 use tauri::State;
-
-async fn clear_active_runtime_if_matches(
-    apps_state: &State<'_, AppsHostState>,
-    host_window_label: &str,
-    runtime_id: &str,
-) {
-    let mut active = apps_state
-        .runtime
-        .active_runtime_id_by_host_window_label
-        .lock()
-        .await;
-
-    if active
-        .get(host_window_label)
-        .is_some_and(|active_runtime_id| active_runtime_id == runtime_id)
-    {
-        active.remove(host_window_label);
-    }
-}
+use crate::runtime::manager::clear_active_runtime_if_matches;
 
 pub(in crate::runtime) async fn remove_runtime_id_by_app_id(
     apps_state: &State<'_, AppsHostState>,

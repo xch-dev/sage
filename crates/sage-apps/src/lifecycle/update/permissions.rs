@@ -4,8 +4,8 @@ use anyhow::Context;
 use tauri::AppHandle;
 
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::bridge::event_emit::emit_bridge_event_to_app_id;
-use crate::bridge::methods::user::app::events::EventForApp;
+use crate::bridge::event_emit::{emit_runtime_event_to_app_id};
+use crate::bridge::methods::user::app::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
@@ -134,10 +134,10 @@ async fn emit_granted_permissions_change(
     let capability_change = change.capabilities();
 
     if !capability_change.is_empty() {
-        let _ = emit_bridge_event_to_app_id(
+        let _ = emit_runtime_event_to_app_id(
             app_handle,
             app_id,
-            EventForApp::from_capabilities_change(capability_change),
+            GrantedCapabilitiesChangeEvent::from_change(capability_change)
         )
             .await;
     }
@@ -145,10 +145,10 @@ async fn emit_granted_permissions_change(
     let network_change = change.network_whitelist();
 
     if !network_change.is_empty() {
-        let _ = emit_bridge_event_to_app_id(
+        let _ = emit_runtime_event_to_app_id(
             app_handle,
             app_id,
-            EventForApp::from_network_whitelist_change(network_change),
+            GrantedNetworkWhitelistChangeEvent::from_change(network_change)
         )
             .await;
     }

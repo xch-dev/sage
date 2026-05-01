@@ -26,10 +26,6 @@ export type SageBridgeErrorResponse = {
   };
 };
 
-export type SageBridgeResponse =
-  | SageBridgeSuccessResponse
-  | SageBridgeErrorResponse;
-
 export type SageBridgeRuntimeEvent =
   | Generated.GrantedCapabilitiesChangeEvent
   | Generated.GrantedNetworkWhitelistChangeEvent;
@@ -72,9 +68,7 @@ export type SageWalletClient = {
 
 export type SageAppLifecycleClient = {
   onBeforeStop(
-    handler: (
-      detail: Omit<Generated.SageLifecycleBeforeStopDetail, 'requestId'>,
-    ) => void | Promise<void>,
+    handler: (event: Generated.BeforeStopEvent) => void | Promise<void>,
   ): () => void;
 };
 
@@ -108,5 +102,4 @@ export type {
   RuntimeAckResult,
   ReadyToStopParams,
   SetBeforeStopListenerParams,
-  SageLifecycleBeforeStopDetail,
 } from './generated-types';

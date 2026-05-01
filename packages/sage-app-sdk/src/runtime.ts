@@ -1,12 +1,13 @@
 import type * as Generated from './generated-types';
 import type {
-  SageBridgeResponse,
-  SageBridgeRuntimeEvent,
   SageBridgeSendPayload,
   SageBridgeVersion,
   SageClient,
 } from './types';
-import { createBridgeRuntimeCore } from './bridge-runtime-core';
+import {
+  createBridgeRuntimeCore,
+  parseJsonOrNull,
+} from './bridge-runtime-core';
 
 export const SAGE_BRIDGE_VERSION: SageBridgeVersion = 'v1';
 
@@ -31,10 +32,32 @@ type SageWindow = Window &
     __SAGE_RUNTIME_BRIDGE_INITIALIZED__?: boolean;
   };
 
-type BeforeStopPublicDetail = Omit<
-  Generated.SageLifecycleBeforeStopDetail,
-  'requestId'
->;
+type RuntimeEventEnvelope<T = unknown> = {
+  type: string;
+  payload: T;
+};
+
+type RustLikeBridgeSuccessResponse = {
+  bridgeVersion: SageBridgeVersion;
+  id: string;
+  ok: true;
+  result?: unknown;
+  resultJson?: string;
+};
+
+type RustLikeBridgeErrorResponse = {
+  bridgeVersion: SageBridgeVersion;
+  id: string;
+  ok: false;
+  error: {
+    code: string;
+    message: string;
+  };
+};
+
+type RustLikeBridgeResponse =
+  | RustLikeBridgeSuccessResponse
+  | RustLikeBridgeErrorResponse;
 
 function getSageWindow(): SageWindow {
   return window as SageWindow;
@@ -66,33 +89,77 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
 }
 
-function isBridgeRuntimeEvent(value: unknown): value is SageBridgeRuntimeEvent {
-  if (!isObject(value)) {
-    return false;
+function isRuntimeEventEnvelope(value: unknown): value is RuntimeEventEnvelope {
+  return (
+    isObject(value) && typeof value.type === 'string' && 'payload' in value
+  );
+}
+
+function dispatchRuntimeEvent(data: RuntimeEventEnvelope) {
+  window.dispatchEvent(
+    new CustomEvent<RuntimeEventEnvelope>('sage:event', {
+      detail: data,
+    }),
+  );
+
+  window.dispatchEvent(
+    new CustomEvent<RuntimeEventEnvelope>(`sage:event:${data.type}`, {
+      detail: data,
+    }),
+  );
+}
+
+function onRuntimeEventType<T>(
+  type: string,
+
+  handler: (event: T) => void,
+): () => void {
+  const listener = (event: Event) => {
+    const custom = event as CustomEvent<RuntimeEventEnvelope<T>>;
+
+    handler(custom.detail.payload);
+  };
+
+  window.addEventListener(`sage:event:${type}`, listener as EventListener);
+
+  return () => {
+    window.removeEventListener(`sage:event:${type}`, listener as EventListener);
+  };
+}
+
+function bridgeResponseResult(data: RustLikeBridgeSuccessResponse): unknown {
+  if ('result' in data) {
+    return data.result;
   }
 
-  return (
-    value.type === 'grantedCapabilitiesChange' ||
-    value.type === 'grantedNetworkWhitelistChange'
-  );
+  return parseJsonOrNull(data.resultJson);
 }
 
-function isGrantedCapabilitiesChangeEvent(
-  value: unknown,
-): value is Generated.GrantedCapabilitiesChangeEvent {
-  return (
-    isObject(value) &&
-    value.type === 'grantedCapabilitiesChange'
-  );
-}
+function handleBeforeStopEvent(
+  event: Generated.BeforeStopEvent,
+  beforeStopHandlers: Set<
+    (event: Generated.BeforeStopEvent) => void | Promise<void>
+  >,
+  callHost: <T>(method: string, params?: unknown) => Promise<T>,
+  rejectAllPending: (reason: string) => void,
+) {
+  rejectAllPending('Sage runtime is stopping');
 
-function isGrantedNetworkWhitelistChangeEvent(
-  value: unknown,
-): value is Generated.GrantedNetworkWhitelistChangeEvent {
-  return (
-    isObject(value) &&
-    value.type === 'grantedNetworkWhitelistChange'
-  );
+  if (!event?.requestId || beforeStopHandlers.size === 0) {
+    return;
+  }
+
+  const handlers = Array.from(beforeStopHandlers);
+
+  void Promise.allSettled(
+    handlers.map((handler) => Promise.resolve(handler(event))),
+  ).finally(() => {
+    void callHost<Generated.RuntimeAckResult>('app.lifecycle.readyToStop', {
+      requestId: event.requestId,
+    } satisfies Generated.ReadyToStopParams).catch((error: unknown) => {
+      console.error('Failed to acknowledge before-stop:', error);
+    });
+  });
 }
 
 export function initSageRuntimeBridge(): boolean {
@@ -123,7 +190,7 @@ export function initSageRuntimeBridge(): boolean {
   w.__SAGE_RUNTIME_BRIDGE_INITIALIZED__ = true;
 
   const beforeStopHandlers = new Set<
-    (detail: BeforeStopPublicDetail) => void | Promise<void>
+    (event: Generated.BeforeStopEvent) => void | Promise<void>
   >();
   let beforeStopRegistered = false;
 
@@ -151,30 +218,13 @@ export function initSageRuntimeBridge(): boolean {
     .listen('sage-bridge:event', (event: SageListenEvent) => {
       const data = event.payload;
 
-      if (!isBridgeRuntimeEvent(data)) {
-        console.warn('[Sage SDK] Dropped unknown runtime event:', data);
+      if (!isRuntimeEventEnvelope(data)) {
+        console.warn('[Sage SDK] Dropped malformed runtime event:', data);
         return;
       }
 
       try {
-        if (isGrantedCapabilitiesChangeEvent(data)) {
-          window.dispatchEvent(
-            new CustomEvent<Generated.GrantedCapabilitiesChangeEvent>(
-              'app:granted-capabilities-change',
-              { detail: data },
-            ),
-          );
-          return;
-        }
-
-        if (isGrantedNetworkWhitelistChangeEvent(data)) {
-          window.dispatchEvent(
-            new CustomEvent<Generated.GrantedNetworkWhitelistChangeEvent>(
-              'app:granted-network-whitelist-change',
-              { detail: data },
-            ),
-          );
-        }
+        dispatchRuntimeEvent(data);
       } catch (error: unknown) {
         console.error('Failed to dispatch Sage bridge runtime event:', error);
       }
@@ -183,21 +233,36 @@ export function initSageRuntimeBridge(): boolean {
       console.error('Failed to subscribe to sage-bridge:event:', error);
     });
 
+  onRuntimeEventType<Generated.BeforeStopEvent>(
+    'lifecycle.beforeStop',
+    (detail) => {
+      handleBeforeStopEvent(
+        detail,
+        beforeStopHandlers,
+        callHost,
+        rejectAllPending,
+      );
+    },
+  );
+
   webview
-    .listen<SageBridgeResponse>(
+    .listen<RustLikeBridgeResponse>(
       'sage-bridge:response',
-      (event: SageListenEvent<SageBridgeResponse>) => {
+      (event: SageListenEvent<RustLikeBridgeResponse>) => {
         const data = event.payload;
 
-        if (
-          !data ||
-          data.bridgeVersion !== SAGE_BRIDGE_VERSION
-        ) {
+        if (!data || data.bridgeVersion !== SAGE_BRIDGE_VERSION) {
+          console.warn('[Sage SDK] Dropped malformed bridge response:', data);
           return;
         }
 
         const pending = core.pendingRequests.get(data.id);
         if (!pending) {
+          console.warn(
+            '[Sage SDK] Response for unknown request id:',
+            data.id,
+            data,
+          );
           return;
         }
 
@@ -205,7 +270,7 @@ export function initSageRuntimeBridge(): boolean {
         window.clearTimeout(pending.timeoutId);
 
         if (data.ok) {
-          pending.resolve(data.result as unknown);
+          pending.resolve(bridgeResponseResult(data));
         } else {
           pending.reject(
             new Error(data.error?.message || 'Unknown Sage bridge error'),
@@ -215,46 +280,6 @@ export function initSageRuntimeBridge(): boolean {
     )
     .catch((error: unknown) => {
       console.error('Failed to subscribe to sage-bridge:response:', error);
-    });
-
-  webview
-    .listen<Generated.SageLifecycleBeforeStopDetail>(
-      'sage-lifecycle:before-stop',
-      (event: SageListenEvent<Generated.SageLifecycleBeforeStopDetail>) => {
-        const detail = event.payload;
-        rejectAllPending('Sage runtime is stopping');
-
-        if (!detail?.requestId || beforeStopHandlers.size === 0) {
-          return;
-        }
-
-        const publicDetail: BeforeStopPublicDetail = {
-          reason: detail.reason,
-          appId: detail.appId,
-          runtimeId: detail.runtimeId,
-        };
-
-        const handlers = Array.from(beforeStopHandlers);
-
-        void Promise.allSettled(
-          handlers.map((handler) => Promise.resolve(handler(publicDetail))),
-        ).finally(() => {
-          void callHost<Generated.RuntimeAckResult>(
-            'app.lifecycle.readyToStop',
-            {
-              requestId: detail.requestId,
-            } satisfies Generated.ReadyToStopParams,
-          ).catch((error: unknown) => {
-            console.error('Failed to acknowledge before-stop:', error);
-          });
-        });
-      },
-    )
-    .catch((error: unknown) => {
-      console.error(
-        'Failed to subscribe to sage-lifecycle:before-stop:',
-        error,
-      );
     });
 
   w.__SAGE__ = {
@@ -295,43 +320,17 @@ export function initSageRuntimeBridge(): boolean {
       },
 
       onGrantedCapabilitiesChange(handler) {
-        const listener = (event: Event) => {
-          const custom =
-            event as CustomEvent<Generated.GrantedCapabilitiesChangeEvent>;
-          handler(custom.detail);
-        };
-
-        window.addEventListener(
-          'app:granted-capabilities-change',
-          listener as EventListener,
+        return onRuntimeEventType<Generated.GrantedCapabilitiesChangeEvent>(
+          'grantedCapabilitiesChange',
+          handler,
         );
-
-        return () => {
-          window.removeEventListener(
-            'app:granted-capabilities-change',
-            listener as EventListener,
-          );
-        };
       },
 
       onGrantedNetworkWhitelistChange(handler) {
-        const listener = (event: Event) => {
-          const custom =
-            event as CustomEvent<Generated.GrantedNetworkWhitelistChangeEvent>;
-          handler(custom.detail);
-        };
-
-        window.addEventListener(
-          'app:granted-network-whitelist-change',
-          listener as EventListener,
+        return onRuntimeEventType<Generated.GrantedNetworkWhitelistChangeEvent>(
+          'grantedNetworkWhitelistChange',
+          handler,
         );
-
-        return () => {
-          window.removeEventListener(
-            'app:granted-network-whitelist-change',
-            listener as EventListener,
-          );
-        };
       },
 
       lifecycle: {

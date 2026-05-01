@@ -1,10 +1,47 @@
+use serde::Serialize;
+use specta::Type;
 use crate::AppsHostState;
-use crate::bridge::methods::user::app::events::EventForApp;
 use crate::bridge::{RustBridgeResponse};
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::{find_runtime_by_app_id_optional};
+use crate::runtime::resolve_possibly_impostor_running_app_immediate;
 use tauri::{AppHandle, Emitter, Manager};
 use crate::types::{SharedSageApp};
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeEvent<T: AppRuntimeEvent> {
+    #[serde(rename = "type")]
+    pub event_type: &'static str,
+
+    pub payload: T,
+}
+
+pub fn runtime_event<T: AppRuntimeEvent>(payload: T) -> RuntimeEvent<T> {
+    RuntimeEvent {
+        event_type: T::TYPE,
+        payload,
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppRuntimeEventRail {
+    User,
+    System,
+}
+
+impl AppRuntimeEventRail {
+    pub fn event_name(self) -> &'static str {
+        match self {
+            Self::User => "sage-bridge:event",
+            Self::System => "sage-system-bridge:event",
+        }
+    }
+}
+
+pub trait AppRuntimeEvent: Serialize + Type + Clone {
+    const TYPE: &'static str;
+    const RAIL: AppRuntimeEventRail;
+}
 
 pub(crate) async fn emit_bridge_response_to_source(
     app_handle: &AppHandle,
@@ -16,22 +53,21 @@ pub(crate) async fn emit_bridge_response_to_source(
         .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
-pub(crate) async fn emit_bridge_event_to_app_id(
+pub(crate) async fn emit_runtime_event_to_app_id<T>(
     app_handle: &AppHandle,
     app_id: &str,
-    event: EventForApp,
-) -> Result<(), String> {
+    event: T,
+) -> Result<(), String>
+where
+    T: AppRuntimeEvent,
+{
     let apps_state = app_handle.state::<AppsHostState>();
 
-    let Some(runtime) = find_runtime_by_app_id_optional(&apps_state, app_id).await else {
-        return Ok(());
-    };
+    let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
 
-    let webview_label = runtime.with_runtime(|runtime| {
-        runtime.webview_label().to_string()
-    });
+    let webview_label = runtime.identity_webview_label();
 
     get_webview_in_sage_window(app_handle, &webview_label)?
-        .emit("sage-bridge:event", event)
-        .map_err(|err| format!("failed to emit bridge event: {err}"))
+        .emit(T::RAIL.event_name(), runtime_event(event))
+        .map_err(|err| format!("failed to emit runtime event: {err}"))
 }

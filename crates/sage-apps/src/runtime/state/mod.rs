@@ -11,12 +11,12 @@ pub use read::find_runtime_by_app_id_optional;
 
 pub(crate) use read::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    list_runtimes, find_impostor_runtime_by_victim_app_id_optional, 
-    find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional_immediate, 
+    list_runtimes, find_impostor_runtime_by_victim_app_id_optional,
+    find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional_immediate,
     GetRuntimeError
 };
 pub(crate) use types::{
-    ReadyToStopParams, RuntimeAckResult, SageLifecycleBeforeStopDetail, SetBeforeStopListenerParams,
+    ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams,
     SageAppRuntimeMode, SageAppRuntimeVisibility, SageAppRuntimeImpostorKind, SharedImpostorRuntime,
     SageAppRuntimeImpostorRecord,
 };

@@ -1,5 +1,4 @@
-use crate::bridge::methods::system::RuntimeManagerRuntimesChangedEvent;
-use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
+use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -15,8 +14,7 @@ use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{
-    ReadyToStopParams, RuntimeAckResult, SageLifecycleBeforeStopDetail,
-    SetBeforeStopListenerParams,
+    ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams,
 };
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
@@ -28,6 +26,7 @@ use sage_api::{
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
+use crate::bridge::methods::user::app::events::BeforeStopEvent;
 
 pub fn export_system_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
@@ -58,7 +57,7 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<RequestNetworkWhitelistGrantResult>();
     types.register::<GrantedCapabilitiesChangeEvent>();
     types.register::<GrantedNetworkWhitelistChangeEvent>();
-    types.register::<SageLifecycleBeforeStopDetail>();
+    types.register::<BeforeStopEvent>();
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();

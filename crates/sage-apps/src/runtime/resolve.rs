@@ -247,6 +247,13 @@ impl PossiblyImpostorRuntime {
         }
     }
 
+    pub(crate) fn identity_webview_label(&self) -> String {
+        match self {
+            PossiblyImpostorRuntime::Legit(runtime) => runtime.with_runtime(|runtime| runtime.webview_label().to_string()),
+            PossiblyImpostorRuntime::Impostor(runtime) => runtime.with_runtime(|runtime| runtime.victim_app().webview_label()),
+        }
+    }
+
     pub(crate) fn is_user_app(&self) -> bool {
         self.identity_app().is_user_app()
     }

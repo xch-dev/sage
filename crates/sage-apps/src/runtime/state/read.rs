@@ -39,7 +39,10 @@ pub(crate) fn find_runtime_by_app_id_optional_immediate(
             .runtime
             .runtime_id_by_app_id
             .try_lock()
-            .map_err(|_| "runtime_id_by_app_id is busy".to_string())?;
+            .map_err(|_| {
+                eprintln!("runtime_id_by_app_id is busy");
+                "runtime_id_by_app_id is busy".to_string()
+            })?;
 
         by_app_id.get(app_id).cloned()
     };
@@ -52,7 +55,10 @@ pub(crate) fn find_runtime_by_app_id_optional_immediate(
         .runtime
         .runtime_by_runtime_id
         .try_lock()
-        .map_err(|_| "runtime_by_runtime_id is busy".to_string())?;
+        .map_err(|_| {
+            eprintln!("runtime_by_runtime_id is busy");
+            "runtime_by_runtime_id is busy".to_string()
+        })?;
 
     Ok(by_runtime_id.get(&runtime_id).cloned())
 }
@@ -92,7 +98,10 @@ pub(crate) fn find_impostor_runtime_by_victim_app_id_optional_immediate(
             .runtime
             .impostor_runtime_id_by_victim_app_id
             .try_lock()
-            .map_err(|_| "impostor_runtime_id_by_victim_app_id is busy".to_string())?;
+            .map_err(|_| {
+                eprintln!("impostor_runtime_id_by_victim_app_id is busy");
+                "impostor_runtime_id_by_victim_app_id is busy".to_string()
+            })?;
 
         by_victim_app_id.get(victim_app_id).cloned()
     };
@@ -105,7 +114,10 @@ pub(crate) fn find_impostor_runtime_by_victim_app_id_optional_immediate(
         .runtime
         .impostor_by_runtime_id
         .try_lock()
-        .map_err(|_| "impostor_by_runtime_id is busy".to_string())?;
+        .map_err(|_| {
+            eprintln!("impostor_by_runtime_id is busy");
+            "impostor_by_runtime_id is busy".to_string()
+        })?;
 
     Ok(by_runtime_id.get(&runtime_id).cloned())
 }
