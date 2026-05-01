@@ -13,7 +13,6 @@ pub enum EventForApp {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GrantedCapabilitiesChangeEvent {
-    pub channel: String,
     #[serde(rename = "type")]
     pub event_type: String,
     pub removed_granted_capabilities: Vec<UserBridgeCapability>,
@@ -24,7 +23,6 @@ pub struct GrantedCapabilitiesChangeEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GrantedNetworkWhitelistChangeEvent {
-    pub channel: String,
     #[serde(rename = "type")]
     pub event_type: String,
     pub removed_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
@@ -33,9 +31,8 @@ pub struct GrantedNetworkWhitelistChangeEvent {
 }
 
 impl EventForApp {
-    pub fn from_capabilities_change(channel: &str, change: &GrantedCapabilitiesChange) -> Self {
+    pub fn from_capabilities_change(change: &GrantedCapabilitiesChange) -> Self {
         EventForApp::GrantedCapabilitiesChange(GrantedCapabilitiesChangeEvent {
-            channel: channel.to_string(),
             event_type: "grantedCapabilitiesChange".to_string(),
             removed_granted_capabilities: change.removed.clone(),
             added_granted_capabilities: change.added.clone(),
@@ -44,11 +41,9 @@ impl EventForApp {
     }
 
     pub fn from_network_whitelist_change(
-        channel: &str,
         change: &GrantedNetworkWhitelistChange,
     ) -> Self {
         EventForApp::GrantedNetworkWhitelistChange(GrantedNetworkWhitelistChangeEvent {
-            channel: channel.to_string(),
             event_type: "grantedNetworkWhitelistChange".to_string(),
             removed_granted_network_whitelist: change.removed.clone(),
             added_granted_network_whitelist: change.added.clone(),

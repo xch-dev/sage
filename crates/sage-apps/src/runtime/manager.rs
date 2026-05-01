@@ -47,7 +47,6 @@ pub(crate) async fn emit_runtime_manager_runtimes_changed(
         .collect::<Vec<SageAppRuntimeRecordView>>();
 
     let event = RuntimeManagerRuntimesChangedEvent::new(
-        "sage-system-bridge".to_string(),
         runtime_records,
     );
 

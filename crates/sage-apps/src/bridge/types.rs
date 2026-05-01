@@ -5,18 +5,19 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
 use tauri_specta::Event;
+use crate::bridge::registry::BridgeRegistryKind;
 
 #[derive(Debug, Clone)]
 pub struct PendingBridgeApproval {
     pub app_id: String,
     pub app_webview_label: String,
     pub request: RustBridgeRequest,
+    pub registry_kind: BridgeRegistryKind,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeRequest {
-    pub channel: String,
     pub bridge_version: Option<String>,
     pub id: String,
     pub method: String,

@@ -10,7 +10,6 @@ export function success(
   result: unknown,
 ): SageBridgeSuccessResponse {
   return {
-    channel: 'sage-bridge',
     bridgeVersion: BRIDGE_VERSION,
     id,
     ok: true,

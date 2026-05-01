@@ -1,5 +1,5 @@
 use crate::AppsHostState;
-use crate::bridge::bridge_request::{assert_bridge_origin, execute_bridge_request, process};
+use crate::bridge::bridge_request::{assert_bridge_origin, execute_bridge_request, process_system, process_user};
 use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::bridge::state::{get_pending_approval, remove_pending_approval};
 use crate::bridge::{
@@ -9,6 +9,7 @@ use crate::capabilities::user_registry;
 use crate::host::AppState;
 use crate::types::SageAppCapabilityDefinitionView;
 use tauri::{AppHandle, State, Webview};
+use crate::bridge::registry::BridgeRegistry;
 
 #[tauri::command]
 #[specta::specta]
@@ -18,7 +19,18 @@ pub async fn apps_invoke_bridge(
     app_state: State<'_, AppState>,
     request: RustBridgeRequest,
 ) -> Result<RustBridgeInvokeResult, String> {
-    process(app, webview, app_state, request).await
+    process_user(app, webview, app_state, request).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_invoke_system_bridge(
+    app: AppHandle,
+    webview: Webview,
+    app_state: State<'_, AppState>,
+    request: RustBridgeRequest,
+) -> Result<RustBridgeInvokeResult, String> {
+    process_system(app, webview, app_state, request).await
 }
 
 #[tauri::command]
@@ -39,7 +51,7 @@ pub async fn apps_resolve_bridge_approval(
             &app_handle,
             &app_state,
             &origin,
-            &pending.app_webview_label,
+            BridgeRegistry::new(pending.registry_kind),
             &pending.request,
         )
         .await
@@ -52,7 +64,7 @@ pub async fn apps_resolve_bridge_approval(
         )
     };
 
-    emit_bridge_response_to_source(&app_handle, &pending.app_webview_label, &response).await?;
+    emit_bridge_response_to_source(&app_handle, &origin.app, &response).await?;
     Ok(())
 }
 

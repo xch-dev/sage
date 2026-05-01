@@ -7,11 +7,9 @@ import type {
   SystemKillRuntimeResult,
 } from './generated-types';
 
-export type SageSystemBridgeChannel = 'sage-system-bridge';
 export type SageSystemBridgeVersion = 'v1';
 
 export type SageSystemBridgeSuccessResponse = {
-  channel: SageSystemBridgeChannel;
   bridgeVersion: SageSystemBridgeVersion;
   id: string;
   ok: true;
@@ -19,7 +17,6 @@ export type SageSystemBridgeSuccessResponse = {
 };
 
 export type SageSystemBridgeErrorResponse = {
-  channel: SageSystemBridgeChannel;
   bridgeVersion: SageSystemBridgeVersion;
   id: string;
   ok: false;

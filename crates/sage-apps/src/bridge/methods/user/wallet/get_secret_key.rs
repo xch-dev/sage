@@ -32,7 +32,7 @@ impl BridgeMethod for WalletGetSecretKey {
 
         Ok(Some(RustBridgeApprovalRequest {
             app: ctx.app.into(),
-            source_label: ctx.source_label.to_string(),
+            source_label: ctx.app.webview_label(),
             request_id: request.id.clone(),
             body: RustBridgeApprovalBody::GetSecretKey {
                 fingerprint: params.fingerprint,

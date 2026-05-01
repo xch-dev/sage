@@ -45,7 +45,7 @@ impl BridgeRegistry {
     }
 
     pub fn get(&self, method: &str) -> Option<&dyn BridgeMethod> {
-        self.methods.get(method).map(std::convert::AsRef::as_ref)
+        self.methods.get(method).map(AsRef::as_ref)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&'static str, &dyn BridgeMethod)> {

@@ -41,6 +41,7 @@ function buildPreviewApp(
       activeSnapshot: {
         manifest,
       },
+      icon: null,
     },
     source: { kind: 'zip' },
     pendingUpdate: null,

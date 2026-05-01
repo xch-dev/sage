@@ -13,15 +13,3 @@ pub use types::{
     RustBridgeErrorPayload, RustBridgeErrorResponse, RustBridgeInvokeResult, RustBridgeRequest,
     RustBridgeResponse, RustBridgeSuccessResponse,
 };
-use crate::types::SharedSageApp;
-
-pub const USER_BRIDGE_CHANNEL: &str = "sage-bridge";
-pub const SYSTEM_BRIDGE_CHANNEL: &str = "sage-system-bridge";
-
-pub(crate) fn response_channel_for_app(app: &SharedSageApp) -> &'static str {
-    if app.is_system_app() {
-        return SYSTEM_BRIDGE_CHANNEL;
-    }
-
-    USER_BRIDGE_CHANNEL
-}

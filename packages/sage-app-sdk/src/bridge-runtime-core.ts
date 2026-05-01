@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 
 export type GenericBridgeRequest = {
-  channel: string;
   bridgeVersion?: string;
   id: string;
   method: string;
@@ -10,7 +9,6 @@ export type GenericBridgeRequest = {
 };
 
 export type GenericBridgeSuccessResponse = {
-  channel: string;
   bridgeVersion: string;
   id: string;
   ok: true;
@@ -18,7 +16,6 @@ export type GenericBridgeSuccessResponse = {
 };
 
 export type GenericBridgeErrorResponse = {
-  channel: string;
   bridgeVersion: string;
   id: string;
   ok: false;
@@ -34,14 +31,12 @@ export type GenericBridgeResponse =
 
 type RustBridgeResponse =
   | {
-      channel: string;
       bridgeVersion: string;
       id: string;
       ok: true;
       resultJson: string;
     }
   | {
-      channel: string;
       bridgeVersion: string;
       id: string;
       ok: false;
@@ -82,7 +77,6 @@ type PendingBridgeRequest = {
 };
 
 export type BridgeRuntimeCoreConfig = {
-  channel: string;
   version: string;
   invokeCommand: string;
   requestIdPrefix: string;
@@ -118,13 +112,11 @@ export function parseJsonOrNull(value: string | null | undefined): unknown {
 }
 
 export function toSdkBridgeResponse(
-  channel: string,
   version: string,
   response: RustBridgeResponse,
 ): GenericBridgeResponse {
   if ('resultJson' in response) {
     return {
-      channel,
       bridgeVersion: version,
       id: response.id,
       ok: true,
@@ -133,7 +125,6 @@ export function toSdkBridgeResponse(
   }
 
   return {
-    channel,
     bridgeVersion: version,
     id: response.id,
     ok: false,
@@ -174,7 +165,7 @@ export function createBridgeRuntimeCore(
         }
 
         pendingRequests.delete(id);
-        reject(new Error(`${config.channel} timeout for ${method}`));
+        reject(new Error(`timeout for ${method}`));
       }, timeoutMs);
 
       pendingRequests.set(id, {
@@ -187,7 +178,6 @@ export function createBridgeRuntimeCore(
       void (async () => {
         try {
           const request: GenericBridgeRequest = {
-            channel: config.channel,
             bridgeVersion: config.version,
             id,
             method,
@@ -198,7 +188,6 @@ export function createBridgeRuntimeCore(
             config.invokeCommand,
             {
               request: {
-                channel: request.channel,
                 bridgeVersion: request.bridgeVersion ?? null,
                 id: request.id,
                 method: request.method,
@@ -212,7 +201,6 @@ export function createBridgeRuntimeCore(
 
           if (result.kind === 'immediate') {
             const response = toSdkBridgeResponse(
-              config.channel,
               config.version,
               result.response,
             );

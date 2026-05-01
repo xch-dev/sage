@@ -1,23 +1,18 @@
 use crate::AppsHostState;
 use crate::bridge::methods::user::app::events::EventForApp;
-use crate::bridge::{RustBridgeResponse, response_channel_for_app};
+use crate::bridge::{RustBridgeResponse};
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::{app_id_from_webview_label, find_runtime_by_app_id_optional, get_runtime_by_app_id};
+use crate::runtime::{find_runtime_by_app_id_optional};
 use tauri::{AppHandle, Emitter, Manager};
 use crate::types::{SharedSageApp};
 
 pub(crate) async fn emit_bridge_response_to_source(
-    app: &AppHandle,
-    app_webview_label: &str,
+    app_handle: &AppHandle,
+    app: &SharedSageApp,
     response: &RustBridgeResponse,
 ) -> Result<(), String> {
-    let app_id = app_id_from_webview_label(app_webview_label)
-        .ok_or_else(|| format!("invalid webview label for bridge response: {app_webview_label}"))?;
-    let shared_runtime = get_runtime_by_app_id(&app.state(), app_id).await.map_err(|e| e.to_string())?;
-    let response_event = shared_runtime.with_app(response_event_for_app);
-
-    get_webview_in_sage_window(app, app_webview_label)?
-        .emit(&response_event, response)
+    get_webview_in_sage_window(app_handle, &app.webview_label())?
+        .emit("sage-bridge:response", response)
         .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
@@ -32,25 +27,11 @@ pub(crate) async fn emit_bridge_event_to_app_id(
         return Ok(());
     };
 
-    let (webview_label, event_name) = runtime.with_runtime(|runtime| {
-        (
-            runtime.webview_label().to_string(),
-            event_event_for_app(&runtime.app()),
-        )
+    let webview_label = runtime.with_runtime(|runtime| {
+        runtime.webview_label().to_string()
     });
 
     get_webview_in_sage_window(app_handle, &webview_label)?
-        .emit(&event_name, event)
+        .emit("sage-bridge:event", event)
         .map_err(|err| format!("failed to emit bridge event: {err}"))
-}
-
-fn response_event_for_app(app: &SharedSageApp) -> String {
-    format!(
-        "{}:response",
-        response_channel_for_app(app)
-    )
-}
-
-fn event_event_for_app(app: &SharedSageApp) -> String {
-    format!("{}:event", response_channel_for_app(app))
 }

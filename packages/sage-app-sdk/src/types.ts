@@ -10,7 +10,6 @@ export type SageBridgeSendPayload = {
 };
 
 export type SageBridgeSuccessResponse = {
-  channel: 'sage-bridge';
   bridgeVersion: SageBridgeVersion;
   id: string;
   ok: true;
@@ -18,7 +17,6 @@ export type SageBridgeSuccessResponse = {
 };
 
 export type SageBridgeErrorResponse = {
-  channel: 'sage-bridge';
   bridgeVersion: SageBridgeVersion;
   id: string;
   ok: false;

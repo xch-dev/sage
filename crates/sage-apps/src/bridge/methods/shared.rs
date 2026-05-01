@@ -10,7 +10,6 @@ use crate::runtime::SharedImpostorRuntime;
 #[derive(Debug)]
 pub struct BridgeContext<'a> {
     pub app: &'a SharedSageApp,
-    pub source_label: &'a str,
     pub impostor_runtime: &'a Option<SharedImpostorRuntime>,
 }
 

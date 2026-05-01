@@ -1,5 +1,4 @@
 use crate::bridge::capabilities::UserBridgeCapability;
-use crate::bridge::{SYSTEM_BRIDGE_CHANNEL, USER_BRIDGE_CHANNEL};
 use crate::runtime::SharedRuntime;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
@@ -183,18 +182,6 @@ impl SharedSageApp {
 
         if let Some(extracted_app_id) = label.strip_prefix("system-app-") {
             return self.is_system_app() && extracted_app_id == app_id;
-        }
-
-        false
-    }
-
-    pub fn bridge_channel_matches(&self, channel: &str) -> bool {
-        if self.is_system_app() {
-            return USER_BRIDGE_CHANNEL == channel || SYSTEM_BRIDGE_CHANNEL == channel;
-        }
-
-        if self.is_user_app() {
-            return USER_BRIDGE_CHANNEL == channel;
         }
 
         false

@@ -5,6 +5,7 @@ use crate::types::{SharedSageApp};
 use std::collections::BTreeMap;
 use tauri::State;
 use tokio::sync::Mutex;
+use crate::bridge::registry::BridgeRegistryKind;
 
 #[derive(Debug, Default)]
 pub struct BridgeState {
@@ -15,16 +16,17 @@ pub(crate) async fn write_pending_approval(
     apps_state: &State<'_, AppsHostState>,
     approval_id: &str,
     sage_app: &SharedSageApp,
-    webview_label: &str,
     request: &RustBridgeRequest,
+    registry_kind: BridgeRegistryKind,
 ) {
     let mut pending = apps_state.bridge.pending_approvals.lock().await;
     pending.insert(
         approval_id.to_string(),
         PendingBridgeApproval {
             app_id: sage_app.id().to_string(),
-            app_webview_label: webview_label.to_string(),
+            app_webview_label: sage_app.webview_label(),
             request: request.clone(),
+            registry_kind
         },
     );
 }

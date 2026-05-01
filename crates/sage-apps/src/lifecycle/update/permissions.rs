@@ -3,7 +3,6 @@ use std::path::Path;
 use anyhow::Context;
 use tauri::AppHandle;
 
-use crate::bridge::USER_BRIDGE_CHANNEL;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_bridge_event_to_app_id;
 use crate::bridge::methods::user::app::events::EventForApp;
@@ -138,7 +137,7 @@ async fn emit_granted_permissions_change(
         let _ = emit_bridge_event_to_app_id(
             app_handle,
             app_id,
-            EventForApp::from_capabilities_change(USER_BRIDGE_CHANNEL, capability_change),
+            EventForApp::from_capabilities_change(capability_change),
         )
             .await;
     }
@@ -149,7 +148,7 @@ async fn emit_granted_permissions_change(
         let _ = emit_bridge_event_to_app_id(
             app_handle,
             app_id,
-            EventForApp::from_network_whitelist_change(USER_BRIDGE_CHANNEL, network_change),
+            EventForApp::from_network_whitelist_change(network_change),
         )
             .await;
     }

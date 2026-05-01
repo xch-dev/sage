@@ -1,7 +1,6 @@
 export {
   initSageSystemRuntimeBridge,
   SAGE_SYSTEM_BRIDGE_VERSION,
-  SAGE_SYSTEM_BRIDGE_CHANNEL,
 } from './runtime';
 
 export {

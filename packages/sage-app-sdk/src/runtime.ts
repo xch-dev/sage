@@ -71,10 +71,6 @@ function isBridgeRuntimeEvent(value: unknown): value is SageBridgeRuntimeEvent {
     return false;
   }
 
-  if (value.channel !== 'sage-bridge') {
-    return false;
-  }
-
   return (
     value.type === 'grantedCapabilitiesChange' ||
     value.type === 'grantedNetworkWhitelistChange'
@@ -86,7 +82,6 @@ function isGrantedCapabilitiesChangeEvent(
 ): value is Generated.GrantedCapabilitiesChangeEvent {
   return (
     isObject(value) &&
-    value.channel === 'sage-bridge' &&
     value.type === 'grantedCapabilitiesChange'
   );
 }
@@ -96,7 +91,6 @@ function isGrantedNetworkWhitelistChangeEvent(
 ): value is Generated.GrantedNetworkWhitelistChangeEvent {
   return (
     isObject(value) &&
-    value.channel === 'sage-bridge' &&
     value.type === 'grantedNetworkWhitelistChange'
   );
 }
@@ -113,7 +107,6 @@ export function initSageRuntimeBridge(): boolean {
   }
 
   const core = createBridgeRuntimeCore({
-    channel: 'sage-bridge',
     version: SAGE_BRIDGE_VERSION,
     invokeCommand: 'apps_invoke_bridge',
     requestIdPrefix: 'sage',
@@ -159,6 +152,7 @@ export function initSageRuntimeBridge(): boolean {
       const data = event.payload;
 
       if (!isBridgeRuntimeEvent(data)) {
+        console.warn('[Sage SDK] Dropped unknown runtime event:', data);
         return;
       }
 
@@ -197,7 +191,6 @@ export function initSageRuntimeBridge(): boolean {
 
         if (
           !data ||
-          data.channel !== 'sage-bridge' ||
           data.bridgeVersion !== SAGE_BRIDGE_VERSION
         ) {
           return;

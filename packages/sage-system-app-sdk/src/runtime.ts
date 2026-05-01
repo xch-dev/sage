@@ -9,7 +9,6 @@ import type {
 } from './types';
 import { createBridgeRuntimeCore } from '@sage-app/sdk';
 
-export const SAGE_SYSTEM_BRIDGE_CHANNEL = 'sage-system-bridge';
 export const SAGE_SYSTEM_BRIDGE_VERSION: SageSystemBridgeVersion = 'v1';
 
 type SageSystemListenEvent<T = unknown> = {
@@ -58,9 +57,8 @@ export function initSageSystemRuntimeBridge(): boolean {
   }
 
   const core = createBridgeRuntimeCore({
-    channel: SAGE_SYSTEM_BRIDGE_CHANNEL,
     version: SAGE_SYSTEM_BRIDGE_VERSION,
-    invokeCommand: 'apps_invoke_bridge',
+    invokeCommand: 'apps_invoke_system_bridge',
     requestIdPrefix: 'sage-system',
   });
 
@@ -76,13 +74,12 @@ export function initSageSystemRuntimeBridge(): boolean {
 
   webview
     .listen(
-      `${SAGE_SYSTEM_BRIDGE_CHANNEL}:response`,
+      `sage-system-bridge:response`,
       (event: SageSystemListenEvent<SageSystemBridgeResponse>) => {
         const data = event.payload;
 
         if (
           !data ||
-          data.channel !== SAGE_SYSTEM_BRIDGE_CHANNEL ||
           data.bridgeVersion !== SAGE_SYSTEM_BRIDGE_VERSION
         ) {
           return;
@@ -109,7 +106,7 @@ export function initSageSystemRuntimeBridge(): boolean {
     )
     .catch((error: unknown) => {
       console.error(
-        `Failed to subscribe to ${SAGE_SYSTEM_BRIDGE_CHANNEL}:response:`,
+        `Failed to subscribe to response:`,
         error,
       );
     });
@@ -127,7 +124,7 @@ export function initSageSystemRuntimeBridge(): boolean {
 
   webview
     .listen(
-      `${SAGE_SYSTEM_BRIDGE_CHANNEL}:event`,
+      `sage-system-bridge:event`,
       (event: SageSystemListenEvent) => {
         const data = event.payload;
 
@@ -145,7 +142,7 @@ export function initSageSystemRuntimeBridge(): boolean {
     )
     .catch((error: unknown) => {
       console.error(
-        `Failed to subscribe to ${SAGE_SYSTEM_BRIDGE_CHANNEL}:event:`,
+        `Failed to subscribe to event:`,
         error,
       );
     });
