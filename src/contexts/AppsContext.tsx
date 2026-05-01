@@ -222,7 +222,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       isCancelled = true;
       if (unsubscribe) void unsubscribe();
     };
-  }, [refreshLaunchGates]);
+  }, [apps, refreshLaunchGates]);
 
   const currentSandboxRunId = sandboxState?.currentRun?.runId ?? null;
 
@@ -255,7 +255,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       isCancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [currentSandboxRunId, refreshLaunchGates]);
+  }, [apps, currentSandboxRunId, refreshLaunchGates]);
 
   const refresh = refreshInstalledApps;
 
@@ -414,7 +414,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     setSandboxState(next);
     await refreshLaunchGates(apps);
     return next;
-  }, [refreshLaunchGates]);
+  }, [apps, refreshLaunchGates]);
 
   const value = useMemo<AppsContextValue>(
     () => ({

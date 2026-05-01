@@ -365,6 +365,9 @@ async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
 async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
     return await TAURI_INVOKE("apps_invoke_bridge", { request });
 },
+async appsInvokeSystemBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
+    return await TAURI_INVOKE("apps_invoke_system_bridge", { request });
+},
 async appsResolveBridgeApproval(args: ResolveBridgeApprovalArgs) : Promise<null> {
     return await TAURI_INVOKE("apps_resolve_bridge_approval", { args });
 },

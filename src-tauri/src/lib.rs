@@ -146,6 +146,7 @@ pub fn run() {
             commands::is_asset_owned,
             commands::get_xch_usd_price,
             apps::bridge::commands::apps_invoke_bridge,
+            apps::bridge::commands::apps_invoke_system_bridge,
             apps::bridge::commands::apps_resolve_bridge_approval,
             apps::bridge::commands::get_user_capability_definitions,
             apps::sandbox::commands::apps_get_sandbox_state,
