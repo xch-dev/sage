@@ -5,11 +5,13 @@ use crate::host::AppState;
 use crate::types::SharedSageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
+use crate::runtime::SharedImpostorRuntime;
 
 #[derive(Debug)]
 pub struct BridgeContext<'a> {
     pub app: &'a SharedSageApp,
     pub source_label: &'a str,
+    pub impostor_runtime: &'a Option<SharedImpostorRuntime>,
 }
 
 #[derive(Debug)]

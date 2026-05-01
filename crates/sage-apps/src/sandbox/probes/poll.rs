@@ -4,8 +4,7 @@ use tokio::time::{Duration, sleep};
 use super::super::store::SandboxAppResult;
 use super::super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
-    SandboxPersistenceWriteProbeResult, SandboxStorageClearProbePhase,
-    SandboxStorageClearProbeResult,
+    SandboxPersistenceWriteProbeResult,
 };
 use crate::AppsHostState;
 use crate::utils::unix_timestamp_ms;
@@ -116,38 +115,6 @@ pub async fn poll_network(
 
         if unix_timestamp_ms() - started >= timeout_ms {
             return Err("Timed out waiting for sandbox network results.".into());
-        }
-
-        sleep(Duration::from_millis(100)).await;
-    }
-}
-
-pub async fn poll_clear_cycle_phase(
-    apps_state: &State<'_, AppsHostState>,
-    run_id: &str,
-    app_id: &str,
-    phase: SandboxStorageClearProbePhase,
-    timeout_ms: i64,
-) -> Result<SandboxStorageClearProbeResult, String> {
-    let started = unix_timestamp_ms();
-
-    loop {
-        let results = {
-            let runs = apps_state.sandbox.runs.lock().await;
-            runs.get(run_id)
-                .map(|r| r.clear_cycle.clone())
-                .unwrap_or_default()
-        };
-
-        if let Some(found) = results
-            .into_iter()
-            .find(|item| item.app_id == app_id && item.data.phase == phase)
-        {
-            return Ok(found.data);
-        }
-
-        if unix_timestamp_ms() - started >= timeout_ms {
-            return Err("Timed out waiting for sandbox storage clear phase.".into());
         }
 
         sleep(Duration::from_millis(100)).await;

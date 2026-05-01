@@ -8,10 +8,15 @@ use crate::bridge::{RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBrid
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
-use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_possibly_impostor_running_app};
+use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_possibly_impostor_running_app, PossiblyImpostorRuntime, SharedImpostorRuntime};
 use crate::types::{SageApp, SharedSageApp};
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
+
+pub(crate) struct BridgeOrigin {
+    pub app: SharedSageApp,
+    pub impostor_runtime: Option<SharedImpostorRuntime>,
+}
 
 pub async fn process(
     app_handle: AppHandle,
@@ -29,7 +34,7 @@ pub async fn process(
 
     let webview_label = webview.label().to_string();
 
-    let app = match assert_bridge_origin(&app_handle, &webview_label).await {
+    let origin = match assert_bridge_origin(&app_handle, &webview_label).await {
         Ok(value) => value,
         Err(err) => {
             return Ok(RustBridgeInvokeResult::Immediate {
@@ -41,6 +46,9 @@ pub async fn process(
             });
         }
     };
+
+    let app = &origin.app;
+    let impostor_runtime = &origin.impostor_runtime;
 
     if !app.webview_label_matches(&webview_label) {
         return Ok(RustBridgeInvokeResult::Immediate {
@@ -61,17 +69,22 @@ pub async fn process(
         });
     }
 
-    let registry = BridgeRegistry::new_for_app(&app);
+    let registry = BridgeRegistry::new_for_app(app);
 
     let method = match assert_method(&registry, &request) {
         Ok(method) => method,
         Err(response) => return Ok(RustBridgeInvokeResult::Immediate { response })
     };
 
+    let authority_app = origin
+        .impostor_runtime
+        .as_ref().map_or_else(|| app.clone_for_runtime_owner(), SharedImpostorRuntime::impostor_app);
+
     match method.capability() {
         BridgeMethodCapability::Ungated => {}
+
         BridgeMethodCapability::Required(capability) => {
-            if let Err(response) = verify_capability(&app, &request, capability) {
+            if let Err(response) = verify_capability(&authority_app, &request, capability) {
                 return Ok(RustBridgeInvokeResult::Immediate { response });
             }
         }
@@ -79,8 +92,9 @@ pub async fn process(
 
     match method.approval_request(
         BridgeContext {
-            app: &app,
+            app,
             source_label: &webview_label,
+            impostor_runtime,
         },
         &request,
     ) {
@@ -91,7 +105,7 @@ pub async fn process(
             write_pending_approval(
                 &apps_state,
                 &approval_id,
-                &app,
+                app,
                 &webview_label,
                 &request,
             )
@@ -113,7 +127,7 @@ pub async fn process(
     }
 
     let response =
-        execute_bridge_request(&app_handle, &app_state, &app, &webview_label, &request).await;
+        execute_bridge_request(&app_handle, &app_state, &origin, &webview_label, &request).await;
 
     Ok(RustBridgeInvokeResult::Immediate { response })
 }
@@ -121,11 +135,11 @@ pub async fn process(
 pub(crate) async fn execute_bridge_request(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
-    app: &SharedSageApp,
+    origin: &BridgeOrigin,
     source_label: &str,
     request: &RustBridgeRequest,
 ) -> RustBridgeResponse {
-    let registry = BridgeRegistry::new_for_app(app);
+    let registry = BridgeRegistry::new_for_app(&origin.app);
 
     let method = match assert_method(&registry, request) {
         Ok(method) => method,
@@ -134,7 +148,7 @@ pub(crate) async fn execute_bridge_request(
 
     let result = method
         .handle(
-            BridgeContext { app, source_label },
+            BridgeContext { app: &origin.app, source_label, impostor_runtime: &origin.impostor_runtime},
             BridgeTools {
                 app_handle,
                 app_state,
@@ -303,7 +317,7 @@ fn assert_method<'a>(
 pub(super) async fn assert_bridge_origin(
     app_handle: &AppHandle,
     webview_label: &String,
-) -> Result<SharedSageApp, String> {
+) -> Result<BridgeOrigin, String> {
     let app_id = app_id_from_webview_label(webview_label)
         .ok_or_else(|| format!("invalid app runtime label: {webview_label}"))?;
 
@@ -312,6 +326,11 @@ pub(super) async fn assert_bridge_origin(
         .map_err(|_| format!("failed to find runtime for app {app_id}"))?;
 
     let app = runtime.identity_app();
+
+    let impostor_runtime = match &runtime {
+        PossiblyImpostorRuntime::Legit(_) => None,
+        PossiblyImpostorRuntime::Impostor(runtime) => Some(runtime),
+    };
 
     if !app.webview_label_matches(webview_label) {
         return Err(format!(
@@ -334,5 +353,5 @@ pub(super) async fn assert_bridge_origin(
         ));
     }
 
-    Ok(app)
+    Ok(BridgeOrigin { app, impostor_runtime: impostor_runtime.cloned() })
 }

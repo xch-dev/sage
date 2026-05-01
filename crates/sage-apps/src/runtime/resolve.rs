@@ -84,14 +84,19 @@ pub fn is_allowed_app_url(url: &Url, app: &SharedSageApp) -> bool {
     url.scheme() == protocol_scheme_for_app(app) && url.host_str() == Some(&app.origin_id())
 }
 
-pub fn build_entry_src(
-    app: &SharedSageApp,
+pub fn build_entry_src_for(
+    identity_app: &SharedSageApp,
+    content_app: &SharedSageApp,
     query: BTreeMap<String, String>,
 ) -> Url {
-    let scheme = protocol_scheme_for_app(app);
+    let scheme = protocol_scheme_for_app(identity_app);
+    let entry_file = content_app.with(|app| app.entry_file());
 
-    let entry_file = app.with(|app| app.entry_file());
-    let mut url = Url::parse(&format!("{scheme}://{}/{}", app.origin_id(), entry_file))
+    let mut url = Url::parse(&format!(
+        "{scheme}://{}/{}",
+        identity_app.origin_id(),
+        entry_file
+    ))
         .expect("failed to build app entry URL");
 
     for (key, value) in query {
@@ -99,6 +104,13 @@ pub fn build_entry_src(
     }
 
     url
+}
+
+pub fn build_entry_src(
+    app: &SharedSageApp,
+    query: BTreeMap<String, String>,
+) -> Url {
+    build_entry_src_for(app, app, query)
 }
 
 pub async fn resolve_stopped_app(
@@ -225,12 +237,5 @@ impl PossiblyImpostorRuntime {
 
     pub(crate) fn is_system_app(&self) -> bool {
         self.identity_app().is_system_app()
-    }
-
-    pub(crate) fn webview_label(&self) -> String {
-        match self {
-            Self::Legit(runtime) => runtime.with_runtime(|r| r.webview_label().to_string()),
-            Self::Impostor(runtime) => runtime.webview_label(),
-        }
     }
 }

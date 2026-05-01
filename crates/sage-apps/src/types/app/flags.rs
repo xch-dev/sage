@@ -55,6 +55,10 @@ impl SageAppFlags {
         self.isolated = true;
     }
 
+    pub(crate) fn clear_storage_may_contain_secrets(&mut self) {
+        self.storage_may_contain_secrets = false;
+    }
+
     pub fn has_secret_access(self) -> bool {
         self.has_secret_access
     }

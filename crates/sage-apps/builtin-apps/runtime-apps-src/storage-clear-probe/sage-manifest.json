@@ -1,7 +1,6 @@
 {
   "name": "Clear probe",
   "version": "1.0.0",
-  "icon": "icon.svg",
   "permissions": {
     "network": {},
     "capabilities": {

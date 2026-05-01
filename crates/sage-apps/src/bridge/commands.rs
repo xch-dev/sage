@@ -32,13 +32,13 @@ pub async fn apps_resolve_bridge_approval(
     let pending = get_pending_approval(&apps_state, &args.approval_id).await?;
     remove_pending_approval(&apps_state, &args.approval_id).await;
 
-    let app = assert_bridge_origin(&app_handle, &pending.app_webview_label).await?;
+    let origin = assert_bridge_origin(&app_handle, &pending.app_webview_label).await?;
 
     let response = if args.approved {
         execute_bridge_request(
             &app_handle,
             &app_state,
-            &app,
+            &origin,
             &pending.app_webview_label,
             &pending.request,
         )

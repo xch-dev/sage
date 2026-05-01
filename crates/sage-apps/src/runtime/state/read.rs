@@ -86,15 +86,6 @@ pub(crate) async fn get_runtime_by_app_id(
         .ok_or(GetRuntimeError::NotFound)
 }
 
-pub(crate) async fn get_impostor_runtime_by_victim_app_id(
-    apps_state: &State<'_, AppsHostState>,
-    victim_app_id: &str,
-) -> Result<SharedImpostorRuntime, GetRuntimeError> {
-    find_impostor_runtime_by_victim_app_id_optional(apps_state, victim_app_id)
-        .await
-        .ok_or(GetRuntimeError::NotFound)
-}
-
 pub(crate) async fn list_runtimes(
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<Vec<SharedRuntime>, String> {

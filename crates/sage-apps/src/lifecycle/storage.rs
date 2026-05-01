@@ -10,11 +10,8 @@ use tauri::{AppHandle, State, command};
 use uuid::Uuid;
 
 use crate::AppsHostState;
-use crate::lifecycle::{
-    read_pending_storage_cleanup_entries, read_retired_app_origins,
-    write_pending_storage_cleanup_entries, write_retired_app_origins,
-};
-use crate::runtime::resolve_stopped_app;
+use crate::lifecycle::{read_pending_storage_cleanup_entries, read_retired_app_origins, write_pending_storage_cleanup_entries, write_retired_app_origins};
+use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
 use crate::runtime::stop::close_runtime_internal;
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
 use crate::types::{InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SharedSageApp};
@@ -207,13 +204,11 @@ pub async fn apps_clear_runtime_browsing_data(
     app_handle: AppHandle,
     app_id: String,
 ) -> Result<(), String> {
-    let resolved_app = resolve_stopped_app(&app_handle, &app_id).await.map_err(|e| e.to_string())?;
+    let resolved_app = resolve_stopped_app(&app_handle, &app_id)
+        .await
+        .map_err(|e| e.to_string())?;
 
-    let storage = resolved_app.with_app(|app| {
-        app.with(|app| app.storage().clone())
-    });
-    let target = cleanup_target_from_storage(&storage);
-    clear_app_storage_by_target(&app_handle, &target).await
+    run_verified_storage_clear_cycle(&app_handle, &resolved_app).await
 }
 
 #[cfg(test)]

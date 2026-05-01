@@ -91,8 +91,12 @@ impl SageAppCommon {
         Ok(())
     }
 
-    pub fn mark_storage_may_contain_secrets(&mut self) {
+    pub(crate) fn mark_storage_may_contain_secrets(&mut self) {
         self.flags.mark_storage_may_contain_secrets();
+    }
+
+    pub(crate) fn clear_storage_may_contain_secrets(&mut self) {
+        self.flags.clear_storage_may_contain_secrets();
     }
 
     fn build(

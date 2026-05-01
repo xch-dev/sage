@@ -144,7 +144,6 @@ export async function ensureInlineRuntime(
     mode: 'Inline',
     visibility: 'Visible',
     debugLayout: false,
-    path: null,
     query: {},
   };
 

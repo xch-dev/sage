@@ -40,30 +40,6 @@ pub(crate) async fn start_test_app(
     .await
 }
 
-pub(crate) async fn run_clear_cycle_phase_runtime(
-    app_handle: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-    app_id: &str,
-    run_id: &str,
-    phase_string: String,
-) -> Result<(), String> {
-    let _ = close_runtime_internal(app_handle, apps_state, app_id).await;
-
-    let mut query = BTreeMap::new();
-    query.insert("runId".to_string(), run_id.to_string());
-    query.insert("phase".to_string(), phase_string);
-    query.insert("appId".to_string(), app_id.to_string());
-
-    start_internal_runtime_for_sandbox(
-        app_handle,
-        apps_state,
-        app_id,
-        SageAppRuntimeVisibility::Hidden,
-        query,
-    )
-    .await
-}
-
 pub(super) fn unique_run_id(prefix: &str) -> String {
     format!("{prefix}-{}", Uuid::new_v4())
 }

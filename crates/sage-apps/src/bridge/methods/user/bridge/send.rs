@@ -9,6 +9,7 @@ use crate::bridge::methods::shared::{
     BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::runtime::SageAppRuntimeImpostorKind;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgeSend;
@@ -71,7 +72,16 @@ impl BridgeMethod for BridgeSend {
 }
 
 fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
-    if !ctx.app.with(|app| app.common().is_sandbox_test()) {
+    let is_sandbox_test = ctx.app.with(|app| app.common().is_sandbox_test());
+
+    let is_storage_clear_probe = ctx
+        .impostor_runtime
+        .as_ref()
+        .is_some_and(|runtime| {
+            runtime.kind() == SageAppRuntimeImpostorKind::StorageClearProbe
+        });
+
+    if !is_sandbox_test && !is_storage_clear_probe {
         return Err(BridgeMethodHandleError::invalid_request(
             "Method use is not allowed",
         ));

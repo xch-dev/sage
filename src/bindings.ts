@@ -817,7 +817,7 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type CreateRuntimeArgs = { appId: string; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; debugLayout: boolean; path: string | null; query: Partial<{ [key in string]: string }> }
+export type CreateRuntimeArgs = { appId: string; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; debugLayout: boolean; query: Partial<{ [key in string]: string }> }
 export type CreateTransaction = { 
 /**
  * Pre-selected coins to use in the transaction prior to coin selection

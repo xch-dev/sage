@@ -6,13 +6,13 @@ use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
 use crate::lifecycle::write_installed_app_metadata;
-use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id};
+use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, remove_impostor_runtime_by_victim_app_id, write_impostor_runtime};
 use crate::runtime::webview_locator::{
     get_sage_window, get_webview_in_sage_window,
 };
-use crate::runtime::{build_entry_src, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{build_entry_src, build_entry_src_for, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime};
 use crate::storage::parse_data_store_id;
-use crate::types::{InstalledSageAppStorage, ResolvedApp, SharedSageApp};
+use crate::types::{InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Deserialize, Type)]
@@ -100,6 +100,73 @@ pub async fn create_runtime(
     }
 
     emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
+
+    Ok(shared_runtime)
+}
+
+pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
+    app_handle: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+    stopped: &ResolvedStoppedApp,
+    impostor_app: SharedSageApp,
+    args: CreateImpostorRuntimeArgs,
+) -> Result<SharedImpostorRuntime, String> {
+    let victim_app = stopped.with_app(|app| app.clone_for_runtime_owner());
+
+    if !impostor_app.with(|app| app.common().is_sandbox_test())
+        && !impostor_app.id().starts_with("__sage_runtime_")
+    {
+        return Err("impostor runtime app must be internal".into());
+    }
+
+    remove_impostor_runtime_by_victim_app_id(&apps_state, &victim_app.id()).await;
+
+    let sage_window = get_sage_window(&app_handle)?;
+    let webview_label = victim_app.webview_label();
+
+    let runtime = SageAppRuntimeImpostorRecord::new(
+        &victim_app,
+        &impostor_app,
+        sage_window.label(),
+        &webview_label,
+        args.kind,
+    );
+
+    let shared_runtime = write_impostor_runtime(&apps_state, runtime).await;
+
+    let entry_url = build_entry_src_for(&victim_app, &impostor_app, args.query.clone());
+
+    let builder = WebviewBuilder::new(
+        webview_label.to_string(),
+        WebviewUrl::CustomProtocol(entry_url.clone()),
+    )
+        .on_navigation(move |next_url| {
+            *next_url == entry_url
+        })
+        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+
+    let builder = build_storage(builder, &victim_app)?;
+
+    let (x, y, width, height) = if args.debug_layout {
+        debug_layout_for_app(&victim_app.id())
+    } else {
+        (0.0, 0.0, 1.0, 1.0)
+    };
+
+    let add_child_result = get_sage_window(&app_handle)?.add_child(
+        builder,
+        LogicalPosition::new(x, y),
+        LogicalSize::new(width, height),
+    );
+
+    if let Err(err) = add_child_result {
+        remove_impostor_runtime_by_victim_app_id(&apps_state, &victim_app.id()).await;
+        return Err(format!("failed to create impostor child webview: {err}"));
+    }
+
+    if args.visibility == SageAppRuntimeVisibility::Hidden {
+        let _ = get_webview_in_sage_window(&app_handle, &webview_label)?.hide();
+    }
 
     Ok(shared_runtime)
 }
