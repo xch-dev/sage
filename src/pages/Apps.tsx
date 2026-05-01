@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type {
+import {
+  commands,
   ListedSageAppView,
   SageAppPackageManifest,
   SageAppUrlPreview,
@@ -410,11 +411,7 @@ export function Apps() {
       setPendingPermissionsRetry(null);
 
       try {
-        await invoke('apps_update_permissions', {
-          appId,
-          grantedPermissions: nextGrantedPermissions,
-          clearStorageTaint: false,
-        });
+        await commands.appsUpdatePermissions(appId, nextGrantedPermissions);
 
         const isRunning = runningAppIds.has(appId);
         if (isRunning) {
@@ -459,11 +456,10 @@ export function Apps() {
     try {
       await clearAppStorage(permissionsDialogApp.common.identity.id);
 
-      await invoke('apps_update_permissions', {
-        appId: permissionsDialogApp.common.identity.id,
-        grantedPermissions: pendingPermissionsRetry.nextGrantedPermissions,
-        clearStorageTaint: true,
-      });
+      await commands.appsUpdatePermissions(
+        permissionsDialogApp.common.identity.id,
+        pendingPermissionsRetry.nextGrantedPermissions,
+      );
 
       const isRunning = runningAppIds.has(permissionsDialogApp.common.identity.id);
       if (isRunning) {
