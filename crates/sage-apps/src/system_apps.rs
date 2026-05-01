@@ -106,19 +106,34 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let app_dir = builtin_system_apps_root().join(spec.dir_name);
 
     if !app_dir.is_dir() {
+        eprintln!("[build_builtin_system_app] missing app_dir for {app_id}: {}", app_dir.display());
         return Err(AppBuildError::AppDirMissing);
     }
 
-    let manifest = read_builtin_manifest(&app_dir).map_err(|_| AppBuildError::ManifestFailure)?;
+    let manifest = match read_builtin_manifest(&app_dir) {
+        Ok(m) => m,
+        Err(err) => {
+            eprintln!(
+                "[build_builtin_system_app] manifest failure for {app_id} at {}: {err:?}",
+                app_dir.display()
+            );
+            return Err(AppBuildError::ManifestFailure);
+        }
+    };
 
     let requested_capabilities = manifest
         .permissions()
         .capabilities()
         .required()
         .chain(manifest.permissions().capabilities().optional())
-        .copied();
+        .copied()
+        .filter(|capability| {
+            crate::capabilities::get_user_capability_definition(*capability)
+                .flags()
+                .user_grantable()
+        });
 
-    let granted_permissions = SageGrantedPermissions::new(
+    let granted_permissions = match SageGrantedPermissions::new(
         manifest.permissions(),
         requested_capabilities,
         manifest
@@ -127,24 +142,58 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
             .whitelist()
             .required()
             .cloned(),
-    ).map_err(|_| AppBuildError::InternalError)?;
+    ) {
+        Ok(p) => p,
+        Err(err) => {
+            eprintln!(
+                "[build_builtin_system_app] granted_permissions failure for {app_id}: {err:?}\nmanifest: {manifest:?}"
+            );
+            return Err(AppBuildError::InternalError);
+        }
+    };
 
-    let snapshot = SageAppSnapshot::new_builtin_system(
+    let snapshot = match SageAppSnapshot::new_builtin_system(
         spec.app_id,
         app_dir.to_string_lossy().to_string(),
         manifest,
-    ).map_err(|_| AppBuildError::InternalError)?;
+    ) {
+        Ok(s) => s,
+        Err(err) => {
+            eprintln!(
+                "[build_builtin_system_app] snapshot failure for {app_id}: {err:?}"
+            );
+            return Err(AppBuildError::InternalError);
+        }
+    };
 
-    let common = SageAppCommon::new(
-        SageAppIdentity::new(
-            spec.app_id,
-            spec.app_id,
-            app_dir.to_string_lossy().to_string(),
-        ).map_err(|_| AppBuildError::InternalError)?,
+    let identity = match SageAppIdentity::new(
+        spec.app_id,
+        spec.app_id,
+        app_dir.to_string_lossy().to_string(),
+    ) {
+        Ok(i) => i,
+        Err(err) => {
+            eprintln!(
+                "[build_builtin_system_app] identity failure for {app_id}: {err:?}"
+            );
+            return Err(AppBuildError::InternalError);
+        }
+    };
+
+    let common = match SageAppCommon::new(
+        identity,
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
-    ).map_err(|_| AppBuildError::InternalError)?;
+    ) {
+        Ok(c) => c,
+        Err(err) => {
+            eprintln!(
+                "[build_builtin_system_app] common failure for {app_id}: {err:?}"
+            );
+            return Err(AppBuildError::InternalError);
+        }
+    };
 
     let app = SystemSageApp::new(
         common,
