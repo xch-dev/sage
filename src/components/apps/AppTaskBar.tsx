@@ -335,6 +335,9 @@ export function AppTaskBar({
                       variant='ghost'
                       size='icon'
                       className='h-6 w-6'
+                      onPointerDown={(event) => {
+                        event.stopPropagation();
+                      }}
                       onClick={(event) => {
                         event.stopPropagation();
                         onCloseApp(tab);
