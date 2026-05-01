@@ -54,7 +54,7 @@ interface AppsContextValue {
 
   refresh: () => Promise<void>;
   refreshInstalledApps: () => Promise<void>;
-  refreshLaunchGates: (listed?: ListedSageAppView[]) => Promise<void>;
+  refreshLaunchGates: (listed: ListedSageAppView[]) => Promise<void>;
   setBusy: (appId: string, busy: boolean) => void;
   setUpdateAvailability: (
     updater:

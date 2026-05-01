@@ -4,7 +4,7 @@ use tauri::{AppHandle, State, command};
 
 use crate::host::AppState;
 use crate::host::Result;
-use crate::lifecycle::update::permissions::update_app_permissions;
+use crate::lifecycle::update::permissions::update_app_permissions_for_app;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, write_installed_app_metadata};
 use crate::runtime::resolve_app;
 use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
@@ -157,7 +157,9 @@ pub async fn apps_update_permissions(
         .resolve(&requested)
         .map_err(|err| io::Error::other(format!("invalid granted permissions: {err}")))?;
 
-    update_app_permissions(&app_handle, &app_id, &granted_permissions)
+    let app = resolved.clone_app_for_operation();
+
+    update_app_permissions_for_app(&app_handle, &app, &granted_permissions)
         .await
         .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
 

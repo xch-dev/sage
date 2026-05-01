@@ -14,15 +14,16 @@ use crate::lifecycle::write_installed_app_metadata;
 use crate::runtime::resolve_app;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 
-pub async fn update_app_permissions(
+pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
-    app_id: &str,
+    app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<()> {
-    let update_result =
-        update_app_permissions_internal(app_handle, app_id, granted_permissions).await?;
+    let app_id = app.id();
 
-    emit_granted_permissions_change(app_handle, app_id, update_result.change()).await;
+    let update_result = apply_granted_permissions_to_app(app, granted_permissions)?;
+
+    emit_granted_permissions_change(app_handle, &app_id, update_result.change()).await;
 
     Ok(())
 }
@@ -51,16 +52,6 @@ pub async fn grant_network_whitelist_entry(
     emit_granted_permissions_change(app_handle, app_id, update.change()).await;
 
     Ok(GrantNetworkWhitelistOutcome::from_update(entry, &update))
-}
-
-async fn update_app_permissions_internal(
-    app_handle: &AppHandle,
-    app_id: &str,
-    granted_permissions: &SageGrantedPermissions,
-) -> anyhow::Result<AppUpdateResult> {
-    let app = resolve_app_for_permission_update(app_handle, app_id).await?;
-
-    apply_granted_permissions_to_app(&app, granted_permissions)
 }
 
 async fn grant_capability_internal(
