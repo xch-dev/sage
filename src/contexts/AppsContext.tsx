@@ -96,14 +96,12 @@ function formatError(err: unknown): string {
   }
 }
 
-function isLaunchGateEntry(
-  entry: readonly [string, AppLaunchGateResult] | null,
-): entry is readonly [string, AppLaunchGateResult] {
-  return entry !== null;
-}
-
 function isInstalledEntry(entry: ListedSageAppView): entry is InstalledEntry {
   return entry.kind === 'user' || entry.kind === 'system';
+}
+
+function installedAppId(app: InstalledEntry): string {
+  return app.common.identity.id;
 }
 
 function isUserListedApp(
@@ -139,29 +137,31 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const { isReady: bridgeHostReady } = useBridgeHost({ requestApproval });
 
   const refreshLaunchGates = useCallback(
-    async (listed: ListedSageAppView[] = apps) => {
-      const entries = await Promise.all(
-        listed.filter(isInstalledEntry).map(async (app) => {
-          try {
-            return [
-              app.common.identity.id,
-              await commands.appsGetAppLaunchGate(app.common.identity.id),
-            ] as const;
-          } catch (err) {
-            console.error(
-              `Failed to refresh launch gate for ${app.common.identity.id}:`,
-              err,
-            );
-            return null;
-          }
+    async (listed: ListedSageAppView[]) => {
+      const installed = listed.filter(isInstalledEntry);
+
+      const results = await Promise.allSettled(
+        installed.map(async (app) => {
+          const appId = installedAppId(app);
+          const gate = await commands.appsGetAppLaunchGate(appId);
+          return [appId, gate] as const;
         }),
       );
 
-      setLaunchGatesByAppId(
-        Object.fromEntries(entries.filter(isLaunchGateEntry)),
-      );
+      const next: Record<string, AppLaunchGateResult> = {};
+
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          const [appId, gate] = result.value;
+          next[appId] = gate;
+        } else {
+          console.error('Failed to refresh launch gate:', result.reason);
+        }
+      }
+
+      setLaunchGatesByAppId(next);
     },
-    [apps],
+    [],
   );
 
   const refreshInstalledApps = useCallback(async () => {
@@ -169,40 +169,26 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const [listed, sandbox] = await Promise.all([
-        commands.listInstalledApps(),
-        commands.appsGetSandboxState(),
-      ]);
+      const listed = await commands.listInstalledApps();
 
       setApps(listed);
-      setSandboxState(sandbox);
+      setLoading(false);
 
-      const entries = await Promise.all(
-        listed.filter(isInstalledEntry).map(async (app) => {
-          try {
-            return [
-              app.common.identity.id,
-              await commands.appsGetAppLaunchGate(app.common.identity.id),
-            ] as const;
-          } catch (err) {
-            console.error(
-              `Failed to refresh launch gate for ${app.common.identity.id}:`,
-              err,
-            );
-            return null;
-          }
-        }),
-      );
+      void (async () => {
+        try {
+          const sandbox = await commands.appsGetSandboxState();
+          setSandboxState(sandbox);
+        } catch (err) {
+          console.error('Failed to refresh sandbox state:', err);
+        }
+      })();
 
-      setLaunchGatesByAppId(
-        Object.fromEntries(entries.filter(isLaunchGateEntry)),
-      );
+      void refreshLaunchGates(listed);
     } catch (err) {
       setError(formatError(err));
-    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [refreshLaunchGates]);
 
   useEffect(() => {
     void refreshInstalledApps();
@@ -220,7 +206,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             if (isCancelled) return;
 
             setSandboxState(event.payload);
-            void refreshLaunchGates();
+            void refreshLaunchGates(apps);
           },
         );
       } catch (err) {
@@ -250,7 +236,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         const next = await commands.appsGetSandboxState();
         if (!isCancelled) {
           setSandboxState(next);
-          void refreshLaunchGates();
+          void refreshLaunchGates(apps);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -426,7 +412,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const rerunSandboxTests = useCallback(async () => {
     const next = await commands.appsRerunSandboxTests();
     setSandboxState(next);
-    await refreshLaunchGates();
+    await refreshLaunchGates(apps);
     return next;
   }, [refreshLaunchGates]);
 
