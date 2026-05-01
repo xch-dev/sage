@@ -1,4 +1,4 @@
-import { Webview } from '@tauri-apps/api/webview';
+import { Webview, getCurrentWebview } from '@tauri-apps/api/webview';
 import {
   commands,
   type CreateRuntimeArgs,
@@ -12,12 +12,112 @@ import {
 export type { SageAppRuntimeRecordView };
 
 type RuntimeListener = (records: SageAppRuntimeRecordView[]) => void;
+type ActiveRuntimeListener = (event: ActiveRuntimeChangedPayload) => void;
 type AppLike = SageAppView | UserSageAppView | SystemSageAppView;
 
+interface RuntimeEventEnvelope<T = unknown> {
+  type: string;
+  payload: T;
+}
+
+interface RuntimesChangedPayload {
+  runtimes: SageAppRuntimeRecordView[];
+}
+
+export interface ActiveRuntimeChangedPayload {
+  hostWindowLabel: string;
+  appId: string | null;
+  runtimeId: string | null;
+}
+
+const HOST_RUNTIME_EVENT_NAME = 'apps:runtime-event';
+
 const listeners = new Set<RuntimeListener>();
+const activeRuntimeListeners = new Set<ActiveRuntimeListener>();
+
 let cachedRuntimes: SageAppRuntimeRecordView[] = [];
 let pollTimer: number | null = null;
 let polling = false;
+
+let runtimeEventsMounted = false;
+let unlistenRuntimeEvents: (() => void) | null = null;
+
+function notifyRuntimeListeners(next: SageAppRuntimeRecordView[]) {
+  cachedRuntimes = next;
+
+  for (const listener of listeners) {
+    listener(next);
+  }
+}
+
+function notifyActiveRuntimeListeners(event: ActiveRuntimeChangedPayload) {
+  for (const listener of activeRuntimeListeners) {
+    listener(event);
+  }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === 'object';
+}
+
+function isRuntimesChangedEvent(
+  value: unknown,
+): value is RuntimeEventEnvelope<RuntimesChangedPayload> {
+  if (!isObject(value)) return false;
+  if (value.type !== 'runtimeManager.runtimesChanged') return false;
+  if (!isObject(value.payload)) return false;
+
+  return Array.isArray(value.payload.runtimes);
+}
+
+function isActiveRuntimeChangedEvent(
+  value: unknown,
+): value is RuntimeEventEnvelope<ActiveRuntimeChangedPayload> {
+  if (!isObject(value)) return false;
+  if (value.type !== 'runtimeManager.activeRuntimeChanged') return false;
+  if (!isObject(value.payload)) return false;
+
+  const payload = value.payload;
+
+  return (
+    typeof payload.hostWindowLabel === 'string' &&
+    (typeof payload.appId === 'string' || payload.appId === null) &&
+    (typeof payload.runtimeId === 'string' || payload.runtimeId === null)
+  );
+}
+
+function shouldKeepRuntimeEventsMounted() {
+  return listeners.size > 0 || activeRuntimeListeners.size > 0;
+}
+
+function ensureRuntimeEventsMounted() {
+  if (runtimeEventsMounted) {
+    return;
+  }
+
+  runtimeEventsMounted = true;
+
+  void getCurrentWebview()
+    .listen(HOST_RUNTIME_EVENT_NAME, (event) => {
+      const data = event.payload;
+
+      if (isRuntimesChangedEvent(data)) {
+        notifyRuntimeListeners(data.payload.runtimes);
+        return;
+      }
+
+      if (isActiveRuntimeChangedEvent(data)) {
+        notifyActiveRuntimeListeners(data.payload);
+      }
+    })
+    .then((unlisten) => {
+      unlistenRuntimeEvents = unlisten;
+    })
+    .catch((err) => {
+      runtimeEventsMounted = false;
+      console.error('Failed to subscribe to runtime manager events:', err);
+    });
+}
 
 async function refreshRuntimes(): Promise<SageAppRuntimeRecordView[]> {
   if (polling) {
@@ -27,12 +127,7 @@ async function refreshRuntimes(): Promise<SageAppRuntimeRecordView[]> {
   polling = true;
   try {
     const next = await commands.appsListRuntimes();
-    cachedRuntimes = next;
-
-    for (const listener of listeners) {
-      listener(next);
-    }
-
+    notifyRuntimeListeners(next);
     return next;
   } catch (err) {
     console.error('Failed to refresh app runtimes:', err);
@@ -43,6 +138,8 @@ async function refreshRuntimes(): Promise<SageAppRuntimeRecordView[]> {
 }
 
 function ensurePolling() {
+  ensureRuntimeEventsMounted();
+
   if (pollTimer != null) {
     return;
   }
@@ -55,13 +152,19 @@ function ensurePolling() {
 }
 
 function maybeStopPolling() {
-  if (listeners.size > 0) {
+  if (shouldKeepRuntimeEventsMounted()) {
     return;
   }
 
   if (pollTimer != null) {
     window.clearInterval(pollTimer);
     pollTimer = null;
+  }
+
+  if (unlistenRuntimeEvents) {
+    unlistenRuntimeEvents();
+    unlistenRuntimeEvents = null;
+    runtimeEventsMounted = false;
   }
 }
 
@@ -76,6 +179,18 @@ export function subscribeAppRuntimes(listener: RuntimeListener): () => void {
 
   return () => {
     listeners.delete(listener);
+    maybeStopPolling();
+  };
+}
+
+export function subscribeActiveRuntime(
+  listener: ActiveRuntimeListener,
+): () => void {
+  activeRuntimeListeners.add(listener);
+  ensureRuntimeEventsMounted();
+
+  return () => {
+    activeRuntimeListeners.delete(listener);
     maybeStopPolling();
   };
 }

@@ -2,10 +2,12 @@ use serde::Serialize;
 use specta::Type;
 use crate::AppsHostState;
 use crate::bridge::{RustBridgeResponse};
-use crate::runtime::webview_locator::get_webview_in_sage_window;
+use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::resolve_possibly_impostor_running_app_immediate;
 use tauri::{AppHandle, Emitter, Manager};
 use crate::types::{SharedSageApp};
+
+const SAGE_RUNTIME_EVENT_NAME: &str = "apps:runtime-event";
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -70,4 +72,16 @@ where
     get_webview_in_sage_window(app_handle, &webview_label)?
         .emit(T::RAIL.event_name(), runtime_event(event))
         .map_err(|err| format!("failed to emit runtime event: {err}"))
+}
+
+pub(crate) fn emit_runtime_event_to_sage_webview<T>(
+    app_handle: &AppHandle,
+    event: T,
+) -> Result<(), String>
+where
+    T: AppRuntimeEvent,
+{
+    get_sage_webview(app_handle)?
+        .emit(SAGE_RUNTIME_EVENT_NAME, runtime_event(event))
+        .map_err(|err| format!("failed to emit runtime event to Sage webview: {err}"))
 }

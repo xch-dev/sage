@@ -1,14 +1,16 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Emitter, State};
 
 use crate::AppsHostState;
-use crate::bridge::event_emit::emit_runtime_event_to_app_id;
+use crate::bridge::capabilities::SystemBridgeCapability;
+use crate::bridge::event_emit::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview, runtime_event, AppRuntimeEvent};
 use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::events::ActiveRuntimeChangedEvent;
 use crate::runtime::state::{
     find_runtime_by_runtime_id_optional, get_runtime_by_app_id, list_runtimes,
 };
-use crate::runtime::webview_locator::get_webview_in_sage_window;
+use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::{SageAppRuntimeRecord, SageAppRuntimeRecordView, SharedRuntime};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -35,15 +37,23 @@ pub(crate) async fn emit_runtime_manager_runtimes_changed(
         .iter()
         .filter_map(|runtime| {
             runtime.with_runtime(|record| {
-                if record.internal() {
+                if record.internal() || !record.app().is_system_app() {
                     return None;
                 }
 
-                if !record.app().is_system_app() {
-                    return None;
-                }
+                let can_receive = record.app().with(|app| {
+                    app.system_granted_permissions().is_some_and(|permissions| {
+                        permissions
+                            .capabilities()
+                            .contains(&SystemBridgeCapability::RuntimeManagerListRuntimes)
+                    })
+                });
 
-                Some(record.app().id())
+                if can_receive {
+                    Some(record.app().id())
+                } else {
+                    None
+                }
             })
         })
         .collect::<Vec<_>>();
@@ -56,16 +66,14 @@ pub(crate) async fn emit_runtime_manager_runtimes_changed(
     let event = RuntimeManagerRuntimesChangedEvent::new(runtime_records);
 
     for system_app_id in system_app_ids {
-        let _ = emit_runtime_event_to_app_id(
-            app_handle,
-            &system_app_id,
-            event.clone(),
-        ).await;
+        let _ = emit_runtime_event_to_app_id(app_handle, &system_app_id, event.clone()).await;
     }
+
+    let _ = emit_runtime_event_to_sage_webview(app_handle, event);
 }
 
 pub(crate) async fn focus_runtime(
-    app: &AppHandle,
+    app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, String> {
@@ -84,10 +92,10 @@ pub(crate) async fn focus_runtime(
     if let Some(previous_runtime_id) = previous_runtime_id
         && previous_runtime_id != runtime_window_identity.runtime_id
     {
-        hide_runtime_by_runtime_id_if_present(app, apps_state, &previous_runtime_id).await;
+        hide_runtime_by_runtime_id_if_present(app_handle, apps_state, &previous_runtime_id).await;
     }
 
-    let webview = get_webview_in_sage_window(app, &runtime_window_identity.webview_label)?;
+    let webview = get_webview_in_sage_window(app_handle, &runtime_window_identity.webview_label)?;
 
     webview
         .show()
@@ -99,7 +107,13 @@ pub(crate) async fn focus_runtime(
 
     runtime.with_runtime_mut(SageAppRuntimeRecord::mark_visible);
 
-    emit_runtime_manager_runtimes_changed(app, apps_state).await;
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+
+    let _ = emit_runtime_event_to_sage_webview(app_handle, ActiveRuntimeChangedEvent {
+        host_window_label: runtime_window_identity.host_window_label.clone(),
+        app_id: Some(runtime.app_id()),
+        runtime_id: Some(runtime_window_identity.runtime_id.clone()),
+    });
 
     Ok(runtime)
 }

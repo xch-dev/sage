@@ -1,15 +1,17 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  AppApprovalStrip,
-} from '@/components/apps/AppApprovalStrip.tsx';
+import { AppApprovalStrip } from '@/components/apps/AppApprovalStrip.tsx';
 import {
   AppTaskBar,
   type AppTaskBarTab,
 } from '@/components/apps/AppTaskBar.tsx';
 import { useApps } from '@/contexts/AppsContext.tsx';
 import { useAppRuntimes } from '@/hooks/useAppRuntimes';
-import { focusRuntime, killRuntime } from '@/lib/apps/runtimeRegistry';
+import {
+  focusRuntime,
+  killRuntime,
+  subscribeActiveRuntime,
+} from '@/lib/apps/runtimeRegistry';
 import { formatAppError } from '@/lib/apps/formatAppError';
 import { routeForApp } from '@/lib/apps/types';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -49,6 +51,27 @@ export function AppsWorkspace() {
   const [updateDialogError, setUpdateDialogError] = useState<string | null>(
     null,
   );
+  const [donationOpen, setDonationOpen] = useState(false);
+
+  useEffect(() => {
+    return subscribeActiveRuntime((event) => {
+      if (!event.appId || event.appId === appId) {
+        return;
+      }
+
+      const app = getListedApp(event.appId);
+      if (!app) {
+        return;
+      }
+
+      const route = routeForApp(app);
+      if (!route) {
+        return;
+      }
+
+      navigate(route, { replace: true });
+    });
+  }, [appId, getListedApp, navigate]);
 
   useEffect(() => {
     setTabOrder((prev) => {
@@ -73,20 +96,24 @@ export function AppsWorkspace() {
       const added = runtimeIds.filter(
         (runtimeAppId) => !kept.includes(runtimeAppId),
       );
+
       return [...kept, ...added];
     });
   }, [runtimes, getListedApp]);
 
-  const activeApp: UserSageAppView | null = appId ? (getApp(appId) ?? null) : null;
+  const activeApp: UserSageAppView | null = appId
+    ? (getApp(appId) ?? null)
+    : null;
+
   const activeUpdatePreview: SageAppUrlPreview | null = activeApp
     ? (updateAvailability[activeApp.common.identity.id] ?? null)
     : null;
+
   const activeBusy = activeApp
     ? (busyAppIds[activeApp.common.identity.id] ?? false)
     : false;
-  const [donationOpen, setDonationOpen] = useState(false);
-  const activeManifest = activeApp?.common.activeSnapshot.manifest;
 
+  const activeManifest = activeApp?.common.activeSnapshot.manifest;
   const hasDonation = !!activeManifest?.donation?.address;
 
   useEffect(() => {
@@ -135,10 +162,14 @@ export function AppsWorkspace() {
         setApplyingUpdate(true);
         setUpdateDialogError(null);
 
-        await performAppUpdate(activeApp.common.identity.id, nextGrantedPermissions, {
-          restartIfRunning: true,
-          visibleAfterRestart: true,
-        });
+        await performAppUpdate(
+          activeApp.common.identity.id,
+          nextGrantedPermissions,
+          {
+            restartIfRunning: true,
+            visibleAfterRestart: true,
+          },
+        );
 
         setUpdateDialogOpen(false);
       } catch (err) {
@@ -234,6 +265,7 @@ export function AppsWorkspace() {
             if (!activeManifest.donation) {
               return;
             }
+
             void commands.sendXch({
               address: activeManifest.donation.address,
               amount: amountMojos,

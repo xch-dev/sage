@@ -10,6 +10,14 @@ pub struct RuntimeManagerRuntimesChangedEvent {
     pub runtimes: Vec<SageAppRuntimeRecordView>,
 }
 
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ActiveRuntimeChangedEvent {
+    pub host_window_label: String,
+    pub app_id: Option<String>,
+    pub runtime_id: Option<String>,
+}
+
 impl RuntimeManagerRuntimesChangedEvent {
     pub fn new(runtimes: Vec<SageAppRuntimeRecordView>) -> Self {
         Self { runtimes }
@@ -18,5 +26,10 @@ impl RuntimeManagerRuntimesChangedEvent {
 
 impl AppRuntimeEvent for RuntimeManagerRuntimesChangedEvent {
     const TYPE: &'static str = "runtimeManager.runtimesChanged";
+    const RAIL: AppRuntimeEventRail = AppRuntimeEventRail::System;
+}
+
+impl AppRuntimeEvent for ActiveRuntimeChangedEvent {
+    const TYPE: &'static str = "runtimeManager.activeRuntimeChanged";
     const RAIL: AppRuntimeEventRail = AppRuntimeEventRail::System;
 }
