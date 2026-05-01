@@ -2268,7 +2268,7 @@ export type SageGrantedNetworkPermissionsInput = { whitelist: SageNetworkWhiteli
 export type SageGrantedNetworkPermissionsView = { whitelist: SageNetworkWhitelistEntryView[] }
 export type SageGrantedPermissionsInput = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissionsInput }
 export type SageGrantedPermissionsView = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissionsView }
-export type SageGrantedSystemPermissions = { capabilities: SystemBridgeCapability[] }
+export type SageGrantedSystemPermissionsView = { capabilities: SystemBridgeCapability[] }
 export type SageNetworkWhitelistEntry = { scheme: string; host: string }
 export type SageNetworkWhitelistEntryView = { scheme: string; host: string }
 export type SageRequestedCapabilities = { required: UserBridgeCapability[]; optional: UserBridgeCapability[] }
@@ -2625,7 +2625,7 @@ export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { typ
 export type SystemAppPresentation = "Taskbar" | "Modal"
 export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
-export type SystemSageAppView = { common: SageAppCommonView; presentation: SystemAppPresentation; systemGrantedPermissions: SageGrantedSystemPermissions }
+export type SystemSageAppView = { common: SageAppCommonView; presentation: SystemAppPresentation; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**
  * Accept an offer
  */

@@ -1,25 +1,25 @@
 use std::collections::BTreeSet;
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
 use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{SageGrantedPermissions};
+use crate::types::{SageGrantedPermissions, SageGrantedSystemPermissions};
 use crate::types::app::view::network::SageNetworkWhitelistEntryView;
 use crate::types::permissions::SageGrantedNetworkPermissions;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageGrantedPermissionsView {
     capabilities: BTreeSet<UserBridgeCapability>,
     network: SageGrantedNetworkPermissionsView,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageGrantedNetworkPermissionsView {
     whitelist: BTreeSet<SageNetworkWhitelistEntryView>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageGrantedSystemPermissionsView {
     capabilities: Vec<SystemBridgeCapability>,
@@ -42,6 +42,14 @@ impl From<&SageGrantedNetworkPermissions> for SageGrantedNetworkPermissionsView 
                 .iter()
                 .map(Into::into)
                 .collect(),
+        }
+    }
+}
+
+impl From<&SageGrantedSystemPermissions> for SageGrantedSystemPermissionsView {
+    fn from(value: &SageGrantedSystemPermissions) -> Self {
+        Self {
+            capabilities: value.capabilities().to_vec(),
         }
     }
 }

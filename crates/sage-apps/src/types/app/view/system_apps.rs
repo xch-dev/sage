@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
-use crate::types::{SageGrantedSystemPermissions, SystemAppPresentation, SystemSageApp};
+use crate::types::{SystemAppPresentation, SystemSageApp};
 use crate::types::app::view::common::SageAppCommonView;
+use crate::types::app::view::permission::SageGrantedSystemPermissionsView;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SystemSageAppView {
     common: SageAppCommonView,
     presentation: SystemAppPresentation,
-    system_granted_permissions: SageGrantedSystemPermissions,
+    system_granted_permissions: SageGrantedSystemPermissionsView,
 }
 
 impl From<&SystemSageApp> for SystemSageAppView {
@@ -16,7 +17,7 @@ impl From<&SystemSageApp> for SystemSageAppView {
         Self {
             common: value.common().into(),
             presentation: value.presentation(),
-            system_granted_permissions: value.system_granted_permissions().clone(),
+            system_granted_permissions: value.system_granted_permissions().into(),
         }
     }
 }

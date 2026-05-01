@@ -1,17 +1,17 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
 use crate::types::app::view::permission::SageGrantedPermissionsView;
 use crate::types::app::view::snapshot::SageAppSnapshotView;
 use crate::types::{SageAppCommon, SageAppIdentity};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppIdentityView {
     id: String,
     origin_id: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppCommonView {
     identity: SageAppIdentityView,

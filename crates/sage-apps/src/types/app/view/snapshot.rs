@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use specta::Type;
 use crate::types::{SageAppPackageManifest, SageAppSnapshot};
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppSnapshotView {
     manifest: SageAppPackageManifest,
