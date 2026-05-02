@@ -1,11 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
+import React, { useEffect, useState } from 'react';
 import {
   ensureInlineRuntime,
   getRuntimeWebview,
   markRuntimeVisible,
 } from '@/lib/apps/runtimeRegistry';
 import type { SageAppView } from '@/bindings';
+import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -26,58 +26,30 @@ interface Args {
 export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
   const [attachError, setAttachError] = useState<string | null>(null);
   const [attaching, setAttaching] = useState(false);
+  const [webviewLabel, setWebviewLabel] = useState<string | null>(null);
 
-  const syncBounds = useCallback(
-    async (appId: string) => {
-      const webview = await getRuntimeWebview(appId);
-      const container = containerRef.current;
+  const appId = app?.common.identity.id ?? null;
 
-      if (!webview || !container) {
-        return;
-      }
-
-      const rect = container.getBoundingClientRect();
-      const width = Math.max(1, Math.round(rect.width));
-      const height = Math.max(1, Math.round(rect.height));
-      const x = Math.round(rect.left);
-      const y = Math.round(rect.top);
-
-      await webview.setPosition(new LogicalPosition(x, y));
-      await webview.setSize(new LogicalSize(width, height));
-    },
-    [containerRef],
-  );
-
-  const scheduleSyncBounds = useCallback(
-    (appId: string) => {
-      requestAnimationFrame(() => {
-        void syncBounds(appId).catch((err) => {
-          const message = formatError(err);
-
-          if (message.includes('webview not found')) {
-            return;
-          }
-
-          console.error('Failed to sync embedded app webview bounds:', err);
-        });
-      });
-    },
-    [syncBounds],
-  );
+  const { scheduleSyncBounds } = useRuntimeWebviewBounds({
+    webviewLabel,
+    containerRef,
+    enabled: !!appId && !!webviewLabel,
+  });
 
   useEffect(() => {
     setAttachError(null);
+    setWebviewLabel(null);
+
     if (!app || !containerRef.current) {
       setAttaching(false);
       return;
     }
 
     const installedApp = app;
+    const installedAppId = installedApp.common.identity.id;
+
     let disposed = false;
     let runtimeCreated = false;
-    let resizeObserver: ResizeObserver | null = null;
-    let removeWindowResize: (() => void) | null = null;
-    let delayedSyncTimers: number[] = [];
     let showAttachingTimer: number | null = null;
 
     const clearShowAttachingTimer = () => {
@@ -87,82 +59,43 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
       }
     };
 
-    const clearDelayedSyncTimers = () => {
-      delayedSyncTimers.forEach((id) => window.clearTimeout(id));
-      delayedSyncTimers = [];
-    };
-
     const mount = async () => {
       showAttachingTimer = window.setTimeout(() => {
         if (!disposed) {
           setAttaching(true);
         }
       }, 200);
+
       await ensureInlineRuntime(installedApp);
       runtimeCreated = true;
 
-      if (disposed) {
-        return;
+      if (disposed) return;
+
+      const webview = await getRuntimeWebview(installedAppId);
+
+      if (!webview) {
+        throw new Error(`webview not found for app ${installedAppId}`);
       }
 
-      await syncBounds(installedApp.common.identity.id);
+      setWebviewLabel(webview.label);
 
-      if (disposed) {
-        return;
-      }
+      await markRuntimeVisible(installedAppId, true);
 
-      await markRuntimeVisible(installedApp.common.identity.id, true);
-
-      if (disposed) {
-        return;
-      }
+      if (disposed) return;
 
       clearShowAttachingTimer();
       setAttachError(null);
       setAttaching(false);
-
-      scheduleSyncBounds(installedApp.common.identity.id);
-
-      delayedSyncTimers = [0, 50, 150, 300].map((delay) =>
-        window.setTimeout(() => {
-          if (!disposed) {
-            scheduleSyncBounds(installedApp.common.identity.id);
-          }
-        }, delay),
-      );
-      resizeObserver = new ResizeObserver(() => {
-        if (!disposed) {
-          scheduleSyncBounds(installedApp.common.identity.id);
-        }
-      });
-      const container = containerRef.current;
-
-      if (!container) {
-        return;
-      }
-      resizeObserver.observe(container);
-      const handleWindowResize = () => {
-        if (!disposed) {
-          scheduleSyncBounds(installedApp.common.identity.id);
-        }
-      };
-      window.addEventListener('resize', handleWindowResize);
-
-      removeWindowResize = () => {
-        window.removeEventListener('resize', handleWindowResize);
-      };
     };
 
     void mount().catch((err) => {
-      if (disposed) {
-        return;
-      }
+      if (disposed) return;
+
       clearShowAttachingTimer();
 
-      const message = formatError(err);
-      setAttachError(message);
-
+      setAttachError(formatError(err));
       setAttaching(false);
+
       console.error('Failed to attach app runtime:', err);
     });
 
@@ -170,18 +103,23 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
       disposed = true;
       clearShowAttachingTimer();
       setAttaching(false);
+      setWebviewLabel(null);
 
       if (runtimeCreated) {
-        void markRuntimeVisible(installedApp.common.identity.id, false).catch(() => {
+        void markRuntimeVisible(installedAppId, false).catch(() => {
           //
         });
       }
-
-      resizeObserver?.disconnect();
-      removeWindowResize?.();
-      clearDelayedSyncTimers();
     };
-  }, [app, containerRef, scheduleSyncBounds, syncBounds]);
+  }, [app, containerRef]);
+
+  useEffect(() => {
+    if (!webviewLabel) {
+      return;
+    }
+
+    scheduleSyncBounds();
+  }, [webviewLabel, scheduleSyncBounds]);
 
   return {
     attaching,

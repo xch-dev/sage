@@ -13,6 +13,7 @@ import {
   type UserBridgeCapability,
   type UserSageAppView,
 } from '@sage-system-app/sdk';
+import { SystemModalShell } from '@sage-app/ui/system-modal';
 
 type Mode = 'review-update' | 'review-permissions';
 
@@ -431,21 +432,19 @@ export function App() {
   }, []);
 
   return (
-    <div className='h-screen w-screen overflow-hidden bg-transparent text-foreground'>
-      <div className='h-full w-full overflow-auto rounded-2xl bg-transparent p-6 text-foreground'>
-        {state.kind === 'loading' ? (
-          <div className='text-sm text-muted-foreground'>Loading review…</div>
-        ) : state.kind === 'error' ? (
-          <div className='space-y-3'>
-            <h1 className='text-lg font-semibold'>App update failed</h1>
-            <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
-              {state.error}
-            </div>
+    <SystemModalShell>
+      {state.kind === 'loading' ? (
+        <div className='text-sm text-muted-foreground'>Loading review…</div>
+      ) : state.kind === 'error' ? (
+        <div className='space-y-3'>
+          <h1 className='text-lg font-semibold'>App update failed</h1>
+          <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
+            {state.error}
           </div>
-        ) : (
-          <AppBody state={state} />
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        <AppBody state={state} />
+      )}
+    </SystemModalShell>
   );
 }

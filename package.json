@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "vite",
     "build:system-apps": "pnpm --dir crates/sage-apps/builtin-apps/system-apps-src build",
-    "build:sdk": "pnpm --filter @sage-app/sdk build && pnpm --filter @sage-system-app/sdk build",
-    "build": "pnpm build:sdk && pnpm build:system-apps && tsc -b && vite build",
+    "build:packages": "pnpm --filter @sage-app/sdk build && pnpm --filter @sage-system-app/sdk build && pnpm --filter @sage-app/ui build",
+    "build:sdk": "pnpm build:packages",
+    "build": "pnpm build:packages && pnpm build:system-apps && tsc -b && vite build",
     "tauri:dev": "pnpm build && tauri dev",
     "tauri:build": "pnpm build && tauri build",
     "lint": "eslint .",

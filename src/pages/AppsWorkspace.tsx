@@ -12,20 +12,17 @@ import {
   killRuntime,
   subscribeActiveRuntime,
 } from '@/lib/apps/runtimeRegistry';
-import { formatAppError } from '@/lib/apps/formatAppError';
 import { routeForApp } from '@/lib/apps/types';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import {
   commands,
   type SageAppUrlPreview,
-  type SageGrantedPermissionsView,
   type UserSageAppView,
 } from '@/bindings';
-import { AppUpdateDialog } from '@/components/apps/AppUpdateDialog.tsx';
-import { getAppUpdatePermissionsDelta } from '@/lib/apps/updatePermissionsDelta.ts';
 import { AppDonationStrip } from '@/components/apps/AppDonationStrip.tsx';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
+import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 
 export function AppsWorkspace() {
   const { appId } = useParams();
@@ -37,7 +34,6 @@ export function AppsWorkspace() {
     getListedApp,
     updateAvailability,
     busyAppIds,
-    performAppUpdate,
     currentApproval,
     queuedApprovalCount,
     currentApprovalSecondsLeft,
@@ -46,12 +42,7 @@ export function AppsWorkspace() {
   } = useApps();
 
   const [approvalExpanded, setApprovalExpanded] = useState(false);
-  const [applyingUpdate, setApplyingUpdate] = useState(false);
   const [tabOrder, setTabOrder] = useState<string[]>([]);
-  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-  const [updateDialogError, setUpdateDialogError] = useState<string | null>(
-    null,
-  );
   const [donationOpen, setDonationOpen] = useState(false);
 
   useEffect(() => {
@@ -153,59 +144,6 @@ export function AppsWorkspace() {
     return out;
   }, [runtimes, tabOrder, getListedApp, appId]);
 
-  const handleConfirmUpdate = useCallback(
-    async (nextGrantedPermissions: SageGrantedPermissionsView) => {
-      if (!activeApp) {
-        return;
-      }
-
-      try {
-        setApplyingUpdate(true);
-        setUpdateDialogError(null);
-
-        await performAppUpdate(
-          activeApp.common.identity.id,
-          nextGrantedPermissions,
-          {
-            restartIfRunning: true,
-            visibleAfterRestart: true,
-          },
-        );
-
-        setUpdateDialogOpen(false);
-      } catch (err) {
-        setUpdateDialogError(formatAppError(err));
-      } finally {
-        setApplyingUpdate(false);
-      }
-    },
-    [activeApp, performAppUpdate],
-  );
-
-  const handleReviewOrApplyUpdate = useCallback(async () => {
-    if (!activeApp || !activeUpdatePreview) {
-      return;
-    }
-
-    if (activeUpdatePreview.manifest.kind === 'partial') {
-      setUpdateDialogError(null);
-      setUpdateDialogOpen(true);
-      return;
-    }
-
-    const delta = getAppUpdatePermissionsDelta(activeApp, activeUpdatePreview);
-
-    if (!delta.requiresUserReview) {
-      setUpdateDialogOpen(false);
-      setUpdateDialogError(null);
-      await handleConfirmUpdate(delta.nextGrantedPermissions);
-      return;
-    }
-
-    setUpdateDialogError(null);
-    setUpdateDialogOpen(true);
-  }, [activeApp, activeUpdatePreview, handleConfirmUpdate]);
-
   return (
     <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>
       <AppTaskBar
@@ -296,12 +234,13 @@ export function AppsWorkspace() {
 
             <Button
               variant='outline'
-              disabled={activeBusy || applyingUpdate}
+              disabled={activeBusy}
               onClick={() => {
-                void handleReviewOrApplyUpdate();
+                if (!activeApp) return;
+                void openAppUpdateReview(activeApp.common.identity.id);
               }}
             >
-              {applyingUpdate ? 'Updating...' : 'Review update'}
+              Review update
             </Button>
           </AlertDescription>
         </Alert>
@@ -311,23 +250,6 @@ export function AppsWorkspace() {
         <Outlet />
         <SystemAppModalLayer />
       </div>
-
-      <AppUpdateDialog
-        open={updateDialogOpen}
-        app={activeApp}
-        preview={activeUpdatePreview}
-        submitting={applyingUpdate}
-        error={updateDialogError}
-        onCancel={() => {
-          if (!applyingUpdate) {
-            setUpdateDialogOpen(false);
-            setUpdateDialogError(null);
-          }
-        }}
-        onConfirm={(nextGranted) => {
-          void handleConfirmUpdate(nextGranted);
-        }}
-      />
     </div>
   );
 }
