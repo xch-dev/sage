@@ -14,7 +14,7 @@ serde_json = { workspace = true }
 specta = { workspace = true, features = ["derive", "function", "url"] }
 tauri-specta = { workspace = true, features = ["derive"] }
 specta-typescript = { workspace = true }
-tauri = { workspace = true, features = [] }
+tauri = { workspace = true, features = ["macos-private-api"] }
 tokio = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }

@@ -67,6 +67,7 @@ pub async fn create_runtime(
         webview_label.to_string(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
+        .transparent(true)
         .on_navigation(move |url| {
             runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
         })
