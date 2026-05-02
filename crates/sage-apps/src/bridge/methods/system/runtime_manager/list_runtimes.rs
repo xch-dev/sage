@@ -10,7 +10,7 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::runtime::{list_runtimes, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
-pub struct RuntimeManagerListRuntimes;
+pub(crate) struct RuntimeManagerListRuntimes;
 
 #[async_trait]
 impl BridgeMethod for RuntimeManagerListRuntimes {

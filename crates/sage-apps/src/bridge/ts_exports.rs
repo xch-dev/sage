@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams};
+use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -13,9 +13,7 @@ use crate::bridge::methods::user::bridge::ping::BridgePingResult;
 use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::{
-    ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams,
-};
+use crate::runtime::{ReadyToStopParams, RuntimeAckResult, RuntimeTargetParams, SetBeforeStopListenerParams};
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
     GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys,

@@ -6,12 +6,12 @@ use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     parse_required_params,
 };
-use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::runtime::RuntimeTargetParams;
 use crate::runtime::stop::{kill_runtime, SystemKillRuntimeError};
 
 #[derive(Debug, Clone, Copy)]
-pub struct RuntimeManagerKillRuntime;
+pub(crate) struct RuntimeManagerKillRuntime;
 
 #[derive(Debug, Copy, Clone, Serialize)]
 pub struct RuntimeManagerKillRuntimeResponse {

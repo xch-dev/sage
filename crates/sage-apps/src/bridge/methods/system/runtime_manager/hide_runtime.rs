@@ -6,12 +6,11 @@ use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::system::runtime_manager::RuntimeTargetParams;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::{hide_runtime, SageAppRuntimeRecordView};
+use crate::runtime::{hide_runtime, RuntimeTargetParams, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
-pub struct RuntimeManagerHideRuntime;
+pub(crate) struct RuntimeManagerHideRuntime;
 
 #[async_trait]
 impl BridgeMethod for RuntimeManagerHideRuntime {

@@ -5,8 +5,7 @@ use tauri::{AppHandle, State};
 use crate::AppsHostState;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::bridge::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview};
-use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent};
-use crate::bridge::methods::system::events::ActiveRuntimeChangedEvent;
+use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent, ActiveRuntimeChangedEvent};
 use crate::runtime::state::{
     find_runtime_by_runtime_id_optional, get_runtime_by_app_id, list_runtimes,
 };

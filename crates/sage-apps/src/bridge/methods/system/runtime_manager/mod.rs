@@ -1,13 +1,11 @@
-pub mod events;
-pub mod focus_runtime;
-pub mod hide_runtime;
-pub mod kill_runtime;
-pub mod list_runtimes;
+mod events;
+mod focus_runtime;
+mod hide_runtime;
+mod kill_runtime;
+mod list_runtimes;
 
-pub use events::RuntimeManagerRuntimesChangedEvent;
-pub use focus_runtime::RuntimeManagerFocusRuntime;
-pub use hide_runtime::RuntimeManagerHideRuntime;
-pub use kill_runtime::RuntimeManagerKillRuntime;
-pub use list_runtimes::RuntimeManagerListRuntimes;
-
-pub use crate::runtime::RuntimeTargetParams;
+pub(crate) use events::{RuntimeManagerRuntimesChangedEvent, ActiveRuntimeChangedEvent};
+pub(crate) use focus_runtime::RuntimeManagerFocusRuntime;
+pub(crate) use hide_runtime::RuntimeManagerHideRuntime;
+pub(crate) use kill_runtime::RuntimeManagerKillRuntime;
+pub(crate) use list_runtimes::RuntimeManagerListRuntimes;

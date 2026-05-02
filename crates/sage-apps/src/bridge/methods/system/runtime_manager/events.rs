@@ -6,20 +6,20 @@ use crate::runtime::SageAppRuntimeRecordView;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct RuntimeManagerRuntimesChangedEvent {
+pub(crate) struct RuntimeManagerRuntimesChangedEvent {
     pub runtimes: Vec<SageAppRuntimeRecordView>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct ActiveRuntimeChangedEvent {
+pub(crate) struct ActiveRuntimeChangedEvent {
     pub host_window_label: String,
     pub app_id: Option<String>,
     pub runtime_id: Option<String>,
 }
 
 impl RuntimeManagerRuntimesChangedEvent {
-    pub fn new(runtimes: Vec<SageAppRuntimeRecordView>) -> Self {
+    pub(crate) fn new(runtimes: Vec<SageAppRuntimeRecordView>) -> Self {
         Self { runtimes }
     }
 }
