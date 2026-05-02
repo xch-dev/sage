@@ -47,9 +47,6 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
 
       <div className='min-w-0 w-full'>
         <div className='truncate text-sm font-medium'>{app.common.activeSnapshot.manifest.name}</div>
-        <div className='truncate text-xs text-muted-foreground'>
-          v{app.common.activeSnapshot.manifest.version}
-        </div>
 
         {isBlocked ? (
           <div className='relative z-20 mt-1 text-xs text-amber-600'>

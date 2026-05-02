@@ -450,7 +450,7 @@ mod tests {
                 [],
                 [
                     UserBridgeCapability::WalletSendXch,
-                    UserBridgeCapability::PersistentStorage,
+                    UserBridgeCapability::StoragePersistentWebview,
                 ],
             ),
         )

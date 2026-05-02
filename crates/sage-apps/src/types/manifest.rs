@@ -229,7 +229,7 @@ mod tests {
             SageRequestedCapabilities::new(
                 [UserBridgeCapability::WalletSendXch],
                 [
-                    UserBridgeCapability::PersistentStorage,
+                    UserBridgeCapability::StoragePersistentWebview,
                     UserBridgeCapability::WalletGetSecretKey,
                 ],
             ),

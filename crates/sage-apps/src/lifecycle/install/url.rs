@@ -191,7 +191,7 @@ mod tests {
             SageRequestedCapabilities::new(
                 [],
                 [
-                    UserBridgeCapability::PersistentStorage,
+                    UserBridgeCapability::StoragePersistentWebview,
                     UserBridgeCapability::WalletGetSecretKey,
                 ],
             ),
@@ -225,11 +225,11 @@ mod tests {
 
         let granted_capabilities = if storage_may_contain_secrets {
             vec![
-                UserBridgeCapability::PersistentStorage,
+                UserBridgeCapability::StoragePersistentWebview,
                 UserBridgeCapability::WalletGetSecretKey,
             ]
         } else {
-            vec![UserBridgeCapability::PersistentStorage]
+            vec![UserBridgeCapability::StoragePersistentWebview]
         };
 
         let granted_permissions =

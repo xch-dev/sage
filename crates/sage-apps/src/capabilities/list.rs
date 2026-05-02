@@ -62,7 +62,7 @@ pub enum BridgeCapability {
 
 define_bridge_capabilities! {
     pub enum UserBridgeCapability {
-        PersistentStorage => "persistent_storage",
+        StoragePersistentWebview => "storage.persistent_webview",
         BridgeSend => "bridge.send",
         AppGetCapabilities => "app.get_capabilities",
         AppGetInfo => "app.get_info",

@@ -1,6 +1,6 @@
 # User bridge capabilities
 
-## `persistent_storage`
+## `storage.persistent_webview`
 
 **Persistent storage**
 

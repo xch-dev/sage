@@ -9,7 +9,7 @@ pub(crate) fn get_user_capability_definition(
     capability: UserBridgeCapability,
 ) -> UserCapabilityDefinition {
     match capability {
-        UserBridgeCapability::PersistentStorage => CapabilityDefinition::new(
+        UserBridgeCapability::StoragePersistentWebview => CapabilityDefinition::new(
             capability,
             "Persistent storage",
             "Allows the app to store data on this device between sessions.",

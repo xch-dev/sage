@@ -4,7 +4,7 @@
   "icon": "icon.svg",
   "permissions": {
     "capabilities": {
-      "required": ["bridge.send","persistent_storage"],
+      "required": ["bridge.send","storage.persistent_webview"],
       "optional": []
     }
   },

@@ -195,7 +195,7 @@ mod tests {
                     [],
                 ),
                 SageRequestedCapabilities::new(
-                    [UserBridgeCapability::PersistentStorage],
+                    [UserBridgeCapability::StoragePersistentWebview],
                     [UserBridgeCapability::WalletSendXch],
                 ),
             )
@@ -281,7 +281,7 @@ mod tests {
         let manifest = sample_manifest();
 
         let granted = SageGrantedPermissionsInput::new(
-            [UserBridgeCapability::PersistentStorage],
+            [UserBridgeCapability::StoragePersistentWebview],
             [SageNetworkWhitelistEntry::new_unchecked(
                 "https",
                 "api.example.com",
@@ -324,7 +324,7 @@ mod tests {
         let dir = tempdir().unwrap();
 
         let granted = SageGrantedPermissionsInput::new(
-            [UserBridgeCapability::PersistentStorage],
+            [UserBridgeCapability::StoragePersistentWebview],
             [SageNetworkWhitelistEntry::new_unchecked(
                 "https",
                 "evil.example.com",
@@ -365,7 +365,7 @@ mod tests {
 
         let granted_permissions = SageGrantedPermissions::new(
             manifest.permissions(),
-            [UserBridgeCapability::PersistentStorage],
+            [UserBridgeCapability::StoragePersistentWebview],
             [],
         )
         .unwrap();

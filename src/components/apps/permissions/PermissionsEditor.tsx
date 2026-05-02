@@ -98,7 +98,7 @@ function normalizeKey(key: string): string {
 
 function capabilitySensitivityRank(key: string): number {
   if (key.includes('secret')) return 0;
-  if (key === 'persistent_storage') return 2;
+  if (key === 'storage') return 2;
   if (key.includes('send') || key.includes('network')) return 3;
   return 4;
 }
@@ -234,7 +234,7 @@ function groupIcon(node: PermissionGroupNode) {
   const normalized = normalizeKey(node.id);
 
   if (normalized === 'network') return <Globe className='h-4 w-4' />;
-  if (normalized === 'persistent_storage')
+  if (normalized === 'storage.persistent_webview')
     return <HardDrive className='h-4 w-4' />;
   if (normalized.includes('secret') || normalized.includes('wallet')) {
     return <KeyRound className='h-4 w-4' />;
@@ -280,10 +280,10 @@ function buildGroupedPermissionTree(
   const persistentEntries = entries.filter(
     (entry) =>
       entry.kind === 'capability' &&
-      normalizeKey(entry.key) === 'persistent_storage',
+      normalizeKey(entry.key) === 'storage.persistent_webview',
   );
   if (persistentEntries.length > 0) {
-    const persistentNode = makeNode('persistent_storage', 'Persistent storage');
+    const persistentNode = makeNode('storage.persistent_webview', 'Persistent storage');
     persistentNode.entries = sortPermissionEntries(persistentEntries);
     persistentNode.sensitivityRank = 2;
     roots.push(persistentNode);
@@ -292,7 +292,7 @@ function buildGroupedPermissionTree(
   const generalCapabilityEntries = entries.filter(
     (entry) =>
       entry.kind === 'capability' &&
-      normalizeKey(entry.key) !== 'persistent_storage',
+      normalizeKey(entry.key) !== 'storage.persistent_webview',
   );
 
   const capabilityRoot = makeNode('capabilities_root', 'Capabilities');

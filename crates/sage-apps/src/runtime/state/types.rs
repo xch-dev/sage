@@ -238,13 +238,13 @@ impl SageAppRuntimeRecord {
 impl SharedSageApp {
     pub(crate) fn taint_storage_if_runtime_can_persist_secrets(&self) {
         self.with_mut(|app| {
-            let has_persistent_storage = app
+            let has_persistent_webview_storage = app
                 .granted_permissions()
                 .capabilities()
-                .any(|cap| *cap == UserBridgeCapability::PersistentStorage);
+                .any(|cap| *cap == UserBridgeCapability::StoragePersistentWebview);
 
             if app.flags().has_secret_access()
-                && has_persistent_storage
+                && has_persistent_webview_storage
                 && !app.flags().storage_may_contain_secrets()
             {
                 app.common_mut().mark_storage_may_contain_secrets();

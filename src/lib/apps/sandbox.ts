@@ -77,7 +77,7 @@ export function getRequiredSandboxCapabilities(
   const required: SandboxCapability[] = ['storage_isolation_from_sage'];
 
   if (
-    app.common.grantedPermissions.capabilities.includes('persistent_storage')
+    app.common.grantedPermissions.capabilities.includes('storage.persistent_webview')
   ) {
     required.push('storage_persistence_normal');
   } else {

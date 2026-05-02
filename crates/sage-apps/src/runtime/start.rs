@@ -234,7 +234,7 @@ fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> Result<We
     let has_persistent_storage = app.with(|app| {
         app.granted_permissions()
             .capabilities()
-            .any(|cap| *cap == crate::capabilities::list::UserBridgeCapability::PersistentStorage)
+            .any(|cap| *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview)
     });
 
     if !has_persistent_storage {
