@@ -1,4 +1,4 @@
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::runtime::SharedRuntime;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;

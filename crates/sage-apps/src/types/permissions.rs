@@ -1,4 +1,4 @@
-use crate::bridge::capabilities::{
+use crate::capabilities::list::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
 use crate::capabilities::{get_user_capability_definition};

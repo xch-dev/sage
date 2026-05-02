@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::capabilities::{CapabilityDefinition, CapabilityFlags};
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedPermissions};
 

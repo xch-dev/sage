@@ -132,7 +132,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::bridge::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
+    use crate::capabilities::list::{SharedCapabilitiesExt, UserBridgeCapability};
     use crate::capabilities::user_registry;
 
     fn first_shared_capability() -> UserBridgeCapability {

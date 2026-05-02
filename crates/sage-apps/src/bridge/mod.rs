@@ -1,5 +1,4 @@
 pub mod bridge_request;
-pub mod capabilities;
 pub mod commands;
 pub mod event_emit;
 pub mod methods;

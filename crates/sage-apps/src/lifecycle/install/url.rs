@@ -157,7 +157,7 @@ pub fn resolve_url_install_target(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
     use crate::types::{InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp};

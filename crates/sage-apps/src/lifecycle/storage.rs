@@ -215,7 +215,7 @@ pub async fn apps_clear_runtime_browsing_data(
 mod tests {
     use super::*;
 
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::{
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };

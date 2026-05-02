@@ -140,10 +140,7 @@ fn find_runtime_by_app_id_optional_immediate_once(
             .runtime
             .runtime_id_by_app_id
             .try_lock()
-            .map_err(|_| {
-                eprintln!("runtime_id_by_app_id is busy for app_id '{app_id}'");
-                "runtime_id_by_app_id is busy".to_string()
-            })?;
+            .map_err(|_| "runtime_id_by_app_id is busy".to_string())?;
 
         by_app_id.get(app_id).cloned()
     };
@@ -156,10 +153,7 @@ fn find_runtime_by_app_id_optional_immediate_once(
         .runtime
         .runtime_by_runtime_id
         .try_lock()
-        .map_err(|_| {
-            eprintln!("runtime_by_runtime_id is busy for app_id '{app_id}'");
-            "runtime_by_runtime_id is busy".to_string()
-        })?;
+        .map_err(|_| "runtime_by_runtime_id is busy".to_string())?;
 
     Ok(by_runtime_id.get(&runtime_id).cloned())
 }
@@ -206,8 +200,11 @@ fn retry_immediate_lookup<T>(
     mut lookup: impl FnMut() -> Result<T, String>,
 ) -> Result<T, String> {
     let deadline = Instant::now() + Duration::from_millis(IMMEDIATE_LOCK_RETRY_TIMEOUT_MS);
+    let mut attempts = 0usize;
 
     loop {
+        attempts += 1;
+
         match lookup() {
             Ok(value) => return Ok(value),
             Err(err) if is_busy_error(&err) && Instant::now() < deadline => {
@@ -217,7 +214,9 @@ fn retry_immediate_lookup<T>(
         }
 
         if Instant::now() >= deadline {
-            return Err(format!("{label} is busy"));
+            let err = format!("{label} is busy after {attempts} attempts");
+            eprintln!("{err}");
+            return Err(err);
         }
     }
 }

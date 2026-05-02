@@ -1,7 +1,7 @@
 use std::fmt::Write;
 use std::{fs, path::PathBuf};
 
-use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
+use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};

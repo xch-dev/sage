@@ -1,4 +1,4 @@
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::capabilities::CapabilityFlags;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -78,7 +78,7 @@ impl SageAppFlags {
 
 #[cfg(test)]
 mod tests {
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::types::app::flags::SageAppFlags;
 
     #[test]

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use serde::Serialize;
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::capabilities::SystemBridgeCapability;
+use crate::capabilities::list::SystemBridgeCapability;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     parse_required_params,

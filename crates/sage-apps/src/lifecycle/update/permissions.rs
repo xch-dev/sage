@@ -3,7 +3,7 @@ use std::path::Path;
 use anyhow::Context;
 use tauri::AppHandle;
 
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::event_emit::{emit_runtime_event_to_app_id};
 use crate::bridge::methods::user::app::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
 use crate::lifecycle::update::types::{
@@ -158,7 +158,7 @@ async fn emit_granted_permissions_change(
 mod tests {
     use super::*;
 
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::registry::{app_dir, read_installed_app_by_id};
     use crate::types::{
         InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppManifestFile,

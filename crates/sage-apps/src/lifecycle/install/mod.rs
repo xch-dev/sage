@@ -164,7 +164,7 @@ pub fn recreate_app_dir(app_dir: &Path) -> AnyResult<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
     use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;

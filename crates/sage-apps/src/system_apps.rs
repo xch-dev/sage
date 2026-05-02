@@ -5,7 +5,7 @@ use std::{
 use std::fmt::Display;
 use anyhow::{Result as AnyResult};
 
-use crate::bridge::capabilities::SystemBridgeCapability;
+use crate::capabilities::list::SystemBridgeCapability;
 use crate::types::{
     InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
     SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation,

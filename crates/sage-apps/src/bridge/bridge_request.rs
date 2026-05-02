@@ -1,5 +1,5 @@
 use crate::AppsHostState;
-use crate::bridge::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
+use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};

@@ -201,7 +201,7 @@ impl SageAppManifestFile {
 
 #[cfg(test)]
 mod tests {
-    use crate::bridge::capabilities::UserBridgeCapability;
+    use crate::capabilities::list::UserBridgeCapability;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,

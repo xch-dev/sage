@@ -1,7 +1,7 @@
 use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::event_emit::emit_runtime_event_to_app_id;
 use crate::bridge::methods::user::environment::{
     EnvironmentThemeChangedEvent, EnvironmentThemeView,

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::{Mutex, oneshot};
 use parking_lot::RwLock;
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::types::{SageApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
 

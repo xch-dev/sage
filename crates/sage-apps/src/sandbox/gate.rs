@@ -1,4 +1,4 @@
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::types::{SharedSageApp};
 
 use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};

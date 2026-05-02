@@ -1,4 +1,4 @@
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::types::{SageAppCapabilityDefinitionView, SageAppView, SageNetworkWhitelistEntry};
 use serde::{Deserialize, Serialize};

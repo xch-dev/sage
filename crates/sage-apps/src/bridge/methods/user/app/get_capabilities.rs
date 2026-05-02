@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
+use crate::capabilities::list::{SharedCapabilitiesExt, UserBridgeCapability};
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
 };

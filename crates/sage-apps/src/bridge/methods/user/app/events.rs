@@ -1,7 +1,7 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::event_emit::{AppRuntimeEvent, AppRuntimeEventRail};
 use crate::lifecycle::update::types::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::types::SageNetworkWhitelistEntry;

@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::bridge::capabilities::UserBridgeCapability;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::capabilities::{CapabilityFlags, get_user_capability_definition};
 use crate::types::network::SageNetworkWhitelistEntry;
 use crate::types::permissions::SageRequestedCapabilities;

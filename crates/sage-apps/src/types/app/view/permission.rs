@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 use serde::{Serialize};
 use specta::Type;
-use crate::bridge::capabilities::{SystemBridgeCapability, UserBridgeCapability};
+use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::types::{SageGrantedPermissions, SageGrantedSystemPermissions};
 use crate::types::app::view::network::SageNetworkWhitelistEntryView;
 use crate::types::permissions::SageGrantedNetworkPermissions;
