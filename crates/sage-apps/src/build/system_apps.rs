@@ -7,6 +7,18 @@ pub fn build_system_apps(
     system_out_dir: &Path,
     system_sdk_dist: &Path,
 ) -> Result<(), String> {
+    let work_system_apps_dir = system_out_dir
+        .parent()
+        .and_then(|dist_dir| dist_dir.parent())
+        .ok_or_else(|| {
+            format!(
+                "failed to resolve builtin apps root from {}",
+                system_out_dir.display()
+            )
+        })?
+        .join("work")
+        .join("system-apps");
+
     let mut app_dirs = fs::read_dir(system_apps_src_dir)
         .map_err(|err| {
             format!(
@@ -35,13 +47,13 @@ pub fn build_system_apps(
                 )
             })?;
 
-        let app_dist_dir = app_src_dir.join("dist");
         let manifest_src = app_src_dir.join("sage-manifest.json");
-        let out_dir = system_out_dir.join(app_dir_name);
-
         if !manifest_src.is_file() {
             continue;
         }
+
+        let app_dist_dir = work_system_apps_dir.join(app_dir_name).join("dist");
+        let out_dir = system_out_dir.join(app_dir_name);
 
         if !app_dist_dir.is_dir() {
             return Err(format!(
