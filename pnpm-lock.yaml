@@ -83,6 +83,9 @@ importers:
       '@sage-app/sdk':
         specifier: workspace:*
         version: link:packages/sage-app-sdk
+      '@sage-app/ui':
+        specifier: workspace:*
+        version: link:packages/sage-app-ui
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -279,6 +282,9 @@ importers:
 
   crates/sage-apps/builtin-apps/system-apps-src:
     dependencies:
+      '@sage-app/ui':
+        specifier: workspace:*
+        version: link:../../../../packages/sage-app-ui
       '@sage-system-app/sdk':
         specifier: workspace:*
         version: link:../../../../packages/sage-system-app-sdk
@@ -301,6 +307,15 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^5.0.4
         version: 5.2.0(vite@7.3.1(@types/node@22.19.10)(jiti@2.6.1)(yaml@2.5.1))
+      autoprefixer:
+        specifier: ^10.4.20
+        version: 10.4.24(postcss@8.5.6)
+      postcss:
+        specifier: ^8.4.49
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^3.4.17
+        version: 3.4.19(yaml@2.5.1)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -315,6 +330,25 @@ importers:
         version: 8.5.1(@swc/core@1.15.11)(jiti@2.6.1)(postcss@8.5.6)(typescript@5.9.3)(yaml@2.5.1)
       typescript:
         specifier: ^5.6.3
+        version: 5.9.3
+
+  packages/sage-app-ui:
+    dependencies:
+      '@sage-system-app/sdk':
+        specifier: workspace:*
+        version: link:../sage-system-app-sdk
+      lucide-react:
+        specifier: ^0.468.0
+        version: 0.468.0(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+    devDependencies:
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.1(@swc/core@1.15.11)(jiti@2.6.1)(postcss@8.5.6)(typescript@5.9.3)(yaml@2.5.1)
+      typescript:
+        specifier: ^5.9.3
         version: 5.9.3
 
   packages/sage-system-app-sdk:
@@ -3050,6 +3084,11 @@ packages:
 
   lucide-react@0.445.0:
     resolution: {integrity: sha512-YrLf3aAHvmd4dZ8ot+mMdNFrFpJD7YRwQ2pUcBhgqbmxtrMP4xDzIorcj+8y+6kpuXBF4JB0NOCTUWIYetJjgA==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+
+  lucide-react@0.468.0:
+    resolution: {integrity: sha512-6koYRhnM2N0GGZIdXzSeiNwguv1gt/FAjZOiPl76roBi3xKEXa4WmfpxgQwTTL4KipXjefrnf3oV4IsYhi4JFA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
 
@@ -7034,6 +7073,10 @@ snapshots:
       yallist: 3.1.1
 
   lucide-react@0.445.0(react@18.3.1):
+    dependencies:
+      react: 18.3.1
+
+  lucide-react@0.468.0(react@18.3.1):
     dependencies:
       react: 18.3.1
 

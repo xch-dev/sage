@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { PermissionsEditor } from '@sage-app/ui/permissions';
 import {
   formatSageError,
   getSageSystemClient,
@@ -162,206 +163,6 @@ function nextPermissionsForUpdate(args: {
   };
 }
 
-function permissionRows(args: {
-  app: UserSageAppView;
-  grantedPermissions: SageGrantedPermissionsView;
-  definitionsByKey: Map<UserBridgeCapability, SageAppCapabilityDefinitionView>;
-}) {
-  const requestedCaps = getRequestedCapabilities(
-    args.app.common.activeSnapshot.manifest.permissions,
-  );
-  const requestedNetwork = getRequestedNetwork(
-    args.app.common.activeSnapshot.manifest.permissions,
-  );
-
-  const grantedCaps = new Set(args.grantedPermissions.capabilities ?? []);
-  const grantedNetwork = new Set(
-    (args.grantedPermissions.network.whitelist ?? []).map(networkKey),
-  );
-
-  const capabilityRows = [
-    ...requestedCaps.required.map((capability) => ({
-      id: `cap:${capability}`,
-      kind: 'capability' as const,
-      capability,
-      label: args.definitionsByKey.get(capability)?.label ?? capability,
-      description: args.definitionsByKey.get(capability)?.description ?? null,
-      required: true,
-      granted: true,
-      editable: false,
-      visible: isUserGrantable(args.definitionsByKey, capability),
-    })),
-    ...requestedCaps.optional.map((capability) => ({
-      id: `cap:${capability}`,
-      kind: 'capability' as const,
-      capability,
-      label: args.definitionsByKey.get(capability)?.label ?? capability,
-      description: args.definitionsByKey.get(capability)?.description ?? null,
-      required: false,
-      granted: grantedCaps.has(capability),
-      editable: isUserGrantable(args.definitionsByKey, capability),
-      visible: isUserGrantable(args.definitionsByKey, capability),
-    })),
-  ].filter((row) => row.visible);
-
-  const networkRows = [
-    ...requestedNetwork.required.map((entry) => ({
-      id: `net:${networkKey(entry)}`,
-      kind: 'network' as const,
-      entry,
-      label: networkKey(entry),
-      description: null,
-      required: true,
-      granted: true,
-      editable: false,
-    })),
-    ...requestedNetwork.optional.map((entry) => ({
-      id: `net:${networkKey(entry)}`,
-      kind: 'network' as const,
-      entry,
-      label: networkKey(entry),
-      description: null,
-      required: false,
-      granted: grantedNetwork.has(networkKey(entry)),
-      editable: true,
-    })),
-  ];
-
-  return [...networkRows, ...capabilityRows];
-}
-
-function PermissionEditor({
-  app,
-  grantedPermissions,
-  definitions,
-  disabled,
-  onChange,
-}: {
-  app: UserSageAppView;
-  grantedPermissions: SageGrantedPermissionsView;
-  definitions: SageAppCapabilityDefinitionView[];
-  disabled?: boolean;
-  onChange: (next: SageGrantedPermissionsInput) => void;
-}) {
-  const definitionsByKey = useMemo(
-    () => definitionMap(definitions),
-    [definitions],
-  );
-
-  const rows = useMemo(
-    () => permissionRows({ app, grantedPermissions, definitionsByKey }),
-    [app, grantedPermissions, definitionsByKey],
-  );
-
-  function emitCapability(capability: UserBridgeCapability, granted: boolean) {
-    const next = new Set(grantedPermissions.capabilities ?? []);
-
-    if (granted) {
-      next.add(capability);
-    } else {
-      next.delete(capability);
-    }
-
-    const requested = getRequestedCapabilities(
-      app.common.activeSnapshot.manifest.permissions,
-    );
-
-    for (const required of requested.required) {
-      if (isUserGrantable(definitionsByKey, required)) {
-        next.add(required);
-      }
-    }
-
-    onChange({
-      capabilities: sortCapabilities(next),
-      network: grantedPermissions.network,
-    });
-  }
-
-  function emitNetwork(entry: SageNetworkWhitelistEntry, granted: boolean) {
-    const requested = getRequestedNetwork(
-      app.common.activeSnapshot.manifest.permissions,
-    );
-
-    const next = new Map<string, SageNetworkWhitelistEntry>();
-
-    for (const required of requested.required) {
-      next.set(networkKey(required), required);
-    }
-
-    for (const existing of grantedPermissions.network.whitelist ?? []) {
-      next.set(networkKey(existing), existing);
-    }
-
-    if (granted) {
-      next.set(networkKey(entry), entry);
-    } else {
-      next.delete(networkKey(entry));
-    }
-
-    onChange({
-      capabilities: grantedPermissions.capabilities,
-      network: {
-        whitelist: sortNetwork(next.values()),
-      },
-    });
-  }
-
-  if (rows.length === 0) {
-    return (
-      <div className='rounded-xl border p-4 text-sm text-muted-foreground'>
-        This app does not request any user-reviewable permissions.
-      </div>
-    );
-  }
-
-  return (
-    <div className='space-y-2'>
-      {rows.map((row) => (
-        <label
-          key={row.id}
-          className='flex gap-3 rounded-xl border bg-background/60 p-3 text-sm'
-        >
-          <input
-            type='checkbox'
-            className='mt-1'
-            checked={row.granted}
-            disabled={disabled || row.required || !row.editable}
-            onChange={(event) => {
-              if (row.kind === 'capability') {
-                emitCapability(row.capability, event.target.checked);
-              } else {
-                emitNetwork(row.entry, event.target.checked);
-              }
-            }}
-          />
-
-          <div className='min-w-0 flex-1'>
-            <div className='flex items-center gap-2'>
-              <div className='truncate font-medium'>{row.label}</div>
-              {row.required ? (
-                <span className='rounded-full border px-2 py-0.5 text-[10px] uppercase text-muted-foreground'>
-                  Required
-                </span>
-              ) : null}
-            </div>
-
-            {row.description ? (
-              <div className='mt-1 text-xs text-muted-foreground'>
-                {row.description}
-              </div>
-            ) : row.kind === 'network' ? (
-              <div className='mt-1 font-mono text-xs text-muted-foreground'>
-                {row.label}
-              </div>
-            ) : null}
-          </div>
-        </label>
-      ))}
-    </div>
-  );
-}
-
 function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -451,7 +252,7 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
           </p>
           <div className='flex justify-end'>
             <button
-              className='rounded-md border px-4 py-2 text-sm'
+              className='rounded-md border border-border px-4 py-2 text-sm'
               onClick={closeModal}
             >
               Close
@@ -476,7 +277,7 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
           </pre>
           <div className='flex justify-end'>
             <button
-              className='rounded-md border px-4 py-2 text-sm'
+              className='rounded-md border border-border px-4 py-2 text-sm'
               onClick={closeModal}
             >
               Close
@@ -492,7 +293,7 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
       <div className='space-y-4'>
         <h1 className='text-lg font-semibold'>Nothing to review</h1>
         <button
-          className='rounded-md border px-4 py-2 text-sm'
+          className='rounded-md border border-border px-4 py-2 text-sm'
           onClick={closeModal}
         >
           Close
@@ -521,12 +322,12 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
         </div>
       </div>
 
-      <PermissionEditor
+      <PermissionsEditor
         app={reviewApp}
         grantedPermissions={grantedPermissions}
-        definitions={state.definitions}
-        disabled={submitting}
-        onChange={setGrantedPermissions}
+        capabilityDefinitions={state.definitions}
+        editable={!submitting}
+        onGrantedPermissionsChange={setGrantedPermissions}
       />
 
       {submitError ? (
@@ -537,7 +338,7 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
 
       <div className='flex justify-end gap-2'>
         <button
-          className='rounded-md border px-4 py-2 text-sm'
+          className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60'
           disabled={submitting}
           onClick={closeModal}
         >

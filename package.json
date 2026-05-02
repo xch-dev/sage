@@ -45,6 +45,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@react-spring/web": "^9.7.5",
     "@sage-app/sdk": "workspace:*",
+    "@sage-app/ui": "workspace:*",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.18",
     "@tauri-apps/api": "^2.10.1",

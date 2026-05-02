@@ -1,10 +1,15 @@
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const dir = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(dir, '../../../../../..');
 
 export default {
-  content: [join(dir, 'index.html'), join(dir, 'src/**/*.{ts,tsx}')],
+  content: [
+    join(dir, 'index.html'),
+    join(dir, 'src/**/*.{ts,tsx}'),
+    join(repoRoot, 'packages/sage-app-ui/src/**/*.{ts,tsx}'),
+  ],
   theme: {
     extend: {
       colors: {
@@ -23,6 +28,8 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
+        popover: 'hsl(var(--popover))',
+        'popover-foreground': 'hsl(var(--popover-foreground))',
       },
     },
   },
