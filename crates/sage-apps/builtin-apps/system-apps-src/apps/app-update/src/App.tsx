@@ -431,8 +431,11 @@ export function App() {
   }, []);
 
   return (
-    <div className='h-screen w-screen overflow-hidden text-foreground'>
-      <div className='h-full w-full overflow-auto rounded-2xl bg-card p-6 text-card-foreground shadow-2xl'>
+    <div className='h-screen w-screen overflow-hidden bg-transparent text-foreground'>
+      <div
+        className='h-full w-full overflow-auto rounded-2xl border border-border p-6 text-card-foreground shadow-2xl'
+        style={{ backgroundColor: 'hsl(var(--card) / 0.82)' }}
+      >
         {state.kind === 'loading' ? (
           <div className='text-sm text-muted-foreground'>Loading review…</div>
         ) : state.kind === 'error' ? (

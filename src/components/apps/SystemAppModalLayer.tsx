@@ -94,12 +94,14 @@ export function SystemAppModalLayer() {
 
   return (
     <div
-      className='pointer-events-none absolute inset-0 z-50 flex items-start justify-center bg-black/30 px-6 pb-6 pt-[12vh]'
+      className='pointer-events-none absolute inset-0 z-50 flex items-center justify-center px-6 py-8'
       aria-hidden
     >
+      <div className='absolute inset-0 bg-black/25 backdrop-blur-sm' />
+
       <div
         ref={modalBoundsRef}
-        className='h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))]'
+        className='relative h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))]'
       />
     </div>
   );
