@@ -11,6 +11,7 @@ interface Props {
   y: number;
   busy: boolean;
   hasUpdate: boolean;
+  updateIsInstallable: boolean;
   isRunning: boolean;
   updateCheckState: AppsLaunchpadContextMenuUpdateState;
   clearDataBusy?: boolean;
@@ -32,6 +33,7 @@ export function AppsLaunchpadContextMenu({
   y,
   busy,
   hasUpdate,
+  updateIsInstallable,
   isRunning,
   updateCheckState,
   clearDataBusy = false,
@@ -51,6 +53,13 @@ export function AppsLaunchpadContextMenu({
   }
 
   const clearDataDisabled = busy || clearDataBusy || !clearDataEnabled;
+  const updateDisabled = busy || clearDataBusy;
+
+  const updateLabel = updateIsInstallable
+    ? isRunning
+      ? 'Update and reopen'
+      : 'Update'
+    : 'Update issue';
 
   return (
     <>
@@ -95,11 +104,14 @@ export function AppsLaunchpadContextMenu({
         ) : (
           <button
             type='button'
-            className='flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted disabled:opacity-50'
-            disabled={busy || clearDataBusy}
+            className={[
+              'flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted disabled:opacity-50',
+              updateIsInstallable ? '' : 'text-amber-600 dark:text-amber-400',
+            ].join(' ')}
+            disabled={updateDisabled}
             onClick={onUpdate}
           >
-            {isRunning ? 'Update and reopen' : 'Update'}
+            {updateLabel}
           </button>
         )}
 

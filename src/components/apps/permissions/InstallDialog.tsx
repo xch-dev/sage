@@ -27,6 +27,18 @@ interface Props {
   onConfirm: () => void;
 }
 
+function installManifest(source: InstallSource): SageAppPackageManifest | null {
+  if (source.kind === 'zip') {
+    return source.manifest;
+  }
+
+  if (source.preview.manifest.kind !== 'full') {
+    return null;
+  }
+
+  return source.preview.manifest.manifest;
+}
+
 function buildPreviewApp(
   manifest: SageAppPackageManifest,
   grantedPermissions: SageGrantedPermissionsView,
@@ -83,6 +95,7 @@ function resolveInstallIconUrl(
     return null;
   }
 }
+
 function computeManifestSize(manifest: SageAppPackageManifest): number {
   return manifest.files.reduce((sum, f) => sum + (f.size ?? 0), 0);
 }
@@ -147,9 +160,7 @@ function InstallAppSummary({
 
             <div>
               <span className='text-foreground'>Size:</span>{' '}
-              {previewSizeBytes !== null
-                ? formatBytes(previewSizeBytes)
-                : 'Unknown'}
+              {formatBytes(previewSizeBytes)}
             </div>
           </div>
         </div>
@@ -177,8 +188,65 @@ export function InstallPermissionsDialog({
     );
   }
 
-  const manifest =
-    source.kind === 'zip' ? source.manifest : source.preview.manifest;
+  const manifest = installManifest(source);
+
+  if (!manifest) {
+    const partial =
+      source.kind === 'url' && source.preview.manifest.kind === 'partial'
+        ? source.preview.manifest
+        : null;
+
+    return (
+      <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+        <DialogContent className='max-w-lg'>
+          <DialogHeader className='pb-1'>
+            <DialogTitle>App cannot be installed</DialogTitle>
+          </DialogHeader>
+
+          <div className='space-y-4 text-sm'>
+            {partial ? (
+              <>
+                <div className='space-y-1 text-muted-foreground'>
+                  <div>{partial.manifest_header.name}</div>
+                  <div>
+                    Requires Sage {partial.manifest_header.sageVersion.min}
+                    {partial.manifest_header.sageVersion.testedMax
+                      ? ` · tested up to ${partial.manifest_header.sageVersion.testedMax}`
+                      : null}
+                  </div>
+                </div>
+
+                <div className='rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive'>
+                  This app uses manifest features this Sage version cannot
+                  understand, so it cannot be installed safely.
+                </div>
+
+                <pre className='max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap'>
+                  {partial.parse_error}
+                </pre>
+              </>
+            ) : (
+              <div className='text-destructive'>
+                This app manifest cannot be installed by this Sage version.
+              </div>
+            )}
+
+            {error ? (
+              <div className='rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive'>
+                {error}
+              </div>
+            ) : null}
+          </div>
+
+          <DialogFooter className='gap-2'>
+            <Button variant='outline' onClick={onCancel} disabled={installing}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const previewApp = buildPreviewApp(manifest, grantedPermissions);
 

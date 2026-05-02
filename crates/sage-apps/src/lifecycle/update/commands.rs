@@ -5,7 +5,7 @@ use tauri::{AppHandle, State, command};
 use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::update::permissions::update_app_permissions_for_app;
-use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, write_installed_app_metadata};
+use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview, write_installed_app_metadata};
 use crate::runtime::resolve_app;
 use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
@@ -19,23 +19,49 @@ pub async fn check_app_update(
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let app = app.clone_app_for_operation();
-    let Some(pending) = fetch_pending_update(&app).await? else {
+
+    let deps = app.with(|app| match app {
+        SageApp::System(_) => None,
+        SageApp::User(user_app) => Some((
+            user_app.source().clone(),
+            user_app.common().active_snapshot().clone(),
+            user_app.pending_update().cloned(),
+        )),
+    });
+
+    let Some((source, active_snapshot, existing_pending)) = deps else {
         return Ok(None);
     };
 
-    app.with(|app| {
-        let SageApp::User(app) = app else {
-            return Ok(None);
-        };
+    let app_url = match source {
+        UserSageAppSource::Url { app_url } => app_url,
+        UserSageAppSource::Zip => return Ok(None),
+    };
 
-        if let Some(existing_pending) = app.pending_update()
-            && existing_pending.manifest_hash() == pending.manifest_hash()
-            && existing_pending.manifest() == pending.manifest()
+    let (manifest_preview, manifest_hash) = fetch_url_manifest_preview(&app_url.manifest_url())
+        .await
+        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
+
+    let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash)
+        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
+
+    if preview.manifest_hash() == active_snapshot.manifest_hash() {
+        if let Some(full_manifest) = preview.full_manifest()
+            && full_manifest == active_snapshot.manifest()
         {
             return Ok(None);
         }
-        Ok(Some(SageAppUrlPreview::from_pending_update(&pending)))
-    })
+    }
+
+    if let Some(existing_pending) = existing_pending
+        && let Some(full_manifest) = preview.full_manifest()
+        && existing_pending.manifest_hash() == preview.manifest_hash()
+        && existing_pending.manifest() == full_manifest
+    {
+        return Ok(None);
+    }
+
+    Ok(Some(preview))
 }
 
 #[command]
@@ -182,6 +208,7 @@ async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppP
     let Some(deps) = deps else {
         return Ok(None);
     };
+
     let app_url = match deps.source {
         UserSageAppSource::Url { app_url } => app_url.clone(),
         UserSageAppSource::Zip => return Ok(None),
@@ -190,11 +217,16 @@ async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppP
     let (manifest, manifest_hash) = fetch_url_manifest(&app_url.manifest_url())
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
-    let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
+
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
+    let manifest = preview
+        .require_full_manifest()
+        .map_err(|err| io::Error::other(format!("update manifest is not installable: {err}")))?;
+
     if preview.manifest_hash() == deps.active_snapshot.manifest_hash()
-        && preview.manifest() == deps.active_snapshot.manifest()
+        && manifest == deps.active_snapshot.manifest()
     {
         return Ok(None);
     }
@@ -202,7 +234,7 @@ async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppP
     Ok(Some(UserSageAppPendingUpdate::new(
         app_url,
         preview.manifest_hash().to_string(),
-        preview.manifest().clone(),
+        manifest.clone(),
     )))
 }
 
@@ -235,11 +267,15 @@ async fn fetch_pending_update_for_resolved_stopped_app(
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
+    let manifest = preview
+        .require_full_manifest()
+        .map_err(|err| io::Error::other(format!("update manifest is not installable: {err}")))?;
+
     if preview.manifest_hash() == active_snapshot.manifest_hash()
-        && preview.manifest() == active_snapshot.manifest()
+        && manifest == active_snapshot.manifest()
     {
         return Ok(None);
     }
@@ -247,6 +283,6 @@ async fn fetch_pending_update_for_resolved_stopped_app(
     Ok(Some(UserSageAppPendingUpdate::new(
         app_url,
         preview.manifest_hash().to_string(),
-        preview.manifest().clone(),
+        manifest.clone(),
     )))
 }

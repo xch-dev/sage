@@ -36,12 +36,24 @@ interface Props {
   onConfirm: (nextGranted: SageGrantedPermissionsInput) => void;
 }
 
+function fullPreviewManifest(
+  preview: SageAppUrlPreview,
+): SageAppPackageManifest {
+  if (preview.manifest.kind !== 'full') {
+    throw new Error('Expected full app update manifest');
+  }
+
+  return preview.manifest.manifest;
+}
+
 function buildReviewManifest(
   preview: SageAppUrlPreview,
   delta: AppUpdatePermissionsDelta,
 ): SageAppPackageManifest {
+  const manifest = fullPreviewManifest(preview);
+
   return {
-    ...preview.manifest,
+    ...manifest,
     permissions: {
       capabilities: {
         required: delta.requiredCapabilitiesToGrant,
@@ -92,7 +104,7 @@ function buildRemovedPermissionsApp(
   }
 
   const manifest: SageAppPackageManifest = {
-    ...preview.manifest,
+    ...fullPreviewManifest(preview),
     permissions: {
       capabilities: {
         required: delta.removedGrantedCapabilities,
@@ -141,7 +153,7 @@ export function AppUpdateDialog({
   ] = useState<SageGrantedPermissionsInput>({
     capabilities: [],
     network: {
-      whitelist: []
+      whitelist: [],
     },
   });
 
@@ -157,6 +169,59 @@ export function AppUpdateDialog({
     }
   }, [open]);
 
+  if (open && app && preview?.manifest.kind === 'partial') {
+    const partial = preview.manifest;
+    const header = partial.manifest_header;
+
+    return (
+      <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+        <DialogContent className='max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>Update cannot be installed</DialogTitle>
+          </DialogHeader>
+
+          <div className='space-y-4 text-sm'>
+            <div className='space-y-1 text-muted-foreground'>
+              <div>{header.name}</div>
+              <div>Manifest version {header.manifestVersion ?? 0}</div>
+              <div>
+                Requires Sage {header.sageVersion.min}
+                {header.sageVersion.testedMax
+                  ? ` · tested up to ${header.sageVersion.testedMax}`
+                  : null}
+              </div>
+            </div>
+
+            <div className='rounded-md border border-destructive/30 bg-destructive/10 p-3 text-destructive'>
+              This app update uses manifest features this Sage version cannot
+              understand, so it cannot be installed safely.
+            </div>
+
+            <div className='text-muted-foreground'>
+              Try updating Sage if a newer version is available. If this is
+              already the latest Sage version, the app developer needs to
+              publish a compatible manifest.
+            </div>
+
+            <pre className='max-h-48 overflow-auto rounded-md bg-muted p-3 text-xs whitespace-pre-wrap'>
+              {partial.parse_error}
+            </pre>
+
+            {error ? (
+              <div className='text-sm text-destructive'>{error}</div>
+            ) : null}
+          </div>
+
+          <DialogFooter>
+            <Button variant='outline' onClick={onCancel} disabled={submitting}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
   const delta = useMemo(() => {
     if (!app || !preview) {
       return null;
@@ -164,6 +229,14 @@ export function AppUpdateDialog({
 
     return getAppUpdatePermissionsDelta(app, preview);
   }, [app, preview]);
+
+  const nextManifest = useMemo(() => {
+    if (!preview || preview.manifest.kind !== 'full') {
+      return null;
+    }
+
+    return preview.manifest.manifest;
+  }, [preview]);
 
   const reviewGrantedPermissions = useMemo(() => {
     if (!delta) {
@@ -207,7 +280,7 @@ export function AppUpdateDialog({
     return {
       capabilities: nextCapabilities,
       network: {
-        whitelist: sortNetwork(nextNetworkMap.values())
+        whitelist: sortNetwork(nextNetworkMap.values()),
       },
     } satisfies SageGrantedPermissionsInput;
   }, [delta, selectedOptionalGrantedPermissions]);
@@ -231,6 +304,7 @@ export function AppUpdateDialog({
   if (
     !app ||
     !preview ||
+    !nextManifest ||
     !delta ||
     !reviewGrantedPermissions ||
     !finalGranted ||
@@ -266,7 +340,8 @@ export function AppUpdateDialog({
           <div className='space-y-1 text-sm text-muted-foreground'>
             <div>{app.common.activeSnapshot.manifest.name}</div>
             <div>
-              v{app.common.activeSnapshot.manifest.version} → v{preview.manifest.version}
+              v{app.common.activeSnapshot.manifest.version} → v
+              {nextManifest.version}
             </div>
           </div>
 

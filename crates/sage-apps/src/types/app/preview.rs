@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::types::SageAppUrl;
-use crate::types::manifest::SageAppPackageManifest;
+use crate::types::{
+    SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
+};
 use crate::types::normalizers::normalized_non_empty_string;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -18,7 +19,7 @@ pub struct UserSageAppPendingUpdate {
 pub struct SageAppUrlPreview {
     app_url: SageAppUrl,
     manifest_hash: String,
-    manifest: SageAppPackageManifest,
+    manifest: SageAppPackageManifestPreview,
 }
 
 impl UserSageAppPendingUpdate {
@@ -50,7 +51,7 @@ impl UserSageAppPendingUpdate {
 impl SageAppUrlPreview {
     pub fn new(
         app_url: &SageAppUrl,
-        manifest: SageAppPackageManifest,
+        manifest: SageAppPackageManifestPreview,
         manifest_hash: String,
     ) -> anyhow::Result<Self> {
         Ok(Self {
@@ -60,11 +61,25 @@ impl SageAppUrlPreview {
         })
     }
 
+    pub fn from_full_manifest(
+        app_url: &SageAppUrl,
+        manifest: SageAppPackageManifest,
+        manifest_hash: String,
+    ) -> anyhow::Result<Self> {
+        Self::new(
+            app_url,
+            SageAppPackageManifestPreview::Full { manifest },
+            manifest_hash,
+        )
+    }
+
     pub fn from_pending_update(pending: &UserSageAppPendingUpdate) -> Self {
         Self {
             app_url: pending.app_url().clone(),
             manifest_hash: pending.manifest_hash().to_string(),
-            manifest: pending.manifest().clone(),
+            manifest: SageAppPackageManifestPreview::Full {
+                manifest: pending.manifest().clone(),
+            },
         }
     }
 
@@ -76,7 +91,22 @@ impl SageAppUrlPreview {
         &self.manifest_hash
     }
 
-    pub fn manifest(&self) -> &SageAppPackageManifest {
+    pub fn manifest(&self) -> &SageAppPackageManifestPreview {
         &self.manifest
+    }
+
+    pub fn full_manifest(&self) -> Option<&SageAppPackageManifest> {
+        self.manifest.full_manifest()
+    }
+
+    pub fn require_full_manifest(&self) -> anyhow::Result<&SageAppPackageManifest> {
+        self.full_manifest().ok_or_else(|| {
+            anyhow::anyhow!(
+                "manifest could not be fully parsed: {}",
+                self.manifest
+                    .parse_error()
+                    .unwrap_or("unknown manifest parse error")
+            )
+        })
     }
 }

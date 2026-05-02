@@ -58,6 +58,19 @@ pub struct SageAppPackageManifestParts {
     pub donation: Option<SageAppDonation>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+#[allow(clippy::large_enum_variant)]
+pub enum SageAppPackageManifestPreview {
+    Full {
+        manifest: SageAppPackageManifest,
+    },
+    Partial {
+        manifest_header: SageAppManifestHeaderV0,
+        parse_error: String,
+    },
+}
+
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct SageAppPackageManifest {
@@ -194,6 +207,31 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
     }
 }
 
+impl SageAppPackageManifestPreview {
+    pub fn full_manifest(&self) -> Option<&SageAppPackageManifest> {
+        match self {
+            Self::Full { manifest } => Some(manifest),
+            Self::Partial { .. } => None,
+        }
+    }
+
+    pub fn manifest_header(&self) -> SageAppManifestHeaderV0 {
+        match self {
+            Self::Full { manifest } => manifest.header_v0(),
+            Self::Partial {
+                manifest_header, ..
+            } => manifest_header.clone(),
+        }
+    }
+
+    pub fn parse_error(&self) -> Option<&str> {
+        match self {
+            Self::Full { .. } => None,
+            Self::Partial { parse_error, .. } => Some(parse_error),
+        }
+    }
+}
+
 impl SageAppPackageManifestParts {
     pub fn v0_defaults() -> (SageAppManifestVersion, SageAppManifestSageVersion) {
         (
@@ -253,6 +291,15 @@ impl SageAppPackageManifest {
 
     pub fn donation(&self) -> Option<&SageAppDonation> {
         self.donation.as_ref()
+    }
+
+    pub fn header_v0(&self) -> SageAppManifestHeaderV0 {
+        SageAppManifestHeaderV0 {
+            manifest_version: self.manifest_version,
+            name: self.name.clone(),
+            icon: self.icon.clone(),
+            sage_version: self.sage_version.clone(),
+        }
     }
 }
 

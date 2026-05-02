@@ -46,9 +46,17 @@ function getRequestedNetwork(permissions: SageRequestedPermissions) {
 function getManifestRequestedPermissions(
   manifest: SageAppPackageManifest | SageAppUrlPreview,
 ): SageRequestedPermissions {
-  return 'manifest' in manifest
-    ? manifest.manifest.permissions
-    : manifest.permissions;
+  if ('manifest' in manifest) {
+    if (manifest.manifest.kind !== 'full') {
+      throw new Error(
+        'Cannot calculate permissions delta for partial manifest',
+      );
+    }
+
+    return manifest.manifest.manifest.permissions;
+  }
+
+  return manifest.permissions;
 }
 
 export interface AppUpdatePermissionsDelta {

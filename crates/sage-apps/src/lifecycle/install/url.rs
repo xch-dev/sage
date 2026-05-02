@@ -6,9 +6,7 @@ use uuid::Uuid;
 
 use super::AppInstallSource;
 use crate::lifecycle::registry::read_installed_app_by_id;
-use crate::lifecycle::{
-    download_url_snapshot, fetch_url_manifest, read_retired_app_origins, write_retired_app_origins,
-};
+use crate::lifecycle::{download_url_snapshot, fetch_url_manifest_preview, read_retired_app_origins, write_retired_app_origins};
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageApp,
     UserSageAppSource,
@@ -25,7 +23,7 @@ impl AppInstallSource for SageAppUrl {
     type Prepared = PreparedUrlInstall;
 
     async fn prepare(&self) -> AnyResult<Self::Prepared> {
-        let (manifest, manifest_hash) = fetch_url_manifest(&self.manifest_url()).await?;
+        let (manifest, manifest_hash) = fetch_url_manifest_preview(&self.manifest_url()).await?;
 
         Ok(PreparedUrlInstall {
             preview: SageAppUrlPreview::new(self, manifest, manifest_hash)?,
@@ -33,7 +31,10 @@ impl AppInstallSource for SageAppUrl {
     }
 
     fn manifest<'a>(&self, prepared: &'a Self::Prepared) -> &'a SageAppPackageManifest {
-        prepared.preview.manifest()
+        prepared
+            .preview
+            .require_full_manifest()
+            .expect("URL install requires full manifest")
     }
 
     fn source(&self, prepared: &Self::Prepared) -> UserSageAppSource {
@@ -59,7 +60,7 @@ impl AppInstallSource for SageAppUrl {
         download_url_snapshot(
             app_dir,
             prepared.preview.app_url(),
-            prepared.preview.manifest(),
+            prepared.preview.require_full_manifest()?,
             prepared.preview.manifest_hash(),
         )
         .await

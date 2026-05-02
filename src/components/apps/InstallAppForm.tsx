@@ -80,7 +80,13 @@ export function InstallAppForm({
         preview,
       });
 
-      setGrantedPermissions(buildInitialGrantedPermissions(preview.manifest));
+      if (preview.manifest.kind === 'full') {
+        setGrantedPermissions(
+          buildInitialGrantedPermissions(preview.manifest.manifest),
+        );
+      } else {
+        setGrantedPermissions(buildEmptyGrantedPermissions());
+      }
     } catch (err) {
       setError(formatAppError(err));
     }

@@ -5,9 +5,7 @@ use tauri::{AppHandle, State, command};
 use crate::host::{AppState, Result};
 use crate::lifecycle::install::install_app_from_source;
 use crate::lifecycle::install::zip::ZipInstallSource;
-use crate::lifecycle::{
-    apps_root, fetch_url_manifest, list_installed_apps_internal, read_manifest, unzip_to_dir,
-};
+use crate::lifecycle::{apps_root, fetch_url_manifest_preview, list_installed_apps_internal, read_manifest, unzip_to_dir};
 use crate::types::{ListedSageAppView, SageAppPackageManifest, SageAppUrl, SageAppUrlPreview, SageGrantedPermissionsInput, UserSageAppView};
 use uuid::Uuid;
 
@@ -39,7 +37,7 @@ pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
     let app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
 
-    let (manifest, manifest_hash) = fetch_url_manifest(&app_url.manifest_url())
+    let (manifest, manifest_hash) = fetch_url_manifest_preview(&app_url.manifest_url())
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 

@@ -18,7 +18,7 @@ pub(crate) use app::{
 };
 pub(crate) use manifest::{
     SageAppManifestFile, SageAppManifestHeaderV0,
-    SageAppPackageManifest,
+    SageAppPackageManifest, SageAppPackageManifestPreview,
     parse_manifest_header_v0_from_value,
 };
 pub(crate) use network::SageNetworkWhitelistEntry;

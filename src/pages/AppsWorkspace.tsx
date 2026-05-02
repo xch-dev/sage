@@ -186,6 +186,12 @@ export function AppsWorkspace() {
       return;
     }
 
+    if (activeUpdatePreview.manifest.kind === 'partial') {
+      setUpdateDialogError(null);
+      setUpdateDialogOpen(true);
+      return;
+    }
+
     const delta = getAppUpdatePermissionsDelta(activeApp, activeUpdatePreview);
 
     if (!delta.requiresUserReview) {
@@ -282,8 +288,9 @@ export function AppsWorkspace() {
           <AlertTitle>New version available</AlertTitle>
           <AlertDescription className='flex items-center justify-between gap-4'>
             <span>
-              Version {activeUpdatePreview.manifest.version} is available for{' '}
-              {activeApp.common.activeSnapshot.manifest.name}.
+              {activeUpdatePreview.manifest.kind === 'full'
+                ? `Version ${activeUpdatePreview.manifest.manifest.version} is available for ${activeApp.common.activeSnapshot.manifest.name}.`
+                : `An update is available for ${activeApp.common.activeSnapshot.manifest.name}, but it cannot be installed by this Sage version.`}
             </span>
 
             <Button

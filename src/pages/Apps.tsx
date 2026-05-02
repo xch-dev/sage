@@ -114,6 +114,24 @@ function isStorageTaintPermissionError(message: string): boolean {
   );
 }
 
+function isFullUpdatePreview(preview: SageAppUrlPreview | null): boolean {
+  return preview?.manifest.kind === 'full';
+}
+
+function isPartialUpdatePreview(preview: SageAppUrlPreview | null): boolean {
+  return preview?.manifest.kind === 'partial';
+}
+
+function requireFullPreviewManifest(
+  preview: SageAppUrlPreview,
+): SageAppPackageManifest {
+  if (preview.manifest.kind !== 'full') {
+    throw new Error('Expected full update manifest');
+  }
+
+  return preview.manifest.manifest;
+}
+
 export function Apps() {
   const navigate = useNavigate();
   const [installOpen, setInstallOpen] = useState(false);
@@ -261,6 +279,11 @@ export function Apps() {
 
   const handleReviewOrApplyUpdate = useCallback(
     async (app: UserInstalledEntry, preview: SageAppUrlPreview) => {
+      if (preview.manifest.kind === 'partial') {
+        openUpdateDialog(app, preview);
+        return;
+      }
+
       const delta = getAppUpdatePermissionsDelta(app, preview);
 
       if (!delta.requiresUserReview) {
@@ -788,6 +811,7 @@ export function Apps() {
           y={contextMenu?.y ?? 0}
           busy={contextMenuBusy}
           hasUpdate={!!contextMenuPreview}
+          updateIsInstallable={isFullUpdatePreview(contextMenuPreview)}
           isRunning={contextMenuAppIsRunning}
           updateCheckState={contextMenuCheckState}
           clearDataBusy={contextMenuClearDataBusy}
