@@ -23,7 +23,6 @@ pub(crate) async fn write_pending_approval(
     pending.insert(
         approval_id.to_string(),
         PendingBridgeApproval {
-            app_id: sage_app.id().to_string(),
             app_webview_label: sage_app.webview_label(),
             request: request.clone(),
             registry_kind

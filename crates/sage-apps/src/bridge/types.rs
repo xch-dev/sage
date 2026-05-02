@@ -1,19 +1,12 @@
 use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::types::{SageAppCapabilityDefinitionView, SageAppView, SageNetworkWhitelistEntry};
+use crate::types::{SageAppCapabilityDefinitionView, SageAppView, SageNetworkWhitelistEntry, SharedSageApp};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
 use tauri_specta::Event;
 use crate::bridge::registry::BridgeRegistryKind;
-
-#[derive(Debug, Clone)]
-pub struct PendingBridgeApproval {
-    pub app_id: String,
-    pub app_webview_label: String,
-    pub request: RustBridgeRequest,
-    pub registry_kind: BridgeRegistryKind,
-}
+use crate::runtime::SharedImpostorRuntime;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -25,10 +18,17 @@ pub struct RustBridgeRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct RustBridgeErrorPayload {
-    pub code: String,
-    pub message: String,
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum RustBridgeInvokeResult {
+    Immediate { response: RustBridgeResponse },
+    Pending {},
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(untagged)]
+pub enum RustBridgeResponse {
+    Success(RustBridgeSuccessResponse),
+    Error(RustBridgeErrorResponse),
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -50,10 +50,18 @@ pub struct RustBridgeErrorResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
-#[serde(untagged)]
-pub enum RustBridgeResponse {
-    Success(RustBridgeSuccessResponse),
-    Error(RustBridgeErrorResponse),
+#[serde(rename_all = "camelCase")]
+pub struct RustBridgeErrorPayload {
+    pub code: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ResolveBridgeApprovalArgs {
+    pub approval_id: String,
+    pub approved: bool,
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -66,6 +74,7 @@ pub struct RustBridgeApprovalRequest {
     #[serde(flatten)]
     pub body: RustBridgeApprovalBody,
 }
+
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -92,23 +101,20 @@ pub struct RustBridgeApprovalEvent {
     pub approval: RustBridgeApprovalRequest,
 }
 
-#[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-pub enum RustBridgeInvokeResult {
-    Immediate { response: RustBridgeResponse },
-    Pending {},
+pub(crate) struct BridgeOrigin {
+    pub app: SharedSageApp,
+    pub impostor_runtime: Option<SharedImpostorRuntime>,
 }
 
-#[derive(Debug, Clone, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub struct ResolveBridgeApprovalArgs {
-    pub approval_id: String,
-    pub approved: bool,
-    pub reason: Option<String>,
+#[derive(Debug, Clone)]
+pub(crate) struct PendingBridgeApproval {
+    pub app_webview_label: String,
+    pub request: RustBridgeRequest,
+    pub registry_kind: BridgeRegistryKind,
 }
 
 impl RustBridgeResponse {
-    pub fn success(id: &str, result: &Value) -> RustBridgeResponse {
+    pub(crate) fn success(id: &str, result: &Value) -> RustBridgeResponse {
         RustBridgeResponse::Success(RustBridgeSuccessResponse {
             bridge_version: "v1".into(),
             id: id.into(),
@@ -116,7 +122,7 @@ impl RustBridgeResponse {
             result_json: serde_json::to_string(result).unwrap_or_else(|_| "null".to_string()),
         })
     }
-    pub fn error(
+    pub(crate) fn error(
         id: &str,
         code: &str,
         message: impl Into<String>,

@@ -5,12 +5,13 @@ pub mod methods;
 pub mod registry;
 pub mod state;
 pub mod ts_exports;
-pub mod types;
-
-pub(crate) use bridge_request::BridgeOrigin;
+mod types;
 
 pub use types::{
-    ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest,
-    RustBridgeErrorPayload, RustBridgeErrorResponse, RustBridgeInvokeResult, RustBridgeRequest,
-    RustBridgeResponse, RustBridgeSuccessResponse,
+    RustBridgeRequest, RustBridgeInvokeResult, RustBridgeResponse,
+    RustBridgeSuccessResponse, RustBridgeErrorResponse, RustBridgeErrorPayload,
+    RustBridgeApprovalRequest, RustBridgeApprovalBody,
+    ResolveBridgeApprovalArgs, RustBridgeApprovalEvent
 };
+
+pub(crate) use types::{BridgeOrigin};

@@ -4,7 +4,7 @@ use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
 use crate::bridge::state::{get_pending_approval, remove_pending_approval, write_pending_approval};
-use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
+use crate::bridge::{BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
 use crate::runtime::webview_locator::{get_sage_webview};
@@ -14,11 +14,6 @@ use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
 use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::security::assert_bridge_origin;
-
-pub(crate) struct BridgeOrigin {
-    pub app: SharedSageApp,
-    pub impostor_runtime: Option<SharedImpostorRuntime>,
-}
 
 pub(super) async fn process(
     app_handle: AppHandle,
