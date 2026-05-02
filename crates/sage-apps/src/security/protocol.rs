@@ -10,24 +10,13 @@ pub fn handle_user_app_protocol_request(
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
     let result = (|| {
-        let webview_label = ctx.webview_label();
-
-        let app_id = app_id_from_webview_label(webview_label)
-            .ok_or_else(|| anyhow!("invalid webview label"))?;
-
-        let runtime =
-            resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
-                .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))?;
+        let runtime = get_protocol_request_runtime(ctx)?;
 
         if !runtime.is_user_app() {
             anyhow::bail!("not a user runtime");
         }
 
         let identity_app = runtime.identity_app();
-
-        if request.uri().host() != Some(&identity_app.origin_id()) {
-            anyhow::bail!("host mismatch");
-        }
 
         let is_sandbox_test = identity_app.with(|app| app.common().is_sandbox_test());
 
@@ -46,23 +35,10 @@ pub fn handle_system_app_protocol_request(
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
     let result = (|| {
-        let webview_label = ctx.webview_label();
-
-        let app_id = app_id_from_webview_label(webview_label)
-            .ok_or_else(|| anyhow!("invalid webview label"))?;
-
-        let runtime =
-            resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
-                .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))?;
+        let runtime = get_protocol_request_runtime(ctx)?;
 
         if !runtime.is_system_app() {
             anyhow::bail!("not a system runtime");
-        }
-
-        let identity_app = runtime.identity_app();
-
-        if request.uri().host() != Some(&identity_app.origin_id()) {
-            anyhow::bail!("host mismatch");
         }
 
         handle_app_protocol_request(&runtime, request)
@@ -72,11 +48,26 @@ pub fn handle_system_app_protocol_request(
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", &err))
 }
 
+fn get_protocol_request_runtime(ctx: &UriSchemeContext<'_, Wry>) -> AnyResult<PossiblyImpostorRuntime> {
+    let webview_label = ctx.webview_label();
+
+    let app_id = app_id_from_webview_label(webview_label)
+        .ok_or_else(|| anyhow!("invalid webview label"))?;
+
+    resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
+            .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))
+}
+
 fn handle_app_protocol_request(
     runtime: &PossiblyImpostorRuntime,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
     let identity_app = runtime.identity_app();
+
+    if request.uri().host() != Some(&identity_app.origin_id()) {
+        anyhow::bail!("host mismatch");
+    }
+
     let content_app = runtime.content_app();
     let request_path = request.uri().path();
 
