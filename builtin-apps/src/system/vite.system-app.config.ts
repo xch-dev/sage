@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 export function defineSageSystemAppConfig(importMetaUrl: string) {
   const dir = dirname(fileURLToPath(importMetaUrl));
   const appName = basename(dir);
-  const workspaceRoot = resolve(dir, '../../../../../..');
+  const workspaceRoot = resolve(dir, '../../../../..');
 
   return defineConfig({
     root: dir,
@@ -15,12 +15,11 @@ export function defineSageSystemAppConfig(importMetaUrl: string) {
     build: {
       outDir: resolve(
         workspaceRoot,
-        'target',
-        'sage-builtin-apps',
-        'work',
-        'system-apps',
-        appName,
+        'builtin-apps',
+        'build',
         'dist',
+        'system',
+        appName,
       ),
       emptyOutDir: true,
       rollupOptions: {

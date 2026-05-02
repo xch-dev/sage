@@ -1,3 +1,3 @@
 packages:
   - "packages/*"
-  - "crates/sage-apps/builtin-apps/system-apps-src"
+  - "builtin-apps/src/system"

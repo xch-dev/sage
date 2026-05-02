@@ -28,4 +28,4 @@ target
 .env
 /test.sqlite*
 
-crates/sage-apps/builtin-apps/dist
+/builtin-apps/build/

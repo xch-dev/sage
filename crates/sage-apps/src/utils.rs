@@ -40,14 +40,18 @@ pub fn slugify_app_name(name: &str) -> String {
 }
 
 pub fn builtin_apps_root() -> PathBuf {
+    if let Some(path) = option_env!("SAGE_BUILTIN_APPS_DIST") {
+        return PathBuf::from(path);
+    }
+
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
 
     manifest_dir
         .parent()
         .and_then(|path| path.parent())
         .expect("crates/sage-apps should have workspace root above it")
-        .join("target")
-        .join("sage-builtin-apps")
+        .join("builtin-apps")
+        .join("build")
         .join("dist")
 }
 

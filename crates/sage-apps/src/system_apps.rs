@@ -95,7 +95,7 @@ pub fn builtin_system_app_spec(app_id: &str) -> Option<&'static BuiltinSystemApp
 }
 
 pub fn builtin_system_apps_root() -> PathBuf {
-    builtin_apps_root().join("system-apps")
+    builtin_apps_root().join("system")
 }
 
 pub fn builtin_system_app_dir(app_id: &str) -> AnyResult<Option<PathBuf>> {

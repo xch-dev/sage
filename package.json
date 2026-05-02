@@ -6,11 +6,14 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "vite",
-    "build:system-apps": "pnpm --dir crates/sage-apps/builtin-apps/system-apps-src build",
+    "dev:system-apps": "node scripts/dev-system-apps-watch.mjs",
     "build:packages": "pnpm --filter @sage-app/sdk build && pnpm --filter @sage-system-app/sdk build && pnpm --filter @sage-app/ui build",
-    "build:sdk": "pnpm build:packages",
-    "build": "pnpm build:packages && pnpm build:system-apps && tsc -b && vite build",
-    "tauri:dev": "pnpm build && tauri dev",
+    "build:sdk": "pnpm run build:packages",
+    "build:system-apps": "pnpm --dir builtin-apps/src/system build",
+    "build:builtin-static": "node scripts/build-builtin-static.mjs",
+    "build:builtin-apps": "pnpm run build:packages && pnpm run build:system-apps && pnpm run build:builtin-static",
+    "build": "pnpm run build:builtin-apps && tsc -b && vite build",
+    "tauri:dev": "concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
     "tauri:build": "pnpm build && tauri build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -112,6 +115,9 @@
     "ts-prune": "^0.10.3",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
-    "vite": "^7.3.1"
+    "vite": "^7.3.1",
+    "chokidar": "^3.6.0",
+    "ws": "^8.18.0",
+    "concurrently": "^9.0.1"
   }
 }
