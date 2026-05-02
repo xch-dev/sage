@@ -1,5 +1,35 @@
 # System bridge methods
 
+## `appPermissions.applyPermissions`
+
+| Field | Value |
+|---|---|
+| Capability | `app_permissions.apply` |
+
+## `appPermissions.getReviewContext`
+
+| Field | Value |
+|---|---|
+| Capability | `app_permissions.read` |
+
+## `appUpdate.applyUpdate`
+
+| Field | Value |
+|---|---|
+| Capability | `app_update.apply` |
+
+## `appUpdate.getReviewContext`
+
+| Field | Value |
+|---|---|
+| Capability | `app_update.read` |
+
+## `capabilities.listUserDefinitions`
+
+| Field | Value |
+|---|---|
+| Capability | `capability_definitions.read` |
+
 ## `runtimeManager.focusRuntime`
 
 | Field | Value |

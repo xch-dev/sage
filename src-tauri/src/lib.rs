@@ -166,6 +166,7 @@ pub fn run() {
             apps::lifecycle::apps_clear_runtime_browsing_data,
             apps::sandbox::commands::get_builtin_test_app,
             apps::system_apps::get_builtin_system_app,
+            apps::runtime::commands::apps_start_system_app,
             apps::runtime::commands::apps_create_inline_runtime,
             apps::runtime::commands::apps_list_runtimes,
             apps::runtime::commands::apps_focus_runtime,

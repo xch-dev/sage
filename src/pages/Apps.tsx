@@ -37,8 +37,10 @@ import { useNavigate } from 'react-router-dom';
 import { PermissionsEditor } from '@/components/apps/permissions/PermissionsEditor.tsx';
 import { AppTile } from '@/components/apps/AppTile';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
-import { AppUpdateDialog } from '@/components/apps/AppUpdateDialog.tsx';
-import { getAppUpdatePermissionsDelta } from '@/lib/apps/updatePermissionsDelta.ts';
+import {
+  openAppPermissionsReview,
+  openAppUpdateReview,
+} from '@/lib/apps/openAppUpdate.ts';
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
@@ -118,20 +120,6 @@ function isFullUpdatePreview(preview: SageAppUrlPreview | null): boolean {
   return preview?.manifest.kind === 'full';
 }
 
-function isPartialUpdatePreview(preview: SageAppUrlPreview | null): boolean {
-  return preview?.manifest.kind === 'partial';
-}
-
-function requireFullPreviewManifest(
-  preview: SageAppUrlPreview,
-): SageAppPackageManifest {
-  if (preview.manifest.kind !== 'full') {
-    throw new Error('Expected full update manifest');
-  }
-
-  return preview.manifest.manifest;
-}
-
 export function Apps() {
   const navigate = useNavigate();
   const [installOpen, setInstallOpen] = useState(false);
@@ -153,14 +141,6 @@ export function Apps() {
   const [permissionsDialogError, setPermissionsDialogError] = useState<
     string | null
   >(null);
-  const [updateDialogApp, setUpdateDialogApp] =
-    useState<UserInstalledEntry | null>(null);
-  const [updateDialogPreview, setUpdateDialogPreview] =
-    useState<SageAppUrlPreview | null>(null);
-  const [updateDialogBusy, setUpdateDialogBusy] = useState(false);
-  const [updateDialogError, setUpdateDialogError] = useState<string | null>(
-    null,
-  );
   const [pendingPermissionsRetry, setPendingPermissionsRetry] =
     useState<PendingPermissionsRetry>(null);
   const [editingGrantedPermissions, setEditingGrantedPermissions] =
@@ -183,7 +163,6 @@ export function Apps() {
     installUrlApp,
     uninstallApp,
     checkForUpdate,
-    performAppUpdate,
     clearAppStorage,
     updateAvailability,
     busyAppIds,
@@ -235,67 +214,6 @@ export function Apps() {
   const contextMenuClearDataError = contextMenu
     ? (clearDataErrorByAppId[contextMenu.app.common.identity.id] ?? null)
     : null;
-
-  function openUpdateDialog(
-    app: UserInstalledEntry,
-    preview: SageAppUrlPreview,
-  ) {
-    setUpdateDialogApp(app);
-    setUpdateDialogPreview(preview);
-    setUpdateDialogBusy(false);
-    setUpdateDialogError(null);
-  }
-
-  function closeUpdateDialog() {
-    setUpdateDialogApp(null);
-    setUpdateDialogPreview(null);
-    setUpdateDialogBusy(false);
-    setUpdateDialogError(null);
-  }
-
-  const handleConfirmUpdate = useCallback(
-    async (
-      app: UserInstalledEntry,
-      nextGrantedPermissions: SageGrantedPermissionsView,
-    ) => {
-      try {
-        setUpdateDialogBusy(true);
-        setUpdateDialogError(null);
-
-        await performAppUpdate(app.common.identity.id, nextGrantedPermissions, {
-          restartIfRunning: true,
-          visibleAfterRestart: runningAppIds.has(app.common.identity.id),
-        });
-
-        closeUpdateDialog();
-      } catch (err) {
-        setUpdateDialogError(formatAppError(err));
-      } finally {
-        setUpdateDialogBusy(false);
-      }
-    },
-    [performAppUpdate, runningAppIds],
-  );
-
-  const handleReviewOrApplyUpdate = useCallback(
-    async (app: UserInstalledEntry, preview: SageAppUrlPreview) => {
-      if (preview.manifest.kind === 'partial') {
-        openUpdateDialog(app, preview);
-        return;
-      }
-
-      const delta = getAppUpdatePermissionsDelta(app, preview);
-
-      if (!delta.requiresUserReview) {
-        closeUpdateDialog();
-        await handleConfirmUpdate(app, delta.nextGrantedPermissions);
-        return;
-      }
-
-      openUpdateDialog(app, preview);
-    },
-    [handleConfirmUpdate],
-  );
 
   const closeContextMenu = useCallback(() => {
     setContextMenu((prevContextMenu) => {
@@ -349,18 +267,6 @@ export function Apps() {
         [appId]: `Update check failed: ${message}`,
       }));
     }
-  }
-
-  function openPermissionsDialog(app: InstalledEntry) {
-    if (!isUserInstalledEntry(app)) {
-      return;
-    }
-
-    setPermissionsDialogApp(app);
-    setEditingGrantedPermissions(app.common.grantedPermissions);
-    setPermissionsDialogBusy(false);
-    setPermissionsDialogError(null);
-    setPendingPermissionsRetry(null);
   }
 
   function closePermissionsDialog() {
@@ -845,18 +751,20 @@ export function Apps() {
               return;
             }
 
-            const app = contextMenu.app;
-            const preview = contextMenuPreview;
+            const appId = contextMenu.app.common.identity.id;
 
             closeContextMenu();
-            void handleReviewOrApplyUpdate(app, preview);
+            void openAppUpdateReview(appId);
           }}
           onChangePermissions={() => {
-            if (!contextMenu) {
+            if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
               return;
             }
 
-            openPermissionsDialog(contextMenu.app);
+            const appId = contextMenu.app.common.identity.id;
+
+            closeContextMenu();
+            void openAppPermissionsReview(appId);
           }}
           onClearData={() => {
             if (!contextMenu) {
@@ -994,26 +902,6 @@ export function Apps() {
           ) : null}
         </DialogContent>
       </Dialog>
-
-      <AppUpdateDialog
-        open={!!updateDialogApp && !!updateDialogPreview}
-        app={updateDialogApp}
-        preview={updateDialogPreview}
-        submitting={updateDialogBusy}
-        error={updateDialogError}
-        onCancel={() => {
-          if (!updateDialogBusy) {
-            closeUpdateDialog();
-          }
-        }}
-        onConfirm={(nextGranted) => {
-          if (!updateDialogApp) {
-            return;
-          }
-
-          void handleConfirmUpdate(updateDialogApp, nextGranted);
-        }}
-      />
     </>
   );
 }

@@ -1,8 +1,5 @@
 use super::methods::BridgeMethod;
-use super::methods::system::{
-    RuntimeManagerFocusRuntime, RuntimeManagerHideRuntime, RuntimeManagerKillRuntime,
-    RuntimeManagerListRuntimes,
-};
+use super::methods::system::{AppPermissionsApplyPermissions, AppPermissionsGetReviewContext, AppUpdateApplyUpdate, AppUpdateGetReviewContext, CapabilitiesListUserDefinitions, RuntimeManagerFocusRuntime, RuntimeManagerHideRuntime, RuntimeManagerKillRuntime, RuntimeManagerListRuntimes};
 use super::methods::user::{
     AppGetCapabilities, AppGetInfo, AppLifecycleReadyToStop, AppLifecycleSetBeforeStopListener,
     AppRequestCapabilityGrant, AppRequestNetworkWhitelistGrant, BridgePing, BridgeSend,
@@ -95,6 +92,11 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, RuntimeManagerFocusRuntime);
     insert_method(&mut methods, RuntimeManagerHideRuntime);
     insert_method(&mut methods, RuntimeManagerKillRuntime);
+    insert_method(&mut methods, AppUpdateGetReviewContext);
+    insert_method(&mut methods, AppUpdateApplyUpdate);
+    insert_method(&mut methods, CapabilitiesListUserDefinitions);
+    insert_method(&mut methods, AppPermissionsGetReviewContext);
+    insert_method(&mut methods, AppPermissionsApplyPermissions);
 
     methods
 }

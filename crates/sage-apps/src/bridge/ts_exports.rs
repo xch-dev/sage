@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::{AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -26,6 +26,7 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
+use crate::types::SageAppCapabilityDefinitionView;
 
 pub fn export_system_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
@@ -34,6 +35,15 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     //types.register::<SageAppRuntimeRecord>();
     types.register::<SystemKillRuntimeResult>();
     types.register::<RuntimeManagerRuntimesChangedEvent>();
+    types.register::<AppUpdateGetReviewContextParams>();
+    types.register::<AppUpdateReviewContext>();
+    types.register::<AppUpdateApplyUpdateParams>();
+    types.register::<AppUpdateApplyUpdateResult>();
+    types.register::<SageAppCapabilityDefinitionView>();
+    types.register::<AppPermissionsGetReviewContextParams>();
+    types.register::<AppPermissionsReviewContext>();
+    types.register::<AppPermissionsApplyPermissionsParams>();
+    types.register::<AppPermissionsApplyPermissionsResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

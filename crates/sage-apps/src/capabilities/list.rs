@@ -98,6 +98,14 @@ define_bridge_capabilities! {
         RuntimeManagerHideRuntime => "runtime_manager.hide_runtime",
         RuntimeManagerKillRuntime => "runtime_manager.kill_runtime",
         RuntimeManagerListenRuntimesChanged => "runtime_manager.listen_runtimes_changed",
+
+        CapabilityDefinitionsRead => "capability_definitions.read",
+
+        AppPermissionsRead => "app_permissions.read",
+        AppPermissionsApply => "app_permissions.apply",
+
+        AppUpdateRead => "app_update.read",
+        AppUpdateApply => "app_update.apply",
     }
 }
 

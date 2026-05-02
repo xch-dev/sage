@@ -1,12 +1,5 @@
-import type {
-  RuntimeTargetParams,
-  SageAppRuntimeRecordView,
-  SageSystemBridgeVersion,
-  SageSystemClient,
-  SageSystemRuntimeManagerClient,
-  SystemKillRuntimeResult,
-  RuntimeManagerRuntimesChangedEvent,
-} from './types';
+import type * as Generated from './generated-types';
+import type { SageSystemBridgeVersion, SageSystemClient } from './types';
 import {
   createBridgeRuntimeCore,
   getSageClient,
@@ -31,9 +24,7 @@ type SageWebviewHandle = {
 
 type SageSystemWindow = Window &
   typeof globalThis & {
-    __SAGE_SYSTEM_RUNTIME__?: SageSystemRuntimeManagerClient;
     __SAGE_SYSTEM__?: SageSystemClient;
-    __SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__?: boolean;
   };
 
 type SystemRuntimeEventEnvelope<T = unknown> = {
@@ -129,7 +120,7 @@ function bridgeResponseResult(
 export function initSageSystemRuntimeBridge(): boolean {
   const w = getSageWindow();
 
-  if (w.__SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__) {
+  if (w.__SAGE_SYSTEM__) {
     return true;
   }
 
@@ -145,8 +136,6 @@ export function initSageSystemRuntimeBridge(): boolean {
 
   const webview = core.webview as SageWebviewHandle;
   const callHost = core.callHost;
-
-  w.__SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__ = true;
 
   webview
     .listen<RustLikeSystemBridgeResponse>(
@@ -215,66 +204,118 @@ export function initSageSystemRuntimeBridge(): boolean {
       console.error('Failed to subscribe to system bridge event:', error);
     });
 
-  w.__SAGE_SYSTEM_RUNTIME__ = {
-    async listRuntimes() {
-      return await callHost<SageAppRuntimeRecordView[]>(
-        'runtimeManager.listRuntimes',
-      );
-    },
+  void getSageClient()
+    .then((userClient) => {
+      w.__SAGE_SYSTEM__ = {
+        ...userClient,
 
-    async focusRuntime(input: RuntimeTargetParams) {
-      return await callHost<SageAppRuntimeRecordView>(
-        'runtimeManager.focusRuntime',
-        input,
-      );
-    },
+        runtimeManager: {
+          async listRuntimes() {
+            return await callHost<Generated.SageAppRuntimeRecordView[]>(
+              'runtimeManager.listRuntimes',
+            );
+          },
 
-    async hideRuntime(input: RuntimeTargetParams) {
-      return await callHost<SageAppRuntimeRecordView>(
-        'runtimeManager.hideRuntime',
-        input,
-      );
-    },
+          async focusRuntime(input: Generated.RuntimeTargetParams) {
+            return await callHost<Generated.SageAppRuntimeRecordView>(
+              'runtimeManager.focusRuntime',
+              input,
+            );
+          },
 
-    async killRuntime(input: RuntimeTargetParams) {
-      return await callHost<SystemKillRuntimeResult>(
-        'runtimeManager.killRuntime',
-        input,
-      );
-    },
+          async hideRuntime(input: Generated.RuntimeTargetParams) {
+            return await callHost<Generated.SageAppRuntimeRecordView>(
+              'runtimeManager.hideRuntime',
+              input,
+            );
+          },
 
-    onRuntimesChanged(handler) {
-      return onSystemRuntimeEventType<RuntimeManagerRuntimesChangedEvent>(
-        'runtimeManager.runtimesChanged',
-        handler,
-      );
-    },
-  };
+          async killRuntime(input: Generated.RuntimeTargetParams) {
+            return await callHost<Generated.SystemKillRuntimeResult>(
+              'runtimeManager.killRuntime',
+              input,
+            );
+          },
+
+          onRuntimesChanged(handler) {
+            return onSystemRuntimeEventType<Generated.RuntimeManagerRuntimesChangedEvent>(
+              'runtimeManager.runtimesChanged',
+              handler,
+            );
+          },
+        },
+
+        appUpdate: {
+          async getReviewContext(
+            input: Generated.AppUpdateGetReviewContextParams,
+          ) {
+            return await callHost<Generated.AppUpdateReviewContext>(
+              'appUpdate.getReviewContext',
+              input,
+            );
+          },
+
+          async applyUpdate(input: Generated.AppUpdateApplyUpdateParams) {
+            return await callHost<Generated.AppUpdateApplyUpdateResult>(
+              'appUpdate.applyUpdate',
+              input,
+            );
+          },
+        },
+        capabilities: {
+          async listUserDefinitions() {
+            return await callHost<Generated.SageAppCapabilityDefinitionView[]>(
+              'capabilities.listUserDefinitions',
+            );
+          },
+        },
+
+        appPermissions: {
+          async getReviewContext(
+            input: Generated.AppPermissionsGetReviewContextParams,
+          ) {
+            return await callHost<Generated.AppPermissionsReviewContext>(
+              'appPermissions.getReviewContext',
+              input,
+            );
+          },
+
+          async applyPermissions(
+            input: Generated.AppPermissionsApplyPermissionsParams,
+          ) {
+            return await callHost<Generated.AppPermissionsApplyPermissionsResult>(
+              'appPermissions.applyPermissions',
+              input,
+            );
+          },
+        },
+      };
+    })
+    .catch((error: unknown) => {
+      console.error('Failed to initialize Sage system client:', error);
+    });
 
   return true;
 }
 
 export async function getSageSystemClient(): Promise<SageSystemClient> {
-  if (!initSageSystemRuntimeBridge()) {
-    throw new Error('Sage system bridge failed to initialize');
-  }
+  initSageSystemRuntimeBridge();
 
   const w = getSageWindow();
-
-  if (!w.__SAGE_SYSTEM_RUNTIME__) {
-    throw new Error('Sage system runtime client is not initialized');
-  }
 
   if (w.__SAGE_SYSTEM__) {
     return w.__SAGE_SYSTEM__;
   }
 
-  const userClient = await getSageClient();
+  const started = Date.now();
 
-  w.__SAGE_SYSTEM__ = {
-    ...userClient,
-    runtimeManager: w.__SAGE_SYSTEM_RUNTIME__,
-  };
+  while (!w.__SAGE_SYSTEM__) {
+    if (Date.now() - started > 5000) {
+      throw new Error('Sage system bridge failed to initialize');
+    }
+
+    await new Promise((resolve) => window.setTimeout(resolve, 10));
+  }
 
   return w.__SAGE_SYSTEM__;
 }

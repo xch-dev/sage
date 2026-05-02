@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::types::SageApp;
 use crate::types::app::common::SageAppCommon;
 use crate::types::permissions::SageGrantedSystemPermissions;
+use crate::types::SageApp;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub enum SystemAppPresentation {
     Taskbar,
-    Modal,
+    AppModal,
 }
 
 #[derive(Debug)]

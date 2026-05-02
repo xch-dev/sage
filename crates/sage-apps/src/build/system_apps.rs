@@ -2,27 +2,46 @@ use std::{fs, path::Path};
 
 use super::finalize::finalize_prebuilt_app;
 
-#[derive(Clone, Copy)]
-struct SystemApp {
-    app_dir_name: &'static str,
-    out_dir_name: &'static str,
-}
-
-const SYSTEM_BUILD_PLAN: &[SystemApp] = &[SystemApp {
-    app_dir_name: "task-manager",
-    out_dir_name: "task-manager",
-}];
-
 pub fn build_system_apps(
     system_apps_src_dir: &Path,
     system_out_dir: &Path,
     system_sdk_dist: &Path,
 ) -> Result<(), String> {
-    for system_app in SYSTEM_BUILD_PLAN {
-        let app_src_dir = system_apps_src_dir.join(system_app.app_dir_name);
+    let mut app_dirs = fs::read_dir(system_apps_src_dir)
+        .map_err(|err| {
+            format!(
+                "failed to read system apps source directory {}: {err}",
+                system_apps_src_dir.display()
+            )
+        })?
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|err| format!("failed to read system app directory entry: {err}"))?;
+
+    app_dirs.sort();
+
+    for app_src_dir in app_dirs {
+        if !app_src_dir.is_dir() {
+            continue;
+        }
+
+        let app_dir_name = app_src_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| {
+                format!(
+                    "invalid system app directory name at {}",
+                    app_src_dir.display()
+                )
+            })?;
+
         let app_dist_dir = app_src_dir.join("dist");
         let manifest_src = app_src_dir.join("sage-manifest.json");
-        let out_dir = system_out_dir.join(system_app.out_dir_name);
+        let out_dir = system_out_dir.join(app_dir_name);
+
+        if !manifest_src.is_file() {
+            continue;
+        }
 
         if !app_dist_dir.is_dir() {
             return Err(format!(

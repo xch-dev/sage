@@ -198,35 +198,61 @@ pub(crate) fn get_system_capability_definition(
             capability,
             "List app runtimes",
             "Allows the system app to inspect running Sage app runtimes.",
-            CapabilityFlags::new(false, false, true, false, true),
+            system_app_flags(),
         ),
-
         SystemBridgeCapability::RuntimeManagerFocusRuntime => CapabilityDefinition::new(
             capability,
             "Focus app runtimes",
             "Allows the system app to focus running Sage app runtimes.",
-            CapabilityFlags::new(false, false, true, false, true),
+            system_app_flags(),
         ),
-
         SystemBridgeCapability::RuntimeManagerHideRuntime => CapabilityDefinition::new(
             capability,
             "Hide app runtimes",
             "Allows the system app to hide running Sage app runtimes.",
-            CapabilityFlags::new(false, false, true, false, true),
+            system_app_flags(),
         ),
-
         SystemBridgeCapability::RuntimeManagerKillRuntime => CapabilityDefinition::new(
             capability,
             "Kill app runtimes",
             "Allows the system app to stop running Sage app runtimes.",
-            CapabilityFlags::new(false, false, true, false, true),
+            system_app_flags(),
         ),
-
         SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => CapabilityDefinition::new(
             capability,
             "Observe runtime changes",
             "Allows the system app to receive events when Sage app runtimes change.",
-            CapabilityFlags::new(false, false, true, false, true),
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppUpdateRead => CapabilityDefinition::new(
+            capability,
+            "Read app update review context",
+            "Allows the system app to read update information for installed Sage apps.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppUpdateApply => CapabilityDefinition::new(
+            capability,
+            "Apply app updates",
+            "Allows the system app to download and apply approved Sage app updates.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::CapabilityDefinitionsRead => CapabilityDefinition::new(
+            capability,
+            "Read capability definitions",
+            "Allows the system app to read Sage capability definitions.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppPermissionsRead => CapabilityDefinition::new(
+            capability,
+            "Read app permissions",
+            "Allows the system app to read app permissions for review.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppPermissionsApply => CapabilityDefinition::new(
+            capability,
+            "Apply app permissions",
+            "Allows the system app to apply reviewed app permission changes.",
+            system_app_flags(),
         ),
     }
 }
@@ -237,4 +263,8 @@ pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDe
         .copied()
         .map(|capability| (capability, get_user_capability_definition(capability)))
         .collect()
+}
+
+fn system_app_flags() -> CapabilityFlags {
+    CapabilityFlags::new(false, false, true, false, true)
 }

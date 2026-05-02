@@ -14,6 +14,7 @@ use crate::types::{
 use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
+pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinSystemAppSpec {
@@ -23,18 +24,32 @@ pub struct BuiltinSystemAppSpec {
     pub system_capabilities: &'static [SystemBridgeCapability],
 }
 
-const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[BuiltinSystemAppSpec {
-    app_id: SYSTEM_APP_TASK_MANAGER_ID,
-    dir_name: "task-manager",
-    presentation: SystemAppPresentation::Taskbar,
-    system_capabilities: &[
-        SystemBridgeCapability::RuntimeManagerListRuntimes,
-        SystemBridgeCapability::RuntimeManagerFocusRuntime,
-        SystemBridgeCapability::RuntimeManagerHideRuntime,
-        SystemBridgeCapability::RuntimeManagerKillRuntime,
-        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged,
-    ],
-}];
+const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_TASK_MANAGER_ID,
+        dir_name: "task-manager",
+        presentation: SystemAppPresentation::Taskbar,
+        system_capabilities: &[
+            SystemBridgeCapability::RuntimeManagerListRuntimes,
+            SystemBridgeCapability::RuntimeManagerFocusRuntime,
+            SystemBridgeCapability::RuntimeManagerHideRuntime,
+            SystemBridgeCapability::RuntimeManagerKillRuntime,
+            SystemBridgeCapability::RuntimeManagerListenRuntimesChanged,
+        ],
+    },
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_APP_UPDATE_ID,
+        dir_name: "app-update",
+        presentation: SystemAppPresentation::AppModal,
+        system_capabilities: &[
+            SystemBridgeCapability::CapabilityDefinitionsRead,
+            SystemBridgeCapability::AppPermissionsRead,
+            SystemBridgeCapability::AppPermissionsApply,
+            SystemBridgeCapability::AppUpdateRead,
+            SystemBridgeCapability::AppUpdateApply,
+        ],
+    },
+];
 
 #[derive(Debug, Copy, Clone)]
 pub enum AppBuildError {

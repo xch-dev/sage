@@ -45,12 +45,11 @@ pub async fn check_app_update(
     let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash)
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
-    if preview.manifest_hash() == active_snapshot.manifest_hash() {
-        if let Some(full_manifest) = preview.full_manifest()
-            && full_manifest == active_snapshot.manifest()
-        {
-            return Ok(None);
-        }
+    if preview.manifest_hash() == active_snapshot.manifest_hash()
+        && let Some(full_manifest) = preview.full_manifest()
+        && full_manifest == active_snapshot.manifest()
+    {
+        return Ok(None);
     }
 
     if let Some(existing_pending) = existing_pending

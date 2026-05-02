@@ -425,6 +425,9 @@ async getBuiltinTestApp(appId: string) : Promise<SageAppView | null> {
 async getBuiltinSystemApp(appId: string) : Promise<SageAppView | null> {
     return await TAURI_INVOKE("get_builtin_system_app", { appId });
 },
+async appsStartSystemApp(args: StartSystemAppArgs) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_start_system_app", { args });
+},
 async appsCreateInlineRuntime(args: CreateRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_create_inline_runtime", { args });
 },
@@ -2621,6 +2624,9 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type StartAppUpdateArgs = { mode: StartAppUpdateMode; appId: string }
+export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
+export type StartSystemAppArgs = ({ kind: "appUpdate" } & StartAppUpdateArgs)
 /**
  * Submit a transaction to the network
  */
@@ -2634,8 +2640,8 @@ spend_bundle: SpendBundleJson }
  */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
-export type SystemAppPresentation = "Taskbar" | "Modal"
-export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed"
+export type SystemAppPresentation = "Taskbar" | "AppModal"
+export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_update.read" | "app_update.apply"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
 export type SystemSageAppView = { common: SageAppCommonView; presentation: SystemAppPresentation; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**

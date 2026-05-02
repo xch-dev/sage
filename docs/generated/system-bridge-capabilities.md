@@ -70,3 +70,73 @@ Allows the system app to receive events when Sage app runtimes change.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `capability_definitions.read`
+
+**Read capability definitions**
+
+Allows the system app to read Sage capability definitions.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `app_permissions.read`
+
+**Read app permissions**
+
+Allows the system app to read app permissions for review.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `app_permissions.apply`
+
+**Apply app permissions**
+
+Allows the system app to apply reviewed app permission changes.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `app_update.read`
+
+**Read app update review context**
+
+Allows the system app to read update information for installed Sage apps.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `app_update.apply`
+
+**Apply app updates**
+
+Allows the system app to download and apply approved Sage app updates.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
