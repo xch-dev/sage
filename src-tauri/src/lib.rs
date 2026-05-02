@@ -149,6 +149,7 @@ pub fn run() {
             apps::bridge::commands::apps_invoke_system_bridge,
             apps::bridge::commands::apps_resolve_bridge_approval,
             apps::bridge::commands::get_user_capability_definitions,
+            apps::environment::commands::apps_set_environment_theme,
             apps::sandbox::commands::apps_get_sandbox_state,
             apps::sandbox::commands::apps_get_app_launch_gate,
             apps::sandbox::commands::apps_rerun_sandbox_tests,

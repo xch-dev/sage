@@ -1,12 +1,17 @@
 import type {
   RuntimeTargetParams,
   SageAppRuntimeRecordView,
-  SageSystemClient,
   SageSystemBridgeVersion,
+  SageSystemClient,
+  SageSystemRuntimeManagerClient,
   SystemKillRuntimeResult,
   RuntimeManagerRuntimesChangedEvent,
 } from './types';
-import { createBridgeRuntimeCore, parseJsonOrNull } from '@sage-app/sdk';
+import {
+  createBridgeRuntimeCore,
+  getSageClient,
+  parseJsonOrNull,
+} from '@sage-app/sdk';
 
 export const SAGE_SYSTEM_BRIDGE_VERSION: SageSystemBridgeVersion = 'v1';
 
@@ -26,6 +31,7 @@ type SageWebviewHandle = {
 
 type SageSystemWindow = Window &
   typeof globalThis & {
+    __SAGE_SYSTEM_RUNTIME__?: SageSystemRuntimeManagerClient;
     __SAGE_SYSTEM__?: SageSystemClient;
     __SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__?: boolean;
   };
@@ -83,7 +89,6 @@ function dispatchSystemRuntimeEvent(data: SystemRuntimeEventEnvelope) {
   window.dispatchEvent(
     new CustomEvent<SystemRuntimeEventEnvelope>(
       `sage-system:event:${data.type}`,
-
       { detail: data },
     ),
   );
@@ -123,10 +128,6 @@ function bridgeResponseResult(
 
 export function initSageSystemRuntimeBridge(): boolean {
   const w = getSageWindow();
-
-  if (w.__SAGE_SYSTEM__) {
-    return true;
-  }
 
   if (w.__SAGE_SYSTEM_RUNTIME_BRIDGE_INITIALIZED__) {
     return true;
@@ -214,43 +215,66 @@ export function initSageSystemRuntimeBridge(): boolean {
       console.error('Failed to subscribe to system bridge event:', error);
     });
 
-  w.__SAGE_SYSTEM__ = {
-    runtimeManager: {
-      async listRuntimes() {
-        return await callHost<SageAppRuntimeRecordView[]>(
-          'runtimeManager.listRuntimes',
-        );
-      },
+  w.__SAGE_SYSTEM_RUNTIME__ = {
+    async listRuntimes() {
+      return await callHost<SageAppRuntimeRecordView[]>(
+        'runtimeManager.listRuntimes',
+      );
+    },
 
-      async focusRuntime(input: RuntimeTargetParams) {
-        return await callHost<SageAppRuntimeRecordView>(
-          'runtimeManager.focusRuntime',
-          input,
-        );
-      },
+    async focusRuntime(input: RuntimeTargetParams) {
+      return await callHost<SageAppRuntimeRecordView>(
+        'runtimeManager.focusRuntime',
+        input,
+      );
+    },
 
-      async hideRuntime(input: RuntimeTargetParams) {
-        return await callHost<SageAppRuntimeRecordView>(
-          'runtimeManager.hideRuntime',
-          input,
-        );
-      },
+    async hideRuntime(input: RuntimeTargetParams) {
+      return await callHost<SageAppRuntimeRecordView>(
+        'runtimeManager.hideRuntime',
+        input,
+      );
+    },
 
-      async killRuntime(input: RuntimeTargetParams) {
-        return await callHost<SystemKillRuntimeResult>(
-          'runtimeManager.killRuntime',
-          input,
-        );
-      },
+    async killRuntime(input: RuntimeTargetParams) {
+      return await callHost<SystemKillRuntimeResult>(
+        'runtimeManager.killRuntime',
+        input,
+      );
+    },
 
-      onRuntimesChanged(handler) {
-        return onSystemRuntimeEventType<RuntimeManagerRuntimesChangedEvent>(
-          'runtimeManager.runtimesChanged',
-          handler,
-        );
-      },
+    onRuntimesChanged(handler) {
+      return onSystemRuntimeEventType<RuntimeManagerRuntimesChangedEvent>(
+        'runtimeManager.runtimesChanged',
+        handler,
+      );
     },
   };
 
   return true;
+}
+
+export async function getSageSystemClient(): Promise<SageSystemClient> {
+  if (!initSageSystemRuntimeBridge()) {
+    throw new Error('Sage system bridge failed to initialize');
+  }
+
+  const w = getSageWindow();
+
+  if (!w.__SAGE_SYSTEM_RUNTIME__) {
+    throw new Error('Sage system runtime client is not initialized');
+  }
+
+  if (w.__SAGE_SYSTEM__) {
+    return w.__SAGE_SYSTEM__;
+  }
+
+  const userClient = await getSageClient();
+
+  w.__SAGE_SYSTEM__ = {
+    ...userClient,
+    runtimeManager: w.__SAGE_SYSTEM_RUNTIME__,
+  };
+
+  return w.__SAGE_SYSTEM__;
 }

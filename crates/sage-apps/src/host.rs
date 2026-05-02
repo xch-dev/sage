@@ -1,26 +1,26 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
 use parking_lot::RwLock;
 use crate::bridge::state::BridgeState;
 use crate::runtime::AppRuntimeState;
 use crate::sandbox::SandboxStateStore;
-use crate::types::SystemSageApp;
 use sage::Sage;
 use sage_api::ErrorKind;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::Mutex;
+use crate::bridge::methods::user::environment::EnvironmentThemeView;
 
 pub type AppState = Arc<Mutex<Sage>>;
 
 #[derive(Debug, Default)]
 pub struct AppsHostState {
-    pub system_apps: BTreeMap<String, SystemSageApp>,
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub runtime: AppRuntimeState,
     pub bridge: BridgeState,
     pub sandbox: SandboxStateStore,
+    pub environment: AppsEnvironmentState,
 }
 
 impl AppsHostState {
@@ -41,6 +41,16 @@ impl AppsHostState {
 pub struct SageAppsError {
     pub kind: ErrorKind,
     pub reason: String,
+}
+
+#[derive(Debug, Default)]
+pub struct AppsEnvironmentState {
+    pub theme: AppsEnvironmentThemeState,
+}
+
+#[derive(Debug, Default)]
+pub struct AppsEnvironmentThemeState {
+    pub current: Mutex<Option<EnvironmentThemeView>>,
 }
 
 impl From<sage::Error> for SageAppsError {

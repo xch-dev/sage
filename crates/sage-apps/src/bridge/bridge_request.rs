@@ -9,7 +9,7 @@ use crate::capabilities::{get_system_capability_definition, get_user_capability_
 use crate::host::AppState;
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_possibly_impostor_running_app, PossiblyImpostorRuntime, SharedImpostorRuntime};
-use crate::types::{SageApp, SharedSageApp};
+use crate::types::SharedSageApp;
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
 
@@ -227,30 +227,22 @@ fn verify_user_capability(
     }
 
     let effective_capabilities = app.with(|app| {
-        let effective = match app {
-            SageApp::User(user_app) => user_app
-                .common()
-                .requested_permissions()
-                .capabilities()
-                .resolve_effective_grants(
-                    user_app
-                        .common()
-                        .granted_permissions()
-                        .capabilities()
-                        .copied(),
+        app.common()
+            .requested_permissions()
+            .capabilities()
+            .resolve_effective_grants(
+                app.common()
+                    .granted_permissions()
+                    .capabilities()
+                    .copied(),
+            )
+            .map_err(|err| {
+                RustBridgeResponse::error(
+                    &request.id,
+                    "internal_error",
+                    format!("failed to resolve effective permissions: {err}"),
                 )
-                .map_err(|err| {
-                    RustBridgeResponse::error(
-                        &request.id,
-                        "internal_error",
-                        format!("failed to resolve effective permissions: {err}"),
-                    )
-                })?,
-
-            SageApp::System(_) => app.granted_permissions().capabilities().copied().collect(),
-        };
-
-        Ok(effective)
+            })
     })?;
 
     if !effective_capabilities.contains(&capability) {

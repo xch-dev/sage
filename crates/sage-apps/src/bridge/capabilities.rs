@@ -84,6 +84,9 @@ define_bridge_capabilities! {
         WalletGetPendingTransactions => "wallet.get_pending_transactions",
         WalletGetTransaction => "wallet.get_transaction",
         WalletGetTransactions => "wallet.get_transactions",
+        EnvironmentThemeGetCurrent => "environment.theme.get_current",
+        EnvironmentThemeCssVars => "environment.theme.css_vars",
+        EnvironmentThemeListenChanged => "environment.theme.listen_changed",
     }
 }
 

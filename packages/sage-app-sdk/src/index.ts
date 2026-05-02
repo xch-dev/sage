@@ -1,4 +1,5 @@
 export { initSageRuntimeBridge, SAGE_BRIDGE_VERSION } from './runtime';
+export * from './theme';
 
 export {
   isSageRuntimeAvailable,

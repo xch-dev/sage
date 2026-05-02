@@ -8,6 +8,7 @@ import {
   createBridgeRuntimeCore,
   parseJsonOrNull,
 } from './bridge-runtime-core';
+import { applySageThemeCssVars, clearSageThemeCssVars } from './theme';
 
 export const SAGE_BRIDGE_VERSION: SageBridgeVersion = 'v1';
 
@@ -434,6 +435,44 @@ export function initSageRuntimeBridge(): boolean {
           'wallet.sendXch',
           input,
         );
+      },
+    },
+    environment: {
+      theme: {
+        async getCurrent() {
+          return await callHost<Generated.EnvironmentThemeGetCurrentResult>(
+            'environment.theme.getCurrent',
+          );
+        },
+
+        onChanged(handler) {
+          return onRuntimeEventType<Generated.EnvironmentThemeChangedEvent>(
+            'environment.theme.changed',
+            handler,
+          );
+        },
+
+        async mountCssVars() {
+          const current =
+            await callHost<Generated.EnvironmentThemeGetCurrentResult>(
+              'environment.theme.getCurrent',
+            );
+
+          applySageThemeCssVars(current.theme);
+
+          const unlisten =
+            onRuntimeEventType<Generated.EnvironmentThemeChangedEvent>(
+              'environment.theme.changed',
+              (event) => {
+                applySageThemeCssVars(event.theme);
+              },
+            );
+
+          return () => {
+            unlisten();
+            clearSageThemeCssVars();
+          };
+        },
       },
     },
   };

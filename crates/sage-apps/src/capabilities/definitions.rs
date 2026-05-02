@@ -169,6 +169,24 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to list wallet transactions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::EnvironmentThemeGetCurrent => CapabilityDefinition::new(
+            capability,
+            "Read current theme",
+            "Allows the app to read Sage's current theme.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentThemeCssVars => CapabilityDefinition::new(
+            capability,
+            "Use Sage theme CSS variables",
+            "Allows Sage to inject current theme CSS variables into the app runtime.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentThemeListenChanged => CapabilityDefinition::new(
+            capability,
+            "Observe theme changes",
+            "Allows the app to receive events when Sage's theme changes.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
     }
 }
 

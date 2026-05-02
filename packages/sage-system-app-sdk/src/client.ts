@@ -1,5 +1,8 @@
 import type { SageSystemClient } from './types';
-import { initSageSystemRuntimeBridge } from './runtime';
+import {
+  getSageSystemClient as getRuntimeSageSystemClient,
+  initSageSystemRuntimeBridge,
+} from './runtime';
 
 type SageSystemGlobal = typeof globalThis & {
   __TAURI__?: unknown;
@@ -27,21 +30,7 @@ export function hasSageSystemBridge(): boolean {
 }
 
 export async function getSageSystemClient(): Promise<SageSystemClient> {
-  let client = getClientFromWindow();
-
-  if (client) {
-    return client;
-  }
-
-  initSageSystemRuntimeBridge();
-
-  client = getClientFromWindow();
-
-  if (!client) {
-    throw new Error('Sage system bridge is unavailable in this runtime.');
-  }
-
-  return client;
+  return await getRuntimeSageSystemClient();
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -65,3 +54,5 @@ export function formatSageError(err: unknown): string {
 
   return String(err);
 }
+
+export { initSageSystemRuntimeBridge };

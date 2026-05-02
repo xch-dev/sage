@@ -61,6 +61,7 @@ import { Apps } from '@/pages/Apps.tsx';
 import { AppHost } from '@/pages/AppHost.tsx';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { AppsWorkspace } from '@/pages/AppsWorkspace.tsx';
+import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -204,6 +205,7 @@ function AppInner() {
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
         <WalletProvider>
+          <RustThemeSync />
           <PeerProvider>
             <AppsProvider>
               <WalletConnectProvider>

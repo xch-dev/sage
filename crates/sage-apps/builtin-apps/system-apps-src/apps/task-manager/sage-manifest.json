@@ -9,7 +9,11 @@
       }
     },
     "capabilities": {
-      "required": [],
+      "required": [
+        "environment.theme.get_current",
+        "environment.theme.listen_changed",
+        "environment.theme.css_vars"
+      ],
       "optional": []
     }
   },

@@ -27,6 +27,7 @@ use sage_api::{
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
+use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
 
 pub fn export_system_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
@@ -87,6 +88,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetTransactionResponse>();
     types.register::<GetTransactions>();
     types.register::<GetTransactionsResponse>();
+    types.register::<EnvironmentThemeGetCurrentResult>();
+    types.register::<EnvironmentThemeChangedEvent>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

@@ -40,7 +40,7 @@ pub(crate) fn find_runtime_by_app_id_optional_immediate(
             .runtime_id_by_app_id
             .try_lock()
             .map_err(|_| {
-                eprintln!("runtime_id_by_app_id is busy");
+                eprintln!("runtime_id_by_app_id is busy for app_id '{}'", app_id);
                 "runtime_id_by_app_id is busy".to_string()
             })?;
 
@@ -56,7 +56,7 @@ pub(crate) fn find_runtime_by_app_id_optional_immediate(
         .runtime_by_runtime_id
         .try_lock()
         .map_err(|_| {
-            eprintln!("runtime_by_runtime_id is busy");
+            eprintln!("runtime_by_runtime_id is busy for app_id '{}'", app_id);
             "runtime_by_runtime_id is busy".to_string()
         })?;
 

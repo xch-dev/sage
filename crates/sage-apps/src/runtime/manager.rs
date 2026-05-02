@@ -1,16 +1,16 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
 use crate::bridge::capabilities::SystemBridgeCapability;
-use crate::bridge::event_emit::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview, runtime_event, AppRuntimeEvent};
+use crate::bridge::event_emit::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview};
 use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::system::events::ActiveRuntimeChangedEvent;
 use crate::runtime::state::{
     find_runtime_by_runtime_id_optional, get_runtime_by_app_id, list_runtimes,
 };
-use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
+use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::{SageAppRuntimeRecord, SageAppRuntimeRecordView, SharedRuntime};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]

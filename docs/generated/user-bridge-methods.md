@@ -48,6 +48,12 @@
 |---|---|
 | Capability | `bridge.send` |
 
+## `environment.theme.getCurrent`
+
+| Field | Value |
+|---|---|
+| Capability | `environment.theme.get_current` |
+
 ## `wallet.checkAddress`
 
 | Field | Value |

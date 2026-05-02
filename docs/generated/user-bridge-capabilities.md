@@ -322,3 +322,45 @@ Allows the app to list wallet transactions.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `environment.theme.get_current`
+
+**Read current theme**
+
+Allows the app to read Sage's current theme.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `environment.theme.css_vars`
+
+**Use Sage theme CSS variables**
+
+Allows Sage to inject current theme CSS variables into the app runtime.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `environment.theme.listen_changed`
+
+**Observe theme changes**
+
+Allows the app to receive events when Sage's theme changes.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+

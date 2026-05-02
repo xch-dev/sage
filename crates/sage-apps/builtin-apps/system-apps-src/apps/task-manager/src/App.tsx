@@ -7,25 +7,16 @@ import {
   onRuntimesChanged,
   type RuntimeRecord,
 } from './taskManagerApi';
-import type {
-  SageAppRuntimeRecordView,
-} from '@sage-system-app/sdk';
+import type { SageAppRuntimeRecordView } from '@sage-system-app/sdk';
 
 function formatDuration(ms: number) {
-  const safeMs = Math.max(0, ms);
-  const s = Math.floor(safeMs / 1000);
+  const s = Math.floor(Math.max(0, ms) / 1000);
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = s % 60;
 
-  if (h > 0) {
-    return `${h}h ${String(m).padStart(2, '0')}m ${String(sec).padStart(2, '0')}s`;
-  }
-
-  if (m > 0) {
-    return `${m}m ${String(sec).padStart(2, '0')}s`;
-  }
-
+  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}m`;
+  if (m > 0) return `${m}m ${String(sec).padStart(2, '0')}s`;
   return `${sec}s`;
 }
 
@@ -37,20 +28,20 @@ function formatTime(value: number) {
   }).format(new Date(value));
 }
 
-function statusColor() {
-  /*if (normalized.includes('running') || normalized.includes('active')) {
-    return '#34d399';
-  }
+function runtimeAppId(runtime: SageAppRuntimeRecordView) {
+  return runtime.app.common.identity.id;
+}
 
-  if (normalized.includes('stopping') || normalized.includes('starting')) {
-    return '#fbbf24';
-  }
+function runtimeAppName(runtime: SageAppRuntimeRecordView) {
+  return runtime.app.common.activeSnapshot.manifest.name;
+}
 
-  if (normalized.includes('failed') || normalized.includes('error')) {
-    return '#fb7185';
-  }*/
+function runtimeKind(runtime: SageAppRuntimeRecordView) {
+  return runtime.app.kind === 'user' ? 'User' : 'System';
+}
 
-  return '#94a3b8';
+function runtimeVisible(runtime: SageAppRuntimeRecordView) {
+  return runtime.visibility === 'Visible';
 }
 
 function ActionButton({
@@ -68,23 +59,13 @@ function ActionButton({
     <button
       disabled={disabled}
       onClick={() => void onClick()}
-      style={{
-        height: 34,
-        padding: '0 12px',
-        borderRadius: 999,
-        border: danger
-          ? '1px solid rgba(251,113,133,0.35)'
-          : '1px solid rgba(255,255,255,0.12)',
-        background: danger
-          ? 'rgba(251,113,133,0.10)'
-          : 'rgba(255,255,255,0.055)',
-        color: danger ? '#fecdd3' : '#f8fafc',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        fontSize: 13,
-        fontWeight: 600,
-        backdropFilter: 'blur(16px)',
-      }}
+      className={[
+        'h-8 rounded-md border px-3 text-xs font-semibold transition-colors',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        danger
+          ? 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'
+          : 'border-border bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      ].join(' ')}
     >
       {children}
     </button>
@@ -93,37 +74,11 @@ function ActionButton({
 
 function Metric({ label, value }: { label: string; value: string | number }) {
   return (
-    <div
-      style={{
-        minWidth: 88,
-        padding: '10px 12px',
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.045)',
-        border: '1px solid rgba(255,255,255,0.08)',
-      }}
-    >
-      <div style={{ fontSize: 11, color: 'rgba(248,250,252,0.48)' }}>
-        {label}
-      </div>
-      <div style={{ marginTop: 4, fontSize: 14, fontWeight: 700 }}>{value}</div>
+    <div className='rounded-lg border border-border bg-muted px-3 py-2'>
+      <div className='text-[11px] text-muted-foreground'>{label}</div>
+      <div className='mt-1 text-sm font-bold text-foreground'>{value}</div>
     </div>
   );
-}
-
-function runtimeAppId(runtime: SageAppRuntimeRecordView): string {
-  return runtime.app.common.identity.id;
-}
-
-function runtimeAppName(runtime: SageAppRuntimeRecordView): string {
-  return runtime.app.common.activeSnapshot.manifest.name;
-}
-
-function runtimeKind(runtime: SageAppRuntimeRecordView): 'User' | 'System' {
-  return runtime.app.kind === 'user' ? 'User' : 'System';
-}
-
-function runtimeVisible(runtime: SageAppRuntimeRecordView): boolean {
-  return runtime.visibility === 'Visible';
 }
 
 export function App() {
@@ -142,13 +97,8 @@ export function App() {
   }
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -157,10 +107,7 @@ export function App() {
     void refresh();
 
     const unsubscribe = onRuntimesChanged((event) => {
-      if (disposed) {
-        return;
-      }
-
+      if (disposed) return;
       setRuntimes(event.runtimes);
       setLoading(false);
     });
@@ -179,13 +126,6 @@ export function App() {
     [runtimes],
   );
 
-  const totals = useMemo(
-    () => ({
-      runtimes: runtimes.length,
-    }),
-    [runtimes],
-  );
-
   async function runAction(appId: string, action: () => Promise<unknown>) {
     setBusyAppId(appId);
     try {
@@ -196,235 +136,89 @@ export function App() {
   }
 
   return (
-    <div
-      style={{
-        fontFamily:
-          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        minHeight: '100vh',
-        color: '#f8fafc',
-        background:
-          'radial-gradient(circle at top left, rgba(59,130,246,0.22), transparent 34%), radial-gradient(circle at top right, rgba(168,85,247,0.16), transparent 32%), linear-gradient(180deg, #09090b 0%, #0f1117 100%)',
-      }}
-    >
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: 24 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: 20,
-            marginBottom: 22,
-          }}
-        >
+    <div className='min-h-screen bg-background text-foreground font-sans'>
+      <main className='mx-auto max-w-6xl p-6'>
+        <header className='mb-5 flex items-start justify-between gap-4'>
           <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '5px 10px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.10)',
-                background: 'rgba(255,255,255,0.045)',
-                color: 'rgba(248,250,252,0.68)',
-                fontSize: 12,
-                marginBottom: 10,
-              }}
-            >
-              <span
-                style={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: 999,
-                  background: '#34d399',
-                  boxShadow: '0 0 18px rgba(52,211,153,0.75)',
-                }}
-              />
+            <div className='text-sm text-muted-foreground'>
               Built-in system app
             </div>
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: 34,
-                letterSpacing: '-0.04em',
-                lineHeight: 1,
-              }}
-            >
+            <h1 className='mt-1 text-3xl font-bold tracking-tight'>
               Task Manager
             </h1>
-
-            <div
-              style={{
-                marginTop: 8,
-                color: 'rgba(248,250,252,0.56)',
-                fontSize: 14,
-              }}
-            >
-              Live runtime control · updated {formatTime(now)}
+            <div className='mt-1 text-sm text-muted-foreground'>
+              {runtimes.length} runtimes · updated {formatTime(now)}
             </div>
           </div>
 
-          <button
-            onClick={() => void refresh()}
-            disabled={loading}
-            style={{
-              height: 40,
-              padding: '0 16px',
-              borderRadius: 999,
-              border: '1px solid rgba(255,255,255,0.14)',
-              background:
-                'linear-gradient(180deg, rgba(255,255,255,0.11), rgba(255,255,255,0.055))',
-              color: '#f8fafc',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.6 : 1,
-              fontWeight: 700,
-              boxShadow: '0 14px 40px rgba(0,0,0,0.25)',
-            }}
-          >
+          <ActionButton disabled={loading} onClick={refresh}>
             {loading ? 'Refreshing…' : 'Refresh'}
-          </button>
-        </div>
+          </ActionButton>
+        </header>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-            gap: 12,
-            marginBottom: 18,
-          }}
-        >
-          <Metric label='Runtimes' value={totals.runtimes} />
-        </div>
+        <section className='mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3'>
+          <Metric label='Runtimes' value={runtimes.length} />
+          <Metric
+            label='Visible'
+            value={runtimes.filter(runtimeVisible).length}
+          />
+          <Metric
+            label='Hidden'
+            value={
+              runtimes.filter((runtime) => !runtimeVisible(runtime)).length
+            }
+          />
+        </section>
 
-        <div
-          style={{
-            overflow: 'hidden',
-            borderRadius: 24,
-            border: '1px solid rgba(255,255,255,0.10)',
-            background: 'rgba(15,23,42,0.48)',
-            boxShadow:
-              '0 24px 80px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.06)',
-            backdropFilter: 'blur(22px)',
-          }}
-        >
+        <section className='overflow-hidden rounded-xl border border-border bg-card text-card-foreground'>
           {loading && sorted.length === 0 ? (
-            <div style={{ padding: 22, color: 'rgba(248,250,252,0.62)' }}>
-              Loading runtimes…
-            </div>
+            <div className='p-5 text-muted-foreground'>Loading runtimes…</div>
           ) : sorted.length === 0 ? (
-            <div style={{ padding: 28, color: 'rgba(248,250,252,0.62)' }}>
-              No running apps.
-            </div>
+            <div className='p-5 text-muted-foreground'>No running apps.</div>
           ) : (
             sorted.map((runtime, index) => {
-              const busy = busyAppId === runtimeAppId(runtime);
-              const color = statusColor();
+              const appId = runtimeAppId(runtime);
+              const visible = runtimeVisible(runtime);
+              const busy = busyAppId === appId;
 
               return (
                 <div
                   key={runtime.runtimeId}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'minmax(0, 1fr) auto',
-                    gap: 18,
-                    padding: 18,
-                    borderTop:
-                      index === 0
-                        ? 'none'
-                        : '1px solid rgba(255,255,255,0.075)',
-                    background:
-                      index % 2 === 0
-                        ? 'rgba(255,255,255,0.018)'
-                        : 'transparent',
-                  }}
+                  className={[
+                    'grid gap-4 p-4 md:grid-cols-[minmax(0,1fr)_auto]',
+                    index === 0 ? '' : 'border-t border-border',
+                  ].join(' ')}
                 >
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        minWidth: 0,
-                      }}
-                    >
+                  <div className='min-w-0'>
+                    <div className='flex min-w-0 items-center gap-2'>
                       <span
-                        style={{
-                          width: 9,
-                          height: 9,
-                          borderRadius: 999,
-                          background: color,
-                          boxShadow: `0 0 18px ${color}`,
-                          flexShrink: 0,
-                        }}
+                        className={[
+                          'h-2.5 w-2.5 shrink-0 rounded-full',
+                          visible ? 'bg-primary' : 'bg-muted-foreground',
+                        ].join(' ')}
                       />
 
-                      <div
-                        style={{
-                          minWidth: 0,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          fontSize: 16,
-                          fontWeight: 750,
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
+                      <strong className='min-w-0 truncate text-sm font-semibold'>
                         {runtimeAppName(runtime)}
-                      </div>
+                      </strong>
 
-                      {runtimeVisible(runtime) ? (
-                        <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: 999,
-                            background: 'rgba(52,211,153,0.10)',
-                            border: '1px solid rgba(52,211,153,0.20)',
-                            color: '#bbf7d0',
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          Visible
-                        </span>
-                      ) : (
-                        <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: 999,
-                            background: 'rgba(148,163,184,0.10)',
-                            border: '1px solid rgba(148,163,184,0.16)',
-                            color: '#cbd5e1',
-                            fontSize: 11,
-                            fontWeight: 700,
-                          }}
-                        >
-                          Hidden
-                        </span>
-                      )}
+                      <span
+                        className={[
+                          'rounded-full px-2 py-0.5 text-[11px] font-bold',
+                          visible
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground',
+                        ].join(' ')}
+                      >
+                        {visible ? 'Visible' : 'Hidden'}
+                      </span>
                     </div>
 
-                    <div
-                      style={{
-                        marginTop: 7,
-                        fontSize: 12,
-                        color: 'rgba(248,250,252,0.45)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {runtimeAppId(runtime)}
+                    <div className='mt-1 truncate text-xs text-muted-foreground'>
+                      {appId}
                     </div>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 8,
-                        marginTop: 12,
-                      }}
-                    >
+                    <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4'>
                       <Metric
                         label='Uptime'
                         value={formatDuration(now - runtime.startedAt)}
@@ -433,40 +227,24 @@ export function App() {
                         label='Started'
                         value={formatTime(runtime.startedAt)}
                       />
-                      <Metric
-                        label='Kind'
-                        value={runtimeKind(runtime)}
-                      />
+                      <Metric label='Kind' value={runtimeKind(runtime)} />
                       <Metric label='Mode' value={runtime.mode} />
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 8,
-                      flexShrink: 0,
-                    }}
-                  >
+                  <div className='flex items-start gap-2'>
                     <ActionButton
-                      disabled={busy}
+                      disabled={busy || visible}
                       onClick={() =>
-                        runAction(runtimeAppId(runtime), () =>
-                          focusRuntime(runtimeAppId(runtime)),
-                        )
+                        runAction(appId, () => focusRuntime(appId))
                       }
                     >
                       Focus
                     </ActionButton>
 
                     <ActionButton
-                      disabled={busy}
-                      onClick={() =>
-                        runAction(runtimeAppId(runtime), () =>
-                          hideRuntime(runtimeAppId(runtime)),
-                        )
-                      }
+                      disabled={busy || !visible}
+                      onClick={() => runAction(appId, () => hideRuntime(appId))}
                     >
                       Hide
                     </ActionButton>
@@ -475,8 +253,8 @@ export function App() {
                       danger
                       disabled={busy}
                       onClick={() =>
-                        runAction(runtimeAppId(runtime), async () => {
-                          await killRuntime(runtimeAppId(runtime));
+                        runAction(appId, async () => {
+                          await killRuntime(appId);
                           await refresh();
                         })
                       }
@@ -488,8 +266,8 @@ export function App() {
               );
             })
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

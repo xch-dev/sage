@@ -1,6 +1,7 @@
 pub mod app;
 pub mod bridge;
 pub mod wallet;
+pub mod environment;
 
 pub use app::{
     AppGetCapabilities, AppGetInfo, AppLifecycleReadyToStop, AppLifecycleSetBeforeStopListener,

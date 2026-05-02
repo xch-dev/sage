@@ -13,6 +13,7 @@ use super::methods::user::{
 };
 use crate::types::SharedSageApp;
 use std::collections::HashMap;
+use crate::bridge::methods::user::environment::EnvironmentThemeGetCurrent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BridgeRegistryKind {
@@ -90,11 +91,14 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, WalletGetTransaction);
     insert_method(&mut methods, WalletGetTransactions);
 
+    // Environment
+    insert_method(&mut methods, EnvironmentThemeGetCurrent);
+
     methods
 }
 
 fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
-    let mut methods = build_user_methods();
+    let mut methods: HashMap<&'static str, Box<dyn BridgeMethod>> = HashMap::new();
 
     insert_method(&mut methods, RuntimeManagerListRuntimes);
     insert_method(&mut methods, RuntimeManagerFocusRuntime);

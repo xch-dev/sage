@@ -124,6 +124,7 @@ commands.allow = [
     "apps_create_inline_runtime",
     "apps_clear_runtime_browsing_data",
     "apps_resolve_bridge_approval",
+    "apps_set_environment_theme",
     "get_user_capability_definitions",
     "apps_get_sandbox_state",
     "apps_get_app_launch_gate",

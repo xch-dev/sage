@@ -26,10 +26,6 @@ export type SageBridgeErrorResponse = {
   };
 };
 
-export type SageBridgeRuntimeEvent =
-  | Generated.GrantedCapabilitiesChangeEvent
-  | Generated.GrantedNetworkWhitelistChangeEvent;
-
 export type SageWalletClient = {
   getKeys(): Promise<Generated.GetKeysResponse>;
   getKey(input: Generated.GetKey): Promise<Generated.GetKeyResponse>;
@@ -92,10 +88,25 @@ export type SageAppClient = {
   lifecycle: SageAppLifecycleClient;
 };
 
+export type SageEnvironmentThemeClient = {
+  getCurrent(): Promise<Generated.EnvironmentThemeGetCurrentResult>;
+
+  onChanged(
+    handler: (event: Generated.EnvironmentThemeChangedEvent) => void,
+  ): () => void;
+
+  mountCssVars(): Promise<() => void>;
+};
+
+export type SageEnvironmentClient = {
+  theme: SageEnvironmentThemeClient;
+};
+
 export type SageClient = {
   initialAppInfo: Generated.AppGetInfoResult;
   app: SageAppClient;
   wallet: SageWalletClient;
+  environment: SageEnvironmentClient;
 };
 
 export type {
