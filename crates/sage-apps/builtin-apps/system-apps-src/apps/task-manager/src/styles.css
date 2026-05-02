@@ -1,3 +1,4 @@
+@import "@sage-app/sdk/theme.css";
 @config "../tailwind.config.js";
 
 @tailwind base;

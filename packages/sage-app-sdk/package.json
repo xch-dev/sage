@@ -19,6 +19,11 @@
     "./bridge-runtime-core": {
       "types": "./dist/bridge-runtime-core.d.ts",
       "import": "./dist/bridge-runtime-core.js"
+    },
+    "./theme.css": {
+      "types": "./dist/theme-css.d.ts",
+      "style": "./dist/theme.css",
+      "default": "./dist/theme.css"
     }
   },
   "files": [
@@ -27,7 +32,7 @@
   ],
   "scripts": {
     "generate:types": "node ./scripts/export-types.mjs",
-    "build": "pnpm run generate:types && tsup",
+    "build": "pnpm run generate:types && tsup && cp src/theme.css dist/theme.css && cp src/theme-css.d.ts dist/theme-css.d.ts",
     "dev": "pnpm run generate:types && tsup --watch",
     "clean": "rm -rf dist"
   },
