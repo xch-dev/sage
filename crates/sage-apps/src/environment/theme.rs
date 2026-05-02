@@ -3,7 +3,9 @@ use tauri::{AppHandle, State};
 use crate::AppsHostState;
 use crate::bridge::capabilities::UserBridgeCapability;
 use crate::bridge::event_emit::emit_runtime_event_to_app_id;
-use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeView};
+use crate::bridge::methods::user::environment::{
+    EnvironmentThemeChangedEvent, EnvironmentThemeView,
+};
 use crate::runtime::list_runtimes;
 
 pub async fn apply_environment_theme(
@@ -17,10 +19,23 @@ pub async fn apply_environment_theme(
         let (app_id, should_emit_event) = runtime.with_runtime(|record| {
             let app = record.app();
 
-            (
-                app.id(),
-                app.is_capability_granted(UserBridgeCapability::EnvironmentThemeListenChanged),
-            )
+            let should_emit_event = app.with(|app| {
+                app.common()
+                    .requested_permissions()
+                    .capabilities()
+                    .resolve_effective_grants(
+                        app.common()
+                            .granted_permissions()
+                            .capabilities()
+                            .copied(),
+                    )
+                    .map(|caps| {
+                        caps.contains(&UserBridgeCapability::EnvironmentThemeListenChanged)
+                    })
+                    .unwrap_or(false)
+            });
+
+            (app.id(), should_emit_event)
         });
 
         if should_emit_event {
