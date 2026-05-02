@@ -3,11 +3,19 @@ import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
 import { Webview } from '@tauri-apps/api/webview';
 import { useAppRuntimes } from '@/hooks/useAppRuntimes';
 
+type CachedRuntimeRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
 export function SystemAppModalLayer() {
   const modalBoundsRef = useRef<HTMLDivElement | null>(null);
-  const lastRectByWebviewLabelRef = useRef<
-    Map<string, { left: number; top: number; width: number; height: number }>
-  >(new Map());
+  const lastRectByWebviewLabelRef = useRef<Map<string, CachedRuntimeRect>>(
+    new Map(),
+  );
+  const retryTimerRef = useRef<number | null>(null);
 
   const runtimes = useAppRuntimes({ includeInternal: true });
 
@@ -22,16 +30,39 @@ export function SystemAppModalLayer() {
     [runtimes],
   );
 
-  const modalRuntimeLabels = useMemo(
-    () => modalRuntimes.map((runtime) => runtime.webviewLabel).sort(),
+  const modalRuntimeKey = useMemo(
+    () =>
+      modalRuntimes
+        .map((runtime) => `${runtime.webviewLabel}:${runtime.runtimeId}`)
+        .sort()
+        .join('\n'),
     [modalRuntimes],
   );
 
-  const modalRuntimeLabelsKey = modalRuntimeLabels.join('\n');
+  const scheduleRetry = useCallback(() => {
+    if (retryTimerRef.current != null) {
+      return;
+    }
+
+    retryTimerRef.current = window.setTimeout(() => {
+      retryTimerRef.current = null;
+      void sync();
+    }, 50);
+  }, []);
 
   const sync = useCallback(async () => {
     const bounds = modalBoundsRef.current;
     if (!bounds) return;
+
+    const activeLabels = new Set(
+      modalRuntimes.map((runtime) => runtime.webviewLabel),
+    );
+
+    for (const cachedLabel of lastRectByWebviewLabelRef.current.keys()) {
+      if (!activeLabels.has(cachedLabel)) {
+        lastRectByWebviewLabelRef.current.delete(cachedLabel);
+      }
+    }
 
     const rect = bounds.getBoundingClientRect();
 
@@ -42,8 +73,21 @@ export function SystemAppModalLayer() {
       height: Math.round(rect.height),
     };
 
-    for (const webviewLabel of modalRuntimeLabels) {
-      const previous = lastRectByWebviewLabelRef.current.get(webviewLabel);
+    let missingWebview = false;
+
+    for (const runtime of modalRuntimes) {
+      const webview = await Webview.getByLabel(runtime.webviewLabel).catch(
+        () => null,
+      );
+
+      if (!webview) {
+        missingWebview = true;
+        continue;
+      }
+
+      const previous = lastRectByWebviewLabelRef.current.get(
+        runtime.webviewLabel,
+      );
 
       const unchanged =
         previous &&
@@ -52,25 +96,29 @@ export function SystemAppModalLayer() {
         previous.width === nextRect.width &&
         previous.height === nextRect.height;
 
-      if (unchanged) {
-        continue;
+      if (!unchanged) {
+        await webview.setPosition(
+          new LogicalPosition(nextRect.left, nextRect.top),
+        );
+        await webview.setSize(new LogicalSize(nextRect.width, nextRect.height));
+
+        lastRectByWebviewLabelRef.current.set(runtime.webviewLabel, nextRect);
       }
 
-      const webview = await Webview.getByLabel(webviewLabel).catch(() => null);
-      if (!webview) continue;
-
-      await webview.setPosition(
-        new LogicalPosition(nextRect.left, nextRect.top),
-      );
-      await webview.setSize(new LogicalSize(nextRect.width, nextRect.height));
       await webview.show();
-
-      lastRectByWebviewLabelRef.current.set(webviewLabel, nextRect);
     }
-  }, [modalRuntimeLabels]);
+
+    if (missingWebview && modalRuntimes.length > 0) {
+      scheduleRetry();
+    }
+  }, [modalRuntimes, scheduleRetry]);
 
   useEffect(() => {
-    void sync();
+    lastRectByWebviewLabelRef.current.clear();
+
+    requestAnimationFrame(() => {
+      void sync();
+    });
 
     const observer = new ResizeObserver(() => {
       void sync();
@@ -85,8 +133,13 @@ export function SystemAppModalLayer() {
     return () => {
       observer.disconnect();
       window.removeEventListener('resize', sync);
+
+      if (retryTimerRef.current != null) {
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
     };
-  }, [sync, modalRuntimeLabelsKey]);
+  }, [sync, modalRuntimeKey]);
 
   if (modalRuntimes.length === 0) {
     return null;
