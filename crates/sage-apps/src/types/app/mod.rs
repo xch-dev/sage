@@ -21,6 +21,6 @@ pub(crate) use system_apps::{SystemAppPresentation, SystemSageApp};
 pub(crate) use user_apps::{
     CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp
 };
-pub(crate) use view::{ListedSageAppView, SageAppView, UserSageAppView};
+pub(crate) use view::{ListedSageAppView, SageAppView, UserSageAppView, SageAppIconView};
 
 pub(super) use flags::SageAppFlags;

@@ -19,7 +19,9 @@ export function AppIconContent({
 
 export function AppIcon({ app }: { app: ListedSageAppView }) {
   const name =
-    app.kind === 'corrupted' ? app.id : app.common.activeSnapshot.manifest.name;
+    app.kind === 'corrupted'
+      ? (app.manifestHeader?.name ?? app.id)
+      : app.common.activeSnapshot.manifest.name;
 
   const iconUrl = useMemo(() => {
     return iconUrlFromApp(app);
@@ -29,9 +31,8 @@ export function AppIcon({ app }: { app: ListedSageAppView }) {
 }
 
 function iconUrlFromApp(app: ListedSageAppView): string | null {
-  if (app.kind === 'corrupted') return null;
+  const icon = app.kind === 'corrupted' ? app.icon : app.common.icon;
 
-  const icon = app.common.icon;
   if (!icon) return null;
 
   return URL.createObjectURL(

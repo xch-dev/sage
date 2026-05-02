@@ -806,7 +806,7 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
-export type CorruptedInstalledSageApp = { id: string; appDir: string; error: string }
+export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestHeaderV0 | null; source?: UserSageAppSource | null }
 /**
  * Create a new DID
  */
@@ -2263,7 +2263,10 @@ export type SageAppDonation = { address: string }
 export type SageAppIconView = { mime: string; bytes: number[] }
 export type SageAppIdentityView = { id: string; originId: string }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
-export type SageAppPackageManifest = { name: string; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; total_bytes: number; entry: string | null; icon: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
+export type SageAppManifestHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion: SageAppManifestSageVersion }
+export type SageAppManifestSageVersion = { min: string; testedMax?: string | null }
+export type SageAppManifestVersion = number
+export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppRuntimeMode = "Inline" | "Windowed"
 export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; webviewLabel: string; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
 export type SageAppRuntimeVisibility = "Visible" | "Hidden"

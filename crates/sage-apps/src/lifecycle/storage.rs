@@ -160,7 +160,7 @@ pub fn enqueue_retired_app_origin(
     app: &SharedSageApp,
     cleanup_pending: bool,
 ) -> AnyResult<()> {
-    let app_parent_path = app.with(|app| {
+    let base_path = app.with(|app| {
         let user = app.as_user()?;
 
         match user.source() {
@@ -169,13 +169,18 @@ pub fn enqueue_retired_app_origin(
         }
 
         let app_path = app.app_path();
-        app_path.parent().map(|path| path.to_path_buf())
+
+        app_path
+            .parent()
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
     });
-    let Some(app_parent_path) = app_parent_path else {
-         return Ok(());
+
+    let Some(base_path) = base_path else {
+        return Ok(());
     };
 
-    let mut entries = read_retired_app_origins(&app_parent_path)?;
+    let mut entries = read_retired_app_origins(&base_path)?;
 
     if let Some(existing) = entries
         .iter_mut()
@@ -186,7 +191,7 @@ pub fn enqueue_retired_app_origin(
         entries.push(RetiredAppOriginEntry::new(app, cleanup_pending));
     }
 
-    write_retired_app_origins(&app_parent_path, &entries)
+    write_retired_app_origins(&base_path, &entries)
 }
 
 pub async fn clear_runtime_browsing_data_internal(
@@ -248,13 +253,16 @@ mod tests {
         )
         .unwrap();
 
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: name.to_string(),
+            icon: None,
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: requested_permissions.clone(),
             files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
             entry: Some("index.html".to_string()),
-            icon: None,
             author: None,
             donation: None,
         })
@@ -275,13 +283,17 @@ mod tests {
         let snapshot =
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
-        let common = SageAppCommon::new(
+        let mut common = SageAppCommon::new(
             SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             storage,
             snapshot,
         )
         .unwrap();
+
+        if storage_may_contain_secrets {
+            common.mark_storage_may_contain_secrets();
+        }
 
         let app = SharedSageApp::new(UserSageApp::new_installed(common, source).into_sage_app());
 

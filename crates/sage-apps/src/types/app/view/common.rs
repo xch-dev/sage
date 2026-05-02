@@ -6,14 +6,14 @@ use crate::types::{SageAppCommon, SageAppIdentity};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SageAppIdentityView {
+pub(crate) struct SageAppIdentityView {
     id: String,
     origin_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SageAppCommonView {
+pub(crate) struct SageAppCommonView {
     identity: SageAppIdentityView,
     granted_permissions: SageGrantedPermissionsView,
     active_snapshot: SageAppSnapshotView,
@@ -22,7 +22,7 @@ pub struct SageAppCommonView {
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct SageAppIconView {
+pub(crate) struct SageAppIconView {
     mime: String,
     bytes: Vec<u8>,
 }
@@ -47,6 +47,18 @@ impl From<&SageAppIdentity> for SageAppIdentityView {
     }
 }
 
+impl SageAppIconView {
+    pub(crate) fn from_file_path(file_path: &std::path::Path) -> Option<Self> {
+        let bytes = std::fs::read(file_path).ok()?;
+        let mime = mime_guess::from_path(file_path)
+            .first_or_octet_stream()
+            .essence_str()
+            .to_string();
+
+        Some(Self { mime, bytes })
+    }
+}
+
 fn read_common_icon(common: &SageAppCommon) -> Option<SageAppIconView> {
     let icon_path = common.active_snapshot().manifest().icon()?;
     let file_path = common
@@ -54,11 +66,5 @@ fn read_common_icon(common: &SageAppCommon) -> Option<SageAppIconView> {
         .resolve_file_path(icon_path)
         .ok()?;
 
-    let bytes = std::fs::read(&file_path).ok()?;
-    let mime = mime_guess::from_path(&file_path)
-        .first_or_octet_stream()
-        .essence_str()
-        .to_string();
-
-    Some(SageAppIconView { mime, bytes })
+    SageAppIconView::from_file_path(&file_path)
 }

@@ -9,7 +9,7 @@ use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
 use crate::system_apps::list_builtin_system_apps;
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageNetworkWhitelistEntry, SharedSageApp, UserSageApp};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, SageNetworkWhitelistEntry, SharedSageApp, UserSageApp, UserSageAppSource};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -122,11 +122,20 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
 
         match read_installed_user_app_from_dir(&path) {
             Ok(app) => apps.push(ListedSageApp::User(app)),
-            Err(err) => apps.push(ListedSageApp::Corrupted(CorruptedInstalledSageApp::new(
-                id,
-                path.to_string_lossy().to_string(),
-                err.to_string(),
-            ))),
+            Err(err) => {
+                let (manifest_header, source, icon) = read_corrupted_installed_app_fallback(&path);
+
+                apps.push(ListedSageApp::Corrupted(
+                    CorruptedInstalledSageApp::new(
+                        id,
+                        path.to_string_lossy().to_string(),
+                        err.to_string(),
+                    )
+                        .with_manifest_header(manifest_header)
+                        .with_source(source)
+                        .with_icon(icon),
+                ));
+            }
         }
     }
 
@@ -252,17 +261,61 @@ pub fn read_installed_user_app_by_origin_id(
     ))
 }
 
+fn read_corrupted_installed_app_fallback(
+    dir: &Path,
+) -> (
+    Option<crate::types::SageAppManifestHeaderV0>,
+    Option<UserSageAppSource>,
+    Option<SageAppIconView>,
+) {
+    let path = installed_metadata_path(dir);
+
+    let Ok(text) = fs::read_to_string(&path) else {
+        return (None, None, None);
+    };
+
+    let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) else {
+        return (None, None, None);
+    };
+
+    let source = value
+        .get("source")
+        .cloned()
+        .and_then(|value| serde_json::from_value::<UserSageAppSource>(value).ok());
+
+    let manifest_header = value
+        .get("activeSnapshot")
+        .or_else(|| value.get("active_snapshot"))
+        .and_then(|snapshot| snapshot.get("manifest"))
+        .cloned()
+        .and_then(|manifest| crate::types::parse_manifest_header_v0_from_value(manifest).ok());
+
+    let icon = manifest_header
+        .as_ref()
+        .and_then(|header| header.icon.as_deref())
+        .and_then(|icon_path| {
+            value
+                .get("activeSnapshot")
+                .or_else(|| value.get("active_snapshot"))
+                .and_then(|snapshot| {
+                    snapshot
+                        .get("snapshotDir")
+                        .or_else(|| snapshot.get("snapshot_dir"))
+                })
+                .and_then(serde_json::Value::as_str)
+                .map(|snapshot_dir| Path::new(snapshot_dir).join(icon_path))
+        })
+        .and_then(|path| SageAppIconView::from_file_path(&path));
+
+    (manifest_header, source, icon)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     use crate::lifecycle::storage::record_storage_cleanup_failure;
-    use crate::types::{
-        InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry,
-        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest,
-        SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions,
-        SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource,
-    };
+    use crate::types::{InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource};
     use std::fs;
     use tempfile::tempdir;
 
@@ -276,13 +329,17 @@ mod tests {
     }
 
     fn sample_manifest(name: &str) -> SageAppPackageManifest {
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
+
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: name.to_string(),
+            icon: None,
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_manifest_file("index.html", 1)],
             entry: Some("index.html".to_string()),
-            icon: None,
             author: None,
             donation: None,
         })
@@ -513,6 +570,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::insecure_http)]
     fn parse_network_permission_target_rejects_unsupported_scheme() {
         let err = parse_network_permission_target("http://example.com").unwrap_err();
         assert!(err.contains("only https and wss allowed"));

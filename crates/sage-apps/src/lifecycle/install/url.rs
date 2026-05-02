@@ -198,13 +198,16 @@ mod tests {
         )
         .unwrap();
 
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test App".into(),
+            icon: None,
+            sage_version,
             version: "1.0.0".into(),
             permissions,
             files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 123).unwrap()],
             entry: Some("index.html".into()),
-            icon: None,
             author: None,
             donation: None,
         })
@@ -238,13 +241,17 @@ mod tests {
         let snapshot =
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
 
-        let common = SageAppCommon::new(
+        let mut common = SageAppCommon::new(
             SageAppIdentity::new(app_id, origin_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,
         )
             .unwrap();
+
+        if storage_may_contain_secrets {
+            common.mark_storage_may_contain_secrets();
+        }
 
         let app = SharedSageApp::new(
             UserSageApp::new_installed(

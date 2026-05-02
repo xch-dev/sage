@@ -11,6 +11,32 @@ use crate::types::invariants::{
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::SageRequestedPermissions;
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, Type, PartialEq, Eq)]
+pub struct SageAppManifestVersion(pub u16);
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SageAppManifestSageVersion {
+    pub min: String,
+
+    #[serde(default)]
+    pub tested_max: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SageAppManifestHeaderV0 {
+    #[serde(default)]
+    pub manifest_version: SageAppManifestVersion,
+
+    pub name: String,
+
+    #[serde(default)]
+    pub icon: Option<String>,
+
+    pub sage_version: SageAppManifestSageVersion,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub struct SageAppManifestFile {
     path: String,
@@ -20,32 +46,47 @@ pub struct SageAppManifestFile {
 
 #[derive(Debug)]
 pub struct SageAppPackageManifestParts {
+    pub manifest_version: SageAppManifestVersion,
     pub name: String,
+    pub icon: Option<String>,
+    pub sage_version: SageAppManifestSageVersion,
     pub version: String,
     pub permissions: SageRequestedPermissions,
     pub files: Vec<SageAppManifestFile>,
     pub entry: Option<String>,
-    pub icon: Option<String>,
     pub author: Option<SageAppAuthor>,
     pub donation: Option<SageAppDonation>,
 }
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SageAppPackageManifest {
+    manifest_version: SageAppManifestVersion,
     name: String,
+    icon: Option<String>,
+    sage_version: SageAppManifestSageVersion,
     version: String,
     permissions: SageRequestedPermissions,
     files: Vec<SageAppManifestFile>,
     total_bytes: u64,
     entry: Option<String>,
-    icon: Option<String>,
     author: Option<SageAppAuthor>,
     donation: Option<SageAppDonation>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RawSageAppPackageManifest {
+    #[serde(default)]
+    manifest_version: SageAppManifestVersion,
+
     name: String,
+
+    #[serde(default)]
+    icon: Option<String>,
+
+    sage_version: SageAppManifestSageVersion,
+
     version: String,
 
     #[serde(default)]
@@ -56,9 +97,6 @@ struct RawSageAppPackageManifest {
 
     #[serde(default)]
     entry: Option<String>,
-
-    #[serde(default)]
-    icon: Option<String>,
 
     #[serde(default)]
     author: Option<SageAppAuthor>,
@@ -75,18 +113,20 @@ impl<'de> Deserialize<'de> for SageAppPackageManifest {
         let raw = <RawSageAppPackageManifest as Deserialize>::deserialize(deserializer)?;
 
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: raw.manifest_version,
             name: raw.name,
+            icon: raw.icon,
+            sage_version: raw.sage_version,
             version: raw.version,
             permissions: raw
                 .permissions
                 .unwrap_or_else(SageRequestedPermissions::empty),
             files: raw.files,
             entry: raw.entry,
-            icon: raw.icon,
             author: raw.author,
             donation: raw.donation,
         })
-        .map_err(serde::de::Error::custom)
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -94,8 +134,31 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
     type Error = anyhow::Error;
 
     fn try_from(value: SageAppPackageManifestParts) -> anyhow::Result<Self> {
+        if value.manifest_version.0 != 0 {
+            return Err(anyhow::anyhow!(
+                "unsupported manifestVersion {}",
+                value.manifest_version.0
+            ));
+        }
+
         let name = normalized_non_empty_string(value.name, "manifest name")?;
         let version = normalized_non_empty_string(value.version, "manifest version")?;
+
+        let sage_version_min =
+            normalized_non_empty_string(value.sage_version.min, "manifest sageVersion.min")?;
+
+        let sage_version_tested_max = value
+            .sage_version
+            .tested_max
+            .map(|tested_max| {
+                normalized_non_empty_string(tested_max, "manifest sageVersion.testedMax")
+            })
+            .transpose()?;
+
+        let sage_version = SageAppManifestSageVersion {
+            min: sage_version_min,
+            tested_max: sage_version_tested_max,
+        };
 
         let entry = normalize_optional_manifest_path(value.entry, "manifest entry")?;
         let icon = normalize_optional_manifest_path(value.icon, "manifest icon")?;
@@ -116,16 +179,30 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
         validate_declared_manifest_asset_exists(icon.as_deref(), &value.files, "icon")?;
 
         Ok(Self {
+            manifest_version: value.manifest_version,
             name,
+            icon,
+            sage_version,
             version,
             permissions: value.permissions,
             files: value.files,
             total_bytes,
             entry,
-            icon,
             author,
             donation,
         })
+    }
+}
+
+impl SageAppPackageManifestParts {
+    pub fn v0_defaults() -> (SageAppManifestVersion, SageAppManifestSageVersion) {
+        (
+            SageAppManifestVersion(0),
+            SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+        )
     }
 }
 
@@ -134,12 +211,20 @@ impl SageAppPackageManifest {
         validate_package_files_match_manifest(package_root, self.files())
     }
 
+    pub fn manifest_version(&self) -> SageAppManifestVersion {
+        self.manifest_version
+    }
+
     pub fn name(&self) -> &str {
         &self.name
     }
 
     pub fn version(&self) -> &str {
         &self.version
+    }
+
+    pub fn sage_version(&self) -> &SageAppManifestSageVersion {
+        &self.sage_version
     }
 
     pub fn permissions(&self) -> &SageRequestedPermissions {
@@ -199,13 +284,43 @@ impl SageAppManifestFile {
     }
 }
 
+pub fn parse_manifest_version_from_value(
+    value: &serde_json::Value,
+) -> anyhow::Result<SageAppManifestVersion> {
+    let version = value
+        .get("manifestVersion")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or_else(|| anyhow::anyhow!("manifestVersion is missing"))?;
+
+    let version =
+        u16::try_from(version).map_err(|_| anyhow::anyhow!("manifestVersion is too large"))?;
+
+    Ok(SageAppManifestVersion(version))
+}
+
+pub fn parse_manifest_header_v0_from_value(
+    value: serde_json::Value,
+) -> anyhow::Result<SageAppManifestHeaderV0> {
+    let version = parse_manifest_version_from_value(&value)?;
+
+    if version.0 != 0 {
+        return Err(anyhow::anyhow!(
+            "unsupported manifest header version {}",
+            version.0
+        ));
+    }
+
+    serde_json::from_value(value)
+        .map_err(|err| anyhow::anyhow!("failed to parse manifest v0 header: {err}"))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::capabilities::list::UserBridgeCapability;
     use crate::types::{
-        SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions,
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
     };
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
@@ -234,7 +349,17 @@ mod tests {
                 ],
             ),
         )
-        .unwrap()
+            .unwrap()
+    }
+
+    fn manifest_header_parts() -> (SageAppManifestVersion, SageAppManifestSageVersion) {
+        (
+            SageAppManifestVersion(0),
+            SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+        )
     }
 
     fn sample_manifest_with(
@@ -253,66 +378,103 @@ mod tests {
             files.push(sample_manifest_file(icon_file, 1));
         }
 
+        let (manifest_version, sage_version) = manifest_header_parts();
+
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test App".to_string(),
+            icon: icon_file,
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: requested_permissions(),
             files,
             entry: entry_file,
-            icon: icon_file,
             author: None,
             donation: None,
         })
-        .unwrap()
+            .unwrap()
     }
 
     #[test]
     fn manifest_rejects_blank_name() {
+        let (manifest_version, sage_version) = manifest_header_parts();
+
         let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "   ".to_string(),
+            icon: Some("icon.png".to_string()),
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_file()],
             entry: Some("index.html".to_string()),
-            icon: Some("icon.png".to_string()),
             author: None,
             donation: None,
         })
-        .unwrap_err();
+            .unwrap_err();
 
         assert!(err.to_string().contains("name cannot be empty"));
     }
 
     #[test]
     fn manifest_rejects_blank_version() {
+        let (manifest_version, sage_version) = manifest_header_parts();
+
         let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test".to_string(),
+            icon: Some("icon.png".to_string()),
+            sage_version,
             version: "   ".to_string(),
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_file()],
             entry: Some("index.html".to_string()),
-            icon: Some("icon.png".to_string()),
             author: None,
             donation: None,
         })
-        .unwrap_err();
+            .unwrap_err();
 
         assert!(err.to_string().contains("version cannot be empty"));
     }
 
     #[test]
+    fn manifest_rejects_unsupported_manifest_version() {
+        let (_, sage_version) = manifest_header_parts();
+
+        let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(1),
+            name: "Test".to_string(),
+            icon: None,
+            sage_version,
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::empty(),
+            files: vec![sample_file()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+            .unwrap_err();
+
+        assert!(err.to_string().contains("unsupported manifestVersion 1"));
+    }
+
+    #[test]
     fn manifest_total_size_is_computed() {
+        let (manifest_version, sage_version) = manifest_header_parts();
+
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test App".to_string(),
+            icon: None,
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: SageRequestedPermissions::empty(),
             files: vec![sample_manifest_file("dist/index.html", 123)],
             entry: Some("dist/index.html".to_string()),
-            icon: None,
             author: None,
             donation: None,
         })
-        .unwrap();
+            .unwrap();
 
         assert_eq!(manifest.total_bytes(), 123);
     }

@@ -183,8 +183,12 @@ mod tests {
     }
 
     fn sample_manifest() -> SageAppPackageManifest {
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
         SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test App".into(),
+            icon: None,
+            sage_version,
             version: "1.0.0".into(),
             permissions: SageRequestedPermissions::new(
                 SageRequestedNetworkPermissions::new(
@@ -204,7 +208,6 @@ mod tests {
                 SageAppManifestFile::new("index.html".to_string(), "a".repeat(64), 123).unwrap(),
             ],
             entry: Some("index.html".into()),
-            icon: None,
             author: None,
             donation: None,
         })

@@ -15,6 +15,7 @@ use specta::Type;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::OwnedMutexGuard;
+use crate::types::app::view::SageAppIconView;
 
 #[derive(Debug)]
 pub struct ResolvedStoppedApp {
@@ -130,11 +131,11 @@ impl SharedSageApp {
     }
 
     pub fn is_user_app(&self) -> bool {
-        self.with(|app| app.is_user())
+        self.with(SageApp::is_user)
     }
 
     pub fn is_system_app(&self) -> bool {
-        self.with(|app| app.is_system())
+        self.with(SageApp::is_system)
     }
 
     pub fn id(&self) -> String {
@@ -150,7 +151,7 @@ impl SharedSageApp {
     }
 
     pub fn app_path(&self) -> PathBuf {
-        self.with(|app| app.app_path())
+        self.with(SageApp::app_path)
     }
 
     pub fn source(&self) -> Option<UserSageAppSource> {
@@ -213,8 +214,17 @@ pub struct UserSageApp {
 #[serde(rename_all = "camelCase")]
 pub struct CorruptedInstalledSageApp {
     id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icon: Option<SageAppIconView>,
+
     app_dir: String,
     error: String,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    source: Option<UserSageAppSource>,
 }
 
 #[derive(Debug)]
@@ -225,15 +235,8 @@ pub enum ListedSageApp {
     Corrupted(CorruptedInstalledSageApp),
 }
 
-impl UserSageAppSource {
-    pub fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
-        let app_url = SageAppUrl::parse(app_url.as_ref())?;
-        Ok(Self::Url { app_url })
-    }
-}
-
 impl UserSageApp {
-    pub fn new_installed(common: SageAppCommon, source: UserSageAppSource) -> Self {
+    pub(crate) fn new_installed(common: SageAppCommon, source: UserSageAppSource) -> Self {
         Self {
             common,
             source,
@@ -241,118 +244,106 @@ impl UserSageApp {
         }
     }
 
-    pub fn set_pending_update(&mut self, pending_update: Option<UserSageAppPendingUpdate>) {
+    pub(crate) fn set_pending_update(&mut self, pending_update: Option<UserSageAppPendingUpdate>) {
         self.pending_update = pending_update;
     }
 
-    pub fn into_sage_app(self) -> SageApp {
-        SageApp::User(self)
-    }
-
-    pub fn common(&self) -> &SageAppCommon {
+    pub(crate) fn common(&self) -> &SageAppCommon {
         &self.common
     }
 
-    pub fn common_mut(&mut self) -> &mut SageAppCommon {
+    pub(crate) fn common_mut(&mut self) -> &mut SageAppCommon {
         &mut self.common
     }
 
-    pub fn source(&self) -> &UserSageAppSource {
+    pub(crate) fn source(&self) -> &UserSageAppSource {
         &self.source
     }
 
-    pub fn pending_update(&self) -> Option<&UserSageAppPendingUpdate> {
+    pub(crate) fn pending_update(&self) -> Option<&UserSageAppPendingUpdate> {
         self.pending_update.as_ref()
     }
 
-    pub fn app_path(&self) -> PathBuf {
+    pub(crate) fn app_path(&self) -> PathBuf {
         self.common().app_path()
     }
 }
 
 impl SageApp {
-    pub fn is_user(&self) -> bool {
+    pub(crate) fn is_user(&self) -> bool {
         matches!(self, Self::User(_))
     }
 
-    pub fn is_system(&self) -> bool {
+    pub(crate) fn is_system(&self) -> bool {
         matches!(self, Self::System(_))
     }
 
-    pub fn common(&self) -> &SageAppCommon {
+    pub(crate) fn common(&self) -> &SageAppCommon {
         match self {
             Self::System(app) => app.common(),
             Self::User(app) => app.common(),
         }
     }
 
-    pub fn common_mut(&mut self) -> &mut SageAppCommon {
+    pub(crate) fn common_mut(&mut self) -> &mut SageAppCommon {
         match self {
             Self::System(app) => app.common_mut(),
             Self::User(app) => app.common_mut(),
         }
     }
 
-    pub fn id(&self) -> &str {
+    pub(crate) fn id(&self) -> &str {
         self.common().id()
     }
 
-    pub fn origin_id(&self) -> &str {
+    pub(crate) fn origin_id(&self) -> &str {
         self.common().origin_id()
     }
 
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         self.common().name()
     }
 
-    pub fn version(&self) -> &str {
+    pub(crate) fn version(&self) -> &str {
         self.common().version()
     }
 
-    pub fn app_dir(&self) -> &str {
-        self.common().app_dir()
-    }
-
-    pub fn app_path(&self) -> PathBuf {
+    pub(crate) fn app_path(&self) -> PathBuf {
         self.common().app_path()
     }
 
-    pub fn entry_file(&self) -> String {
+    pub(crate) fn entry_file(&self) -> String {
         self.common().entry_file().to_string()
     }
 
-    pub fn icon_file(&self) -> Option<&str> {
-        self.common().icon_file()
-    }
-
-    pub fn requested_permissions(&self) -> &SageRequestedPermissions {
+    pub(crate) fn requested_permissions(&self) -> &SageRequestedPermissions {
         self.common().requested_permissions()
     }
 
-    pub fn granted_permissions(&self) -> &SageGrantedPermissions {
+    pub(crate) fn granted_permissions(&self) -> &SageGrantedPermissions {
         self.common().granted_permissions()
     }
 
-    pub fn system_granted_permissions(&self) -> Option<&SageGrantedSystemPermissions> {
+    pub(crate) fn system_granted_permissions(&self) -> Option<&SageGrantedSystemPermissions> {
         match self {
             Self::System(app) => Some(app.system_granted_permissions()),
             Self::User(_) => None,
         }
     }
 
-    pub fn flags(&self) -> &SageAppFlags {
+    pub(crate) fn flags(&self) -> &SageAppFlags {
         self.common().flags()
     }
 
-    pub fn storage(&self) -> &InstalledSageAppStorage {
+    pub(crate) fn storage(&self) -> &InstalledSageAppStorage {
         self.common().storage()
     }
 
-    pub fn active_snapshot(&self) -> &SageAppSnapshot {
+    pub(crate) fn active_snapshot(&self) -> &SageAppSnapshot {
         self.common().active_snapshot()
     }
 
-    pub fn set_pending_update(
+    pub(crate) fn set_pending_update(
         &mut self,
         pending_update: Option<UserSageAppPendingUpdate>,
     ) -> anyhow::Result<()> {
@@ -365,38 +356,17 @@ impl SageApp {
         }
     }
 
-    pub fn as_user(&self) -> Option<&UserSageApp> {
+    pub(crate) fn as_user(&self) -> Option<&UserSageApp> {
         match self {
             Self::User(app) => Some(app),
             Self::System(_) => None,
         }
     }
 
-    pub fn as_user_mut(&mut self) -> Option<&mut UserSageApp> {
+    pub(crate) fn as_user_mut(&mut self) -> Option<&mut UserSageApp> {
         match self {
             Self::User(app) => Some(app),
             Self::System(_) => None,
-        }
-    }
-
-    pub fn as_system(&self) -> Option<&SystemSageApp> {
-        match self {
-            Self::System(app) => Some(app),
-            Self::User(_) => None,
-        }
-    }
-
-    pub fn into_user(self) -> Option<UserSageApp> {
-        match self {
-            Self::User(app) => Some(app),
-            Self::System(_) => None,
-        }
-    }
-
-    pub fn into_system(self) -> Option<SystemSageApp> {
-        match self {
-            Self::System(app) => Some(app),
-            Self::User(_) => None,
         }
     }
 }
@@ -409,20 +379,58 @@ impl CorruptedInstalledSageApp {
     ) -> Self {
         Self {
             id: id.into(),
+            icon: None,
             app_dir: app_dir.into(),
             error: error.into(),
+            manifest_header: None,
+            source: None,
         }
     }
 
-    pub fn id(&self) -> &str {
+    pub(crate) fn with_icon(
+        mut self,
+        icon: Option<SageAppIconView>,
+    ) -> Self {
+        self.icon = icon;
+        self
+    }
+
+    pub(crate) fn with_manifest_header(
+        mut self,
+        manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+    ) -> Self {
+        self.manifest_header = manifest_header;
+        self
+    }
+
+    pub(crate) fn with_source(mut self, source: Option<UserSageAppSource>) -> Self {
+        self.source = source;
+        self
+    }
+
+    pub(crate) fn id(&self) -> &str {
         &self.id
     }
+}
 
-    pub fn app_dir(&self) -> &str {
-        &self.app_dir
+#[cfg(test)]
+impl UserSageAppSource {
+    pub(crate) fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
+        let app_url = SageAppUrl::parse(app_url.as_ref())?;
+        Ok(Self::Url { app_url })
     }
+}
 
-    pub fn error(&self) -> &str {
+#[cfg(test)]
+impl UserSageApp {
+    pub(crate) fn into_sage_app(self) -> SageApp {
+        SageApp::User(self)
+    }
+}
+
+#[cfg(test)]
+impl CorruptedInstalledSageApp {
+    pub(crate) fn error(&self) -> &str {
         &self.error
     }
 }

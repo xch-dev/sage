@@ -202,13 +202,16 @@ mod tests {
         )
             .unwrap();
 
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
             name: "Test App".to_string(),
+            icon: None,
+            sage_version,
             version: "1.0.0".to_string(),
             permissions: requested_permissions.clone(),
             files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 4).unwrap()],
             entry: Some("index.html".to_string()),
-            icon: None,
             author: None,
             donation: None,
         })

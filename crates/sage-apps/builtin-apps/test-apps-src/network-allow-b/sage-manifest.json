@@ -1,13 +1,16 @@
 {
+  "manifestVersion": 0,
+  "sageVersion": {
+    "min": "0.0.0",
+    "testedMax": "99.0.0"
+  },
   "name": "Network Allow B",
   "version": "1.0.0",
   "icon": "icon.svg",
   "permissions": {
     "network": {
       "whitelist": {
-        "required": [
-          "https://example.org"
-        ]
+        "required": ["https://example.org"]
       }
     },
     "capabilities": {
