@@ -41,6 +41,7 @@ import {
   openAppPermissionsReview,
   openAppUpdateReview,
 } from '@/lib/apps/openAppUpdate.ts';
+import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer.tsx';
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
@@ -795,6 +796,8 @@ export function Apps() {
             );
           }}
         />
+
+        <SystemAppModalLayer />
       </div>
 
       <Dialog

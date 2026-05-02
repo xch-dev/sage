@@ -25,6 +25,7 @@ import {
 import { AppUpdateDialog } from '@/components/apps/AppUpdateDialog.tsx';
 import { getAppUpdatePermissionsDelta } from '@/lib/apps/updatePermissionsDelta.ts';
 import { AppDonationStrip } from '@/components/apps/AppDonationStrip.tsx';
+import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 
 export function AppsWorkspace() {
   const { appId } = useParams();
@@ -206,7 +207,7 @@ export function AppsWorkspace() {
   }, [activeApp, activeUpdatePreview, handleConfirmUpdate]);
 
   return (
-    <div className='flex h-full min-h-0 w-full flex-col overflow-hidden'>
+    <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>
       <AppTaskBar
         tabs={tabs}
         activeAppId={appId ?? null}
@@ -309,6 +310,8 @@ export function AppsWorkspace() {
       <div className='flex-1 min-h-0 overflow-hidden'>
         <Outlet />
       </div>
+
+      <SystemAppModalLayer />
 
       <AppUpdateDialog
         open={updateDialogOpen}

@@ -630,8 +630,8 @@ export function App() {
   }, []);
 
   return (
-    <div className='flex h-full min-h-full w-full items-center justify-center bg-black/70 p-6 text-foreground'>
-      <div className='max-h-[85vh] w-full max-w-2xl overflow-auto rounded-2xl border bg-card p-6 text-card-foreground shadow-2xl'>
+    <div className='h-screen w-screen overflow-hidden text-foreground'>
+      <div className='h-full w-full overflow-auto rounded-2xl bg-card p-6 text-card-foreground shadow-2xl'>
         {state.kind === 'loading' ? (
           <div className='text-sm text-muted-foreground'>Loading review…</div>
         ) : state.kind === 'error' ? (

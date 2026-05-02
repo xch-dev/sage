@@ -47,6 +47,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::AppPermissionsApply,
             SystemBridgeCapability::AppUpdateRead,
             SystemBridgeCapability::AppUpdateApply,
+            SystemBridgeCapability::RuntimeManagerKillRuntime,
         ],
     },
 ];
