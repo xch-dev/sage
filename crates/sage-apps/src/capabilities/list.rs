@@ -24,6 +24,7 @@ macro_rules! define_bridge_capabilities {
             Ord,
             Hash,
         )]
+        #[allow(clippy::enum_variant_names)]
         $visibility enum $name {
             $(
                 #[serde(rename = $key)]
