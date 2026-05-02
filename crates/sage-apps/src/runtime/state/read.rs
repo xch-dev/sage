@@ -1,10 +1,15 @@
 use std::cmp::Reverse;
 use std::fmt::Display;
+use std::thread::sleep;
+use std::time::{Duration, Instant};
 
 use tauri::State;
 
 use crate::AppsHostState;
 use crate::runtime::state::types::{SharedImpostorRuntime, SharedRuntime};
+
+const IMMEDIATE_LOCK_RETRY_TIMEOUT_MS: u64 = 20;
+const IMMEDIATE_LOCK_RETRY_DELAY_MS: u64 = 2;
 
 pub enum GetRuntimeError {
     NotFound,
@@ -34,33 +39,9 @@ pub(crate) fn find_runtime_by_app_id_optional_immediate(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<Option<SharedRuntime>, String> {
-    let runtime_id = {
-        let by_app_id = apps_state
-            .runtime
-            .runtime_id_by_app_id
-            .try_lock()
-            .map_err(|_| {
-                eprintln!("runtime_id_by_app_id is busy for app_id '{}'", app_id);
-                "runtime_id_by_app_id is busy".to_string()
-            })?;
-
-        by_app_id.get(app_id).cloned()
-    };
-
-    let Some(runtime_id) = runtime_id else {
-        return Ok(None);
-    };
-
-    let by_runtime_id = apps_state
-        .runtime
-        .runtime_by_runtime_id
-        .try_lock()
-        .map_err(|_| {
-            eprintln!("runtime_by_runtime_id is busy for app_id '{}'", app_id);
-            "runtime_by_runtime_id is busy".to_string()
-        })?;
-
-    Ok(by_runtime_id.get(&runtime_id).cloned())
+    retry_immediate_lookup("runtime lookup", || {
+        find_runtime_by_app_id_optional_immediate_once(apps_state, app_id)
+    })
 }
 
 pub(crate) async fn find_runtime_id_by_app_id_optional(
@@ -93,33 +74,12 @@ pub(crate) fn find_impostor_runtime_by_victim_app_id_optional_immediate(
     apps_state: &State<'_, AppsHostState>,
     victim_app_id: &str,
 ) -> Result<Option<SharedImpostorRuntime>, String> {
-    let runtime_id = {
-        let by_victim_app_id = apps_state
-            .runtime
-            .impostor_runtime_id_by_victim_app_id
-            .try_lock()
-            .map_err(|_| {
-                eprintln!("impostor_runtime_id_by_victim_app_id is busy");
-                "impostor_runtime_id_by_victim_app_id is busy".to_string()
-            })?;
-
-        by_victim_app_id.get(victim_app_id).cloned()
-    };
-
-    let Some(runtime_id) = runtime_id else {
-        return Ok(None);
-    };
-
-    let by_runtime_id = apps_state
-        .runtime
-        .impostor_by_runtime_id
-        .try_lock()
-        .map_err(|_| {
-            eprintln!("impostor_by_runtime_id is busy");
-            "impostor_by_runtime_id is busy".to_string()
-        })?;
-
-    Ok(by_runtime_id.get(&runtime_id).cloned())
+    retry_immediate_lookup("impostor runtime lookup", || {
+        find_impostor_runtime_by_victim_app_id_optional_immediate_once(
+            apps_state,
+            victim_app_id,
+        )
+    })
 }
 
 pub(crate) async fn find_impostor_runtime_id_by_victim_app_id_optional(
@@ -169,4 +129,95 @@ pub(crate) async fn list_runtimes(
     });
 
     Ok(runtimes)
+}
+
+fn find_runtime_by_app_id_optional_immediate_once(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<Option<SharedRuntime>, String> {
+    let runtime_id = {
+        let by_app_id = apps_state
+            .runtime
+            .runtime_id_by_app_id
+            .try_lock()
+            .map_err(|_| {
+                eprintln!("runtime_id_by_app_id is busy for app_id '{app_id}'");
+                "runtime_id_by_app_id is busy".to_string()
+            })?;
+
+        by_app_id.get(app_id).cloned()
+    };
+
+    let Some(runtime_id) = runtime_id else {
+        return Ok(None);
+    };
+
+    let by_runtime_id = apps_state
+        .runtime
+        .runtime_by_runtime_id
+        .try_lock()
+        .map_err(|_| {
+            eprintln!("runtime_by_runtime_id is busy for app_id '{app_id}'");
+            "runtime_by_runtime_id is busy".to_string()
+        })?;
+
+    Ok(by_runtime_id.get(&runtime_id).cloned())
+}
+
+fn find_impostor_runtime_by_victim_app_id_optional_immediate_once(
+    apps_state: &State<'_, AppsHostState>,
+    victim_app_id: &str,
+) -> Result<Option<SharedImpostorRuntime>, String> {
+    let runtime_id = {
+        let by_victim_app_id = apps_state
+            .runtime
+            .impostor_runtime_id_by_victim_app_id
+            .try_lock()
+            .map_err(|_| {
+                eprintln!("impostor_runtime_id_by_victim_app_id is busy");
+                "impostor_runtime_id_by_victim_app_id is busy".to_string()
+            })?;
+
+        by_victim_app_id.get(victim_app_id).cloned()
+    };
+
+    let Some(runtime_id) = runtime_id else {
+        return Ok(None);
+    };
+
+    let by_runtime_id = apps_state
+        .runtime
+        .impostor_by_runtime_id
+        .try_lock()
+        .map_err(|_| {
+            eprintln!("impostor_by_runtime_id is busy");
+            "impostor_by_runtime_id is busy".to_string()
+        })?;
+
+    Ok(by_runtime_id.get(&runtime_id).cloned())
+}
+
+fn is_busy_error(err: &str) -> bool {
+    err.contains(" is busy")
+}
+
+fn retry_immediate_lookup<T>(
+    label: &str,
+    mut lookup: impl FnMut() -> Result<T, String>,
+) -> Result<T, String> {
+    let deadline = Instant::now() + Duration::from_millis(IMMEDIATE_LOCK_RETRY_TIMEOUT_MS);
+
+    loop {
+        match lookup() {
+            Ok(value) => return Ok(value),
+            Err(err) if is_busy_error(&err) && Instant::now() < deadline => {
+                sleep(Duration::from_millis(IMMEDIATE_LOCK_RETRY_DELAY_MS));
+            }
+            Err(err) => return Err(err),
+        }
+
+        if Instant::now() >= deadline {
+            return Err(format!("{label} is busy"));
+        }
+    }
 }
