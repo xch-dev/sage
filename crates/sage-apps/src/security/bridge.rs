@@ -1,5 +1,5 @@
 use tauri::{AppHandle, Manager};
-use crate::bridge::bridge_request::BridgeOrigin;
+use crate::bridge::BridgeOrigin;
 use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_possibly_impostor_running_app, PossiblyImpostorRuntime};
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 

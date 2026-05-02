@@ -1,4 +1,4 @@
-pub mod bridge_request;
+mod bridge_request;
 pub mod commands;
 pub mod event_emit;
 pub mod methods;
@@ -6,6 +6,8 @@ pub mod registry;
 pub mod state;
 pub mod ts_exports;
 pub mod types;
+
+pub(crate) use bridge_request::BridgeOrigin;
 
 pub use types::{
     ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest,

@@ -3,8 +3,8 @@ use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBr
 use crate::bridge::methods::shared::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::state::write_pending_approval;
-use crate::bridge::{RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
+use crate::bridge::state::{get_pending_approval, remove_pending_approval, write_pending_approval};
+use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
 use crate::runtime::webview_locator::{get_sage_webview};
@@ -12,6 +12,7 @@ use crate::runtime::{SharedImpostorRuntime};
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
+use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::security::assert_bridge_origin;
 
 pub(crate) struct BridgeOrigin {
@@ -19,7 +20,7 @@ pub(crate) struct BridgeOrigin {
     pub impostor_runtime: Option<SharedImpostorRuntime>,
 }
 
-pub async fn process_user(
+pub(super) async fn process(
     app_handle: AppHandle,
     webview: Webview,
     app_state: State<'_, AppState>,
@@ -32,7 +33,7 @@ pub async fn process_user(
     let webview_label = webview.label().to_string();
 
     let origin = match assert_bridge_origin(&app_handle, &webview_label).await {
-        Ok(value) => value,
+        Ok(origin) => origin,
         Err(err) => {
             return Ok(RustBridgeInvokeResult::Immediate {
                 response: RustBridgeResponse::error(
@@ -47,7 +48,7 @@ pub async fn process_user(
     process_shared(app_handle, app_state, origin, BridgeRegistryKind::User, request).await
 }
 
-pub async fn process_system(
+pub(super) async fn process_system(
     app_handle: AppHandle,
     webview: Webview,
     app_state: State<'_, AppState>,
@@ -72,6 +73,39 @@ pub async fn process_system(
     };
 
     process_shared(app_handle, app_state, origin, BridgeRegistryKind::System, request).await
+}
+
+pub(super) async fn process_after_approval(
+    app_handle: AppHandle,
+    app_state: State<'_, AppState>,
+    apps_state: State<'_, AppsHostState>,
+    args: ResolveBridgeApprovalArgs,
+) -> Result<(), String> {
+    let pending = get_pending_approval(&apps_state, &args.approval_id).await?;
+    remove_pending_approval(&apps_state, &args.approval_id).await;
+
+    let origin = assert_bridge_origin(&app_handle, &pending.app_webview_label).await?;
+
+    let response = if args.approved {
+        execute_bridge_request(
+            &app_handle,
+            &app_state,
+            &origin,
+            BridgeRegistry::new(pending.registry_kind),
+            &pending.request,
+        )
+            .await
+    } else {
+        RustBridgeResponse::error(
+            &pending.request.id,
+            "user_denied",
+            args.reason
+                .unwrap_or_else(|| "User denied the request".to_string()),
+        )
+    };
+
+    emit_bridge_response_to_source(&app_handle, &origin.app, &response).await?;
+    Ok(())
 }
 
 async fn process_shared(
@@ -113,40 +147,28 @@ async fn process_shared(
         &request,
     ) {
         Ok(Some(approval)) => {
-            let approval_id = Uuid::new_v4().to_string();
-
-            let apps_state = app_handle.state::<AppsHostState>();
-            write_pending_approval(
-                &apps_state,
-                &approval_id,
-                app,
-                &request,
-                registry_kind,
-            )
-            .await;
-
-            emit_sage_approval_requested(&app_handle, approval_id, approval)?;
-            return Ok(RustBridgeInvokeResult::Pending {});
+            request_approval(&app_handle, approval, app, &request, registry_kind).await?;
+            Ok(RustBridgeInvokeResult::Pending {})
         }
-        Ok(None) => {}
+        Ok(None) => {
+            let response =
+                execute_bridge_request(&app_handle, &app_state, &origin, registry, &request).await;
+
+            Ok(RustBridgeInvokeResult::Immediate { response })
+        }
         Err(err) => {
-            return Ok(RustBridgeInvokeResult::Immediate {
+            Ok(RustBridgeInvokeResult::Immediate {
                 response: RustBridgeResponse::error(
                     &request.id,
                     err.code,
                     err.message,
                 ),
-            });
+            })
         }
     }
-
-    let response =
-        execute_bridge_request(&app_handle, &app_state, &origin, registry, &request).await;
-
-    Ok(RustBridgeInvokeResult::Immediate { response })
 }
 
-pub(crate) async fn execute_bridge_request(
+async fn execute_bridge_request(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
     origin: &BridgeOrigin,
@@ -181,6 +203,28 @@ pub(crate) async fn execute_bridge_request(
         },
         Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
     }
+}
+
+async fn request_approval(
+    app_handle: &AppHandle,
+    approval: RustBridgeApprovalRequest,
+    app: &SharedSageApp,
+    request: &RustBridgeRequest,
+    registry_kind: BridgeRegistryKind
+) -> Result<(), String> {
+    let approval_id = Uuid::new_v4().to_string();
+
+    let apps_state = app_handle.state::<AppsHostState>();
+    write_pending_approval(
+        &apps_state,
+        &approval_id,
+        app,
+        request,
+        registry_kind,
+    )
+        .await;
+
+    emit_sage_approval_requested(app_handle, approval_id, approval)
 }
 
 fn verify_capability(
