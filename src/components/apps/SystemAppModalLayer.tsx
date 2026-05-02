@@ -3,12 +3,12 @@ import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
 import { Webview } from '@tauri-apps/api/webview';
 import { useAppRuntimes } from '@/hooks/useAppRuntimes';
 
-type CachedRuntimeRect = {
+interface CachedRuntimeRect {
   left: number;
   top: number;
   width: number;
   height: number;
-};
+}
 
 export function SystemAppModalLayer() {
   const modalBoundsRef = useRef<HTMLDivElement | null>(null);
@@ -150,11 +150,16 @@ export function SystemAppModalLayer() {
       className='pointer-events-none absolute inset-0 z-50 flex items-center justify-center px-6 py-8'
       aria-hidden
     >
-      <div className='absolute inset-0 bg-black/25 backdrop-blur-sm' />
+      <div className='absolute inset-0 bg-black/20 backdrop-blur-sm' />
 
       <div
         ref={modalBoundsRef}
-        className='relative h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))]'
+        className='relative h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))] rounded-2xl border border-border shadow-2xl'
+        style={{
+          backdropFilter: 'blur(60px) saturate(0.75)',
+          WebkitBackdropFilter: 'blur(60px) saturate(0.75)',
+          backgroundColor: 'rgb(255 255 255 / 0.12)',
+        }}
       />
     </div>
   );

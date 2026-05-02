@@ -26,11 +26,24 @@ export const sageThemeVars = {
 export type SageThemeVar = keyof typeof sageThemeVars;
 
 export function cssVar(name: SageThemeVar): string {
-  return `hsl(var(${sageThemeVars[name]}))`;
+  return `var(${sageThemeVars[name]})`;
 }
 
 export function rawCssVar(name: SageThemeVar): string {
   return `var(${sageThemeVars[name]})`;
+}
+
+function normalizeCssVarValue(value: string): string {
+  const trimmed = value.trim();
+
+  const hslTuple =
+    /^-?\d+(\.\d+)?(?:deg|rad|turn)?\s+-?\d+(\.\d+)?%\s+-?\d+(\.\d+)?%(?:\s*\/\s*(?:\d+(\.\d+)?%?|\.\d+))?$/;
+
+  if (hslTuple.test(trimmed)) {
+    return `hsl(${trimmed})`;
+  }
+
+  return trimmed;
 }
 
 export function applySageThemeCssVars(
@@ -54,7 +67,7 @@ export function applySageThemeCssVars(
         value.trim().length > 0
       );
     })
-    .map(([key, value]) => `${key}: ${value.trim()};`)
+    .map(([key, value]) => `${key}: ${normalizeCssVarValue(value)};`)
     .join(' ');
 
   el.textContent = vars ? `:root { ${vars} }` : '';
