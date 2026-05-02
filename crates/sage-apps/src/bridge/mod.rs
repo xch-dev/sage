@@ -1,6 +1,7 @@
-mod bridge_request;
 pub mod commands;
-pub mod event_emit;
+
+mod bridge_request;
+mod event_emit;
 pub mod methods;
 pub mod registry;
 pub mod state;
@@ -14,4 +15,5 @@ pub use types::{
     ResolveBridgeApprovalArgs, RustBridgeApprovalEvent
 };
 
+pub(crate) use event_emit::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview};
 pub(crate) use types::{BridgeOrigin};

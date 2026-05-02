@@ -9,7 +9,7 @@ use tauri::{AppHandle, State};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use uuid::Uuid;
-use crate::bridge::event_emit::emit_runtime_event_to_app_id;
+use crate::bridge::emit_runtime_event_to_app_id;
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;

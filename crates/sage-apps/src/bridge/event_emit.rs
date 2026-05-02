@@ -11,14 +11,14 @@ const SAGE_RUNTIME_EVENT_NAME: &str = "apps:runtime-event";
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub struct RuntimeEvent<T: AppRuntimeEvent> {
+pub(crate) struct RuntimeEvent<T: AppRuntimeEvent> {
     #[serde(rename = "type")]
     pub event_type: &'static str,
 
     pub payload: T,
 }
 
-pub fn runtime_event<T: AppRuntimeEvent>(payload: T) -> RuntimeEvent<T> {
+pub(crate) fn runtime_event<T: AppRuntimeEvent>(payload: T) -> RuntimeEvent<T> {
     RuntimeEvent {
         event_type: T::TYPE,
         payload,
@@ -26,13 +26,13 @@ pub fn runtime_event<T: AppRuntimeEvent>(payload: T) -> RuntimeEvent<T> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AppRuntimeEventRail {
+pub(crate) enum AppRuntimeEventRail {
     User,
     System,
 }
 
 impl AppRuntimeEventRail {
-    pub fn event_name(self) -> &'static str {
+    pub(crate) fn event_name(self) -> &'static str {
         match self {
             Self::User => "sage-bridge:event",
             Self::System => "sage-system-bridge:event",
@@ -40,19 +40,9 @@ impl AppRuntimeEventRail {
     }
 }
 
-pub trait AppRuntimeEvent: Serialize + Type + Clone {
+pub(crate) trait AppRuntimeEvent: Serialize + Type + Clone {
     const TYPE: &'static str;
     const RAIL: AppRuntimeEventRail;
-}
-
-pub(crate) async fn emit_bridge_response_to_source(
-    app_handle: &AppHandle,
-    app: &SharedSageApp,
-    response: &RustBridgeResponse,
-) -> Result<(), String> {
-    get_webview_in_sage_window(app_handle, &app.webview_label())?
-        .emit("sage-bridge:response", response)
-        .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
 pub(crate) async fn emit_runtime_event_to_app_id<T>(
@@ -84,4 +74,14 @@ where
     get_sage_webview(app_handle)?
         .emit(SAGE_RUNTIME_EVENT_NAME, runtime_event(event))
         .map_err(|err| format!("failed to emit runtime event to Sage webview: {err}"))
+}
+
+pub(super) async fn emit_bridge_response_to_source(
+    app_handle: &AppHandle,
+    app: &SharedSageApp,
+    response: &RustBridgeResponse,
+) -> Result<(), String> {
+    get_webview_in_sage_window(app_handle, &app.webview_label())?
+        .emit("sage-bridge:response", response)
+        .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
