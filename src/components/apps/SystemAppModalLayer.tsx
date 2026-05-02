@@ -16,6 +16,8 @@ export function SystemAppModalLayer() {
     new Map(),
   );
   const retryTimerRef = useRef<number | null>(null);
+  const resizeRafRef = useRef<number | null>(null);
+  const resizePumpUntilRef = useRef(0);
 
   const runtimes = useAppRuntimes({ includeInternal: true });
 
@@ -40,9 +42,7 @@ export function SystemAppModalLayer() {
   );
 
   const scheduleRetry = useCallback(() => {
-    if (retryTimerRef.current != null) {
-      return;
-    }
+    if (retryTimerRef.current != null) return;
 
     retryTimerRef.current = window.setTimeout(() => {
       retryTimerRef.current = null;
@@ -113,6 +113,27 @@ export function SystemAppModalLayer() {
     }
   }, [modalRuntimes, scheduleRetry]);
 
+  const pumpSyncDuringResize = useCallback(() => {
+    resizePumpUntilRef.current = performance.now() + 250;
+
+    if (resizeRafRef.current != null) {
+      return;
+    }
+
+    const tick = () => {
+      lastRectByWebviewLabelRef.current.clear();
+      void sync();
+
+      if (performance.now() < resizePumpUntilRef.current) {
+        resizeRafRef.current = window.requestAnimationFrame(tick);
+      } else {
+        resizeRafRef.current = null;
+      }
+    };
+
+    resizeRafRef.current = window.requestAnimationFrame(tick);
+  }, [sync]);
+
   useEffect(() => {
     lastRectByWebviewLabelRef.current.clear();
 
@@ -121,25 +142,30 @@ export function SystemAppModalLayer() {
     });
 
     const observer = new ResizeObserver(() => {
-      void sync();
+      pumpSyncDuringResize();
     });
 
     if (modalBoundsRef.current) {
       observer.observe(modalBoundsRef.current);
     }
 
-    window.addEventListener('resize', sync);
+    window.addEventListener('resize', pumpSyncDuringResize);
 
     return () => {
       observer.disconnect();
-      window.removeEventListener('resize', sync);
+      window.removeEventListener('resize', pumpSyncDuringResize);
 
       if (retryTimerRef.current != null) {
         window.clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
+
+      if (resizeRafRef.current != null) {
+        window.cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = null;
+      }
     };
-  }, [sync, modalRuntimeKey]);
+  }, [sync, pumpSyncDuringResize, modalRuntimeKey]);
 
   if (modalRuntimes.length === 0) {
     return null;
