@@ -7,11 +7,12 @@ use crate::bridge::state::write_pending_approval;
 use crate::bridge::{RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
-use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_possibly_impostor_running_app, PossiblyImpostorRuntime, SharedImpostorRuntime};
+use crate::runtime::webview_locator::{get_sage_webview};
+use crate::runtime::{SharedImpostorRuntime};
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Emitter, Manager, State, Webview};
 use uuid::Uuid;
+use crate::security::assert_bridge_origin;
 
 pub(crate) struct BridgeOrigin {
     pub app: SharedSageApp,
@@ -328,48 +329,6 @@ async fn assert_system_bridge_origin(
     }
 
     Ok(origin)
-}
-
-pub(super) async fn assert_bridge_origin(
-    app_handle: &AppHandle,
-    webview_label: &String,
-) -> Result<BridgeOrigin, String> {
-    let app_id = app_id_from_webview_label(webview_label)
-        .ok_or_else(|| format!("invalid app runtime label: {webview_label}"))?;
-
-    let runtime = resolve_possibly_impostor_running_app(&app_handle.state(), app_id)
-        .await
-        .map_err(|_| format!("failed to find runtime for app {app_id}"))?;
-
-    let app = runtime.identity_app();
-
-    let impostor_runtime = match &runtime {
-        PossiblyImpostorRuntime::Legit(_) => None,
-        PossiblyImpostorRuntime::Impostor(runtime) => Some(runtime),
-    };
-
-    if !app.webview_label_matches(webview_label) {
-        return Err(format!(
-            "bridge denied for {webview_label}: webview label mismatch"
-        ));
-    }
-
-    let app_webview = get_webview_in_sage_window(app_handle, webview_label)?;
-
-    let current_url = app_webview
-        .url()
-        .map_err(|e| format!("failed to read current webview url: {e}"))?;
-
-    if !is_allowed_app_url(&current_url, &app) {
-        return Err(format!(
-            "bridge denied for {webview_label}: current url {} is outside {}://{}/...",
-            current_url,
-            protocol_scheme_for_app(&app),
-            app.origin_id()
-        ));
-    }
-
-    Ok(BridgeOrigin { app, impostor_runtime: impostor_runtime.cloned() })
 }
 
 fn assert_bridge_version(request: &RustBridgeRequest) -> Result<(), RustBridgeInvokeResult> {

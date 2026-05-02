@@ -1,5 +1,5 @@
 use crate::AppsHostState;
-use crate::bridge::bridge_request::{assert_bridge_origin, execute_bridge_request, process_system, process_user};
+use crate::bridge::bridge_request::{execute_bridge_request, process_system, process_user};
 use crate::bridge::event_emit::emit_bridge_response_to_source;
 use crate::bridge::state::{get_pending_approval, remove_pending_approval};
 use crate::bridge::{
@@ -10,6 +10,7 @@ use crate::host::AppState;
 use crate::types::SageAppCapabilityDefinitionView;
 use tauri::{AppHandle, State, Webview};
 use crate::bridge::registry::BridgeRegistry;
+use crate::security::assert_bridge_origin;
 
 #[tauri::command]
 #[specta::specta]
