@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { platform } from '@tauri-apps/plugin-os';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
 import {
   ensureInlineRuntime,
@@ -7,14 +6,6 @@ import {
   markRuntimeVisible,
 } from '@/lib/apps/runtimeRegistry';
 import type { SageAppView } from '@/bindings';
-import { getCurrentWindow } from '@tauri-apps/api/window';
-
-async function getMacWindowedTopInsetPx(): Promise<number> {
-  const isMac = platform() === 'macos';
-  const isMaximized = await getCurrentWindow().isMaximized();
-
-  return isMac && !isMaximized ? 30 : 0;
-}
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -45,12 +36,11 @@ export function useAppEmbeddedRuntime({ app, containerRef }: Args) {
         return;
       }
 
-      const inset = await getMacWindowedTopInsetPx();
       const rect = container.getBoundingClientRect();
       const width = Math.max(1, Math.round(rect.width));
-      const height = Math.max(1, Math.round(rect.height - inset));
+      const height = Math.max(1, Math.round(rect.height));
       const x = Math.round(rect.left);
-      const y = Math.round(rect.top + inset);
+      const y = Math.round(rect.top);
 
       await webview.setPosition(new LogicalPosition(x, y));
       await webview.setSize(new LogicalSize(width, height));
