@@ -1,6 +1,6 @@
 use crate::AppsHostState;
 use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::bridge::methods::shared::BridgeMethodCapability;
+use crate::bridge::methods::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
 use crate::bridge::state::{get_pending_approval, remove_pending_approval, write_pending_approval};

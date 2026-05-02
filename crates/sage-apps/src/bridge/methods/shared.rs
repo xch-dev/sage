@@ -7,56 +7,8 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 use crate::runtime::SharedImpostorRuntime;
 
-#[derive(Debug)]
-pub struct BridgeContext<'a> {
-    pub app: &'a SharedSageApp,
-    pub impostor_runtime: &'a Option<SharedImpostorRuntime>,
-}
-
-#[derive(Debug)]
-pub struct BridgeTools<'a> {
-    pub app_handle: &'a tauri::AppHandle,
-    pub app_state: &'a tauri::State<'a, AppState>,
-    pub host_state: &'a tauri::State<'a, AppsHostState>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeMethodCapability {
-    Ungated,
-    Required(BridgeCapability),
-}
-
-#[derive(Debug, Clone)]
-pub struct BridgeMethodHandleError {
-    pub code: &'static str,
-    pub message: String,
-}
-
-impl BridgeMethodHandleError {
-    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-        }
-    }
-
-    pub fn invalid_request(message: impl Into<String>) -> Self {
-        Self::new("invalid_request", message)
-    }
-
-    pub fn internal_error(message: impl Into<String>) -> Self {
-        Self::new("internal_error", message)
-    }
-}
-
-pub type BridgeApprovalRequestResult =
-    Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
-
-pub type BridgeHandleResult =
-    Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
-
 #[async_trait]
-pub trait BridgeMethod: Send + Sync {
+pub(crate) trait BridgeMethod: Send + Sync {
     fn name(&self) -> &'static str;
     fn capability(&self) -> BridgeMethodCapability;
 
@@ -74,21 +26,69 @@ pub trait BridgeMethod: Send + Sync {
     ) -> BridgeHandleResult;
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum BridgeMethodCapability {
+    Ungated,
+    Required(BridgeCapability),
+}
+
+#[derive(Debug)]
+pub(crate) struct BridgeContext<'a> {
+    pub app: &'a SharedSageApp,
+    pub impostor_runtime: &'a Option<SharedImpostorRuntime>,
+}
+
+#[derive(Debug)]
+pub(crate) struct BridgeTools<'a> {
+    pub app_handle: &'a tauri::AppHandle,
+    pub app_state: &'a tauri::State<'a, AppState>,
+    pub host_state: &'a tauri::State<'a, AppsHostState>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct BridgeMethodHandleError {
+    pub code: &'static str,
+    pub message: String,
+}
+
+impl BridgeMethodHandleError {
+    pub(super) fn new(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            code,
+            message: message.into(),
+        }
+    }
+
+    pub(super) fn invalid_request(message: impl Into<String>) -> Self {
+        Self::new("invalid_request", message)
+    }
+
+    pub(super) fn internal_error(message: impl Into<String>) -> Self {
+        Self::new("internal_error", message)
+    }
+}
+
+pub(super) type BridgeApprovalRequestResult =
+    Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
+
+pub(super) type BridgeHandleResult =
+    Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
+
 impl BridgeMethodCapability {
-    pub fn ungated() -> Self {
+    pub(super) fn ungated() -> Self {
         Self::Ungated
     }
 
-    pub fn user(cap: UserBridgeCapability) -> Self {
+    pub(super) fn user(cap: UserBridgeCapability) -> Self {
         Self::Required(BridgeCapability::User(cap))
     }
 
-    pub fn system(cap: SystemBridgeCapability) -> Self {
+    pub(super) fn system(cap: SystemBridgeCapability) -> Self {
         Self::Required(BridgeCapability::System(cap))
     }
 }
 
-pub fn parse_required_params<T>(
+pub(super) fn parse_required_params<T>(
     method: &impl BridgeMethod,
     request: &RustBridgeRequest,
 ) -> Result<T, BridgeMethodHandleError>

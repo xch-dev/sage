@@ -101,15 +101,6 @@ define_bridge_capabilities! {
     }
 }
 
-impl BridgeCapability {
-    pub fn key(self) -> &'static str {
-        match self {
-            Self::User(capability) => capability.key(),
-            Self::System(capability) => capability.key(),
-        }
-    }
-}
-
 pub trait SharedCapabilitiesExt {
     fn shared(self) -> Vec<UserBridgeCapability>;
 }

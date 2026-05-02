@@ -2,7 +2,7 @@ use std::fmt::Write;
 use std::{fs, path::PathBuf};
 
 use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::bridge::methods::shared::BridgeMethodCapability;
+use crate::bridge::methods::BridgeMethodCapability;
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 
@@ -151,7 +151,7 @@ pub fn system_capabilities_markdown() -> String {
     out
 }
 
-pub fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
+pub(crate) fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
     let title = match kind {
         BridgeRegistryKind::User => "User bridge methods",
         BridgeRegistryKind::System => "System bridge methods",

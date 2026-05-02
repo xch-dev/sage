@@ -11,22 +11,21 @@ use super::methods::user::{
     WalletGetSyncStatus, WalletGetTransaction, WalletGetTransactions, WalletGetVersion,
     WalletSendXch,
 };
-use crate::types::SharedSageApp;
 use std::collections::HashMap;
 use crate::bridge::methods::user::environment::EnvironmentThemeGetCurrent;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BridgeRegistryKind {
+pub(crate) enum BridgeRegistryKind {
     User,
     System,
 }
 
-pub struct BridgeRegistry {
+pub(crate) struct BridgeRegistry {
     methods: HashMap<&'static str, Box<dyn BridgeMethod>>,
 }
 
 impl BridgeRegistry {
-    pub fn new(kind: BridgeRegistryKind) -> Self {
+    pub(crate) fn new(kind: BridgeRegistryKind) -> Self {
         match kind {
             BridgeRegistryKind::User => Self {
                 methods: build_user_methods(),
@@ -37,19 +36,11 @@ impl BridgeRegistry {
         }
     }
 
-    pub fn new_for_app(app: &SharedSageApp) -> Self {
-        if app.is_system_app() {
-            return Self::new(BridgeRegistryKind::System);
-        }
-
-        Self::new(BridgeRegistryKind::User)
-    }
-
-    pub fn get(&self, method: &str) -> Option<&dyn BridgeMethod> {
+    pub(crate) fn get(&self, method: &str) -> Option<&dyn BridgeMethod> {
         self.methods.get(method).map(AsRef::as_ref)
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&'static str, &dyn BridgeMethod)> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = (&'static str, &dyn BridgeMethod)> {
         self.methods
             .iter()
             .map(|(name, method)| (*name, method.as_ref()))

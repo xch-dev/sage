@@ -1,5 +1,8 @@
-pub mod shared;
+mod shared;
 pub mod system;
 pub mod user;
 
-pub use shared::{BridgeContext, BridgeMethod, BridgeTools};
+pub(crate) use shared::{
+    BridgeContext, BridgeTools,
+    BridgeMethod, BridgeMethodCapability
+};
