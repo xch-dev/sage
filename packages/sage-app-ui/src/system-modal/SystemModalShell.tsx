@@ -14,21 +14,21 @@ export function SystemModalShell({
   return (
     <div
       className={[
-        'h-screen w-screen overflow-hidden bg-black/20 p-6 text-foreground backdrop-blur-sm',
-        'flex items-center justify-center',
+        'flex h-screen w-screen items-center justify-center overflow-hidden',
+        'bg-black/20 text-foreground backdrop-blur-sm',
         className,
       ].join(' ')}
     >
       <div
         className={[
           'h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))]',
-          'overflow-auto rounded-2xl border border-border p-6 shadow-2xl',
+          'overflow-hidden rounded-2xl border border-border shadow-2xl',
           contentClassName,
         ].join(' ')}
         style={{
-          backdropFilter: 'blur(60px) saturate(0.75)',
-          WebkitBackdropFilter: 'blur(60px) saturate(0.75)',
-          backgroundColor: 'rgb(255 255 255 / 0.12)',
+          backdropFilter: 'blur(80px) saturate(0.55)',
+          WebkitBackdropFilter: 'blur(80px) saturate(0.55)',
+          backgroundColor: 'rgb(255 255 255 / 0.08)',
         }}
       >
         {children}

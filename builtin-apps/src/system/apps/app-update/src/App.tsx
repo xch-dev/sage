@@ -13,7 +13,7 @@ import {
   type UserBridgeCapability,
   type UserSageAppView,
 } from '@sage-system-app/sdk';
-import { SystemModalShell } from '@sage-app/ui/system-modal';
+import { AppModalShell, SystemModalShell } from '@sage-app/ui/system-modal';
 
 type Mode = 'review-update' | 'review-permissions';
 
@@ -315,51 +315,51 @@ function AppBody({ state }: { state: Extract<LoadState, { kind: 'ready' }> }) {
       : state.app.common.activeSnapshot.manifest.version;
 
   return (
-    <div className='space-y-5'>
-      <div>
-        <h1 className='text-lg font-semibold'>{title}</h1>
-        <div className='mt-1 text-sm text-muted-foreground'>
-          {state.app.common.activeSnapshot.manifest.name} · {subtitle}
+    <AppModalShell
+      title={title}
+      appName={state.app.common.activeSnapshot.manifest.name}
+      appVersion={subtitle}
+      footer={
+        <div className='flex justify-end gap-2'>
+          <button
+            className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60'
+            disabled={submitting}
+            onClick={closeModal}
+          >
+            Cancel
+          </button>
+          <button
+            className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
+            disabled={submitting}
+            onClick={submit}
+          >
+            {submitting
+              ? state.mode === 'review-update'
+                ? 'Updating…'
+                : 'Saving…'
+              : state.mode === 'review-update'
+                ? 'Confirm update'
+                : 'Save permissions'}
+          </button>
         </div>
+      }
+    >
+      <div className='space-y-4'>
+        <PermissionsEditor
+          app={reviewApp}
+          grantedPermissions={grantedPermissions}
+          capabilityDefinitions={state.definitions}
+          editable={!submitting}
+          onGrantedPermissionsChange={setGrantedPermissions}
+        />
+
+        {submitError ? (
+          <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
+            {submitError}
+          </div>
+        ) : null}
       </div>
-
-      <PermissionsEditor
-        app={reviewApp}
-        grantedPermissions={grantedPermissions}
-        capabilityDefinitions={state.definitions}
-        editable={!submitting}
-        onGrantedPermissionsChange={setGrantedPermissions}
-      />
-
-      {submitError ? (
-        <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
-          {submitError}
-        </div>
-      ) : null}
-
-      <div className='flex justify-end gap-2'>
-        <button
-          className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60'
-          disabled={submitting}
-          onClick={closeModal}
-        >
-          Cancel
-        </button>
-        <button
-          className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
-          disabled={submitting}
-          onClick={submit}
-        >
-          {submitting
-            ? state.mode === 'review-update'
-              ? 'Updating…'
-              : 'Saving…'
-            : state.mode === 'review-update'
-              ? 'Confirm update'
-              : 'Save permissions'}
-        </button>
-      </div>
-    </div>
+    </AppModalShell>
   );
 }
 
@@ -431,20 +431,26 @@ export function App() {
     };
   }, []);
 
-  return (
-    <SystemModalShell>
-      {state.kind === 'loading' ? (
+  if (state.kind === 'loading') {
+    return (
+      <SystemModalShell>
         <div className='text-sm text-muted-foreground'>Loading review…</div>
-      ) : state.kind === 'error' ? (
+      </SystemModalShell>
+    );
+  }
+
+  if (state.kind === 'error') {
+    return (
+      <SystemModalShell>
         <div className='space-y-3'>
           <h1 className='text-lg font-semibold'>App update failed</h1>
           <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
             {state.error}
           </div>
         </div>
-      ) : (
-        <AppBody state={state} />
-      )}
-    </SystemModalShell>
-  );
+      </SystemModalShell>
+    );
+  }
+
+  return <AppBody state={state} />;
 }
