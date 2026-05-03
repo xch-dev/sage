@@ -14,6 +14,7 @@ interface AppModalShellProps {
   className?: string;
   bodyClassName?: string;
   contentClassName?: string;
+  bodyPadded?: boolean;
 }
 
 export function AppModalShell({
@@ -25,6 +26,7 @@ export function AppModalShell({
   className = '',
   bodyClassName = '',
   contentClassName = '',
+  bodyPadded = true,
 }: AppModalShellProps) {
   return (
     <SystemModalShell
@@ -51,7 +53,8 @@ export function AppModalShell({
 
         <main
           className={[
-            'min-h-0 flex-1 overflow-auto px-6 py-5',
+            'min-h-0 flex-1 overflow-auto',
+            bodyPadded ? 'px-6 py-5' : '',
             bodyClassName,
           ].join(' ')}
         >

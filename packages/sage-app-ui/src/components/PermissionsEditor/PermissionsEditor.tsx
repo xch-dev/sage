@@ -231,11 +231,10 @@ export function PermissionsEditor({
   }
 
   return (
-    <div className='space-y-5'>
+    <div className='space-y-4'>
       {requiredGroups.length > 0 ? (
         <PermissionSection
           title='Required permissions'
-          subtitle='These are necessary for the app to function.'
           groups={requiredGroups}
           editable={editable}
           onToggleEntry={handleToggleEntry}
@@ -244,20 +243,20 @@ export function PermissionsEditor({
 
       {grantedOptionalGroups.length > 0 ? (
         <PermissionSection
-          title='Granted optional permissions'
-          subtitle='These optional permissions are currently enabled.'
+          title='Optional permissions'
           groups={grantedOptionalGroups}
           editable={editable}
+          separated
           onToggleEntry={handleToggleEntry}
         />
       ) : null}
 
       {ungrantedOptionalGroups.length > 0 ? (
         <PermissionSection
-          title='Optional permissions'
-          subtitle='You can grant these now or keep them disabled.'
+          title='Available optional permissions'
           groups={ungrantedOptionalGroups}
           editable={editable}
+          separated
           collapsed={!showOptional}
           onToggleCollapsed={() => setShowOptional((prev) => !prev)}
           onToggleEntry={handleToggleEntry}
