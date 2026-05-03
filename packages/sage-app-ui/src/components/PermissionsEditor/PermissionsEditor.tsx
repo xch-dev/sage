@@ -39,7 +39,7 @@ export function PermissionsEditor({
       ? app.pendingUpdate.manifest
       : app.common.activeSnapshot.manifest;
 
-  const [showOptional, setShowOptional] = useState(false);
+  const [showAllOptional, setShowAllOptional] = useState(false);
 
   const definitionsByKey = useMemo(
     () => capabilityDefinitionMap(capabilityDefinitions),
@@ -140,19 +140,19 @@ export function PermissionsEditor({
     [optionalEntries],
   );
 
+  const visibleOptionalEntries = useMemo(
+    () => (showAllOptional ? optionalEntries : grantedOptionalEntries),
+    [showAllOptional, optionalEntries, grantedOptionalEntries],
+  );
+
   const requiredGroups = useMemo(
     () => buildGroupedPermissionTree(requiredEntries),
     [requiredEntries],
   );
 
-  const grantedOptionalGroups = useMemo(
-    () => buildGroupedPermissionTree(grantedOptionalEntries),
-    [grantedOptionalEntries],
-  );
-
-  const ungrantedOptionalGroups = useMemo(
-    () => buildGroupedPermissionTree(ungrantedOptionalEntries),
-    [ungrantedOptionalEntries],
+  const optionalGroups = useMemo(
+    () => buildGroupedPermissionTree(visibleOptionalEntries),
+    [visibleOptionalEntries],
   );
 
   function emitGrantedPermissions(next: SageGrantedPermissionsInput) {
@@ -218,11 +218,7 @@ export function PermissionsEditor({
     });
   }
 
-  if (
-    requiredEntries.length === 0 &&
-    grantedOptionalEntries.length === 0 &&
-    ungrantedOptionalEntries.length === 0
-  ) {
+  if (requiredEntries.length === 0 && optionalEntries.length === 0) {
     return (
       <div className='rounded-xl border border-border px-3 py-4 text-sm text-muted-foreground'>
         This app does not request any permissions.
@@ -241,25 +237,25 @@ export function PermissionsEditor({
         />
       ) : null}
 
-      {grantedOptionalGroups.length > 0 ? (
+      {optionalEntries.length > 0 ? (
         <PermissionSection
           title='Optional permissions'
-          groups={grantedOptionalGroups}
+          groups={optionalGroups}
           editable={editable}
-          separated
+          separated={requiredGroups.length > 0}
           onToggleEntry={handleToggleEntry}
-        />
-      ) : null}
-
-      {ungrantedOptionalGroups.length > 0 ? (
-        <PermissionSection
-          title='Available optional permissions'
-          groups={ungrantedOptionalGroups}
-          editable={editable}
-          separated
-          collapsed={!showOptional}
-          onToggleCollapsed={() => setShowOptional((prev) => !prev)}
-          onToggleEntry={handleToggleEntry}
+          trailingAction={
+            !showAllOptional && ungrantedOptionalEntries.length > 0 ? (
+              <button
+                type='button'
+                className='inline-flex items-center rounded-md px-2 py-1 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+                onClick={() => setShowAllOptional(true)}
+              >
+                Show {ungrantedOptionalEntries.length} more optional permission
+                {ungrantedOptionalEntries.length === 1 ? '' : 's'}
+              </button>
+            ) : null
+          }
         />
       ) : null}
     </div>

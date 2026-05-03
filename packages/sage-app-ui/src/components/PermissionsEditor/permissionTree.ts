@@ -33,20 +33,17 @@ export function buildGroupedPermissionTree(
     roots.push(networkNode);
   }
 
-  const persistentEntries = entries.filter(
+  const storageEntries = entries.filter(
     (entry) =>
       entry.kind === 'capability' &&
-      normalizeKey(entry.key) === 'storage.persistent_webview',
+      normalizeKey(entry.key).startsWith('storage'),
   );
 
-  if (persistentEntries.length > 0) {
-    const persistentNode = makeNode(
-      'storage.persistent_webview',
-      'Persistent storage',
-    );
-    persistentNode.entries = sortPermissionEntries(persistentEntries);
-    persistentNode.sensitivityRank = 2;
-    roots.push(persistentNode);
+  if (storageEntries.length > 0) {
+    const storageNode = makeNode('storage', 'Storage');
+    storageNode.entries = sortPermissionEntries(storageEntries);
+    storageNode.sensitivityRank = 2;
+    roots.push(storageNode);
   }
 
   const generalCapabilityEntries = entries.filter(

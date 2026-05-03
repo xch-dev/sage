@@ -1,6 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import type { ReactNode } from 'react';
 import type { PermissionEntry, PermissionGroupNode } from './types';
-import { countNodeEntries } from './permissionTree';
 import { PermissionGroupBlock } from './PermissionGroupBlock';
 
 export function PermissionSection({
@@ -8,52 +7,28 @@ export function PermissionSection({
   groups,
   editable,
   separated,
-  collapsed,
-  onToggleCollapsed,
+  trailingAction,
   onToggleEntry,
 }: {
   title: string;
   groups: PermissionGroupNode[];
   editable: boolean;
   separated?: boolean;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
+  trailingAction?: ReactNode;
   onToggleEntry: (entry: PermissionEntry, nextGranted: boolean) => void;
 }) {
-  if (groups.length === 0) return null;
-
-  const itemCount = groups.reduce(
-    (count, group) => count + countNodeEntries(group),
-    0,
-  );
-
-  const contentHidden = Boolean(collapsed);
+  if (groups.length === 0 && !trailingAction) return null;
 
   return (
-    <section className='space-y-2.5'>
-      {separated ? <div className='border-t border-border/70' /> : null}
+    <section className='space-y-3'>
+      {separated ? <div className='border-t border-border' /> : null}
 
-      <div className='flex items-center justify-between gap-3 px-2'>
+      <div className='flex items-center justify-between gap-3'>
         <h3 className='text-base font-semibold tracking-tight'>{title}</h3>
-
-        {onToggleCollapsed ? (
-          <button
-            type='button'
-            className='inline-flex h-7 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-muted'
-            onClick={onToggleCollapsed}
-          >
-            {contentHidden ? (
-              <ChevronRight className='h-3.5 w-3.5' />
-            ) : (
-              <ChevronDown className='h-3.5 w-3.5' />
-            )}
-            {itemCount}
-          </button>
-        ) : null}
       </div>
 
-      {!contentHidden ? (
-        <div className='space-y-2 px-4'>
+      {groups.length > 0 ? (
+        <div className='space-y-2'>
           {groups.map((group) => (
             <PermissionGroupBlock
               key={group.id}
@@ -64,6 +39,8 @@ export function PermissionSection({
           ))}
         </div>
       ) : null}
+
+      {trailingAction ? <div className='pt-1'>{trailingAction}</div> : null}
     </section>
   );
 }
