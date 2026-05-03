@@ -225,7 +225,7 @@ mod tests {
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
+    use crate::types::{AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
     use tempfile::tempdir;
 
     fn write_index(app_dir: &Path) {
@@ -302,10 +302,11 @@ mod tests {
                 &app,
                 "test",
                 "sage-app://test/index.html",
+                AppPresentation::Taskbar,
                 SageAppRuntimeMode::Inline,
                 SageAppRuntimeVisibility::Visible,
                 false,
-            );
+            ).unwrap();
         }
 
         assert!(app.is_user_app(), "sample app should remain a user app");

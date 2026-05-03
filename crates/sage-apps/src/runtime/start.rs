@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
 use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
@@ -12,13 +11,14 @@ use crate::runtime::webview_locator::{
 };
 use crate::runtime::{build_entry_src, build_entry_src_for, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime};
 use crate::storage::parse_data_store_id;
-use crate::types::{InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
+use crate::types::{AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
 
-#[derive(Debug, Deserialize, Type)]
+#[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateRuntimeArgs {
     pub app_id: String,
+    pub presentation: AppPresentation,
     pub mode: SageAppRuntimeMode,
     pub visibility: SageAppRuntimeVisibility,
     pub debug_layout: bool,
@@ -56,10 +56,11 @@ pub async fn create_runtime(
         &app,
         sage_window.label(),
         &webview_label,
+        args.presentation,
         SageAppRuntimeMode::Inline,
         args.visibility,
         is_internal,
-    );
+    ).map_err(|err| err.to_string())?;
     let shared_runtime = write_runtime(&apps_state, runtime).await;
 
     let runtime_for_nav = shared_runtime.clone();

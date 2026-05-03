@@ -6,11 +6,7 @@ use std::fmt::Display;
 use anyhow::{Result as AnyResult};
 
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
-    SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemAppPresentation,
-    SystemSageApp,
-};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
 use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
@@ -21,7 +17,6 @@ pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
 pub struct BuiltinSystemAppSpec {
     pub app_id: &'static str,
     pub dir_name: &'static str,
-    pub presentation: SystemAppPresentation,
     pub system_capabilities: &'static [SystemBridgeCapability],
 }
 
@@ -29,7 +24,6 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_TASK_MANAGER_ID,
         dir_name: "task-manager",
-        presentation: SystemAppPresentation::Taskbar,
         system_capabilities: &[
             SystemBridgeCapability::RuntimeManagerListRuntimes,
             SystemBridgeCapability::RuntimeManagerFocusRuntime,
@@ -41,7 +35,6 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_UPDATE_ID,
         dir_name: "app-update",
-        presentation: SystemAppPresentation::AppModal,
         system_capabilities: &[
             SystemBridgeCapability::CapabilityDefinitionsRead,
             SystemBridgeCapability::AppPermissionsRead,
@@ -54,7 +47,6 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_INSTALL_ID,
         dir_name: "app-install",
-        presentation: SystemAppPresentation::AppModal,
         system_capabilities: &[
             SystemBridgeCapability::CapabilityDefinitionsRead,
             SystemBridgeCapability::AppInstallPreview,
@@ -227,7 +219,6 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let app = SystemSageApp::new(
         common,
         SageGrantedSystemPermissions::new(spec.system_capabilities.iter().copied()),
-        spec.presentation,
     );
 
     Ok(Some(SageApp::System(app)))

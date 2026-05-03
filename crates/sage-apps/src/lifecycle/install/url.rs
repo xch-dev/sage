@@ -161,7 +161,7 @@ mod tests {
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp};
+    use crate::types::{AppPresentation, InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp};
     use tempfile::{TempDir, tempdir};
 
     fn fake_retired_app_origins(
@@ -267,10 +267,11 @@ mod tests {
                 &app,
                 "test",
                 "sage-app://test/index.html",
+                AppPresentation::Taskbar,
                 SageAppRuntimeMode::Inline,
                 SageAppRuntimeVisibility::Visible,
                 false,
-            );
+            ).unwrap();
         }
 
         app

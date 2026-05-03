@@ -1,10 +1,11 @@
 use crate::AppsHostState;
-use crate::runtime::{apps_create_inline_runtime, SageAppRuntimeMode, SageAppRuntimeVisibility};
-use crate::runtime::start::CreateRuntimeArgs;
+use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeVisibility};
+use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::stop::close_runtime_internal;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
+use crate::types::AppPresentation;
 
 pub(crate) async fn stop_test_apps(
     app: &AppHandle,
@@ -55,13 +56,14 @@ async fn start_internal_runtime_for_sandbox(
 
     let args = CreateRuntimeArgs {
         app_id: app_id.to_string(),
+        presentation: AppPresentation::Taskbar,
         mode: SageAppRuntimeMode::Inline,
         visibility: if debug_test_apps { SageAppRuntimeVisibility::Visible } else { visibility },
         debug_layout: debug_test_apps,
         query,
     };
 
-    apps_create_inline_runtime(app.clone(), apps_state.clone(), args)
+    create_runtime(app.clone(), apps_state.clone(), args)
         .await
         .map(|_| ())
 }

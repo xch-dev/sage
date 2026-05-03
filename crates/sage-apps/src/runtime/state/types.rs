@@ -5,7 +5,7 @@ use specta::Type;
 use tokio::sync::{Mutex, oneshot};
 use parking_lot::RwLock;
 use crate::capabilities::list::UserBridgeCapability;
-use crate::types::{SageApp, SharedSageApp};
+use crate::types::{AppPresentation, SageApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -33,6 +33,7 @@ pub struct SageAppRuntimeRecord {
     app: SharedSageApp,
     host_window_label: String,
     webview_label: String,
+    presentation: AppPresentation,
     mode: SageAppRuntimeMode,
     visibility: SageAppRuntimeVisibility,
     started_at: i64,
@@ -112,6 +113,21 @@ pub(crate) struct RuntimeAckResult {
     pub ok: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CreateRuntimeRecordError {
+    UserAppCannotUseModalPresentation,
+}
+
+impl std::fmt::Display for CreateRuntimeRecordError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UserAppCannotUseModalPresentation => {
+                write!(f, "user app cannot use modal presentation")
+            }
+        }
+    }
+}
+
 pub(in crate::runtime) fn runtime_id_for(app: &SharedSageApp) -> String {
     let (app_id, is_system_app) = app.with(|app| (app.id().to_string(), app.is_system()));
     if is_system_app {
@@ -147,90 +163,86 @@ impl ReadyToStopParams {
 }
 
 impl SageAppRuntimeRecord {
-    pub fn new(
+    pub(crate) fn new(
         app: &SharedSageApp,
         host_window_label: &str,
         webview_label: &str,
+        presentation: AppPresentation,
         mode: SageAppRuntimeMode,
         visibility: SageAppRuntimeVisibility,
         internal: bool,
-    ) -> Self {
+    ) -> Result<Self, CreateRuntimeRecordError> {
+        if app.is_user_app() && matches!(presentation, AppPresentation::Modal(_)) {
+            return Err(CreateRuntimeRecordError::UserAppCannotUseModalPresentation);
+        }
+
         let now = unix_timestamp_ms();
 
-        Self {
+        Ok(Self {
             runtime_id: runtime_id_for(app),
             app: app.clone_for_runtime_owner(),
             host_window_label: host_window_label.to_string(),
             webview_label: webview_label.to_string(),
+            presentation,
             mode,
             visibility,
             started_at: now,
             last_active_at: now,
             internal,
-        }
+        })
     }
 
-    pub fn mark_inline_reused(&mut self, state: SageAppRuntimeVisibility, internal: bool) {
-        self.visibility = state;
-        self.last_active_at = unix_timestamp_ms();
-        self.internal = internal;
-    }
-
-    pub fn mark_visible(&mut self) {
+    pub(crate) fn mark_visible(&mut self) {
         self.visibility = SageAppRuntimeVisibility::Visible;
         self.last_active_at = unix_timestamp_ms();
     }
 
-    pub fn mark_hidden(&mut self) {
+    pub(crate) fn mark_hidden(&mut self) {
         self.visibility = SageAppRuntimeVisibility::Hidden;
         self.last_active_at = unix_timestamp_ms();
     }
 
-    pub fn runtime_id(&self) -> String {
+    pub(crate) fn runtime_id(&self) -> String {
         self.runtime_id.to_string()
     }
 
-    pub fn app(&self) -> SharedSageApp {
+    pub(crate) fn app(&self) -> SharedSageApp {
         self.app.clone_for_runtime_owner()
     }
 
-    pub fn app_id(&self) -> String {
+    pub(crate) fn app_id(&self) -> String {
         self.app.id()
     }
 
-    pub fn app_name(&self) -> String {
-        self.app.name()
-    }
-
-    pub fn entry_src(&self) -> String {
-        self.app.with(SageApp::entry_file)
-    }
-
-    pub fn webview_label(&self) -> &str {
+    pub(crate) fn webview_label(&self) -> &str {
         &self.webview_label
     }
 
-    pub fn host_window_label(&self) -> &str {
+    pub(crate) fn host_window_label(&self) -> &str {
         &self.host_window_label
     }
 
-    pub fn mode(&self) -> SageAppRuntimeMode {
+    pub(crate) fn presentation(&self) -> AppPresentation {
+        self.presentation.clone()
+    }
+
+    pub(crate) fn mode(&self) -> SageAppRuntimeMode {
         self.mode
     }
 
-    pub fn visibility(&self) -> SageAppRuntimeVisibility {
+    pub(crate) fn visibility(&self) -> SageAppRuntimeVisibility {
         self.visibility
     }
 
-    pub fn started_at(&self) -> i64 {
+    pub(crate) fn started_at(&self) -> i64 {
         self.started_at
     }
 
-    pub fn last_active_at(&self) -> i64 {
+    pub(crate) fn last_active_at(&self) -> i64 {
         self.last_active_at
     }
 
-    pub fn internal(&self) -> bool {
+    pub(crate) fn internal(&self) -> bool {
         self.internal
     }
 }

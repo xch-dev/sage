@@ -17,7 +17,7 @@ pub(crate) use donation::SageAppDonation;
 pub(crate) use preview::{SageAppUrlPreview, UserSageAppPendingUpdate};
 pub(crate) use retired_origin::RetiredAppOriginEntry;
 pub(crate) use snapshot::SageAppSnapshot;
-pub(crate) use system_apps::{SystemAppPresentation, SystemSageApp};
+pub(crate) use system_apps::{AppPresentation, AppModalPresentation, SystemSageApp};
 pub(crate) use user_apps::{
     CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp
 };

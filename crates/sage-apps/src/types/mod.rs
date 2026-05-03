@@ -12,7 +12,7 @@ pub use app::SharedSageApp;
 
 pub(crate) use app::{
     CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
-    SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, SystemAppPresentation, SystemSageApp,
+    SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, AppPresentation, AppModalPresentation, SystemSageApp,
     UserSageApp, UserSageAppPendingUpdate, UserSageAppSource, SageAppView, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp,
     ListedSageAppView, UserSageAppView, SageAppIconView
 };
