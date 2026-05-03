@@ -94,7 +94,7 @@ export function AppModalShell({
         </main>
 
         {footer ? (
-          <footer className='shrink-0 border-t border-border px-6 py-4'>
+          <footer className='shrink-0 border-t border-border px-6 py-3'>
             {footer}
           </footer>
         ) : null}
