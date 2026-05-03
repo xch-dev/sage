@@ -144,7 +144,7 @@ export function App() {
               Built-in system app
             </div>
             <h1 className='mt-1 text-3xl font-bold tracking-tight'>
-              Task Manager
+              Task Managers
             </h1>
             <div className='mt-1 text-sm text-muted-foreground'>
               {runtimes.length} runtimes · updated {formatTime(now)}

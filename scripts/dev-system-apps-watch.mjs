@@ -27,6 +27,7 @@ let running = false;
 let queuedPackages = false;
 let queuedSystemApps = false;
 let scheduledNeedsPackages = false;
+let scheduledApps = new Set();
 
 function run(command, args) {
   return new Promise((resolve, reject) => {
@@ -53,10 +54,20 @@ function broadcast(payload) {
   }
 }
 
-async function rebuild({ packages = false } = {}) {
+function systemAppNameFromPath(path) {
+  const match = path.match(/^builtin-apps\/src\/system\/apps\/([^/]+)\//);
+  return match?.[1] ?? null;
+}
+
+async function rebuild({ packages = false, apps = [] } = {}) {
   if (running) {
     queuedSystemApps = true;
     queuedPackages ||= packages;
+
+    for (const app of apps) {
+      scheduledApps.add(app);
+    }
+
     return;
   }
 
@@ -68,12 +79,23 @@ async function rebuild({ packages = false } = {}) {
       await run('pnpm', ['run', 'build:packages']);
     }
 
-    console.log('\n[system-apps-dev] rebuilding system apps...');
-    await run('pnpm', ['run', 'build:system-apps']);
+    const buildArgs =
+      apps.length > 0
+        ? ['run', 'build:system-apps', '--', ...apps]
+        : ['run', 'build:system-apps'];
+
+    console.log(
+      apps.length > 0
+        ? `\n[system-apps-dev] rebuilding system apps: ${apps.join(', ')}`
+        : '\n[system-apps-dev] rebuilding all system apps...',
+    );
+
+    await run('pnpm', buildArgs);
 
     broadcast({
       type: 'system-apps-built',
       ok: true,
+      apps,
       at: Date.now(),
     });
 
@@ -85,23 +107,34 @@ async function rebuild({ packages = false } = {}) {
       type: 'system-apps-built',
       ok: false,
       error: err instanceof Error ? err.message : String(err),
+      apps,
       at: Date.now(),
     });
   } finally {
     running = false;
 
-    if (queuedSystemApps || queuedPackages) {
+    if (queuedSystemApps || queuedPackages || scheduledApps.size > 0) {
       const nextPackages = queuedPackages;
+      const nextApps = [...scheduledApps];
+
       queuedSystemApps = false;
       queuedPackages = false;
+      scheduledApps = new Set();
 
-      void rebuild({ packages: nextPackages });
+      void rebuild({
+        packages: nextPackages,
+        apps: nextPackages ? [] : nextApps,
+      });
     }
   }
 }
 
-function schedule({ packages = false } = {}) {
+function schedule({ packages = false, appName = null } = {}) {
   scheduledNeedsPackages ||= packages;
+
+  if (appName) {
+    scheduledApps.add(appName);
+  }
 
   if (timer) {
     clearTimeout(timer);
@@ -109,11 +142,16 @@ function schedule({ packages = false } = {}) {
 
   timer = setTimeout(() => {
     const packages = scheduledNeedsPackages;
+    const apps = [...scheduledApps];
 
     timer = null;
     scheduledNeedsPackages = false;
+    scheduledApps = new Set();
 
-    void rebuild({ packages });
+    void rebuild({
+      packages,
+      apps: packages ? [] : apps,
+    });
   }, 150);
 }
 
@@ -127,10 +165,16 @@ chokidar
   })
   .on('all', (event, path) => {
     const packages = path.startsWith('packages/');
+    const appName = packages ? null : systemAppNameFromPath(path);
 
     console.log(
-      `[system-apps-dev] ${event}: ${path}${packages ? ' [packages]' : ''}`,
+      `[system-apps-dev] ${event}: ${path}${
+        packages ? ' [packages]' : appName ? ` [${appName}]` : ' [all]'
+      }`,
     );
 
-    schedule({ packages });
+    schedule({
+      packages,
+      appName,
+    });
   });
