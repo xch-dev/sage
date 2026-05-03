@@ -14,7 +14,6 @@ import {
   initialGrantedPermissions,
   installManifest,
 } from '../utils/permissions';
-import { InstallSummary } from './InstallSummary';
 import { UnsupportedManifestView } from './UnsupportedManifestView';
 
 export function ReviewInstallView({
@@ -86,8 +85,6 @@ export function ReviewInstallView({
       }
     >
       <div className='space-y-5'>
-        <InstallSummary source={source} manifest={manifest} />
-
         <PermissionsEditor
           app={previewApp}
           grantedPermissions={grantedPermissions}
