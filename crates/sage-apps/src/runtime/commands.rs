@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use specta::Type;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
@@ -13,6 +13,7 @@ use crate::runtime::{
 };
 use crate::system_apps::SYSTEM_APP_APP_UPDATE_ID;
 use crate::AppsHostState;
+use crate::runtime::webview_locator::get_webview_in_sage_window;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -130,4 +131,34 @@ pub async fn apps_kill_runtime(
         ok: true,
         app_id: params.app_id,
     })
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_dev_reload_runtime(
+    app: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+    params: RuntimeTargetParams,
+) -> Result<SageAppRuntimeRecordView, String> {
+    let runtime = crate::runtime::state::get_runtime_by_app_id(&apps_state, &params.app_id)
+        .await
+        .map_err(|_| "Runtime not found".to_string())?;
+
+    let webview_label = runtime.with_runtime(|runtime| runtime.webview_label().to_string());
+
+    let webview = get_webview_in_sage_window(&app, &webview_label)?;
+
+    webview
+        .eval(
+            r#"
+            (() => {
+              const url = new URL(window.location.href);
+              url.searchParams.set('__sage_dev_reload', String(Date.now()));
+              window.location.replace(url.toString());
+            })();
+            "#,
+        )
+        .map_err(|err| format!("failed to reload runtime webview: {err}"))?;
+
+    Ok(runtime.into())
 }

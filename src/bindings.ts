@@ -442,6 +442,9 @@ async appsHideRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecor
 },
 async appsKillRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
     return await TAURI_INVOKE("apps_kill_runtime", { params });
+},
+async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
 }
 }
 

@@ -172,6 +172,7 @@ pub fn run() {
             apps::runtime::commands::apps_focus_runtime,
             apps::runtime::commands::apps_hide_runtime,
             apps::runtime::commands::apps_kill_runtime,
+            apps::runtime::commands::apps_dev_reload_runtime,
         ])
         .events(collect_events![SyncEvent, RustBridgeApprovalEvent]);
 

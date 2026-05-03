@@ -145,4 +145,5 @@ commands.allow = [
     "apps_focus_runtime",
     "apps_hide_runtime",
     "apps_kill_runtime",
+    "apps_dev_reload_runtime",
 ]

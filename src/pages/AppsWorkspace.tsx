@@ -13,7 +13,7 @@ import {
   subscribeActiveRuntime,
 } from '@/lib/apps/runtimeRegistry';
 import { routeForApp } from '@/lib/apps/types';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import {
   commands,
@@ -28,6 +28,29 @@ export function AppsWorkspace() {
   const { appId } = useParams();
   const navigate = useNavigate();
   const runtimes = useAppRuntimes();
+  const runtimesRef = useRef(runtimes);
+
+  useEffect(() => {
+    runtimesRef.current = runtimes;
+  }, [runtimes]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
+
+    let cleanup: (() => void) | null = null;
+
+    void import('@/dev/system-apps/setupDevSystemAppsReload').then(
+      ({ setupDevSystemAppsReload }) => {
+        cleanup = setupDevSystemAppsReload(() => runtimesRef.current);
+      },
+    );
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
 
   const {
     getApp,
