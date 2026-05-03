@@ -49,7 +49,7 @@ export function SelectSourceView({
       footer={
         <div className='flex justify-end'>
           <button
-            className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60'
+            className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60 hover:bg-muted'
             disabled={working}
             onClick={closeSelf}
           >
