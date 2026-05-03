@@ -1,5 +1,29 @@
 # System bridge methods
 
+## `appInstall.installUrl`
+
+| Field | Value |
+|---|---|
+| Capability | `app_install.apply` |
+
+## `appInstall.installZip`
+
+| Field | Value |
+|---|---|
+| Capability | `app_install.apply` |
+
+## `appInstall.previewUrl`
+
+| Field | Value |
+|---|---|
+| Capability | `app_install.preview` |
+
+## `appInstall.previewZip`
+
+| Field | Value |
+|---|---|
+| Capability | `app_install.preview` |
+
 ## `appPermissions.applyPermissions`
 
 | Field | Value |
@@ -29,6 +53,18 @@
 | Field | Value |
 |---|---|
 | Capability | `capability_definitions.read` |
+
+## `fileSystem.selectFile`
+
+| Field | Value |
+|---|---|
+| Capability | `file_system.select_file` |
+
+## `runtimeManager.closeSelf`
+
+| Field | Value |
+|---|---|
+| Capability | `runtime_manager.close_self` |
 
 ## `runtimeManager.focusRuntime`
 

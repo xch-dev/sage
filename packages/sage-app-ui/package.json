@@ -9,14 +9,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./permissions": {
-      "types": "./dist/permissions/index.d.ts",
-      "import": "./dist/permissions/index.js"
-    },
-    "./system-modal": {
-      "types": "./dist/system-modal/index.d.ts",
-      "import": "./dist/system-modal/index.js"
     }
   },
   "dependencies": {

@@ -2627,9 +2627,11 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type StartAppInstallArgs = { source: StartAppInstallSource }
+export type StartAppInstallSource = { kind: "selectSource" } | { kind: "url"; app_url: string }
 export type StartAppUpdateArgs = { mode: StartAppUpdateMode; appId: string }
 export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
-export type StartSystemAppArgs = ({ kind: "appUpdate" } & StartAppUpdateArgs)
+export type StartSystemAppArgs = ({ kind: "appInstall" } & StartAppInstallArgs) | ({ kind: "appUpdate" } & StartAppUpdateArgs)
 /**
  * Submit a transaction to the network
  */
@@ -2644,7 +2646,7 @@ spend_bundle: SpendBundleJson }
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
 export type SystemAppPresentation = "Taskbar" | "AppModal"
-export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_update.read" | "app_update.apply"
+export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "file_system.select_file"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
 export type SystemSageAppView = { common: SageAppCommonView; presentation: SystemAppPresentation; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**
@@ -2863,7 +2865,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "storage.persistent_webview" | "bridge.send" | "app.get_capabilities" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_keys" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.check_address" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_keys" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.check_address" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest }
 export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: SageAppUrl }
 export type UserSageAppView = { common: SageAppCommonView; source: UserSageAppSource; pendingUpdate?: UserSageAppPendingUpdateView | null }

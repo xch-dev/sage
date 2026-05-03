@@ -236,11 +236,44 @@ export function initSageSystemRuntimeBridge(): boolean {
               input,
             );
           },
+          async closeSelf() {
+            return await callHost<void>('runtimeManager.closeSelf');
+          },
 
           onRuntimesChanged(handler) {
             return onSystemRuntimeEventType<Generated.RuntimeManagerRuntimesChangedEvent>(
               'runtimeManager.runtimesChanged',
               handler,
+            );
+          },
+        },
+
+        appInstall: {
+          async previewUrl(input: Generated.AppInstallPreviewUrlParams) {
+            return await callHost<Generated.SageAppUrlPreview>(
+              'appInstall.previewUrl',
+              input,
+            );
+          },
+
+          async previewZip(input: Generated.AppInstallPreviewZipParams) {
+            return await callHost<Generated.SageAppPackageManifest>(
+              'appInstall.previewZip',
+              input,
+            );
+          },
+
+          async installUrl(input: Generated.AppInstallInstallUrlParams) {
+            return await callHost<Generated.AppInstallInstallResult>(
+              'appInstall.installUrl',
+              input,
+            );
+          },
+
+          async installZip(input: Generated.AppInstallInstallZipParams) {
+            return await callHost<Generated.AppInstallInstallResult>(
+              'appInstall.installZip',
+              input,
             );
           },
         },
@@ -285,6 +318,14 @@ export function initSageSystemRuntimeBridge(): boolean {
           ) {
             return await callHost<Generated.AppPermissionsApplyPermissionsResult>(
               'appPermissions.applyPermissions',
+              input,
+            );
+          },
+        },
+        fileSystem: {
+          async selectFile(input: Generated.FileSystemSelectFileParams) {
+            return await callHost<Generated.FileSystemSelectFileResult>(
+              'fileSystem.selectFile',
               input,
             );
           },

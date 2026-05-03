@@ -1,38 +1,10 @@
 # User bridge capabilities
 
-## `storage.persistent_webview`
-
-**Persistent storage**
-
-Allows the app to store data on this device between sessions.
-
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
-| Accesses sensitive secret | `false` |
-
 ## `bridge.send`
 
 **Bridge messaging**
 
 Allows the app to send messages through the Sage bridge. (Only for sandbox tests)
-
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
-| Accesses sensitive secret | `false` |
-
-## `app.get_capabilities`
-
-**Read granted capabilities**
-
-Allows the app to read the capabilities currently visible to it.
 
 | Flag | Value |
 |---|---|
@@ -75,6 +47,20 @@ Allows the app to acknowledge that it is ready to stop after a lifecycle request
 **Listen before app shutdown**
 
 Allows the app to register a before-stop lifecycle listener.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `app.get_capabilities`
+
+**Read granted capabilities**
+
+Allows the app to read the capabilities currently visible to it.
 
 | Flag | Value |
 |---|---|
@@ -360,6 +346,20 @@ Allows the app to receive events when Sage's theme changes.
 |---|---|
 | Requestable by app | `true` |
 | User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `storage.persistent_webview`
+
+**Persistent storage**
+
+Allows the app to store data on this device between sessions.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `true` |
 | Shared with app | `true` |
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |

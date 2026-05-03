@@ -1,24 +1,48 @@
 import type { ReactNode } from 'react';
 import { SystemModalShell } from './SystemModalShell';
+import {
+  AppIconBytes,
+  AppIconFromBytes,
+  AppIconFromUrl,
+} from '../../components';
+import {SageAppCommonView} from '@sage-system-app/sdk';
 
 interface AppModalShellProps {
-  title: ReactNode;
-  appName: ReactNode;
+  title: string;
+  appName: string;
   children: ReactNode;
-  appVersion?: ReactNode;
-  appIconSrc?: string | null;
-  description?: ReactNode;
+  appIcon: AppModalIcon;
+  description?: string;
   footer?: ReactNode;
   className?: string;
   bodyClassName?: string;
   contentClassName?: string;
 }
 
+export type AppModalIcon =
+  | { kind: 'url'; iconUrl: string | null }
+  | { kind: 'bytes'; icon: AppIconBytes | null };
+
+export function appModalIconFromCommonView(common: SageAppCommonView): AppModalIcon {
+  const icon = common.icon;
+
+  if (!icon) {
+    return { kind: 'bytes', icon: null };
+  }
+
+  return {
+    kind: 'bytes',
+    icon: {
+      bytes: icon.bytes,
+      mime: icon.mime,
+    },
+  };
+}
+
 export function AppModalShell({
   title,
   appName,
-  appIconSrc,
-  description,
+  appIcon,
   footer,
   children,
   className = '',
@@ -30,20 +54,26 @@ export function AppModalShell({
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
     >
       <div className={['flex h-full min-h-0 flex-col', className].join(' ')}>
-        <header className='grid h-20 shrink-0 grid-cols-[5rem_1fr] border-b border-border'>
+        <header className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border'>
           <div className='border-r border-border'>
-            {appIconSrc ? (
-              <img
-                src={appIconSrc}
-                alt=''
-                className='h-full w-full object-cover'
-              />
-            ) : (
-              <div className='h-full w-full bg-foreground/5' />
-            )}
+            <div className='h-full w-full p-1'>
+              {appIcon.kind === 'url' ? (
+                <AppIconFromUrl
+                  name={appName}
+                  iconUrl={appIcon.iconUrl}
+                  className='h-full w-full'
+                />
+              ) : (
+                <AppIconFromBytes
+                  name={appName}
+                  icon={appIcon.icon}
+                  className='h-full w-full'
+                />
+              )}
+            </div>
           </div>
 
-          <div className='flex min-w-0 flex-col justify-center px-5'>
+          <div className='flex min-w-0 flex-col justify-center px-3'>
             <div className='truncate text-xs font-medium uppercase tracking-wide text-muted-foreground'>
               {appName}
             </div>
@@ -51,12 +81,6 @@ export function AppModalShell({
             <h1 className='mt-0.5 truncate text-lg font-semibold text-foreground'>
               {title}
             </h1>
-
-            {description ? (
-              <div className='mt-0.5 truncate text-sm text-muted-foreground'>
-                {description}
-              </div>
-            ) : null}
           </div>
         </header>
 

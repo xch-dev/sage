@@ -24,7 +24,6 @@ macro_rules! define_bridge_capabilities {
             Ord,
             Hash,
         )]
-        #[allow(clippy::enum_variant_names)]
         $visibility enum $name {
             $(
                 #[serde(rename = $key)]
@@ -62,14 +61,17 @@ pub enum BridgeCapability {
 
 define_bridge_capabilities! {
     pub enum UserBridgeCapability {
-        StoragePersistentWebview => "storage.persistent_webview",
         BridgeSend => "bridge.send",
-        AppGetCapabilities => "app.get_capabilities",
+
         AppGetInfo => "app.get_info",
+
         AppLifecycleReadyToStop => "app.lifecycle.ready_to_stop",
         AppLifecycleSetBeforeStopListener => "app.lifecycle.set_before_stop_listener",
+
+        AppGetCapabilities => "app.get_capabilities",
         AppRequestCapabilityGrant => "app.request_capability_grant",
         AppRequestNetworkWhitelistGrant => "app.request_network_whitelist_grant",
+
         WalletGetKeys => "wallet.get_keys",
         WalletGetKey => "wallet.get_key",
         WalletGetSecretKey => "wallet.get_secret_key",
@@ -85,9 +87,12 @@ define_bridge_capabilities! {
         WalletGetPendingTransactions => "wallet.get_pending_transactions",
         WalletGetTransaction => "wallet.get_transaction",
         WalletGetTransactions => "wallet.get_transactions",
+
         EnvironmentThemeGetCurrent => "environment.theme.get_current",
         EnvironmentThemeCssVars => "environment.theme.css_vars",
         EnvironmentThemeListenChanged => "environment.theme.listen_changed",
+
+        StoragePersistentWebview => "storage.persistent_webview",
     }
 }
 
@@ -98,14 +103,20 @@ define_bridge_capabilities! {
         RuntimeManagerHideRuntime => "runtime_manager.hide_runtime",
         RuntimeManagerKillRuntime => "runtime_manager.kill_runtime",
         RuntimeManagerListenRuntimesChanged => "runtime_manager.listen_runtimes_changed",
+        RuntimeManagerCloseSelf => "runtime_manager.close_self",
 
         CapabilityDefinitionsRead => "capability_definitions.read",
 
         AppPermissionsRead => "app_permissions.read",
         AppPermissionsApply => "app_permissions.apply",
 
+        AppInstallPreview => "app_install.preview",
+        AppInstallApply => "app_install.apply",
+
         AppUpdateRead => "app_update.read",
         AppUpdateApply => "app_update.apply",
+
+        FileSystemSelectFile => "file_system.select_file",
     }
 }
 

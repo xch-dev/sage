@@ -21,6 +21,7 @@ export type SageSystemRuntimeManagerClient = {
   onRuntimesChanged(
     handler: (event: Generated.RuntimeManagerRuntimesChangedEvent) => void,
   ): () => void;
+  closeSelf(): Promise<void>;
 };
 
 export type SageSystemCapabilitiesClient = {
@@ -37,6 +38,24 @@ export type SageSystemAppPermissionsClient = {
   ): Promise<Generated.AppPermissionsApplyPermissionsResult>;
 };
 
+export type SageSystemAppInstallClient = {
+  previewUrl(
+    input: Generated.AppInstallPreviewUrlParams,
+  ): Promise<Generated.SageAppUrlPreview>;
+
+  previewZip(
+    input: Generated.AppInstallPreviewZipParams,
+  ): Promise<Generated.SageAppPackageManifest>;
+
+  installUrl(
+    input: Generated.AppInstallInstallUrlParams,
+  ): Promise<Generated.AppInstallInstallResult>;
+
+  installZip(
+    input: Generated.AppInstallInstallZipParams,
+  ): Promise<Generated.AppInstallInstallResult>;
+};
+
 export type SageSystemAppUpdateClient = {
   getReviewContext(
     input: Generated.AppUpdateGetReviewContextParams,
@@ -46,10 +65,17 @@ export type SageSystemAppUpdateClient = {
     input: Generated.AppUpdateApplyUpdateParams,
   ): Promise<Generated.AppUpdateApplyUpdateResult>;
 };
+export type SageSystemFileSystemClient = {
+  selectFile(
+    input: Generated.FileSystemSelectFileParams,
+  ): Promise<Generated.FileSystemSelectFileResult>;
+};
 
 export type SageSystemClient = SageClient & {
   runtimeManager: SageSystemRuntimeManagerClient;
   capabilities: SageSystemCapabilitiesClient;
   appPermissions: SageSystemAppPermissionsClient;
+  appInstall: SageSystemAppInstallClient;
   appUpdate: SageSystemAppUpdateClient;
+  fileSystem: SageSystemFileSystemClient;
 };

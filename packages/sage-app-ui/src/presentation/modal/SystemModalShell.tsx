@@ -63,7 +63,7 @@ export function SystemModalShell({
         style={{
           backdropFilter: 'blur(80px) saturate(0.55)',
           WebkitBackdropFilter: 'blur(80px) saturate(0.55)',
-          backgroundColor: colorWithAlpha(tint, 0.7),
+          backgroundColor: colorWithAlpha(tint, 0.8),
         }}
       >
         {children}

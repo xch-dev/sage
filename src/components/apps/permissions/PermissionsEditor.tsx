@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PermissionsEditor as SharedPermissionsEditor } from '@sage-app/ui/permissions';
+import { PermissionsEditor as SharedPermissionsEditor } from '@sage-app/ui';
 import type {
   SageAppCapabilityDefinitionView,
   SageGrantedPermissionsInput,

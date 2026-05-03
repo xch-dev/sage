@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, FileSystemSelectFileParams, FileSystemSelectFileResult, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -27,29 +27,6 @@ use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
 use crate::types::SageAppCapabilityDefinitionView;
-
-pub fn export_system_bridge_typescript() -> Result<String, String> {
-    let mut types = TypeCollection::default();
-
-    types.register::<RuntimeTargetParams>();
-    //types.register::<SageAppRuntimeRecord>();
-    types.register::<SystemKillRuntimeResult>();
-    types.register::<RuntimeManagerRuntimesChangedEvent>();
-    types.register::<AppUpdateGetReviewContextParams>();
-    types.register::<AppUpdateReviewContext>();
-    types.register::<AppUpdateApplyUpdateParams>();
-    types.register::<AppUpdateApplyUpdateResult>();
-    types.register::<SageAppCapabilityDefinitionView>();
-    types.register::<AppPermissionsGetReviewContextParams>();
-    types.register::<AppPermissionsReviewContext>();
-    types.register::<AppPermissionsApplyPermissionsParams>();
-    types.register::<AppPermissionsApplyPermissionsResult>();
-
-    Typescript::default()
-        .bigint(BigIntExportBehavior::Number)
-        .export(&types)
-        .map_err(|err| format!("failed to export system bridge TS types: {err}"))
-}
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
@@ -103,4 +80,37 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
         .bigint(BigIntExportBehavior::Number)
         .export(&types)
         .map_err(|err| format!("failed to export user bridge TS types: {err}"))
+}
+
+pub fn export_system_bridge_typescript() -> Result<String, String> {
+    let mut types = TypeCollection::default();
+
+    types.register::<RuntimeTargetParams>();
+    types.register::<SystemKillRuntimeResult>();
+    types.register::<RuntimeManagerRuntimesChangedEvent>();
+
+    types.register::<AppInstallPreviewUrlParams>();
+    types.register::<AppInstallPreviewZipParams>();
+    types.register::<AppInstallInstallUrlParams>();
+    types.register::<AppInstallInstallZipParams>();
+    types.register::<AppInstallInstallResult>();
+
+    types.register::<AppUpdateGetReviewContextParams>();
+    types.register::<AppUpdateReviewContext>();
+    types.register::<AppUpdateApplyUpdateParams>();
+    types.register::<AppUpdateApplyUpdateResult>();
+
+    types.register::<SageAppCapabilityDefinitionView>();
+    types.register::<AppPermissionsGetReviewContextParams>();
+    types.register::<AppPermissionsReviewContext>();
+    types.register::<AppPermissionsApplyPermissionsParams>();
+    types.register::<AppPermissionsApplyPermissionsResult>();
+
+    types.register::<FileSystemSelectFileParams>();
+    types.register::<FileSystemSelectFileResult>();
+
+    Typescript::default()
+        .bigint(BigIntExportBehavior::Number)
+        .export(&types)
+        .map_err(|err| format!("failed to export system bridge TS types: {err}"))
 }

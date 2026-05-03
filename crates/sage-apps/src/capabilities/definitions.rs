@@ -254,6 +254,30 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to apply reviewed app permission changes.",
             system_app_flags(),
         ),
+        SystemBridgeCapability::AppInstallPreview => CapabilityDefinition::new(
+            capability,
+            "Preview app installs",
+            "Allows the system app to preview URL and ZIP app installations.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::AppInstallApply => CapabilityDefinition::new(
+            capability,
+            "Install apps",
+            "Allows the system app to install Sage apps after review.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerCloseSelf => CapabilityDefinition::new(
+            capability,
+            "Close itself",
+            "Allows the system app to close its own runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::FileSystemSelectFile => CapabilityDefinition::new(
+            capability,
+            "Select file",
+            "Allows the system app to ask the user to select a local file.",
+            system_app_flags(),
+        ),
     }
 }
 

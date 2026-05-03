@@ -15,6 +15,7 @@ use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
+pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinSystemAppSpec {
@@ -47,7 +48,19 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::AppPermissionsApply,
             SystemBridgeCapability::AppUpdateRead,
             SystemBridgeCapability::AppUpdateApply,
-            SystemBridgeCapability::RuntimeManagerKillRuntime,
+            SystemBridgeCapability::RuntimeManagerCloseSelf,
+        ],
+    },
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_APP_INSTALL_ID,
+        dir_name: "app-install",
+        presentation: SystemAppPresentation::AppModal,
+        system_capabilities: &[
+            SystemBridgeCapability::CapabilityDefinitionsRead,
+            SystemBridgeCapability::AppInstallPreview,
+            SystemBridgeCapability::AppInstallApply,
+            SystemBridgeCapability::FileSystemSelectFile,
+            SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
     },
 ];

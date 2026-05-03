@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use specta::Type;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
@@ -11,14 +11,28 @@ use crate::runtime::{
     focus_runtime, hide_runtime, RuntimeTargetParams, SageAppRuntimeMode,
     SageAppRuntimeRecordView, SageAppRuntimeVisibility,
 };
-use crate::system_apps::SYSTEM_APP_APP_UPDATE_ID;
+use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID};
 use crate::AppsHostState;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum StartSystemAppArgs {
+    AppInstall(StartAppInstallArgs),
     AppUpdate(StartAppUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct StartAppInstallArgs {
+    pub source: StartAppInstallSource,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum StartAppInstallSource {
+    SelectSource,
+    Url { app_url: String },
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -52,6 +66,27 @@ pub async fn apps_start_system_app(
     args: StartSystemAppArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
     let create_args = match args {
+        StartSystemAppArgs::AppInstall(args) => {
+            let mut query = BTreeMap::new();
+
+            match args.source {
+                StartAppInstallSource::SelectSource => {
+                    query.insert("mode".to_string(), "select-source".to_string());
+                }
+                StartAppInstallSource::Url { app_url } => {
+                    query.insert("mode".to_string(), "url".to_string());
+                    query.insert("appUrl".to_string(), app_url);
+                }
+            }
+
+            CreateRuntimeArgs {
+                app_id: SYSTEM_APP_APP_INSTALL_ID.to_string(),
+                mode: SageAppRuntimeMode::Inline,
+                visibility: SageAppRuntimeVisibility::Visible,
+                debug_layout: false,
+                query,
+            }
+        }
         StartSystemAppArgs::AppUpdate(args) => {
             let mut query = BTreeMap::new();
 

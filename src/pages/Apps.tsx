@@ -1,5 +1,4 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { InstallAppForm } from '@/components/apps/InstallAppForm';
 import { CorruptedAppCard } from '@/components/apps/CorruptedAppCard';
 import { AppsLaunchpadContextMenu } from '@/components/apps/AppsLaunchpadContextMenu';
 import { Button } from '@/components/ui/button';
@@ -13,14 +12,12 @@ import {
 import {
   commands,
   ListedSageAppView,
-  SageAppPackageManifest,
   SageAppUrlPreview,
   SageGrantedPermissionsInput,
   SageGrantedPermissionsView,
   SystemSageAppView,
   UserSageAppView,
 } from '@/bindings.ts';
-import { invoke } from '@tauri-apps/api/core';
 import { useApps } from '@/contexts/AppsContext.tsx';
 import { useAppRuntimes } from '@/hooks/useAppRuntimes.ts';
 import {
@@ -123,7 +120,6 @@ function isFullUpdatePreview(preview: SageAppUrlPreview | null): boolean {
 
 export function Apps() {
   const navigate = useNavigate();
-  const [installOpen, setInstallOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<AppContextMenuState>(null);
   const pageRef = useRef<HTMLDivElement | null>(null);
   const runtimes = useAppRuntimes();
@@ -160,8 +156,6 @@ export function Apps() {
     loading,
     error,
     refresh,
-    installApp,
-    installUrlApp,
     uninstallApp,
     checkForUpdate,
     clearAppStorage,
@@ -503,7 +497,10 @@ export function Apps() {
             <Button
               variant='outline'
               onClick={() => {
-                setInstallOpen(true);
+                void commands.appsStartSystemApp({
+                  kind: 'appInstall',
+                  source: { kind: 'selectSource' },
+                });
               }}
             >
               <Plus className='mr-2 h-4 w-4' />
@@ -799,36 +796,6 @@ export function Apps() {
 
         <SystemAppModalLayer />
       </div>
-
-      <Dialog
-        open={installOpen}
-        onOpenChange={(open) => {
-          setInstallOpen(open);
-        }}
-      >
-        <DialogContent className='max-w-2xl'>
-          <DialogHeader>
-            <DialogTitle>Install App</DialogTitle>
-          </DialogHeader>
-
-          <InstallAppForm
-            onPreviewZip={(zipPath: string) =>
-              invoke<SageAppPackageManifest>('preview_app_zip', { zipPath })
-            }
-            onPreviewUrl={(appUrl: string) =>
-              invoke<SageAppUrlPreview>('preview_app_url', { appUrl })
-            }
-            onInstallZip={async (zipPath, grantedPermissions) => {
-              await installApp(zipPath, grantedPermissions);
-              setInstallOpen(false);
-            }}
-            onInstallUrl={async (appUrl, grantedPermissions) => {
-              await installUrlApp(appUrl, grantedPermissions);
-              setInstallOpen(false);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={!!permissionsDialogApp}

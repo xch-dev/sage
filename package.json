@@ -13,7 +13,7 @@
     "build:builtin-static": "node scripts/build-builtin-static.mjs",
     "build:builtin-apps": "pnpm run build:packages && pnpm run build:system-apps && pnpm run build:builtin-static",
     "build": "pnpm run build:builtin-apps && tsc -b && vite build",
-    "tauri:dev": "concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
+    "tauri:dev": "pnpm build && concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
     "tauri:build": "pnpm build && tauri build",
     "lint": "eslint .",
     "preview": "vite preview",
