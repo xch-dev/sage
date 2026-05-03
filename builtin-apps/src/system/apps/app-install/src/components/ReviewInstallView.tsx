@@ -59,10 +59,11 @@ export function ReviewInstallView({
     return <UnsupportedManifestView source={source} error={error} />;
   }
 
+
   return (
     <AppModalShell
       appName={manifest.name}
-      appIcon={resolveInstallIcon(source, manifest)}
+      appIcon={resolveInstallIcon(source)}
       title='Install app'
       footer={
         <div className='flex justify-end gap-2'>

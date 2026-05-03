@@ -1,8 +1,8 @@
-import { AppIconFromUrl } from '@sage-app/ui';
+import { AppIcon } from '@sage-app/ui';
 import type { SageAppPackageManifest } from '@sage-system-app/sdk';
 import type { InstallSource } from '../types';
 import { formatBytes, manifestSize } from '../utils/format';
-import { resolveManifestIconUrl } from '../utils/icons';
+import { resolveInstallIcon } from '../utils/icons';
 
 export function InstallSummary({
   source,
@@ -15,10 +15,7 @@ export function InstallSummary({
     <div className='rounded-2xl border border-border p-4'>
       <div className='flex items-start gap-4'>
         <div className='h-16 w-16 overflow-hidden rounded-2xl border border-border'>
-          <AppIconFromUrl
-            name={manifest.name}
-            iconUrl={resolveManifestIconUrl(source, manifest)}
-          />
+          <AppIcon appName={manifest.name} appIcon={resolveInstallIcon(source)} />
         </div>
 
         <div className='min-w-0 flex-1'>

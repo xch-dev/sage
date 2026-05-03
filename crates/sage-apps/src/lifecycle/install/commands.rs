@@ -19,7 +19,6 @@ pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
         unzip_to_dir(Path::new(&zip_path), &unpack_dir)?;
         let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
         let manifest = read_manifest(&package_root)?;
-        manifest.validate_package_files(&package_root)?;
 
         Ok(manifest)
     })();
@@ -41,7 +40,7 @@ pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
+    SageAppUrlPreview::new(&app_url, manifest, manifest_hash).await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")).into())
 }
 

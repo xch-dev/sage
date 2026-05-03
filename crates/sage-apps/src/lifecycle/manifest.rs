@@ -88,6 +88,7 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
                 err.inner()
             )
         })?;
+    manifest.validate_package_files(package_root)?;
 
     Ok(manifest)
 }

@@ -1,42 +1,19 @@
 import type { ReactNode } from 'react';
 import { SystemModalShell } from './SystemModalShell';
 import {
-  AppIconBytes,
-  AppIconFromBytes,
-  AppIconFromUrl,
+  AppIcon,
 } from '../../components';
-import {SageAppCommonView} from '@sage-system-app/sdk';
 
 interface AppModalShellProps {
   title: string;
   appName: string;
   children: ReactNode;
-  appIcon: AppModalIcon;
+  appIcon?: AppIcon | null;
   description?: string;
   footer?: ReactNode;
   className?: string;
   bodyClassName?: string;
   contentClassName?: string;
-}
-
-export type AppModalIcon =
-  | { kind: 'url'; iconUrl: string | null }
-  | { kind: 'bytes'; icon: AppIconBytes | null };
-
-export function appModalIconFromCommonView(common: SageAppCommonView): AppModalIcon {
-  const icon = common.icon;
-
-  if (!icon) {
-    return { kind: 'bytes', icon: null };
-  }
-
-  return {
-    kind: 'bytes',
-    icon: {
-      bytes: icon.bytes,
-      mime: icon.mime,
-    },
-  };
 }
 
 export function AppModalShell({
@@ -57,19 +34,7 @@ export function AppModalShell({
         <header className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border'>
           <div className='border-r border-border'>
             <div className='h-full w-full p-1'>
-              {appIcon.kind === 'url' ? (
-                <AppIconFromUrl
-                  name={appName}
-                  iconUrl={appIcon.iconUrl}
-                  className='h-full w-full'
-                />
-              ) : (
-                <AppIconFromBytes
-                  name={appName}
-                  icon={appIcon.icon}
-                  className='h-full w-full'
-                />
-              )}
+              <AppIcon appName={appName} appIcon={appIcon ?? null} />
             </div>
           </div>
 

@@ -57,9 +57,6 @@ impl AppInstallSource for ZipInstallSource {
 
         let package_root = detect_package_root(&self.unpack_dir)?;
         let manifest = read_manifest(&package_root)?;
-        manifest.validate_package_files(&package_root)?;
-
-        let manifest = read_manifest(&package_root)?;
 
         Ok(PreparedZipInstall {
             package_root,

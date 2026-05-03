@@ -1,4 +1,5 @@
 import type {
+  SageAppIconView,
   SageAppCapabilityDefinitionView,
   SageAppPackageManifest,
   SageGrantedPermissionsInput,

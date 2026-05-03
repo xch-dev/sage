@@ -42,7 +42,7 @@ pub async fn check_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash)
+    let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash).await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     if preview.manifest_hash() == active_snapshot.manifest_hash()
@@ -217,7 +217,7 @@ async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppP
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash).await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     let manifest = preview
@@ -266,7 +266,7 @@ async fn fetch_pending_update_for_resolved_stopped_app(
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash).await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     let manifest = preview

@@ -26,7 +26,7 @@ impl AppInstallSource for SageAppUrl {
         let (manifest, manifest_hash) = fetch_url_manifest_preview(&self.manifest_url()).await?;
 
         Ok(PreparedUrlInstall {
-            preview: SageAppUrlPreview::new(self, manifest, manifest_hash)?,
+            preview: SageAppUrlPreview::new(self, manifest, manifest_hash).await?,
         })
     }
 

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
-  appModalIconFromCommonView,
+  appIconFromCommonView,
   AppModalShell,
   PermissionsEditor,
 } from '@sage-app/ui';
@@ -82,12 +82,10 @@ export function UpdateReviewBody({ state }: any) {
     };
   }, [state.app, grantedPermissions, preview]);
 
-  const subtitle = `v${state.app.common.activeSnapshot.manifest.version} → v${preview.manifest.manifest.version}`;
-
   return (
     <AppModalShell
       title='Review app update'
-      appIcon={appModalIconFromCommonView(state.app.common)}
+      appIcon={appIconFromCommonView(state.app.common)}
       appName={state.app.common.activeSnapshot.manifest.name}
       footer={
         <div className='flex justify-end gap-2'>

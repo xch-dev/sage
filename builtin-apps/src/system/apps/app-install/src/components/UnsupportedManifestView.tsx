@@ -1,6 +1,5 @@
 import { AppModalShell } from '@sage-app/ui';
 import { closeSelf } from '../api';
-import { INSTALL_APP_ICON } from '../constants';
 import type { InstallSource } from '../types';
 
 export function UnsupportedManifestView({
@@ -18,7 +17,6 @@ export function UnsupportedManifestView({
   return (
     <AppModalShell
       appName={partial?.manifest_header.name ?? 'Sage app'}
-      appIcon={INSTALL_APP_ICON}
       title='App cannot be installed'
       footer={
         <div className='flex justify-end'>

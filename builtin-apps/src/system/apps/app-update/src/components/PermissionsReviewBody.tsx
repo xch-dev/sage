@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  appModalIconFromCommonView,
+  appIconFromCommonView,
   AppModalShell,
   PermissionsEditor,
 } from '@sage-app/ui';
@@ -41,7 +41,7 @@ export function PermissionsReviewBody({ state }: any) {
   return (
     <AppModalShell
       appName={state.app.common.activeSnapshot.manifest.name}
-      appIcon={appModalIconFromCommonView(state.app.common)}
+      appIcon={appIconFromCommonView(state.app.common)}
       title='Change app permissions'
       footer={
         <div className='flex justify-end gap-2'>

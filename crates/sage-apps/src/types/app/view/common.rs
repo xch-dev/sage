@@ -1,8 +1,9 @@
 use serde::{Serialize};
 use specta::Type;
+use url::Url;
 use crate::types::app::view::permission::SageGrantedPermissionsView;
 use crate::types::app::view::snapshot::SageAppSnapshotView;
-use crate::types::{SageAppCommon, SageAppIdentity};
+use crate::types::{SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -56,6 +57,57 @@ impl SageAppIconView {
             .to_string();
 
         Some(Self { mime, bytes })
+    }
+
+    pub(crate) async fn from_url_manifest(
+        base: &SageAppUrl,
+        manifest: &SageAppPackageManifest,
+    ) -> Option<Self> {
+        let icon_path = manifest.icon()?;
+        Self::from_url(base, icon_path).await
+    }
+
+    pub async fn from_url_preview(
+        base: &SageAppUrl,
+        preview: &SageAppPackageManifestPreview,
+    ) -> Option<Self> {
+        match preview {
+            SageAppPackageManifestPreview::Full { manifest } => {
+                Self::from_url_manifest(base, manifest).await
+            }
+            SageAppPackageManifestPreview::Partial { manifest_header, .. } => {
+                let icon_path = manifest_header.icon.as_deref()?;
+
+                Self::from_url(base, icon_path).await
+            }
+        }
+    }
+
+    async fn from_url(
+        base: &SageAppUrl,
+        icon_path: &str,
+    ) -> Option<Self> {
+        let base_url = Url::parse(base.as_str()).ok()?;
+        let resolved = base_url.join(icon_path).ok()?;
+
+        let resp = reqwest::get(resolved).await.ok()?;
+        if !resp.status().is_success() {
+            return None;
+        }
+
+        let mime = resp
+            .headers()
+            .get(reqwest::header::CONTENT_TYPE)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("application/octet-stream")
+            .to_string();
+
+        let bytes = resp.bytes().await.ok()?;
+
+        Some(Self {
+            mime,
+            bytes: bytes.to_vec(),
+        })
     }
 }
 
