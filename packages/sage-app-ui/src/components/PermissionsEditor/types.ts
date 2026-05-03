@@ -1,5 +1,16 @@
 import type { UserBridgeCapability } from '@sage-system-app/sdk';
 
+export type NetworkPermissionScheme = 'https' | 'wss';
+
+export interface NetworkPermissionSchemeState {
+  scheme: NetworkPermissionScheme;
+  key: string;
+  required: boolean;
+  granted: boolean;
+  disabled: boolean;
+  visible: boolean;
+}
+
 export type PermissionEntry =
   | {
       id: string;
@@ -16,11 +27,13 @@ export type PermissionEntry =
       id: string;
       kind: 'network';
       key: string;
+      host: string;
       label: string;
       description: string | null;
       required: boolean;
       granted: boolean;
       sensitivityRank: number;
+      schemes: Record<NetworkPermissionScheme, NetworkPermissionSchemeState>;
     };
 
 export interface PermissionGroupNode {

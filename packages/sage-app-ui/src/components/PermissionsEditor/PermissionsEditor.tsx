@@ -3,11 +3,12 @@ import type {
   SageAppCapabilityDefinitionView,
   SageGrantedPermissionsInput,
   SageGrantedPermissionsView,
+  SageNetworkWhitelistEntry,
   SystemSageAppView,
   UserBridgeCapability,
   UserSageAppView,
 } from '@sage-system-app/sdk';
-import type { PermissionEntry } from './types';
+import type { NetworkPermissionScheme, PermissionEntry } from './types';
 import {
   buildCapabilityEntries,
   buildNetworkEntries,
@@ -94,8 +95,9 @@ export function PermissionsEditor({
 
     const networkEntries = buildNetworkEntries(
       requestedRequiredNetwork,
-      [],
+      requestedOptionalNetwork,
       grantedNetworkWhitelist,
+      'required',
     );
 
     return sortPermissionEntries([...capabilityEntries, ...networkEntries]);
@@ -103,6 +105,7 @@ export function PermissionsEditor({
     requestedRequiredCapabilities,
     grantedCapabilities,
     requestedRequiredNetwork,
+    requestedOptionalNetwork,
     grantedNetworkWhitelist,
     definitionsByKey,
   ]);
@@ -116,15 +119,17 @@ export function PermissionsEditor({
     );
 
     const networkEntries = buildNetworkEntries(
-      [],
+      requestedRequiredNetwork,
       requestedOptionalNetwork,
       grantedNetworkWhitelist,
+      'optional',
     );
 
     return sortPermissionEntries([...capabilityEntries, ...networkEntries]);
   }, [
     requestedOptionalCapabilities,
     grantedCapabilities,
+    requestedRequiredNetwork,
     requestedOptionalNetwork,
     grantedNetworkWhitelist,
     definitionsByKey,
@@ -159,12 +164,30 @@ export function PermissionsEditor({
     onGrantedPermissionsChange?.(next);
   }
 
-  function handleToggleEntry(entry: PermissionEntry, nextGranted: boolean) {
-    if (!editable || entry.required) {
+  function keyToNetworkEntry(key: string): SageNetworkWhitelistEntry | null {
+    const [scheme, host] = key.split('://');
+
+    if (!scheme || !host) {
+      return null;
+    }
+
+    return { scheme, host };
+  }
+
+  function handleToggleEntry(
+    entry: PermissionEntry,
+    nextGranted: boolean,
+    scheme?: NetworkPermissionScheme,
+  ) {
+    if (!editable) {
       return;
     }
 
     if (entry.kind === 'capability') {
+      if (entry.required) {
+        return;
+      }
+
       const nextSet = new Set<UserBridgeCapability>(grantedCapabilities);
 
       if (nextGranted) {
@@ -187,33 +210,52 @@ export function PermissionsEditor({
       return;
     }
 
-    const requiredKeys = new Set<string>(
-      requestedRequiredNetwork.map((item) => networkKey(item)),
+    if (!scheme) {
+      return;
+    }
+
+    const nextKeys = new Set<string>(
+      grantedNetworkWhitelist.map((item) => networkKey(item)),
     );
 
-    const nextOptional = requestedOptionalNetwork.filter((item) => {
-      const key = networkKey(item);
+    for (const requiredEntry of requestedRequiredNetwork) {
+      nextKeys.add(networkKey(requiredEntry));
+    }
 
-      if (requiredKeys.has(key)) {
-        return false;
+    const httpsKey = `https://${entry.host}`;
+    const wssKey = `wss://${entry.host}`;
+
+    if (scheme === 'https') {
+      if (nextGranted) {
+        nextKeys.add(httpsKey);
+      } else if (!nextKeys.has(wssKey)) {
+        nextKeys.delete(httpsKey);
       }
+    }
 
-      if (key !== entry.key) {
-        return grantedNetworkWhitelist.some(
-          (grantedEntry) => networkKey(grantedEntry) === key,
-        );
+    if (scheme === 'wss') {
+      if (nextGranted) {
+        nextKeys.add(wssKey);
+        nextKeys.add(httpsKey);
+      } else {
+        nextKeys.delete(wssKey);
       }
+    }
 
-      return nextGranted;
-    });
+    for (const key of Array.from(nextKeys)) {
+      if (key.startsWith('wss://')) {
+        nextKeys.add(`https://${key.slice('wss://'.length)}`);
+      }
+    }
+
+    const nextWhitelist = Array.from(nextKeys)
+      .map(keyToNetworkEntry)
+      .filter((item): item is SageNetworkWhitelistEntry => item !== null);
 
     emitGrantedPermissions({
       capabilities: grantedCapabilities,
       network: {
-        whitelist: sortNetworkEntries([
-          ...requestedRequiredNetwork,
-          ...nextOptional,
-        ]),
+        whitelist: sortNetworkEntries(nextWhitelist),
       },
     });
   }

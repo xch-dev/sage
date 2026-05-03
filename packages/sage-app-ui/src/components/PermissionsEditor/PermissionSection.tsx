@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
-import type { PermissionEntry, PermissionGroupNode } from './types';
+import type {
+  NetworkPermissionScheme,
+  PermissionEntry,
+  PermissionGroupNode,
+} from './types';
 import { PermissionGroupBlock } from './PermissionGroupBlock';
 
 export function PermissionSection({
@@ -15,7 +19,11 @@ export function PermissionSection({
   editable: boolean;
   separated?: boolean;
   trailingAction?: ReactNode;
-  onToggleEntry: (entry: PermissionEntry, nextGranted: boolean) => void;
+  onToggleEntry: (
+    entry: PermissionEntry,
+    nextGranted: boolean,
+    scheme?: NetworkPermissionScheme,
+  ) => void;
 }) {
   if (groups.length === 0 && !trailingAction) return null;
 

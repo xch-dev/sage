@@ -3,7 +3,7 @@ import type {
   SageNetworkWhitelistEntry,
   UserBridgeCapability,
 } from '@sage-system-app/sdk';
-import type { PermissionEntry } from './types';
+import type { NetworkPermissionScheme, NetworkPermissionSchemeState, PermissionEntry, } from './types';
 import { formatCapabilityLeafLabel, networkKey } from './utils';
 
 export function capabilitySensitivityRank(key: string): number {
@@ -88,42 +88,74 @@ export function buildNetworkEntries(
   requestedRequired: SageNetworkWhitelistEntry[],
   requestedOptional: SageNetworkWhitelistEntry[],
   grantedNetworkWhitelist: SageNetworkWhitelistEntry[],
+  section: 'required' | 'optional',
 ): PermissionEntry[] {
-  const grantedSet = new Set(
-    grantedNetworkWhitelist.map((entry) => networkKey(entry)),
-  );
+  const requiredKeys = new Set(requestedRequired.map(networkKey));
+  const optionalKeys = new Set(requestedOptional.map(networkKey));
+  const grantedKeys = new Set(grantedNetworkWhitelist.map(networkKey));
+  const hosts = new Set<string>();
+  for (const entry of [...requestedRequired, ...requestedOptional]) {
+    if (isSupportedNetworkScheme(entry.scheme)) {
+      hosts.add(entry.host);
+    }
+  }
+  const entries: PermissionEntry[] = [];
 
-  const requiredEntries: PermissionEntry[] = requestedRequired.map((entry) => {
-    const key = networkKey(entry);
+  for (const host of hosts) {
+    const httpsKey = schemeKey('https', host);
+    const wssKey = schemeKey('wss', host);
+    const httpsRequested =
+      requiredKeys.has(httpsKey) || optionalKeys.has(httpsKey);
+    const wssRequested = requiredKeys.has(wssKey) || optionalKeys.has(wssKey);
+    const hostHasRequired =
+      requiredKeys.has(httpsKey) || requiredKeys.has(wssKey);
 
-    return {
-      id: `network:${key}`,
-      kind: 'network',
-      key,
-      label: key,
-      description: null,
-      required: true,
-      granted: true,
-      sensitivityRank: 1,
+    if (section === 'required' && !hostHasRequired) continue;
+    if (section === 'optional' && hostHasRequired) continue;
+    const wssRequired = requiredKeys.has(wssKey);
+    const wssGranted = wssRequired || grantedKeys.has(wssKey);
+    const httpsRequired = requiredKeys.has(httpsKey);
+    const httpsGranted =
+      httpsRequired || wssGranted || grantedKeys.has(httpsKey);
+    const httpsVisible = httpsRequested || wssRequested;
+
+    const schemes: Record<
+      NetworkPermissionScheme,
+      NetworkPermissionSchemeState
+    > = {
+      https: {
+        scheme: 'https',
+        key: httpsKey,
+        required: httpsRequired || wssRequired,
+        granted: httpsGranted,
+        disabled: httpsRequired || wssGranted,
+        visible: httpsVisible,
+      },
+      wss: {
+        scheme: 'wss',
+        key: wssKey,
+        required: wssRequired,
+        granted: wssGranted,
+        disabled: wssRequired,
+        visible: wssRequested,
+      },
     };
-  });
 
-  const optionalEntries: PermissionEntry[] = requestedOptional.map((entry) => {
-    const key = networkKey(entry);
-
-    return {
-      id: `network:${key}`,
+    entries.push({
+      id: `network:${host}`,
       kind: 'network',
-      key,
-      label: key,
+      key: host,
+      host,
+      label: host,
       description: null,
-      required: false,
-      granted: grantedSet.has(key),
+      required: hostHasRequired,
+      granted: httpsGranted || wssGranted,
       sensitivityRank: 1,
-    };
-  });
+      schemes,
+    });
+  }
 
-  return [...requiredEntries, ...optionalEntries];
+  return entries;
 }
 
 export function sortPermissionEntries(
@@ -140,4 +172,22 @@ export function sortPermissionEntries(
 
     return a.key.localeCompare(b.key);
   });
+}
+
+function isSupportedNetworkScheme(
+  scheme: string,
+): scheme is NetworkPermissionScheme {
+  return scheme === 'https' || scheme === 'wss';
+}
+
+function makeNetworkEntry(
+  scheme: NetworkPermissionScheme,
+
+  host: string,
+): SageNetworkWhitelistEntry {
+  return { scheme, host };
+}
+
+function schemeKey(scheme: NetworkPermissionScheme, host: string): string {
+  return networkKey(makeNetworkEntry(scheme, host));
 }
