@@ -6,11 +6,46 @@ interface SystemModalShellProps {
   contentClassName?: string;
 }
 
+function resolveModalTint(): string {
+  const root = getComputedStyle(document.documentElement);
+
+  const candidates = [
+    root.getPropertyValue('--background').trim(),
+    root.getPropertyValue('--secondary').trim(),
+    root.getPropertyValue('--muted').trim(),
+    root.getPropertyValue('--card').trim(),
+  ];
+
+  return (
+    candidates.find(
+      (value) =>
+        value.length > 0 &&
+        value !== 'transparent' &&
+        value !== 'rgba(0, 0, 0, 0)',
+    ) ?? '#1d2530'
+  );
+}
+
+function colorWithAlpha(color: string, alpha: number): string {
+  if (color.startsWith('#')) {
+    return `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
+  }
+
+  if (color.startsWith('rgb') || color.startsWith('hsl')) {
+    return `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
+  }
+
+  // HSL channel format, e.g. "222 47% 11%"
+  return `hsl(${color} / ${alpha})`;
+}
+
 export function SystemModalShell({
   children,
   className = '',
   contentClassName = '',
 }: SystemModalShellProps) {
+  const tint = resolveModalTint();
+
   return (
     <div
       className={[
@@ -28,7 +63,7 @@ export function SystemModalShell({
         style={{
           backdropFilter: 'blur(80px) saturate(0.55)',
           WebkitBackdropFilter: 'blur(80px) saturate(0.55)',
-          backgroundColor: 'rgb(255 255 255 / 0.08)',
+          backgroundColor: colorWithAlpha(tint, 0.7),
         }}
       >
         {children}

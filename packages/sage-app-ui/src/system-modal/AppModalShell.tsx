@@ -30,8 +30,8 @@ export function AppModalShell({
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
     >
       <div className={['flex h-full min-h-0 flex-col', className].join(' ')}>
-        <header className='grid h-20 shrink-0 grid-cols-[5rem_1fr] border-b border-border bg-card'>
-          <div className='border-r border-border bg-background'>
+        <header className='grid h-20 shrink-0 grid-cols-[5rem_1fr] border-b border-border'>
+          <div className='border-r border-border'>
             {appIconSrc ? (
               <img
                 src={appIconSrc}
@@ -39,7 +39,7 @@ export function AppModalShell({
                 className='h-full w-full object-cover'
               />
             ) : (
-              <div className='h-full w-full bg-muted' />
+              <div className='h-full w-full bg-foreground/5' />
             )}
           </div>
 
@@ -48,7 +48,7 @@ export function AppModalShell({
               {appName}
             </div>
 
-            <h1 className='mt-0.5 truncate text-lg font-semibold text-card-foreground'>
+            <h1 className='mt-0.5 truncate text-lg font-semibold text-foreground'>
               {title}
             </h1>
 
@@ -62,8 +62,7 @@ export function AppModalShell({
 
         <main
           className={[
-            'min-h-0 flex-1 overflow-auto',
-            'bg-card px-6 py-5',
+            'min-h-0 flex-1 overflow-auto px-6 py-5',
             bodyClassName,
           ].join(' ')}
         >
@@ -71,7 +70,7 @@ export function AppModalShell({
         </main>
 
         {footer ? (
-          <footer className='shrink-0 border-t border-border bg-card px-6 py-4'>
+          <footer className='shrink-0 border-t border-border px-6 py-4'>
             {footer}
           </footer>
         ) : null}
