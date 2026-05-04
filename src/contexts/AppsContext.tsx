@@ -34,9 +34,27 @@ type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
 type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
 
+const SAGE_RUNTIME_EVENT_NAME = 'apps:runtime-event';
+
 interface RuntimeManagerRuntimesChangedEvent {
-  runtimes: SageAppRuntimeRecordView[];
+  type: 'runtimeManager.runtimesChanged';
+  payload: {
+    runtimes: SageAppRuntimeRecordView[];
+  };
 }
+
+interface ActiveRuntimeChangedEvent {
+  type: 'runtimeManager.activeRuntimeChanged';
+  payload: {
+    hostWindowLabel: string;
+    appId: string | null;
+    runtimeId: string | null;
+  };
+}
+
+type SageRuntimeEvent =
+  | RuntimeManagerRuntimesChangedEvent
+  | ActiveRuntimeChangedEvent;
 
 interface AppsContextValue {
   apps: ListedSageAppView[];
@@ -230,20 +248,31 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isCancelled = false;
-    let unsubscribe: UnlistenFn | null = null;
+    let unsubscribe: (() => void) | undefined;
 
     const setup = async () => {
       try {
-        unsubscribe = await listen<RuntimeManagerRuntimesChangedEvent>(
-          'apps:runtime-manager:runtimes-changed',
+        unsubscribe = await listen<SageRuntimeEvent>(
+          SAGE_RUNTIME_EVENT_NAME,
           (event) => {
             if (isCancelled) return;
-            setRuntimes(event.payload.runtimes);
+
+            const runtimeEvent = event.payload;
+            console.log('Received runtime event:', runtimeEvent);
+
+            switch (runtimeEvent.type) {
+              case 'runtimeManager.runtimesChanged':
+                setRuntimes(runtimeEvent.payload.runtimes);
+                break;
+
+              case 'runtimeManager.activeRuntimeChanged':
+                break;
+            }
           },
         );
       } catch (err) {
         if (!isCancelled) {
-          console.error('Failed to subscribe to runtime updates:', err);
+          console.error('Failed to subscribe to runtime events:', err);
         }
       }
     };
@@ -252,7 +281,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isCancelled = true;
-      if (unsubscribe) void unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 

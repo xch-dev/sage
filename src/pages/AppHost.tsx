@@ -45,6 +45,7 @@ export function AppHost() {
   }, [webviewLabel, scheduleSyncBounds]);
 
   if (!runtime) {
+    console.error("Runtime not found for app ID: ", appId);
     return <Navigate to='/apps' replace />;
   }
 
