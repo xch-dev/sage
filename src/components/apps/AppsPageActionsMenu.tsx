@@ -6,13 +6,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutGrid, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
   showSandboxDebugUi: boolean;
   sandboxTestsRunning: boolean;
-  onTaskManager: () => void;
   onRerunSandboxTests: () => void;
   onClose?: () => void;
 }
@@ -20,7 +19,6 @@ interface Props {
 export function AppsPageActionsMenu({
   showSandboxDebugUi,
   sandboxTestsRunning,
-  onTaskManager,
   onRerunSandboxTests,
   onClose,
 }: Props) {
@@ -42,11 +40,6 @@ export function AppsPageActionsMenu({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align='end' className='w-56'>
-        <DropdownMenuItem onClick={onTaskManager}>
-          <LayoutGrid className='mr-2 h-4 w-4' />
-          Task Manager
-        </DropdownMenuItem>
-
         {showSandboxDebugUi ? (
           <>
             <DropdownMenuSeparator />

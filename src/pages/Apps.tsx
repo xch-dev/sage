@@ -475,9 +475,6 @@ export function Apps() {
                 sandboxState?.currentRun?.state?.overallCriticalStatus ===
                 'running'
               }
-              onTaskManager={() => {
-                navigate('/system-apps/task-manager');
-              }}
               onRerunSandboxTests={() => {
                 void rerunSandboxTests();
               }}
