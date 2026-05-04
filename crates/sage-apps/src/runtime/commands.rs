@@ -211,13 +211,13 @@ pub async fn apps_dev_reload_runtime(
 
     webview
         .eval(
-            r#"
+            r"
             (() => {
               const url = new URL(window.location.href);
               url.searchParams.set('__sage_dev_reload', String(Date.now()));
               window.location.replace(url.toString());
             })();
-            "#,
+            ",
         )
         .map_err(|err| format!("failed to reload runtime webview: {err}"))?;
 
