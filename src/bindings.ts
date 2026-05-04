@@ -428,7 +428,7 @@ async getBuiltinSystemApp(appId: string) : Promise<SageAppView | null> {
 async appsStartSystemApp(args: StartSystemAppArgs) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_start_system_app", { args });
 },
-async appsCreateInlineRuntime(args: CreateRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
+async appsCreateInlineRuntime(args: CreateInstalledRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_create_inline_runtime", { args });
 },
 async appsListRuntimes() : Promise<SageAppRuntimeRecordView[]> {
@@ -501,6 +501,8 @@ ip: string }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
 export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
+export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean }
+export type AppPresentation = { kind: "Taskbar" } | ({ kind: "Modal" } & AppModalPresentation)
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
 /**
  * Type of asset coin
@@ -829,7 +831,7 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type CreateRuntimeArgs = { appId: string; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; debugLayout: boolean; query: Partial<{ [key in string]: string }> }
+export type CreateInstalledRuntimeArgs = { appId: string }
 export type CreateTransaction = { 
 /**
  * Pre-selected coins to use in the transaction prior to coin selection
@@ -2275,7 +2277,7 @@ export type SageAppManifestVersion = number
 export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppPackageManifestPreview = { kind: "full"; manifest: SageAppPackageManifest } | { kind: "partial"; manifest_header: SageAppManifestHeaderV0; parse_error: string }
 export type SageAppRuntimeMode = "Inline" | "Windowed"
-export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; webviewLabel: string; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
+export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
 export type SageAppRuntimeVisibility = "Visible" | "Hidden"
 export type SageAppSnapshotView = { manifest: SageAppPackageManifest }
 export type SageAppUrl = string
@@ -2645,10 +2647,9 @@ spend_bundle: SpendBundleJson }
  */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
-export type SystemAppPresentation = "Taskbar" | "Modal"
 export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "file_system.select_file"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
-export type SystemSageAppView = { common: SageAppCommonView; presentation: SystemAppPresentation; systemGrantedPermissions: SageGrantedSystemPermissionsView }
+export type SystemSageAppView = { common: SageAppCommonView; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**
  * Accept an offer
  */

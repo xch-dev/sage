@@ -4,7 +4,8 @@ use std::{
 };
 use std::fmt::Display;
 use anyhow::{Result as AnyResult};
-
+use serde::Serialize;
+use specta::Type;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
 use crate::utils::builtin_apps_root;
@@ -17,13 +18,20 @@ pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
 pub struct BuiltinSystemAppSpec {
     pub app_id: &'static str,
     pub dir_name: &'static str,
+    pub usage: SystemAppUsage,
     pub system_capabilities: &'static [SystemBridgeCapability],
+}
+#[derive(Debug, Clone, Copy, Serialize, Type, PartialEq, Eq)]
+pub enum SystemAppUsage {
+    Standalone,
+    Contextual,
 }
 
 const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_TASK_MANAGER_ID,
         dir_name: "task-manager",
+        usage: SystemAppUsage::Standalone,
         system_capabilities: &[
             SystemBridgeCapability::RuntimeManagerListRuntimes,
             SystemBridgeCapability::RuntimeManagerFocusRuntime,
@@ -35,6 +43,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_UPDATE_ID,
         dir_name: "app-update",
+        usage: SystemAppUsage::Contextual,
         system_capabilities: &[
             SystemBridgeCapability::CapabilityDefinitionsRead,
             SystemBridgeCapability::AppPermissionsRead,
@@ -47,6 +56,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_INSTALL_ID,
         dir_name: "app-install",
+        usage: SystemAppUsage::Contextual,
         system_capabilities: &[
             SystemBridgeCapability::CapabilityDefinitionsRead,
             SystemBridgeCapability::AppInstallPreview,
@@ -73,7 +83,7 @@ impl Display for AppBuildError {
             AppBuildError::InternalError => String::from("internal error"),
             AppBuildError::EntryFileNotFound => String::from("entry not found"),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -218,6 +228,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
 
     let app = SystemSageApp::new(
         common,
+        spec.usage,
         SageGrantedSystemPermissions::new(spec.system_capabilities.iter().copied()),
     );
 

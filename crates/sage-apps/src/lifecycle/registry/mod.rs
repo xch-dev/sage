@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
-use crate::system_apps::list_builtin_system_apps;
+use crate::system_apps::{list_builtin_system_apps, SystemAppUsage};
 use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, SageNetworkWhitelistEntry, SharedSageApp, UserSageApp, UserSageAppSource};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
@@ -140,7 +140,8 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
     }
 
     for app in list_builtin_system_apps()? {
-        if let SageApp::System(app) = app {
+        if let SageApp::System(app) = app
+            && app.usage() == SystemAppUsage::Standalone {
             apps.push(ListedSageApp::System(app));
         }
     }

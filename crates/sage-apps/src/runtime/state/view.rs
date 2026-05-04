@@ -8,6 +8,7 @@ use crate::types::{AppPresentation, SageAppView};
 pub struct SageAppRuntimeRecordView {
     runtime_id: String,
     app: SageAppView,
+    host_window_label: String,
     webview_label: String,
     presentation: AppPresentation,
     mode: SageAppRuntimeMode,
@@ -22,6 +23,7 @@ impl From<&SharedRuntime> for SageAppRuntimeRecordView {
         value.with_runtime(|runtime| Self {
             runtime_id: runtime.runtime_id().clone(),
             app: runtime.app().into(),
+            host_window_label: runtime.host_window_label().to_string(),
             webview_label: runtime.webview_label().to_string(),
             presentation: runtime.presentation(),
             mode: runtime.mode(),

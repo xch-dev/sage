@@ -11,7 +11,7 @@ export function SystemAppModalLayer() {
     return runtimes.find(
       (runtime) =>
         runtime.app.kind === 'system' &&
-        runtime.app.presentation === 'AppModal' &&
+        runtime.presentation.kind === 'Modal' &&
         runtime.visibility === 'Visible',
     );
   }, [runtimes]);

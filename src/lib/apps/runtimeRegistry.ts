@@ -1,7 +1,7 @@
 import { Webview, getCurrentWebview } from '@tauri-apps/api/webview';
 import {
   commands,
-  type CreateRuntimeArgs,
+  type CreateInstalledRuntimeArgs,
   type SageAppRuntimeRecordView,
   type SystemSageAppView,
   type UserSageAppView,
@@ -233,11 +233,6 @@ export async function focusRuntime(appId: string): Promise<void> {
   await refreshRuntimes();
 }
 
-export async function hideRuntime(appId: string): Promise<void> {
-  await commands.appsHideRuntime(runtimeTarget(appId));
-  await refreshRuntimes();
-}
-
 export async function killRuntime(appId: string): Promise<void> {
   await commands.appsKillRuntime(runtimeTarget(appId));
   await refreshRuntimes();
@@ -254,12 +249,8 @@ export async function closeAppRuntime(
 export async function ensureInlineRuntime(
   app: AppLike,
 ): Promise<SageAppRuntimeRecordView> {
-  const args: CreateRuntimeArgs = {
+  const args: CreateInstalledRuntimeArgs = {
     appId: app.common.identity.id,
-    mode: 'Inline',
-    visibility: 'Visible',
-    debugLayout: false,
-    query: {},
   };
 
   const created = await commands.appsCreateInlineRuntime(args);

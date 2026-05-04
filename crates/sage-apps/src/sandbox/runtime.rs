@@ -63,7 +63,7 @@ async fn start_internal_runtime_for_sandbox(
         query,
     };
 
-    create_runtime(app.clone(), apps_state.clone(), args)
+    create_runtime(app, apps_state, args)
         .await
         .map(|_| ())
 }

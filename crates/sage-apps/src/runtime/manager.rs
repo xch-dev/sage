@@ -11,6 +11,7 @@ use crate::runtime::state::{
 };
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::{SageAppRuntimeRecord, SageAppRuntimeRecordView, SharedRuntime};
+use crate::types::AppPresentation;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -79,6 +80,7 @@ pub(crate) async fn focus_runtime(
     let runtime = get_runtime_by_app_id(apps_state, app_id)
         .await
         .map_err(|e| e.to_string())?;
+    require_taskbar_runtime(&runtime)?;
 
     let runtime_window_identity = runtime_window_identity(&runtime);
 
@@ -106,6 +108,12 @@ pub(crate) async fn focus_runtime(
 
     runtime.with_runtime_mut(SageAppRuntimeRecord::mark_visible);
 
+    sync_modal_runtime_visibility(
+        app_handle,
+        apps_state,
+        &runtime_window_identity.host_window_label,
+    ).await;
+
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
 
     let _ = emit_runtime_event_to_sage_webview(app_handle, ActiveRuntimeChangedEvent {
@@ -125,6 +133,7 @@ pub(crate) async fn hide_runtime(
     let runtime = get_runtime_by_app_id(apps_state, app_id)
         .await
         .map_err(|e| e.to_string())?;
+    require_taskbar_runtime(&runtime)?;
 
     let runtime_window_identity = runtime_window_identity(&runtime);
 
@@ -140,6 +149,12 @@ pub(crate) async fn hide_runtime(
         apps_state,
         &runtime_window_identity.host_window_label,
         &runtime_window_identity.runtime_id
+    ).await;
+
+    sync_modal_runtime_visibility(
+        app,
+        apps_state,
+        &runtime_window_identity.host_window_label,
     ).await;
 
     emit_runtime_manager_runtimes_changed(app, apps_state).await;
@@ -203,5 +218,91 @@ fn runtime_window_identity(runtime: &SharedRuntime) -> RuntimeWindowIdentity {
         runtime_id: record.runtime_id(),
         host_window_label: record.host_window_label().to_string(),
         webview_label: record.webview_label().to_string(),
+    })
+}
+
+async fn active_runtime_id_for_host_window(
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+) -> Option<String> {
+    let active = apps_state
+        .runtime
+        .active_runtime_id_by_host_window_label
+        .lock()
+        .await;
+
+    active.get(host_window_label).cloned()
+}
+
+async fn sync_modal_runtime_visibility(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+) {
+    let active_runtime_id =
+        active_runtime_id_for_host_window(apps_state, host_window_label).await;
+
+    let active_app_id = match active_runtime_id.as_deref() {
+        Some(runtime_id) => {
+            find_runtime_by_runtime_id_optional(apps_state, runtime_id)
+                .await
+                .map(|runtime| runtime.app_id())
+        }
+        None => None,
+    };
+
+    let Ok(runtimes) = list_runtimes(apps_state).await else {
+        return;
+    };
+
+    for runtime in runtimes {
+        let Some(decision) = runtime.with_runtime(|record| {
+            if record.host_window_label() != host_window_label {
+                return None;
+            }
+
+            let AppPresentation::Modal(modal) = record.presentation() else {
+                return None;
+            };
+
+            let should_be_visible = match active_app_id.as_deref() {
+                Some(active_app_id) => modal
+                    .visible_over_app_ids
+                    .iter()
+                    .any(|app_id| app_id == active_app_id),
+                None => modal.visible_over_launchpad,
+            };
+
+            Some((
+                record.webview_label().to_string(),
+                should_be_visible,
+            ))
+        }) else {
+            continue;
+        };
+
+        let (webview_label, should_be_visible) = decision;
+
+        let Ok(webview) = get_webview_in_sage_window(app_handle, &webview_label) else {
+            continue;
+        };
+
+        if should_be_visible {
+            let _ = webview.show();
+            runtime.with_runtime_mut(SageAppRuntimeRecord::mark_visible);
+        } else {
+            let _ = webview.hide();
+            runtime.with_runtime_mut(SageAppRuntimeRecord::mark_hidden);
+        }
+    }
+}
+
+fn require_taskbar_runtime(runtime: &SharedRuntime) -> Result<(), String> {
+    runtime.with_runtime(|record| {
+        if matches!(record.presentation(), AppPresentation::Taskbar) {
+            Ok(())
+        } else {
+            Err("runtime focus/hide is only supported for taskbar apps".to_string())
+        }
     })
 }

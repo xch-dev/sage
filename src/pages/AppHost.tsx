@@ -1,114 +1,56 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useEffect, useMemo, useRef } from 'react';
+import { Navigate, useParams } from 'react-router-dom';
 import { useApps } from '@/contexts/AppsContext';
-import { useAppEmbeddedRuntime } from '@/hooks/useAppEmbeddedRuntime.ts';
-import { formatSandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
-
-function AppNotFound() {
-  return (
-    <div className='mx-auto w-full max-w-4xl p-4 md:p-6'>
-      <Alert>
-        <AlertTitle>App not found</AlertTitle>
-        <AlertDescription>This app does not exist.</AlertDescription>
-      </Alert>
-    </div>
-  );
-}
-
-function AppBlocked({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className='mx-auto w-full max-w-4xl p-4 md:p-6'>
-      <Alert>
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{description}</AlertDescription>
-      </Alert>
-    </div>
-  );
-}
+import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
 
 export function AppHost() {
   const { appId = '' } = useParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { getListedApp, getLaunchGate, loading } = useApps();
 
-  const app = getListedApp(appId);
+  const {
+    taskbarRuntimesByHostWindowLabel,
+    currentHostWindowLabel,
+  } = useApps();
 
-  const userLaunchDecision =
-    app?.kind === 'user'
-      ? formatSandboxLaunchDecision(getLaunchGate(app.common.identity.id))
-      : null;
+  const taskbarRuntimesForWindow = useMemo(() => {
+    if (!currentHostWindowLabel) {
+      return [];
+    }
 
-  const routeableSystemApp =
-    app?.kind === 'system' && app.presentation === 'Taskbar';
+    return taskbarRuntimesByHostWindowLabel[currentHostWindowLabel] ?? [];
+  }, [currentHostWindowLabel, taskbarRuntimesByHostWindowLabel]);
 
-  const shouldMountRuntime =
-    !!app &&
-    (app.kind === 'system'
-      ? routeableSystemApp
-      : !!userLaunchDecision?.allowed);
+  const runtime = useMemo(() => {
+    return (
+      taskbarRuntimesForWindow.find((runtime) => {
+        return runtime.app.common.identity.id === appId;
+      }) ?? null
+    );
+  }, [taskbarRuntimesForWindow, appId]);
 
-  const { attaching, attachError } = useAppEmbeddedRuntime({
-    app: shouldMountRuntime ? app : null,
+  const webviewLabel = runtime?.webviewLabel ?? null;
+
+  const { scheduleSyncBounds } = useRuntimeWebviewBounds({
+    webviewLabel,
     containerRef,
+    enabled: !!webviewLabel,
   });
 
-  if (loading) {
-    return (
-      <div className='mx-auto w-full max-w-4xl p-4 md:p-6'>
-        <Alert>
-          <AlertTitle>Loading app...</AlertTitle>
-          <AlertDescription>Please wait.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!webviewLabel) {
+      return;
+    }
 
-  if (!app) {
-    return <AppNotFound />;
-  }
+    scheduleSyncBounds();
+  }, [webviewLabel, scheduleSyncBounds]);
 
-  if (app.kind === 'system' && app.presentation !== 'Taskbar') {
-    return (
-      <AppBlocked
-        title='System app is not routeable'
-        description='This system app is opened contextually by Sage and is not available through direct navigation.'
-      />
-    );
-  }
-
-  if (app.kind === 'user' && !userLaunchDecision?.allowed) {
-    return (
-      <AppBlocked
-        title={userLaunchDecision?.title ?? 'App launch blocked'}
-        description={
-          userLaunchDecision?.description ??
-          'This app cannot be launched until required sandbox checks pass.'
-        }
-      />
-    );
+  if (!runtime) {
+    return <Navigate to='/apps' replace />;
   }
 
   return (
     <div className='flex h-full min-h-0 w-full flex-col overflow-hidden'>
-      {attachError ? (
-        <AppBlocked title='Failed to launch app' description={attachError} />
-      ) : attaching ? (
-        <div className='mx-auto w-full max-w-4xl p-4 md:p-6'>
-          <Alert>
-            <AlertTitle>Starting app...</AlertTitle>
-            <AlertDescription>Please wait.</AlertDescription>
-          </Alert>
-        </div>
-      ) : null}
-
-      <div className='flex-1 min-h-0'>
+      <div className='min-h-0 flex-1'>
         <div
           ref={containerRef}
           className='h-full w-full overflow-hidden bg-background'

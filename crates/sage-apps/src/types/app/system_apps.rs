@@ -1,11 +1,12 @@
 use serde::Serialize;
 use specta::Type;
-
+use crate::system_apps::SystemAppUsage;
 use crate::types::app::common::SageAppCommon;
 use crate::types::permissions::SageGrantedSystemPermissions;
 use crate::types::SageApp;
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
+#[serde(tag = "kind")]
 pub enum AppPresentation {
     Taskbar,
     Modal(AppModalPresentation),
@@ -21,16 +22,19 @@ pub struct AppModalPresentation {
 #[derive(Debug)]
 pub struct SystemSageApp {
     common: SageAppCommon,
+    usage: SystemAppUsage,
     system_granted_permissions: SageGrantedSystemPermissions,
 }
 
 impl SystemSageApp {
     pub fn new(
         common: SageAppCommon,
+        usage: SystemAppUsage,
         system_granted_permissions: SageGrantedSystemPermissions,
     ) -> Self {
         Self {
             common,
+            usage,
             system_granted_permissions,
         }
     }
@@ -45,6 +49,10 @@ impl SystemSageApp {
 
     pub fn common_mut(&mut self) -> &mut SageAppCommon {
         &mut self.common
+    }
+
+    pub fn usage(&self) -> SystemAppUsage {
+        self.usage
     }
 
     pub fn system_granted_permissions(&self) -> &SageGrantedSystemPermissions {

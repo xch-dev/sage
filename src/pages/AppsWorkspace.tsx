@@ -101,7 +101,7 @@ export function AppsWorkspace() {
             return true;
           }
 
-          return installedApp.presentation === 'Taskbar';
+          return runtime.presentation.kind === 'Taskbar';
         })
         .map((runtime) => runtime.app.common.identity.id);
 
@@ -153,7 +153,7 @@ export function AppsWorkspace() {
 
       if (
         installedApp.kind === 'system' &&
-        installedApp.presentation !== 'Taskbar'
+        runtime.presentation.kind !== 'Taskbar'
       ) {
         continue;
       }

@@ -51,6 +51,7 @@ pub enum StartAppUpdateMode {
 }
 
 #[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
 pub struct CreateInstalledRuntimeArgs {
     pub app_id: String,
 }
@@ -118,7 +119,7 @@ pub async fn apps_start_system_app(
         }
     };
 
-    create_runtime(app, apps_state, create_args).await.map(Into::into)
+    create_runtime(&app, &apps_state, create_args).await.map(Into::into)
 }
 
 #[tauri::command]
@@ -128,14 +129,18 @@ pub async fn apps_create_inline_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateInstalledRuntimeArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    create_runtime(app, apps_state, CreateRuntimeArgs {
+    let created_runtime = create_runtime(&app, &apps_state, CreateRuntimeArgs {
         app_id: args.app_id.clone(),
         presentation: AppPresentation::Taskbar,
         mode: SageAppRuntimeMode::Inline,
         visibility: SageAppRuntimeVisibility::Visible,
         debug_layout: false,
         query: BTreeMap::new(),
-    }).await.map(Into::into)
+    }).await.map(Into::into);
+
+    focus_runtime(&app, &apps_state, &args.app_id).await?;
+
+    created_runtime
 }
 
 #[tauri::command]

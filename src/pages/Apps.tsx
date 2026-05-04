@@ -3,12 +3,7 @@ import { CorruptedAppCard } from '@/components/apps/CorruptedAppCard';
 import { AppsLaunchpadContextMenu } from '@/components/apps/AppsLaunchpadContextMenu';
 import { Button } from '@/components/ui/button';
 import { formatSandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, } from '@/components/ui/dialog';
 import {
   commands,
   ListedSageAppView,
@@ -34,10 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import { PermissionsEditor } from '@/components/apps/permissions/PermissionsEditor.tsx';
 import { AppTile } from '@/components/apps/AppTile';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
-import {
-  openAppPermissionsReview,
-  openAppUpdateReview,
-} from '@/lib/apps/openAppUpdate.ts';
+import { openAppPermissionsReview, openAppUpdateReview, } from '@/lib/apps/openAppUpdate.ts';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer.tsx';
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
@@ -118,6 +110,12 @@ function isFullUpdatePreview(preview: SageAppUrlPreview | null): boolean {
   return preview?.manifest.kind === 'full';
 }
 
+async function openApp(appId: string) {
+  return await commands.appsCreateInlineRuntime({
+    appId,
+  });
+}
+
 export function Apps() {
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState<AppContextMenuState>(null);
@@ -177,9 +175,7 @@ export function Apps() {
   const installedApps = useMemo(
     () =>
       apps.filter(
-        (entry): entry is InstalledEntry =>
-          isInstalledEntry(entry) &&
-          (entry.kind === 'user' || entry.presentation === 'Taskbar'),
+        (entry): entry is InstalledEntry => isInstalledEntry(entry)
       ),
     [apps],
   );
@@ -646,8 +642,8 @@ export function Apps() {
                           getLaunchGate(app.common.identity.id),
                         )
                   }
-                  onOpen={() => {
-                    navigate(`/apps/${app.common.identity.id}`);
+                  onOpen={async () => {
+                    await openApp(app.common.identity.id);
                   }}
                   onContextMenu={(event) => {
                     event.preventDefault();

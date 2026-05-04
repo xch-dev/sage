@@ -33,24 +33,24 @@ pub(in crate::runtime) struct CreateImpostorRuntimeArgs {
 }
 
 pub async fn create_runtime(
-    app_handle: AppHandle,
-    apps_state: State<'_, AppsHostState>,
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    let app = match resolve_app(&app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
+    let app = match resolve_app(app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
         ResolvedApp::Stopped(stopped) => stopped.into_app()
     };
 
     let is_internal = app.with(|app| app.common().is_sandbox_test());
     if !is_internal {
-        check_gates(&apps_state, &app).await?;
+        check_gates(apps_state, &app).await?;
     }
 
     app.taint_storage_if_runtime_can_persist_secrets();
     persist_runtime_side_effects(&app)?;
 
-    let sage_window = get_sage_window(&app_handle)?;
+    let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
     let runtime = SageAppRuntimeRecord::new(
         &app,
@@ -61,7 +61,7 @@ pub async fn create_runtime(
         args.visibility,
         is_internal,
     ).map_err(|err| err.to_string())?;
-    let shared_runtime = write_runtime(&apps_state, runtime).await;
+    let shared_runtime = write_runtime(apps_state, runtime).await;
 
     let runtime_for_nav = shared_runtime.clone();
     let builder = WebviewBuilder::new(
@@ -81,7 +81,7 @@ pub async fn create_runtime(
     } else {
         (0.0, 0.0, 1.0, 1.0)
     };
-    let add_child_result = get_sage_window(&app_handle)?
+    let add_child_result = get_sage_window(app_handle)?
         .add_child(
             builder,
             LogicalPosition::new(x, y),
@@ -92,16 +92,16 @@ pub async fn create_runtime(
             (runtime.runtime_id(), runtime.app().id())
         });
         drop(shared_runtime);
-        remove_runtime_by_runtime_id(&apps_state, &runtime_id).await;
-        remove_runtime_id_by_app_id(&apps_state, &app_id).await;
+        remove_runtime_by_runtime_id(apps_state, &runtime_id).await;
+        remove_runtime_id_by_app_id(apps_state, &app_id).await;
         return Err(format!("failed to create child webview: {e}"));
     }
 
     if args.visibility == SageAppRuntimeVisibility::Hidden {
-        let _ = get_webview_in_sage_window(&app_handle, &webview_label)?.hide();
+        let _ = get_webview_in_sage_window(app_handle, &webview_label)?.hide();
     }
 
-    emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
 
     Ok(shared_runtime)
 }

@@ -8,10 +8,12 @@ import {
   type ReactNode,
 } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   type AppLaunchGateResult,
   commands,
   type ListedSageAppView,
+  type SageAppRuntimeRecordView,
   type SageAppUrlPreview,
   SageAppView,
   SageGrantedPermissionsInput,
@@ -32,8 +34,15 @@ type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
 type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
 
+interface RuntimeManagerRuntimesChangedEvent {
+  runtimes: SageAppRuntimeRecordView[];
+}
+
 interface AppsContextValue {
   apps: ListedSageAppView[];
+  runtimes: SageAppRuntimeRecordView[];
+  taskbarRuntimesByHostWindowLabel: Record<string, SageAppRuntimeRecordView[]>;
+  currentHostWindowLabel: string;
   loading: boolean;
   error: string | null;
   busyAppIds: Record<string, boolean>;
@@ -51,9 +60,14 @@ interface AppsContextValue {
   getApp: (appId: string) => UserSageAppView | undefined;
   getListedApp: (appId: string) => InstalledEntry | undefined;
   getLaunchGate: (appId: string) => AppLaunchGateResult | null;
+  getTaskbarRuntime: (
+    hostWindowLabel: string,
+    appId: string,
+  ) => SageAppRuntimeRecordView | null;
 
   refresh: () => Promise<void>;
   refreshInstalledApps: () => Promise<void>;
+  refreshRuntimes: () => Promise<void>;
   refreshLaunchGates: (listed: ListedSageAppView[]) => Promise<void>;
   setBusy: (appId: string, busy: boolean) => void;
   setUpdateAvailability: (
@@ -104,14 +118,24 @@ function installedAppId(app: InstalledEntry): string {
   return app.common.identity.id;
 }
 
+function runtimeAppId(runtime: SageAppRuntimeRecordView): string {
+  return runtime.app.common.identity.id;
+}
+
 function isUserListedApp(
   entry: ListedSageAppView,
 ): entry is { kind: 'user' } & UserSageAppView {
   return entry.kind === 'user';
 }
 
+function isTaskbarRuntime(runtime: SageAppRuntimeRecordView): boolean {
+  return runtime.presentation.kind === 'Taskbar';
+}
+
 export function AppsProvider({ children }: { children: ReactNode }) {
   const [apps, setApps] = useState<ListedSageAppView[]>([]);
+  const [runtimes, setRuntimes] = useState<SageAppRuntimeRecordView[]>([]);
+  const currentHostWindowLabel = useMemo(() => getCurrentWindow().label, []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAppIds, setBusyAppIds] = useState<Record<string, boolean>>({});
@@ -135,6 +159,15 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   } = useAppPendingApprovals();
 
   const { isReady: bridgeHostReady } = useBridgeHost({ requestApproval });
+
+  const refreshRuntimes = useCallback(async () => {
+    try {
+      const next = await commands.appsListRuntimes();
+      setRuntimes(next);
+    } catch (err) {
+      console.error('Failed to refresh runtimes:', err);
+    }
+  }, []);
 
   const refreshLaunchGates = useCallback(
     async (listed: ListedSageAppView[]) => {
@@ -192,7 +225,36 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     void refreshInstalledApps();
-  }, [refreshInstalledApps]);
+    void refreshRuntimes();
+  }, [refreshInstalledApps, refreshRuntimes]);
+
+  useEffect(() => {
+    let isCancelled = false;
+    let unsubscribe: UnlistenFn | null = null;
+
+    const setup = async () => {
+      try {
+        unsubscribe = await listen<RuntimeManagerRuntimesChangedEvent>(
+          'apps:runtime-manager:runtimes-changed',
+          (event) => {
+            if (isCancelled) return;
+            setRuntimes(event.payload.runtimes);
+          },
+        );
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Failed to subscribe to runtime updates:', err);
+        }
+      }
+    };
+
+    void setup();
+
+    return () => {
+      isCancelled = true;
+      if (unsubscribe) void unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -257,6 +319,19 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     };
   }, [apps, currentSandboxRunId, refreshLaunchGates]);
 
+  const taskbarRuntimesByHostWindowLabel = useMemo(() => {
+    const next: Record<string, SageAppRuntimeRecordView[]> = {};
+
+    for (const runtime of runtimes) {
+      if (!isTaskbarRuntime(runtime)) continue;
+
+      next[runtime.hostWindowLabel] ??= [];
+      next[runtime.hostWindowLabel].push(runtime);
+    }
+
+    return next;
+  }, [runtimes]);
+
   const refresh = refreshInstalledApps;
 
   const getListedApp = useCallback(
@@ -273,6 +348,17 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     (appId: string): AppLaunchGateResult | null =>
       launchGatesByAppId[appId] ?? null,
     [launchGatesByAppId],
+  );
+
+  const getTaskbarRuntime = useCallback(
+    (hostWindowLabel: string, appId: string) => {
+      return (
+        taskbarRuntimesByHostWindowLabel[hostWindowLabel]?.find(
+          (runtime) => runtimeAppId(runtime) === appId,
+        ) ?? null
+      );
+    },
+    [taskbarRuntimesByHostWindowLabel],
   );
 
   const getApp = useCallback(
@@ -305,7 +391,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   );
 
   const installApp = useCallback(
-    async (zipPath: string, grantedPermissions: SageGrantedPermissionsInput) => {
+    async (
+      zipPath: string,
+      grantedPermissions: SageGrantedPermissionsInput,
+    ) => {
       const installed = await commands.installAppZip(
         zipPath,
         grantedPermissions,
@@ -347,11 +436,12 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         );
 
         await refreshInstalledApps();
+        await refreshRuntimes();
       } finally {
         setBusy(appId, false);
       }
     },
-    [refreshInstalledApps, setBusy],
+    [refreshInstalledApps, refreshRuntimes, setBusy],
   );
 
   const checkForUpdate = useCallback(async (appId: string) => {
@@ -393,20 +483,22 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         setUpdateAvailability((prev) => ({ ...prev, [appId]: null }));
 
         await refreshInstalledApps();
+        await refreshRuntimes();
         return installed;
       } finally {
         setBusy(appId, false);
       }
     },
-    [refreshInstalledApps, setBusy],
+    [refreshInstalledApps, refreshRuntimes, setBusy],
   );
 
   const clearAppStorage = useCallback(
     async (appId: string) => {
       await commands.appsClearRuntimeBrowsingData(appId);
       await refreshInstalledApps();
+      await refreshRuntimes();
     },
-    [refreshInstalledApps],
+    [refreshInstalledApps, refreshRuntimes],
   );
 
   const rerunSandboxTests = useCallback(async () => {
@@ -419,6 +511,9 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppsContextValue>(
     () => ({
       apps,
+      runtimes,
+      taskbarRuntimesByHostWindowLabel,
+      currentHostWindowLabel,
       loading,
       error,
       busyAppIds,
@@ -436,9 +531,11 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       getApp,
       getListedApp,
       getLaunchGate,
+      getTaskbarRuntime,
 
       refresh,
       refreshInstalledApps,
+      refreshRuntimes,
       refreshLaunchGates,
       setBusy,
       setUpdateAvailability: setUpdateAvailabilityState,
@@ -453,6 +550,9 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     }),
     [
       apps,
+      runtimes,
+      taskbarRuntimesByHostWindowLabel,
+      currentHostWindowLabel,
       loading,
       error,
       busyAppIds,
@@ -468,8 +568,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       getApp,
       getListedApp,
       getLaunchGate,
+      getTaskbarRuntime,
       refresh,
       refreshInstalledApps,
+      refreshRuntimes,
       refreshLaunchGates,
       setBusy,
       setUpdateAvailabilityState,
