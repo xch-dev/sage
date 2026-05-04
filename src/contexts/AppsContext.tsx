@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState, } from 'react';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
@@ -21,9 +13,9 @@ import {
   type SystemSageAppView,
   type UserSageAppView,
 } from '@/bindings';
+import type { PendingApprovalItem } from '@/hooks/useAppPendingApprovals';
 import { useAppPendingApprovals } from '@/hooks/useAppPendingApprovals';
 import { useBridgeHost } from '@/hooks/useBridgeHost';
-import type { PendingApprovalItem } from '@/hooks/useAppPendingApprovals';
 
 interface PerformAppUpdateOptions {
   restartIfRunning?: boolean;
@@ -113,6 +105,13 @@ interface AppsContextValue {
   ) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
   rerunSandboxTests: () => Promise<SandboxStateView>;
+  activeRuntimeByHostWindowLabel: Record<
+    string,
+    {
+      appId: string | null;
+      runtimeId: string | null;
+    }
+  >;
 }
 
 const AppsContext = createContext<AppsContextValue | null>(null);
@@ -166,6 +165,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const [launchGatesByAppId, setLaunchGatesByAppId] = useState<
     Record<string, AppLaunchGateResult>
   >({});
+  const [activeRuntimeByHostWindowLabel, setActiveRuntimeByHostWindowLabel] =
+    useState<
+      Record<string, { appId: string | null; runtimeId: string | null }>
+    >({});
 
   const {
     currentApproval,
@@ -266,6 +269,13 @@ export function AppsProvider({ children }: { children: ReactNode }) {
                 break;
 
               case 'runtimeManager.activeRuntimeChanged':
+                setActiveRuntimeByHostWindowLabel((prev) => ({
+                  ...prev,
+                  [runtimeEvent.payload.hostWindowLabel]: {
+                    appId: runtimeEvent.payload.appId,
+                    runtimeId: runtimeEvent.payload.runtimeId,
+                  },
+                }));
                 break;
             }
           },
@@ -485,40 +495,17 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     async (
       appId: string,
       grantedPermissions: SageGrantedPermissionsInput,
-      options?: PerformAppUpdateOptions,
     ) => {
       setBusy(appId, true);
       try {
         await commands.downloadAppUpdate(appId);
 
-        const installed = await commands.applyAppUpdate(
-          appId,
-          grantedPermissions,
-        );
-
-        if (options?.restartIfRunning) {
-          const { restartAppRuntime } =
-            await import('@/lib/apps/restartAppRuntime');
-
-          try {
-            await restartAppRuntime(installed, {
-              visible: options.visibleAfterRestart ?? true,
-            });
-          } catch {
-            //
-          }
-        }
-
-        setUpdateAvailability((prev) => ({ ...prev, [appId]: null }));
-
-        await refreshInstalledApps();
-        await refreshRuntimes();
-        return installed;
+        return await commands.applyAppUpdate(appId, grantedPermissions);
       } finally {
         setBusy(appId, false);
       }
     },
-    [refreshInstalledApps, refreshRuntimes, setBusy],
+    [setBusy],
   );
 
   const clearAppStorage = useCallback(
@@ -576,6 +563,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       performAppUpdate,
       clearAppStorage,
       rerunSandboxTests,
+      activeRuntimeByHostWindowLabel,
     }),
     [
       apps,
@@ -611,6 +599,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       performAppUpdate,
       clearAppStorage,
       rerunSandboxTests,
+      activeRuntimeByHostWindowLabel,
     ],
   );
 

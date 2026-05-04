@@ -14,7 +14,6 @@ import {
   UserSageAppView,
 } from '@/bindings.ts';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { useAppRuntimes } from '@/hooks/useAppRuntimes.ts';
 import {
   formatCapabilityLabel,
   getBaselineSandboxState,
@@ -120,7 +119,7 @@ export function Apps() {
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState<AppContextMenuState>(null);
   const pageRef = useRef<HTMLDivElement | null>(null);
-  const runtimes = useAppRuntimes();
+  const { runtimes } = useApps();
   const [updateCheckStateByAppId, setUpdateCheckStateByAppId] = useState<
     Record<string, 'idle' | 'checking' | 'up_to_date'>
   >({});
@@ -272,7 +271,7 @@ export function Apps() {
   }
 
   const handleClearData = useCallback(
-    async (app: InstalledEntry, reopen: boolean) => {
+    async (app: InstalledEntry) => {
       const appId = app.common.identity.id;
 
       setClearingDataByAppId((prev) => ({
@@ -286,19 +285,6 @@ export function Apps() {
 
       try {
         await clearAppStorage(appId);
-
-        if (reopen) {
-          closeContextMenu();
-
-          const { restartAppRuntime } =
-            await import('@/lib/apps/restartAppRuntime');
-
-          await restartAppRuntime(app, {
-            visible: true,
-          });
-
-          navigate(`/apps/${appId}`);
-        }
 
         await refresh();
       } catch (err) {
@@ -316,7 +302,7 @@ export function Apps() {
         );
       }
     },
-    [clearAppStorage, navigate, refresh, closeContextMenu],
+    [clearAppStorage, refresh],
   );
 
   const handleApplyPermissions = useCallback(
@@ -332,15 +318,6 @@ export function Apps() {
 
       try {
         await commands.appsUpdatePermissions(appId, nextGrantedPermissions);
-
-        const isRunning = runningAppIds.has(appId);
-        if (isRunning) {
-          const { restartAppRuntime } =
-            await import('@/lib/apps/restartAppRuntime');
-
-          await restartAppRuntime(app, { visible: true });
-          navigate(`/apps/${appId}`);
-        }
 
         await refresh();
         closePermissionsDialog();
@@ -362,7 +339,7 @@ export function Apps() {
         setPermissionsDialogBusy(false);
       }
     },
-    [runningAppIds, navigate, refresh],
+    [refresh],
   );
 
   const handleClearStorageAndApplyPending = useCallback(async () => {
@@ -381,15 +358,6 @@ export function Apps() {
         pendingPermissionsRetry.nextGrantedPermissions,
       );
 
-      const isRunning = runningAppIds.has(permissionsDialogApp.common.identity.id);
-      if (isRunning) {
-        const { restartAppRuntime } =
-          await import('@/lib/apps/restartAppRuntime');
-
-        await restartAppRuntime(permissionsDialogApp, { visible: true });
-        navigate(`/apps/${permissionsDialogApp.common.identity.id}`);
-      }
-
       await refresh();
       closePermissionsDialog();
     } catch (err) {
@@ -401,8 +369,6 @@ export function Apps() {
     clearAppStorage,
     permissionsDialogApp,
     pendingPermissionsRetry,
-    runningAppIds,
-    navigate,
     refresh,
   ]);
 
@@ -765,12 +731,7 @@ export function Apps() {
               return;
             }
 
-            const targetApp = contextMenu.app;
-            const shouldReopen = runningAppIds.has(
-              targetApp.common.identity.id,
-            );
-
-            void handleClearData(targetApp, shouldReopen);
+            void handleClearData(contextMenu.app);
           }}
           onUninstall={() => {
             if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {

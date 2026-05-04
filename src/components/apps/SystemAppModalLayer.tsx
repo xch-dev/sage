@@ -1,11 +1,11 @@
 import { useMemo, useRef } from 'react';
-import { useAppRuntimes } from '@/hooks/useAppRuntimes';
 import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
+import { useApps } from '@/contexts/AppsContext.tsx';
 
 export function SystemAppModalLayer() {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const runtimes = useAppRuntimes({ includeInternal: true });
+  const { runtimes } = useApps();
 
   const modalRuntime = useMemo(() => {
     return runtimes.find(

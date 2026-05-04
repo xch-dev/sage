@@ -6,12 +6,7 @@ import {
   type AppTaskBarTab,
 } from '@/components/apps/AppTaskBar.tsx';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { useAppRuntimes } from '@/hooks/useAppRuntimes';
-import {
-  focusRuntime,
-  killRuntime,
-  subscribeActiveRuntime,
-} from '@/lib/apps/runtimeRegistry';
+import { focusRuntime, killRuntime } from '@/lib/apps/runtimeRegistry';
 import { routeForApp } from '@/lib/apps/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
@@ -27,7 +22,22 @@ import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 export function AppsWorkspace() {
   const { appId } = useParams();
   const navigate = useNavigate();
-  const runtimes = useAppRuntimes();
+
+  const {
+    runtimes,
+    getApp,
+    getListedApp,
+    updateAvailability,
+    busyAppIds,
+    currentApproval,
+    queuedApprovalCount,
+    currentApprovalSecondsLeft,
+    approveCurrentApproval,
+    rejectCurrentApproval,
+    activeRuntimeByHostWindowLabel,
+    currentHostWindowLabel,
+  } = useApps();
+
   const runtimesRef = useRef(runtimes);
 
   useEffect(() => {
@@ -52,41 +62,32 @@ export function AppsWorkspace() {
     };
   }, []);
 
-  const {
-    getApp,
-    getListedApp,
-    updateAvailability,
-    busyAppIds,
-    currentApproval,
-    queuedApprovalCount,
-    currentApprovalSecondsLeft,
-    approveCurrentApproval,
-    rejectCurrentApproval,
-  } = useApps();
+  const activeRuntime =
+    activeRuntimeByHostWindowLabel[currentHostWindowLabel] ?? null;
+
+  useEffect(() => {
+    const activeAppId = activeRuntime?.appId;
+
+    if (!activeAppId || activeAppId === appId) {
+      return;
+    }
+
+    const app = getListedApp(activeAppId);
+    if (!app) {
+      return;
+    }
+
+    const route = routeForApp(app);
+    if (!route) {
+      return;
+    }
+
+    navigate(route, { replace: true });
+  }, [activeRuntime?.appId, appId, getListedApp, navigate]);
 
   const [approvalExpanded, setApprovalExpanded] = useState(false);
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [donationOpen, setDonationOpen] = useState(false);
-
-  useEffect(() => {
-    return subscribeActiveRuntime((event) => {
-      if (!event.appId || event.appId === appId) {
-        return;
-      }
-
-      const app = getListedApp(event.appId);
-      if (!app) {
-        return;
-      }
-
-      const route = routeForApp(app);
-      if (!route) {
-        return;
-      }
-
-      navigate(route, { replace: true });
-    });
-  }, [appId, getListedApp, navigate]);
 
   useEffect(() => {
     setTabOrder((prev) => {
@@ -108,6 +109,7 @@ export function AppsWorkspace() {
       const kept = prev.filter((runtimeAppId) =>
         runtimeIds.includes(runtimeAppId),
       );
+
       const added = runtimeIds.filter(
         (runtimeAppId) => !kept.includes(runtimeAppId),
       );
@@ -160,30 +162,23 @@ export function AppsWorkspace() {
 
       out.push({
         app: installedApp,
-        isActive: runtime.app.common.identity.id === appId,
+        isActive: runtime.app.common.identity.id === activeRuntime?.appId,
       });
     }
 
     return out;
-  }, [runtimes, tabOrder, getListedApp, appId]);
+  }, [runtimes, tabOrder, getListedApp, activeRuntime?.appId]);
 
   return (
     <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>
       <AppTaskBar
         tabs={tabs}
-        activeAppId={appId ?? null}
+        activeAppId={activeRuntime?.appId ?? appId ?? null}
         onOpenApps={() => {
           navigate('/apps');
         }}
         onSelectApp={(tab) => {
-          const nextRoute = routeForApp(tab.app);
-          if (!nextRoute) {
-            return;
-          }
-
-          void focusRuntime(tab.app.common.identity.id).then(() => {
-            navigate(nextRoute);
-          });
+          void focusRuntime(tab.app.common.identity.id);
         }}
         onCloseApp={(tab) => {
           const tabAppId = tab.app.common.identity.id;
