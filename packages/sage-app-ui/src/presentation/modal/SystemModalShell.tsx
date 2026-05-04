@@ -6,7 +6,7 @@ interface SystemModalShellProps {
   contentClassName?: string;
 }
 
-function resolveModalTint(): string {
+export function resolveModalTint(): string {
   const root = getComputedStyle(document.documentElement);
 
   const candidates = [
@@ -26,7 +26,7 @@ function resolveModalTint(): string {
   );
 }
 
-function colorWithAlpha(color: string, alpha: number): string {
+export function colorWithAlpha(color: string, alpha: number): string {
   if (color.startsWith('#')) {
     return `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
   }
@@ -56,7 +56,7 @@ export function SystemModalShell({
     >
       <div
         className={[
-          'h-[min(620px,72vh)] w-[min(620px,calc(100vw-4rem))]',
+          'h-[min(620px,72vh)] w-[min(420px,calc(100vw-4rem))]',
           'overflow-hidden rounded-2xl border border-border shadow-2xl',
           contentClassName,
         ].join(' ')}

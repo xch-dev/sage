@@ -1,5 +1,9 @@
 import type { ReactNode } from 'react';
-import { SystemModalShell } from './SystemModalShell';
+import {
+  colorWithAlpha,
+  resolveModalTint,
+  SystemModalShell,
+} from './SystemModalShell';
 import {
   AppIcon,
 } from '../../components';
@@ -28,12 +32,16 @@ export function AppModalShell({
   contentClassName = '',
   bodyPadded = true,
 }: AppModalShellProps) {
+  const tint = resolveModalTint();
+
   return (
     <SystemModalShell
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
     >
       <div className={['flex h-full min-h-0 flex-col', className].join(' ')}>
-        <header className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border'>
+        <header className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border' style={{
+          backgroundColor: colorWithAlpha(tint, 1),
+        }}>
           <div className='border-r border-border'>
             <div className='h-full w-full p-1'>
               <AppIcon appName={appName} appIcon={appIcon ?? null} />
