@@ -1,21 +1,18 @@
 import { getSageClient, hasSageBridge } from './client';
+import type { SageClient } from './types';
 
-type SageClientResolved = Awaited<ReturnType<typeof getSageClient>>;
+let promise: Promise<SageClient> | null = null;
 
-let sageClient: SageClientResolved | null = null;
-let sageClientPromise: Promise<SageClientResolved> | null = null;
-
-export function useSageClient(): SageClientResolved {
-  if (sageClient) return sageClient;
+export function useSageClient(): SageClient {
+  if (typeof window !== 'undefined' && window.__SAGE__) {
+    return window.__SAGE__;
+  }
 
   if (!hasSageBridge()) {
     throw new Error('Sage bridge is not available');
   }
 
-  sageClientPromise ??= getSageClient().then((client) => {
-    sageClient = client;
-    return client;
-  });
+  promise ??= getSageClient();
 
-  throw sageClientPromise;
+  throw promise;
 }

@@ -1,4 +1,4 @@
-import type * as Generated from './generated-types';
+import type * as Generated from '../generated-types';
 
 export const sageThemeVars = {
   background: '--background',

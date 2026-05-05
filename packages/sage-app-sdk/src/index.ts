@@ -13,7 +13,7 @@ export {
   createBridgeRuntimeCore,
   parseJsonOrNull,
   toSdkBridgeResponse,
-} from './bridge-runtime-core';
+} from './bridge/core';
 
 export * from './types';
 export * from './hooks';

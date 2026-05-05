@@ -97,6 +97,125 @@ export function App() {
   }
 
   useEffect(() => {
+    void (async () => {
+      const tauri = (window as any).__TAURI__;
+
+      console.log('[probe] __TAURI__', tauri);
+      console.log('[probe] modules', Object.keys(tauri ?? {}));
+
+      const webviewApi = tauri?.webview;
+      const windowApi = tauri?.window;
+      const eventApi = tauri?.event;
+
+      console.log('[probe] webview api keys', Object.keys(webviewApi ?? {}));
+      console.log('[probe] window api keys', Object.keys(windowApi ?? {}));
+      console.log('[probe] event api keys', Object.keys(eventApi ?? {}));
+
+      try {
+        const currentWebview = webviewApi?.getCurrentWebview?.();
+        console.log('[probe] current webview', currentWebview);
+        console.log(
+          '[probe] current webview keys',
+          Object.keys(currentWebview ?? {}),
+        );
+
+        await currentWebview?.listen?.(
+          'probe-current-webview-listen',
+          (event: unknown) => {
+            console.log('[probe] current webview received event', event);
+          },
+        );
+
+        console.log('[probe] current webview listen OK');
+      } catch (err) {
+        console.log('[probe] current webview listen DENIED/FAILED', err);
+      }
+
+      try {
+        const allWebviews = await webviewApi?.getAllWebviews?.();
+        console.log('[probe] getAllWebviews OK', allWebviews);
+
+        for (const webview of allWebviews ?? []) {
+          console.log(
+            '[probe] webview item',
+            webview,
+            Object.keys(webview ?? {}),
+          );
+
+          try {
+            await webview.listen?.(
+              'probe-other-webview-listen',
+              (event: unknown) => {
+                console.log(
+                  '[probe] received on listed webview',
+                  webview.label,
+                  event,
+                );
+              },
+            );
+
+            console.log('[probe] listen on listed webview OK', webview.label);
+          } catch (err) {
+            console.log(
+              '[probe] listen on listed webview DENIED/FAILED',
+              webview.label,
+              err,
+            );
+          }
+        }
+      } catch (err) {
+        console.log('[probe] getAllWebviews DENIED/FAILED', err);
+      }
+
+      try {
+        const allWindows = await windowApi?.getAllWindows?.();
+        console.log('[probe] getAllWindows OK', allWindows);
+
+        for (const win of allWindows ?? []) {
+          console.log('[probe] window item', win, Object.keys(win ?? {}));
+
+          try {
+            await win.listen?.('probe-window-listen', (event: unknown) => {
+              console.log(
+                '[probe] received on listed window',
+                win.label,
+                event,
+              );
+            });
+
+            console.log('[probe] listen on listed window OK', win.label);
+          } catch (err) {
+            console.log(
+              '[probe] listen on listed window DENIED/FAILED',
+              win.label,
+              err,
+            );
+          }
+        }
+      } catch (err) {
+        console.log('[probe] getAllWindows DENIED/FAILED', err);
+      }
+
+      try {
+        await eventApi?.listen?.('probe-global-listen', (event: unknown) => {
+          console.log('[probe] received global event', event);
+        });
+
+        console.log('[probe] global event listen OK');
+      } catch (err) {
+        console.log('[probe] global event listen DENIED/FAILED', err);
+      }
+
+      try {
+        await eventApi?.emit?.('probe-global-emit', { hello: 'world' });
+        console.log('[probe] global emit OK');
+      } catch (err) {
+        console.log('[probe] global emit DENIED/FAILED', err);
+      }
+    })();
+  }, []);
+
+  useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);

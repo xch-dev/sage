@@ -4,8 +4,7 @@
   "description": "Minimal IPC for embedded system app webviews",
   "webviews": ["system-app-*"],
   "permissions": [
-    "core:event:default",
-    "core:webview:default",
+    "core:event:allow-listen",
     "allow-apps-invoke-bridge",
     "allow-apps-invoke-system-bridge"
   ]

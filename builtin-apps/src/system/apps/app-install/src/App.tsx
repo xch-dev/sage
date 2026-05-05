@@ -16,7 +16,6 @@ export function App() {
     async function load() {
       try {
         const client = await getSageSystemClient();
-        await client.environment.theme.mountCssVars();
 
         const definitions = await client.capabilities.listUserDefinitions();
 

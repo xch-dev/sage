@@ -7,7 +7,6 @@ import {
 } from '@sage-system-app/sdk';
 
 const client = await getSageSystemClient();
-await client.environment.theme.mountCssVars();
 
 export type { SageAppRuntimeRecordView as RuntimeRecord };
 
