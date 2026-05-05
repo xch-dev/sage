@@ -236,6 +236,12 @@ export function initSageSystemRuntimeBridge(): boolean {
               input,
             );
           },
+          async getActiveRuntime(): Promise<Generated.SageAppRuntimeRecordView | null> {
+            return await callHost<Generated.SageAppRuntimeRecordView | null>('runtimeManager.getActiveRuntime');
+          },
+          async hideSelf() {
+            return await callHost<void>('runtimeManager.hideSelf');
+          },
           async closeSelf() {
             return await callHost<void>('runtimeManager.closeSelf');
           },
@@ -246,6 +252,12 @@ export function initSageSystemRuntimeBridge(): boolean {
               handler,
             );
           },
+          onActiveRuntimeChanged(handler) {
+            return onSystemRuntimeEventType<Generated.RuntimeManagerActiveRuntimeChangedEvent>(
+              'runtimeManager.activeRuntimeChanged',
+              handler,
+            );
+          }
         },
 
         appInstall: {
@@ -327,6 +339,24 @@ export function initSageSystemRuntimeBridge(): boolean {
             return await callHost<Generated.FileSystemSelectFileResult>(
               'fileSystem.selectFile',
               input,
+            );
+          },
+        },
+        bridgeApprovals: {
+          async listPending() {
+            return await callHost<Generated.PendingBridgeApprovalView[]>(
+              'bridgeApprovals.listPending',
+            );
+          },
+
+          async resolve(input: Generated.ResolveBridgeApprovalArgs) {
+            return await callHost<void>('bridgeApprovals.resolve', input);
+          },
+
+          onChanged(handler) {
+            return onSystemRuntimeEventType<Generated.BridgeApprovalsChangedEvent>(
+              'bridgeApprovals.changed',
+              handler,
             );
           },
         },

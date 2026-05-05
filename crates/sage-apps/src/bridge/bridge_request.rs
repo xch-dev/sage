@@ -3,16 +3,15 @@ use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBr
 use crate::bridge::methods::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::state::{get_pending_approval, remove_pending_approval, write_pending_approval};
-use crate::bridge::{BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalEvent, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
+use crate::bridge::state::{get_pending_approval, list_pending_approvals, remove_pending_approval, write_pending_approval};
+use crate::bridge::{emit_system_runtime_event_to_listeners, BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::webview_locator::{get_sage_webview};
-use crate::runtime::{SharedImpostorRuntime};
+use crate::runtime::{resolve_app, start_bridge_approval_runtime, SharedImpostorRuntime};
 use crate::types::SharedSageApp;
-use tauri::{AppHandle, Emitter, Manager, State, Webview};
-use uuid::Uuid;
+use tauri::{AppHandle, Manager, State, Webview};
 use crate::bridge::event_emit::emit_bridge_response_to_source;
+use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
 use crate::security::assert_bridge_origin;
 
 pub(super) async fn process(
@@ -71,20 +70,33 @@ pub(super) async fn process_system(
 }
 
 pub(super) async fn process_after_approval(
-    app_handle: AppHandle,
-    app_state: State<'_, AppState>,
-    apps_state: State<'_, AppsHostState>,
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    apps_state: &State<'_, AppsHostState>,
     args: ResolveBridgeApprovalArgs,
 ) -> Result<(), String> {
-    let pending = get_pending_approval(&apps_state, &args.approval_id).await?;
-    remove_pending_approval(&apps_state, &args.approval_id).await;
+    let pending = get_pending_approval(apps_state, &args.approval_id).await?;
+    remove_pending_approval(apps_state, &args.approval_id).await;
 
-    let origin = assert_bridge_origin(&app_handle, &pending.app_webview_label).await?;
+    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
+        list_pending_approvals(apps_state).await,
+    );
+
+    emit_system_runtime_event_to_listeners(
+        app_handle,
+        apps_state,
+        approvals_changed_event,
+    ).await;
+
+    let app = resolve_app(app_handle, &pending.app_id).await
+        .map_err(|err| format!("Failed to resolve app: {err}"))?;
+
+    let origin = assert_bridge_origin(app_handle, &app.with_app(|app| app.webview_label())).await?;
 
     let response = if args.approved {
         execute_bridge_request(
-            &app_handle,
-            &app_state,
+            app_handle,
+            app_state,
             &origin,
             BridgeRegistry::new(pending.registry_kind),
             &pending.request,
@@ -99,7 +111,7 @@ pub(super) async fn process_after_approval(
         )
     };
 
-    emit_bridge_response_to_source(&app_handle, &origin.app, &response).await?;
+    emit_bridge_response_to_source(app_handle, &origin.app, &response).await?;
     Ok(())
 }
 
@@ -142,7 +154,7 @@ async fn process_shared(
         &request,
     ) {
         Ok(Some(approval)) => {
-            request_approval(&app_handle, approval, app, &request, registry_kind).await?;
+            request_approval(&app_handle, app.id(), registry_kind, approval, &request).await?;
             Ok(RustBridgeInvokeResult::Pending {})
         }
         Ok(None) => {
@@ -202,24 +214,32 @@ async fn execute_bridge_request(
 
 async fn request_approval(
     app_handle: &AppHandle,
+    app_id: String,
+    registry_kind: BridgeRegistryKind,
     approval: RustBridgeApprovalRequest,
-    app: &SharedSageApp,
     request: &RustBridgeRequest,
-    registry_kind: BridgeRegistryKind
 ) -> Result<(), String> {
-    let approval_id = Uuid::new_v4().to_string();
-
     let apps_state = app_handle.state::<AppsHostState>();
     write_pending_approval(
         &apps_state,
-        &approval_id,
-        app,
-        request,
+        app_id.clone(),
         registry_kind,
+        &approval,
+        request,
     )
         .await;
+    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
+        list_pending_approvals(&apps_state).await
+    );
+    emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
 
-    emit_sage_approval_requested(app_handle, approval_id, approval)
+    start_bridge_approval_runtime(
+        app_handle,
+        &apps_state,
+        app_id,
+    ).await?;
+
+    Ok(())
 }
 
 fn verify_capability(
@@ -323,23 +343,6 @@ fn verify_system_capability(
     }
 
     Ok(())
-}
-
-
-fn emit_sage_approval_requested(
-    app: &AppHandle,
-    approval_id: String,
-    approval: RustBridgeApprovalRequest,
-) -> Result<(), String> {
-    get_sage_webview(app)?
-        .emit(
-            "apps:bridge-approval-requested",
-            RustBridgeApprovalEvent {
-                approval_id,
-                approval,
-            },
-        )
-        .map_err(|err| format!("failed to emit approval request event: {err}"))
 }
 
 fn assert_method<'a>(

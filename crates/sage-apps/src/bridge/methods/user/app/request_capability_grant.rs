@@ -51,16 +51,13 @@ impl BridgeMethod for AppRequestCapabilityGrant {
     ) -> BridgeApprovalRequestResult {
         let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
 
-        if ctx.app.is_capability_granted(params.capability) {
+        if ctx.app.is_capability_granted(params.capability.into()) {
             return Ok(None);
         }
 
         let definition = get_user_capability_definition(params.capability);
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.into(),
-            source_label: ctx.app.webview_label(),
-            request_id: request.id.clone(),
             body: RustBridgeApprovalBody::CapabilityGrant {
                 capability: params.capability,
                 definition: definition.into(),

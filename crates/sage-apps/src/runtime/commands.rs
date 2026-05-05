@@ -1,20 +1,16 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize};
 use specta::Type;
 use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
-use crate::runtime::stop::{kill_runtime, SystemKillRuntimeResult};
-use crate::runtime::{
-    focus_runtime, hide_runtime, RuntimeTargetParams, SageAppRuntimeMode,
-    SageAppRuntimeRecordView, SageAppRuntimeVisibility,
-};
-use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID};
+use crate::runtime::stop::SystemKillRuntimeResult;
+use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
 use crate::AppsHostState;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::types::{AppModalPresentation, AppPresentation};
+use crate::types::AppPresentation;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -56,6 +52,12 @@ pub struct CreateInstalledRuntimeArgs {
     pub app_id: String,
 }
 
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowTargetParams {
+    pub window_label: String,
+}
+
 impl StartAppUpdateMode {
     fn query_value(self) -> &'static str {
         match self {
@@ -72,7 +74,7 @@ pub async fn apps_start_system_app(
     apps_state: State<'_, AppsHostState>,
     args: StartSystemAppArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    let create_args = match args {
+    let runtime = match args {
         StartSystemAppArgs::AppInstall(args) => {
             let mut query = BTreeMap::new();
 
@@ -86,18 +88,9 @@ pub async fn apps_start_system_app(
                 }
             }
 
-            CreateRuntimeArgs {
-                app_id: SYSTEM_APP_APP_INSTALL_ID.to_string(),
-                presentation: AppPresentation::Modal(AppModalPresentation {
-                    visible_over_app_ids: Vec::new(),
-                    visible_over_launchpad: true,
-                }),
-                mode: SageAppRuntimeMode::Inline,
-                visibility: SageAppRuntimeVisibility::Visible,
-                debug_layout: false,
-                query,
-            }
+            start_app_install_runtime(&app, &apps_state, query).await?
         }
+
         StartSystemAppArgs::AppUpdate(args) => {
             let mut query = BTreeMap::new();
 
@@ -105,21 +98,11 @@ pub async fn apps_start_system_app(
             query.insert("mode".to_string(), args.mode.query_value().to_string());
             query.insert("visibleOverLaunchpad".to_string(), "true".to_string());
 
-            CreateRuntimeArgs {
-                app_id: SYSTEM_APP_APP_UPDATE_ID.to_string(),
-                presentation: AppPresentation::Modal(AppModalPresentation {
-                    visible_over_app_ids: Vec::from([args.app_id]),
-                    visible_over_launchpad: true,
-                }),
-                mode: SageAppRuntimeMode::Inline,
-                visibility: SageAppRuntimeVisibility::Visible,
-                debug_layout: false,
-                query,
-            }
+            start_app_update_runtime(&app, &apps_state, args.app_id, query).await?
         }
     };
 
-    create_runtime(&app, &apps_state, create_args).await.map(Into::into)
+    Ok(runtime.into())
 }
 
 #[tauri::command]
@@ -138,7 +121,7 @@ pub async fn apps_create_inline_runtime(
         query: BTreeMap::new(),
     }).await.map(Into::into);
 
-    focus_runtime(&app, &apps_state, &args.app_id).await?;
+    focus_taskbar_runtime(&app, &apps_state, &args.app_id).await?;
 
     created_runtime
 }
@@ -155,36 +138,34 @@ pub async fn apps_list_runtimes(
 
 #[tauri::command]
 #[specta::specta]
-pub async fn apps_focus_runtime(
+pub async fn apps_focus_taskbar_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    focus_runtime(&app, &apps_state, &params.app_id)
+    focus_taskbar_runtime(&app, &apps_state, &params.app_id)
         .await
         .map(Into::into)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn apps_hide_runtime(
+pub async fn apps_clear_active_taskbar_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
-    params: RuntimeTargetParams,
-) -> Result<SageAppRuntimeRecordView, String> {
-    hide_runtime(&app, &apps_state, &params.app_id)
-        .await
-        .map(Into::into)
+    params: WindowTargetParams,
+) -> Result<(), String> {
+    clear_active_taskbar_runtime(&app, &apps_state, &params.window_label).await
 }
 
 #[tauri::command]
 #[specta::specta]
-pub async fn apps_kill_runtime(
+pub async fn apps_kill_taskbar_runtime(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SystemKillRuntimeResult, String> {
-    kill_runtime(&app, &apps_state, &params.app_id, "user_kill")
+    kill_taskbar_runtime(&app, &apps_state, &params.app_id, "user_kill")
         .await
         .map_err(|_| "Runtime not found".to_string())?;
 

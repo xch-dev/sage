@@ -169,9 +169,9 @@ pub fn run() {
             apps::runtime::commands::apps_start_system_app,
             apps::runtime::commands::apps_create_inline_runtime,
             apps::runtime::commands::apps_list_runtimes,
-            apps::runtime::commands::apps_focus_runtime,
-            apps::runtime::commands::apps_hide_runtime,
-            apps::runtime::commands::apps_kill_runtime,
+            apps::runtime::commands::apps_focus_taskbar_runtime,
+            apps::runtime::commands::apps_clear_active_taskbar_runtime,
+            apps::runtime::commands::apps_kill_taskbar_runtime,
             apps::runtime::commands::apps_dev_reload_runtime,
         ])
         .events(collect_events![SyncEvent, RustBridgeApprovalEvent]);

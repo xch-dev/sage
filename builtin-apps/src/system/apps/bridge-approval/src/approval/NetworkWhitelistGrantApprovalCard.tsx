@@ -1,19 +1,17 @@
-import type { RustBridgeApprovalRequest } from '@/bindings';
+import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
 import { Globe } from 'lucide-react';
-import {
-  ApprovalDetailRow,
-  ApprovalMetaPill,
-} from '@/components/apps/approval/shared.tsx';
+import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
   approval: Extract<
     RustBridgeApprovalRequest,
     { kind: 'networkWhitelistGrant' }
   >;
+  appName: string;
   expanded: boolean;
 }
 
-export function NetworkWhitelistGrantApprovalCard({ approval }: Props) {
+export function NetworkWhitelistGrantApprovalCard({ approval, appName }: Props) {
   const target = `${approval.entry.scheme}://${approval.entry.host}`;
 
   return (
@@ -30,7 +28,7 @@ export function NetworkWhitelistGrantApprovalCard({ approval }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.activeSnapshot.manifest.name} wants to contact an additional network
+            {appName} wants to contact an additional network
             target.
           </div>
         </div>

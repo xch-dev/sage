@@ -113,6 +113,17 @@ pub fn build_entry_src(
     build_entry_src_for(app, app, query)
 }
 
+pub(crate) async fn resolve_running_app(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<ResolvedRunningApp, GetRuntimeError> {
+    let runtime = find_runtime_by_app_id_optional(apps_state, app_id)
+        .await
+        .ok_or(GetRuntimeError::NotFound)?;
+
+    Ok(ResolvedRunningApp::new(runtime))
+}
+
 pub async fn resolve_stopped_app(
     app: &AppHandle,
     app_id: &str,

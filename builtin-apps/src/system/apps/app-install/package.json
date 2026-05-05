@@ -1,5 +1,5 @@
 {
-  "name": "sage-system-app-update-review",
+  "name": "app-install-system-app",
   "private": true,
   "type": "module"
 }

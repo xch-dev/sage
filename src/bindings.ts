@@ -434,14 +434,14 @@ async appsCreateInlineRuntime(args: CreateInstalledRuntimeArgs) : Promise<SageAp
 async appsListRuntimes() : Promise<SageAppRuntimeRecordView[]> {
     return await TAURI_INVOKE("apps_list_runtimes");
 },
-async appsFocusRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
-    return await TAURI_INVOKE("apps_focus_runtime", { params });
+async appsFocusTaskbarRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_focus_taskbar_runtime", { params });
 },
-async appsHideRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
-    return await TAURI_INVOKE("apps_hide_runtime", { params });
+async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> {
+    return await TAURI_INVOKE("apps_clear_active_taskbar_runtime", { params });
 },
-async appsKillRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
-    return await TAURI_INVOKE("apps_kill_runtime", { params });
+async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
+    return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
 },
 async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
@@ -2256,7 +2256,7 @@ export type ResyncCatResponse = Record<string, never>
 export type ResyncResponse = Record<string, never>
 export type RuntimeTargetParams = { appId: string }
 export type RustBridgeApprovalEvent = { approvalId: string; approval: RustBridgeApprovalRequest }
-export type RustBridgeApprovalRequest = ({ kind: "getSecretKey"; fingerprint: number } | { kind: "sendXch"; summary: WalletSendXchParams } | { kind: "capabilityGrant"; capability: UserBridgeCapability; definition: SageAppCapabilityDefinitionView } | { kind: "networkWhitelistGrant"; entry: SageNetworkWhitelistEntry }) & { app: SageAppView; sourceLabel: string; requestId: string }
+export type RustBridgeApprovalRequest = ({ kind: "getSecretKey"; fingerprint: number } | { kind: "sendXch"; summary: WalletSendXchParams } | { kind: "capabilityGrant"; capability: UserBridgeCapability; definition: SageAppCapabilityDefinitionView } | { kind: "networkWhitelistGrant"; entry: SageNetworkWhitelistEntry })
 export type RustBridgeErrorPayload = { code: string; message: string }
 export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }
 export type RustBridgeInvokeResult = { kind: "immediate"; response: RustBridgeResponse } | { kind: "pending" }
@@ -2647,7 +2647,7 @@ spend_bundle: SpendBundleJson }
  */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
-export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "file_system.select_file"
+export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.get_active_taskbar_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.listen_active_runtime_changed" | "runtime_manager.hide_self" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "file_system.select_file" | "bridge_approval.list" | "bridge_approval.resolve" | "bridge_approval.listen_changed"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
 export type SystemSageAppView = { common: SageAppCommonView; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**
@@ -2909,6 +2909,7 @@ status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
 export type WalletSendXchParams = { address: string; amount: string; fee: string; memos?: string[] | null; clawback?: number | null }
+export type WindowTargetParams = { windowLabel: string }
 
 /** tauri-specta globals **/
 

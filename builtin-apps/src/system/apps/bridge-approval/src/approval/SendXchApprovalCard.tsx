@@ -1,12 +1,10 @@
 import { Wallet } from 'lucide-react';
-import {
-  ApprovalDetailRow,
-  ApprovalMetaPill,
-} from '@/components/apps/approval/shared.tsx';
-import type { RustBridgeApprovalRequest } from '@/bindings';
+import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
+import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
   approval: Extract<RustBridgeApprovalRequest, { kind: 'sendXch' }>;
+  appName: string;
   expanded: boolean;
 }
 
@@ -24,7 +22,7 @@ function memoKey(memo: string, indexWithinSameValue: number) {
   return `${memo}::${indexWithinSameValue}`;
 }
 
-export function SendXchApprovalCard({ approval, expanded }: Props) {
+export function SendXchApprovalCard({ approval, appName, expanded }: Props) {
   const summary = approval.summary;
 
   const hasFee = summary.fee !== '0';
@@ -58,7 +56,7 @@ export function SendXchApprovalCard({ approval, expanded }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.activeSnapshot.manifest.name} wants to send funds from your wallet.
+            {appName} wants to send funds from your wallet.
           </div>
         </div>
       </div>

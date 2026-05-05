@@ -85,7 +85,9 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, RuntimeManagerFocusRuntime);
     insert_method(&mut methods, RuntimeManagerHideRuntime);
     insert_method(&mut methods, RuntimeManagerKillRuntime);
+    insert_method(&mut methods, RuntimeManagerHideSelf);
     insert_method(&mut methods, RuntimeManagerCloseSelf);
+    insert_method(&mut methods, RuntimeManagerGetActiveTaskbarRuntime);
 
     insert_method(&mut methods, AppInstallPreviewUrl);
     insert_method(&mut methods, AppInstallPreviewZip);
@@ -100,6 +102,9 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, AppPermissionsApplyPermissions);
 
     insert_method(&mut methods, FileSystemSelectFile);
+
+    insert_method(&mut methods, BridgeApprovalsListPending);
+    insert_method(&mut methods, BridgeApprovalsResolve);
 
     methods
 }

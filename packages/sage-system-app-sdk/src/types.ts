@@ -18,9 +18,14 @@ export type SageSystemRuntimeManagerClient = {
   killRuntime(
     input: Generated.RuntimeTargetParams,
   ): Promise<Generated.SystemKillRuntimeResult>;
+  getActiveRuntime(): Promise<Generated.SageAppRuntimeRecordView | null>;
   onRuntimesChanged(
     handler: (event: Generated.RuntimeManagerRuntimesChangedEvent) => void,
   ): () => void;
+  onActiveRuntimeChanged(
+    handler: (event: Generated.RuntimeManagerActiveRuntimeChangedEvent) => void,
+  ): () => void;
+  hideSelf(): Promise<void>;
   closeSelf(): Promise<void>;
 };
 
@@ -32,7 +37,6 @@ export type SageSystemAppPermissionsClient = {
   getReviewContext(
     input: Generated.AppPermissionsGetReviewContextParams,
   ): Promise<Generated.AppPermissionsReviewContext>;
-
   applyPermissions(
     input: Generated.AppPermissionsApplyPermissionsParams,
   ): Promise<Generated.AppPermissionsApplyPermissionsResult>;
@@ -42,15 +46,12 @@ export type SageSystemAppInstallClient = {
   previewUrl(
     input: Generated.AppInstallPreviewUrlParams,
   ): Promise<Generated.SageAppUrlPreview>;
-
   previewZip(
     input: Generated.AppInstallPreviewZipParams,
   ): Promise<Generated.SageAppPackageManifest>;
-
   installUrl(
     input: Generated.AppInstallInstallUrlParams,
   ): Promise<Generated.AppInstallInstallResult>;
-
   installZip(
     input: Generated.AppInstallInstallZipParams,
   ): Promise<Generated.AppInstallInstallResult>;
@@ -60,15 +61,23 @@ export type SageSystemAppUpdateClient = {
   getReviewContext(
     input: Generated.AppUpdateGetReviewContextParams,
   ): Promise<Generated.AppUpdateReviewContext>;
-
   applyUpdate(
     input: Generated.AppUpdateApplyUpdateParams,
   ): Promise<Generated.AppUpdateApplyUpdateResult>;
 };
+
 export type SageSystemFileSystemClient = {
   selectFile(
     input: Generated.FileSystemSelectFileParams,
   ): Promise<Generated.FileSystemSelectFileResult>;
+};
+
+export type SageSystemBridgeApprovalsClient = {
+  listPending(): Promise<Generated.PendingBridgeApprovalView[]>;
+  resolve(input: Generated.ResolveBridgeApprovalArgs): Promise<void>;
+  onChanged(
+    handler: (event: Generated.BridgeApprovalsChangedEvent) => void,
+  ): () => void;
 };
 
 export type SageSystemClient = SageClient & {
@@ -78,4 +87,5 @@ export type SageSystemClient = SageClient & {
   appInstall: SageSystemAppInstallClient;
   appUpdate: SageSystemAppUpdateClient;
   fileSystem: SageSystemFileSystemClient;
+  bridgeApprovals: SageSystemBridgeApprovalsClient;
 };

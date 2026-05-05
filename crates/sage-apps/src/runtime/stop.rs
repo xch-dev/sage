@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use crate::AppsHostState;
 use crate::runtime::{emit_runtime_manager_runtimes_changed, find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError, SharedRuntime};
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id, remove_before_stop_listeners_by_app_id, remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready, remove_impostor_runtime_by_victim_app_id};
@@ -9,7 +10,7 @@ use tauri::{AppHandle, State};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use uuid::Uuid;
-use crate::bridge::emit_runtime_event_to_app_id;
+use crate::bridge::emit_user_runtime_event_to_app_id;
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;
@@ -25,6 +26,14 @@ pub struct SystemKillRuntimeResult {
 #[derive(Debug, Copy, Clone)]
 pub enum SystemKillRuntimeError {
     NotFound
+}
+
+impl Display for SystemKillRuntimeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SystemKillRuntimeError::NotFound => write!(f, "Runtime not found"),
+        }
+    }
 }
 
 pub(crate) async fn kill_runtime(
@@ -111,7 +120,7 @@ async fn wait_for_before_stop_ack(
 
     write_pending_stop_ready(apps_state, &request_id, tx).await;
 
-    let _ = emit_runtime_event_to_app_id(app_handle, &runtime.app_id(), BeforeStopEvent::new(&request_id)).await;
+    let _ = emit_user_runtime_event_to_app_id(app_handle, &runtime.app_id(), BeforeStopEvent::new(&request_id)).await;
     let _ = timeout(Duration::from_millis(BEFORE_STOP_TIMEOUT_MS), rx).await;
 
     remove_pending_stop_ready(apps_state, &request_id).await;

@@ -1,12 +1,10 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AppApprovalStrip } from '@/components/apps/AppApprovalStrip.tsx';
 import {
   AppTaskBar,
   type AppTaskBarTab,
 } from '@/components/apps/AppTaskBar.tsx';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { focusRuntime, killRuntime } from '@/lib/apps/runtimeRegistry';
 import { routeForApp } from '@/lib/apps/types';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
@@ -18,6 +16,7 @@ import {
 import { AppDonationStrip } from '@/components/apps/AppDonationStrip.tsx';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export function AppsWorkspace() {
   const { appId } = useParams();
@@ -29,11 +28,6 @@ export function AppsWorkspace() {
     getListedApp,
     updateAvailability,
     busyAppIds,
-    currentApproval,
-    queuedApprovalCount,
-    currentApprovalSecondsLeft,
-    approveCurrentApproval,
-    rejectCurrentApproval,
     activeRuntimeByHostWindowLabel,
     currentHostWindowLabel,
   } = useApps();
@@ -66,6 +60,10 @@ export function AppsWorkspace() {
     activeRuntimeByHostWindowLabel[currentHostWindowLabel] ?? null;
 
   useEffect(() => {
+    if (!appId) {
+      return;
+    }
+
     const activeAppId = activeRuntime?.appId;
 
     if (!activeAppId || activeAppId === appId) {
@@ -85,7 +83,18 @@ export function AppsWorkspace() {
     navigate(route, { replace: true });
   }, [activeRuntime?.appId, appId, getListedApp, navigate]);
 
-  const [approvalExpanded, setApprovalExpanded] = useState(false);
+  useEffect(() => {
+    if (appId) {
+      return;
+    }
+
+    void commands.appsClearActiveTaskbarRuntime({
+      windowLabel: getCurrentWindow().label,
+    }).catch((err) => {
+      console.error('Failed to clear active taskbar runtime:', err);
+    });
+  }, [appId]);
+
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [donationOpen, setDonationOpen] = useState(false);
 
@@ -133,10 +142,6 @@ export function AppsWorkspace() {
   const activeManifest = activeApp?.common.activeSnapshot.manifest;
   const hasDonation = !!activeManifest?.donation?.address;
 
-  useEffect(() => {
-    setApprovalExpanded(false);
-  }, [currentApproval?.id]);
-
   const tabs = useMemo<AppTaskBarTab[]>(() => {
     const runtimeByAppId = new Map(
       runtimes.map(
@@ -178,12 +183,14 @@ export function AppsWorkspace() {
           navigate('/apps');
         }}
         onSelectApp={(tab) => {
-          void focusRuntime(tab.app.common.identity.id);
+          void commands.appsFocusTaskbarRuntime({
+            appId: tab.app.common.identity.id,
+          });
         }}
         onCloseApp={(tab) => {
           const tabAppId = tab.app.common.identity.id;
 
-          void killRuntime(tabAppId).then(() => {
+          void commands.appsKillTaskbarRuntime({ appId: tabAppId }).then(() => {
             if (tabAppId === appId) {
               navigate('/apps');
             }
@@ -193,26 +200,6 @@ export function AppsWorkspace() {
         activeAppHasDonation={hasDonation}
         onOpenDonation={() => setDonationOpen((v) => !v)}
       />
-
-      {activeApp &&
-      currentApproval &&
-      currentApproval.request.app.common.identity.id ===
-        activeApp.common.identity.id ? (
-        <AppApprovalStrip
-          approval={{
-            approvalId: currentApproval.id,
-            approval: currentApproval.request,
-          }}
-          expanded={approvalExpanded}
-          queuedApprovalCount={queuedApprovalCount}
-          secondsLeft={currentApprovalSecondsLeft}
-          onToggleExpanded={() => {
-            setApprovalExpanded((prev) => !prev);
-          }}
-          onApprove={approveCurrentApproval}
-          onReject={rejectCurrentApproval}
-        />
-      ) : null}
 
       {donationOpen && activeApp && activeManifest?.donation ? (
         <AppDonationStrip

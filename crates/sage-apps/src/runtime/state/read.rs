@@ -131,6 +131,28 @@ pub(crate) async fn list_runtimes(
     Ok(runtimes)
 }
 
+pub(crate) async fn find_active_taskbar_runtime_id(
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+) -> Option<String> {
+    let active = apps_state
+        .runtime
+        .active_taskbar_runtime_id_by_host_window_label
+        .lock()
+        .await;
+
+    active.get(host_window_label).cloned()
+}
+
+pub(crate) async fn find_active_taskbar_runtime(
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+) -> Option<SharedRuntime> {
+    let runtime_id = find_active_taskbar_runtime_id(apps_state, host_window_label).await?;
+
+    find_runtime_by_runtime_id_optional(apps_state, &runtime_id).await
+}
+
 fn find_runtime_by_app_id_optional_immediate_once(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,

@@ -142,8 +142,8 @@ commands.allow = [
     "apply_app_update",
     "apps_update_permissions",
     "apps_list_runtimes",
-    "apps_focus_runtime",
-    "apps_hide_runtime",
-    "apps_kill_runtime",
+    "apps_focus_taskbar_runtime",
+    "apps_clear_active_taskbar_runtime",
+    "apps_kill_taskbar_runtime",
     "apps_dev_reload_runtime",
 ]

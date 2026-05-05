@@ -1,16 +1,14 @@
-import type { RustBridgeApprovalRequest } from '@/bindings';
+import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
 import { KeyRound, ShieldAlert } from 'lucide-react';
-import {
-  ApprovalDetailRow,
-  ApprovalMetaPill,
-} from '@/components/apps/approval/shared.tsx';
+import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
   approval: Extract<RustBridgeApprovalRequest, { kind: 'capabilityGrant' }>;
+  appName: string,
   expanded: boolean;
 }
 
-export function CapabilityGrantApprovalCard({ approval, expanded }: Props) {
+export function CapabilityGrantApprovalCard({ approval, appName, expanded }: Props) {
   const label = approval.definition.label;
   const description = approval.definition.description;
 
@@ -28,7 +26,7 @@ export function CapabilityGrantApprovalCard({ approval, expanded }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.activeSnapshot.manifest.name} wants access to an additional capability.
+            {appName} wants access to an additional capability.
           </div>
         </div>
       </div>

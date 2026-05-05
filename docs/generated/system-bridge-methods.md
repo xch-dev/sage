@@ -48,6 +48,18 @@
 |---|---|
 | Capability | `app_update.read` |
 
+## `bridgeApprovals.listPending`
+
+| Field | Value |
+|---|---|
+| Capability | `bridge_approval.list` |
+
+## `bridgeApprovals.resolve`
+
+| Field | Value |
+|---|---|
+| Capability | `bridge_approval.resolve` |
+
 ## `capabilities.listUserDefinitions`
 
 | Field | Value |
@@ -72,11 +84,23 @@
 |---|---|
 | Capability | `runtime_manager.focus_runtime` |
 
+## `runtimeManager.getActiveTaskbarRuntime`
+
+| Field | Value |
+|---|---|
+| Capability | `runtime_manager.get_active_taskbar_runtime` |
+
 ## `runtimeManager.hideRuntime`
 
 | Field | Value |
 |---|---|
 | Capability | `runtime_manager.hide_runtime` |
+
+## `runtimeManager.hideSelf`
+
+| Field | Value |
+|---|---|
+| Capability | `runtime_manager.hide_self` |
 
 ## `runtimeManager.killRuntime`
 

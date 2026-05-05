@@ -62,16 +62,13 @@ impl BridgeMethod for WalletSendXch {
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        if ctx.app.is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit) {
+        if ctx.app.is_capability_granted(UserBridgeCapability::WalletSendXchAutoSubmit.into()) {
             return Ok(None);
         }
 
         let params = parse_required_params::<WalletSendXchParams>(self, request)?;
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.into(),
-            source_label: ctx.app.webview_label(),
-            request_id: request.id.clone(),
             body: RustBridgeApprovalBody::SendXch { summary: params },
         }))
     }

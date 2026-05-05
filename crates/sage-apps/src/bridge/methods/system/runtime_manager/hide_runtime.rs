@@ -7,7 +7,7 @@ use crate::bridge::methods::shared::{
     BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::{hide_runtime, RuntimeTargetParams, SageAppRuntimeRecordView};
+use crate::runtime::{hide_taskbar_runtime, RuntimeTargetParams, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerHideRuntime;
@@ -38,7 +38,7 @@ impl BridgeMethod for RuntimeManagerHideRuntime {
     ) -> BridgeHandleResult {
         let params: RuntimeTargetParams = parse_required_params(self, request)?;
 
-        let runtime = hide_runtime(tools.app_handle, tools.host_state, &params.app_id)
+        let runtime = hide_taskbar_runtime(tools.app_handle, tools.host_state, &params.app_id)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 

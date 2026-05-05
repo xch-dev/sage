@@ -71,7 +71,7 @@ pub struct SharedImpostorRuntime {
 pub struct AppRuntimeState {
     pub runtime_by_runtime_id: Mutex<BTreeMap<String, SharedRuntime>>,
     pub runtime_id_by_app_id: Mutex<BTreeMap<String, String>>,
-    pub active_runtime_id_by_host_window_label: Mutex<BTreeMap<String, String>>,
+    pub active_taskbar_runtime_id_by_host_window_label: Mutex<BTreeMap<String, String>>,
 
     pub impostor_by_runtime_id: Mutex<BTreeMap<String, SharedImpostorRuntime>>,
     pub impostor_runtime_id_by_victim_app_id: Mutex<BTreeMap<String, String>>,
@@ -214,12 +214,12 @@ impl SageAppRuntimeRecord {
         self.app.id()
     }
 
-    pub(crate) fn webview_label(&self) -> &str {
-        &self.webview_label
+    pub(crate) fn webview_label(&self) -> String {
+        self.webview_label.to_string()
     }
 
-    pub(crate) fn host_window_label(&self) -> &str {
-        &self.host_window_label
+    pub(crate) fn host_window_label(&self) -> String {
+        self.host_window_label.to_string()
     }
 
     pub(crate) fn presentation(&self) -> AppPresentation {
@@ -325,6 +325,10 @@ impl SharedRuntime {
 
     pub fn app_id(&self) -> String {
         self.with_app_inner(|app| app.id().to_string())
+    }
+
+    pub fn is_taskbar(&self) -> bool {
+        self.with_runtime(|runtime| runtime.presentation() == AppPresentation::Taskbar)
     }
 }
 

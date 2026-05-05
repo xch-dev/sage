@@ -15,5 +15,8 @@ pub use types::{
     ResolveBridgeApprovalArgs, RustBridgeApprovalEvent
 };
 
-pub(crate) use event_emit::{emit_runtime_event_to_app_id, emit_runtime_event_to_sage_webview};
+pub(crate) use event_emit::{
+    emit_user_runtime_event_to_listeners, emit_system_runtime_event_to_listeners,
+    emit_user_runtime_event_to_app_id
+};
 pub(crate) use types::{BridgeOrigin};

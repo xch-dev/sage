@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, FileSystemSelectFileParams, FileSystemSelectFileResult, RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -26,6 +26,7 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
+use crate::bridge::ResolveBridgeApprovalArgs;
 use crate::types::SageAppCapabilityDefinitionView;
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -88,6 +89,7 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<RuntimeTargetParams>();
     types.register::<SystemKillRuntimeResult>();
     types.register::<RuntimeManagerRuntimesChangedEvent>();
+    types.register::<RuntimeManagerActiveRuntimeChangedEvent>();
 
     types.register::<AppInstallPreviewUrlParams>();
     types.register::<AppInstallPreviewZipParams>();
@@ -108,6 +110,10 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
 
     types.register::<FileSystemSelectFileParams>();
     types.register::<FileSystemSelectFileResult>();
+
+    types.register::<ResolveBridgeApprovalArgs>();
+    types.register::<PendingBridgeApprovalView>();
+    types.register::<BridgeApprovalsChangedEvent>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

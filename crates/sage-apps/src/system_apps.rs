@@ -13,6 +13,7 @@ use crate::utils::builtin_apps_root;
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
 pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
+pub const SYSTEM_APP_BRIDGE_APPROVAL_ID: &str = "bridge-approval";
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinSystemAppSpec {
@@ -65,6 +66,17 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
     },
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID,
+        dir_name: "bridge-approval",
+        usage: SystemAppUsage::Contextual,
+        system_capabilities: &[
+            SystemBridgeCapability::BridgeApprovalList,
+            SystemBridgeCapability::BridgeApprovalResolve,
+            SystemBridgeCapability::RuntimeManagerGetActiveTaskbarRuntime,
+            SystemBridgeCapability::RuntimeManagerHideSelf,
+        ],
+    }
 ];
 
 #[derive(Debug, Copy, Clone)]

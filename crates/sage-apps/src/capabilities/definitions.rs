@@ -218,10 +218,34 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to stop running Sage app runtimes.",
             system_app_flags(),
         ),
+        SystemBridgeCapability::RuntimeManagerGetActiveTaskbarRuntime => CapabilityDefinition::new(
+            capability,
+            "Get active runtime",
+            "Allows the system app to retrieve the currently active Sage app runtime.",
+            system_app_flags(),
+        ),
         SystemBridgeCapability::RuntimeManagerListenRuntimesChanged => CapabilityDefinition::new(
             capability,
             "Observe runtime changes",
             "Allows the system app to receive events when Sage app runtimes change.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerListenActiveRuntimeChanged => CapabilityDefinition::new(
+            capability,
+            "Observe active runtime changes",
+            "Allows the system app to receive events when the active Sage app runtime changes.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerHideSelf => CapabilityDefinition::new(
+            capability,
+            "Hide itself",
+            "Allows the system app to hide its own runtime.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::RuntimeManagerCloseSelf => CapabilityDefinition::new(
+            capability,
+            "Close itself",
+            "Allows the system app to close its own runtime.",
             system_app_flags(),
         ),
         SystemBridgeCapability::AppUpdateRead => CapabilityDefinition::new(
@@ -266,16 +290,28 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to install Sage apps after review.",
             system_app_flags(),
         ),
-        SystemBridgeCapability::RuntimeManagerCloseSelf => CapabilityDefinition::new(
-            capability,
-            "Close itself",
-            "Allows the system app to close its own runtime.",
-            system_app_flags(),
-        ),
         SystemBridgeCapability::FileSystemSelectFile => CapabilityDefinition::new(
             capability,
             "Select file",
             "Allows the system app to ask the user to select a local file.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalList => CapabilityDefinition::new(
+            capability,
+            "List bridge approvals",
+            "Allows the system app to list pending bridge approvals.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalResolve => CapabilityDefinition::new(
+            capability,
+            "Resolve bridge approval",
+            "Allows the system app to resolve a pending bridge approval.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::BridgeApprovalListenApprovalsChanged => CapabilityDefinition::new(
+            capability,
+            "Listen for bridge approval changes",
+            "Allows the system app to listen for changes in pending bridge approvals.",
             system_app_flags(),
         ),
     }

@@ -13,6 +13,7 @@ pub(crate) use read::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
     list_runtimes, find_impostor_runtime_by_victim_app_id_optional,
     find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional_immediate,
+    find_active_taskbar_runtime_id, find_active_taskbar_runtime,
     GetRuntimeError
 };
 pub(crate) use types::{
@@ -24,6 +25,7 @@ pub(crate) use types::{
 pub(super) use remove::{
     remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
     remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, remove_impostor_runtime_by_victim_app_id,
+    remove_active_taskbar_runtime, remove_active_taskbar_runtime_if_matches,
 };
 pub(super) use write::{
     write_pending_stop_ready, write_runtime, write_impostor_runtime

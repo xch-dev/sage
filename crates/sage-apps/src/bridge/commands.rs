@@ -35,7 +35,7 @@ pub async fn apps_resolve_bridge_approval(
     app_state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
     args: ResolveBridgeApprovalArgs,
-) -> Result<(), String> { process_after_approval(app_handle, app_state, apps_state, args).await }
+) -> Result<(), String> { process_after_approval(&app_handle, &app_state, &apps_state, args).await }
 
 #[tauri::command]
 #[specta::specta]

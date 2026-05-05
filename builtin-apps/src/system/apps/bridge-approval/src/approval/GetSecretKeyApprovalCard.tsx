@@ -1,16 +1,14 @@
 import { Wallet } from 'lucide-react';
-import {
-  ApprovalDetailRow,
-  ApprovalMetaPill,
-} from '@/components/apps/approval/shared.tsx';
-import type { RustBridgeApprovalRequest } from '@/bindings';
+import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
+import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {
   approval: Extract<RustBridgeApprovalRequest, { kind: 'getSecretKey' }>;
+  appName: string;
   expanded: boolean;
 }
 
-export function GetSecretKeyApprovalCard({ approval }: Props) {
+export function GetSecretKeyApprovalCard({ approval, appName }: Props) {
   const fingerprint = approval.fingerprint;
 
   return (
@@ -27,7 +25,7 @@ export function GetSecretKeyApprovalCard({ approval }: Props) {
           </div>
 
           <div className='mt-1 text-xs text-muted-foreground'>
-            {approval.app.common.activeSnapshot.manifest.name} wants to get your secret key.
+            {appName} wants to get your secret key.
           </div>
         </div>
       </div>

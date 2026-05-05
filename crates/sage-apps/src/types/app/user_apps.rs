@@ -1,4 +1,4 @@
-use crate::capabilities::list::UserBridgeCapability;
+use crate::capabilities::list::BridgeCapability;
 use crate::runtime::SharedRuntime;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
@@ -162,8 +162,19 @@ impl SharedSageApp {
         self.with(|app| app.as_user().and_then(|user| user.pending_update().cloned()))
     }
 
-    pub fn is_capability_granted(&self, capability: UserBridgeCapability) -> bool {
-        self.with(|app| app.granted_permissions().has_capability(capability))
+    pub fn is_capability_granted(&self, capability: BridgeCapability) -> bool {
+        self.with(|app| match capability {
+            BridgeCapability::User(capability) => {
+                app.granted_permissions().has_capability(capability)
+            }
+
+            BridgeCapability::System(capability) => {
+                app.system_granted_permissions()
+                    .is_some_and(|permissions| {
+                        permissions.capabilities().contains(&capability)
+                    })
+            }
+        })
     }
 
     pub fn has_secret_access(&self) -> bool {

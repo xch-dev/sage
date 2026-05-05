@@ -56,11 +56,53 @@ Allows the system app to stop running Sage app runtimes.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `runtime_manager.get_active_taskbar_runtime`
+
+**Get active runtime**
+
+Allows the system app to retrieve the currently active Sage app runtime.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `runtime_manager.listen_runtimes_changed`
 
 **Observe runtime changes**
 
 Allows the system app to receive events when Sage app runtimes change.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `runtime_manager.listen_active_runtime_changed`
+
+**Observe active runtime changes**
+
+Allows the system app to receive events when the active Sage app runtime changes.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `runtime_manager.hide_self`
+
+**Hide itself**
+
+Allows the system app to hide its own runtime.
 
 | Flag | Value |
 |---|---|
@@ -187,6 +229,48 @@ Allows the system app to download and apply approved Sage app updates.
 **Select file**
 
 Allows the system app to ask the user to select a local file.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `bridge_approval.list`
+
+**List bridge approvals**
+
+Allows the system app to list pending bridge approvals.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `bridge_approval.resolve`
+
+**Resolve bridge approval**
+
+Allows the system app to resolve a pending bridge approval.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `bridge_approval.listen_changed`
+
+**Listen for bridge approval changes**
+
+Allows the system app to listen for changes in pending bridge approvals.
 
 | Flag | Value |
 |---|---|

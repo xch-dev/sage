@@ -1,6 +1,6 @@
 use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::types::{SageAppCapabilityDefinitionView, SageAppView, SageNetworkWhitelistEntry, SharedSageApp};
+use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
@@ -67,10 +67,6 @@ pub struct ResolveBridgeApprovalArgs {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RustBridgeApprovalRequest {
-    pub app: SageAppView,
-    pub source_label: String,
-    pub request_id: String,
-
     #[serde(flatten)]
     pub body: RustBridgeApprovalBody,
 }
@@ -108,9 +104,11 @@ pub(crate) struct BridgeOrigin {
 
 #[derive(Debug, Clone)]
 pub(crate) struct PendingBridgeApproval {
-    pub app_webview_label: String,
-    pub request: RustBridgeRequest,
+    pub approval_id: String,
+    pub app_id: String,
     pub registry_kind: BridgeRegistryKind,
+    pub approval: RustBridgeApprovalRequest,
+    pub request: RustBridgeRequest,
 }
 
 impl RustBridgeResponse {

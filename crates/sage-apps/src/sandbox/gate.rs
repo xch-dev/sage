@@ -24,7 +24,7 @@ fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> 
         SandboxCapability::NetworkAllowlistEnforced,
     ];
 
-    if app.is_capability_granted(UserBridgeCapability::StoragePersistentWebview) {
+    if app.is_capability_granted(UserBridgeCapability::StoragePersistentWebview.into()) {
         caps.push(SandboxCapability::StoragePersistenceNormal);
 
         if app.has_secret_access() {

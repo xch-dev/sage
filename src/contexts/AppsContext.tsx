@@ -13,9 +13,6 @@ import {
   type SystemSageAppView,
   type UserSageAppView,
 } from '@/bindings';
-import type { PendingApprovalItem } from '@/hooks/useAppPendingApprovals';
-import { useAppPendingApprovals } from '@/hooks/useAppPendingApprovals';
-import { useBridgeHost } from '@/hooks/useBridgeHost';
 
 interface PerformAppUpdateOptions {
   restartIfRunning?: boolean;
@@ -57,15 +54,8 @@ interface AppsContextValue {
   error: string | null;
   busyAppIds: Record<string, boolean>;
   updateAvailability: Record<string, SageAppUrlPreview | null>;
-  bridgeHostReady: boolean;
   sandboxState: SandboxStateView | null;
   launchGatesByAppId: Record<string, AppLaunchGateResult>;
-
-  currentApproval: PendingApprovalItem | null;
-  queuedApprovalCount: number;
-  currentApprovalSecondsLeft: number;
-  approveCurrentApproval: () => void;
-  rejectCurrentApproval: () => void;
 
   getApp: (appId: string) => UserSageAppView | undefined;
   getListedApp: (appId: string) => InstalledEntry | undefined;
@@ -169,17 +159,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     useState<
       Record<string, { appId: string | null; runtimeId: string | null }>
     >({});
-
-  const {
-    currentApproval,
-    queuedApprovalCount,
-    currentApprovalSecondsLeft,
-    requestApproval,
-    approveCurrentApproval,
-    rejectCurrentApproval,
-  } = useAppPendingApprovals();
-
-  const { isReady: bridgeHostReady } = useBridgeHost({ requestApproval });
 
   const refreshRuntimes = useCallback(async () => {
     try {
@@ -534,15 +513,8 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
-      bridgeHostReady,
       sandboxState,
       launchGatesByAppId,
-
-      currentApproval,
-      queuedApprovalCount,
-      currentApprovalSecondsLeft,
-      approveCurrentApproval,
-      rejectCurrentApproval,
 
       getApp,
       getListedApp,
@@ -574,14 +546,8 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
-      bridgeHostReady,
       sandboxState,
       launchGatesByAppId,
-      currentApproval,
-      queuedApprovalCount,
-      currentApprovalSecondsLeft,
-      approveCurrentApproval,
-      rejectCurrentApproval,
       getApp,
       getListedApp,
       getLaunchGate,

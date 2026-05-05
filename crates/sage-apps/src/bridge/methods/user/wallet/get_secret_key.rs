@@ -25,15 +25,12 @@ impl BridgeMethod for WalletGetSecretKey {
 
     fn approval_request(
         &self,
-        ctx: BridgeContext<'_>,
+        _ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let params: GetSecretKey = parse_required_params(self, request)?;
 
         Ok(Some(RustBridgeApprovalRequest {
-            app: ctx.app.into(),
-            source_label: ctx.app.webview_label(),
-            request_id: request.id.clone(),
             body: RustBridgeApprovalBody::GetSecretKey {
                 fingerprint: params.fingerprint,
             },

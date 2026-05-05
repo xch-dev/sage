@@ -51,6 +51,9 @@ pub(crate) struct BridgeMethodHandleError {
     pub message: String,
 }
 
+pub(crate) type BridgeApprovalRequestResult =
+Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
+
 impl BridgeMethodHandleError {
     pub(super) fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
@@ -67,9 +70,6 @@ impl BridgeMethodHandleError {
         Self::new("internal_error", message)
     }
 }
-
-pub(super) type BridgeApprovalRequestResult =
-    Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
 
 pub(super) type BridgeHandleResult =
     Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
