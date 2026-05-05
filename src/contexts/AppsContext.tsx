@@ -32,8 +32,8 @@ interface RuntimeManagerRuntimesChangedEvent {
   };
 }
 
-interface ActiveRuntimeChangedEvent {
-  type: 'runtimeManager.activeRuntimeChanged';
+interface ActiveTaskbarRuntimeChangedEvent {
+  type: 'runtimeManager.activeTaskbarRuntimeChanged';
   payload: {
     hostWindowLabel: string;
     appId: string | null;
@@ -43,13 +43,17 @@ interface ActiveRuntimeChangedEvent {
 
 type SageRuntimeEvent =
   | RuntimeManagerRuntimesChangedEvent
-  | ActiveRuntimeChangedEvent;
+  | ActiveTaskbarRuntimeChangedEvent;
+
+type ActiveTaskbarRuntime = {
+  appId: string | null;
+  runtimeId: string | null;
+} | null;
 
 interface AppsContextValue {
   apps: ListedSageAppView[];
   runtimes: SageAppRuntimeRecordView[];
-  taskbarRuntimesByHostWindowLabel: Record<string, SageAppRuntimeRecordView[]>;
-  currentHostWindowLabel: string;
+  taskbarRuntimes: SageAppRuntimeRecordView[];
   loading: boolean;
   error: string | null;
   busyAppIds: Record<string, boolean>;
@@ -61,7 +65,6 @@ interface AppsContextValue {
   getListedApp: (appId: string) => InstalledEntry | undefined;
   getLaunchGate: (appId: string) => AppLaunchGateResult | null;
   getTaskbarRuntime: (
-    hostWindowLabel: string,
     appId: string,
   ) => SageAppRuntimeRecordView | null;
 
@@ -95,13 +98,7 @@ interface AppsContextValue {
   ) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
   rerunSandboxTests: () => Promise<SandboxStateView>;
-  activeRuntimeByHostWindowLabel: Record<
-    string,
-    {
-      appId: string | null;
-      runtimeId: string | null;
-    }
-  >;
+  activeTaskbarRuntime: ActiveTaskbarRuntime;
 }
 
 const AppsContext = createContext<AppsContextValue | null>(null);
@@ -142,7 +139,11 @@ function isTaskbarRuntime(runtime: SageAppRuntimeRecordView): boolean {
 export function AppsProvider({ children }: { children: ReactNode }) {
   const [apps, setApps] = useState<ListedSageAppView[]>([]);
   const [runtimes, setRuntimes] = useState<SageAppRuntimeRecordView[]>([]);
-  const currentHostWindowLabel = useMemo(() => getCurrentWindow().label, []);
+  const [taskbarRuntimes, setTaskbarRuntimes] = useState<
+    SageAppRuntimeRecordView[]
+  >([]);
+  const [activeTaskbarRuntime, setActiveTaskbarRuntime] =
+    useState<ActiveTaskbarRuntime>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAppIds, setBusyAppIds] = useState<Record<string, boolean>>({});
@@ -155,10 +156,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const [launchGatesByAppId, setLaunchGatesByAppId] = useState<
     Record<string, AppLaunchGateResult>
   >({});
-  const [activeRuntimeByHostWindowLabel, setActiveRuntimeByHostWindowLabel] =
-    useState<
-      Record<string, { appId: string | null; runtimeId: string | null }>
-    >({});
 
   const refreshRuntimes = useCallback(async () => {
     try {
@@ -245,16 +242,17 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             switch (runtimeEvent.type) {
               case 'runtimeManager.runtimesChanged':
                 setRuntimes(runtimeEvent.payload.runtimes);
+                setTaskbarRuntimes(runtimeEvent.payload.runtimes.filter((runtime) => isTaskbarRuntime(runtime)));
                 break;
 
-              case 'runtimeManager.activeRuntimeChanged':
-                setActiveRuntimeByHostWindowLabel((prev) => ({
-                  ...prev,
-                  [runtimeEvent.payload.hostWindowLabel]: {
+              case 'runtimeManager.activeTaskbarRuntimeChanged':
+                if (runtimeEvent.payload.hostWindowLabel !== getCurrentWindow().label) {
+                  break;
+                }
+                setActiveTaskbarRuntime({
                     appId: runtimeEvent.payload.appId,
                     runtimeId: runtimeEvent.payload.runtimeId,
-                  },
-                }));
+                });
                 break;
             }
           },
@@ -337,19 +335,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     };
   }, [apps, currentSandboxRunId, refreshLaunchGates]);
 
-  const taskbarRuntimesByHostWindowLabel = useMemo(() => {
-    const next: Record<string, SageAppRuntimeRecordView[]> = {};
-
-    for (const runtime of runtimes) {
-      if (!isTaskbarRuntime(runtime)) continue;
-
-      next[runtime.hostWindowLabel] ??= [];
-      next[runtime.hostWindowLabel].push(runtime);
-    }
-
-    return next;
-  }, [runtimes]);
-
   const refresh = refreshInstalledApps;
 
   const getListedApp = useCallback(
@@ -369,14 +354,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   );
 
   const getTaskbarRuntime = useCallback(
-    (hostWindowLabel: string, appId: string) => {
-      return (
-        taskbarRuntimesByHostWindowLabel[hostWindowLabel]?.find(
-          (runtime) => runtimeAppId(runtime) === appId,
-        ) ?? null
-      );
+    (appId: string) => {
+      return taskbarRuntimes.find((runtime) => runtimeAppId(runtime) === appId) ?? null;
     },
-    [taskbarRuntimesByHostWindowLabel],
+    [taskbarRuntimes],
   );
 
   const getApp = useCallback(
@@ -507,8 +488,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     () => ({
       apps,
       runtimes,
-      taskbarRuntimesByHostWindowLabel,
-      currentHostWindowLabel,
+      taskbarRuntimes,
       loading,
       error,
       busyAppIds,
@@ -535,13 +515,12 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       performAppUpdate,
       clearAppStorage,
       rerunSandboxTests,
-      activeRuntimeByHostWindowLabel,
+      activeTaskbarRuntime,
     }),
     [
       apps,
       runtimes,
-      taskbarRuntimesByHostWindowLabel,
-      currentHostWindowLabel,
+      taskbarRuntimes,
       loading,
       error,
       busyAppIds,
@@ -565,7 +544,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       performAppUpdate,
       clearAppStorage,
       rerunSandboxTests,
-      activeRuntimeByHostWindowLabel,
+      activeTaskbarRuntime,
     ],
   );
 

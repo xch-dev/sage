@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { Navigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useApps } from '@/contexts/AppsContext';
 import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
 
@@ -7,26 +7,11 @@ export function AppHost() {
   const { appId = '' } = useParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const {
-    taskbarRuntimesByHostWindowLabel,
-    currentHostWindowLabel,
-  } = useApps();
-
-  const taskbarRuntimesForWindow = useMemo(() => {
-    if (!currentHostWindowLabel) {
-      return [];
-    }
-
-    return taskbarRuntimesByHostWindowLabel[currentHostWindowLabel] ?? [];
-  }, [currentHostWindowLabel, taskbarRuntimesByHostWindowLabel]);
+  const { getTaskbarRuntime} = useApps();
 
   const runtime = useMemo(() => {
-    return (
-      taskbarRuntimesForWindow.find((runtime) => {
-        return runtime.app.common.identity.id === appId;
-      }) ?? null
-    );
-  }, [taskbarRuntimesForWindow, appId]);
+    return getTaskbarRuntime(appId);
+  }, [getTaskbarRuntime, appId]);
 
   const webviewLabel = runtime?.webviewLabel ?? null;
 
@@ -45,8 +30,7 @@ export function AppHost() {
   }, [webviewLabel, scheduleSyncBounds]);
 
   if (!runtime) {
-    console.error("Runtime not found for app ID: ", appId);
-    return <Navigate to='/apps' replace />;
+    return null;
   }
 
   return (

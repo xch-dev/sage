@@ -267,11 +267,20 @@ export function AppTaskBar({
                 className={clsx('shrink-0', isDragged && 'opacity-0')}
                 style={{ width: `${tabWidthPx}px` }}
               >
-                <button
-                  type='button'
+                <div
+                  role='button'
+                  tabIndex={0}
                   onClick={() => {
                     if (!dragState && !tab.isActive) {
                       onSelectApp(tab);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      if (!dragState && !tab.isActive) {
+                        onSelectApp(tab);
+                      }
                     }
                   }}
                   onPointerDown={(event) => {
@@ -346,7 +355,7 @@ export function AppTaskBar({
                       <X className='h-3.5 w-3.5' />
                     </Button>
                   </span>
-                </button>
+                </div>
               </div>
             );
           })}

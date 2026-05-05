@@ -252,8 +252,8 @@ export function initSageSystemRuntimeBridge(): boolean {
               handler,
             );
           },
-          onActiveRuntimeChanged(handler) {
-            return onSystemRuntimeEventType<Generated.RuntimeManagerActiveRuntimeChangedEvent>(
+          onActiveTaskbarRuntimeChanged(handler) {
+            return onSystemRuntimeEventType<Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent>(
               'runtimeManager.activeRuntimeChanged',
               handler,
             );

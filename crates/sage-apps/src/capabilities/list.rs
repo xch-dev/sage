@@ -104,7 +104,7 @@ define_bridge_capabilities! {
         RuntimeManagerKillRuntime => "runtime_manager.kill_runtime",
         RuntimeManagerGetActiveTaskbarRuntime => "runtime_manager.get_active_taskbar_runtime",
         RuntimeManagerListenRuntimesChanged => "runtime_manager.listen_runtimes_changed",
-        RuntimeManagerListenActiveRuntimeChanged => "runtime_manager.listen_active_runtime_changed",
+        RuntimeManagerListenActiveTaskbarRuntimeChanged => "runtime_manager.listen_active_runtime_changed",
         RuntimeManagerHideSelf => "runtime_manager.hide_self",
         RuntimeManagerCloseSelf => "runtime_manager.close_self",
 

@@ -91,7 +91,7 @@ export function App() {
       setApprovals(event.approvals);
     });
 
-    const offActiveRuntime = sage.runtimeManager.onActiveRuntimeChanged(() => {
+    const offActiveRuntime = sage.runtimeManager.onActiveTaskbarRuntimeChanged(() => {
       void refreshActiveRuntime().catch((err) => {
         console.error('[approval] failed to refresh active runtime', err);
       });

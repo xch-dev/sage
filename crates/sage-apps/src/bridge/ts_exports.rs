@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -89,7 +89,7 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<RuntimeTargetParams>();
     types.register::<SystemKillRuntimeResult>();
     types.register::<RuntimeManagerRuntimesChangedEvent>();
-    types.register::<RuntimeManagerActiveRuntimeChangedEvent>();
+    types.register::<RuntimeManagerActiveTaskbarRuntimeChangedEvent>();
 
     types.register::<AppInstallPreviewUrlParams>();
     types.register::<AppInstallPreviewZipParams>();

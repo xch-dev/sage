@@ -6,7 +6,9 @@ use std::time::{Duration, Instant};
 use tauri::State;
 
 use crate::AppsHostState;
+use crate::runtime::SageAppRuntimeVisibility;
 use crate::runtime::state::types::{SharedImpostorRuntime, SharedRuntime};
+use crate::types::AppPresentation;
 
 const IMMEDIATE_LOCK_RETRY_TIMEOUT_MS: u64 = 20;
 const IMMEDIATE_LOCK_RETRY_DELAY_MS: u64 = 2;
@@ -131,26 +133,37 @@ pub(crate) async fn list_runtimes(
     Ok(runtimes)
 }
 
-pub(crate) async fn find_active_taskbar_runtime_id(
-    apps_state: &State<'_, AppsHostState>,
-    host_window_label: &str,
-) -> Option<String> {
-    let active = apps_state
-        .runtime
-        .active_taskbar_runtime_id_by_host_window_label
-        .lock()
-        .await;
-
-    active.get(host_window_label).cloned()
-}
-
 pub(crate) async fn find_active_taskbar_runtime(
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,
 ) -> Option<SharedRuntime> {
-    let runtime_id = find_active_taskbar_runtime_id(apps_state, host_window_label).await?;
+    let taskbar_runtimes = get_taskbar_runtimes(apps_state, host_window_label).await;
+    taskbar_runtimes.iter().find(|runtime| runtime.with_runtime(
+        |runtime|
+            runtime.visibility() == SageAppRuntimeVisibility::Visible
+    )).cloned()
+}
 
-    find_runtime_by_runtime_id_optional(apps_state, &runtime_id).await
+async fn get_taskbar_runtimes(
+    apps_state: &State<'_, AppsHostState>,
+    host_window_label: &str,
+) -> Vec<SharedRuntime> {
+    let runtimes: Vec<SharedRuntime> = {
+        apps_state
+            .runtime
+            .runtime_by_runtime_id
+            .lock()
+            .await
+            .values()
+            .cloned()
+            .collect()
+    };
+
+    runtimes.iter().filter(|runtime| runtime.with_runtime(
+        |runtime|
+            runtime.presentation() == AppPresentation::Taskbar
+            && runtime.host_window_label() == host_window_label
+    )).cloned().collect()
 }
 
 fn find_runtime_by_app_id_optional_immediate_once(

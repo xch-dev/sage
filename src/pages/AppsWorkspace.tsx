@@ -28,8 +28,7 @@ export function AppsWorkspace() {
     getListedApp,
     updateAvailability,
     busyAppIds,
-    activeRuntimeByHostWindowLabel,
-    currentHostWindowLabel,
+    activeTaskbarRuntime,
   } = useApps();
 
   const runtimesRef = useRef(runtimes);
@@ -56,44 +55,37 @@ export function AppsWorkspace() {
     };
   }, []);
 
-  const activeRuntime =
-    activeRuntimeByHostWindowLabel[currentHostWindowLabel] ?? null;
-
   useEffect(() => {
-    if (!appId) {
+    const activeAppId = activeTaskbarRuntime?.appId ?? null;
+
+    if (!activeAppId) {
+      if (appId) {
+        navigate('/apps', { replace: true });
+      }
       return;
     }
 
-    const activeAppId = activeRuntime?.appId;
-
-    if (!activeAppId || activeAppId === appId) {
+    if (activeAppId === appId) {
       return;
     }
 
     const app = getListedApp(activeAppId);
-    if (!app) {
-      return;
+    const route = app ? routeForApp(app) : null;
+
+    if (route) {
+      navigate(route, { replace: true });
     }
+  }, [activeTaskbarRuntime?.appId, appId, getListedApp, navigate]);
 
-    const route = routeForApp(app);
-    if (!route) {
-      return;
-    }
-
-    navigate(route, { replace: true });
-  }, [activeRuntime?.appId, appId, getListedApp, navigate]);
-
+  /*
   useEffect(() => {
-    if (appId) {
-      return;
-    }
-
-    void commands.appsClearActiveTaskbarRuntime({
-      windowLabel: getCurrentWindow().label,
-    }).catch((err) => {
-      console.error('Failed to clear active taskbar runtime:', err);
-    });
-  }, [appId]);
+    return () => {
+      void commands.appsLeaveWorkspace({
+        windowLabel: getCurrentWindow().label,
+      });
+    };
+  }, []);
+   */
 
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [donationOpen, setDonationOpen] = useState(false);
@@ -167,20 +159,23 @@ export function AppsWorkspace() {
 
       out.push({
         app: installedApp,
-        isActive: runtime.app.common.identity.id === activeRuntime?.appId,
+        isActive:
+          runtime.app.common.identity.id === activeTaskbarRuntime?.appId,
       });
     }
 
     return out;
-  }, [runtimes, tabOrder, getListedApp, activeRuntime?.appId]);
+  }, [runtimes, tabOrder, getListedApp, activeTaskbarRuntime?.appId]);
 
   return (
     <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>
       <AppTaskBar
         tabs={tabs}
-        activeAppId={activeRuntime?.appId ?? appId ?? null}
+        activeAppId={activeTaskbarRuntime?.appId ?? null}
         onOpenApps={() => {
-          navigate('/apps');
+          void commands.appsClearActiveTaskbarRuntime({
+            windowLabel: getCurrentWindow().label,
+          });
         }}
         onSelectApp={(tab) => {
           void commands.appsFocusTaskbarRuntime({
@@ -188,12 +183,8 @@ export function AppsWorkspace() {
           });
         }}
         onCloseApp={(tab) => {
-          const tabAppId = tab.app.common.identity.id;
-
-          void commands.appsKillTaskbarRuntime({ appId: tabAppId }).then(() => {
-            if (tabAppId === appId) {
-              navigate('/apps');
-            }
+          void commands.appsKillTaskbarRuntime({
+            appId: tab.app.common.identity.id,
           });
         }}
         onReorderTabs={setTabOrder}

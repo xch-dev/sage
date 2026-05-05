@@ -13,7 +13,7 @@ pub(crate) struct RuntimeManagerRuntimesChangedEvent {
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct RuntimeManagerActiveRuntimeChangedEvent {
+pub(crate) struct RuntimeManagerActiveTaskbarRuntimeChangedEvent {
     pub host_window_label: String,
     pub app_id: Option<String>,
     pub runtime_id: Option<String>,
@@ -30,7 +30,7 @@ impl SystemRuntimeEvent for RuntimeManagerRuntimesChangedEvent {
     const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::RuntimeManagerListenRuntimesChanged;
 }
 
-impl SystemRuntimeEvent for RuntimeManagerActiveRuntimeChangedEvent {
-    const TYPE: &'static str = "runtimeManager.activeRuntimeChanged";
-    const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::RuntimeManagerListenActiveRuntimeChanged;
+impl SystemRuntimeEvent for RuntimeManagerActiveTaskbarRuntimeChangedEvent {
+    const TYPE: &'static str = "runtimeManager.activeTaskbarRuntimeChanged";
+    const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged;
 }

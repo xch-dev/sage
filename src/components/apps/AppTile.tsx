@@ -1,12 +1,13 @@
 import type { SageAppView } from '@/bindings';
 import type { SandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
 import { AppIcon } from '@/components/apps/AppIcon.tsx';
+import React from 'react';
 
 interface Props {
   app: SageAppView;
   launchDecision: SandboxLaunchDecision;
   onOpen: () => void;
-  onContextMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  onContextMenu: (event: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
@@ -16,15 +17,25 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
 
   const isBlocked = !launchDecision.allowed && !isChecking;
 
+  function handleOpen() {
+    if (!launchDecision.allowed) return;
+    onOpen();
+  }
+
   return (
-    <button
-      type='button'
-      onClick={() => {
-        if (!launchDecision.allowed) return;
-        onOpen();
+    <div
+      role='button'
+      tabIndex={launchDecision.allowed ? 0 : -1}
+      onClick={handleOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleOpen();
+        }
       }}
       onContextMenu={onContextMenu}
-      className='relative group flex flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-muted/50'
+      aria-disabled={!launchDecision.allowed}
+      className='relative group flex cursor-pointer flex-col items-center gap-3 rounded-2xl p-4 text-center transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-disabled:cursor-default'
     >
       {isChecking || isBlocked ? (
         <div className='absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-background/55 backdrop-blur-[1px]'>
@@ -46,7 +57,9 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
       </div>
 
       <div className='min-w-0 w-full'>
-        <div className='truncate text-sm font-medium'>{app.common.activeSnapshot.manifest.name}</div>
+        <div className='truncate text-sm font-medium'>
+          {app.common.activeSnapshot.manifest.name}
+        </div>
 
         {isBlocked ? (
           <div className='relative z-20 mt-1 text-xs text-amber-600'>
@@ -54,6 +67,6 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
           </div>
         ) : null}
       </div>
-    </button>
+    </div>
   );
 }
