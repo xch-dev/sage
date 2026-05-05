@@ -157,17 +157,11 @@ export function AppTaskBar({
     };
 
     const handlePointerUp = () => {
-      setDragState((prev) => {
-        if (!prev) {
-          return null;
-        }
+      if (previewOrder) {
+        onReorderTabs(previewOrder);
+      }
 
-        if (previewOrder) {
-          onReorderTabs(previewOrder);
-        }
-
-        return null;
-      });
+      setDragState(null);
     };
 
     window.addEventListener('pointermove', handlePointerMove);
@@ -218,14 +212,16 @@ export function AppTaskBar({
       tabCount - 1,
     );
 
-    setDragState((prev) =>
-      prev
-        ? {
-            ...prev,
-            overlayLeftPx: clampedOverlayLeftPx,
-          }
-        : null,
-    );
+    setDragState((prev) => {
+      if (!prev || prev.overlayLeftPx === clampedOverlayLeftPx) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        overlayLeftPx: clampedOverlayLeftPx,
+      };
+    });
 
     const currentIndex = activeOrder.indexOf(dragState.draggedAppId);
     if (currentIndex === -1 || nextIndex === currentIndex) {
@@ -233,7 +229,15 @@ export function AppTaskBar({
     }
 
     setPreviewOrder(reorderIds(activeOrder, currentIndex, nextIndex));
-  }, [dragState, activeOrder, tabWidthPx, slotSpanPx, totalStripWidthPx]);
+  }, [
+    dragState?.currentPointerX,
+    dragState?.pointerOffsetWithinTab,
+    dragState?.draggedAppId,
+    activeOrder,
+    tabWidthPx,
+    slotSpanPx,
+    totalStripWidthPx,
+  ]);
 
   return (
     <div className='flex h-12 shrink-0 items-end gap-2 border-b bg-muted/30 px-3 pt-2'>

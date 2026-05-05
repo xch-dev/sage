@@ -9,7 +9,7 @@ use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_
 use crate::runtime::webview_locator::{
     get_sage_window, get_webview_in_sage_window,
 };
-use crate::runtime::{build_entry_src, build_entry_src_for, emit_runtime_manager_runtimes_changed, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime};
+use crate::runtime::{build_entry_src, build_entry_src_for, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime};
 use crate::storage::parse_data_store_id;
 use crate::types::{AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
@@ -100,8 +100,6 @@ pub async fn create_runtime(
     if args.visibility == SageAppRuntimeVisibility::Hidden {
         let _ = get_webview_in_sage_window(app_handle, &webview_label)?.hide();
     }
-
-    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
 
     Ok(shared_runtime)
 }

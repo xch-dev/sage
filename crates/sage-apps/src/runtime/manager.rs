@@ -95,22 +95,24 @@ pub(crate) async fn hide_taskbar_runtime(
     }
 
     let runtime_window_identity = runtime_window_identity(&resolved_running_app);
+    let host_window_label = runtime_window_identity.host_window_label;
+    let active_taskbar_runtime = find_active_taskbar_runtime(
+        apps_state,
+        &host_window_label
+    ).await;
 
     hide_runtime(app_handle, &runtime)?;
 
     sync_modal_runtime_visibility(
         app_handle,
         apps_state,
-        &runtime_window_identity.host_window_label,
+        &host_window_label,
     ).await;
 
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
-    emit_active_taskbar_runtime_changed(
-        app_handle,
-        apps_state,
-        &runtime_window_identity.host_window_label,
-        Some(&runtime)
-    ).await;
+    if let Some(active_taskbar_runtime) = active_taskbar_runtime && active_taskbar_runtime.app_id() == app_id {
+        emit_active_taskbar_runtime_changed(app_handle, apps_state, &host_window_label, None).await;
+    }
 
     Ok(runtime)
 }
@@ -138,11 +140,18 @@ pub(crate) async fn kill_taskbar_runtime(
     app_id: &str,
     reason: &str,
 ) -> Result<(), String> {
+    let resolved_running_app = resolve_running_app(apps_state, app_id)
+        .await.map_err(|err| format!("Failed to resolve running app: {err}"))?;
+    let host_window_label = resolved_running_app.runtime().with_runtime(SageAppRuntimeRecord::host_window_label);
+    let active_taskbar_runtime = find_active_taskbar_runtime(apps_state, &host_window_label).await;
     kill_runtime(app_handle, apps_state, app_id, reason)
         .await
         .map_err(|err| format!("Failed to kill taskbar runtime: {err}"))?;
 
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+    if let Some(active_taskbar_runtime) = active_taskbar_runtime && active_taskbar_runtime.app_id() == app_id {
+        emit_active_taskbar_runtime_changed(app_handle, apps_state, &host_window_label, None).await;
+    }
 
     Ok(())
 }
