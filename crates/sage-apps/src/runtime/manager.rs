@@ -81,14 +81,13 @@ pub(crate) async fn focus_taskbar_runtime(
     Ok(resolved_running_app.runtime())
 }
 
-pub(crate) async fn hide_taskbar_runtime(
+pub(crate) async fn hide_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, String> {
     let resolved_running_app = resolve_running_app(apps_state, app_id).await
         .map_err(|e| format!("failed to resolve running app: {e}"))?;
-    assert_taskbar_presentation(&resolved_running_app)?;
     let runtime = resolved_running_app.runtime();
     if runtime.with_runtime(|runtime| runtime.visibility() == SageAppRuntimeVisibility::Hidden) {
         return Ok(runtime);
@@ -101,7 +100,7 @@ pub(crate) async fn hide_taskbar_runtime(
         &host_window_label
     ).await;
 
-    hide_runtime(app_handle, &runtime)?;
+    hide_runtime_inner(app_handle, &runtime)?;
 
     sync_modal_runtime_visibility(
         app_handle,
@@ -126,7 +125,7 @@ pub(crate) async fn clear_active_taskbar_runtime(
         return Ok(());
     };
 
-    hide_runtime(app_handle, &active_taskbar_runtime)?;
+    hide_runtime_inner(app_handle, &active_taskbar_runtime)?;
 
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
     emit_active_taskbar_runtime_changed(app_handle, apps_state, window_label, None).await;
@@ -283,7 +282,7 @@ fn show_runtime(app_handle: &AppHandle, resolved_running_app: &ResolvedRunningAp
     Ok(())
 }
 
-fn hide_runtime(app_handle: &AppHandle, runtime: &SharedRuntime) -> Result<(), String> {
+fn hide_runtime_inner(app_handle: &AppHandle, runtime: &SharedRuntime) -> Result<(), String> {
     let app_webview_label = runtime
         .with_runtime(SageAppRuntimeRecord::webview_label);
     let webview = get_webview_in_sage_window(app_handle, &app_webview_label)?;

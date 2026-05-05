@@ -8,7 +8,7 @@ mod get_active_taskbar_runtime;
 mod hide_self;
 
 pub(crate) use events::{RuntimeManagerRuntimesChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent};
-pub(crate) use focus_runtime::RuntimeManagerFocusRuntime;
+pub(crate) use focus_runtime::RuntimeManagerFocusTaskbarRuntime;
 pub(crate) use hide_runtime::RuntimeManagerHideRuntime;
 pub(crate) use kill_runtime::RuntimeManagerKillRuntime;
 pub(crate) use list_runtimes::RuntimeManagerListRuntimes;

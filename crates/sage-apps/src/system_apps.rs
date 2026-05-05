@@ -35,7 +35,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
         usage: SystemAppUsage::Standalone,
         system_capabilities: &[
             SystemBridgeCapability::RuntimeManagerListRuntimes,
-            SystemBridgeCapability::RuntimeManagerFocusRuntime,
+            SystemBridgeCapability::RuntimeManagerFocusTaskbarRuntime,
             SystemBridgeCapability::RuntimeManagerHideRuntime,
             SystemBridgeCapability::RuntimeManagerKillRuntime,
             SystemBridgeCapability::RuntimeManagerListenRuntimesChanged,

@@ -78,11 +78,11 @@
 |---|---|
 | Capability | `runtime_manager.close_self` |
 
-## `runtimeManager.focusRuntime`
+## `runtimeManager.focusTaskbarRuntime`
 
 | Field | Value |
 |---|---|
-| Capability | `runtime_manager.focus_runtime` |
+| Capability | `runtime_manager.focus_taskbar_runtime` |
 
 ## `runtimeManager.getActiveTaskbarRuntime`
 

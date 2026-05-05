@@ -99,7 +99,7 @@ define_bridge_capabilities! {
 define_bridge_capabilities! {
     pub enum SystemBridgeCapability {
         RuntimeManagerListRuntimes => "runtime_manager.list_runtimes",
-        RuntimeManagerFocusRuntime => "runtime_manager.focus_runtime",
+        RuntimeManagerFocusTaskbarRuntime => "runtime_manager.focus_taskbar_runtime",
         RuntimeManagerHideRuntime => "runtime_manager.hide_runtime",
         RuntimeManagerKillRuntime => "runtime_manager.kill_runtime",
         RuntimeManagerGetActiveTaskbarRuntime => "runtime_manager.get_active_taskbar_runtime",

@@ -10,16 +10,16 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::runtime::{focus_taskbar_runtime, RuntimeTargetParams, SageAppRuntimeRecordView};
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct RuntimeManagerFocusRuntime;
+pub(crate) struct RuntimeManagerFocusTaskbarRuntime;
 
 #[async_trait]
-impl BridgeMethod for RuntimeManagerFocusRuntime {
+impl BridgeMethod for RuntimeManagerFocusTaskbarRuntime {
     fn name(&self) -> &'static str {
-        "runtimeManager.focusRuntime"
+        "runtimeManager.focusTaskbarRuntime"
     }
 
     fn capability(&self) -> BridgeMethodCapability {
-        BridgeMethodCapability::system(SystemBridgeCapability::RuntimeManagerFocusRuntime)
+        BridgeMethodCapability::system(SystemBridgeCapability::RuntimeManagerFocusTaskbarRuntime)
     }
 
     fn approval_request(

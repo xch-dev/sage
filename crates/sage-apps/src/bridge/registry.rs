@@ -82,7 +82,7 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     let mut methods: HashMap<&'static str, Box<dyn BridgeMethod>> = HashMap::new();
 
     insert_method(&mut methods, RuntimeManagerListRuntimes);
-    insert_method(&mut methods, RuntimeManagerFocusRuntime);
+    insert_method(&mut methods, RuntimeManagerFocusTaskbarRuntime);
     insert_method(&mut methods, RuntimeManagerHideRuntime);
     insert_method(&mut methods, RuntimeManagerKillRuntime);
     insert_method(&mut methods, RuntimeManagerHideSelf);

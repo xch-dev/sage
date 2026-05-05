@@ -4,7 +4,7 @@ use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::runtime::hide_taskbar_runtime;
+use crate::runtime::hide_runtime;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerHideSelf;
@@ -33,7 +33,7 @@ impl BridgeMethod for RuntimeManagerHideSelf {
         tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        hide_taskbar_runtime(tools.app_handle, tools.host_state, &ctx.app.id())
+        hide_runtime(tools.app_handle, tools.host_state, &ctx.app.id())
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 

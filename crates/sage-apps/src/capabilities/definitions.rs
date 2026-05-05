@@ -200,22 +200,22 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to inspect running Sage app runtimes.",
             system_app_flags(),
         ),
-        SystemBridgeCapability::RuntimeManagerFocusRuntime => CapabilityDefinition::new(
+        SystemBridgeCapability::RuntimeManagerFocusTaskbarRuntime => CapabilityDefinition::new(
             capability,
-            "Focus app runtimes",
-            "Allows the system app to focus running Sage app runtimes.",
+            "Focus taskbar app runtime",
+            "Allows the system app to focus running Sage taskbar app runtime.",
             system_app_flags(),
         ),
         SystemBridgeCapability::RuntimeManagerHideRuntime => CapabilityDefinition::new(
             capability,
-            "Hide app runtimes",
-            "Allows the system app to hide running Sage app runtimes.",
+            "Hide app runtime",
+            "Allows the system app to hide running Sage app runtime.",
             system_app_flags(),
         ),
         SystemBridgeCapability::RuntimeManagerKillRuntime => CapabilityDefinition::new(
             capability,
-            "Kill app runtimes",
-            "Allows the system app to stop running Sage app runtimes.",
+            "Kill app runtime",
+            "Allows the system app to stop running Sage app runtime.",
             system_app_flags(),
         ),
         SystemBridgeCapability::RuntimeManagerGetActiveTaskbarRuntime => CapabilityDefinition::new(

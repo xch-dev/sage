@@ -218,7 +218,7 @@ export function initSageSystemRuntimeBridge(): boolean {
 
           async focusRuntime(input: Generated.RuntimeTargetParams) {
             return await callHost<Generated.SageAppRuntimeRecordView>(
-              'runtimeManager.focusRuntime',
+              'runtimeManager.focusTaskbarRuntime',
               input,
             );
           },
@@ -237,7 +237,7 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
           async getActiveRuntime(): Promise<Generated.SageAppRuntimeRecordView | null> {
-            return await callHost<Generated.SageAppRuntimeRecordView | null>('runtimeManager.getActiveRuntime');
+            return await callHost<Generated.SageAppRuntimeRecordView | null>('runtimeManager.getActiveTaskbarRuntime');
           },
           async hideSelf() {
             return await callHost<void>('runtimeManager.hideSelf');
@@ -254,7 +254,7 @@ export function initSageSystemRuntimeBridge(): boolean {
           },
           onActiveTaskbarRuntimeChanged(handler) {
             return onSystemRuntimeEventType<Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent>(
-              'runtimeManager.activeRuntimeChanged',
+              'runtimeManager.activeTaskbarRuntimeChanged',
               handler,
             );
           }

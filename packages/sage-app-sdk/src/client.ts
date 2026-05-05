@@ -5,6 +5,8 @@ type SageGlobal = typeof globalThis & {
   __TAURI__?: unknown;
 };
 
+let themeBootstrapStarted = false;
+
 export function isSageRuntimeAvailable(): boolean {
   return !!(globalThis as SageGlobal).__TAURI__;
 }
@@ -15,6 +17,25 @@ function getClientFromWindow(): SageClient | undefined {
   }
 
   return window.__SAGE__;
+}
+
+function bootstrapTheme(client: SageClient) {
+  if (themeBootstrapStarted) return;
+  themeBootstrapStarted = true;
+
+  void client.environment.theme.mountCssVars().catch((err) => {
+    console.debug('[Sage SDK] Theme CSS vars not mounted:', err);
+  });
+
+  try {
+    client.environment.theme.onChanged?.(() => {
+      void client.environment.theme.mountCssVars().catch((err) => {
+        console.debug('[Sage SDK] Theme CSS vars refresh failed:', err);
+      });
+    });
+  } catch (err) {
+    console.debug('[Sage SDK] Theme change listener not available:', err);
+  }
 }
 
 export function isSageBridgeInitialized(): boolean {
@@ -28,17 +49,16 @@ export function hasSageBridge(): boolean {
 export async function getSageClient(): Promise<SageClient> {
   let client = getClientFromWindow();
 
-  if (client) {
-    return client;
+  if (!client) {
+    initSageRuntimeBridge();
+    client = getClientFromWindow();
   }
-
-  initSageRuntimeBridge();
-
-  client = getClientFromWindow();
 
   if (!client) {
     throw new Error('Sage bridge is unavailable in this runtime.');
   }
+
+  bootstrapTheme(client);
 
   return client;
 }

@@ -2,8 +2,10 @@ import { SystemModalShell } from '@sage-app/ui';
 import { useLoadState } from './hooks/useLoadState';
 import { UpdateReviewBody } from './components/UpdateReviewBody';
 import { PermissionsReviewBody } from './components/PermissionsReviewBody';
+import { useSageSystemClient } from '@sage-system-app/sdk';
 
 export function App() {
+  const sage = useSageSystemClient();
   const state = useLoadState();
 
   if (state.kind === 'loading') {

@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react';
-import { formatSageError, getSageSystemClient } from '@sage-system-app/sdk';
+import {
+  formatSageError,
+  useSageSystemClient,
+} from '@sage-system-app/sdk';
 import type { LoadState, Mode } from '../types';
 
 export function useLoadState() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
+  const sage = useSageSystemClient();
 
   useEffect(() => {
     let cancelled = false;
@@ -19,14 +23,12 @@ export function useLoadState() {
           return;
         }
 
-        const client = await getSageSystemClient();
-        await client.environment.theme.mountCssVars();
-
-        const definitions = await client.capabilities.listUserDefinitions();
+        const definitions = await sage.capabilities.listUserDefinitions();
 
         if (mode === 'review-permissions') {
-          const permissionsContext =
-            await client.appPermissions.getReviewContext({ appId });
+          const permissionsContext = await sage.appPermissions.getReviewContext(
+            { appId },
+          );
 
           if (!cancelled) {
             setState({
@@ -41,7 +43,7 @@ export function useLoadState() {
           return;
         }
 
-        const updateContext = await client.appUpdate.getReviewContext({
+        const updateContext = await sage.appUpdate.getReviewContext({
           appId,
         });
 

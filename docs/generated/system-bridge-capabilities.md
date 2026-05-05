@@ -14,11 +14,11 @@ Allows the system app to inspect running Sage app runtimes.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
-## `runtime_manager.focus_runtime`
+## `runtime_manager.focus_taskbar_runtime`
 
-**Focus app runtimes**
+**Focus taskbar app runtime**
 
-Allows the system app to focus running Sage app runtimes.
+Allows the system app to focus running Sage taskbar app runtime.
 
 | Flag | Value |
 |---|---|
@@ -30,9 +30,9 @@ Allows the system app to focus running Sage app runtimes.
 
 ## `runtime_manager.hide_runtime`
 
-**Hide app runtimes**
+**Hide app runtime**
 
-Allows the system app to hide running Sage app runtimes.
+Allows the system app to hide running Sage app runtime.
 
 | Flag | Value |
 |---|---|
@@ -44,9 +44,9 @@ Allows the system app to hide running Sage app runtimes.
 
 ## `runtime_manager.kill_runtime`
 
-**Kill app runtimes**
+**Kill app runtime**
 
-Allows the system app to stop running Sage app runtimes.
+Allows the system app to stop running Sage app runtime.
 
 | Flag | Value |
 |---|---|
