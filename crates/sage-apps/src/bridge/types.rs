@@ -20,8 +20,9 @@ pub struct RustBridgeRequest {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum RustBridgeInvokeResult {
-    Immediate { response: RustBridgeResponse },
-    Pending {},
+    Success(RustBridgeSuccessResponse),
+    Error(RustBridgeErrorResponse),
+    Pending,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -111,21 +112,65 @@ pub(crate) struct PendingBridgeApproval {
     pub request: RustBridgeRequest,
 }
 
+impl RustBridgeInvokeResult {
+    pub fn success(id: &str, result: &Value) -> Self {
+        RustBridgeInvokeResult::Success(RustBridgeSuccessResponse::new(id, result))
+    }
+
+    pub fn error(id: &str, code: &str, message: impl Into<String>) -> Self {
+        RustBridgeInvokeResult::Error(RustBridgeErrorResponse::new(id, code, message))
+    }
+
+    pub fn pending() -> Self {
+        RustBridgeInvokeResult::Pending
+    }
+}
+
+impl TryFrom<RustBridgeInvokeResult> for RustBridgeResponse {
+    type Error = String;
+
+    fn try_from(value: RustBridgeInvokeResult) -> Result<Self, String> {
+        match value {
+            RustBridgeInvokeResult::Success(response) => Ok(Self::Success(response)),
+            RustBridgeInvokeResult::Error(response) => Ok(Self::Error(response)),
+            RustBridgeInvokeResult::Pending => Err("Invoke result is pending".to_string())
+        }
+    }
+}
+
+impl From<RustBridgeResponse> for RustBridgeInvokeResult {
+    fn from(response: RustBridgeResponse) -> Self {
+        match response {
+            RustBridgeResponse::Success(response) => RustBridgeInvokeResult::Success(response),
+            RustBridgeResponse::Error(response) => RustBridgeInvokeResult::Error(response),
+        }
+    }
+}
+
 impl RustBridgeResponse {
-    pub(crate) fn success(id: &str, result: &Value) -> RustBridgeResponse {
-        RustBridgeResponse::Success(RustBridgeSuccessResponse {
+    pub fn success(id: &str, result: &Value) -> Self {
+        Self::Success(RustBridgeSuccessResponse::new(id, result))
+    }
+
+    pub fn error(id: &str, code: &str, message: impl Into<String>) -> Self {
+        RustBridgeResponse::Error(RustBridgeErrorResponse::new(id, code, message))
+    }
+}
+
+impl RustBridgeSuccessResponse {
+    pub(crate) fn new(id: &str, result: &Value) -> Self {
+        Self {
             bridge_version: "v1".into(),
             id: id.into(),
             ok: true,
             result_json: serde_json::to_string(result).unwrap_or_else(|_| "null".to_string()),
-        })
+        }
     }
-    pub(crate) fn error(
-        id: &str,
-        code: &str,
-        message: impl Into<String>,
-    ) -> RustBridgeResponse {
-        RustBridgeResponse::Error(RustBridgeErrorResponse {
+}
+
+impl RustBridgeErrorResponse {
+    pub(crate) fn new(id: &str, code: &str, message: impl Into<String>) -> Self {
+        Self {
             bridge_version: "v1".into(),
             id: id.into(),
             ok: false,
@@ -133,6 +178,6 @@ impl RustBridgeResponse {
                 code: code.into(),
                 message: message.into(),
             },
-        })
+        }
     }
 }

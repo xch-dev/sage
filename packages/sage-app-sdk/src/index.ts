@@ -12,7 +12,6 @@ export {
 export {
   createBridgeRuntimeCore,
   parseJsonOrNull,
-  toSdkBridgeResponse,
 } from './bridge/core';
 
 export * from './types';

@@ -26,11 +26,13 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
 use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
-use crate::bridge::ResolveBridgeApprovalArgs;
+use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeInvokeResult};
 use crate::types::SageAppCapabilityDefinitionView;
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
+
+    types.register::<RustBridgeInvokeResult>();
 
     types.register::<BridgePingResult>();
     types.register::<BridgeSendResult>();

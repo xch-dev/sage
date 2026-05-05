@@ -1,5 +1,10 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
+import {
+  RustBridgeErrorResponse,
+  RustBridgeInvokeResult,
+  RustBridgeSuccessResponse,
+} from '../generated-types';
 
 export type GenericBridgeRequest = {
   bridgeVersion?: string;
@@ -24,36 +29,6 @@ export type GenericBridgeErrorResponse = {
     message: string;
   };
 };
-
-export type GenericBridgeResponse =
-  | GenericBridgeSuccessResponse
-  | GenericBridgeErrorResponse;
-
-type RustBridgeResponse =
-  | {
-      bridgeVersion: string;
-      id: string;
-      ok: true;
-      resultJson: string;
-    }
-  | {
-      bridgeVersion: string;
-      id: string;
-      ok: false;
-      error: {
-        code: string;
-        message: string;
-      };
-    };
-
-type RustBridgeInvokeResult =
-  | {
-      kind: 'immediate';
-      response: RustBridgeResponse;
-    }
-  | {
-      kind: 'pending';
-    };
 
 type ListenEvent<T = unknown> = {
   payload: T;
@@ -111,19 +86,22 @@ export function parseJsonOrNull(value: string | null | undefined): unknown {
   }
 }
 
-export function toSdkBridgeResponse(
+export function toSdkBridgeSuccessResponse(
   version: string,
-  response: RustBridgeResponse,
-): GenericBridgeResponse {
-  if ('resultJson' in response) {
-    return {
-      bridgeVersion: version,
-      id: response.id,
-      ok: true,
-      result: parseJsonOrNull(response.resultJson),
-    };
-  }
+  response: RustBridgeSuccessResponse,
+): GenericBridgeSuccessResponse {
+  return {
+    bridgeVersion: version,
+    id: response.id,
+    ok: true,
+    result: parseJsonOrNull(response.resultJson),
+  };
+}
 
+export function toSdkBridgeErrorResponse(
+  version: string,
+  response: RustBridgeErrorResponse,
+): GenericBridgeErrorResponse {
   return {
     bridgeVersion: version,
     id: response.id,
@@ -199,17 +177,21 @@ export function createBridgeRuntimeCore(
             },
           );
 
-          if (result.kind === 'immediate') {
-            const response = toSdkBridgeResponse(
-              config.version,
-              result.response,
-            );
+          if (result.kind === 'success' || result.kind === 'error') {
             pendingRequests.delete(id);
             window.clearTimeout(timeoutId);
-
-            if (response.ok) {
+            if (result.kind === 'success') {
+              const response = toSdkBridgeSuccessResponse(
+                config.version,
+                result,
+              );
               resolve(response.result as T);
-            } else {
+            }
+            else {
+              const response = toSdkBridgeErrorResponse(
+                config.version,
+                result,
+              );
               reject(new Error(response.error.message));
             }
           }

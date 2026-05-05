@@ -29,17 +29,15 @@ pub(super) async fn process(
     let origin = match assert_bridge_origin(&app_handle, &webview_label).await {
         Ok(origin) => origin,
         Err(err) => {
-            return Ok(RustBridgeInvokeResult::Immediate {
-                response: RustBridgeResponse::error(
-                    &request.id,
-                    "permission_denied",
-                    format!("Bridge origin denied: {err}"),
-                ),
-            });
+            return Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                "permission_denied",
+                format!("Bridge origin denied: {err}"),
+            ));
         }
     };
 
-    process_shared(app_handle, app_state, origin, BridgeRegistryKind::User, request).await
+    process_shared(&app_handle, &app_state, &origin, BridgeRegistryKind::User, &request, false).await
 }
 
 pub(super) async fn process_system(
@@ -56,17 +54,15 @@ pub(super) async fn process_system(
     let origin = match assert_system_bridge_origin(&app_handle, &webview_label).await {
         Ok(origin) => origin,
         Err(err) => {
-            return Ok(RustBridgeInvokeResult::Immediate {
-                response: RustBridgeResponse::error(
-                    &request.id,
-                    "permission_denied",
-                    format!("Bridge origin denied: {err}"),
-                ),
-            });
+            return Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                "permission_denied",
+                format!("Bridge origin denied: {err}"),
+            ));
         }
     };
 
-    process_shared(app_handle, app_state, origin, BridgeRegistryKind::System, request).await
+    process_shared(&app_handle, &app_state, &origin, BridgeRegistryKind::System, &request, false).await
 }
 
 pub(super) async fn process_after_approval(
@@ -91,19 +87,12 @@ pub(super) async fn process_after_approval(
     let app = resolve_app(app_handle, &pending.app_id).await
         .map_err(|err| format!("Failed to resolve app: {err}"))?;
 
-    let origin = assert_bridge_origin(app_handle, &app.with_app(|app| app.webview_label())).await?;
+    let origin = assert_bridge_origin(app_handle, &app.with_app(SharedSageApp::webview_label)).await?;
 
-    let response = if args.approved {
-        execute_bridge_request(
-            app_handle,
-            app_state,
-            &origin,
-            BridgeRegistry::new(pending.registry_kind),
-            &pending.request,
-        )
-            .await
+    let invoke_result = if args.approved {
+        process_shared(app_handle, app_state, &origin, pending.registry_kind, &pending.request, true).await?
     } else {
-        RustBridgeResponse::error(
+        RustBridgeInvokeResult::error(
             &pending.request.id,
             "user_denied",
             args.reason
@@ -111,25 +100,26 @@ pub(super) async fn process_after_approval(
         )
     };
 
-    emit_bridge_response_to_source(app_handle, &origin.app, &response).await?;
+    emit_bridge_response_to_source(app_handle, &origin.app, &invoke_result.try_into()?).await?;
     Ok(())
 }
 
 async fn process_shared(
-    app_handle: AppHandle,
-    app_state: State<'_, AppState>,
-    origin: BridgeOrigin,
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    origin: &BridgeOrigin,
     registry_kind: BridgeRegistryKind,
-    request: RustBridgeRequest,
+    request: &RustBridgeRequest,
+    approved: bool,
 ) -> Result<RustBridgeInvokeResult, String> {
     let registry = BridgeRegistry::new(registry_kind);
 
     let app = &origin.app;
     let impostor_runtime = &origin.impostor_runtime;
 
-    let method = match assert_method(&registry, &request) {
+    let method = match assert_method(&registry, request) {
         Ok(method) => method,
-        Err(response) => return Ok(RustBridgeInvokeResult::Immediate { response })
+        Err(response) => return Ok(response.into())
     };
 
     let authority_app = origin
@@ -140,10 +130,17 @@ async fn process_shared(
         BridgeMethodCapability::Ungated => {}
 
         BridgeMethodCapability::Required(capability) => {
-            if let Err(response) = verify_capability(&authority_app, &request, capability) {
-                return Ok(RustBridgeInvokeResult::Immediate { response });
+            if let Err(response) = verify_capability(&authority_app, request, capability) {
+                return Ok(response.into());
             }
         }
+    }
+
+    if approved {
+        let response =
+            execute_bridge_request(app_handle, app_state, origin, registry, request).await;
+
+        return Ok(response.into());
     }
 
     match method.approval_request(
@@ -151,26 +148,24 @@ async fn process_shared(
             app,
             impostor_runtime,
         },
-        &request,
+        request,
     ) {
         Ok(Some(approval)) => {
-            request_approval(&app_handle, app.id(), registry_kind, approval, &request).await?;
+            request_approval(app_handle, app.id(), registry_kind, approval, request).await?;
             Ok(RustBridgeInvokeResult::Pending {})
         }
         Ok(None) => {
             let response =
-                execute_bridge_request(&app_handle, &app_state, &origin, registry, &request).await;
+                execute_bridge_request(app_handle, app_state, origin, registry, request).await;
 
-            Ok(RustBridgeInvokeResult::Immediate { response })
+            Ok(response.into())
         }
         Err(err) => {
-            Ok(RustBridgeInvokeResult::Immediate {
-                response: RustBridgeResponse::error(
-                    &request.id,
-                    err.code,
-                    err.message,
-                ),
-            })
+            Ok(RustBridgeInvokeResult::error(
+                &request.id,
+                err.code,
+                err.message,
+            ))
         }
     }
 }
@@ -375,11 +370,11 @@ async fn assert_system_bridge_origin(
 
 fn assert_bridge_version(request: &RustBridgeRequest) -> Result<(), RustBridgeInvokeResult> {
     if let Some(version) = &request.bridge_version && version != "v1" {
-        return Err(RustBridgeInvokeResult::Immediate { response: RustBridgeResponse::error(
+        return Err(RustBridgeInvokeResult::error(
             &request.id,
             "unsupported_bridge_version",
             format!("Unsupported Sage bridge version: {version}"),
-        ) });
+        ));
     }
 
     Ok(())
