@@ -11,10 +11,9 @@ mod app_state;
 mod commands;
 mod error;
 
-use sage_apps::security::handle_user_app_protocol_request;
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use sage_apps::{handle_system_app_protocol_request, AppsHostState};
+use sage_apps::{handle_system_app_protocol_request, handle_user_app_protocol_request, AppsHostState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -148,16 +147,15 @@ pub fn run() {
             apps::apps_invoke_system_bridge,
             apps::get_user_capability_definitions,
             apps::environment::commands::apps_set_environment_theme,
-            apps::sandbox::commands::apps_get_sandbox_state,
-            apps::sandbox::commands::apps_get_app_launch_gate,
-            apps::sandbox::commands::apps_rerun_sandbox_tests,
+            apps::apps_get_sandbox_state,
+            apps::apps_get_app_launch_gate,
+            apps::apps_rerun_sandbox_tests,
             apps::list_installed_apps,
             apps::uninstall_app,
             apps::check_app_update,
             apps::download_app_update,
             apps::apply_app_update,
             apps::apps_clear_runtime_browsing_data,
-            apps::sandbox::commands::get_builtin_test_app,
             apps::system_apps::get_builtin_system_app,
             apps::apps_start_system_app,
             apps::apps_create_inline_runtime,
@@ -233,7 +231,7 @@ pub fn run() {
             let sandbox_app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(err) =
-                    apps::sandbox::runner::ensure_initial_sandbox_run(sandbox_app_handle).await
+                    apps::ensure_initial_sandbox_run(sandbox_app_handle).await
                 {
                     eprintln!("failed to start initial sandbox run: {err}");
                 }

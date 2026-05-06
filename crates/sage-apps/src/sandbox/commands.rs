@@ -2,7 +2,6 @@ use tauri::{command, AppHandle, State};
 
 use crate::AppsHostState;
 use crate::runtime::resolve_app;
-use crate::sandbox::build_builtin_test_app;
 use super::gate::evaluate_app_launch_gate;
 use super::runner::{begin_sandbox_run, sandbox_runner};
 use super::state_view::{build_effective_state, build_state_view};
@@ -57,14 +56,4 @@ pub async fn apps_rerun_sandbox_tests(
     });
 
     Ok(view)
-}
-
-#[command]
-#[specta::specta]
-pub fn get_builtin_test_app(app_id: String) -> crate::host::Result<Option<crate::types::SageAppView>> {
-    build_builtin_test_app(&app_id)
-        .map(|app| app.map(|app| crate::types::SharedSageApp::new(app).into()))
-        .map_err(|err| {
-            std::io::Error::other(format!("failed to load builtin test app: {err}")).into()
-        })
 }

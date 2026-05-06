@@ -132,18 +132,6 @@ pub fn make_cap(
     }
 }
 
-pub fn cap_result(state: &SandboxState, cap: SandboxCapability) -> &SandboxCapabilityResult {
-    match cap {
-        SandboxCapability::StorageIsolationFromSage => &state.storage_isolation_from_sage,
-        SandboxCapability::StoragePersistenceNormal => &state.storage_persistence_normal,
-        SandboxCapability::StorageNonPersistenceIncognito => {
-            &state.storage_non_persistence_incognito
-        }
-        SandboxCapability::StorageClearCycle => &state.storage_clear_cycle,
-        SandboxCapability::NetworkAllowlistEnforced => &state.network_allowlist_enforced,
-    }
-}
-
 pub fn mark_cap(
     state: &mut SandboxState,
     cap: SandboxCapability,

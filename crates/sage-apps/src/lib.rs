@@ -4,9 +4,9 @@ mod capabilities;
 mod host;
 mod lifecycle;
 mod runtime;
-pub mod sandbox;
-pub mod security;
-pub mod storage;
+mod sandbox;
+mod security;
+mod storage;
 pub mod system_apps;
 pub mod types;
 pub mod utils;
@@ -36,6 +36,10 @@ pub use runtime::commands::{
     apps_clear_active_taskbar_runtime,
     apps_kill_taskbar_runtime,
     apps_dev_reload_runtime
+};
+pub use sandbox::{
+    commands::{apps_get_sandbox_state, apps_get_app_launch_gate, apps_rerun_sandbox_tests},
+    runner::ensure_initial_sandbox_run
 };
 pub use security::{handle_system_app_protocol_request, handle_user_app_protocol_request};
 

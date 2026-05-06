@@ -89,14 +89,6 @@ pub fn builtin_runtime_apps_root() -> PathBuf {
     builtin_apps_root().join("runtime")
 }
 
-pub fn builtin_test_app_dir(app_id: &str) -> AnyResult<Option<PathBuf>> {
-    let Some(spec) = builtin_test_app_spec(app_id) else {
-        return Ok(None);
-    };
-
-    Ok(Some(builtin_test_apps_root().join(spec.dir_name)))
-}
-
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 fn builtin_storage(app_id: &str) -> InstalledSageAppStorage {
     let mut hasher = Sha256::new();
