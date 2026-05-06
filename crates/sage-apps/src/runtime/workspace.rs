@@ -1,8 +1,9 @@
 use tauri::{AppHandle, State};
 
 use crate::runtime::state::{activate_apps_workspace, deactivate_apps_workspace, is_apps_workspace_active};
-use crate::runtime::{clear_active_taskbar_runtime, hide_all_runtimes};
+use crate::runtime::hide_all_runtimes;
 use crate::AppsHostState;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::manager::sync_modal_runtime_visibility;
 use crate::runtime::webview_locator::get_sage_window;
 
@@ -22,7 +23,10 @@ pub(in crate::runtime) async fn enter_apps_workspace(
 ) -> Result<(), String> {
     activate_apps_workspace(apps_state).await;
     let sage_window = get_sage_window(app_handle)?;
-    clear_active_taskbar_runtime(app_handle, apps_state, sage_window.label()).await?;
+    hide_all_runtimes(app_handle, apps_state).await?;
+
+    sync_modal_runtime_visibility(app_handle, apps_state, sage_window.label()).await?;
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
 
     Ok(())
 }
