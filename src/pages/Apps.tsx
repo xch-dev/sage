@@ -609,8 +609,8 @@ export function Apps() {
 
           const appId = contextMenu.app.common.identity.id;
 
-          closeContextMenu();
           void openAppPermissionsReview(appId);
+          closeContextMenu();
         }}
         onClearData={() => {
           if (!contextMenu) {

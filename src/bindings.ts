@@ -368,9 +368,6 @@ async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeRes
 async appsInvokeSystemBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
     return await TAURI_INVOKE("apps_invoke_system_bridge", { request });
 },
-async appsResolveBridgeApproval(args: ResolveBridgeApprovalArgs) : Promise<null> {
-    return await TAURI_INVOKE("apps_resolve_bridge_approval", { args });
-},
 async getUserCapabilityDefinitions() : Promise<SageAppCapabilityDefinitionView[]> {
     return await TAURI_INVOKE("get_user_capability_definitions");
 },
@@ -389,18 +386,6 @@ async appsRerunSandboxTests() : Promise<SandboxStateView> {
 async listInstalledApps() : Promise<ListedSageAppView[]> {
     return await TAURI_INVOKE("list_installed_apps");
 },
-async previewAppZip(zipPath: string) : Promise<SageAppPackageManifest> {
-    return await TAURI_INVOKE("preview_app_zip", { zipPath });
-},
-async previewAppUrl(appUrl: string) : Promise<SageAppUrlPreview> {
-    return await TAURI_INVOKE("preview_app_url", { appUrl });
-},
-async installAppZip(zipPath: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<UserSageAppView> {
-    return await TAURI_INVOKE("install_app_zip", { zipPath, grantedPermissionsInput });
-},
-async installAppUrl(appUrl: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<UserSageAppView> {
-    return await TAURI_INVOKE("install_app_url", { appUrl, grantedPermissionsInput });
-},
 async uninstallApp(appId: string) : Promise<null> {
     return await TAURI_INVOKE("uninstall_app", { appId });
 },
@@ -413,17 +398,8 @@ async downloadAppUpdate(appId: string) : Promise<SageAppView> {
 async applyAppUpdate(appId: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<SageAppView> {
     return await TAURI_INVOKE("apply_app_update", { appId, grantedPermissionsInput });
 },
-async appsUpdatePermissions(appId: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<null> {
-    return await TAURI_INVOKE("apps_update_permissions", { appId, grantedPermissionsInput });
-},
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
-},
-async getBuiltinTestApp(appId: string) : Promise<SageAppView | null> {
-    return await TAURI_INVOKE("get_builtin_test_app", { appId });
-},
-async getBuiltinSystemApp(appId: string) : Promise<SageAppView | null> {
-    return await TAURI_INVOKE("get_builtin_system_app", { appId });
 },
 async appsStartSystemApp(args: StartSystemAppArgs) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_start_system_app", { args });
@@ -452,10 +428,8 @@ async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntime
 
 
 export const events = __makeEvents__<{
-rustBridgeApprovalEvent: RustBridgeApprovalEvent,
 syncEvent: SyncEvent
 }>({
-rustBridgeApprovalEvent: "rust-bridge-approval-event",
 syncEvent: "sync-event"
 })
 
@@ -2205,7 +2179,6 @@ name: string }
  * Response for key rename
  */
 export type RenameKeyResponse = Record<string, never>
-export type ResolveBridgeApprovalArgs = { approvalId: string; approved: boolean; reason: string | null }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2255,8 +2228,6 @@ export type ResyncCatResponse = Record<string, never>
  */
 export type ResyncResponse = Record<string, never>
 export type RuntimeTargetParams = { appId: string }
-export type RustBridgeApprovalEvent = { approvalId: string; approval: RustBridgeApprovalRequest }
-export type RustBridgeApprovalRequest = ({ kind: "getSecretKey"; fingerprint: number } | { kind: "sendXch"; summary: WalletSendXchParams } | { kind: "capabilityGrant"; capability: UserBridgeCapability; definition: SageAppCapabilityDefinitionView } | { kind: "networkWhitelistGrant"; entry: SageNetworkWhitelistEntry })
 export type RustBridgeErrorPayload = { code: string; message: string }
 export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }
 export type RustBridgeInvokeResult = ({ kind: "success" } & RustBridgeSuccessResponse) | ({ kind: "error" } & RustBridgeErrorResponse) | { kind: "pending" }
@@ -2907,7 +2878,6 @@ offer: OfferSummary;
 status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
-export type WalletSendXchParams = { address: string; amount: string; fee: string; memos?: string[] | null; clawback?: number | null }
 export type WindowTargetParams = { windowLabel: string }
 
 /** tauri-specta globals **/

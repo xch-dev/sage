@@ -5,7 +5,7 @@ import {
   type AppTaskBarTab,
 } from '@/components/apps/AppTaskBar.tsx';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { routeForApp } from '@/lib/apps/types';
+import { routeForApp } from '../lib/apps/route';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 import {

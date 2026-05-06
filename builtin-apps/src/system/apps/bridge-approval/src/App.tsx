@@ -205,15 +205,6 @@ export function App() {
       appIcon={activeAppIcon}
       footer={
         <div className='flex items-center justify-between gap-3'>
-          <button
-            type='button'
-            disabled={working}
-            onClick={() => setExpanded((prev) => !prev)}
-            className='rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50'
-          >
-            {expanded ? 'Less' : 'More'}
-          </button>
-
           <div className='flex items-center gap-2'>
             <button
               type='button'

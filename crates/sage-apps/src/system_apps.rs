@@ -106,16 +106,6 @@ pub enum ReadBuiltinManifestError {
     ParseFailed,
 }
 
-#[tauri::command]
-#[specta::specta]
-pub fn get_builtin_system_app(app_id: String) -> crate::host::Result<Option<crate::types::SageAppView>> {
-    build_builtin_system_app(&app_id)
-        .map(|app| app.map(|app| crate::types::SharedSageApp::new(app).into()))
-        .map_err(|err| {
-            std::io::Error::other(format!("failed to load builtin system app: {err}")).into()
-        })
-}
-
 pub fn builtin_system_app_spec(app_id: &str) -> Option<&'static BuiltinSystemAppSpec> {
     BUILTIN_SYSTEM_APPS
         .iter()
@@ -124,14 +114,6 @@ pub fn builtin_system_app_spec(app_id: &str) -> Option<&'static BuiltinSystemApp
 
 pub fn builtin_system_apps_root() -> PathBuf {
     builtin_apps_root().join("system")
-}
-
-pub fn builtin_system_app_dir(app_id: &str) -> AnyResult<Option<PathBuf>> {
-    let Some(spec) = builtin_system_app_spec(app_id) else {
-        return Ok(None);
-    };
-
-    Ok(Some(builtin_system_apps_root().join(spec.dir_name)))
 }
 
 fn read_builtin_manifest(app_dir: &Path) -> Result<SageAppPackageManifest, ReadBuiltinManifestError> {

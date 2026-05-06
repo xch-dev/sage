@@ -81,14 +81,6 @@ interface AppsContextValue {
         ) => Record<string, SageAppUrlPreview | null>),
   ) => void;
 
-  installApp: (
-    zipPath: string,
-    grantedPermissions: SageGrantedPermissionsInput,
-  ) => Promise<UserSageAppView>;
-  installUrlApp: (
-    appUrl: string,
-    grantedPermissions: SageGrantedPermissionsInput,
-  ) => Promise<UserSageAppView>;
   uninstallApp: (appId: string) => Promise<void>;
   checkForUpdate: (appId: string) => Promise<SageAppUrlPreview | null>;
   performAppUpdate: (
@@ -389,33 +381,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const installApp = useCallback(
-    async (
-      zipPath: string,
-      grantedPermissions: SageGrantedPermissionsInput,
-    ) => {
-      const installed = await commands.installAppZip(
-        zipPath,
-        grantedPermissions,
-      );
-      await refreshInstalledApps();
-      return installed;
-    },
-    [refreshInstalledApps],
-  );
-
-  const installUrlApp = useCallback(
-    async (appUrl: string, grantedPermissions: SageGrantedPermissionsInput) => {
-      const installed = await commands.installAppUrl(
-        appUrl,
-        grantedPermissions,
-      );
-      await refreshInstalledApps();
-      return installed;
-    },
-    [refreshInstalledApps],
-  );
-
   const uninstallApp = useCallback(
     async (appId: string) => {
       setBusy(appId, true);
@@ -508,8 +473,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       setBusy,
       setUpdateAvailability: setUpdateAvailabilityState,
 
-      installApp,
-      installUrlApp,
       uninstallApp,
       checkForUpdate,
       performAppUpdate,
@@ -537,8 +500,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       refreshLaunchGates,
       setBusy,
       setUpdateAvailabilityState,
-      installApp,
-      installUrlApp,
       uninstallApp,
       checkForUpdate,
       performAppUpdate,
