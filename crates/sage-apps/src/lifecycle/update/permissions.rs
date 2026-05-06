@@ -8,7 +8,6 @@ use crate::bridge::methods::user::app::{GrantedCapabilitiesChangeEvent, GrantedN
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
-use crate::lifecycle::write_installed_app_metadata;
 use crate::runtime::resolve_app;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 
@@ -104,7 +103,7 @@ fn apply_granted_permissions_to_app(
     app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<AppUpdateResult> {
-    let (previous, new) = app.try_with_mut(|sage_app| {
+    let (previous, new) = app.try_mutate(|sage_app| {
         let previous = sage_app.common().granted_permissions().clone();
 
         sage_app
@@ -115,9 +114,7 @@ fn apply_granted_permissions_to_app(
         let new = sage_app.common().granted_permissions().clone();
 
         Ok::<_, anyhow::Error>((previous, new))
-    })?;
-
-    write_installed_app_metadata(app).context("failed to persist app metadata")?;
+    }).map_err(|err| anyhow::anyhow!(err))?;
 
     Ok(AppUpdateResult::new(GrantedPermissionsChange::diff(
         &previous,
@@ -158,14 +155,10 @@ mod tests {
     use super::*;
 
     use crate::capabilities::list::UserBridgeCapability;
-    use crate::lifecycle::registry::{app_dir, read_installed_app_by_id};
-    use crate::types::{
-        InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppManifestFile,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
-        UserSageApp, UserSageAppSource,
-    };
+    use crate::lifecycle::registry::{read_installed_app_by_id};
+    use crate::types::{SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageAppSource};
     use tempfile::tempdir;
+    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()
@@ -181,11 +174,7 @@ mod tests {
         values.into_iter().collect()
     }
 
-    fn sample_app(base: &Path, app_id: &str) -> SharedSageApp {
-        let app_dir = app_dir(base, app_id);
-        std::fs::create_dir_all(&app_dir).unwrap();
-        std::fs::write(app_dir.join("index.html"), "test").unwrap();
-
+    async fn sample_app(base: &Path, app_id: &str) -> SharedSageApp {
         let requested_permissions = SageRequestedPermissions::new(
             SageRequestedNetworkPermissions::new(
                 [network_whitelist_entry("https", "required.example.com")],
@@ -201,47 +190,57 @@ mod tests {
         )
             .unwrap();
 
-        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
-        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
-            manifest_version,
-            name: "Test App".to_string(),
-            icon: None,
-            sage_version,
-            version: "1.0.0".to_string(),
-            permissions: requested_permissions.clone(),
-            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 4).unwrap()],
-            entry: Some("index.html".to_string()),
-            author: None,
-            donation: None,
-        })
-            .unwrap();
+        let (manifest_version, sage_version) =
+            SageAppPackageManifestParts::v0_defaults();
 
-        let granted_permissions =
-            SageGrantedPermissions::new(&requested_permissions, [], []).unwrap();
-
-        let snapshot =
-            SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
-
-        let common = SageAppCommon::new(
-            SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).unwrap(),
-            granted_permissions,
-            InstalledSageAppStorage::Unmanaged,
-            snapshot,
+        let manifest = SageAppPackageManifest::try_from(
+            SageAppPackageManifestParts {
+                manifest_version,
+                name: "Test App".to_string(),
+                icon: None,
+                sage_version,
+                version: "1.0.0".to_string(),
+                permissions: requested_permissions.clone(),
+                files: vec![
+                    SageAppManifestFile::new(
+                        "index.html",
+                        "a".repeat(64),
+                        4,
+                    )
+                        .unwrap(),
+                ],
+                entry: Some("index.html".to_string()),
+                author: None,
+                donation: None,
+            },
         )
             .unwrap();
 
-        SharedSageApp::new(SageApp::User(UserSageApp::new_installed(
-            common,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
-        )))
+        let granted = SageGrantedPermissionsInput::new(
+            [],
+            [],
+        );
+
+        let installed = install_app_from_source_for_test(
+            base,
+            granted,
+            FakeInstallSource {
+                manifest,
+                app_id: app_id.into(),
+                origin_id: app_id.into(),
+                source: UserSageAppSource::url("https://example.com/app/").unwrap(),
+            },
+        )
+            .await
+            .unwrap();
+
+        SharedSageApp::new(installed.into_sage_app())
     }
 
-    #[test]
-    fn update_app_permissions_persists_required_network_entries() {
+    #[tokio::test]
+    async fn update_app_permissions_persists_required_network_entries() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-
-        write_installed_app_metadata(&app).unwrap();
+        let app = sample_app(dir.path(), "app-1").await;
 
         let granted = app
             .try_with(|app| SageGrantedPermissions::new(app.common().requested_permissions(), [], []))
@@ -269,12 +268,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn grant_requested_capability_grants_optional_capability() {
+    #[tokio::test]
+    async fn grant_requested_capability_grants_optional_capability() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-
-        write_installed_app_metadata(&app).unwrap();
+        let app = sample_app(dir.path(), "app-1").await;
 
         let granted = app
             .try_with(|app| {
@@ -318,10 +315,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn grant_requested_capability_returns_already_granted_when_present() {
+    #[tokio::test]
+    async fn grant_requested_capability_returns_already_granted_when_present() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
+        let app = sample_app(dir.path(), "app-1").await;
 
         let granted = app
             .try_with(|app| {
@@ -368,12 +365,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn grant_requested_network_whitelist_entry_grants_optional_entry() {
+    #[tokio::test]
+    async fn grant_requested_network_whitelist_entry_grants_optional_entry() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
-
-        write_installed_app_metadata(&app).unwrap();
+        let app = sample_app(dir.path(), "app-1").await;
 
         let entry = network_whitelist_entry("WSS", "OPTIONAL.EXAMPLE.COM");
 
@@ -437,10 +432,10 @@ mod tests {
         );
     }
 
-    #[test]
-    fn grant_requested_network_whitelist_entry_returns_already_granted_when_present() {
+    #[tokio::test]
+    async fn grant_requested_network_whitelist_entry_returns_already_granted_when_present() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), "app-1");
+        let app = sample_app(dir.path(), "app-1").await;
 
         let granted = app
             .try_with(|app| {

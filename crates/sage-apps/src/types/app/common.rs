@@ -37,6 +37,16 @@ impl SageAppCommon {
         Self::build(identity, granted_permissions, storage, snapshot, None)
     }
 
+    pub fn clone_for_rollback(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            granted_permissions: self.granted_permissions.clone(),
+            storage: self.storage.clone(),
+            flags: self.flags,
+            active_snapshot: self.active_snapshot.clone()
+        }
+    }
+
     pub fn apply_update(
         &mut self,
         pending: &UserSageAppPendingUpdate,

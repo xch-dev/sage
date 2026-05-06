@@ -15,6 +15,7 @@ use specta::Type;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::OwnedMutexGuard;
+use crate::lifecycle::{write_metadata_for_app};
 use crate::types::app::view::SageAppIconView;
 
 #[derive(Debug)]
@@ -115,19 +116,38 @@ impl SharedSageApp {
         f(&app)
     }
 
-    pub fn with_mut<T>(&self, f: impl FnOnce(&mut SageApp) -> T) -> T {
-        let mut app = self.inner.write();
-        f(&mut app)
-    }
-
     pub fn try_with<T, E>(&self, f: impl FnOnce(&SageApp) -> Result<T, E>) -> Result<T, E> {
         let app = self.inner.read();
         f(&app)
     }
-
-    pub fn try_with_mut<T, E>(&self, f: impl FnOnce(&mut SageApp) -> Result<T, E>) -> Result<T, E> {
+    pub fn try_mutate<T, E>(
+        &self,
+        f: impl FnOnce(&mut SageApp) -> Result<T, E>,
+    ) -> Result<T, String>
+    where
+        E: ToString,
+    {
         let mut app = self.inner.write();
-        f(&mut app)
+
+        let previous_app = app
+            .clone_for_rollback()
+            .map_err(|err| err.to_string())?;
+
+        match f(&mut app) {
+            Ok(value) => {
+                if let Err(err) = write_metadata_for_app(&app) {
+                    *app = previous_app;
+                    return Err(format!("failed to persist app metadata: {err}"));
+                }
+
+                Ok(value)
+            }
+
+            Err(err) => {
+                *app = previous_app;
+                Err(err.to_string())
+            }
+        }
     }
 
     pub fn is_user_app(&self) -> bool {
@@ -255,6 +275,14 @@ impl UserSageApp {
         }
     }
 
+    pub(crate) fn clone_for_rollback(&self) -> Self {
+        Self {
+            common: self.common.clone_for_rollback(),
+            source: self.source.clone(),
+            pending_update: self.pending_update.clone(),
+        }
+    }
+
     pub(crate) fn set_pending_update(&mut self, pending_update: Option<UserSageAppPendingUpdate>) {
         self.pending_update = pending_update;
     }
@@ -273,10 +301,6 @@ impl UserSageApp {
 
     pub(crate) fn pending_update(&self) -> Option<&UserSageAppPendingUpdate> {
         self.pending_update.as_ref()
-    }
-
-    pub(crate) fn app_path(&self) -> PathBuf {
-        self.common().app_path()
     }
 }
 
@@ -301,6 +325,34 @@ impl SageApp {
             Self::System(app) => app.common_mut(),
             Self::User(app) => app.common_mut(),
         }
+    }
+
+    pub(crate) fn clone_for_rollback(&self) -> anyhow::Result<Self> {
+        match self {
+            Self::User(app) => Ok(Self::User(app.clone_for_rollback())),
+            Self::System(_) => {
+                anyhow::bail!("system apps are immutable")
+            }
+        }
+    }
+
+    pub(crate) fn apply_update(
+        &mut self,
+        pending: &UserSageAppPendingUpdate,
+        granted_permissions: SageGrantedPermissions,
+        snapshot: SageAppSnapshot,
+    ) -> anyhow::Result<()> {
+        let Self::User(app) = self else {
+            anyhow::bail!("system app cannot receive user update");
+        };
+
+        app.common_mut()
+            .apply_update(pending, granted_permissions, snapshot)
+            .map_err(|err| anyhow::anyhow!("failed to apply app update: {err}"))?;
+
+        app.set_pending_update(None);
+
+        Ok(())
     }
 
     pub(crate) fn id(&self) -> &str {
@@ -373,13 +425,6 @@ impl SageApp {
             Self::System(_) => None,
         }
     }
-
-    pub(crate) fn as_user_mut(&mut self) -> Option<&mut UserSageApp> {
-        match self {
-            Self::User(app) => Some(app),
-            Self::System(_) => None,
-        }
-    }
 }
 
 impl CorruptedInstalledSageApp {
@@ -432,7 +477,6 @@ impl UserSageAppSource {
     }
 }
 
-#[cfg(test)]
 impl UserSageApp {
     pub(crate) fn into_sage_app(self) -> SageApp {
         SageApp::User(self)

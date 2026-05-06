@@ -2,7 +2,7 @@ use std::time::Duration;
 use tauri::{AppHandle, Manager, State};
 use tokio::time::sleep;
 use crate::AppsHostState;
-use crate::lifecycle::{clear_app_storage_by_target, write_installed_app_metadata};
+use crate::lifecycle::{clear_app_storage_by_target};
 use crate::runtime::{SageAppRuntimeImpostorKind, SageAppRuntimeVisibility};
 use crate::runtime::start::{create_impostor_runtime_from_stopped, CreateImpostorRuntimeArgs};
 use crate::runtime::stop::close_runtime_internal;
@@ -74,17 +74,17 @@ pub(crate) async fn run_verified_storage_clear_cycle(
         return Err("storage clear verification failed because probe data was still visible".into());
     }
 
-    resolved_app.try_with_app(|app| {
-        app.try_with_mut(|app| {
-            app.common_mut().clear_storage_may_contain_secrets();
-            Ok::<(), anyhow::Error>(())
-        })?;
+    resolved_app
+        .try_with_app(|app| {
+            app.try_mutate(|app| {
+                app.common_mut().clear_storage_may_contain_secrets();
 
-        write_installed_app_metadata(app)
-    })
+                Ok::<(), anyhow::Error>(())
+            })
+        })
         .map_err(|err| format!("failed to persist cleared storage state: {err}"))?;
 
-    let _ = close_runtime_internal(app_handle, &apps_state, &app_id).await;
+    close_runtime_internal(app_handle, &apps_state, &app_id).await;
 
     Ok(())
 }
@@ -132,7 +132,7 @@ async fn run_storage_clear_phase(
 
     let out = poll_clear_cycle_phase(apps_state, run_id, &app_id, phase, 10_000).await;
 
-    let _ = close_runtime_internal(app_handle, apps_state, &app_id).await;
+    close_runtime_internal(app_handle, apps_state, &app_id).await;
 
     out
 }

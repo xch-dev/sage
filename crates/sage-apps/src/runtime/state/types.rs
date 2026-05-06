@@ -253,8 +253,14 @@ impl SageAppRuntimeRecord {
 }
 
 impl SharedSageApp {
-    pub(crate) fn taint_storage_if_runtime_can_persist_secrets(&self) {
-        self.with_mut(|app| {
+    pub(crate) fn taint_storage_if_runtime_can_persist_secrets(
+        &self,
+    ) -> Result<(), String> {
+        if self.is_system_app() {
+            return Ok(());
+        }
+
+        self.try_mutate(|app| {
             let has_persistent_webview_storage = app
                 .granted_permissions()
                 .capabilities()
@@ -266,7 +272,9 @@ impl SharedSageApp {
             {
                 app.common_mut().mark_storage_may_contain_secrets();
             }
-        });
+
+            Ok::<(), String>(())
+        })
     }
 
     pub fn webview_label(&self) -> String {

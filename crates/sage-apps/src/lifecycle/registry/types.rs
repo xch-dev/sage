@@ -1,9 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::types::{
-    InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppSnapshot,
-    SageGrantedPermissions, SharedSageApp, UserSageApp, UserSageAppSource,
-};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource};
 
 #[derive(Debug, Serialize)]
 pub struct PersistedUserSageApp {
@@ -14,24 +11,22 @@ pub struct PersistedUserSageApp {
     source: UserSageAppSource,
 }
 
-impl TryFrom<&SharedSageApp> for PersistedUserSageApp {
+impl TryFrom<&SageApp> for PersistedUserSageApp {
     type Error = anyhow::Error;
 
-    fn try_from(app: &SharedSageApp) -> anyhow::Result<Self> {
-        app.try_with(|app| {
-            let user_app = app
-                .as_user()
-                .ok_or_else(|| anyhow::anyhow!("not a user app"))?;
+    fn try_from(app: &SageApp) -> anyhow::Result<Self> {
+        let user_app = app
+            .as_user()
+            .ok_or_else(|| anyhow::anyhow!("not a user app"))?;
 
-            let common = user_app.common();
+        let common = user_app.common();
 
-            Ok(Self {
-                identity: common.identity().clone(),
-                granted_permissions: common.granted_permissions().clone(),
-                storage: common.storage().clone(),
-                active_snapshot: common.active_snapshot().clone(),
-                source: user_app.source().clone(),
-            })
+        Ok(Self {
+            identity: common.identity().clone(),
+            granted_permissions: common.granted_permissions().clone(),
+            storage: common.storage().clone(),
+            active_snapshot: common.active_snapshot().clone(),
+            source: user_app.source().clone(),
         })
     }
 }

@@ -9,7 +9,7 @@ use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
 use crate::system_apps::{list_builtin_system_apps, SystemAppUsage};
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, SharedSageApp, UserSageApp, UserSageAppSource};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, UserSageApp, UserSageAppSource};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -51,8 +51,8 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     persisted.try_into()
 }
 
-pub fn write_installed_app_metadata(app: &SharedSageApp) -> AnyResult<()> {
-    if app.is_system_app() {
+pub(crate) fn write_metadata_for_app(app: &SageApp) -> AnyResult<()> {
+    if app.is_system() {
         return Ok(());
     }
 
@@ -220,19 +220,6 @@ pub fn write_retired_app_origins(
     Ok(())
 }
 
-pub fn write_user_app_metadata(app: &UserSageApp) -> AnyResult<()> {
-    let path = installed_metadata_path(&app.app_path());
-    let persisted = PersistedUserSageApp::try_from(app)?;
-
-    let text = serde_json::to_string_pretty(&persisted)
-        .map_err(|err| anyhow::anyhow!("failed to serialize installed app metadata: {err}"))?;
-
-    fs::write(&path, format!("{text}\n"))
-        .with_context(|| format!("failed to write {}", path.display()))?;
-
-    Ok(())
-}
-
 fn read_corrupted_installed_app_fallback(
     dir: &Path,
 ) -> (
@@ -287,14 +274,10 @@ mod tests {
     use super::*;
 
     use crate::lifecycle::storage::record_storage_cleanup_failure;
-    use crate::types::{InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+    use crate::types::{ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
     use std::fs;
     use tempfile::tempdir;
-
-    fn write_index(dir: &Path) {
-        fs::create_dir_all(dir).unwrap();
-        fs::write(dir.join("index.html"), "x").unwrap();
-    }
+    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()
@@ -318,32 +301,38 @@ mod tests {
         .unwrap()
     }
 
-    fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> SharedSageApp {
-        sample_app_named(base, app_id, origin_id, "Test App")
+    async fn sample_app(
+        base: &Path,
+        app_id: &str,
+        origin_id: &str,
+    ) -> SharedSageApp {
+        sample_app_named(base, app_id, origin_id, "Test App").await
     }
-    fn sample_app_named(base: &Path, app_id: &str, origin_id: &str, name: &str) -> SharedSageApp {
-        let dir = app_dir(base, app_id);
-        write_index(&dir);
 
+    async fn sample_app_named(
+        base: &Path,
+        app_id: &str,
+        origin_id: &str,
+        name: &str,
+    ) -> SharedSageApp {
         let manifest = sample_manifest(name);
-        let granted_permissions =
-            SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
 
-        let snapshot =
-            SageAppSnapshot::new("hash", dir.to_string_lossy().to_string(), manifest).unwrap();
+        let granted = SageGrantedPermissionsInput::new([], []);
 
-        let common = SageAppCommon::new(
-            SageAppIdentity::new(app_id, origin_id, dir.to_string_lossy().to_string()).unwrap(),
-            granted_permissions,
-            InstalledSageAppStorage::Unmanaged,
-            snapshot,
+        let installed = install_app_from_source_for_test(
+            base,
+            granted,
+            FakeInstallSource {
+                manifest,
+                app_id: app_id.into(),
+                origin_id: origin_id.into(),
+                source: UserSageAppSource::url("https://example.com/app/").unwrap(),
+            },
         )
-        .unwrap();
+            .await
+            .unwrap();
 
-        SharedSageApp::new(SageApp::User(UserSageApp::new_installed(
-            common,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
-        )))
+        SharedSageApp::new(installed.into_sage_app())
     }
 
     fn without_system_apps(listed: Vec<ListedSageApp>) -> Vec<ListedSageApp> {
@@ -353,12 +342,10 @@ mod tests {
             .collect()
     }
 
-    #[test]
-    fn installed_app_metadata_round_trips_origin_id_and_storage() {
+    #[tokio::test]
+    async fn installed_app_metadata_round_trips_origin_id_and_storage() {
         let tmp = tempdir().unwrap();
-        let app = sample_app(tmp.path(), "url-abc123", "origin-1");
-
-        write_installed_app_metadata(&app).unwrap();
+        let app = sample_app(tmp.path(), "url-abc123", "origin-1").await;
 
         let read_back = read_installed_app_by_id(tmp.path(), &app.id()).unwrap();
 
@@ -479,15 +466,12 @@ mod tests {
         }
     }
 
-    #[test]
-    fn installed_apps_are_sorted_by_name() {
+    #[tokio::test]
+    async fn installed_apps_are_sorted_by_name() {
         let base = tempdir().unwrap();
 
-        let alpha = sample_app_named(base.path(), "a", "a", "Alpha");
-        write_installed_app_metadata(&alpha).unwrap();
-
-        let zeta = sample_app_named(base.path(), "z", "z", "Zeta");
-        write_installed_app_metadata(&zeta).unwrap();
+        let _alpha = sample_app_named(base.path(), "a", "a", "Alpha").await;
+        let _zeta = sample_app_named(base.path(), "z", "z", "Zeta").await;
 
         let listed =
             without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
@@ -526,11 +510,11 @@ mod tests {
         assert!(listed.is_empty());
     }
 
-    #[test]
-    fn pending_storage_cleanup_entries_round_trip() {
+    #[tokio::test]
+    async fn pending_storage_cleanup_entries_round_trip() {
         let base = tempdir().unwrap();
 
-        let app = sample_app(base.path(), "app-1", "origin-1");
+        let app = sample_app(base.path(), "app-1", "origin-1").await;
         record_storage_cleanup_failure(base.path(), &app, "boom").unwrap();
 
         let entries = read_pending_storage_cleanup_entries(base.path()).unwrap();
@@ -541,11 +525,11 @@ mod tests {
         assert_eq!(loaded[0].target(), &PendingStorageCleanupTarget::Unmanaged);
     }
 
-    #[test]
-    fn retired_app_origins_round_trip() {
+    #[tokio::test]
+    async fn retired_app_origins_round_trip() {
         let base = tempdir().unwrap();
 
-        let app = sample_app(base.path(), "app-1", "origin-1");
+        let app = sample_app(base.path(), "app-1", "origin-1").await;
 
         let entries = vec![RetiredAppOriginEntry::new(&app, true)];
         write_retired_app_origins(base.path(), &entries).unwrap();

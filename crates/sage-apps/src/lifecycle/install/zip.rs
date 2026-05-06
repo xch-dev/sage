@@ -118,28 +118,7 @@ fn find_existing_installed_app_by_name(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::lifecycle::write_installed_app_metadata;
-    use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageRequestedPermissions, SharedSageApp};
     use tempfile::tempdir;
-
-    fn sample_manifest_named(name: &str) -> SageAppPackageManifest {
-        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
-        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
-            manifest_version,
-            name: name.into(),
-            icon: None,
-            sage_version,
-            version: "1.0.0".into(),
-            permissions: SageRequestedPermissions::empty(),
-            files: vec![
-                SageAppManifestFile::new("index.html".to_string(), "a".repeat(64), 123).unwrap(),
-            ],
-            entry: Some("index.html".into()),
-            author: None,
-            donation: None,
-        })
-        .unwrap()
-    }
 
     #[test]
     fn generate_zip_app_id_uses_slug_and_uuid() {
@@ -159,51 +138,6 @@ mod tests {
         assert!(existing.is_none());
         assert!(app_id.starts_with("test-app-"));
         assert_eq!(app_dir, dir.path().join(&app_id));
-    }
-
-    #[test]
-    fn resolve_zip_install_target_reuses_existing_app_with_same_name() {
-        let dir = tempdir().unwrap();
-        let app_id = "existing-app";
-        let app_dir = dir.path().join(app_id);
-        fs::create_dir_all(&app_dir).unwrap();
-        fs::write(app_dir.join("index.html"), "x").unwrap();
-
-        let manifest = sample_manifest_named("Test App");
-        let granted_permissions =
-            SageGrantedPermissions::new(manifest.permissions(), [], []).unwrap();
-
-        let common = SageAppCommon::new(
-            SageAppIdentity::new(
-                app_id.to_string(),
-                app_id.to_string(),
-                app_dir.to_string_lossy().to_string(),
-            )
-            .unwrap(),
-            granted_permissions,
-            InstalledSageAppStorage::Unmanaged,
-            SageAppSnapshot::new(
-                "hash".to_string(),
-                app_dir.to_string_lossy().to_string(),
-                manifest.clone(),
-            )
-            .unwrap(),
-        )
-        .unwrap();
-
-        let installed = SharedSageApp::new(
-            UserSageApp::new_installed(common, UserSageAppSource::Zip).into_sage_app(),
-        );
-
-        write_installed_app_metadata(&installed).unwrap();
-
-        let (resolved_id, resolved_dir, existing) =
-            resolve_zip_install_target(dir.path(), "Test App").unwrap();
-
-        assert_eq!(resolved_id, app_id);
-        assert_eq!(resolved_dir, app_dir);
-        assert!(existing.is_some());
-        assert_eq!(existing.unwrap().common().id(), app_id);
     }
 
     #[test]

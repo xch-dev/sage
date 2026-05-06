@@ -7,8 +7,8 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 use tauri::AppHandle;
 
-use crate::lifecycle::{allocate_new_storage, apps_root, write_user_app_metadata};
-use crate::types::{InstalledSageAppStorage, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
+use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
 
 pub mod commands;
 pub mod url;
@@ -97,6 +97,27 @@ where
     .await
 }
 
+#[cfg(test)]
+pub(crate) async fn install_app_from_source_for_test<S>(
+    base_path: &Path,
+    granted_permissions_input: SageGrantedPermissionsInput,
+    source: S,
+) -> AnyResult<UserSageApp>
+where
+    S: AppInstallSource + Send + Sync,
+{
+    install_app_from_source_with_storage(
+        base_path,
+        granted_permissions_input,
+        source,
+        &TestStorageResolver {
+            storage: InstalledSageAppStorage::Unmanaged,
+        },
+        None,
+    )
+        .await
+}
+
 async fn install_app_from_source_with_storage<S, R>(
     base_path: &Path,
     sage_granted_permissions_input: SageGrantedPermissionsInput,
@@ -146,7 +167,13 @@ where
 
     let installed = UserSageApp::new_installed(common, source.source(&prepared));
 
-    write_user_app_metadata(&installed)?;
+    let installed_sage_app = installed.into_sage_app();
+
+    write_metadata_for_app(&installed_sage_app)?;
+
+    let SageApp::User(installed) = installed_sage_app else {
+        unreachable!("installed app is always user app");
+    };
 
     Ok(installed)
 }
@@ -162,25 +189,93 @@ pub fn recreate_app_dir(app_dir: &Path) -> AnyResult<()> {
 }
 
 #[cfg(test)]
+pub(crate) struct TestStorageResolver {
+    storage: InstalledSageAppStorage,
+}
+
+#[cfg(test)]
+impl InstallStorageResolver for TestStorageResolver {
+    fn resolve_storage(
+        &self,
+        _existing: Option<&UserSageApp>,
+    ) -> AnyResult<Option<InstalledSageAppStorage>> {
+        Ok(Some(self.storage.clone()))
+    }
+}
+
+#[cfg(test)]
+pub(crate) struct FakeInstallSource {
+    pub manifest: SageAppPackageManifest,
+    pub app_id: String,
+    pub origin_id: String,
+    pub source: UserSageAppSource,
+}
+
+#[cfg(test)]
+pub(crate) struct FakePrepared {
+    manifest: SageAppPackageManifest,
+}
+
+#[async_trait]
+#[cfg(test)]
+impl AppInstallSource for FakeInstallSource {
+    type Prepared = FakePrepared;
+
+    async fn prepare(&self) -> AnyResult<Self::Prepared> {
+        Ok(FakePrepared {
+            manifest: self.manifest.clone(),
+        })
+    }
+
+    fn manifest<'a>(&self, prepared: &'a Self::Prepared) -> &'a SageAppPackageManifest {
+        &prepared.manifest
+    }
+
+    fn source(&self, _prepared: &Self::Prepared) -> UserSageAppSource {
+        self.source.clone()
+    }
+
+    fn resolve_target(
+        &self,
+        root: &Path,
+        _base_path: &Path,
+        _prepared: &Self::Prepared,
+    ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
+        let app_dir = root.join(&self.app_id);
+        Ok((self.app_id.clone(), app_dir, None))
+    }
+
+    async fn create_snapshot(
+        &self,
+        app_dir: &Path,
+        prepared: &Self::Prepared,
+    ) -> AnyResult<SageAppSnapshot> {
+        fs::write(app_dir.join("index.html"), "x")?;
+
+        Ok(SageAppSnapshot::new(
+            "fake-hash",
+            app_dir.to_string_lossy().to_string(),
+            prepared.manifest.clone(),
+        )?)
+    }
+
+    fn origin_id(
+        &self,
+        _base_path: &Path,
+        _app_id: &str,
+        _existing: Option<&UserSageApp>,
+    ) -> AnyResult<String> {
+        Ok(self.origin_id.clone())
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
     use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
-
-    struct TestStorageResolver {
-        storage: InstalledSageAppStorage,
-    }
-
-    impl InstallStorageResolver for TestStorageResolver {
-        fn resolve_storage(
-            &self,
-            _existing: Option<&UserSageApp>,
-        ) -> AnyResult<Option<InstalledSageAppStorage>> {
-            Ok(Some(self.storage.clone()))
-        }
-    }
 
     fn sample_manifest() -> SageAppPackageManifest {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
@@ -212,69 +307,6 @@ mod tests {
             donation: None,
         })
         .unwrap()
-    }
-
-    struct FakeInstallSource {
-        manifest: SageAppPackageManifest,
-        app_id: String,
-        origin_id: String,
-        source: UserSageAppSource,
-    }
-
-    struct FakePrepared {
-        manifest: SageAppPackageManifest,
-    }
-
-    #[async_trait]
-    impl AppInstallSource for FakeInstallSource {
-        type Prepared = FakePrepared;
-
-        async fn prepare(&self) -> AnyResult<Self::Prepared> {
-            Ok(FakePrepared {
-                manifest: self.manifest.clone(),
-            })
-        }
-
-        fn manifest<'a>(&self, prepared: &'a Self::Prepared) -> &'a SageAppPackageManifest {
-            &prepared.manifest
-        }
-
-        fn source(&self, _prepared: &Self::Prepared) -> UserSageAppSource {
-            self.source.clone()
-        }
-
-        fn resolve_target(
-            &self,
-            root: &Path,
-            _base_path: &Path,
-            _prepared: &Self::Prepared,
-        ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-            let app_dir = root.join(&self.app_id);
-            Ok((self.app_id.clone(), app_dir, None))
-        }
-
-        async fn create_snapshot(
-            &self,
-            app_dir: &Path,
-            prepared: &Self::Prepared,
-        ) -> AnyResult<SageAppSnapshot> {
-            fs::write(app_dir.join("index.html"), "x")?;
-
-            Ok(SageAppSnapshot::new(
-                "fake-hash",
-                app_dir.to_string_lossy().to_string(),
-                prepared.manifest.clone(),
-            )?)
-        }
-
-        fn origin_id(
-            &self,
-            _base_path: &Path,
-            _app_id: &str,
-            _existing: Option<&UserSageApp>,
-        ) -> AnyResult<String> {
-            Ok(self.origin_id.clone())
-        }
     }
 
     #[tokio::test]

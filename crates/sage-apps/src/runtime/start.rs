@@ -4,7 +4,6 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
-use crate::lifecycle::write_installed_app_metadata;
 use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, remove_impostor_runtime_by_victim_app_id, write_impostor_runtime};
 use crate::runtime::webview_locator::{
     get_sage_window, get_webview_in_sage_window,
@@ -47,8 +46,7 @@ pub async fn create_runtime(
         check_gates(apps_state, &app).await?;
     }
 
-    app.taint_storage_if_runtime_can_persist_secrets();
-    persist_runtime_side_effects(&app)?;
+    app.taint_storage_if_runtime_can_persist_secrets()?;
 
     let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
@@ -173,15 +171,6 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
     Ok(shared_runtime)
 }
 
-fn persist_runtime_side_effects(app: &SharedSageApp) -> Result<(), String> {
-    if app.is_system_app() {
-        return Ok(());
-    }
-
-    write_installed_app_metadata(app)
-        .map_err(|err| format!("failed to persist app runtime side effects: {err}"))
-}
-
 fn fallback_debug_slot(app_id: &str) -> usize {
     app_id.bytes().fold(0usize, |acc, b| {
         acc.wrapping_mul(31).wrapping_add(b as usize)
@@ -288,9 +277,9 @@ fn build_initialization_script(
     }
 
     builder = builder.initialization_script(
-        r#"
+        r"
 window.__SAGE_APPS_COMMS_DEBUG__ = true;
-"#,
+",
     );
 
     builder

@@ -4,7 +4,7 @@ use tauri::{AppHandle, State, command};
 
 use crate::host::AppState;
 use crate::host::Result;
-use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview, write_installed_app_metadata};
+use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview};
 use crate::runtime::resolve_app;
 use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
@@ -68,19 +68,23 @@ pub async fn download_app_update(
     app_handle: AppHandle,
     app_id: String,
 ) -> Result<SageAppView> {
-    let app = resolve_app(&app_handle, &app_id).await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+    let app = resolve_app(&app_handle, &app_id)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
+        })?;
 
     let app = app.clone_app_for_operation();
 
     let Some(pending) = fetch_pending_update(&app).await? else {
-        return Ok(app.into());
+        return Ok((&app).into());
     };
 
-    app.try_with_mut(|app| app.set_pending_update(Some(pending)))?;
-
-    write_installed_app_metadata(&app)
-        .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))?;
+    app.try_mutate(|app| {
+        app.set_pending_update(Some(pending))
+            .map_err(|err| err.to_string())
+    })
+        .map_err(io::Error::other)?;
 
     Ok((&app).into())
 }
@@ -134,30 +138,25 @@ pub async fn apply_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
-    resolved.try_with_app(|app| {
-        app.try_with_mut(|sage_app| {
-            let user_app = sage_app
-                .as_user_mut()
-                .ok_or_else(|| anyhow::anyhow!("system app cannot receive user update"))?;
+    resolved
+        .try_with_app(|app| {
+            app.try_mutate(|sage_app| {
+                let granted_permissions = granted_permissions_input
+                    .resolve(pending.manifest().permissions())
+                    .map_err(|err| {
+                        anyhow::anyhow!("invalid update permissions: {err}")
+                    })?;
 
-            let granted_permissions = granted_permissions_input
-                .resolve(pending.manifest().permissions())
-                .map_err(|err| io::Error::other(format!("invalid update permissions: {err}")))?;
-            user_app
-                .common_mut()
-                .apply_update(&pending, granted_permissions, snapshot)
-                .map_err(|err| anyhow::anyhow!("failed to apply app update permissions: {err}"))?;
+                sage_app.apply_update(
+                    &pending,
+                    granted_permissions,
+                    snapshot,
+                )?;
 
-            user_app.set_pending_update(None);
-
-            Ok::<_, anyhow::Error>(())
+                Ok::<_, anyhow::Error>(())
+            })
         })
-    })?;
-
-    resolved.try_with_app(|app| {
-        write_installed_app_metadata(app)
-            .map_err(|err| io::Error::other(format!("failed to write app metadata: {err}")))
-    })?;
+        .map_err(io::Error::other)?;
 
     Ok(resolved.with_app(|app| app.into()))
 }
