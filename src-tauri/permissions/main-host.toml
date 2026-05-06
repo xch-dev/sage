@@ -121,6 +121,8 @@ commands.allow = [
     "get_logs",
     "is_asset_owned",
     "get_xch_usd_price",
+    "apps_enter_workspace",
+    "apps_leave_workspace",
     "apps_start_system_app",
     "apps_create_inline_runtime",
     "apps_clear_runtime_browsing_data",

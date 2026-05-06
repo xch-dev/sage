@@ -4,10 +4,11 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
 use crate::AppsHostState;
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
-use crate::runtime::webview_locator::get_webview_in_sage_window;
+use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
 use crate::runtime::{find_active_taskbar_runtime, resolve_running_app, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
 use crate::runtime::events::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
 use crate::runtime::stop::kill_runtime;
+use crate::runtime::workspace::{ensure_apps_workspace_active};
 use crate::types::{AppPresentation, ResolvedRunningApp};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -26,6 +27,8 @@ pub(crate) async fn focus_taskbar_runtime(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<SharedRuntime, String> {
+    ensure_apps_workspace_active(apps_state).await?;
+
     let resolved_running_app = resolve_running_app(apps_state, app_id).await
         .map_err(|e| format!("failed to resolve running app: {e}"))?;
     assert_taskbar_presentation(&resolved_running_app)?;
@@ -95,6 +98,29 @@ pub(crate) async fn hide_runtime(
     }
 
     Ok(runtime)
+}
+
+pub(crate) async fn hide_all_runtimes(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) -> Result<(), String> {
+    let sage_window = get_sage_window(app_handle)?;
+    let active_taskbar_runtime = find_active_taskbar_runtime(
+        apps_state,
+        sage_window.label()
+    ).await;
+
+    for runtime in list_runtimes(apps_state).await? {
+        hide_runtime_inner(app_handle, &runtime)?;
+    }
+
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+    if let Some(active_taskbar_runtime) = active_taskbar_runtime {
+        let host_window_label = active_taskbar_runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
+        emit_active_taskbar_runtime_changed(app_handle, apps_state, &host_window_label, None).await;
+    }
+
+    Ok(())
 }
 
 pub(crate) async fn clear_active_taskbar_runtime(

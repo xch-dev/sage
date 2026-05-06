@@ -10,6 +10,7 @@ use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
 use crate::AppsHostState;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
+use crate::runtime::workspace::{enter_apps_workspace, leave_apps_workspace};
 use crate::types::AppPresentation;
 
 #[derive(Debug, Deserialize, Type)]
@@ -65,6 +66,28 @@ impl StartAppUpdateMode {
             Self::ReviewPermissions => "review-permissions",
         }
     }
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_enter_workspace(
+    app_handle: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+) -> Result<(), String> {
+    enter_apps_workspace(&app_handle, &apps_state).await?;
+
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_leave_workspace(
+    app_handle: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+) -> Result<(), String> {
+    leave_apps_workspace(&app_handle, &apps_state).await?;
+
+    Ok(())
 }
 
 #[tauri::command]

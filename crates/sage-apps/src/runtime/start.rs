@@ -12,6 +12,7 @@ use crate::runtime::{build_entry_src, build_entry_src_for, is_allowed_app_url, r
 use crate::storage::parse_data_store_id;
 use crate::types::{AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
+use crate::runtime::workspace::{ensure_apps_workspace_active};
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -36,6 +37,8 @@ pub async fn create_runtime(
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
+    ensure_apps_workspace_active(apps_state).await?;
+
     let app = match resolve_app(app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
         ResolvedApp::Stopped(stopped) => stopped.into_app()
@@ -110,6 +113,8 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
     impostor_app: SharedSageApp,
     args: CreateImpostorRuntimeArgs,
 ) -> Result<SharedImpostorRuntime, String> {
+    ensure_apps_workspace_active(&apps_state).await?;
+
     let victim_app = stopped.with_app(SharedSageApp::clone_for_runtime_owner);
 
     if !impostor_app.with(|app| app.common().is_sandbox_test())

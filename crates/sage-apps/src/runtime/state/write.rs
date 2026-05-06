@@ -60,3 +60,17 @@ pub(in crate::runtime) async fn write_pending_stop_ready(
     let mut pending = apps_state.runtime.pending_stop_ready.lock().await;
     pending.insert(request_id.to_string(), tx);
 }
+
+pub(in crate::runtime) async fn activate_apps_workspace(
+    apps_state: &State<'_, AppsHostState>,
+) {
+    let mut active = apps_state.runtime.apps_workspace_active.write().await;
+    *active = true;
+}
+
+pub(in crate::runtime) async fn deactivate_apps_workspace(
+    apps_state: &State<'_, AppsHostState>,
+) {
+    let mut active = apps_state.runtime.apps_workspace_active.write().await;
+    *active = false;
+}

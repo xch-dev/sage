@@ -19,6 +19,35 @@ import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export function AppsWorkspace() {
+  const [workspaceActive, setWorkspaceActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void commands
+      .appsEnterWorkspace()
+
+      .then(() => {
+        if (!cancelled) {
+          setWorkspaceActive(true);
+        }
+      })
+
+      .catch((err) => {
+        console.error('Failed to activate apps workspace:', err);
+      });
+
+    return () => {
+      cancelled = true;
+
+      setWorkspaceActive(false);
+
+      void commands.appsLeaveWorkspace().catch((err) => {
+        console.error('Failed to deactivate apps workspace:', err);
+      });
+    };
+  }, []);
+
   const { appId } = useParams();
   const navigate = useNavigate();
 
@@ -76,16 +105,6 @@ export function AppsWorkspace() {
       navigate(route, { replace: true });
     }
   }, [activeTaskbarRuntime?.appId, appId, getListedApp, navigate]);
-
-  /*
-  useEffect(() => {
-    return () => {
-      void commands.appsLeaveWorkspace({
-        windowLabel: getCurrentWindow().label,
-      });
-    };
-  }, []);
-   */
 
   const [tabOrder, setTabOrder] = useState<string[]>([]);
   const [donationOpen, setDonationOpen] = useState(false);
@@ -166,6 +185,10 @@ export function AppsWorkspace() {
 
     return out;
   }, [runtimes, tabOrder, getListedApp, activeTaskbarRuntime?.appId]);
+
+  if (!workspaceActive) {
+    return null;
+  }
 
   return (
     <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>

@@ -25,6 +25,8 @@ pub use lifecycle::{
     }
 };
 pub use runtime::commands::{
+    apps_enter_workspace,
+    apps_leave_workspace,
     apps_start_system_app,
     apps_create_inline_runtime,
     apps_list_runtimes,

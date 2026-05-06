@@ -21,6 +21,9 @@ pub(crate) use types::{
     SageAppRuntimeImpostorRecord,
 };
 
+pub(in crate::runtime) use read::{is_apps_workspace_active};
+pub(in crate::runtime) use write::{activate_apps_workspace, deactivate_apps_workspace};
+
 pub(super) use remove::{
     remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
     remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, remove_impostor_runtime_by_victim_app_id,

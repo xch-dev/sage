@@ -143,6 +143,8 @@ pub fn run() {
             commands::get_logs,
             commands::is_asset_owned,
             commands::get_xch_usd_price,
+            apps::apps_enter_workspace,
+            apps::apps_leave_workspace,
             apps::apps_invoke_bridge,
             apps::apps_invoke_system_bridge,
             apps::get_user_capability_definitions,

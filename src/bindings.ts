@@ -362,6 +362,12 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
     return await TAURI_INVOKE("get_xch_usd_price", { req });
 },
+async appsEnterWorkspace() : Promise<null> {
+    return await TAURI_INVOKE("apps_enter_workspace");
+},
+async appsLeaveWorkspace() : Promise<null> {
+    return await TAURI_INVOKE("apps_leave_workspace");
+},
 async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
     return await TAURI_INVOKE("apps_invoke_bridge", { request });
 },

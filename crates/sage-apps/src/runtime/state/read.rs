@@ -144,6 +144,12 @@ pub(crate) async fn find_active_taskbar_runtime(
     )).cloned()
 }
 
+pub(in crate::runtime) async fn is_apps_workspace_active(
+    apps_state: &State<'_, AppsHostState>,
+) -> bool {
+    *apps_state.runtime.apps_workspace_active.read().await
+}
+
 async fn get_taskbar_runtimes(
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,
