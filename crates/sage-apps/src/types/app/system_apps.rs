@@ -17,6 +17,7 @@ pub enum AppPresentation {
 pub struct AppModalPresentation {
     visible_over_app_ids: Vec<String>,
     visible_over_launchpad: bool,
+    priority: i32,
 }
 
 #[derive(Debug)]
@@ -61,24 +62,27 @@ impl SystemSageApp {
 }
 
 impl AppModalPresentation {
-    pub fn over_apps(app_ids: Vec<String>) -> Self {
+    pub fn over_apps(app_ids: Vec<String>, priority: i32) -> Self {
         Self {
             visible_over_app_ids: app_ids,
             visible_over_launchpad: false,
+            priority
         }
     }
 
-    pub fn over_app_and_launchpad(app_id: String) -> Self {
+    pub fn over_app_and_launchpad(app_id: String, priority: i32) -> Self {
         Self {
             visible_over_app_ids: vec![app_id],
             visible_over_launchpad: true,
+            priority
         }
     }
 
-    pub fn over_launchpad() -> Self {
+    pub fn over_launchpad(priority: i32) -> Self {
         Self {
             visible_over_app_ids: vec![],
             visible_over_launchpad: true,
+            priority,
         }
     }
 
@@ -97,5 +101,9 @@ impl AppModalPresentation {
 
         self.visible_over_app_ids = target_app_ids;
         true
+    }
+    
+    pub fn priority(&self) -> i32 {
+        self.priority
     }
 }

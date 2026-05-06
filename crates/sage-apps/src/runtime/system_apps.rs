@@ -12,20 +12,33 @@ use crate::system_apps::{
 use crate::types::{AppModalPresentation, AppPresentation};
 use crate::AppsHostState;
 use crate::bridge::state::pending_approval_app_ids;
-use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::stop::kill_runtime;
+use crate::runtime::stop::{kill_runtime_inner};
 
 pub(crate) async fn start_system_app_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    let new_runtime = create_runtime(app_handle, apps_state, args).await?;
+    let runtime = create_runtime(app_handle, apps_state, args).await?;
 
-    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+    let host_window_label =
+        runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
 
-    Ok(new_runtime)
+    let mut changes = RuntimeChangeSet::default();
+    changes.runtimes_changed();
+
+    sync_modal_runtime_visibility(
+        app_handle,
+        apps_state,
+        &host_window_label,
+        &mut changes,
+    )
+        .await?;
+
+    changes.emit(app_handle, apps_state).await;
+
+    Ok(runtime)
 }
 
 pub(crate) async fn start_app_install_runtime(
@@ -38,7 +51,7 @@ pub(crate) async fn start_app_install_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_APP_INSTALL_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation::over_launchpad()),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_launchpad(40)),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
@@ -59,7 +72,7 @@ pub(crate) async fn start_app_update_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_APP_UPDATE_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation::over_app_and_launchpad(target_app_id)),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_app_and_launchpad(target_app_id, 50)),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
@@ -79,7 +92,7 @@ pub(crate) async fn start_bridge_approval_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation::over_apps(target_app_ids)),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_apps(target_app_ids, 100)),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
@@ -93,16 +106,20 @@ pub(crate) async fn sync_bridge_approval_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(), String> {
-    let visible_over_app_ids = pending_approval_app_ids(apps_state).await;
+    let mut changes = RuntimeChangeSet::default();
 
+    let visible_over_app_ids = pending_approval_app_ids(apps_state).await;
     if visible_over_app_ids.is_empty() {
-        let _ = kill_runtime(
+        let _ = kill_runtime_inner(
             app_handle,
             apps_state,
             SYSTEM_APP_BRIDGE_APPROVAL_ID,
             "no_pending_approvals",
+            &mut changes,
         )
             .await;
+
+        changes.emit(app_handle, apps_state).await;
 
         return Ok(());
     }
@@ -124,10 +141,13 @@ pub(crate) async fn sync_bridge_approval_runtime(
         changes.runtimes_changed();
     }
 
+    let host_window_label =
+        approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
+
     sync_modal_runtime_visibility(
         app_handle,
         apps_state,
-        &approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label),
+        &host_window_label,
         &mut changes,
     )
         .await?;

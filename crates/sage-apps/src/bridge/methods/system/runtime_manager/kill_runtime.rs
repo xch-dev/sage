@@ -56,8 +56,9 @@ impl BridgeMethod for RuntimeManagerKillRuntime {
             &params.app_id,
             "user_kill",
         ).await {
-            Ok(_) => Ok(RuntimeManagerKillRuntimeResponse::ok()),
-            Err(SystemKillRuntimeError::NotFound) => Ok(RuntimeManagerKillRuntimeResponse::ok())
+            Ok(_) |
+            Err(SystemKillRuntimeError::NotFound) |
+            Err(SystemKillRuntimeError::RuntimeSync(_)) => Ok(RuntimeManagerKillRuntimeResponse::ok()),
         }
     }
 }

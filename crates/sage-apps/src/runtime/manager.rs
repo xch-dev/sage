@@ -7,7 +7,7 @@ use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
 use crate::runtime::{find_active_taskbar_runtime, resolve_running_app, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
 use crate::runtime::events::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
-use crate::runtime::stop::kill_runtime;
+use crate::runtime::stop::{kill_runtime_inner};
 use crate::runtime::workspace::{ensure_apps_workspace_active};
 use crate::types::{AppPresentation, ResolvedRunningApp};
 
@@ -26,6 +26,13 @@ struct RuntimeWindowIdentity {
 pub(crate) struct RuntimeChangeSet {
     runtimes_changed: bool,
     active_taskbar_changed: Vec<String>,
+}
+
+struct ModalVisibilityCandidate {
+    runtime: SharedRuntime,
+    eligible: bool,
+    priority: i32,
+    runtime_id: String,
 }
 
 pub(crate) async fn focus_taskbar_runtime(
@@ -187,18 +194,19 @@ pub(crate) async fn kill_taskbar_runtime(
     app_id: &str,
     reason: &str,
 ) -> Result<(), String> {
-    let resolved_running_app = resolve_running_app(apps_state, app_id)
-        .await.map_err(|err| format!("Failed to resolve running app: {err}"))?;
-    let host_window_label = resolved_running_app.runtime().with_runtime(SageAppRuntimeRecord::host_window_label);
-    let active_taskbar_runtime = find_active_taskbar_runtime(apps_state, &host_window_label).await;
-    kill_runtime(app_handle, apps_state, app_id, reason)
-        .await
-        .map_err(|err| format!("Failed to kill taskbar runtime: {err}"))?;
+    let mut changes = RuntimeChangeSet::default();
 
-    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
-    if let Some(active_taskbar_runtime) = active_taskbar_runtime && active_taskbar_runtime.app_id() == app_id {
-        emit_active_taskbar_runtime_changed(app_handle, apps_state, &host_window_label, None).await;
-    }
+    kill_runtime_inner(
+        app_handle,
+        apps_state,
+        app_id,
+        reason,
+        &mut changes,
+    )
+        .await
+        .map_err(|err| format!("Failed to kill taskbar runtime: {err:?}"))?;
+
+    changes.emit(app_handle, apps_state).await;
 
     Ok(())
 }
@@ -215,14 +223,12 @@ pub(super) async fn sync_modal_runtime_visibility(
         find_active_taskbar_runtime(apps_state, host_window_label).await;
 
     let active_app_id =
-        active_taskbar_runtime.map(|active_taskbar_runtime| {
-            active_taskbar_runtime.app_id()
-        });
+        active_taskbar_runtime.map(|runtime| runtime.app_id());
 
-    let runtimes = list_runtimes(apps_state).await?;
+    let mut candidates = Vec::new();
 
-    for runtime in runtimes {
-        let Some(should_be_visible) = runtime.with_runtime(|record| {
+    for runtime in list_runtimes(apps_state).await? {
+        let Some(candidate) = runtime.with_runtime(|record| {
             if record.host_window_label() != host_window_label {
                 return None;
             }
@@ -231,21 +237,56 @@ pub(super) async fn sync_modal_runtime_visibility(
                 return None;
             };
 
-            Some(match active_app_id.as_deref() {
+            let eligible = match active_app_id.as_deref() {
                 Some(active_app_id) => modal
                     .visible_over_app_ids()
                     .iter()
                     .any(|app_id| app_id == active_app_id),
+
                 None => modal.visible_over_launchpad(),
-            })
+            };
+
+            Some((
+                eligible,
+                modal.priority(),
+                record.runtime_id(),
+            ))
         }) else {
             continue;
         };
 
-        if should_be_visible {
-            show_runtime_inner(app_handle, apps_state, &runtime, changes).await?;
+        candidates.push(ModalVisibilityCandidate {
+            runtime,
+            eligible: candidate.0,
+            priority: candidate.1,
+            runtime_id: candidate.2,
+        });
+    }
+
+    let winner_runtime_id = candidates
+        .iter()
+        .filter(|candidate| candidate.eligible)
+        .max_by_key(|candidate| candidate.priority)
+        .map(|candidate| candidate.runtime_id.clone());
+
+    for candidate in candidates {
+        let should_show =
+            Some(candidate.runtime_id.clone()) == winner_runtime_id;
+
+        if should_show {
+            show_runtime_inner(
+                app_handle,
+                apps_state,
+                &candidate.runtime,
+                changes,
+            )
+                .await?;
         } else {
-            hide_runtime_inner(app_handle, &runtime, changes)?;
+            hide_runtime_inner(
+                app_handle,
+                &candidate.runtime,
+                changes,
+            )?;
         }
     }
 

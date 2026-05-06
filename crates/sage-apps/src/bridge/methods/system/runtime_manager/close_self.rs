@@ -45,7 +45,9 @@ impl BridgeMethod for RuntimeManagerCloseSelf {
         )
             .await
         {
-            Ok(_) | Err(SystemKillRuntimeError::NotFound) => {
+            Ok(_) |
+            Err(SystemKillRuntimeError::NotFound) |
+            Err(SystemKillRuntimeError::RuntimeSync(_)) => {
                 Ok(Box::new(()))
             }
         }
