@@ -7,7 +7,7 @@ use crate::bridge::state::{ensure_approval_expiry_loop, get_pending_approval, li
 use crate::bridge::{emit_system_runtime_event_to_listeners, BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::{resolve_app, start_bridge_approval_runtime, SharedImpostorRuntime};
+use crate::runtime::{resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime, SharedImpostorRuntime};
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
 use crate::bridge::event_emit::emit_bridge_response_to_app;
@@ -73,6 +73,8 @@ pub(super) async fn process_after_approval(
 ) -> Result<(), String> {
     let pending = get_pending_approval(apps_state, &args.approval_id).await?;
     remove_pending_approval(apps_state, &args.approval_id).await;
+
+    sync_bridge_approval_runtime(app_handle, apps_state).await?;
 
     let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
         list_pending_approvals(apps_state).await,
@@ -224,19 +226,18 @@ async fn request_approval(
     )
         .await;
 
-
     ensure_approval_expiry_loop(app_handle, &apps_state).await;
+
+    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
+        list_pending_approvals(&apps_state).await
+    );
+    emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
 
     start_bridge_approval_runtime(
         app_handle,
         &apps_state,
         Vec::from([app_id]),
     ).await?;
-
-    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
-        list_pending_approvals(&apps_state).await
-    );
-    emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
 
     Ok(())
 }

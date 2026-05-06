@@ -149,14 +149,6 @@ export function App() {
     setError(null);
   }, [activeApproval?.approvalId]);
 
-  useEffect(() => {
-    if (!loaded || activeApproval) return;
-
-    void sage.runtimeManager.hideSelf().catch((err) => {
-      console.error('[approval] failed to hide self', err);
-    });
-  }, [sage, loaded, activeApproval]);
-
   async function resolve(approved: boolean) {
     if (!activeApproval || working) return;
 
@@ -178,8 +170,35 @@ export function App() {
     }
   }
 
-  if (!loaded || !activeApproval) {
+  if (!loaded) {
     return null;
+  }
+
+  if (!activeApproval) {
+    return (
+      <AppModalShell
+        title='No approval pending'
+        appName='Bridge Approval'
+        appIcon={null}
+        footer={
+          <div className='flex justify-end'>
+            <button
+              type='button'
+              onClick={() => {
+                void sage.runtimeManager.closeSelf();
+              }}
+              className='rounded-md border border-border px-3 py-2 text-sm hover:bg-muted'
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className='text-sm text-muted-foreground'>
+          There are no approval requests to review.
+        </div>
+      </AppModalShell>
+    );
   }
 
   if (!activeAppId || !activeAppName) {

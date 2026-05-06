@@ -76,6 +76,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::BridgeApprovalListenApprovalsChanged,
             SystemBridgeCapability::RuntimeManagerGetActiveTaskbarRuntime,
             SystemBridgeCapability::RuntimeManagerHideSelf,
+            SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
     }
 ];
