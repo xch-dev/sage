@@ -6368,6 +6368,7 @@ dependencies = [
  "tauri-specta",
  "tempfile",
  "tokio",
+ "tracing",
  "url",
  "uuid",
  "zip",

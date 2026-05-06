@@ -3,7 +3,7 @@ use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBr
 use crate::bridge::methods::BridgeMethodCapability;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::state::{get_pending_approval, list_pending_approvals, remove_pending_approval, write_pending_approval};
+use crate::bridge::state::{ensure_approval_expiry_loop, get_pending_approval, list_pending_approvals, remove_pending_approval, write_pending_approval};
 use crate::bridge::{emit_system_runtime_event_to_listeners, BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
@@ -223,16 +223,20 @@ async fn request_approval(
         request,
     )
         .await;
-    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
-        list_pending_approvals(&apps_state).await
-    );
-    emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
+
+
+    ensure_approval_expiry_loop(app_handle, &apps_state).await;
 
     start_bridge_approval_runtime(
         app_handle,
         &apps_state,
         Vec::from([app_id]),
     ).await?;
+
+    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
+        list_pending_approvals(&apps_state).await
+    );
+    emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
 
     Ok(())
 }

@@ -5,6 +5,7 @@ import {
   RustBridgeInvokeResult,
   RustBridgeSuccessResponse,
 } from '../generated-types';
+import { debugComms } from '../debug';
 
 export type GenericBridgeRequest = {
   bridgeVersion?: string;
@@ -134,6 +135,7 @@ export function createBridgeRuntimeCore(
     const id = `${config.requestIdPrefix}-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2)}`;
+    debugComms('request', { id, method, params });
 
     return await new Promise<T>((resolve, reject) => {
       const timeoutId = window.setTimeout(() => {
@@ -176,6 +178,7 @@ export function createBridgeRuntimeCore(
               },
             },
           );
+          debugComms('invoke-result', result);
 
           if (result.kind === 'success' || result.kind === 'error') {
             pendingRequests.delete(id);
@@ -196,6 +199,7 @@ export function createBridgeRuntimeCore(
             }
           }
         } catch (error: unknown) {
+          debugComms('request-error', { id, method, error });
           const pending = pendingRequests.get(id);
           if (!pending) {
             return;

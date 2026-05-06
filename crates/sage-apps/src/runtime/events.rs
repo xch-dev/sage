@@ -1,6 +1,6 @@
 use tauri::{AppHandle, State};
 use crate::AppsHostState;
-use crate::bridge::{emit_bridge_response_to_app, emit_system_runtime_event_to_listeners, PendingBridgeApproval, RustBridgeResponse};
+use crate::bridge::{comms_debug, emit_bridge_response_to_app, emit_system_runtime_event_to_listeners, PendingBridgeApproval, RustBridgeResponse};
 use crate::bridge::methods::system::{BridgeApprovalsChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::state::list_pending_approvals;
 use crate::runtime::{list_runtimes, resolve_running_app, SageAppRuntimeRecordView, SharedRuntime};
@@ -10,10 +10,15 @@ pub(crate) async fn emit_bridge_approvals_changed(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) {
-    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
-        list_pending_approvals(apps_state).await
+    let approvals = list_pending_approvals(apps_state).await;
+
+    comms_debug!(
+        "bridge_approvals:changed count={}",
+        approvals.len(),
     );
-    emit_system_runtime_event_to_listeners(app_handle, apps_state, approvals_changed_event).await;
+
+    let event = BridgeApprovalsChangedEvent::new_from_list(approvals);
+    emit_system_runtime_event_to_listeners(app_handle, apps_state, event).await;
 }
 
 pub(crate) async fn emit_timeout_for_pending_approval(

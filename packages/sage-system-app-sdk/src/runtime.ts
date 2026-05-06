@@ -2,6 +2,7 @@ import type * as Generated from './generated-types';
 import type { SageSystemBridgeVersion, SageSystemClient } from './types';
 import {
   createBridgeRuntimeCore,
+  debugComms,
   getSageClient,
   parseJsonOrNull,
 } from '@sage-app/sdk';
@@ -142,6 +143,7 @@ export function initSageSystemRuntimeBridge(): boolean {
       'sage-system-bridge:response',
       (event: SageSystemListenEvent<RustLikeSystemBridgeResponse>) => {
         const data = event.payload;
+        debugComms('system:response:raw', data);
 
         if (!data || data.bridgeVersion !== SAGE_SYSTEM_BRIDGE_VERSION) {
           console.warn(
@@ -182,6 +184,7 @@ export function initSageSystemRuntimeBridge(): boolean {
   webview
     .listen('sage-system-bridge:event', (event: SageSystemListenEvent) => {
       const data = event.payload;
+      debugComms('system:event:raw', data);
 
       if (!isSystemRuntimeEventEnvelope(data)) {
         console.warn(
@@ -192,6 +195,7 @@ export function initSageSystemRuntimeBridge(): boolean {
       }
 
       try {
+        debugComms('system:event:dispatch', data);
         dispatchSystemRuntimeEvent(data);
       } catch (error: unknown) {
         console.error(

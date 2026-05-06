@@ -16,3 +16,4 @@ export {
 
 export * from './types';
 export * from './hooks';
+export { debugComms } from './debug';

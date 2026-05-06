@@ -3,7 +3,7 @@ use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::AppsHostState;
-use crate::bridge::RustBridgeResponse;
+use crate::bridge::{comms_debug, RustBridgeResponse};
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::{list_runtimes, resolve_possibly_impostor_running_app_immediate};
@@ -102,20 +102,43 @@ where
     let Ok(runtimes) = list_runtimes(apps_state).await else {
         return;
     };
+    comms_debug!(
+        "system:event:listeners type={} required_capability={}",
+        T::TYPE,
+        T::REQUIRED_CAPABILITY.key(),
+    );
 
     for runtime in runtimes {
         let Some((app_id, can_receive)) = runtime.with_runtime(|record| {
             if record.internal() {
+                comms_debug!(
+                    "system:event:skip type={} runtime={} reason=internal",
+                    T::TYPE,
+                    record.app_id(),
+                );
                 return None;
             }
 
             let app = record.app();
 
             if !app.is_system_app() {
+                comms_debug!(
+                    "system:event:skip type={} app={} reason=not_system",
+                    T::TYPE,
+                    app.id(),
+                );
                 return None;
             }
 
             let can_receive = app.is_capability_granted(T::REQUIRED_CAPABILITY.into());
+
+            comms_debug!(
+                "system:event:candidate type={} app={} required_capability={} can_receive={}",
+                T::TYPE,
+                app.id(),
+                T::REQUIRED_CAPABILITY.key(),
+                can_receive,
+            );
 
             Some((app.id(), can_receive))
         }) else {
@@ -123,7 +146,26 @@ where
         };
 
         if can_receive {
-            let _ = emit_system_runtime_event_to_app_id(app_handle, &app_id, event.clone());
+            comms_debug!(
+                "system:event:emit type={} app={}",
+                T::TYPE,
+                app_id,
+            );
+
+            let result = emit_system_runtime_event_to_app_id(
+                app_handle,
+                &app_id,
+                event.clone(),
+            );
+
+            if let Err(err) = result {
+                comms_debug!(
+                    "system:event:emit_failed type={} app={} error={}",
+                    T::TYPE,
+                    app_id,
+                    err,
+                );
+            }
         }
     }
 
@@ -218,6 +260,13 @@ where
 
     let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
     let webview_label = runtime.identity_webview_label();
+    comms_debug!(
+        "runtime:event:emit_to_app app_id={} webview_label={} rail={:?} type={}",
+        app_id,
+        webview_label,
+        rail,
+        event_type,
+    );
 
     get_webview_in_sage_window(app_handle, &webview_label)?
         .emit(rail.event_name(), runtime_event(event_type, event))

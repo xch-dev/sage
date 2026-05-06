@@ -1,5 +1,5 @@
 use crate::AppsHostState;
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::{comms_debug, RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::bridge::types::PendingBridgeApproval;
 use std::collections::BTreeMap;
 use std::time::Duration;
@@ -114,23 +114,36 @@ pub async fn ensure_approval_expiry_loop(
 }
 
 async fn approval_expiry_loop(app_handle: AppHandle) {
+    comms_debug!("approval_expiry:loop_started");
+
     loop {
         let apps_state: State<'_, AppsHostState> = app_handle.state();
-
         let pending = list_pending_approvals(&apps_state).await;
 
+        comms_debug!("approval_expiry:tick pending={}", pending.len());
+
         if pending.is_empty() {
+            comms_debug!("approval_expiry:empty_stop");
+
             let mut guard = apps_state.bridge.approval_expiry_task.lock().await;
             *guard = None;
             return;
         }
 
         let now = unix_timestamp_ms() as u64;
-
         let mut next_expiry: Option<u64> = None;
         let mut expired = Vec::new();
 
         for approval in pending {
+            comms_debug!(
+                "approval_expiry:check id={} app={} now={} expires_at={} remaining_ms={}",
+                approval.approval_id,
+                approval.app_id,
+                now,
+                approval.expires_at_ms,
+                approval.expires_at_ms.saturating_sub(now),
+            );
+
             if approval.expires_at_ms <= now {
                 expired.push(approval);
             } else {
@@ -141,22 +154,47 @@ async fn approval_expiry_loop(app_handle: AppHandle) {
             }
         }
 
+        comms_debug!("approval_expiry:expired count={}", expired.len());
+
         for approval in &expired {
+            comms_debug!(
+                "approval_expiry:remove id={} app={}",
+                approval.approval_id,
+                approval.app_id,
+            );
+
             remove_pending_approval(&apps_state, &approval.approval_id).await;
-            let _ = emit_timeout_for_pending_approval(&app_handle, &apps_state, approval).await;
+
+            if let Err(err) =
+                emit_timeout_for_pending_approval(&app_handle, &apps_state, approval).await
+            {
+                comms_debug!(
+                    "approval_expiry:timeout_emit_failed id={} error={}",
+                    approval.approval_id,
+                    err,
+                );
+            }
         }
 
         if !expired.is_empty() {
-            let _ = sync_bridge_approval_runtime(&app_handle, &apps_state).await;
+            comms_debug!("approval_expiry:sync_after_expired");
+
+            if let Err(err) = sync_bridge_approval_runtime(&app_handle, &apps_state).await {
+                comms_debug!("approval_expiry:sync_failed error={}", err);
+            }
+
             emit_bridge_approvals_changed(&app_handle, &apps_state).await;
         }
 
         let Some(next_expiry) = next_expiry else {
+            comms_debug!("approval_expiry:no_next_continue");
             continue;
         };
 
         if next_expiry > now {
-            tokio::time::sleep(Duration::from_millis(next_expiry - now)).await;
+            let sleep_ms = next_expiry - now;
+            comms_debug!("approval_expiry:sleep ms={}", sleep_ms);
+            tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
         }
     }
 }

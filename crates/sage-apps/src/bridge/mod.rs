@@ -7,6 +7,7 @@ pub mod registry;
 pub mod state;
 pub mod ts_exports;
 mod types;
+mod debug;
 
 pub use types::{
     RustBridgeRequest, RustBridgeInvokeResult, RustBridgeResponse,
@@ -20,3 +21,4 @@ pub(crate) use event_emit::{
     emit_user_runtime_event_to_app_id, emit_bridge_response_to_app
 };
 pub(crate) use types::{BridgeOrigin, PendingBridgeApproval};
+pub(crate) use debug::{comms_debug, sage_apps_comms_debug_enabled};

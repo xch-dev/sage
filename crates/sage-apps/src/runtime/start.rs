@@ -74,6 +74,7 @@ pub async fn create_runtime(
         })
         .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
+    let builder = build_initialization_script(builder);
     let builder = build_storage(builder, &app)?;
 
     let (x, y, width, height) = if args.debug_layout {
@@ -145,6 +146,7 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
         })
         .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
+    let builder = build_initialization_script(builder);
     let builder = build_persistent_storage_target(builder, &victim_app)?;
 
     let (x, y, width, height) = if args.debug_layout {
@@ -269,4 +271,27 @@ fn build_persistent_storage_target(
     }
 
     Ok(builder)
+}
+
+fn build_initialization_script(
+    mut builder: WebviewBuilder<Wry>,
+) -> WebviewBuilder<Wry> {
+    if !cfg!(debug_assertions) {
+        return builder;
+    }
+
+    let enabled = std::env::var("SAGE_APPS_COMMS_DEBUG")
+        .is_ok_and(|value| value == "1" || value.eq_ignore_ascii_case("true"));
+
+    if !enabled {
+        return builder;
+    }
+
+    builder = builder.initialization_script(
+        r#"
+window.__SAGE_APPS_COMMS_DEBUG__ = true;
+"#,
+    );
+
+    builder
 }

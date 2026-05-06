@@ -17,6 +17,7 @@ specta-typescript = { workspace = true }
 tauri = { workspace = true, features = ["macos-private-api"] }
 tauri-plugin-dialog = "2.7.1"
 tokio = { workspace = true }
+tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }
 hex = { workspace = true }

@@ -2,6 +2,7 @@ import type { SageBridgeVersion } from '../types';
 import { createBridgeRuntimeCore, parseJsonOrNull } from '../bridge/core';
 import type { SageClient } from '../types';
 import { createSageClient } from './create-client';
+import { debugComms } from '../debug';
 import { dispatchRuntimeEvent, isRuntimeEventEnvelope } from './events';
 
 export const SAGE_BRIDGE_VERSION: SageBridgeVersion = 'v1';
@@ -88,6 +89,7 @@ export function initSageRuntimeBridge(): boolean {
   webview
     .listen('sage-bridge:event', (event: SageListenEvent) => {
       const data = event.payload;
+      debugComms('user:event:raw', data);
 
       if (!isRuntimeEventEnvelope(data)) {
         console.warn('[Sage SDK] Dropped malformed runtime event:', data);
@@ -109,6 +111,7 @@ export function initSageRuntimeBridge(): boolean {
       'sage-bridge:response',
       (event: SageListenEvent<RustLikeBridgeResponse>) => {
         const data = event.payload;
+        debugComms('user:response:raw', data);
 
         if (!data || data.bridgeVersion !== SAGE_BRIDGE_VERSION) {
           console.warn('[Sage SDK] Dropped malformed bridge response:', data);
