@@ -3,11 +3,10 @@ use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
 use crate::AppsHostState;
-use crate::bridge::emit_system_runtime_event_to_listeners;
-use crate::bridge::methods::system::{RuntimeManagerRuntimesChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent};
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::{find_active_taskbar_runtime, resolve_running_app, SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{find_active_taskbar_runtime, resolve_running_app, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::events::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
 use crate::runtime::stop::kill_runtime;
 use crate::types::{AppPresentation, ResolvedRunningApp};
 
@@ -20,24 +19,6 @@ pub struct RuntimeTargetParams {
 struct RuntimeWindowIdentity {
     runtime_id: String,
     host_window_label: String,
-}
-
-pub(crate) async fn emit_runtime_manager_runtimes_changed(
-    app_handle: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-) {
-    let Ok(runtimes) = list_runtimes(apps_state).await else {
-        return;
-    };
-
-    let runtime_records = runtimes
-        .iter()
-        .map(Into::into)
-        .collect::<Vec<SageAppRuntimeRecordView>>();
-
-    let event = RuntimeManagerRuntimesChangedEvent::new(runtime_records);
-
-    emit_system_runtime_event_to_listeners(app_handle, apps_state, event).await;
 }
 
 pub(crate) async fn focus_taskbar_runtime(
@@ -155,7 +136,7 @@ pub(crate) async fn kill_taskbar_runtime(
     Ok(())
 }
 
-async fn sync_modal_runtime_visibility(
+pub(super) async fn sync_modal_runtime_visibility(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,
@@ -225,28 +206,6 @@ async fn hide_runtime_by_runtime_id_if_present(
     }
 
     runtime.with_runtime_mut(SageAppRuntimeRecord::mark_hidden);
-}
-
-async fn emit_active_taskbar_runtime_changed(
-    app_handle: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-    host_window_label: &str,
-    runtime: Option<&SharedRuntime>,
-) {
-    let (runtime_id, app_id) = match runtime {
-        Some(shared_runtime) => shared_runtime.with_runtime(
-            |record| (
-                Some(record.runtime_id()),
-                Some(record.app_id().clone())
-            )
-        ),
-        None => (None, None),
-    };
-    let () = emit_system_runtime_event_to_listeners(app_handle, apps_state, RuntimeManagerActiveTaskbarRuntimeChangedEvent {
-        host_window_label: host_window_label.to_string(),
-        app_id,
-        runtime_id,
-    }).await;
 }
 
 fn runtime_window_identity(resolved_running_app: &ResolvedRunningApp) -> RuntimeWindowIdentity {

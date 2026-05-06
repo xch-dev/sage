@@ -19,6 +19,8 @@ pub(crate) struct PendingBridgeApprovalView {
     pub approval_id: String,
     pub app_id: String,
     pub approval: RustBridgeApprovalRequest,
+    pub created_at_ms: u64,
+    pub expires_at_ms: u64,
 }
 
 #[async_trait]
@@ -60,6 +62,8 @@ impl From<PendingBridgeApproval> for PendingBridgeApprovalView {
             approval_id: approval.approval_id,
             app_id: approval.app_id,
             approval: approval.approval,
+            created_at_ms: approval.created_at_ms,
+            expires_at_ms: approval.expires_at_ms,
         }
     }
 }

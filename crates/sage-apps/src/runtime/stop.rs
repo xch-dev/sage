@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use crate::AppsHostState;
-use crate::runtime::{emit_runtime_manager_runtimes_changed, find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError, SharedRuntime};
+use crate::runtime::{find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError, SharedRuntime};
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id, remove_before_stop_listeners_by_app_id, remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready, remove_impostor_runtime_by_victim_app_id};
 use crate::runtime::webview_locator::find_webview_in_sage_window;
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,7 @@ use tokio::time::timeout;
 use uuid::Uuid;
 use crate::bridge::emit_user_runtime_event_to_app_id;
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;
 

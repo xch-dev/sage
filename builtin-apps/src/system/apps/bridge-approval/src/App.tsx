@@ -1,15 +1,24 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AppModalShell } from '@sage-app/ui';
+import { AppIcon, appIconFromCommonView, AppModalShell } from '@sage-app/ui';
 import {
   useSageSystemClient,
   type PendingBridgeApprovalView,
   type SageAppRuntimeRecordView,
 } from '@sage-system-app/sdk';
-import { BadgeCheck } from 'lucide-react';
+import { BadgeCheck, Clock } from 'lucide-react';
 import { AppApprovalBody } from './approval/AppApprovalBody';
 
-function appNameFromRuntime(runtime: SageAppRuntimeRecordView | null): string {
-  return runtime?.app.common.activeSnapshot.manifest.name ?? 'Unknown app';
+function appNameFromRuntime(
+  runtime: SageAppRuntimeRecordView | null,
+): string | null {
+  return runtime?.app.common.activeSnapshot.manifest.name ?? null;
+}
+
+function appIconFromRuntime(
+  runtime: SageAppRuntimeRecordView | null,
+): AppIcon | null {
+  if (!runtime) return null;
+  return appIconFromCommonView(runtime.app.common);
 }
 
 function appIdFromRuntime(
@@ -31,6 +40,11 @@ function titleForApproval(approval: PendingBridgeApprovalView) {
   }
 }
 
+function formatCountdown(expiresAt: number, now: number) {
+  const seconds = Math.max(0, Math.ceil((expiresAt - now) / 1000));
+  return seconds <= 0 ? 'Expires now' : `Expires in ${seconds}s`;
+}
+
 function queueText(count: number) {
   if (count <= 0) return null;
   return `${count} more approval${count === 1 ? '' : 's'} pending`;
@@ -38,7 +52,7 @@ function queueText(count: number) {
 
 function MetaPill({ children }: { children: React.ReactNode }) {
   return (
-    <span className='rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground'>
+    <span className='inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground'>
       {children}
     </span>
   );
@@ -49,32 +63,41 @@ export function App() {
 
   const [approvals, setApprovals] = useState<PendingBridgeApprovalView[]>([]);
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
-  const [activeAppName, setActiveAppName] = useState('Unknown app');
+  const [activeAppName, setActiveAppName] = useState<string | null>(null);
+  const [activeAppIcon, setActiveAppIcon] = useState<AppIcon | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [working, setWorking] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
 
   async function refreshActiveRuntime() {
-    const active = await sage.runtimeManager.getActiveRuntime();
+    const active = await sage.runtimeManager.getActiveTaskbarRuntime();
 
     setActiveAppId(appIdFromRuntime(active));
     setActiveAppName(appNameFromRuntime(active));
+    setActiveAppIcon(appIconFromRuntime(active));
 
     return active;
   }
+
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, []);
 
   useEffect(() => {
     async function refreshInitialState() {
       try {
         const [pending, active] = await Promise.all([
           sage.bridgeApprovals.listPending(),
-          sage.runtimeManager.getActiveRuntime(),
+          sage.runtimeManager.getActiveTaskbarRuntime(),
         ]);
 
         setApprovals(pending);
         setActiveAppId(appIdFromRuntime(active));
         setActiveAppName(appNameFromRuntime(active));
+        setActiveAppIcon(appIconFromRuntime(active));
       } catch (err) {
         console.error('[approval] refreshInitialState failed', err);
         setError(err instanceof Error ? err.message : String(err));
@@ -91,11 +114,13 @@ export function App() {
       setApprovals(event.approvals);
     });
 
-    const offActiveRuntime = sage.runtimeManager.onActiveTaskbarRuntimeChanged(() => {
-      void refreshActiveRuntime().catch((err) => {
-        console.error('[approval] failed to refresh active runtime', err);
-      });
-    });
+    const offActiveRuntime = sage.runtimeManager.onActiveTaskbarRuntimeChanged(
+      () => {
+        void refreshActiveRuntime().catch((err) => {
+          console.error('[approval] failed to refresh active runtime', err);
+        });
+      },
+    );
 
     return () => {
       offApprovals();
@@ -103,19 +128,21 @@ export function App() {
     };
   }, [sage]);
 
-  const activeApproval = useMemo(() => {
-    if (!activeAppId) return null;
-    return approvals.find((item) => item.appId === activeAppId) ?? null;
+  const activeApprovals = useMemo(() => {
+    if (!activeAppId) return [];
+
+    return approvals
+      .filter((item) => item.appId === activeAppId)
+      .sort((a, b) => a.expiresAtMs - b.expiresAtMs);
   }, [approvals, activeAppId]);
 
-  const queuedApprovalCount = useMemo(() => {
-    if (!activeAppId || !activeApproval) return 0;
+  const activeApproval = activeApprovals[0] ?? null;
+  const pendingForActiveAppCount = activeApprovals.length;
+  const queuedApprovalCount = Math.max(0, pendingForActiveAppCount - 1);
 
-    return Math.max(
-      0,
-      approvals.filter((item) => item.appId === activeAppId).length - 1,
-    );
-  }, [approvals, activeAppId, activeApproval]);
+  const countdownText = activeApproval
+    ? formatCountdown(activeApproval.expiresAtMs, now)
+    : null;
 
   useEffect(() => {
     setExpanded(false);
@@ -155,13 +182,27 @@ export function App() {
     return null;
   }
 
+  if (!activeAppId || !activeAppName) {
+    return (
+      <AppModalShell
+        title='Approval state issue'
+        appName='Bridge Approval'
+        appIcon={null}
+      >
+        <div className='rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive'>
+          Approval exists, but no active taskbar app was resolved.
+        </div>
+      </AppModalShell>
+    );
+  }
+
   const moreText = queueText(queuedApprovalCount);
 
   return (
     <AppModalShell
       title={titleForApproval(activeApproval)}
-      appName='Bridge Approval'
-      appIcon={null}
+      appName={activeAppName}
+      appIcon={activeAppIcon}
       footer={
         <div className='flex items-center justify-between gap-3'>
           <button
@@ -199,6 +240,16 @@ export function App() {
         <div>
           <div className='flex flex-wrap items-center gap-2'>
             <div className='text-sm font-semibold'>Approval required</div>
+
+            {countdownText ? (
+              <MetaPill>
+                <Clock className='h-3 w-3' />
+                {countdownText}
+              </MetaPill>
+            ) : null}
+
+            <MetaPill>{pendingForActiveAppCount} pending for this app</MetaPill>
+
             {moreText ? <MetaPill>{moreText}</MetaPill> : null}
           </div>
 

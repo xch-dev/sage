@@ -225,6 +225,19 @@ impl SageAppRuntimeRecord {
         self.presentation.clone()
     }
 
+    pub(crate) fn update_modal_presentation_list(
+        &mut self,
+        target_app_ids: Vec<String>,
+    ) -> Result<(), String> {
+        match &mut self.presentation {
+            AppPresentation::Modal(presentation) => {
+                presentation.visible_over_app_ids = target_app_ids;
+                Ok(())
+            }
+            _ => Err("Presentation mode is not modal".to_string()),
+        }
+    }
+
     pub(crate) fn mode(&self) -> SageAppRuntimeMode {
         self.mode
     }

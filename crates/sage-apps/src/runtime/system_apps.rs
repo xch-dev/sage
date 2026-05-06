@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
-use crate::runtime::{emit_runtime_manager_runtimes_changed, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
 use crate::system_apps::{
     SYSTEM_APP_APP_INSTALL_ID,
     SYSTEM_APP_APP_UPDATE_ID,
@@ -11,6 +11,10 @@ use crate::system_apps::{
 };
 use crate::types::{AppModalPresentation, AppPresentation};
 use crate::AppsHostState;
+use crate::bridge::state::pending_approval_app_ids;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
+use crate::runtime::manager::sync_modal_runtime_visibility;
+use crate::runtime::stop::kill_runtime;
 
 pub(crate) async fn start_system_app_runtime(
     app_handle: &AppHandle,
@@ -74,7 +78,7 @@ pub(crate) async fn start_app_update_runtime(
 pub(crate) async fn start_bridge_approval_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    target_app_id: String,
+    target_app_ids: Vec<String>,
 ) -> Result<SharedRuntime, String> {
     start_system_app_runtime(
         app,
@@ -82,7 +86,7 @@ pub(crate) async fn start_bridge_approval_runtime(
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID.to_string(),
             presentation: AppPresentation::Modal(AppModalPresentation {
-                visible_over_app_ids: vec![target_app_id],
+                visible_over_app_ids: target_app_ids,
                 visible_over_launchpad: false,
             }),
             mode: SageAppRuntimeMode::Inline,
@@ -92,4 +96,35 @@ pub(crate) async fn start_bridge_approval_runtime(
         },
     )
         .await
+}
+
+pub(crate) async fn sync_bridge_approval_runtime(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) -> Result<(), String> {
+    let visible_over_app_ids = pending_approval_app_ids(apps_state).await;
+
+    if visible_over_app_ids.is_empty() {
+        let _ = kill_runtime(
+            app_handle,
+            apps_state,
+            SYSTEM_APP_BRIDGE_APPROVAL_ID,
+            "no_pending_approvals",
+        )
+            .await;
+
+        return Ok(());
+    }
+
+    let approval_runtime = start_bridge_approval_runtime(app_handle, apps_state, visible_over_app_ids.clone()).await?;
+
+    approval_runtime.with_runtime_mut(|runtime| runtime.update_modal_presentation_list(visible_over_app_ids))?;
+
+    sync_modal_runtime_visibility(
+        app_handle,
+        apps_state,
+        &approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label)
+    ).await;
+
+    Ok(())
 }

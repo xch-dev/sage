@@ -236,8 +236,10 @@ export function initSageSystemRuntimeBridge(): boolean {
               input,
             );
           },
-          async getActiveRuntime(): Promise<Generated.SageAppRuntimeRecordView | null> {
-            return await callHost<Generated.SageAppRuntimeRecordView | null>('runtimeManager.getActiveTaskbarRuntime');
+          async getActiveTaskbarRuntime(): Promise<Generated.SageAppRuntimeRecordView | null> {
+            return await callHost<Generated.SageAppRuntimeRecordView | null>(
+              'runtimeManager.getActiveTaskbarRuntime',
+            );
           },
           async hideSelf() {
             return await callHost<void>('runtimeManager.hideSelf');
@@ -257,7 +259,7 @@ export function initSageSystemRuntimeBridge(): boolean {
               'runtimeManager.activeTaskbarRuntimeChanged',
               handler,
             );
-          }
+          },
         },
 
         appInstall: {

@@ -18,6 +18,6 @@ impl BridgeApprovalsChangedEvent {
 }
 
 impl SystemRuntimeEvent for BridgeApprovalsChangedEvent {
-    const TYPE: &'static str = "bridgeApproval.approvalsChanged";
+    const TYPE: &'static str = "bridgeApproval.changed";
     const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::BridgeApprovalListenApprovalsChanged;
 }

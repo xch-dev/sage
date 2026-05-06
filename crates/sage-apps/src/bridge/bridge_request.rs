@@ -10,7 +10,7 @@ use crate::host::AppState;
 use crate::runtime::{resolve_app, start_bridge_approval_runtime, SharedImpostorRuntime};
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
-use crate::bridge::event_emit::emit_bridge_response_to_source;
+use crate::bridge::event_emit::emit_bridge_response_to_app;
 use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
 use crate::security::assert_bridge_origin;
 
@@ -100,7 +100,7 @@ pub(super) async fn process_after_approval(
         )
     };
 
-    emit_bridge_response_to_source(app_handle, &origin.app, &invoke_result.try_into()?).await?;
+    emit_bridge_response_to_app(app_handle, &origin.app, &invoke_result.try_into()?).await?;
     Ok(())
 }
 
@@ -231,7 +231,7 @@ async fn request_approval(
     start_bridge_approval_runtime(
         app_handle,
         &apps_state,
-        app_id,
+        Vec::from([app_id]),
     ).await?;
 
     Ok(())

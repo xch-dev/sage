@@ -123,7 +123,7 @@ where
         };
 
         if can_receive {
-            let _ = emit_system_runtime_event_to_app_id(app_handle, &app_id, event.clone()).await;
+            let _ = emit_system_runtime_event_to_app_id(app_handle, &app_id, event.clone());
         }
     }
 
@@ -145,10 +145,9 @@ where
         T::TYPE,
         event,
     )
-        .await
 }
 
-pub(crate) async fn emit_system_runtime_event_to_app_id<T>(
+pub(crate) fn emit_system_runtime_event_to_app_id<T>(
     app_handle: &AppHandle,
     app_id: &str,
     event: T,
@@ -163,27 +162,6 @@ where
         T::TYPE,
         event,
     )
-        .await
-}
-
-async fn emit_runtime_event_to_app_id<T>(
-    app_handle: &AppHandle,
-    app_id: &str,
-    rail: AppRuntimeEventRail,
-    event_type: &'static str,
-    event: T,
-) -> Result<(), String>
-where
-    T: Serialize + Type + Clone,
-{
-    let apps_state = app_handle.state::<AppsHostState>();
-
-    let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
-    let webview_label = runtime.identity_webview_label();
-
-    get_webview_in_sage_window(app_handle, &webview_label)?
-        .emit(rail.event_name(), runtime_event(event_type, event))
-        .map_err(|err| format!("failed to emit runtime event: {err}"))
 }
 
 pub(crate) fn emit_user_runtime_event_to_sage_webview<T>(
@@ -216,7 +194,7 @@ where
         .map_err(|err| format!("failed to emit runtime event to Sage webview: {err}"))
 }
 
-pub(super) async fn emit_bridge_response_to_source(
+pub(crate) async fn emit_bridge_response_to_app(
     app_handle: &AppHandle,
     app: &SharedSageApp,
     response: &RustBridgeResponse,
@@ -224,4 +202,24 @@ pub(super) async fn emit_bridge_response_to_source(
     get_webview_in_sage_window(app_handle, &app.webview_label())?
         .emit("sage-bridge:response", response)
         .map_err(|err| format!("failed to emit bridge response: {err}"))
+}
+
+fn emit_runtime_event_to_app_id<T>(
+    app_handle: &AppHandle,
+    app_id: &str,
+    rail: AppRuntimeEventRail,
+    event_type: &'static str,
+    event: T,
+) -> Result<(), String>
+where
+    T: Serialize + Type + Clone,
+{
+    let apps_state = app_handle.state::<AppsHostState>();
+
+    let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
+    let webview_label = runtime.identity_webview_label();
+
+    get_webview_in_sage_window(app_handle, &webview_label)?
+        .emit(rail.event_name(), runtime_event(event_type, event))
+        .map_err(|err| format!("failed to emit runtime event: {err}"))
 }

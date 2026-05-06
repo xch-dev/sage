@@ -17,6 +17,6 @@ pub use types::{
 
 pub(crate) use event_emit::{
     emit_user_runtime_event_to_listeners, emit_system_runtime_event_to_listeners,
-    emit_user_runtime_event_to_app_id
+    emit_user_runtime_event_to_app_id, emit_bridge_response_to_app
 };
-pub(crate) use types::{BridgeOrigin};
+pub(crate) use types::{BridgeOrigin, PendingBridgeApproval};

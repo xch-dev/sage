@@ -18,7 +18,7 @@ export type SageSystemRuntimeManagerClient = {
   killRuntime(
     input: Generated.RuntimeTargetParams,
   ): Promise<Generated.SystemKillRuntimeResult>;
-  getActiveRuntime(): Promise<Generated.SageAppRuntimeRecordView | null>;
+  getActiveTaskbarRuntime(): Promise<Generated.SageAppRuntimeRecordView | null>;
   onRuntimesChanged(
     handler: (event: Generated.RuntimeManagerRuntimesChangedEvent) => void,
   ): () => void;
