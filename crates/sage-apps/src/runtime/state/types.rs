@@ -223,11 +223,10 @@ impl SageAppRuntimeRecord {
     pub(crate) fn update_modal_presentation_list(
         &mut self,
         target_app_ids: Vec<String>,
-    ) -> Result<(), String> {
+    ) -> Result<bool, String> {
         match &mut self.presentation {
             AppPresentation::Modal(presentation) => {
-                presentation.update_app_ids(target_app_ids);
-                Ok(())
+                Ok(presentation.update_app_ids(target_app_ids))
             }
             AppPresentation::Taskbar => Err("Presentation mode is not modal".to_string()),
         }

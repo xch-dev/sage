@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
-use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
 use crate::system_apps::{
     SYSTEM_APP_APP_INSTALL_ID,
     SYSTEM_APP_APP_UPDATE_ID,
@@ -107,15 +107,32 @@ pub(crate) async fn sync_bridge_approval_runtime(
         return Ok(());
     }
 
-    let approval_runtime = start_bridge_approval_runtime(app_handle, apps_state, visible_over_app_ids.clone()).await?;
+    let approval_runtime = start_bridge_approval_runtime(
+        app_handle,
+        apps_state,
+        visible_over_app_ids.clone(),
+    )
+        .await?;
 
-    approval_runtime.with_runtime_mut(|runtime| runtime.update_modal_presentation_list(visible_over_app_ids))?;
+    let presentation_changed = approval_runtime.with_runtime_mut(|runtime| {
+        runtime.update_modal_presentation_list(visible_over_app_ids)
+    })?;
+
+    let mut changes = RuntimeChangeSet::default();
+
+    if presentation_changed {
+        changes.runtimes_changed();
+    }
 
     sync_modal_runtime_visibility(
         app_handle,
         apps_state,
-        &approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label)
-    ).await?;
+        &approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label),
+        &mut changes,
+    )
+        .await?;
+
+    changes.emit(app_handle, apps_state).await;
 
     Ok(())
 }

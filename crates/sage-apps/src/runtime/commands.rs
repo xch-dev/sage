@@ -9,6 +9,7 @@ use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
 use crate::AppsHostState;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::workspace::{enter_apps_workspace, leave_apps_workspace};
 use crate::types::AppPresentation;
@@ -131,11 +132,11 @@ pub async fn apps_start_system_app(
 #[tauri::command]
 #[specta::specta]
 pub async fn apps_create_inline_runtime(
-    app: AppHandle,
+    app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     args: CreateInstalledRuntimeArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    let created_runtime = create_runtime(&app, &apps_state, CreateRuntimeArgs {
+    let created_runtime = create_runtime(&app_handle, &apps_state, CreateRuntimeArgs {
         app_id: args.app_id.clone(),
         presentation: AppPresentation::Taskbar,
         mode: SageAppRuntimeMode::Inline,
@@ -144,7 +145,9 @@ pub async fn apps_create_inline_runtime(
         query: BTreeMap::new(),
     }).await.map(Into::into);
 
-    focus_taskbar_runtime(&app, &apps_state, &args.app_id).await?;
+    emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
+
+    focus_taskbar_runtime(&app_handle, &apps_state, &args.app_id).await?;
 
     created_runtime
 }

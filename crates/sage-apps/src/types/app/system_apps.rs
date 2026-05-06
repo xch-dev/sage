@@ -90,7 +90,12 @@ impl AppModalPresentation {
         self.visible_over_launchpad
     }
 
-    pub fn update_app_ids(&mut self, target_app_ids: Vec<String>) {
+    pub fn update_app_ids(&mut self, target_app_ids: Vec<String>) -> bool {
+        if self.visible_over_app_ids == target_app_ids {
+            return false;
+        }
+
         self.visible_over_app_ids = target_app_ids;
+        true
     }
 }
