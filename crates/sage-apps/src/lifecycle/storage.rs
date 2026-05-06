@@ -5,14 +5,12 @@ use anyhow::Context;
 use anyhow::{Result as AnyResult, anyhow};
 #[cfg(target_os = "windows")]
 use std::fs;
-use tauri::{AppHandle, State, command};
+use tauri::{AppHandle, command};
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use uuid::Uuid;
 
-use crate::AppsHostState;
 use crate::lifecycle::{read_pending_storage_cleanup_entries, read_retired_app_origins, write_pending_storage_cleanup_entries, write_retired_app_origins};
 use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
-use crate::runtime::stop::close_runtime_internal;
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
 use crate::types::{InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SharedSageApp};
 
@@ -192,15 +190,6 @@ pub fn enqueue_retired_app_origin(
     }
 
     write_retired_app_origins(&base_path, &entries)
-}
-
-pub async fn clear_runtime_browsing_data_internal(
-    app: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-    app_id: &str,
-) -> Result<(), String> {
-    let _ = close_runtime_internal(app, apps_state, app_id).await;
-    apps_clear_runtime_browsing_data(app.clone(), app_id.to_string()).await
 }
 
 #[command]

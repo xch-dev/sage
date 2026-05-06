@@ -9,13 +9,6 @@ use crate::types::{AppPresentation, SageApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum SageAppRuntimeKind {
-    User,
-    System,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub enum SageAppRuntimeMode {
     Inline,
     Windowed,
@@ -231,10 +224,10 @@ impl SageAppRuntimeRecord {
     ) -> Result<(), String> {
         match &mut self.presentation {
             AppPresentation::Modal(presentation) => {
-                presentation.visible_over_app_ids = target_app_ids;
+                presentation.update_app_ids(target_app_ids);
                 Ok(())
             }
-            _ => Err("Presentation mode is not modal".to_string()),
+            AppPresentation::Taskbar => Err("Presentation mode is not modal".to_string()),
         }
     }
 

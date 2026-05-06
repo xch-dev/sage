@@ -36,12 +36,6 @@ impl ZipInstallSource {
             unpack_dir: root.join(format!(".tmp-{}", Uuid::new_v4())),
         }
     }
-
-    pub fn cleanup(&self) {
-        if self.unpack_dir.exists() {
-            let _ = fs::remove_dir_all(&self.unpack_dir);
-        }
-    }
 }
 
 #[async_trait]

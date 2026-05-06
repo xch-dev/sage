@@ -57,7 +57,7 @@ pub async fn create_runtime(
         sage_window.label(),
         &webview_label,
         args.presentation,
-        SageAppRuntimeMode::Inline,
+        args.mode,
         args.visibility,
         is_internal,
     ).map_err(|err| err.to_string())?;

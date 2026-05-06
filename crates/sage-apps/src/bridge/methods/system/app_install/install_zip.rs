@@ -1,7 +1,8 @@
+use std::{fs, io};
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
-use tauri::Manager;
+use tauri::{AppHandle, Manager, State};
 
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
@@ -10,8 +11,11 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::install::commands::install_app_zip;
-use crate::types::SageGrantedPermissionsInput;
+use crate::host::AppState;
+use crate::lifecycle::apps_root;
+use crate::lifecycle::install::install_app_from_source;
+use crate::lifecycle::install::zip::ZipInstallSource;
+use crate::types::{SageGrantedPermissionsInput, UserSageAppView};
 
 use super::AppInstallInstallResult;
 
@@ -50,7 +54,7 @@ impl BridgeMethod for AppInstallInstallZip {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: AppInstallInstallZipParams = parse_required_params(self, request)?;
-        let state = tools.app_handle.state::<crate::host::AppState>();
+        let state = tools.app_handle.state::<AppState>();
 
         let app = install_app_zip(
             tools.app_handle.clone(),
@@ -63,4 +67,38 @@ impl BridgeMethod for AppInstallInstallZip {
 
         Ok(Box::new(AppInstallInstallResult::new(app)))
     }
+}
+
+pub async fn install_app_zip(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    zip_path: String,
+    granted_permissions_input: SageGrantedPermissionsInput,
+) -> crate::host::Result<UserSageAppView> {
+    let base_path = {
+        let state = state.lock().await;
+        state.path.clone()
+    };
+
+    let root = apps_root(&base_path);
+
+    fs::create_dir_all(&root).map_err(|err| {
+        io::Error::other(format!(
+            "failed to create apps directory {}: {err}",
+            root.display()
+        ))
+    })?;
+
+    let source = ZipInstallSource::new(&root, zip_path.clone());
+    let unpack_dir = source.unpack_dir.clone();
+
+    let result = install_app_from_source(&app, &base_path, granted_permissions_input, source).await;
+
+    if unpack_dir.exists() {
+        let _ = fs::remove_dir_all(&unpack_dir);
+    }
+
+    result
+        .map(|app| (&app).into())
+        .map_err(|err| io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into())
 }

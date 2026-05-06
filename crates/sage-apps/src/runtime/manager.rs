@@ -160,10 +160,10 @@ pub(super) async fn sync_modal_runtime_visibility(
 
             let should_be_visible = match active_app_id.as_deref() {
                 Some(active_app_id) => modal
-                    .visible_over_app_ids
+                    .visible_over_app_ids()
                     .iter()
                     .any(|app_id| app_id == active_app_id),
-                None => modal.visible_over_launchpad,
+                None => modal.visible_over_launchpad(),
             };
 
             Some((

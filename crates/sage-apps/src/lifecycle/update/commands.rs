@@ -4,7 +4,6 @@ use tauri::{AppHandle, State, command};
 
 use crate::host::AppState;
 use crate::host::Result;
-use crate::lifecycle::update::permissions::update_app_permissions_for_app;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview, write_installed_app_metadata};
 use crate::runtime::resolve_app;
 use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
@@ -161,34 +160,6 @@ pub async fn apply_app_update(
     })?;
 
     Ok(resolved.with_app(|app| app.into()))
-}
-
-#[command]
-#[specta::specta]
-pub async fn apps_update_permissions(
-    app_handle: AppHandle,
-    app_id: String,
-    granted_permissions_input: SageGrantedPermissionsInput,
-) -> Result<()> {
-    let resolved = resolve_app(&app_handle, &app_id)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    let requested = resolved.with_app(|app| {
-        app.with(|sage_app| sage_app.requested_permissions().clone())
-    });
-
-    let granted_permissions = granted_permissions_input
-        .resolve(&requested)
-        .map_err(|err| io::Error::other(format!("invalid granted permissions: {err}")))?;
-
-    let app = resolved.clone_app_for_operation();
-
-    update_app_permissions_for_app(&app_handle, &app, &granted_permissions)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to update app permissions: {err}")))?;
-
-    Ok(())
 }
 
 async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppPendingUpdate>> {

@@ -11,9 +11,7 @@ mod debug;
 
 pub use types::{
     RustBridgeRequest, RustBridgeInvokeResult, RustBridgeResponse,
-    RustBridgeSuccessResponse, RustBridgeErrorResponse, RustBridgeErrorPayload,
-    RustBridgeApprovalRequest, RustBridgeApprovalBody,
-    ResolveBridgeApprovalArgs, RustBridgeApprovalEvent
+    RustBridgeApprovalRequest, ResolveBridgeApprovalArgs
 };
 
 pub(crate) use event_emit::{

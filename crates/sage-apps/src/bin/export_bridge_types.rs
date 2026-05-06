@@ -1,6 +1,4 @@
-use sage_apps::bridge::ts_exports::{
-    export_system_bridge_typescript, export_user_bridge_typescript,
-};
+use sage_apps::{export_system_bridge_typescript, export_user_bridge_typescript};
 
 fn main() {
     let bridge = std::env::args()

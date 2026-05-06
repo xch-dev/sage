@@ -9,7 +9,7 @@ use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
 use crate::system_apps::{list_builtin_system_apps, SystemAppUsage};
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, SageNetworkWhitelistEntry, SharedSageApp, UserSageApp, UserSageAppSource};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, SharedSageApp, UserSageApp, UserSageAppSource};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -33,16 +33,6 @@ pub fn pending_storage_cleanup_path(base_path: &Path) -> PathBuf {
 
 pub fn retired_app_origins_path(base_path: &Path) -> PathBuf {
     apps_root(base_path).join(RETIRED_APP_ORIGINS_FILE)
-}
-
-pub fn parse_network_permission_target(value: &str) -> Result<SageNetworkWhitelistEntry, String> {
-    let value = value.trim().to_ascii_lowercase();
-
-    let (scheme, host) = value
-        .split_once("://")
-        .ok_or_else(|| format!("invalid network entry (missing scheme): {value}"))?;
-
-    SageNetworkWhitelistEntry::new(scheme, host).map_err(|err| err.to_string())
 }
 
 pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
@@ -243,25 +233,6 @@ pub fn write_user_app_metadata(app: &UserSageApp) -> AnyResult<()> {
     Ok(())
 }
 
-pub fn read_installed_user_app_by_origin_id(
-    base_path: &Path,
-    origin_id: &str,
-) -> AnyResult<UserSageApp> {
-    let root = apps_root(base_path);
-
-    for entry in list_installed_apps_internal(&root)? {
-        if let ListedSageApp::User(app) = entry
-            && app.common().origin_id() == origin_id
-        {
-            return Ok(app);
-        }
-    }
-
-    Err(anyhow::anyhow!(
-        "no installed app found for origin id {origin_id}"
-    ))
-}
-
 fn read_corrupted_installed_app_fallback(
     dir: &Path,
 ) -> (
@@ -316,7 +287,7 @@ mod tests {
     use super::*;
 
     use crate::lifecycle::storage::record_storage_cleanup_failure;
-    use crate::types::{InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+    use crate::types::{InstalledSageAppStorage, ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource};
     use std::fs;
     use tempfile::tempdir;
 
@@ -553,61 +524,6 @@ mod tests {
         let listed =
             without_system_apps(list_installed_apps_internal(&apps_root(base.path())).unwrap());
         assert!(listed.is_empty());
-    }
-
-    #[test]
-    fn parse_network_permission_target_normalizes_case() {
-        let parsed = parse_network_permission_target("HTTPS://Example.COM").unwrap();
-        assert_eq!(
-            parsed,
-            SageNetworkWhitelistEntry::new("https", "example.com").unwrap()
-        );
-    }
-
-    #[test]
-    fn parse_network_permission_target_rejects_missing_scheme_separator() {
-        let err = parse_network_permission_target("example.com").unwrap_err();
-        assert!(err.contains("missing scheme"));
-    }
-
-    #[test]
-    #[allow(clippy::insecure_http)]
-    fn parse_network_permission_target_rejects_unsupported_scheme() {
-        let err = parse_network_permission_target("http://example.com").unwrap_err();
-        assert!(err.contains("only https and wss allowed"));
-    }
-
-    #[test]
-    fn parse_network_permission_target_rejects_invalid_host_chars() {
-        assert!(parse_network_permission_target("https://example.com/path").is_err());
-        assert!(parse_network_permission_target("https://example.com?x=1").is_err());
-        assert!(parse_network_permission_target("https://example.com#frag").is_err());
-        assert!(parse_network_permission_target("https://exa mple.com").is_err());
-    }
-
-    #[test]
-    fn read_installed_app_by_origin_id_finds_matching_app() {
-        let dir = tempdir().unwrap();
-
-        let app_a = sample_app(dir.path(), "app-a", "origin-a");
-        let app_b = sample_app(dir.path(), "app-b", "origin-b");
-
-        write_installed_app_metadata(&app_a).unwrap();
-        write_installed_app_metadata(&app_b).unwrap();
-
-        let found = read_installed_user_app_by_origin_id(dir.path(), "origin-b").unwrap();
-        assert_eq!(found.common().id(), "app-b");
-    }
-
-    #[test]
-    fn read_installed_app_by_origin_id_errors_when_missing() {
-        let dir = tempdir().unwrap();
-        let err = read_installed_user_app_by_origin_id(dir.path(), "missing").unwrap_err();
-
-        assert!(
-            err.to_string()
-                .contains("no installed app found for origin id")
-        );
     }
 
     #[test]

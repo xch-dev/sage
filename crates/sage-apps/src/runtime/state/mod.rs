@@ -5,7 +5,7 @@ mod write;
 mod view;
 
 pub use view::SageAppRuntimeRecordView;
-pub(crate) use types::{AppRuntimeState, SageAppRuntimeKind, SharedRuntime, SageAppRuntimeRecord};
+pub(crate) use types::{AppRuntimeState, SharedRuntime, SageAppRuntimeRecord};
 
 pub use read::find_runtime_by_app_id_optional;
 

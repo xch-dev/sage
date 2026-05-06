@@ -11,7 +11,6 @@ mod app_state;
 mod commands;
 mod error;
 
-use sage_apps::bridge::RustBridgeApprovalEvent;
 use sage_apps::security::handle_user_app_protocol_request;
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
@@ -145,36 +144,30 @@ pub fn run() {
             commands::get_logs,
             commands::is_asset_owned,
             commands::get_xch_usd_price,
-            apps::bridge::commands::apps_invoke_bridge,
-            apps::bridge::commands::apps_invoke_system_bridge,
-            apps::bridge::commands::apps_resolve_bridge_approval,
-            apps::bridge::commands::get_user_capability_definitions,
+            apps::apps_invoke_bridge,
+            apps::apps_invoke_system_bridge,
+            apps::get_user_capability_definitions,
             apps::environment::commands::apps_set_environment_theme,
             apps::sandbox::commands::apps_get_sandbox_state,
             apps::sandbox::commands::apps_get_app_launch_gate,
             apps::sandbox::commands::apps_rerun_sandbox_tests,
-            apps::lifecycle::install::commands::list_installed_apps,
-            apps::lifecycle::install::commands::preview_app_zip,
-            apps::lifecycle::install::commands::preview_app_url,
-            apps::lifecycle::install::commands::install_app_zip,
-            apps::lifecycle::install::commands::install_app_url,
-            apps::lifecycle::uninstall::uninstall_app,
-            apps::lifecycle::update::commands::check_app_update,
-            apps::lifecycle::update::commands::download_app_update,
-            apps::lifecycle::update::commands::apply_app_update,
-            apps::lifecycle::update::commands::apps_update_permissions,
-            apps::lifecycle::apps_clear_runtime_browsing_data,
+            apps::list_installed_apps,
+            apps::uninstall_app,
+            apps::check_app_update,
+            apps::download_app_update,
+            apps::apply_app_update,
+            apps::apps_clear_runtime_browsing_data,
             apps::sandbox::commands::get_builtin_test_app,
             apps::system_apps::get_builtin_system_app,
-            apps::runtime::commands::apps_start_system_app,
-            apps::runtime::commands::apps_create_inline_runtime,
-            apps::runtime::commands::apps_list_runtimes,
-            apps::runtime::commands::apps_focus_taskbar_runtime,
-            apps::runtime::commands::apps_clear_active_taskbar_runtime,
-            apps::runtime::commands::apps_kill_taskbar_runtime,
-            apps::runtime::commands::apps_dev_reload_runtime,
+            apps::apps_start_system_app,
+            apps::apps_create_inline_runtime,
+            apps::apps_list_runtimes,
+            apps::apps_focus_taskbar_runtime,
+            apps::apps_clear_active_taskbar_runtime,
+            apps::apps_kill_taskbar_runtime,
+            apps::apps_dev_reload_runtime,
         ])
-        .events(collect_events![SyncEvent, RustBridgeApprovalEvent]);
+        .events(collect_events![SyncEvent]);
 
     #[cfg(all(debug_assertions, not(mobile)))]
     builder
@@ -227,7 +220,7 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let cleanup_base_path = path.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(err) = apps::lifecycle::process_pending_storage_cleanup(
+                if let Err(err) = apps::process_pending_storage_cleanup(
                     &app_handle,
                     &cleanup_base_path,
                 )

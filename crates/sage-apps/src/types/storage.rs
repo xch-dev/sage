@@ -55,6 +55,13 @@ impl PendingStorageCleanupEntry {
         self.last_error = Some(error.to_string());
     }
 
+    pub fn target(&self) -> &PendingStorageCleanupTarget {
+        &self.target
+    }
+}
+
+#[cfg(test)]
+impl PendingStorageCleanupEntry {
     pub fn app_id(&self) -> &str {
         &self.app_id
     }
@@ -66,8 +73,5 @@ impl PendingStorageCleanupEntry {
     }
     pub fn last_error(&self) -> Option<&str> {
         self.last_error.as_deref()
-    }
-    pub fn target(&self) -> &PendingStorageCleanupTarget {
-        &self.target
     }
 }

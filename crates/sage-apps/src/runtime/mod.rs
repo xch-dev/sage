@@ -12,7 +12,6 @@ mod events;
 
 pub use manager::RuntimeTargetParams;
 
-pub use commands::*;
 pub(crate) use manager::*;
 pub(crate) use resolve::*;
 

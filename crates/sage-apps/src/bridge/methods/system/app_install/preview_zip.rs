@@ -1,7 +1,9 @@
+use std::{fs};
+use std::path::Path;
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
-
+use uuid::Uuid;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
     parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
@@ -9,7 +11,8 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::install::commands::preview_app_zip;
+use crate::lifecycle::{read_manifest, unzip_to_dir};
+use crate::types::SageAppPackageManifest;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -46,9 +49,25 @@ impl BridgeMethod for AppInstallPreviewZip {
     ) -> BridgeHandleResult {
         let params: AppInstallPreviewZipParams = parse_required_params(self, request)?;
 
-        let manifest = preview_app_zip(params.zip_path)
-            .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
+        let manifest = preview_manifest(&params.zip_path)
+            .map_err(BridgeMethodHandleError::internal_error)?;
 
         Ok(Box::new(manifest))
     }
+}
+
+fn preview_manifest(zip_path: &String) -> Result<SageAppPackageManifest, String> {
+    let unpack_dir = std::env::temp_dir().join(format!(".sage-preview-{}", Uuid::new_v4()));
+
+    let result = (|| -> anyhow::Result<SageAppPackageManifest> {
+        unzip_to_dir(Path::new(&zip_path), &unpack_dir)?;
+        let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
+        let manifest = read_manifest(&package_root)?;
+
+        Ok(manifest)
+    })();
+
+    let _ = fs::remove_dir_all(&unpack_dir);
+
+    result.map_err(|err| format!("failed to preview app zip {zip_path}: {err}"))
 }

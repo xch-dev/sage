@@ -1,42 +1,10 @@
 use crate::types::{SageAppPackageManifest, SageAppSnapshot, SageAppUrl};
 use crate::utils::bytes_sha256_hex;
 use anyhow::{Context, Result as AnyResult, anyhow};
-use std::path::Component;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
-
-pub fn read_snapshot_file(root: &Path, request_path: &str) -> AnyResult<PathBuf> {
-    let normalized = if request_path.is_empty() || request_path == "/" {
-        "index.html"
-    } else {
-        request_path.trim_start_matches('/')
-    };
-
-    let relative = Path::new(normalized);
-
-    if relative.is_absolute() {
-        return Err(anyhow!("snapshot path must be relative"));
-    }
-
-    for component in relative.components() {
-        match component {
-            Component::Normal(_) => {}
-            _ => {
-                return Err(anyhow!("invalid snapshot path component in {request_path}"));
-            }
-        }
-    }
-
-    let path = root.join(relative);
-
-    if !path.is_file() {
-        return Err(anyhow!("snapshot file not found: {request_path}"));
-    }
-
-    Ok(path)
-}
 
 async fn download_bytes(url: &str) -> AnyResult<Vec<u8>> {
     let response = reqwest::get(url)

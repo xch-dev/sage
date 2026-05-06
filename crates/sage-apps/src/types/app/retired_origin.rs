@@ -49,31 +49,23 @@ impl RetiredAppOriginEntry {
         true
     }
 
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
     pub fn app_id(&self) -> &str {
         &self.app_id
-    }
-
-    pub fn app_name(&self) -> &str {
-        &self.app_name
     }
 
     pub fn origin_id(&self) -> &str {
         &self.origin_id
     }
 
-    pub fn created_at_ms(&self) -> i64 {
-        self.created_at_ms
-    }
-
-    pub fn cleanup_pending(&self) -> bool {
-        self.cleanup_pending
-    }
-
     pub fn storage_may_contain_secrets(&self) -> bool {
         self.storage_may_contain_secrets
+    }
+}
+
+
+#[cfg(test)]
+impl RetiredAppOriginEntry {
+    pub fn cleanup_pending(&self) -> bool {
+        self.cleanup_pending
     }
 }

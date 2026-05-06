@@ -4,7 +4,6 @@ use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, S
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
-use tauri_specta::Event;
 use crate::bridge::registry::BridgeRegistryKind;
 use crate::runtime::SharedImpostorRuntime;
 
@@ -89,13 +88,6 @@ pub enum RustBridgeApprovalBody {
     NetworkWhitelistGrant {
         entry: SageNetworkWhitelistEntry,
     },
-}
-
-#[derive(Debug, Clone, Serialize, Type, Event)]
-#[serde(rename_all = "camelCase")]
-pub struct RustBridgeApprovalEvent {
-    pub approval_id: String,
-    pub approval: RustBridgeApprovalRequest,
 }
 
 pub(crate) struct BridgeOrigin {

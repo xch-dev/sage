@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{Context, Result as AnyResult, anyhow};
+use anyhow::{Context, Result as AnyResult};
 use zip::ZipArchive;
 
 use crate::types::MANIFEST_FILE_NAME;
@@ -78,30 +78,6 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> AnyResult<()> {
     }
 
     Ok(())
-}
-
-pub fn compute_dir_size(root: &Path) -> AnyResult<u64> {
-    let mut total = 0_u64;
-
-    for entry in fs::read_dir(root)
-        .with_context(|| format!("failed to read directory {}", root.display()))?
-    {
-        let entry = entry?;
-        let file_type = entry.file_type()?;
-        let path = entry.path();
-
-        if file_type.is_dir() {
-            total = total
-                .checked_add(compute_dir_size(&path)?)
-                .ok_or_else(|| anyhow!("directory size overflow"))?;
-        } else if file_type.is_file() {
-            total = total
-                .checked_add(entry.metadata()?.len())
-                .ok_or_else(|| anyhow!("directory size overflow"))?;
-        }
-    }
-
-    Ok(total)
 }
 
 pub fn prepare_zip_snapshot(

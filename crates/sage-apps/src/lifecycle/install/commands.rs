@@ -1,48 +1,10 @@
-use std::{fs, io, path::Path};
+use std::{fs, io};
 
-use tauri::{AppHandle, State, command};
+use tauri::{State, command};
 
 use crate::host::{AppState, Result};
-use crate::lifecycle::install::install_app_from_source;
-use crate::lifecycle::install::zip::ZipInstallSource;
-use crate::lifecycle::{apps_root, fetch_url_manifest_preview, list_installed_apps_internal, read_manifest, unzip_to_dir};
-use crate::types::{ListedSageAppView, SageAppPackageManifest, SageAppUrl, SageAppUrlPreview, SageGrantedPermissionsInput, UserSageAppView};
-use uuid::Uuid;
-
-#[allow(clippy::needless_pass_by_value)]
-#[command]
-#[specta::specta]
-pub fn preview_app_zip(zip_path: String) -> Result<SageAppPackageManifest> {
-    let unpack_dir = std::env::temp_dir().join(format!(".sage-preview-{}", Uuid::new_v4()));
-
-    let result = (|| -> anyhow::Result<SageAppPackageManifest> {
-        unzip_to_dir(Path::new(&zip_path), &unpack_dir)?;
-        let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
-        let manifest = read_manifest(&package_root)?;
-
-        Ok(manifest)
-    })();
-
-    let _ = fs::remove_dir_all(&unpack_dir);
-
-    result.map_err(|err| {
-        io::Error::other(format!("failed to preview app zip {zip_path}: {err}")).into()
-    })
-}
-
-#[command]
-#[specta::specta]
-pub async fn preview_app_url(app_url: String) -> Result<SageAppUrlPreview> {
-    let app_url = SageAppUrl::parse(&app_url)
-        .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-
-    let (manifest, manifest_hash) = fetch_url_manifest_preview(&app_url.manifest_url())
-        .await
-        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
-
-    SageAppUrlPreview::new(&app_url, manifest, manifest_hash).await
-        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")).into())
-}
+use crate::lifecycle::{apps_root, list_installed_apps_internal};
+use crate::types::{ListedSageAppView};
 
 #[command]
 #[specta::specta]
@@ -64,64 +26,4 @@ pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<Liste
     list_installed_apps_internal(&root)
         .map(|apps| apps.iter().map(Into::into).collect())
         .map_err(|err| io::Error::other(format!("failed to list installed apps: {err}")).into())
-}
-
-#[command]
-#[specta::specta]
-pub async fn install_app_zip(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    zip_path: String,
-    granted_permissions_input: SageGrantedPermissionsInput,
-) -> Result<UserSageAppView> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-
-    let root = apps_root(&base_path);
-
-    fs::create_dir_all(&root).map_err(|err| {
-        io::Error::other(format!(
-            "failed to create apps directory {}: {err}",
-            root.display()
-        ))
-    })?;
-
-    let source = ZipInstallSource::new(&root, zip_path.clone());
-    let unpack_dir = source.unpack_dir.clone();
-
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, source).await;
-
-    if unpack_dir.exists() {
-        let _ = fs::remove_dir_all(&unpack_dir);
-    }
-
-    result
-        .map(|app| (&app).into())
-        .map_err(|err| io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into())
-}
-
-#[command]
-#[specta::specta]
-pub async fn install_app_url(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    app_url: String,
-    granted_permissions_input: SageGrantedPermissionsInput,
-) -> Result<UserSageAppView> {
-    let base_path = {
-        let state = state.lock().await;
-        state.path.clone()
-    };
-    let parsed_app_url = SageAppUrl::parse(&app_url)
-        .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, parsed_app_url)
-        .await;
-
-    result
-        .map(|app| (&app).into())
-        .map_err(|err| {
-            io::Error::other(format!("failed to install app URL {app_url}: {err}")).into()
-        })
 }

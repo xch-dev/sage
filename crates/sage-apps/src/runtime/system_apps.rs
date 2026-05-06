@@ -38,10 +38,7 @@ pub(crate) async fn start_app_install_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_APP_INSTALL_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation {
-                visible_over_app_ids: Vec::new(),
-                visible_over_launchpad: true,
-            }),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_launchpad()),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
@@ -62,10 +59,7 @@ pub(crate) async fn start_app_update_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_APP_UPDATE_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation {
-                visible_over_app_ids: vec![target_app_id],
-                visible_over_launchpad: true,
-            }),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_app_and_launchpad(target_app_id)),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
@@ -85,10 +79,7 @@ pub(crate) async fn start_bridge_approval_runtime(
         apps_state,
         CreateRuntimeArgs {
             app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID.to_string(),
-            presentation: AppPresentation::Modal(AppModalPresentation {
-                visible_over_app_ids: target_app_ids,
-                visible_over_launchpad: false,
-            }),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_apps(target_app_ids)),
             mode: SageAppRuntimeMode::Inline,
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,

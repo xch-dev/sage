@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use crate::lifecycle::read_installed_app_by_id;
-use crate::runtime::state::SageAppRuntimeKind;
 use crate::sandbox::build_builtin_test_app;
 use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
 use tauri::{AppHandle, Manager, State};
@@ -63,13 +62,6 @@ pub fn app_id_from_webview_label(label: &str) -> Option<&str> {
     }
 
     None
-}
-
-pub fn runtime_kind_for_app(app: &SageApp) -> SageAppRuntimeKind {
-    match app {
-        SageApp::User(_) => SageAppRuntimeKind::User,
-        SageApp::System(_) => SageAppRuntimeKind::System,
-    }
 }
 
 pub fn protocol_scheme_for_app(app: &SharedSageApp) -> &'static str {

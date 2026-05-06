@@ -15,8 +15,8 @@ pub enum AppPresentation {
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct AppModalPresentation {
-    pub visible_over_app_ids: Vec<String>,
-    pub visible_over_launchpad: bool,
+    visible_over_app_ids: Vec<String>,
+    visible_over_launchpad: bool,
 }
 
 #[derive(Debug)]
@@ -61,9 +61,9 @@ impl SystemSageApp {
 }
 
 impl AppModalPresentation {
-    pub fn over_app(app_id: String) -> Self {
+    pub fn over_apps(app_ids: Vec<String>) -> Self {
         Self {
-            visible_over_app_ids: vec![app_id],
+            visible_over_app_ids: app_ids,
             visible_over_launchpad: false,
         }
     }
@@ -73,5 +73,24 @@ impl AppModalPresentation {
             visible_over_app_ids: vec![app_id],
             visible_over_launchpad: true,
         }
+    }
+
+    pub fn over_launchpad() -> Self {
+        Self {
+            visible_over_app_ids: vec![],
+            visible_over_launchpad: true,
+        }
+    }
+
+    pub fn visible_over_app_ids(&self) -> Vec<String> {
+        self.visible_over_app_ids.clone()
+    }
+
+    pub fn visible_over_launchpad(&self) -> bool {
+        self.visible_over_launchpad
+    }
+
+    pub fn update_app_ids(&mut self, target_app_ids: Vec<String>) {
+        self.visible_over_app_ids = target_app_ids;
     }
 }
