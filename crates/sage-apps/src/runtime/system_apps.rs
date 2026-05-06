@@ -115,7 +115,7 @@ pub(crate) async fn sync_bridge_approval_runtime(
         app_handle,
         apps_state,
         &approval_runtime.with_runtime(SageAppRuntimeRecord::host_window_label)
-    ).await;
+    ).await?;
 
     Ok(())
 }
