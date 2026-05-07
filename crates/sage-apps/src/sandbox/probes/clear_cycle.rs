@@ -21,7 +21,7 @@ pub(in crate::sandbox) async fn run_clear_cycle_test(
     )
         .await?;
 
-    let write_results = poll_persistence_write(apps_state, &run_id, 1, 10_000).await?;
+    let write_results = poll_persistence_write(apps_state, &run_id, 1, 2_000).await?;
     let Some(write) = write_results.into_iter().find(|item| item.app_id == app_id) else {
         let () = close_runtime_internal(app, apps_state, app_id).await;
         return Ok((false, Some("Timed out waiting for victim storage write result.".into())));
@@ -54,7 +54,7 @@ pub(in crate::sandbox) async fn run_clear_cycle_test(
     )
         .await?;
 
-    let read_results = poll_persistence_read(apps_state, &run_id, 1, 10_000).await?;
+    let read_results = poll_persistence_read(apps_state, &run_id, 1, 2_000).await?;
     let Some(read) = read_results.into_iter().find(|item| item.app_id == app_id) else {
         let () = close_runtime_internal(app, apps_state, app_id).await;
         return Ok((false, Some("Timed out waiting for victim storage read result.".into())));

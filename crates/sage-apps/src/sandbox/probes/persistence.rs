@@ -33,7 +33,7 @@ pub(in crate::sandbox) async fn run_persistence_test(
     )
     .await?;
 
-    let write_results = poll_persistence_write(apps_state, &run_id, 2, 10_000).await?;
+    let write_results = poll_persistence_write(apps_state, &run_id, 2, 2_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;
 
     let persistent_write = write_results
@@ -127,7 +127,7 @@ pub(in crate::sandbox) async fn run_persistence_test(
     )
     .await?;
 
-    let read_results = poll_persistence_read(apps_state, &run_id, 2, 10_000).await?;
+    let read_results = poll_persistence_read(apps_state, &run_id, 2, 2_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;
 
     let persistent_read = read_results

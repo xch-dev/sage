@@ -30,7 +30,7 @@ pub(in crate::sandbox) async fn run_network_test(
     )
     .await?;
 
-    let results = poll_network(apps_state, &run_id, 2, 12_000).await?;
+    let results = poll_network(apps_state, &run_id, 2, 4_000).await?;
     stop_test_apps(app, apps_state, &app_ids).await;
 
     for result in &results {
