@@ -12,6 +12,7 @@ use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
 use crate::bridge::event_emit::emit_bridge_response_to_app;
 use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
+use crate::lifecycle::{ensure_app_is_enabled_for_scope};
 use crate::security::assert_bridge_origin;
 
 pub(super) async fn process(
@@ -118,6 +119,13 @@ async fn process_shared(
 
     let app = &origin.app;
     let impostor_runtime = &origin.impostor_runtime;
+    if let Err(err) = ensure_app_is_enabled_for_scope(app_state, app).await {
+        return Ok(RustBridgeInvokeResult::error(
+            &request.id,
+            "app_not_enabled_for_scope",
+            err,
+        ));
+    }
 
     let method = match assert_method(&registry, request) {
         Ok(method) => method,

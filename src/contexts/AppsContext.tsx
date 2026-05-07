@@ -1,4 +1,13 @@
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState, } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
@@ -48,10 +57,18 @@ interface ListedAppsChangedEvent {
   };
 }
 
+interface SandboxStateChangedEvent {
+  type: 'sandbox.stateChanged';
+  payload: {
+    state: SandboxStateView;
+  };
+}
+
 type SageRuntimeEvent =
   | RuntimeManagerRuntimesChangedEvent
   | ActiveTaskbarRuntimeChangedEvent
-  | ListedAppsChangedEvent;
+  | ListedAppsChangedEvent
+  | SandboxStateChangedEvent;
 
 type ActiveTaskbarRuntime = {
   appId: string | null;
@@ -66,14 +83,13 @@ interface AppsContextValue {
   error: string | null;
   busyAppIds: Record<string, boolean>;
   updateAvailability: Record<string, SageAppUrlPreview | null>;
+  sandboxState: SandboxStateView | null;
   launchGatesByAppId: Record<string, AppLaunchGateResult>;
 
   getApp: (appId: string) => UserSageAppView | undefined;
   getListedApp: (appId: string) => InstalledEntry | undefined;
   getLaunchGate: (appId: string) => AppLaunchGateResult | null;
-  getTaskbarRuntime: (
-    appId: string,
-  ) => SageAppRuntimeRecordView | null;
+  getTaskbarRuntime: (appId: string) => SageAppRuntimeRecordView | null;
 
   refresh: () => Promise<void>;
   refreshInstalledApps: () => Promise<void>;
@@ -136,6 +152,8 @@ function isTaskbarRuntime(runtime: SageAppRuntimeRecordView): boolean {
 
 export function AppsProvider({ children }: { children: ReactNode }) {
   const [apps, setApps] = useState<ListedSageAppView[]>([]);
+  const appsRef = useRef<ListedSageAppView[]>([]);
+
   const [runtimes, setRuntimes] = useState<SageAppRuntimeRecordView[]>([]);
   const [taskbarRuntimes, setTaskbarRuntimes] = useState<
     SageAppRuntimeRecordView[]
@@ -155,10 +173,15 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     Record<string, AppLaunchGateResult>
   >({});
 
+  useEffect(() => {
+    appsRef.current = apps;
+  }, [apps]);
+
   const refreshRuntimes = useCallback(async () => {
     try {
       const next = await commands.appsListRuntimes();
       setRuntimes(next);
+      setTaskbarRuntimes(next.filter(isTaskbarRuntime));
     } catch (err) {
       console.error('Failed to refresh runtimes:', err);
     }
@@ -241,11 +264,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
               case 'runtimeManager.runtimesChanged':
                 setRuntimes(runtimeEvent.payload.runtimes);
                 setTaskbarRuntimes(
-                  runtimeEvent.payload.runtimes.filter((runtime) =>
-                    isTaskbarRuntime(runtime),
-                  ),
+                  runtimeEvent.payload.runtimes.filter(isTaskbarRuntime),
                 );
                 break;
+
               case 'runtimeManager.activeTaskbarRuntimeChanged':
                 if (
                   runtimeEvent.payload.hostWindowLabel !==
@@ -253,16 +275,23 @@ export function AppsProvider({ children }: { children: ReactNode }) {
                 ) {
                   break;
                 }
+
                 setActiveTaskbarRuntime({
                   appId: runtimeEvent.payload.appId,
                   runtimeId: runtimeEvent.payload.runtimeId,
                 });
                 break;
+
               case 'appRegistry.listedAppsChanged':
                 setApps(runtimeEvent.payload.apps);
                 setLoading(false);
                 setError(null);
                 void refreshLaunchGates(runtimeEvent.payload.apps);
+                break;
+
+              case 'sandbox.stateChanged':
+                setSandboxState(runtimeEvent.payload.state);
+                void refreshLaunchGates(appsRef.current);
                 break;
             }
           },
@@ -294,7 +323,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         const next = await commands.appsGetSandboxState();
         if (!isCancelled) {
           setSandboxState(next);
-          void refreshLaunchGates(apps);
+          void refreshLaunchGates(appsRef.current);
         }
       } catch (err) {
         if (!isCancelled) {
@@ -313,7 +342,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       isCancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [apps, currentSandboxRunId, refreshLaunchGates]);
+  }, [currentSandboxRunId, refreshLaunchGates]);
 
   const refresh = refreshInstalledApps;
 
@@ -335,7 +364,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
   const getTaskbarRuntime = useCallback(
     (appId: string) => {
-      return taskbarRuntimes.find((runtime) => runtimeAppId(runtime) === appId) ?? null;
+      return (
+        taskbarRuntimes.find((runtime) => runtimeAppId(runtime) === appId) ??
+        null
+      );
     },
     [taskbarRuntimes],
   );
@@ -402,10 +434,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const performAppUpdate = useCallback(
-    async (
-      appId: string,
-      grantedPermissions: SageGrantedPermissionsInput,
-    ) => {
+    async (appId: string, grantedPermissions: SageGrantedPermissionsInput) => {
       setBusy(appId, true);
       try {
         await commands.downloadAppUpdate(appId);
@@ -436,6 +465,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
+      sandboxState,
       launchGatesByAppId,
 
       getApp,
@@ -464,6 +494,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
+      sandboxState,
       launchGatesByAppId,
       getApp,
       getListedApp,

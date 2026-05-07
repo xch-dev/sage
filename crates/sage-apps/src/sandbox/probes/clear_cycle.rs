@@ -3,7 +3,7 @@ use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
 use crate::runtime::stop::close_runtime_internal;
 use crate::sandbox::BUILTIN_STORAGE_CLEAR_PERSISTENT_ID;
 use crate::sandbox::probes::poll::{poll_persistence_read, poll_persistence_write};
-use crate::sandbox::runtime::{start_test_app, unique_run_id};
+use crate::sandbox::runtime::{start_test_app, stop_test_apps, unique_run_id};
 use tauri::{AppHandle, State};
 
 pub(in crate::sandbox) async fn run_clear_cycle_test(
@@ -13,6 +13,7 @@ pub(in crate::sandbox) async fn run_clear_cycle_test(
     let app_id = BUILTIN_STORAGE_CLEAR_PERSISTENT_ID;
     let run_id = unique_run_id("storage-clear-cycle-victim");
 
+    stop_test_apps(app, apps_state, &[BUILTIN_STORAGE_CLEAR_PERSISTENT_ID]).await;
     start_test_app(
         app,
         apps_state,

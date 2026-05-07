@@ -5,6 +5,7 @@ use tauri::{AppHandle, Emitter, Manager, State};
 use crate::AppsHostState;
 use crate::bridge::{comms_debug, RustBridgeResponse};
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
+use crate::lifecycle::{ensure_app_is_enabled_for_scope};
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::{list_runtimes, resolve_possibly_impostor_running_app_immediate};
 use crate::types::SharedSageApp;
@@ -156,7 +157,7 @@ where
                 app_handle,
                 &app_id,
                 event.clone(),
-            );
+            ).await;
 
             if let Err(err) = result {
                 comms_debug!(
@@ -186,10 +187,10 @@ where
         AppRuntimeEventRail::User,
         T::TYPE,
         event,
-    )
+    ).await
 }
 
-pub(crate) fn emit_system_runtime_event_to_app_id<T>(
+pub(crate) async fn emit_system_runtime_event_to_app_id<T>(
     app_handle: &AppHandle,
     app_id: &str,
     event: T,
@@ -203,7 +204,7 @@ where
         AppRuntimeEventRail::System,
         T::TYPE,
         event,
-    )
+    ).await
 }
 
 pub(crate) fn emit_user_runtime_event_to_sage_webview<T>(
@@ -246,7 +247,7 @@ pub(crate) async fn emit_bridge_response_to_app(
         .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
-fn emit_runtime_event_to_app_id<T>(
+async fn emit_runtime_event_to_app_id<T>(
     app_handle: &AppHandle,
     app_id: &str,
     rail: AppRuntimeEventRail,
@@ -259,6 +260,9 @@ where
     let apps_state = app_handle.state::<AppsHostState>();
 
     let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
+
+    ensure_app_is_enabled_for_scope(&app_handle.state(), &runtime.identity_app()).await?;
+
     let webview_label = runtime.identity_webview_label();
     comms_debug!(
         "runtime:event:emit_to_app app_id={} webview_label={} rail={:?} type={}",
