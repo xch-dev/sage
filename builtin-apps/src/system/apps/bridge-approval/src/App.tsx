@@ -5,7 +5,7 @@ import {
   type PendingBridgeApprovalView,
   type SageAppRuntimeRecordView,
 } from '@sage-system-app/sdk';
-import { BadgeCheck, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { AppApprovalBody } from './approval/AppApprovalBody';
 
 function appNameFromRuntime(
@@ -47,7 +47,7 @@ function formatCountdown(expiresAt: number, now: number) {
 
 function queueText(count: number) {
   if (count <= 0) return null;
-  return `${count} more approval${count === 1 ? '' : 's'} pending`;
+  return `+${count} pending`;
 }
 
 function MetaPill({ children }: { children: React.ReactNode }) {
@@ -247,28 +247,17 @@ export function App() {
       }
     >
       <div className='space-y-4'>
-        <div>
-          <div className='flex flex-wrap items-center gap-2'>
-            <div className='text-sm font-semibold'>Approval required</div>
+        <div className='flex flex-wrap items-center gap-2'>
+          <div className='text-sm font-semibold'>Approval required</div>
 
-            {countdownText ? (
-              <MetaPill>
-                <Clock className='h-3 w-3' />
-                {countdownText}
-              </MetaPill>
-            ) : null}
+          {countdownText ? (
+            <MetaPill>
+              <Clock className='h-3 w-3' />
+              {countdownText}
+            </MetaPill>
+          ) : null}
 
-            <MetaPill>{pendingForActiveAppCount} pending for this app</MetaPill>
-
-            {moreText ? <MetaPill>{moreText}</MetaPill> : null}
-          </div>
-
-          <div className='mt-1 flex items-center gap-2 text-xs text-muted-foreground'>
-            <BadgeCheck className='h-3.5 w-3.5' />
-            <span>{activeAppName}</span>
-            <span>·</span>
-            <span className='font-mono'>{activeApproval.appId}</span>
-          </div>
+          {moreText ? <MetaPill>{moreText}</MetaPill> : null}
         </div>
 
         <AppApprovalBody
