@@ -231,9 +231,7 @@ export function AppTaskBar({
 
     setPreviewOrder(reorderIds(activeOrder, currentIndex, nextIndex));
   }, [
-    dragState?.currentPointerX,
-    dragState?.pointerOffsetWithinTab,
-    dragState?.draggedAppId,
+    dragState,
     activeOrder,
     tabWidthPx,
     slotSpanPx,
