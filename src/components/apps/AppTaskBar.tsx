@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppIcon } from '@/components/apps/AppIcon.tsx';
 import { ListedSageAppView } from '@/bindings.ts';
+import { MobileNavSheet } from '@/components/MobileNavSheet.tsx';
 
 type InstalledAppView = Exclude<ListedSageAppView, { kind: 'corrupted' }>;
 
@@ -240,7 +241,8 @@ export function AppTaskBar({
   ]);
 
   return (
-    <div className='flex h-12 shrink-0 items-end gap-2 border-b bg-muted/30 px-3 pt-2'>
+    <div className='flex h-12 shrink-0 items-end gap-1 border-b bg-muted/30 px-2 pt-2 md:px-3'>
+      <MobileNavSheet />
       <Button
         variant='ghost'
         className='h-9 shrink-0 px-3'
