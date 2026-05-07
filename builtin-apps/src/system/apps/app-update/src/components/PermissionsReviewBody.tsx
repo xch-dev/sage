@@ -3,14 +3,33 @@ import {
   appIconFromCommonView,
   AppModalShell,
   PermissionsEditor,
+  WalletScopeEditor,
 } from '@sage-app/ui';
-import { formatSageError, getSageSystemClient } from '@sage-system-app/sdk';
+import {
+  formatSageError,
+  getSageSystemClient,
+  type SageAppWalletScope,
+  type SageGrantedPermissionsInput,
+} from '@sage-system-app/sdk';
+import type { LoadState } from '../types';
 
-export function PermissionsReviewBody({ state }: any) {
+type PermissionsReadyState = Extract<LoadState, { kind: 'ready' }>;
+type ReviewTab = 'permissions' | 'wallets';
+
+export function PermissionsReviewBody({
+  state,
+}: {
+  state: PermissionsReadyState;
+}) {
+  const [tab, setTab] = useState<ReviewTab>('permissions');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [grantedPermissions, setGrantedPermissions] = useState(
-    state.app.common.grantedPermissions,
+
+  const [grantedPermissions, setGrantedPermissions] =
+    useState<SageGrantedPermissionsInput>(state.app.common.grantedPermissions);
+
+  const [walletScope, setWalletScope] = useState<SageAppWalletScope>(
+    state.app.common.walletScope,
   );
 
   async function close() {
@@ -28,6 +47,7 @@ export function PermissionsReviewBody({ state }: any) {
       await client.appPermissions.applyPermissions({
         appId: state.app.common.identity.id,
         grantedPermissions,
+        walletScope,
       });
 
       await close();
@@ -42,7 +62,7 @@ export function PermissionsReviewBody({ state }: any) {
     <AppModalShell
       appName={state.app.common.activeSnapshot.manifest.name}
       appIcon={appIconFromCommonView(state.app.common)}
-      title='Change app permissions'
+      title='Change app access'
       footer={
         <div className='flex justify-end gap-2'>
           <button
@@ -54,29 +74,68 @@ export function PermissionsReviewBody({ state }: any) {
           </button>
 
           <button
-            className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground'
+            className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
             disabled={submitting}
             onClick={submit}
           >
-            {submitting ? 'Saving…' : 'Save permissions'}
+            {submitting ? 'Saving…' : 'Save changes'}
           </button>
         </div>
       }
     >
       <div className='space-y-4'>
-        <PermissionsEditor
-          app={state.app}
-          grantedPermissions={grantedPermissions}
-          capabilityDefinitions={state.definitions}
-          editable={!submitting}
-          onGrantedPermissionsChange={setGrantedPermissions}
-        />
+        <div className='inline-flex rounded-lg border border-border bg-background p-1'>
+          <button
+            type='button'
+            disabled={submitting}
+            onClick={() => setTab('permissions')}
+            className={[
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60',
+              tab === 'permissions'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            ].join(' ')}
+          >
+            Permissions
+          </button>
 
-        {error && (
+          <button
+            type='button'
+            disabled={submitting}
+            onClick={() => setTab('wallets')}
+            className={[
+              'rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-60',
+              tab === 'wallets'
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            ].join(' ')}
+          >
+            Wallets
+          </button>
+        </div>
+
+        {tab === 'permissions' ? (
+          <PermissionsEditor
+            app={state.app}
+            grantedPermissions={grantedPermissions}
+            capabilityDefinitions={state.definitions}
+            editable={!submitting}
+            onGrantedPermissionsChange={setGrantedPermissions}
+          />
+        ) : (
+          <WalletScopeEditor
+            wallets={state.wallets}
+            walletScope={walletScope}
+            disabled={submitting}
+            onWalletScopeChange={setWalletScope}
+          />
+        )}
+
+        {error ? (
           <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
             {error}
           </div>
-        )}
+        ) : null}
       </div>
     </AppModalShell>
   );

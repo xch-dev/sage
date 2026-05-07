@@ -10,14 +10,16 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::RustBridgeRequest;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::lifecycle::update::permissions::update_app_permissions_for_app;
+use crate::lifecycle::update::scope::update_app_wallet_scope_for_app;
 use crate::runtime::resolve_app;
-use crate::types::{SageGrantedPermissionsInput, SageApp, UserSageAppView};
+use crate::types::{SageGrantedPermissionsInput, SageApp, UserSageAppView, SageAppWalletScope};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppPermissionsApplyPermissionsParams {
     pub app_id: String,
     pub granted_permissions: SageGrantedPermissionsInput,
+    pub wallet_scope: SageAppWalletScope,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -84,6 +86,13 @@ impl BridgeMethod for AppPermissionsApplyPermissions {
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!(
                     "failed to update app permissions: {err}"
+                ))
+            })?;
+        update_app_wallet_scope_for_app(tools.app_handle, &app, params.wallet_scope)
+            .await
+            .map_err(|err| {
+                BridgeMethodHandleError::internal_error(format!(
+                    "failed to update app wallet scope: {err}"
                 ))
             })?;
 

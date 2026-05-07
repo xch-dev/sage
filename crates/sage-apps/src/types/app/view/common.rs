@@ -3,7 +3,7 @@ use specta::Type;
 use url::Url;
 use crate::types::app::view::permission::SageGrantedPermissionsView;
 use crate::types::app::view::snapshot::SageAppSnapshotView;
-use crate::types::{SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl};
+use crate::types::{SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl, SageAppWalletScope};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -17,6 +17,7 @@ pub(crate) struct SageAppIdentityView {
 pub(crate) struct SageAppCommonView {
     identity: SageAppIdentityView,
     granted_permissions: SageGrantedPermissionsView,
+    wallet_scope: SageAppWalletScope,
     active_snapshot: SageAppSnapshotView,
     icon: Option<SageAppIconView>,
 }
@@ -34,6 +35,7 @@ impl From<&SageAppCommon> for SageAppCommonView {
             identity: common.identity().into(),
             active_snapshot: common.active_snapshot().into(),
             granted_permissions: common.granted_permissions().into(),
+            wallet_scope: common.wallet_scope().clone(),
             icon: SageAppIconView::from_common(common),
         }
     }

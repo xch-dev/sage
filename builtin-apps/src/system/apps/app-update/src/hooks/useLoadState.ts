@@ -1,8 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  formatSageError,
-  useSageSystemClient,
-} from '@sage-system-app/sdk';
+import { formatSageError, useSageSystemClient } from '@sage-system-app/sdk';
 import type { LoadState, Mode } from '../types';
 
 export function useLoadState() {
@@ -23,7 +20,10 @@ export function useLoadState() {
           return;
         }
 
-        const definitions = await sage.capabilities.listUserDefinitions();
+        const [definitions, walletsResult] = await Promise.all([
+          sage.capabilities.listUserDefinitions(),
+          sage.wallet.listWallets(),
+        ]);
 
         if (mode === 'review-permissions') {
           const permissionsContext = await sage.appPermissions.getReviewContext(
@@ -38,6 +38,7 @@ export function useLoadState() {
               permissionsContext,
               updateContext: null,
               definitions,
+              wallets: walletsResult.wallets,
             });
           }
           return;
@@ -55,6 +56,7 @@ export function useLoadState() {
             updateContext,
             permissionsContext: null,
             definitions,
+            wallets: walletsResult.wallets,
           });
         }
       } catch (err) {
@@ -68,7 +70,7 @@ export function useLoadState() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sage]);
 
   return state;
 }

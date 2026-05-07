@@ -2,6 +2,7 @@ import type {
   AppPermissionsReviewContext,
   AppUpdateReviewContext,
   SageAppCapabilityDefinitionView,
+  SystemWalletView,
   UserSageAppView,
 } from '@sage-system-app/sdk';
 
@@ -17,4 +18,5 @@ export type LoadState =
       updateContext: AppUpdateReviewContext | null;
       permissionsContext: AppPermissionsReviewContext | null;
       definitions: SageAppCapabilityDefinitionView[];
+      wallets: SystemWalletView[];
     };

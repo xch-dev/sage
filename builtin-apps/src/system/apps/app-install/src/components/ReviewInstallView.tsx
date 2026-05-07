@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AppModalShell, PermissionsEditor } from '@sage-app/ui';
+import {
+  AppModalShell,
+  PermissionsEditor,
+  WalletScopeEditor,
+} from '@sage-app/ui';
 import {
   formatSageError,
   type SageAppCapabilityDefinitionView,
@@ -17,7 +21,6 @@ import {
   installManifest,
 } from '../utils/permissions';
 import { UnsupportedManifestView } from './UnsupportedManifestView';
-import { WalletScopeView } from './WalletScopeView';
 
 type Step = 'permissions' | 'wallets';
 
@@ -171,11 +174,11 @@ export function ReviewInstallView({
           </div>
         ) : (
           <>
-            <WalletScopeView
+            <WalletScopeEditor
               wallets={wallets}
               walletScope={walletScope}
-              setWalletScope={setWalletScope}
               disabled={installing}
+              onWalletScopeChange={setWalletScope}
             />
           </>
         )}

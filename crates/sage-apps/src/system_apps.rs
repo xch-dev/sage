@@ -55,6 +55,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::AppPermissionsApply,
             SystemBridgeCapability::AppUpdateRead,
             SystemBridgeCapability::AppUpdateApply,
+            SystemBridgeCapability::WalletListWallets,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
         user_grantable_capabilities: &[]

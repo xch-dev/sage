@@ -1,5 +1,4 @@
 import type {
-  SageAppIconView,
   SageAppCapabilityDefinitionView,
   SageAppPackageManifest,
   SageGrantedPermissionsInput,
@@ -88,6 +87,7 @@ export function buildPreviewApp(
         originId: '__install_preview__',
       },
       grantedPermissions,
+      walletScope: {kind: 'selectedWallets', fingerprints: []},
       activeSnapshot: { manifest },
       icon: null,
     },

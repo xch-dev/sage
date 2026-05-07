@@ -1,37 +1,44 @@
-import type {
-  SageAppWalletScope,
-  SystemWalletView,
-} from '@sage-system-app/sdk';
+import type { SageAppWalletScope } from '@sage-system-app/sdk';
 
-interface Props {
-  wallets: SystemWalletView[];
+export type WalletScopeEditorWallet = {
+  fingerprint: number;
+  name: string;
+  emoji?: string | null;
+};
+
+interface WalletScopeEditorProps {
+  wallets: WalletScopeEditorWallet[];
   walletScope: SageAppWalletScope;
-  setWalletScope: (scope: SageAppWalletScope) => void;
-  disabled: boolean;
+  disabled?: boolean;
+  onWalletScopeChange: (scope: SageAppWalletScope) => void;
 }
 
 function selectedFingerprints(scope: SageAppWalletScope): number[] {
   return scope.kind === 'selectedWallets' ? scope.fingerprints : [];
 }
 
-function walletLabel(wallet: SystemWalletView): string {
+function walletLabel(wallet: WalletScopeEditorWallet): string {
   return wallet.name || `Wallet ${wallet.fingerprint}`;
 }
 
-export function WalletScopeView({
+export function WalletScopeEditor({
   wallets,
   walletScope,
-  setWalletScope,
-  disabled,
-}: Props) {
+  disabled = false,
+  onWalletScopeChange,
+}: WalletScopeEditorProps) {
   const selected = selectedFingerprints(walletScope);
 
   function toggleFingerprint(fingerprint: number) {
+    if (disabled || walletScope.kind !== 'selectedWallets') {
+      return;
+    }
+
     const next = selected.includes(fingerprint)
       ? selected.filter((value) => value !== fingerprint)
       : [...selected, fingerprint].sort((a, b) => a - b);
 
-    setWalletScope({
+    onWalletScopeChange({
       kind: 'selectedWallets',
       fingerprints: next,
     });
@@ -42,7 +49,7 @@ export function WalletScopeView({
       <div>
         <div className='text-sm font-medium'>Wallet availability</div>
         <p className='mt-1 text-sm text-muted-foreground'>
-          Choose which wallets can use this app. You can change this later.
+          Choose which wallets can use this app.
         </p>
       </div>
 
@@ -50,7 +57,7 @@ export function WalletScopeView({
         <button
           type='button'
           disabled={disabled}
-          onClick={() => setWalletScope({ kind: 'allWallets' })}
+          onClick={() => onWalletScopeChange({ kind: 'allWallets' })}
           className={[
             'rounded-lg border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60',
             walletScope.kind === 'allWallets'
@@ -65,9 +72,9 @@ export function WalletScopeView({
           type='button'
           disabled={disabled}
           onClick={() =>
-            setWalletScope({
+            onWalletScopeChange({
               kind: 'selectedWallets',
-              fingerprints: selected.length > 0 ? selected : [],
+              fingerprints: selected,
             })
           }
           className={[
