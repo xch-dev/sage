@@ -177,6 +177,11 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
           'wallet.getPendingTransactions',
         );
       },
+      async getXchUsdPrice() {
+        return await callHost<Generated.GetXchUsdPriceResponse>(
+          'wallet.getXchUsdPrice',
+        );
+      },
 
       async checkAddress(input: Generated.CheckAddress) {
         return await callHost<Generated.CheckAddressResponse>(

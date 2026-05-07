@@ -1,4 +1,4 @@
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
 use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
 use crate::bridge::methods::user::app::request_capability_grant::{
     RequestCapabilityGrantParams, RequestCapabilityGrantResult,
@@ -14,14 +14,7 @@ use crate::bridge::methods::user::bridge::send::BridgeSendResult;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{ReadyToStopParams, RuntimeAckResult, RuntimeTargetParams, SetBeforeStopListenerParams};
-use sage_api::{
-    CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys,
-    GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey,
-    GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, TransactionResponse,
-};
+use sage_api::{CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse};
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::bridge::methods::user::app::events::BeforeStopEvent;
@@ -54,6 +47,7 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetKeysResponse>();
     types.register::<GetKey>();
     types.register::<GetKeyResponse>();
+    types.register::<GetXchUsdPriceResponse>();
     types.register::<GetSecretKey>();
     types.register::<GetSecretKeyResponse>();
     types.register::<GetSyncStatus>();
@@ -116,6 +110,9 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<ResolveBridgeApprovalArgs>();
     types.register::<PendingBridgeApprovalView>();
     types.register::<BridgeApprovalsChangedEvent>();
+
+    types.register::<DonationGetDetailsParams>();
+    types.register::<DonationDetails>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

@@ -34,7 +34,7 @@ impl From<&SageAppCommon> for SageAppCommonView {
             identity: common.identity().into(),
             active_snapshot: common.active_snapshot().into(),
             granted_permissions: common.granted_permissions().into(),
-            icon: read_common_icon(common),
+            icon: SageAppIconView::from_common(common),
         }
     }
 }
@@ -49,6 +49,30 @@ impl From<&SageAppIdentity> for SageAppIdentityView {
 }
 
 impl SageAppIconView {
+    pub(crate) fn from_common(common: &SageAppCommon) -> Option<Self> {
+        let icon_path = common.active_snapshot().manifest().icon()?;
+        Self::from_common_file(common, icon_path)
+    }
+
+    pub(crate) fn author_avatar_from_common(common: &SageAppCommon) -> Option<Self> {
+        let avatar_path = common
+            .active_snapshot()
+            .manifest()
+            .author()?
+            .avatar()?;
+
+        Self::from_common_file(common, avatar_path)
+    }
+
+    fn from_common_file(common: &SageAppCommon, path: &str) -> Option<Self> {
+        let file_path = common
+            .active_snapshot()
+            .resolve_file_path(path)
+            .ok()?;
+
+        Self::from_file_path(&file_path)
+    }
+
     pub(crate) fn from_file_path(file_path: &std::path::Path) -> Option<Self> {
         let bytes = std::fs::read(file_path).ok()?;
         let mime = mime_guess::from_path(file_path)
@@ -109,14 +133,4 @@ impl SageAppIconView {
             bytes: bytes.to_vec(),
         })
     }
-}
-
-fn read_common_icon(common: &SageAppCommon) -> Option<SageAppIconView> {
-    let icon_path = common.active_snapshot().manifest().icon()?;
-    let file_path = common
-        .active_snapshot()
-        .resolve_file_path(icon_path)
-        .ok()?;
-
-    SageAppIconView::from_file_path(&file_path)
 }

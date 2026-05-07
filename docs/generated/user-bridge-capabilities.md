@@ -196,6 +196,20 @@ Allows the app to read the current Sage wallet version.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.get_xch_usd_price`
+
+**Read XCH/USD price**
+
+Allows the app to read the current estimated XCH price in USD.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.check_address`
 
 **Check address**

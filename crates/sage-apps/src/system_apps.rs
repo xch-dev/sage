@@ -14,6 +14,7 @@ pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
 pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
 pub const SYSTEM_APP_BRIDGE_APPROVAL_ID: &str = "bridge-approval";
+pub const SYSTEM_APP_DONATION_ID: &str = "donation";
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinSystemAppSpec {
@@ -78,7 +79,16 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerHideSelf,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
-    }
+    },
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_DONATION_ID,
+        dir_name: "donation",
+        usage: SystemAppUsage::Contextual,
+        system_capabilities: &[
+            SystemBridgeCapability::DonationGetDetails,
+            SystemBridgeCapability::RuntimeManagerCloseSelf,
+        ],
+    },
 ];
 
 #[derive(Debug, Copy, Clone)]

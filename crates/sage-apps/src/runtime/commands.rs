@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
+use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
 use crate::AppsHostState;
 use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
@@ -19,6 +19,7 @@ use crate::types::AppPresentation;
 pub enum StartSystemAppArgs {
     AppInstall(StartAppInstallArgs),
     AppUpdate(StartAppUpdateArgs),
+    Donation(StartDonationArgs),
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -46,6 +47,12 @@ pub struct StartAppUpdateArgs {
 pub enum StartAppUpdateMode {
     ReviewUpdate,
     ReviewPermissions,
+}
+
+#[derive(Debug, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct StartDonationArgs {
+    pub app_id: String,
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -120,9 +127,16 @@ pub async fn apps_start_system_app(
 
             query.insert("appId".to_string(), args.app_id.clone());
             query.insert("mode".to_string(), args.mode.query_value().to_string());
-            query.insert("visibleOverLaunchpad".to_string(), "true".to_string());
 
             start_app_update_runtime(&app, &apps_state, args.app_id, query).await?
+        }
+
+        StartSystemAppArgs::Donation(args) => {
+            let mut query = BTreeMap::new();
+
+            query.insert("appId".to_string(), args.app_id.clone());
+
+            start_donation_runtime(&app, &apps_state, args.app_id, query).await?
         }
     };
 

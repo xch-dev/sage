@@ -8,10 +8,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 
-use sage_api::{
-    CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetKey, GetKeys, GetPendingTransactions,
-    GetSpendableCoinCount, GetSyncStatus, GetTransaction, GetTransactions, GetVersion,
-};
+use sage_api::{CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetKey, GetKeys, GetPendingTransactions, GetSpendableCoinCount, GetSyncStatus, GetTransaction, GetTransactions, GetVersion, GetXchUsdPrice};
 
 macro_rules! define_wallet_read_no_params_async_method {
     ($struct_name:ident, $capability:ident, $method_name:expr, $request_ident:ident, $handler:ident) => {
@@ -231,6 +228,14 @@ define_wallet_read_no_params_async_method!(
     "wallet.getPendingTransactions",
     GetPendingTransactions,
     get_pending_transactions
+);
+
+define_wallet_read_no_params_async_method!(
+    WalletGetXchUsdPrice,
+    WalletGetXchUsdPrice,
+    "wallet.getXchUsdPrice",
+    GetXchUsdPrice,
+    get_xch_usd_price
 );
 
 define_wallet_read_params_async_method!(

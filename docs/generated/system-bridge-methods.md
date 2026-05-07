@@ -66,6 +66,12 @@
 |---|---|
 | Capability | `capability_definitions.read` |
 
+## `donations.getDetails`
+
+| Field | Value |
+|---|---|
+| Capability | `donation.get_details` |
+
 ## `fileSystem.selectFile`
 
 | Field | Value |

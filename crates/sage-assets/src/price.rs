@@ -13,23 +13,24 @@ pub struct XchUsdPrice {
 impl XchUsdPrice {
     pub async fn fetch() -> Result<Self, UriError> {
         let response = price_client()?
-            .get("https://api.coinmarketcap.com/data-api/v3/cryptocurrency/market-pairs/latest?slug=chia-network")
+            .get("https://api.coingecko.com/api/v3/simple/price")
+            .query(&[
+                ("ids", "chia"),
+                ("vs_currencies", "usd"),
+            ])
             .send()
             .await?
             .error_for_status()?
-            .json::<CoinMarketCapMarketPairsResponse>()
+            .json::<CoinGeckoSimplePriceResponse>()
             .await?;
 
-        let market_pair = response
-            .data
-            .market_pairs
-            .into_iter()
-            .find(|pair| pair.price.is_finite() && pair.price > 0.0)
-            .expect("CMC returned no usable XCH/USD market price");
+        let usd = response
+            .chia
+            .usd
+            .filter(|price| price.is_finite() && *price > 0.0)
+            .ok_or(UriError::InvalidPriceResponse)?;
 
-        Ok(Self {
-            usd: market_pair.price,
-        })
+        Ok(Self { usd })
     }
 }
 
@@ -45,19 +46,11 @@ fn price_client() -> Result<Client, UriError> {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CoinMarketCapMarketPairsResponse {
-    data: CoinMarketCapMarketPairsData,
+struct CoinGeckoSimplePriceResponse {
+    chia: CoinGeckoUsdPrice,
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CoinMarketCapMarketPairsData {
-    market_pairs: Vec<CoinMarketCapMarketPair>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct CoinMarketCapMarketPair {
-    price: f64,
+struct CoinGeckoUsdPrice {
+    usd: Option<f64>,
 }

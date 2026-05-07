@@ -4,11 +4,7 @@ use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
-use crate::system_apps::{
-    SYSTEM_APP_APP_INSTALL_ID,
-    SYSTEM_APP_APP_UPDATE_ID,
-    SYSTEM_APP_BRIDGE_APPROVAL_ID,
-};
+use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID, SYSTEM_APP_DONATION_ID};
 use crate::types::{AppModalPresentation, AppPresentation};
 use crate::AppsHostState;
 use crate::bridge::state::pending_approval_app_ids;
@@ -97,6 +93,29 @@ pub(crate) async fn start_bridge_approval_runtime(
             visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
             query: BTreeMap::new(),
+        },
+    )
+        .await
+}
+
+pub(crate) async fn start_donation_runtime(
+    app: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    target_app_id: String,
+    query: BTreeMap<String, String>,
+) -> Result<SharedRuntime, String> {
+    start_system_app_runtime(
+        app,
+        apps_state,
+        CreateRuntimeArgs {
+            app_id: SYSTEM_APP_DONATION_ID.to_string(),
+            presentation: AppPresentation::Modal(
+                AppModalPresentation::over_apps(vec![target_app_id], 45),
+            ),
+            mode: SageAppRuntimeMode::Inline,
+            visibility: SageAppRuntimeVisibility::Visible,
+            debug_layout: false,
+            query,
         },
     )
         .await

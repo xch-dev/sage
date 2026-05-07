@@ -79,6 +79,7 @@ define_bridge_capabilities! {
         WalletSendXchAutoSubmit => "wallet.send_xch_auto_submit",
         WalletGetSyncStatus => "wallet.get_sync_status",
         WalletGetVersion => "wallet.get_version",
+        WalletGetXchUsdPrice => "wallet.get_xch_usd_price",
         WalletCheckAddress => "wallet.check_address",
         WalletGetDerivations => "wallet.get_derivations",
         WalletGetSpendableCoinCount => "wallet.get_spendable_coin_count",
@@ -124,6 +125,8 @@ define_bridge_capabilities! {
         BridgeApprovalList => "bridge_approval.list",
         BridgeApprovalResolve => "bridge_approval.resolve",
         BridgeApprovalListenApprovalsChanged => "bridge_approval.listen_changed",
+
+        DonationGetDetails => "donation.get_details",
     }
 }
 

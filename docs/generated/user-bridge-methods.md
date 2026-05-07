@@ -132,6 +132,12 @@
 |---|---|
 | Capability | `wallet.get_version` |
 
+## `wallet.getXchUsdPrice`
+
+| Field | Value |
+|---|---|
+| Capability | `wallet.get_xch_usd_price` |
+
 ## `wallet.sendXch`
 
 | Field | Value |

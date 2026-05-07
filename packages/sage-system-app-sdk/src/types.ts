@@ -80,6 +80,12 @@ export type SageSystemBridgeApprovalsClient = {
   ): () => void;
 };
 
+export type SageSystemDonationsClient = {
+  getDetails(
+    input: Generated.DonationGetDetailsParams,
+  ): Promise<Generated.DonationDetails>;
+};
+
 export type SageSystemClient = SageClient & {
   runtimeManager: SageSystemRuntimeManagerClient;
   capabilities: SageSystemCapabilitiesClient;
@@ -88,4 +94,5 @@ export type SageSystemClient = SageClient & {
   appUpdate: SageSystemAppUpdateClient;
   fileSystem: SageSystemFileSystemClient;
   bridgeApprovals: SageSystemBridgeApprovalsClient;
+  donations: SageSystemDonationsClient;
 };

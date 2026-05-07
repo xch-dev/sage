@@ -366,6 +366,14 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
         },
+        donations: {
+          async getDetails(input: Generated.DonationGetDetailsParams) {
+            return await callHost<Generated.DonationDetails>(
+              'donations.getDetails',
+              input,
+            );
+          }
+        }
       };
     })
     .catch((error: unknown) => {

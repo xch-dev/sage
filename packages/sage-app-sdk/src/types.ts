@@ -36,6 +36,7 @@ export type SageWalletClient = {
   getSyncStatus(): Promise<Generated.GetSyncStatusResponse>;
   getVersion(): Promise<Generated.GetVersionResponse>;
   getPendingTransactions(): Promise<Generated.GetPendingTransactionsResponse>;
+  getXchUsdPrice(): Promise<Generated.GetXchUsdPriceResponse>;
 
   checkAddress(
     input: Generated.CheckAddress,

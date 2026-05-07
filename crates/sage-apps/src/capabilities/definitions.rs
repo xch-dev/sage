@@ -15,154 +15,138 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to store data on this device between sessions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::BridgeSend => CapabilityDefinition::new(
             capability,
             "Bridge messaging",
             "Allows the app to send messages through the Sage bridge. (Only for sandbox tests)",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppGetCapabilities => CapabilityDefinition::new(
             capability,
             "Read granted capabilities",
             "Allows the app to read the capabilities currently visible to it.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppGetInfo => CapabilityDefinition::new(
             capability,
             "Read app information",
             "Allows the app to read its Sage app identity and permission information.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppLifecycleReadyToStop => CapabilityDefinition::new(
             capability,
             "Acknowledge app shutdown",
             "Allows the app to acknowledge that it is ready to stop after a lifecycle request.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppLifecycleSetBeforeStopListener => CapabilityDefinition::new(
             capability,
             "Listen before app shutdown",
             "Allows the app to register a before-stop lifecycle listener.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppRequestCapabilityGrant => CapabilityDefinition::new(
             capability,
             "Request additional capability",
             "Allows the app to request a capability grant after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::AppRequestNetworkWhitelistGrant => CapabilityDefinition::new(
             capability,
             "Request network access",
             "Allows the app to request access to an additional network target after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-
         UserBridgeCapability::WalletGetKeys => CapabilityDefinition::new(
             capability,
             "List wallet keys",
             "Allows the app to list wallet keys configured in Sage.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
             capability,
             "Read wallet key",
             "Allows the app to read public information about a wallet key.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetSecretKey => CapabilityDefinition::new(
             capability,
             "Read wallet secret key",
             "Allows the app to read wallet secrets, including the mnemonic or private key when available.",
             CapabilityFlags::new(false, true, true, true, true),
         ),
-
         UserBridgeCapability::WalletSendXch => CapabilityDefinition::new(
             capability,
             "Send XCH",
             "Allows the app to request XCH transactions from your wallet.",
             CapabilityFlags::new(true, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletSendXchAutoSubmit => CapabilityDefinition::new(
             capability,
             "Automatic XCH send",
             "Allows the app to submit XCH transactions without asking for per-transaction approval.",
             CapabilityFlags::new(false, false, false, false, false),
         ),
-
         UserBridgeCapability::WalletGetSyncStatus => CapabilityDefinition::new(
             capability,
             "Read sync status",
             "Allows the app to read wallet sync status and current wallet balance summary.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetVersion => CapabilityDefinition::new(
             capability,
             "Read wallet version",
             "Allows the app to read the current Sage wallet version.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
+        UserBridgeCapability::WalletGetXchUsdPrice => CapabilityDefinition::new(
+            capability,
+            "Read XCH/USD price",
+            "Allows the app to read the current estimated XCH price in USD.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
         UserBridgeCapability::WalletCheckAddress => CapabilityDefinition::new(
             capability,
             "Check address",
             "Allows the app to validate whether an address belongs to this wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetDerivations => CapabilityDefinition::new(
             capability,
             "Read derivations",
             "Allows the app to read wallet derivation records and addresses.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetSpendableCoinCount => CapabilityDefinition::new(
             capability,
             "Read spendable coin count",
             "Allows the app to read the number of spendable coins in the wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetCoinsByIds => CapabilityDefinition::new(
             capability,
             "Read coins by IDs",
             "Allows the app to read specific wallet coin records by coin ID.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetCoins => CapabilityDefinition::new(
             capability,
             "Read coins",
             "Allows the app to list wallet coins.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetPendingTransactions => CapabilityDefinition::new(
             capability,
             "Read pending transactions",
             "Allows the app to read pending wallet transactions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetTransaction => CapabilityDefinition::new(
             capability,
             "Read transaction",
             "Allows the app to read a wallet transaction by height.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
-
         UserBridgeCapability::WalletGetTransactions => CapabilityDefinition::new(
             capability,
             "Read transactions",
@@ -312,6 +296,12 @@ pub(crate) fn get_system_capability_definition(
             capability,
             "Listen for bridge approval changes",
             "Allows the system app to listen for changes in pending bridge approvals.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::DonationGetDetails => CapabilityDefinition::new(
+            capability,
+            "Get details for donation",
+            "Allows the system app to retrieve details to send donation.",
             system_app_flags(),
         ),
     }

@@ -3,6 +3,7 @@ use super::methods::system::*;
 use super::methods::user::*;
 use std::collections::HashMap;
 use crate::bridge::methods::user::environment::EnvironmentThemeGetCurrent;
+use crate::bridge::methods::user::wallet::read_methods::WalletGetXchUsdPrice;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BridgeRegistryKind {
@@ -64,6 +65,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, WalletGetSyncStatus);
     insert_method(&mut methods, WalletGetVersion);
     insert_method(&mut methods, WalletGetPendingTransactions);
+    insert_method(&mut methods, WalletGetXchUsdPrice);
     insert_method(&mut methods, WalletCheckAddress);
     insert_method(&mut methods, WalletGetDerivations);
     insert_method(&mut methods, WalletGetSpendableCoinCount);
@@ -105,6 +107,8 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
 
     insert_method(&mut methods, BridgeApprovalsListPending);
     insert_method(&mut methods, BridgeApprovalsResolve);
+
+    insert_method(&mut methods, DonationGetDetails);
 
     methods
 }

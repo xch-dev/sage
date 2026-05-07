@@ -280,3 +280,17 @@ Allows the system app to listen for changes in pending bridge approvals.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `donation.get_details`
+
+**Get details for donation**
+
+Allows the system app to retrieve details to send donation.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+

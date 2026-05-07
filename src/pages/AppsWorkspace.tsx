@@ -13,7 +13,6 @@ import {
   type SageAppUrlPreview,
   type UserSageAppView,
 } from '@/bindings';
-import { AppDonationStrip } from '@/components/apps/AppDonationStrip.tsx';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -107,7 +106,6 @@ export function AppsWorkspace() {
   }, [activeTaskbarRuntime?.appId, appId, getListedApp, navigate]);
 
   const [tabOrder, setTabOrder] = useState<string[]>([]);
-  const [donationOpen, setDonationOpen] = useState(false);
 
   useEffect(() => {
     setTabOrder((prev) => {
@@ -212,34 +210,14 @@ export function AppsWorkspace() {
         }}
         onReorderTabs={setTabOrder}
         activeAppHasDonation={hasDonation}
-        onOpenDonation={() => setDonationOpen((v) => !v)}
+        onOpenDonation={() => {
+          if (!activeApp) return;
+          void commands.appsStartSystemApp({
+            kind: 'donation',
+            appId: activeApp.common.identity.id,
+          });
+        }}
       />
-
-      {donationOpen && activeApp && activeManifest?.donation ? (
-        <AppDonationStrip
-          appName={activeApp.common.activeSnapshot.manifest.name}
-          authorName={activeManifest.author?.name}
-          authorAvatarSrc={
-            activeManifest.author?.avatar
-              ? `sage-app://${activeApp.common.identity.originId}/${activeManifest.author.avatar}`
-              : null
-          }
-          donationAddress={activeManifest.donation.address}
-          onSend={(amountMojos) => {
-            if (!activeManifest.donation) {
-              return;
-            }
-
-            void commands.sendXch({
-              address: activeManifest.donation.address,
-              amount: amountMojos,
-              fee: '0',
-              memos: [],
-              auto_submit: false,
-            });
-          }}
-        />
-      ) : null}
 
       {activeApp?.source.kind === 'url' && activeUpdatePreview ? (
         <Alert className='shrink-0 rounded-none border-x-0 border-t-0'>
