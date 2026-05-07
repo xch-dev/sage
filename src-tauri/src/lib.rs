@@ -229,15 +229,6 @@ pub fn run() {
                 }
             });
 
-            let sandbox_app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(err) =
-                    apps::ensure_initial_sandbox_run(sandbox_app_handle).await
-                {
-                    eprintln!("failed to start initial sandbox run: {err}");
-                }
-            });
-
             Ok(())
         })
         .run(tauri::generate_context!())

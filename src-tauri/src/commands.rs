@@ -12,7 +12,7 @@ use specta::{Type, specta};
 use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
-
+use sage_apps::ensure_initial_sandbox_run;
 use crate::{
     app_state::{self, AppState, Initialized, RpcTask},
     error::Result,
@@ -35,8 +35,12 @@ pub async fn initialize(
     *initialized = true;
 
     let mut sage = state.lock().await;
-    app_state::initialize(app_handle, &mut sage).await?;
+    app_state::initialize(app_handle.clone(), &mut sage).await?;
     drop(sage);
+
+    if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
+        eprintln!("failed to start initial sandbox run: {err}");
+    }
 
     let app_state = (*state).clone();
 
