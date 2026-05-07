@@ -17,6 +17,19 @@ interface Props {
   derivedUsd: number | null;
 }
 
+function numericInputEquals(a: string, b: string): boolean {
+  const aNumber = Number(a.trim());
+  const bNumber = Number(b.trim());
+
+  return (
+    a.trim() !== '' &&
+    b.trim() !== '' &&
+    Number.isFinite(aNumber) &&
+    Number.isFinite(bNumber) &&
+    aNumber === bNumber
+  );
+}
+
 export function AmountPicker({
   mode,
   setMode,
@@ -54,6 +67,7 @@ export function AmountPicker({
   }, [mode, priceUsd]);
 
   const showPresets = mode === 'usd' || priceUsd !== null;
+  const activeInput = mode === 'usd' ? usdInput : xchInput;
 
   return (
     <div>
@@ -83,23 +97,33 @@ export function AmountPicker({
 
       {showPresets ? (
         <div className='mb-2 grid grid-cols-4 gap-2'>
-          {presets.map((preset) => (
-            <button
-              key={preset.key}
-              type='button'
-              disabled={preset.disabled}
-              onClick={() => {
-                if (mode === 'usd') {
-                  setUsdInput(preset.value);
-                } else {
-                  setXchInput(preset.value);
-                }
-              }}
-              className='rounded-lg border border-border px-2 py-1.5 text-xs font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50'
-            >
-              {preset.label}
-            </button>
-          ))}
+          {presets.map((preset) => {
+            const selected =
+              !preset.disabled && numericInputEquals(activeInput, preset.value);
+
+            return (
+              <button
+                key={preset.key}
+                type='button'
+                disabled={preset.disabled}
+                onClick={() => {
+                  if (mode === 'usd') {
+                    setUsdInput(preset.value);
+                  } else {
+                    setXchInput(preset.value);
+                  }
+                }}
+                className={[
+                  'rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+                  selected
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border hover:bg-muted',
+                ].join(' ')}
+              >
+                {preset.label}
+              </button>
+            );
+          })}
         </div>
       ) : null}
 
