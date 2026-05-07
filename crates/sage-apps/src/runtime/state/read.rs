@@ -1,6 +1,5 @@
 use std::cmp::Reverse;
 use std::fmt::Display;
-use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use tauri::State;
@@ -242,6 +241,7 @@ fn retry_immediate_lookup<T>(
 ) -> Result<T, String> {
     let deadline = Instant::now() + Duration::from_millis(IMMEDIATE_LOCK_RETRY_TIMEOUT_MS);
     let mut attempts = 0usize;
+    let mut last_err: Option<String> = None;
 
     loop {
         attempts += 1;
@@ -249,13 +249,18 @@ fn retry_immediate_lookup<T>(
         match lookup() {
             Ok(value) => return Ok(value),
             Err(err) if is_busy_error(&err) && Instant::now() < deadline => {
-                sleep(Duration::from_millis(IMMEDIATE_LOCK_RETRY_DELAY_MS));
+                last_err = Some(err);
+                std::thread::yield_now();
             }
             Err(err) => return Err(err),
         }
 
         if Instant::now() >= deadline {
-            let err = format!("{label} is busy after {attempts} attempts");
+            let err = format!(
+                "{label} is busy after {attempts} attempts over {:?}: {}",
+                Duration::from_millis(IMMEDIATE_LOCK_RETRY_TIMEOUT_MS),
+                last_err.unwrap_or_else(|| "unknown busy lock".to_string()),
+            );
             eprintln!("{err}");
             return Err(err);
         }
