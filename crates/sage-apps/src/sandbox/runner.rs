@@ -7,9 +7,9 @@ use super::types::{
     build_running_sandbox_state, mark_cap,
 };
 use crate::AppsHostState;
-use crate::runtime::webview_locator::get_sage_webview;
 use crate::utils::unix_timestamp_ms;
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Manager, State};
+use crate::bridge::methods::system::emit_sandbox_state_changed;
 
 pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     let apps_state = app.state::<AppsHostState>();
@@ -41,16 +41,14 @@ pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-pub(super) async fn begin_sandbox_run(
+pub(crate) async fn begin_sandbox_run(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<super::types::SandboxStateView, String> {
     {
         let mut running = apps_state.sandbox.running.lock().await;
         if *running {
-            let baseline = apps_state.sandbox.baseline.lock().await.clone();
-            let current_run = apps_state.sandbox.current_run.lock().await.clone();
-            return Ok(build_state_view(&baseline, current_run.as_ref()));
+            return Ok(build_state_view(apps_state).await);
         }
         *running = true;
     }
@@ -67,11 +65,9 @@ pub(super) async fn begin_sandbox_run(
 
     *apps_state.sandbox.current_run.lock().await = Some(run_state);
 
-    emit_state_view(app, apps_state).await;
+    emit_sandbox_state_changed(app, apps_state).await;
 
-    let baseline = apps_state.sandbox.baseline.lock().await.clone();
-    let current_run = apps_state.sandbox.current_run.lock().await.clone();
-    Ok(build_state_view(&baseline, current_run.as_ref()))
+    Ok(build_state_view(apps_state).await)
 }
 
 async fn update_current_run_state(
@@ -82,7 +78,7 @@ async fn update_current_run_state(
     if let Some(current_run) = apps_state.sandbox.current_run.lock().await.as_mut() {
         current_run.state = state;
     }
-    emit_state_view(app, apps_state).await;
+    emit_sandbox_state_changed(app, apps_state).await;
 }
 
 pub async fn sandbox_runner(app: AppHandle) {
@@ -260,17 +256,7 @@ pub async fn sandbox_runner(app: AppHandle) {
     *apps_state.sandbox.current_run.lock().await = None;
     *apps_state.sandbox.running.lock().await = false;
 
-    emit_state_view(&app, &apps_state).await;
-}
-
-async fn emit_state_view(app: &AppHandle, apps_state: &State<'_, AppsHostState>) {
-    let baseline = apps_state.sandbox.baseline.lock().await.clone();
-    let current_run = apps_state.sandbox.current_run.lock().await.clone();
-    let view = build_state_view(&baseline, current_run.as_ref());
-
-    if let Ok(webview) = get_sage_webview(app) {
-        let _ = webview.emit("apps:sandbox-state-updated", view);
-    }
+    emit_sandbox_state_changed(&app, &apps_state).await;
 }
 
 fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {

@@ -85,6 +85,13 @@ export type SageSystemDonationsClient = {
     input: Generated.DonationGetDetailsParams,
   ): Promise<Generated.DonationDetails>;
 };
+export type SageSandboxClient = {
+  getState(): Promise<Generated.SandboxStateView>;
+  rerunTests(): Promise<Generated.SandboxStateView>;
+  onStateChanged(
+    handler: (state: Generated.SandboxStateView) => void,
+  ): () => void;
+};
 
 export type SageSystemClient = SageClient & {
   runtimeManager: SageSystemRuntimeManagerClient;
@@ -95,4 +102,5 @@ export type SageSystemClient = SageClient & {
   fileSystem: SageSystemFileSystemClient;
   bridgeApprovals: SageSystemBridgeApprovalsClient;
   donations: SageSystemDonationsClient;
+  sandbox: SageSandboxClient;
 };

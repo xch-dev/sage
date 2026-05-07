@@ -308,3 +308,45 @@ Allows the system app to retrieve details to send donation.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `sandbox.get_state`
+
+**Read sandbox state**
+
+Allows the system app to read Sage app sandbox test state.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `sandbox.rerun_tests`
+
+**Re-run sandbox tests**
+
+Allows the system app to re-run Sage app sandbox tests.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
+## `sandbox.listen_state_changed`
+
+**Observe sandbox state changes**
+
+Allows the system app to receive events when sandbox test state changes.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+

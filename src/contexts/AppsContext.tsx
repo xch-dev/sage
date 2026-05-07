@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState, } from 'react';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import {
   type AppLaunchGateResult,
@@ -66,7 +66,6 @@ interface AppsContextValue {
   error: string | null;
   busyAppIds: Record<string, boolean>;
   updateAvailability: Record<string, SageAppUrlPreview | null>;
-  sandboxState: SandboxStateView | null;
   launchGatesByAppId: Record<string, AppLaunchGateResult>;
 
   getApp: (appId: string) => UserSageAppView | undefined;
@@ -97,7 +96,6 @@ interface AppsContextValue {
     options?: PerformAppUpdateOptions,
   ) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
-  rerunSandboxTests: () => Promise<SandboxStateView>;
   activeTaskbarRuntime: ActiveTaskbarRuntime;
 }
 
@@ -284,36 +282,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     };
   }, [refreshLaunchGates]);
 
-  useEffect(() => {
-    let isCancelled = false;
-    let unsubscribe: UnlistenFn | null = null;
-
-    const setup = async () => {
-      try {
-        unsubscribe = await listen<SandboxStateView>(
-          'apps:sandbox-state-updated',
-          (event) => {
-            if (isCancelled) return;
-
-            setSandboxState(event.payload);
-            void refreshLaunchGates(apps);
-          },
-        );
-      } catch (err) {
-        if (!isCancelled) {
-          console.error('Failed to subscribe to sandbox state updates:', err);
-        }
-      }
-    };
-
-    void setup();
-
-    return () => {
-      isCancelled = true;
-      if (unsubscribe) void unsubscribe();
-    };
-  }, [apps, refreshLaunchGates]);
-
   const currentSandboxRunId = sandboxState?.currentRun?.runId ?? null;
 
   useEffect(() => {
@@ -459,13 +427,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     [refreshInstalledApps, refreshRuntimes],
   );
 
-  const rerunSandboxTests = useCallback(async () => {
-    const next = await commands.appsRerunSandboxTests();
-    setSandboxState(next);
-    await refreshLaunchGates(apps);
-    return next;
-  }, [apps, refreshLaunchGates]);
-
   const value = useMemo<AppsContextValue>(
     () => ({
       apps,
@@ -475,7 +436,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
-      sandboxState,
       launchGatesByAppId,
 
       getApp,
@@ -494,7 +454,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       checkForUpdate,
       performAppUpdate,
       clearAppStorage,
-      rerunSandboxTests,
       activeTaskbarRuntime,
     }),
     [
@@ -505,7 +464,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       updateAvailability,
-      sandboxState,
       launchGatesByAppId,
       getApp,
       getListedApp,
@@ -521,7 +479,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       checkForUpdate,
       performAppUpdate,
       clearAppStorage,
-      rerunSandboxTests,
       activeTaskbarRuntime,
     ],
   );

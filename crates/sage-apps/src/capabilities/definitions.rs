@@ -310,6 +310,24 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to retrieve details to send donation.",
             system_app_flags(),
         ),
+        SystemBridgeCapability::SandboxGetState => CapabilityDefinition::new(
+            capability,
+            "Read sandbox state",
+            "Allows the system app to read Sage app sandbox test state.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::SandboxRerunTests => CapabilityDefinition::new(
+            capability,
+            "Re-run sandbox tests",
+            "Allows the system app to re-run Sage app sandbox tests.",
+            system_app_flags(),
+        ),
+        SystemBridgeCapability::SandboxListenStateChanged => CapabilityDefinition::new(
+            capability,
+            "Observe sandbox state changes",
+            "Allows the system app to receive events when sandbox test state changes.",
+            system_app_flags(),
+        ),
     }
 }
 

@@ -2610,7 +2610,7 @@ export type StartAppInstallSource = { kind: "selectSource" } | { kind: "url"; ap
 export type StartAppUpdateArgs = { mode: StartAppUpdateMode; appId: string }
 export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
 export type StartDonationArgs = { appId: string }
-export type StartSystemAppArgs = ({ kind: "appInstall" } & StartAppInstallArgs) | ({ kind: "appUpdate" } & StartAppUpdateArgs) | ({ kind: "donation" } & StartDonationArgs)
+export type StartSystemAppArgs = ({ kind: "appInstall" } & StartAppInstallArgs) | ({ kind: "appUpdate" } & StartAppUpdateArgs) | ({ kind: "donation" } & StartDonationArgs) | { kind: "sandboxTests" }
 /**
  * Submit a transaction to the network
  */
@@ -2624,7 +2624,7 @@ spend_bundle: SpendBundleJson }
  */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
-export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_taskbar_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.get_active_taskbar_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.listen_active_runtime_changed" | "runtime_manager.hide_self" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "app_registry.listen_listed_apps_changed" | "file_system.select_file" | "bridge_approval.list" | "bridge_approval.resolve" | "bridge_approval.listen_changed" | "donation.get_details"
+export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_taskbar_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.get_active_taskbar_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.listen_active_runtime_changed" | "runtime_manager.hide_self" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "app_registry.listen_listed_apps_changed" | "file_system.select_file" | "bridge_approval.list" | "bridge_approval.resolve" | "bridge_approval.listen_changed" | "donation.get_details" | "sandbox.get_state" | "sandbox.rerun_tests" | "sandbox.listen_state_changed"
 export type SystemKillRuntimeResult = { ok: boolean; appId: string }
 export type SystemSageAppView = { common: SageAppCommonView; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**

@@ -4,7 +4,7 @@ use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SharedRuntime};
-use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID, SYSTEM_APP_DONATION_ID};
+use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID, SYSTEM_APP_DONATION_ID, SYSTEM_APP_SANDBOX_TESTS_ID};
 use crate::types::{AppModalPresentation, AppPresentation};
 use crate::AppsHostState;
 use crate::bridge::state::pending_approval_app_ids;
@@ -170,4 +170,22 @@ pub(crate) async fn sync_bridge_approval_runtime(
     changes.emit(app_handle, apps_state).await;
 
     Ok(())
+}
+
+pub(crate) async fn start_sandbox_tests_runtime(
+    app: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) -> Result<SharedRuntime, String> {
+    start_system_app_runtime(
+        app,
+        apps_state,
+        CreateRuntimeArgs {
+            app_id: SYSTEM_APP_SANDBOX_TESTS_ID.to_string(),
+            presentation: AppPresentation::Modal(AppModalPresentation::over_launchpad(60)),
+            mode: SageAppRuntimeMode::Inline,
+            debug_layout: false,
+            query: BTreeMap::new(),
+        },
+    )
+        .await
 }

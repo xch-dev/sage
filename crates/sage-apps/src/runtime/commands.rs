@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView};
+use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, start_sandbox_tests_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView};
 use crate::AppsHostState;
 use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
@@ -20,6 +20,7 @@ pub enum StartSystemAppArgs {
     AppInstall(StartAppInstallArgs),
     AppUpdate(StartAppUpdateArgs),
     Donation(StartDonationArgs),
+    SandboxTests,
 }
 
 #[derive(Debug, Deserialize, Type)]
@@ -121,7 +122,6 @@ pub async fn apps_start_system_app(
 
             start_app_install_runtime(&app, &apps_state, query).await?
         }
-
         StartSystemAppArgs::AppUpdate(args) => {
             let mut query = BTreeMap::new();
 
@@ -130,13 +130,15 @@ pub async fn apps_start_system_app(
 
             start_app_update_runtime(&app, &apps_state, args.app_id, query).await?
         }
-
         StartSystemAppArgs::Donation(args) => {
             let mut query = BTreeMap::new();
 
             query.insert("appId".to_string(), args.app_id.clone());
 
             start_donation_runtime(&app, &apps_state, args.app_id, query).await?
+        }
+        StartSystemAppArgs::SandboxTests => {
+            start_sandbox_tests_runtime(&app, &apps_state).await?
         }
     };
 

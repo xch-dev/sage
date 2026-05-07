@@ -120,3 +120,15 @@
 |---|---|
 | Capability | `runtime_manager.list_runtimes` |
 
+## `sandbox.getState`
+
+| Field | Value |
+|---|---|
+| Capability | `sandbox.get_state` |
+
+## `sandbox.rerunTests`
+
+| Field | Value |
+|---|---|
+| Capability | `sandbox.rerun_tests` |
+

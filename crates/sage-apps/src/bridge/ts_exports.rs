@@ -1,17 +1,5 @@
 use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeInvokeResult};
-use crate::bridge::methods::system::{
-    AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallPreviewUrlParams,
-    AppInstallInstallZipParams, AppInstallPreviewZipParams,
-    AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
-    AppPermissionsGetReviewContextParams, AppPermissionsReviewContext,
-    AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult,
-    AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent,
-    DonationDetails, DonationGetDetailsParams,
-    FileSystemSelectFileParams, FileSystemSelectFileResult,
-    PendingBridgeApprovalView,
-    RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent,
-    ListedAppsChangedEvent
-};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallPreviewUrlParams, AppInstallInstallZipParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent, ListedAppsChangedEvent, SandboxStateChangedEvent};
 use crate::bridge::methods::user::{
     app::{
         GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
@@ -36,6 +24,7 @@ use crate::runtime::{ReadyToStopParams, RuntimeAckResult, RuntimeTargetParams, S
 use sage_api::{CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse};
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
+use crate::sandbox::SandboxStateView;
 use crate::types::SageAppCapabilityDefinitionView;
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -131,6 +120,9 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
 
     types.register::<DonationGetDetailsParams>();
     types.register::<DonationDetails>();
+
+    types.register::<SandboxStateChangedEvent>();
+    types.register::<SandboxStateView>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

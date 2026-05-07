@@ -7,15 +7,12 @@ use super::runner::{begin_sandbox_run, sandbox_runner};
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{AppLaunchGateResult, SandboxStateView};
 
-#[tauri::command]
+#[command]
 #[specta::specta]
 pub async fn apps_get_sandbox_state(
     apps_state: State<'_, AppsHostState>,
 ) -> Result<SandboxStateView, String> {
-    let baseline = apps_state.sandbox.baseline.lock().await.clone();
-    let current_run = apps_state.sandbox.current_run.lock().await.clone();
-
-    Ok(build_state_view(&baseline, current_run.as_ref()))
+    Ok(build_state_view(&apps_state).await)
 }
 
 #[command]

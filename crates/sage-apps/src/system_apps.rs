@@ -15,6 +15,7 @@ pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
 pub const SYSTEM_APP_APP_INSTALL_ID: &str = "app-install";
 pub const SYSTEM_APP_BRIDGE_APPROVAL_ID: &str = "bridge-approval";
 pub const SYSTEM_APP_DONATION_ID: &str = "donation";
+pub const SYSTEM_APP_SANDBOX_TESTS_ID: &str = "sandbox-tests";
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinSystemAppSpec {
@@ -96,6 +97,18 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
         user_grantable_capabilities: &[
             UserBridgeCapability::WalletSendXchAutoSubmit,
         ],
+    },
+    BuiltinSystemAppSpec {
+        app_id: SYSTEM_APP_SANDBOX_TESTS_ID,
+        dir_name: "sandbox-tests",
+        usage: SystemAppUsage::Contextual,
+        system_capabilities: &[
+            SystemBridgeCapability::SandboxGetState,
+            SystemBridgeCapability::SandboxRerunTests,
+            SystemBridgeCapability::SandboxListenStateChanged,
+            SystemBridgeCapability::RuntimeManagerCloseSelf,
+        ],
+        user_grantable_capabilities: &[],
     },
 ];
 

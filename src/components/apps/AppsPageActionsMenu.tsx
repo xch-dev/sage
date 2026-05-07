@@ -10,16 +10,12 @@ import { Menu } from 'lucide-react';
 import { useState } from 'react';
 
 interface Props {
-  showSandboxDebugUi: boolean;
-  sandboxTestsRunning: boolean;
-  onRerunSandboxTests: () => void;
+  onOpenSandboxTests: () => void;
   onClose?: () => void;
 }
 
 export function AppsPageActionsMenu({
-  showSandboxDebugUi,
-  sandboxTestsRunning,
-  onRerunSandboxTests,
+  onOpenSandboxTests,
   onClose,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -40,19 +36,12 @@ export function AppsPageActionsMenu({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align='end' className='w-56'>
-        {showSandboxDebugUi ? (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              disabled={sandboxTestsRunning}
-              onClick={onRerunSandboxTests}
-            >
-              {sandboxTestsRunning
-                ? 'Running sandbox tests...'
-                : 'Re-run sandbox tests'}
-            </DropdownMenuItem>
-          </>
-        ) : null}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={onOpenSandboxTests}
+        >
+          Sandbox tests
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

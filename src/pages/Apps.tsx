@@ -11,13 +11,6 @@ import {
   UserSageAppView,
 } from '@/bindings.ts';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import {
-  formatCapabilityLabel,
-  getBaselineSandboxState,
-  getEffectiveSandboxState,
-  getLiveSandboxState,
-  listSandboxCapabilities,
-} from '@/lib/apps/sandbox';
 import { Plus } from 'lucide-react';
 import { AppsPageActionsMenu } from '@/components/apps/AppsPageActionsMenu';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -117,9 +110,6 @@ export function Apps() {
     Record<string, string | null>
   >({});
 
-  const showSandboxDebugResults =
-    import.meta.env.DEV && import.meta.env.VITE_SAGE_DEBUG_TEST_APPS === '1';
-
   const {
     apps,
     runtimes,
@@ -131,14 +121,8 @@ export function Apps() {
     clearAppStorage,
     updateAvailability,
     busyAppIds,
-    sandboxState,
-    rerunSandboxTests,
     getLaunchGate,
   } = useApps();
-
-  const liveSandboxState = getLiveSandboxState(sandboxState);
-  const effectiveSandboxState = getEffectiveSandboxState(sandboxState);
-  const baselineSandboxState = getBaselineSandboxState(sandboxState);
 
   const runningAppIds = useMemo(() => {
     return new Set(runtimes.map((runtime) => runtime.app.common.identity.id));
@@ -361,13 +345,10 @@ export function Apps() {
           </Button>
 
           <AppsPageActionsMenu
-            showSandboxDebugUi
-            sandboxTestsRunning={
-              sandboxState?.currentRun?.state?.overallCriticalStatus ===
-              'running'
-            }
-            onRerunSandboxTests={() => {
-              void rerunSandboxTests();
+            onOpenSandboxTests={() => {
+              void commands.appsStartSystemApp({
+                kind: 'sandboxTests',
+              });
             }}
             onClose={() => {
               //
@@ -377,89 +358,6 @@ export function Apps() {
       </div>
 
       <div className='mx-auto w-full max-w-7xl flex-1 min-h-0 overflow-auto px-4 pb-4 md:px-6 md:pb-6'>
-        {showSandboxDebugResults ? (
-          <Alert className='mb-6'>
-            <AlertTitle>
-              {!liveSandboxState && !effectiveSandboxState
-                ? 'Sandbox tests are pending'
-                : liveSandboxState?.overallCriticalStatus === 'running'
-                  ? 'Sandbox tests are running'
-                  : effectiveSandboxState?.overallCriticalStatus === 'passed'
-                    ? 'Sandbox tests passed'
-                    : effectiveSandboxState?.overallCriticalStatus === 'failed'
-                      ? 'Sandbox tests failed'
-                      : 'Sandbox tests are pending'}
-            </AlertTitle>
-
-            <AlertDescription className='space-y-3'>
-              <div>
-                Apps are allowed to launch only when all required sandbox
-                capabilities have passed.
-              </div>
-
-              {liveSandboxState ? (
-                <div className='space-y-1 text-xs text-muted-foreground'>
-                  <div className='font-medium text-foreground'>Current run</div>
-
-                  {listSandboxCapabilities(liveSandboxState).map(
-                    ([capability, result]) => (
-                      <div key={`live-${capability}`}>
-                        {formatCapabilityLabel(capability)} — {result.status}
-                        {result.details ? ` — ${result.details}` : ''}
-                      </div>
-                    ),
-                  )}
-                </div>
-              ) : null}
-
-              {effectiveSandboxState ? (
-                <div className='space-y-1 text-xs text-muted-foreground'>
-                  <div className='font-medium text-foreground'>
-                    Effective gate state
-                  </div>
-
-                  {listSandboxCapabilities(effectiveSandboxState).map(
-                    ([capability, result]) => (
-                      <div key={`effective-${capability}`}>
-                        {formatCapabilityLabel(capability)} — {result.status}
-                        {result.details ? ` — ${result.details}` : ''}
-                      </div>
-                    ),
-                  )}
-                </div>
-              ) : null}
-
-              {baselineSandboxState ? (
-                <div className='space-y-1 text-xs text-muted-foreground'>
-                  <div className='font-medium text-foreground'>
-                    Previous completed baseline
-                  </div>
-
-                  {listSandboxCapabilities(baselineSandboxState).map(
-                    ([capability, result]) => (
-                      <div key={`baseline-${capability}`}>
-                        {formatCapabilityLabel(capability)} — {result.status}
-                        {result.details ? ` — ${result.details}` : ''}
-                      </div>
-                    ),
-                  )}
-                </div>
-              ) : null}
-
-              <div>
-                <Button
-                  variant='outline'
-                  onClick={() => {
-                    void rerunSandboxTests();
-                  }}
-                >
-                  Re-run tests
-                </Button>
-              </div>
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
         {error ? (
           <Alert className='mb-6'>
             <AlertTitle>Apps error</AlertTitle>

@@ -372,8 +372,26 @@ export function initSageSystemRuntimeBridge(): boolean {
               'donations.getDetails',
               input,
             );
-          }
-        }
+          },
+        },
+        sandbox: {
+          async getState() {
+            return await callHost<Generated.SandboxStateView>(
+              'sandbox.getState',
+            );
+          },
+          async rerunTests() {
+            return await callHost<Generated.SandboxStateView>(
+              'sandbox.rerunTests',
+            );
+          },
+          onStateChanged(handler) {
+            return onSystemRuntimeEventType<Generated.SandboxStateChangedEvent>(
+              'sandbox.stateChanged',
+              (event) => handler(event.state),
+            );
+          },
+        },
       };
     })
     .catch((error: unknown) => {

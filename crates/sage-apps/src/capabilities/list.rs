@@ -129,6 +129,10 @@ define_bridge_capabilities! {
         BridgeApprovalListenApprovalsChanged => "bridge_approval.listen_changed",
 
         DonationGetDetails => "donation.get_details",
+
+        SandboxGetState => "sandbox.get_state",
+        SandboxRerunTests => "sandbox.rerun_tests",
+        SandboxListenStateChanged => "sandbox.listen_state_changed",
     }
 }
 
