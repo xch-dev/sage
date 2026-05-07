@@ -6,6 +6,7 @@ mod app_install;
 mod file_system;
 mod bridge_approvals;
 mod donation;
+mod app_registry;
 
 pub(crate) use app_permissions::*;
 pub(crate) use app_update::*;
@@ -15,3 +16,4 @@ pub(crate) use app_install::*;
 pub(crate) use file_system::*;
 pub(crate) use bridge_approvals::*;
 pub(crate) use donation::*;
+pub(crate) use app_registry::*;

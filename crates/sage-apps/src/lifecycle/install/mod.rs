@@ -5,8 +5,9 @@ use std::{
 
 use anyhow::Result as AnyResult;
 use async_trait::async_trait;
-use tauri::AppHandle;
-
+use tauri::{AppHandle, Manager, State};
+use crate::AppsHostState;
+use crate::bridge::methods::system::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
 
@@ -87,14 +88,19 @@ pub async fn install_app_from_source<S>(
 where
     S: AppInstallSource + Send + Sync,
 {
-    install_app_from_source_with_storage(
+    let install_result = install_app_from_source_with_storage(
         base_path,
         granted_permissions_input,
         source,
         &TauriStorageResolver,
         Some(app),
     )
-    .await
+    .await;
+
+    let host_state: State<'_, AppsHostState> = app.state();
+    emit_listed_apps_changed(app, &host_state, base_path).await;
+
+    install_result
 }
 
 #[cfg(test)]

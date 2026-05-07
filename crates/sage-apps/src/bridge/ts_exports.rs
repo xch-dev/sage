@@ -1,25 +1,41 @@
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent};
-use crate::bridge::methods::user::app::get_info::{AppGetInfoResult, SageNetworkPermissionInfo};
-use crate::bridge::methods::user::app::request_capability_grant::{
-    RequestCapabilityGrantParams, RequestCapabilityGrantResult,
+use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeInvokeResult};
+use crate::bridge::methods::system::{
+    AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallPreviewUrlParams,
+    AppInstallInstallZipParams, AppInstallPreviewZipParams,
+    AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
+    AppPermissionsGetReviewContextParams, AppPermissionsReviewContext,
+    AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult,
+    AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent,
+    DonationDetails, DonationGetDetailsParams,
+    FileSystemSelectFileParams, FileSystemSelectFileResult,
+    PendingBridgeApprovalView,
+    RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent,
+    ListedAppsChangedEvent
 };
-use crate::bridge::methods::user::app::request_network_whitelist_grant::{
-    RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
+use crate::bridge::methods::user::{
+    app::{
+        GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
+        events::BeforeStopEvent,
+        get_info::{AppGetInfoResult, SageNetworkPermissionInfo},
+        request_capability_grant::{
+            RequestCapabilityGrantParams, RequestCapabilityGrantResult,
+        },
+        request_network_whitelist_grant::{
+            RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
+        }
+    },
+    bridge::{
+        ping::BridgePingResult,
+        send::BridgeSendResult,
+    },
+    environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult},
+    wallet::send_xch::WalletSendXchParams
 };
-use crate::bridge::methods::user::app::{
-    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
-};
-use crate::bridge::methods::user::bridge::ping::BridgePingResult;
-use crate::bridge::methods::user::bridge::send::BridgeSendResult;
-use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::{ReadyToStopParams, RuntimeAckResult, RuntimeTargetParams, SetBeforeStopListenerParams};
 use sage_api::{CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse, GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse};
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use crate::bridge::methods::user::app::events::BeforeStopEvent;
-use crate::bridge::methods::user::environment::{EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult};
-use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeInvokeResult};
 use crate::types::SageAppCapabilityDefinitionView;
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -97,6 +113,8 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<AppUpdateReviewContext>();
     types.register::<AppUpdateApplyUpdateParams>();
     types.register::<AppUpdateApplyUpdateResult>();
+
+    types.register::<ListedAppsChangedEvent>();
 
     types.register::<SageAppCapabilityDefinitionView>();
     types.register::<AppPermissionsGetReviewContextParams>();

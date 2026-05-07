@@ -224,6 +224,20 @@ Allows the system app to download and apply approved Sage app updates.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `app_registry.listen_listed_apps_changed`
+
+**Observe listed apps changes**
+
+Allows the system app to receive events when installed/listed Sage apps change.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `file_system.select_file`
 
 **Select file**

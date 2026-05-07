@@ -6,8 +6,10 @@ use crate::lifecycle::{
 use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle, ResolveStoppedError};
 use std::{fs, io};
 use std::time::Duration;
-use tauri::{command, AppHandle, State};
+use tauri::{command, AppHandle, Manager, State};
 use tokio::time::timeout;
+use crate::AppsHostState;
+use crate::bridge::methods::system::emit_listed_apps_changed;
 
 #[command]
 #[specta::specta]
@@ -74,6 +76,9 @@ pub async fn uninstall_app(
             ))
         })?;
     }
+
+    let host_state: State<'_, AppsHostState> = app_handle.state();
+    emit_listed_apps_changed(&app_handle, &host_state, &base_path).await;
 
     Ok(())
 }

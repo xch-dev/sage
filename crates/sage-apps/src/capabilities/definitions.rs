@@ -244,6 +244,12 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to download and apply approved Sage app updates.",
             system_app_flags(),
         ),
+        SystemBridgeCapability::AppRegistryListenListedAppsChanged => CapabilityDefinition::new(
+            capability,
+            "Observe listed apps changes",
+            "Allows the system app to receive events when installed/listed Sage apps change.",
+            system_app_flags(),
+        ),
         SystemBridgeCapability::CapabilityDefinitionsRead => CapabilityDefinition::new(
             capability,
             "Read capability definitions",

@@ -41,9 +41,17 @@ interface ActiveTaskbarRuntimeChangedEvent {
   };
 }
 
+interface ListedAppsChangedEvent {
+  type: 'appRegistry.listedAppsChanged';
+  payload: {
+    apps: ListedSageAppView[];
+  };
+}
+
 type SageRuntimeEvent =
   | RuntimeManagerRuntimesChangedEvent
-  | ActiveTaskbarRuntimeChangedEvent;
+  | ActiveTaskbarRuntimeChangedEvent
+  | ListedAppsChangedEvent;
 
 type ActiveTaskbarRuntime = {
   appId: string | null;
@@ -234,17 +242,29 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             switch (runtimeEvent.type) {
               case 'runtimeManager.runtimesChanged':
                 setRuntimes(runtimeEvent.payload.runtimes);
-                setTaskbarRuntimes(runtimeEvent.payload.runtimes.filter((runtime) => isTaskbarRuntime(runtime)));
+                setTaskbarRuntimes(
+                  runtimeEvent.payload.runtimes.filter((runtime) =>
+                    isTaskbarRuntime(runtime),
+                  ),
+                );
                 break;
-
               case 'runtimeManager.activeTaskbarRuntimeChanged':
-                if (runtimeEvent.payload.hostWindowLabel !== getCurrentWindow().label) {
+                if (
+                  runtimeEvent.payload.hostWindowLabel !==
+                  getCurrentWindow().label
+                ) {
                   break;
                 }
                 setActiveTaskbarRuntime({
-                    appId: runtimeEvent.payload.appId,
-                    runtimeId: runtimeEvent.payload.runtimeId,
+                  appId: runtimeEvent.payload.appId,
+                  runtimeId: runtimeEvent.payload.runtimeId,
                 });
+                break;
+              case 'appRegistry.listedAppsChanged':
+                setApps(runtimeEvent.payload.apps);
+                setLoading(false);
+                setError(null);
+                void refreshLaunchGates(runtimeEvent.payload.apps);
                 break;
             }
           },
@@ -262,7 +282,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       isCancelled = true;
       unsubscribe?.();
     };
-  }, []);
+  }, [refreshLaunchGates]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -398,14 +418,11 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             Object.entries(prev).filter(([key]) => key !== appId),
           ),
         );
-
-        await refreshInstalledApps();
-        await refreshRuntimes();
       } finally {
         setBusy(appId, false);
       }
     },
-    [refreshInstalledApps, refreshRuntimes, setBusy],
+    [setBusy],
   );
 
   const checkForUpdate = useCallback(async (appId: string) => {

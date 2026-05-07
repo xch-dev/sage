@@ -120,6 +120,8 @@ define_bridge_capabilities! {
         AppUpdateRead => "app_update.read",
         AppUpdateApply => "app_update.apply",
 
+        AppRegistryListenListedAppsChanged => "app_registry.listen_listed_apps_changed",
+
         FileSystemSelectFile => "file_system.select_file",
 
         BridgeApprovalList => "bridge_approval.list",
