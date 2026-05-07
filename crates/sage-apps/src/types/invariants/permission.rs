@@ -61,18 +61,19 @@ pub fn validate_user_granted_capabilities(
     user_granted: &BTreeSet<UserBridgeCapability>,
 ) -> anyhow::Result<()> {
     for capability in user_granted {
-        if !requested.is_allowed(*capability) {
+        let definition = get_user_capability_definition(*capability);
+        let flags = definition.flags();
+
+        if !flags.user_grantable() {
             anyhow::bail!(
-                "granted capability not requested in manifest: {}",
+                "granted capability is not user grantable: {}",
                 capability.key()
             );
         }
 
-        let definition = get_user_capability_definition(*capability);
-
-        if !definition.flags().user_grantable() {
+        if flags.requestable_by_app() && !requested.is_allowed(*capability) {
             anyhow::bail!(
-                "granted capability is not user grantable: {}",
+                "granted capability not requested in manifest: {}",
                 capability.key()
             );
         }

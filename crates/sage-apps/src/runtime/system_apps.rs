@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use tauri::{AppHandle, State};
 
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
-use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
+use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SharedRuntime};
 use crate::system_apps::{SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID, SYSTEM_APP_DONATION_ID};
 use crate::types::{AppModalPresentation, AppPresentation};
 use crate::AppsHostState;
@@ -49,7 +49,6 @@ pub(crate) async fn start_app_install_runtime(
             app_id: SYSTEM_APP_APP_INSTALL_ID.to_string(),
             presentation: AppPresentation::Modal(AppModalPresentation::over_launchpad(40)),
             mode: SageAppRuntimeMode::Inline,
-            visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
             query,
         },
@@ -70,7 +69,6 @@ pub(crate) async fn start_app_update_runtime(
             app_id: SYSTEM_APP_APP_UPDATE_ID.to_string(),
             presentation: AppPresentation::Modal(AppModalPresentation::over_app_and_launchpad(target_app_id, 50)),
             mode: SageAppRuntimeMode::Inline,
-            visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
             query,
         },
@@ -90,7 +88,6 @@ pub(crate) async fn start_bridge_approval_runtime(
             app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID.to_string(),
             presentation: AppPresentation::Modal(AppModalPresentation::over_apps(target_app_ids, 100)),
             mode: SageAppRuntimeMode::Inline,
-            visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
             query: BTreeMap::new(),
         },
@@ -113,7 +110,6 @@ pub(crate) async fn start_donation_runtime(
                 AppModalPresentation::over_apps(vec![target_app_id], 45),
             ),
             mode: SageAppRuntimeMode::Inline,
-            visibility: SageAppRuntimeVisibility::Visible,
             debug_layout: false,
             query,
         },

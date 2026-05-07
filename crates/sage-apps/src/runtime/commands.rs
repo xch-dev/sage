@@ -7,7 +7,7 @@ use tauri::{AppHandle, State};
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility};
+use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView};
 use crate::AppsHostState;
 use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
@@ -154,7 +154,6 @@ pub async fn apps_create_inline_runtime(
         app_id: args.app_id.clone(),
         presentation: AppPresentation::Taskbar,
         mode: SageAppRuntimeMode::Inline,
-        visibility: SageAppRuntimeVisibility::Visible,
         debug_layout: false,
         query: BTreeMap::new(),
     }).await.map(Into::into);

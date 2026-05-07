@@ -46,8 +46,7 @@ impl BridgeMethod for AppGetCapabilities {
                         .granted_permissions()
                         .capabilities()
                         .copied(),
-                )
-                .unwrap_or_default(),
+                ),
 
             SageApp::System(_) => app
                 .granted_permissions()

@@ -296,14 +296,7 @@ fn verify_user_capability(
                     .capabilities()
                     .copied(),
             )
-            .map_err(|err| {
-                RustBridgeResponse::error(
-                    &request.id,
-                    "internal_error",
-                    format!("failed to resolve effective permissions: {err}"),
-                )
-            })
-    })?;
+    });
 
     if !effective_capabilities.contains(&capability) {
         return Err(RustBridgeResponse::error(

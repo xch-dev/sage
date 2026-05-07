@@ -85,7 +85,7 @@ pub(crate) fn get_user_capability_definition(
             capability,
             "Automatic XCH send",
             "Allows the app to submit XCH transactions without asking for per-transaction approval.",
-            CapabilityFlags::new(false, false, false, false, false),
+            CapabilityFlags::new(false, false, false, true, false),
         ),
         UserBridgeCapability::WalletGetSyncStatus => CapabilityDefinition::new(
             capability,

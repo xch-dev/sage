@@ -163,7 +163,7 @@ Allows the app to submit XCH transactions without asking for per-transaction app
 | Flag | Value |
 |---|---|
 | Requestable by app | `false` |
-| User grantable | `false` |
+| User grantable | `true` |
 | Shared with app | `false` |
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |

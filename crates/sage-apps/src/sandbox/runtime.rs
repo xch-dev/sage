@@ -1,5 +1,5 @@
 use crate::AppsHostState;
-use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeVisibility};
+use crate::runtime::{SageAppRuntimeMode};
 use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
 use crate::runtime::stop::close_runtime_internal;
 use std::collections::{BTreeMap, HashMap};
@@ -13,7 +13,7 @@ pub(crate) async fn stop_test_apps(
     app_ids: &[&str],
 ) {
     for app_id in app_ids {
-        let _ = close_runtime_internal(app, apps_state, app_id).await;
+        close_runtime_internal(app, apps_state, app_id).await;
     }
 }
 
@@ -35,7 +35,6 @@ pub(crate) async fn start_test_app(
         app,
         apps_state,
         app_id,
-        SageAppRuntimeVisibility::Hidden,
         query_map.into_iter().collect(),
     )
     .await
@@ -49,7 +48,6 @@ async fn start_internal_runtime_for_sandbox(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-    visibility: SageAppRuntimeVisibility,
     query: BTreeMap<String, String>,
 ) -> Result<(), String> {
     let debug_test_apps = debug_test_apps_enabled();
@@ -58,7 +56,6 @@ async fn start_internal_runtime_for_sandbox(
         app_id: app_id.to_string(),
         presentation: AppPresentation::Taskbar,
         mode: SageAppRuntimeMode::Inline,
-        visibility: if debug_test_apps { SageAppRuntimeVisibility::Visible } else { visibility },
         debug_layout: debug_test_apps,
         query,
     };

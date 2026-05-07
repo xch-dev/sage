@@ -3,7 +3,7 @@ use tauri::{AppHandle, Manager, State};
 use tokio::time::sleep;
 use crate::AppsHostState;
 use crate::lifecycle::{clear_app_storage_by_target};
-use crate::runtime::{SageAppRuntimeImpostorKind, SageAppRuntimeVisibility};
+use crate::runtime::{SageAppRuntimeImpostorKind};
 use crate::runtime::start::{create_impostor_runtime_from_stopped, CreateImpostorRuntimeArgs};
 use crate::runtime::stop::close_runtime_internal;
 use crate::sandbox::{build_builtin_runtime_app, SandboxStorageClearProbePhase, SandboxStorageClearProbeResult, BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID};
@@ -123,7 +123,6 @@ async fn run_storage_clear_phase(
         impostor_app,
         CreateImpostorRuntimeArgs {
             kind: SageAppRuntimeImpostorKind::StorageClearProbe,
-            visibility: SageAppRuntimeVisibility::Hidden,
             debug_layout: false,
             query,
         },

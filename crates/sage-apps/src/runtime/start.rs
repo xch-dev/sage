@@ -12,7 +12,6 @@ use crate::runtime::{build_entry_src, build_entry_src_for, is_allowed_app_url, r
 use crate::storage::parse_data_store_id;
 use crate::types::{AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
-use crate::runtime::workspace::{ensure_apps_workspace_active};
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -20,14 +19,12 @@ pub struct CreateRuntimeArgs {
     pub app_id: String,
     pub presentation: AppPresentation,
     pub mode: SageAppRuntimeMode,
-    pub visibility: SageAppRuntimeVisibility,
     pub debug_layout: bool,
     pub query: BTreeMap<String, String>,
 }
 
 pub(in crate::runtime) struct CreateImpostorRuntimeArgs {
     pub kind: SageAppRuntimeImpostorKind,
-    pub visibility: SageAppRuntimeVisibility,
     pub debug_layout: bool,
     pub query: BTreeMap<String, String>,
 }
@@ -37,8 +34,6 @@ pub async fn create_runtime(
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    ensure_apps_workspace_active(apps_state).await?;
-
     let app = match resolve_app(app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
         ResolvedApp::Stopped(stopped) => stopped.into_app()
@@ -59,7 +54,7 @@ pub async fn create_runtime(
         &webview_label,
         args.presentation,
         args.mode,
-        args.visibility,
+        SageAppRuntimeVisibility::Hidden,
         is_internal,
     ).map_err(|err| err.to_string())?;
     let shared_runtime = write_runtime(apps_state, runtime).await;
@@ -99,8 +94,9 @@ pub async fn create_runtime(
         return Err(format!("failed to create child webview: {e}"));
     }
 
-    if args.visibility == SageAppRuntimeVisibility::Hidden {
-        let _ = get_webview_in_sage_window(app_handle, &webview_label)?.hide();
+    if !args.debug_layout {
+        get_webview_in_sage_window(app_handle, &webview_label)?.hide()
+            .map_err(|err| format!("{err}"))?;
     }
 
     Ok(shared_runtime)
@@ -113,8 +109,6 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
     impostor_app: SharedSageApp,
     args: CreateImpostorRuntimeArgs,
 ) -> Result<SharedImpostorRuntime, String> {
-    ensure_apps_workspace_active(&apps_state).await?;
-
     let victim_app = stopped.with_app(SharedSageApp::clone_for_runtime_owner);
 
     if !impostor_app.with(|app| app.common().is_sandbox_test())
@@ -169,9 +163,8 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
         return Err(format!("failed to create impostor child webview: {err}"));
     }
 
-    if args.visibility == SageAppRuntimeVisibility::Hidden {
-        let _ = get_webview_in_sage_window(&app_handle, &webview_label)?.hide();
-    }
+    get_webview_in_sage_window(&app_handle, &webview_label)?.hide()
+        .map_err(|err| format!("{err}"))?;
 
     Ok(shared_runtime)
 }

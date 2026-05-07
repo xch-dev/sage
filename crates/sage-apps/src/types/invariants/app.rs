@@ -27,7 +27,7 @@ pub fn resolve_app_capability_flags(
     let effective_capabilities = manifest
         .permissions()
         .capabilities()
-        .resolve_effective_grants(granted_permissions.capabilities().copied())?;
+        .resolve_effective_grants(granted_permissions.capabilities().copied());
 
     let capability_flags =
         SageAppFlags::from_granted_capabilities(&effective_capabilities, previous_flags)?;

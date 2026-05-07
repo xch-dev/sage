@@ -151,14 +151,51 @@ impl SageGrantedPermissions {
         capabilities: impl IntoIterator<Item = UserBridgeCapability>,
         network_whitelist: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
     ) -> anyhow::Result<Self> {
-        let capabilities =
+        Self::new_with_extra_granted_capabilities(
+            requested,
+            capabilities,
+            std::iter::empty(),
+            network_whitelist,
+        )
+    }
+
+    pub(crate) fn new_with_extra_granted_capabilities(
+        requested: &SageRequestedPermissions,
+        capabilities: impl IntoIterator<Item = UserBridgeCapability>,
+        extra_granted_capabilities: impl IntoIterator<Item = UserBridgeCapability>,
+        network_whitelist: impl IntoIterator<Item = SageNetworkWhitelistEntry>,
+    ) -> anyhow::Result<Self> {
+        let mut capabilities =
             build_user_grantable_capability_set(&requested.capabilities, capabilities)?;
 
-        let network = SageGrantedNetworkPermissions::new(&requested.network, network_whitelist)?;
+        for capability in extra_granted_capabilities {
+            let definition = get_user_capability_definition(capability);
+
+            if !definition.flags().user_grantable() {
+                anyhow::bail!(
+                    "extra granted capability is not user grantable: {}",
+                    capability.key()
+                );
+            }
+
+            if definition.flags().requestable_by_app() {
+                anyhow::bail!(
+                    "extra granted capability must not be app-manifest requestable: {}",
+                    capability.key()
+                );
+            }
+
+            capabilities.insert(capability);
+        }
+
+        let network = SageGrantedNetworkPermissions::new(
+            &requested.network,
+            network_whitelist,
+        )?;
 
         let effective_capabilities = requested
             .capabilities
-            .resolve_effective_grants(capabilities.iter().copied())?;
+            .resolve_effective_grants(capabilities.iter().copied());
 
         validate_permissions_policy(
             effective_capabilities,
@@ -337,13 +374,11 @@ impl SageRequestedCapabilities {
 
     pub fn resolve_effective_grants(
         &self,
-        user_granted: impl IntoIterator<Item = UserBridgeCapability>,
-    ) -> anyhow::Result<Vec<UserBridgeCapability>> {
-        let user_granted = self.build_user_grants(user_granted)?;
+        granted: impl IntoIterator<Item = UserBridgeCapability>,
+    ) -> Vec<UserBridgeCapability> {
+        let mut effective = granted.into_iter().collect::<BTreeSet<_>>();
 
-        let mut effective = user_granted;
-
-        for capability in self.required().chain(self.optional()) {
+        for capability in self.required() {
             let definition = get_user_capability_definition(*capability);
 
             if !definition.flags().user_grantable() {
@@ -351,14 +386,7 @@ impl SageRequestedCapabilities {
             }
         }
 
-        Ok(effective.into_iter().collect())
-    }
-
-    fn build_user_grants(
-        &self,
-        user_granted: impl IntoIterator<Item = UserBridgeCapability>,
-    ) -> anyhow::Result<BTreeSet<UserBridgeCapability>> {
-        build_user_grantable_capability_set(self, user_granted)
+        effective.into_iter().collect()
     }
 }
 

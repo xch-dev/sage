@@ -6,7 +6,7 @@ use std::fmt::Display;
 use anyhow::{Result as AnyResult};
 use serde::Serialize;
 use specta::Type;
-use crate::capabilities::list::SystemBridgeCapability;
+use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
 use crate::utils::builtin_apps_root;
 
@@ -22,6 +22,7 @@ pub struct BuiltinSystemAppSpec {
     pub dir_name: &'static str,
     pub usage: SystemAppUsage,
     pub system_capabilities: &'static [SystemBridgeCapability],
+    pub user_grantable_capabilities: &'static [UserBridgeCapability],
 }
 #[derive(Debug, Clone, Copy, Serialize, Type, PartialEq, Eq)]
 pub enum SystemAppUsage {
@@ -41,6 +42,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerKillRuntime,
             SystemBridgeCapability::RuntimeManagerListenRuntimesChanged,
         ],
+        user_grantable_capabilities: &[]
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_UPDATE_ID,
@@ -54,6 +56,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::AppUpdateApply,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
+        user_grantable_capabilities: &[]
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_INSTALL_ID,
@@ -66,6 +69,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::FileSystemSelectFile,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
+        user_grantable_capabilities: &[]
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID,
@@ -79,6 +83,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerHideSelf,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
+        user_grantable_capabilities: &[]
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_DONATION_ID,
@@ -87,6 +92,9 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
         system_capabilities: &[
             SystemBridgeCapability::DonationGetDetails,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
+        ],
+        user_grantable_capabilities: &[
+            UserBridgeCapability::WalletSendXchAutoSubmit,
         ],
     },
 ];
@@ -143,7 +151,10 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let app_dir = builtin_system_apps_root().join(spec.dir_name);
 
     if !app_dir.is_dir() {
-        eprintln!("[build_builtin_system_app] missing app_dir for {app_id}: {}", app_dir.display());
+        eprintln!(
+            "[build_builtin_system_app] missing app_dir for {app_id}: {}",
+            app_dir.display()
+        );
         return Err(AppBuildError::AppDirMissing);
     }
 
@@ -170,9 +181,10 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
                 .user_grantable()
         });
 
-    let granted_permissions = match SageGrantedPermissions::new(
+    let granted_permissions = match SageGrantedPermissions::new_with_extra_granted_capabilities(
         manifest.permissions(),
         requested_capabilities,
+        spec.user_grantable_capabilities.iter().copied(),
         manifest
             .permissions()
             .network()
