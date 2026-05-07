@@ -7,28 +7,6 @@ fn csp_source_list(items: &[String]) -> String {
 }
 
 pub fn build_app_csp(app: &SharedSageApp) -> String {
-    let default_src = csp_source_list(&["'self'".to_string()]);
-    let script_src = csp_source_list(&["'self'".to_string(), "'wasm-unsafe-eval'".to_string()]);
-    let style_src = csp_source_list(&["'self'".to_string(), "'unsafe-inline'".to_string()]);
-    let img_src = csp_source_list(&[
-        "'self'".to_string(),
-        "data:".to_string(),
-        "blob:".to_string(),
-    ]);
-    let font_src = csp_source_list(&["'self'".to_string(), "data:".to_string()]);
-    let media_src = csp_source_list(&[
-        "'self'".to_string(),
-        "data:".to_string(),
-        "blob:".to_string(),
-    ]);
-    let object_src = csp_source_list(&["'none'".to_string()]);
-    let frame_ancestors = csp_source_list(&["'self'".to_string()]);
-    let frame_src = csp_source_list(&["'none'".to_string()]);
-    let child_src = csp_source_list(&["'none'".to_string()]);
-    let base_uri = csp_source_list(&["'none'".to_string()]);
-    let form_action = csp_source_list(&["'none'".to_string()]);
-    let worker_src = csp_source_list(&["'self'".to_string()]);
-
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
     app.with(|app| {
@@ -37,22 +15,47 @@ pub fn build_app_csp(app: &SharedSageApp) -> String {
         }
     });
 
+    let child_src = csp_source_list(&["'none'".to_string()]);
     let connect_src = csp_source_list(&connect_sources.into_iter().collect::<Vec<_>>());
+    let default_src = csp_source_list(&["'self'".to_string()]);
+    let font_src = csp_source_list(&["'self'".to_string(), "data:".to_string()]);
+    let frame_src = csp_source_list(&["'none'".to_string()]);
+    let img_src = csp_source_list(&[
+        "'self'".to_string(),
+        "data:".to_string(),
+        "blob:".to_string(),
+    ]);
+    let manifest_src = csp_source_list(&["'none'".to_string()]);
+    let media_src = csp_source_list(&[
+        "'self'".to_string(),
+        "data:".to_string(),
+        "blob:".to_string(),
+    ]);
+    let object_src = csp_source_list(&["'none'".to_string()]);
+    let prefetch_src = csp_source_list(&["'none'".to_string()]);
+    let script_src = csp_source_list(&["'self'".to_string(), "'wasm-unsafe-eval'".to_string()]);
+    let style_src = csp_source_list(&["'self'".to_string(), "'unsafe-inline'".to_string()]);
+    let worker_src = csp_source_list(&["'self'".to_string()]);
+    let frame_ancestors = csp_source_list(&["'self'".to_string()]);
+    let base_uri = csp_source_list(&["'none'".to_string()]);
+    let form_action = csp_source_list(&["'none'".to_string()]);
 
     format!(
-        "default-src {default_src}; \
-         script-src {script_src}; \
-         style-src {style_src}; \
-         img-src {img_src}; \
+        "child-src {child_src}; \
+         connect-src {connect_src}; \
+         default-src {default_src}; \
          font-src {font_src}; \
+         frame-src {frame_src}; \
+         img-src {img_src}; \
+         manifest-src {manifest_src}; \
          media-src {media_src}; \
          object-src {object_src}; \
+         prefetch-src {prefetch_src}; \
+         script-src {script_src}; \
+         style-src {style_src}; \
+         worker-src {worker_src}; \
          base-uri {base_uri}; \
          form-action {form_action}; \
-         frame-ancestors {frame_ancestors}; \
-         frame_src {frame_src}; \
-         child_src {child_src}; \
-         connect-src {connect_src}; \
-         worker-src {worker_src};"
+         frame-ancestors {frame_ancestors};"
     )
 }
