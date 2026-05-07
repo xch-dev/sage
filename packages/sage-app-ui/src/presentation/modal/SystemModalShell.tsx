@@ -56,7 +56,7 @@ export function SystemModalShell({
     >
       <div
         className={[
-          'h-[min(620px,72vh)] w-[min(420px,calc(100vw-4rem))]',
+          'max-h-[min(620px,72vh)] w-[min(420px,calc(100vw-4rem))]',
           'overflow-hidden rounded-2xl border border-border shadow-2xl',
           contentClassName,
         ].join(' ')}

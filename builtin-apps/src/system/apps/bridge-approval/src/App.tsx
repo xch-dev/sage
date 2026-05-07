@@ -223,13 +223,13 @@ export function App() {
       appName={activeAppName}
       appIcon={activeAppIcon}
       footer={
-        <div className='flex items-center justify-between gap-3'>
+        <div className='flex items-center justify-end gap-3'>
           <div className='flex items-center gap-2'>
             <button
               type='button'
               disabled={working}
               onClick={() => void resolve(false)}
-              className='rounded-md border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-50'
+              className='rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50'
             >
               Reject
             </button>
@@ -238,7 +238,7 @@ export function App() {
               type='button'
               disabled={working}
               onClick={() => void resolve(true)}
-              className='rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50'
+              className='rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50'
             >
               Approve
             </button>

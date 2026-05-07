@@ -38,10 +38,18 @@ export function AppModalShell({
     <SystemModalShell
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
     >
-      <div className={['flex h-full min-h-0 flex-col', className].join(' ')}>
-        <header className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border' style={{
-          backgroundColor: colorWithAlpha(tint, 1),
-        }}>
+      <div
+        className={[
+          'flex max-h-[min(620px,72vh)] min-h-0 flex-col',
+          className,
+        ].join(' ')}
+      >
+        <header
+          className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border'
+          style={{
+            backgroundColor: colorWithAlpha(tint, 1),
+          }}
+        >
           <div className='border-r border-border'>
             <div className='h-full w-full p-1'>
               <AppIcon appName={appName} appIcon={appIcon ?? null} />
@@ -61,7 +69,7 @@ export function AppModalShell({
 
         <main
           className={[
-            'min-h-0 flex-1 overflow-auto',
+            'min-h-0 overflow-auto',
             bodyPadded ? 'px-6 py-5' : '',
             bodyClassName,
           ].join(' ')}
