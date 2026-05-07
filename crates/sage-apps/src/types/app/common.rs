@@ -3,6 +3,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
+use crate::types::app::SageAppWalletScope;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::invariants::{
     resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
@@ -25,6 +26,7 @@ pub struct SageAppCommon {
     flags: SageAppFlags,
     storage: InstalledSageAppStorage,
     active_snapshot: SageAppSnapshot,
+    wallet_scope: SageAppWalletScope,
 }
 
 impl SageAppCommon {
@@ -33,8 +35,9 @@ impl SageAppCommon {
         granted_permissions: SageGrantedPermissions,
         storage: InstalledSageAppStorage,
         snapshot: SageAppSnapshot,
+        wallet_scope: SageAppWalletScope,
     ) -> anyhow::Result<Self> {
-        Self::build(identity, granted_permissions, storage, snapshot, None)
+        Self::build(identity, granted_permissions, storage, snapshot, wallet_scope, None)
     }
 
     pub fn clone_for_rollback(&self) -> Self {
@@ -43,7 +46,8 @@ impl SageAppCommon {
             granted_permissions: self.granted_permissions.clone(),
             storage: self.storage.clone(),
             flags: self.flags,
-            active_snapshot: self.active_snapshot.clone()
+            active_snapshot: self.active_snapshot.clone(),
+            wallet_scope: self.wallet_scope.clone(),
         }
     }
 
@@ -58,6 +62,7 @@ impl SageAppCommon {
             granted_permissions,
             self.storage.clone(),
             snapshot,
+            self.wallet_scope.clone(),
             Some(&self.flags),
         )?;
 
@@ -94,6 +99,7 @@ impl SageAppCommon {
             granted_permissions,
             self.storage.clone(),
             self.active_snapshot.clone(),
+            self.wallet_scope.clone(),
             Some(&self.flags),
         )?;
 
@@ -114,6 +120,7 @@ impl SageAppCommon {
         granted_permissions: SageGrantedPermissions,
         storage: InstalledSageAppStorage,
         snapshot: SageAppSnapshot,
+        wallet_scope: SageAppWalletScope,
         previous_flags: Option<&SageAppFlags>,
     ) -> anyhow::Result<Self> {
         let manifest = snapshot.manifest();
@@ -132,6 +139,7 @@ impl SageAppCommon {
             flags: capability_flags,
             storage,
             active_snapshot: snapshot,
+            wallet_scope,
         };
 
         validate_snapshot_entry_and_icon_exist(
@@ -191,6 +199,14 @@ impl SageAppCommon {
 
     pub fn storage(&self) -> &InstalledSageAppStorage {
         &self.storage
+    }
+
+    pub fn wallet_scope(&self) -> &SageAppWalletScope {
+        &self.wallet_scope
+    }
+
+    pub(crate) fn update_wallet_scope(&mut self, wallet_scope: SageAppWalletScope) {
+        self.wallet_scope = wallet_scope;
     }
 
     pub fn active_snapshot(&self) -> &SageAppSnapshot {

@@ -15,7 +15,7 @@ use crate::host::AppState;
 use crate::lifecycle::apps_root;
 use crate::lifecycle::install::install_app_from_source;
 use crate::lifecycle::install::zip::ZipInstallSource;
-use crate::types::{SageGrantedPermissionsInput, UserSageAppView};
+use crate::types::{SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 
 use super::AppInstallInstallResult;
 
@@ -24,6 +24,7 @@ use super::AppInstallInstallResult;
 pub struct AppInstallInstallZipParams {
     zip_path: String,
     granted_permissions: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -61,6 +62,7 @@ impl BridgeMethod for AppInstallInstallZip {
             state,
             params.zip_path,
             params.granted_permissions,
+            params.wallet_scope,
         )
             .await
             .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
@@ -74,6 +76,7 @@ pub async fn install_app_zip(
     state: State<'_, AppState>,
     zip_path: String,
     granted_permissions_input: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
 ) -> crate::host::Result<UserSageAppView> {
     let base_path = {
         let state = state.lock().await;
@@ -92,7 +95,7 @@ pub async fn install_app_zip(
     let source = ZipInstallSource::new(&root, zip_path.clone());
     let unpack_dir = source.unpack_dir.clone();
 
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, source).await;
+    let result = install_app_from_source(&app, &base_path, granted_permissions_input, wallet_scope, source).await;
 
     if unpack_dir.exists() {
         let _ = fs::remove_dir_all(&unpack_dir);

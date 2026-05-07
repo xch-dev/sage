@@ -9,7 +9,7 @@ use tauri::{AppHandle, Manager, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
 
 pub mod commands;
 pub mod url;
@@ -83,6 +83,7 @@ pub async fn install_app_from_source<S>(
     app: &AppHandle,
     base_path: &Path,
     granted_permissions_input: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
     source: S,
 ) -> AnyResult<UserSageApp>
 where
@@ -91,6 +92,7 @@ where
     let install_result = install_app_from_source_with_storage(
         base_path,
         granted_permissions_input,
+        wallet_scope,
         source,
         &TauriStorageResolver,
         Some(app),
@@ -115,6 +117,7 @@ where
     install_app_from_source_with_storage(
         base_path,
         granted_permissions_input,
+        SageAppWalletScope::AllWallets,
         source,
         &TestStorageResolver {
             storage: InstalledSageAppStorage::Unmanaged,
@@ -127,6 +130,7 @@ where
 async fn install_app_from_source_with_storage<S, R>(
     base_path: &Path,
     sage_granted_permissions_input: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
     source: S,
     storage_resolver: &R,
     app: Option<&AppHandle>,
@@ -169,6 +173,7 @@ where
         granted_permissions,
         storage,
         snapshot,
+        wallet_scope,
     )?;
 
     let installed = UserSageApp::new_installed(common, source.source(&prepared));
@@ -280,7 +285,7 @@ mod tests {
     use super::*;
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
+    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
     use tempfile::tempdir;
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -332,6 +337,7 @@ mod tests {
         let installed = install_app_from_source_with_storage(
             dir.path(),
             granted,
+            SageAppWalletScope::AllWallets,
             FakeInstallSource {
                 manifest,
                 app_id: "fake-app".into(),
@@ -375,6 +381,7 @@ mod tests {
         let err = install_app_from_source_with_storage(
             dir.path(),
             granted,
+            SageAppWalletScope::AllWallets,
             FakeInstallSource {
                 manifest: sample_manifest(),
                 app_id: "fake-app".into(),
@@ -426,6 +433,7 @@ mod tests {
                 manifest.clone(),
             )
             .unwrap(),
+            SageAppWalletScope::AllWallets
         )
         .unwrap();
         let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);

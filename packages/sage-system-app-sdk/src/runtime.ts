@@ -63,6 +63,39 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object';
 }
 
+function mergeClients<T>(path: string, base: unknown, extension: unknown): T {
+  if (!isObject(base) || !isObject(extension)) {
+    throw new Error(
+      `Cannot merge non-object client namespace: ${path || 'root'}`,
+    );
+  }
+
+  const result: Record<string, unknown> = { ...base };
+
+  for (const [key, extensionValue] of Object.entries(extension)) {
+    const nextPath = path ? `${path}.${key}` : key;
+    const baseValue = result[key];
+
+    if (baseValue === undefined) {
+      result[key] = extensionValue;
+      continue;
+    }
+
+    const bothObjects = isObject(baseValue) && isObject(extensionValue);
+    const eitherFunction =
+      typeof baseValue === 'function' || typeof extensionValue === 'function';
+
+    if (bothObjects && !eitherFunction) {
+      result[key] = mergeClients(nextPath, baseValue, extensionValue);
+      continue;
+    }
+
+    throw new Error(`Duplicate Sage client method: ${nextPath}`);
+  }
+
+  return result as T;
+}
+
 function isSystemRuntimeEventEnvelope(
   value: unknown,
 ): value is SystemRuntimeEventEnvelope {
@@ -210,9 +243,7 @@ export function initSageSystemRuntimeBridge(): boolean {
 
   void getSageClient()
     .then((userClient) => {
-      w.__SAGE_SYSTEM__ = {
-        ...userClient,
-
+      const systemExtension = {
         runtimeManager: {
           async listRuntimes() {
             return await callHost<Generated.SageAppRuntimeRecordView[]>(
@@ -240,25 +271,37 @@ export function initSageSystemRuntimeBridge(): boolean {
               input,
             );
           },
+
           async getActiveTaskbarRuntime(): Promise<Generated.SageAppRuntimeRecordView | null> {
             return await callHost<Generated.SageAppRuntimeRecordView | null>(
               'runtimeManager.getActiveTaskbarRuntime',
             );
           },
+
           async hideSelf() {
             return await callHost<void>('runtimeManager.hideSelf');
           },
+
           async closeSelf() {
             return await callHost<void>('runtimeManager.closeSelf');
           },
 
-          onRuntimesChanged(handler) {
+          onRuntimesChanged(
+            handler: (
+              event: Generated.RuntimeManagerRuntimesChangedEvent,
+            ) => void,
+          ) {
             return onSystemRuntimeEventType<Generated.RuntimeManagerRuntimesChangedEvent>(
               'runtimeManager.runtimesChanged',
               handler,
             );
           },
-          onActiveTaskbarRuntimeChanged(handler) {
+
+          onActiveTaskbarRuntimeChanged(
+            handler: (
+              event: Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+            ) => void,
+          ) {
             return onSystemRuntimeEventType<Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent>(
               'runtimeManager.activeTaskbarRuntimeChanged',
               handler,
@@ -313,6 +356,7 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
         },
+
         capabilities: {
           async listUserDefinitions() {
             return await callHost<Generated.SageAppCapabilityDefinitionView[]>(
@@ -340,6 +384,7 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
         },
+
         fileSystem: {
           async selectFile(input: Generated.FileSystemSelectFileParams) {
             return await callHost<Generated.FileSystemSelectFileResult>(
@@ -348,6 +393,7 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
         },
+
         bridgeApprovals: {
           async listPending() {
             return await callHost<Generated.PendingBridgeApprovalView[]>(
@@ -359,13 +405,16 @@ export function initSageSystemRuntimeBridge(): boolean {
             return await callHost<void>('bridgeApprovals.resolve', input);
           },
 
-          onChanged(handler) {
+          onChanged(
+            handler: (event: Generated.BridgeApprovalsChangedEvent) => void,
+          ) {
             return onSystemRuntimeEventType<Generated.BridgeApprovalsChangedEvent>(
               'bridgeApprovals.changed',
               handler,
             );
           },
         },
+
         donations: {
           async getDetails(input: Generated.DonationGetDetailsParams) {
             return await callHost<Generated.DonationDetails>(
@@ -374,25 +423,41 @@ export function initSageSystemRuntimeBridge(): boolean {
             );
           },
         },
+
         sandbox: {
           async getState() {
             return await callHost<Generated.SandboxStateView>(
               'sandbox.getState',
             );
           },
+
           async rerunTests() {
             return await callHost<Generated.SandboxStateView>(
               'sandbox.rerunTests',
             );
           },
-          onStateChanged(handler) {
+
+          onStateChanged(handler: (state: Generated.SandboxStateView) => void) {
             return onSystemRuntimeEventType<Generated.SandboxStateChangedEvent>(
               'sandbox.stateChanged',
               (event) => handler(event.state),
             );
           },
         },
+        wallet: {
+          async listWallets() {
+            return await callHost<Generated.WalletListWalletsResult>(
+              'wallet.listWallets',
+            );
+          },
+        },
       };
+
+      w.__SAGE_SYSTEM__ = mergeClients<SageSystemClient>(
+        '',
+        userClient,
+        systemExtension,
+      );
     })
     .catch((error: unknown) => {
       console.error('Failed to initialize Sage system client:', error);

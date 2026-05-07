@@ -14,13 +14,14 @@ use crate::bridge::methods::system::AppInstallInstallResult;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::host::AppState;
 use crate::lifecycle::install::install_app_from_source;
-use crate::types::{SageAppUrl, SageGrantedPermissionsInput, UserSageAppView};
+use crate::types::{SageAppUrl, SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppInstallInstallUrlParams {
     app_url: String,
     granted_permissions: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -58,6 +59,7 @@ impl BridgeMethod for AppInstallInstallUrl {
             state,
             params.app_url,
             params.granted_permissions,
+            params.wallet_scope,
         )
             .await
             .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
@@ -71,6 +73,7 @@ pub async fn install_app_url(
     state: State<'_, AppState>,
     app_url: String,
     granted_permissions_input: SageGrantedPermissionsInput,
+    wallet_scope: SageAppWalletScope,
 ) -> crate::host::Result<UserSageAppView> {
     let base_path = {
         let state = state.lock().await;
@@ -78,7 +81,7 @@ pub async fn install_app_url(
     };
     let parsed_app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, parsed_app_url)
+    let result = install_app_from_source(&app, &base_path, granted_permissions_input, wallet_scope, parsed_app_url)
         .await;
 
     result

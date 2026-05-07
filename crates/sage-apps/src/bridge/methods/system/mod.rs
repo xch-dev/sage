@@ -8,6 +8,7 @@ mod bridge_approvals;
 mod donation;
 mod app_registry;
 mod sandbox;
+mod wallet;
 
 pub(crate) use app_permissions::*;
 pub(crate) use app_update::*;
@@ -19,3 +20,4 @@ pub(crate) use bridge_approvals::*;
 pub(crate) use donation::*;
 pub(crate) use app_registry::*;
 pub(crate) use sandbox::*;
+pub(crate) use wallet::*;

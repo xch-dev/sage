@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource};
 
 #[derive(Debug, Serialize)]
 pub struct PersistedUserSageApp {
@@ -8,6 +8,7 @@ pub struct PersistedUserSageApp {
     granted_permissions: SageGrantedPermissions,
     storage: InstalledSageAppStorage,
     active_snapshot: SageAppSnapshot,
+    wallet_scope: SageAppWalletScope,
     source: UserSageAppSource,
 }
 
@@ -26,6 +27,7 @@ impl TryFrom<&SageApp> for PersistedUserSageApp {
             granted_permissions: common.granted_permissions().clone(),
             storage: common.storage().clone(),
             active_snapshot: common.active_snapshot().clone(),
+            wallet_scope: common.wallet_scope().clone(),
             source: user_app.source().clone(),
         })
     }
@@ -42,6 +44,7 @@ impl TryFrom<&UserSageApp> for PersistedUserSageApp {
             granted_permissions: common.granted_permissions().clone(),
             storage: common.storage().clone(),
             active_snapshot: common.active_snapshot().clone(),
+            wallet_scope: common.wallet_scope().clone(),
             source: user_app.source().clone(),
         })
     }
@@ -56,6 +59,7 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
             persisted.granted_permissions,
             persisted.storage,
             persisted.active_snapshot,
+            persisted.wallet_scope
         )?;
 
         Ok(UserSageApp::new_installed(common, persisted.source))
@@ -68,6 +72,7 @@ struct PersistedUserSageAppRaw {
     granted_permissions: SageGrantedPermissions,
     storage: InstalledSageAppStorage,
     active_snapshot: SageAppSnapshot,
+    wallet_scope: SageAppWalletScope,
     source: UserSageAppSource,
 }
 
@@ -83,6 +88,7 @@ impl<'de> Deserialize<'de> for PersistedUserSageApp {
             granted_permissions: raw.granted_permissions,
             storage: raw.storage,
             active_snapshot: raw.active_snapshot,
+            wallet_scope: raw.wallet_scope,
             source: raw.source,
         })
     }

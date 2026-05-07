@@ -1,5 +1,5 @@
 use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeInvokeResult};
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallPreviewUrlParams, AppInstallInstallZipParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent, ListedAppsChangedEvent, SandboxStateChangedEvent};
+use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallPreviewUrlParams, AppInstallInstallZipParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, PendingBridgeApprovalView, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent, ListedAppsChangedEvent, SandboxStateChangedEvent, SystemWalletView, WalletListWalletsResult};
 use crate::bridge::methods::user::{
     app::{
         GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
@@ -25,7 +25,7 @@ use sage_api::{CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetC
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use crate::sandbox::SandboxStateView;
-use crate::types::SageAppCapabilityDefinitionView;
+use crate::types::{SageAppCapabilityDefinitionView, SageAppWalletScope};
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();
@@ -123,6 +123,10 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
 
     types.register::<SandboxStateChangedEvent>();
     types.register::<SandboxStateView>();
+
+    types.register::<SageAppWalletScope>();
+    types.register::<SystemWalletView>();
+    types.register::<WalletListWalletsResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

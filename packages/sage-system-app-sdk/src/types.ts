@@ -92,6 +92,9 @@ export type SageSandboxClient = {
     handler: (state: Generated.SandboxStateView) => void,
   ): () => void;
 };
+export type SageWalletClient = {
+  listWallets(): Promise<Generated.WalletListWalletsResult>;
+};
 
 export type SageSystemClient = SageClient & {
   runtimeManager: SageSystemRuntimeManagerClient;
@@ -103,4 +106,5 @@ export type SageSystemClient = SageClient & {
   bridgeApprovals: SageSystemBridgeApprovalsClient;
   donations: SageSystemDonationsClient;
   sandbox: SageSandboxClient;
+  wallet: SageWalletClient;
 };

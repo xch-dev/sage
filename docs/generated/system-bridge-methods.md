@@ -132,3 +132,9 @@
 |---|---|
 | Capability | `sandbox.rerun_tests` |
 
+## `wallet.listWallets`
+
+| Field | Value |
+|---|---|
+| Capability | `wallet.list_wallets` |
+

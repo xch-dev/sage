@@ -1,12 +1,19 @@
 import {
   getSageSystemClient,
   type SageGrantedPermissionsInput,
+  type SageAppWalletScope,
+  type WalletListWalletsResult,
 } from '@sage-system-app/sdk';
 import type { InstallSource } from './types';
 
 export async function closeSelf() {
   const client = await getSageSystemClient();
   void client.runtimeManager.closeSelf();
+}
+
+export async function listWallets(): Promise<WalletListWalletsResult> {
+  const client = await getSageSystemClient();
+  return await client.wallet.listWallets();
 }
 
 export async function previewUrl(appUrl: string): Promise<InstallSource> {
@@ -46,6 +53,7 @@ export async function selectAndPreviewZip(): Promise<InstallSource | null> {
 export async function installSource(
   source: InstallSource,
   grantedPermissions: SageGrantedPermissionsInput,
+  walletScope: SageAppWalletScope,
 ) {
   const client = await getSageSystemClient();
 
@@ -53,11 +61,13 @@ export async function installSource(
     await client.appInstall.installZip({
       zipPath: source.zipPath,
       grantedPermissions,
+      walletScope,
     });
   } else {
     await client.appInstall.installUrl({
       appUrl: source.appUrl,
       grantedPermissions,
+      walletScope,
     });
   }
 }

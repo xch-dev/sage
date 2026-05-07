@@ -8,6 +8,7 @@ mod snapshot;
 mod system_apps;
 mod user_apps;
 mod view;
+mod wallet_scope;
 
 pub use user_apps::SharedSageApp;
 
@@ -22,5 +23,6 @@ pub(crate) use user_apps::{
     CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp
 };
 pub(crate) use view::{ListedSageAppView, SageAppView, UserSageAppView, SageAppIconView};
+pub(crate) use wallet_scope::SageAppWalletScope;
 
 pub(super) use flags::SageAppFlags;

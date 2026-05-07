@@ -328,6 +328,12 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to receive events when sandbox test state changes.",
             system_app_flags(),
         ),
+        SystemBridgeCapability::WalletListWallets => CapabilityDefinition::new(
+            capability,
+            "List wallets",
+            "Allows the system app to list wallets available in Sage.",
+            system_app_flags(),
+        ),
     }
 }
 

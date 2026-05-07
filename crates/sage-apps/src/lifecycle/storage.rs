@@ -214,7 +214,7 @@ mod tests {
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
+    use crate::types::{AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
     use tempfile::tempdir;
 
     fn write_index(app_dir: &Path) {
@@ -277,6 +277,7 @@ mod tests {
             granted_permissions,
             storage,
             snapshot,
+            SageAppWalletScope::AllWallets
         )
         .unwrap();
 

@@ -350,3 +350,17 @@ Allows the system app to receive events when sandbox test state changes.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.list_wallets`
+
+**List wallets**
+
+Allows the system app to list wallets available in Sage.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+

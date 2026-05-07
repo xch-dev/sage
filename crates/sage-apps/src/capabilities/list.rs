@@ -133,6 +133,8 @@ define_bridge_capabilities! {
         SandboxGetState => "sandbox.get_state",
         SandboxRerunTests => "sandbox.rerun_tests",
         SandboxListenStateChanged => "sandbox.listen_state_changed",
+
+        WalletListWallets => "wallet.list_wallets",
     }
 }
 

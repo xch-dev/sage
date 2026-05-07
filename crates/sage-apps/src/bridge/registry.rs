@@ -113,6 +113,8 @@ fn build_system_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, SandboxGetState);
     insert_method(&mut methods, SandboxRerunTests);
 
+    insert_method(&mut methods, WalletListWallets);
+
     methods
 }
 

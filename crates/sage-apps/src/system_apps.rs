@@ -7,7 +7,7 @@ use anyhow::{Result as AnyResult};
 use serde::Serialize;
 use specta::Type;
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
 use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
@@ -68,6 +68,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::AppInstallPreview,
             SystemBridgeCapability::AppInstallApply,
             SystemBridgeCapability::FileSystemSelectFile,
+            SystemBridgeCapability::WalletListWallets,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
         user_grantable_capabilities: &[]
@@ -247,6 +248,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
+        SageAppWalletScope::AllWallets
     ) {
         Ok(c) => c,
         Err(err) => {

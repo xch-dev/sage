@@ -4,10 +4,7 @@ use std::{fs, path::PathBuf};
 use sha2::{Digest, Sha256};
 
 use crate::system_apps::AppBuildError;
-use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
-    SageAppSnapshot, SageGrantedPermissions, UserSageApp, UserSageAppSource,
-};
+use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource};
 use crate::utils::builtin_apps_root;
 
 macro_rules! sandbox_test_id_prefix {
@@ -172,6 +169,7 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
         granted_permissions,
         builtin_storage(spec.app_id),
         snapshot,
+        SageAppWalletScope::AllWallets
     ).map_err(|_| AppBuildError::InternalError)?;
 
 
@@ -232,6 +230,7 @@ pub fn build_builtin_runtime_app(
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
+        SageAppWalletScope::AllWallets
     )
         .map_err(|err| {
             eprintln!("runtime app common failed: {err}");
