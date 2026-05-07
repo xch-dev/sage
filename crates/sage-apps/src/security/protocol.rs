@@ -67,6 +67,9 @@ fn handle_app_protocol_request(
     if request.uri().host() != Some(&identity_app.origin_id()) {
         anyhow::bail!("host mismatch");
     }
+    if request.headers().contains_key("Service-Worker") {
+        anyhow::bail!("Service worker forbidden");
+    }
 
     let content_app = runtime.content_app();
     let request_path = request.uri().path();

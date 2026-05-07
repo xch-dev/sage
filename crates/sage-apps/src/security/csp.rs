@@ -23,6 +23,8 @@ pub fn build_app_csp(app: &SharedSageApp) -> String {
     ]);
     let object_src = csp_source_list(&["'none'".to_string()]);
     let frame_ancestors = csp_source_list(&["'self'".to_string()]);
+    let frame_src = csp_source_list(&["'none'".to_string()]);
+    let child_src = csp_source_list(&["'none'".to_string()]);
     let base_uri = csp_source_list(&["'none'".to_string()]);
     let form_action = csp_source_list(&["'none'".to_string()]);
     let worker_src = csp_source_list(&["'self'".to_string()]);
@@ -48,6 +50,8 @@ pub fn build_app_csp(app: &SharedSageApp) -> String {
          base-uri {base_uri}; \
          form-action {form_action}; \
          frame-ancestors {frame_ancestors}; \
+         frame_src {frame_src}; \
+         child_src {child_src}; \
          connect-src {connect_src}; \
          worker-src {worker_src};"
     )
