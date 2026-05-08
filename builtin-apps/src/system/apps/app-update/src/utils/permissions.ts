@@ -1,10 +1,17 @@
 import type {
   SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
-  SageRequestedPermissions,
   UserBridgeCapability,
 } from '@sage-system-app/sdk';
 import { isUserGrantable } from './definitions';
+
+type RequestedWhitelistByNetwork = Record<
+  string,
+  {
+    required?: SageNetworkWhitelistEntry[];
+    optional?: SageNetworkWhitelistEntry[];
+  }
+>;
 
 function networkKey(entry: SageNetworkWhitelistEntry) {
   return `${entry.scheme}://${entry.host}`;
@@ -37,6 +44,8 @@ export function nextPermissionsForUpdate(args: {
   const nextNetwork = {
     required: nextRequested.network.whitelist.required ?? [],
     optional: nextRequested.network.whitelist.optional ?? [],
+    byNetwork: (nextRequested.network.whitelistByNetwork ??
+      {}) as RequestedWhitelistByNetwork,
   };
 
   const nextAllowedCaps = new Set([...nextCaps.required, ...nextCaps.optional]);
@@ -68,6 +77,36 @@ export function nextPermissionsForUpdate(args: {
   for (const e of retainedNetwork) networkMap.set(networkKey(e), e);
   for (const e of nextNetwork.required) networkMap.set(networkKey(e), e);
 
+  const whitelistByNetwork: Record<string, SageNetworkWhitelistEntry[]> = {};
+
+  for (const [networkId, requestedWhitelist] of Object.entries(
+    nextNetwork.byNetwork,
+  )) {
+    const allowedNetworkKeys = new Set([
+      ...(requestedWhitelist.required ?? []).map(networkKey),
+      ...(requestedWhitelist.optional ?? []).map(networkKey),
+    ]);
+
+    const retained = (
+      args.app.common.grantedPermissions.network.whitelistByNetwork?.[
+        networkId
+      ] ?? []
+    ).filter((entry: SageNetworkWhitelistEntry) =>
+      allowedNetworkKeys.has(networkKey(entry)),
+    );
+
+    const entries = new Map<string, SageNetworkWhitelistEntry>();
+
+    for (const entry of retained) entries.set(networkKey(entry), entry);
+    for (const entry of requestedWhitelist.required ?? []) {
+      entries.set(networkKey(entry), entry);
+    }
+
+    if (entries.size > 0) {
+      whitelistByNetwork[networkId] = sortNetwork(entries.values());
+    }
+  }
+
   return {
     capabilities: sortCapabilities([
       ...retainedCapabilities,
@@ -75,6 +114,7 @@ export function nextPermissionsForUpdate(args: {
     ]),
     network: {
       whitelist: sortNetwork(networkMap.values()),
+      whitelistByNetwork,
     },
   };
 }

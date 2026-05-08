@@ -122,7 +122,7 @@ impl SageGrantedNetworkPermissions {
     pub fn effective_whitelist_for_network(
         &self,
         network_id: &str,
-    ) -> BTreeSet<SageNetworkWhitelistEntry> {
+    ) -> Vec<SageNetworkWhitelistEntry> {
         self.whitelist
             .iter()
             .cloned()
@@ -132,6 +132,8 @@ impl SageGrantedNetworkPermissions {
                     .into_iter()
                     .flat_map(|entries| entries.iter().cloned()),
             )
+            .collect::<BTreeSet<_>>()
+            .into_iter()
             .collect()
     }
 

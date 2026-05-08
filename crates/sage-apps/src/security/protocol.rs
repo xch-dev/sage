@@ -7,6 +7,7 @@ use anyhow::{Result as AnyResult, anyhow};
 use std::fs;
 use tauri::http::{Response, StatusCode};
 use tauri::{Manager, UriSchemeContext, Wry};
+use crate::host::AppState;
 
 pub fn handle_user_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
@@ -23,7 +24,7 @@ pub fn handle_user_app_protocol_request(
 
         let is_sandbox_test = identity_app.with(|app| app.common().is_sandbox_test());
 
-        match handle_app_protocol_request(&runtime, request) {
+        match handle_app_protocol_request(ctx, &runtime, request) {
             Ok(response) => Ok(response),
             Err(err) if is_sandbox_test => Ok(protocol_error_response("sage-app", &err)),
             Err(_) => Ok(not_found_response()),
@@ -37,6 +38,7 @@ pub fn handle_system_app_protocol_request(
     ctx: &UriSchemeContext<'_, Wry>,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
+
     let result = (|| {
         let runtime = get_protocol_request_runtime(ctx)?;
 
@@ -44,7 +46,7 @@ pub fn handle_system_app_protocol_request(
             anyhow::bail!("not a system runtime");
         }
 
-        handle_app_protocol_request(&runtime, request)
+        handle_app_protocol_request(ctx, &runtime, request)
             .map_err(|err| anyhow!("sage-system-app error: {err}"))
     })();
 
@@ -64,6 +66,7 @@ fn get_protocol_request_runtime(
 }
 
 fn handle_app_protocol_request(
+    ctx: &UriSchemeContext<'_, Wry>,
     runtime: &PossiblyImpostorRuntime,
     request: &tauri::http::Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
@@ -87,11 +90,13 @@ fn handle_app_protocol_request(
         .essence_str()
         .to_string();
 
+    let network_id = active_network_id(ctx)?;
+
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", mime)
         .header("Cache-Control", "no-store")
-        .header("Content-Security-Policy", build_app_csp(&identity_app))
+        .header("Content-Security-Policy", build_app_csp(&identity_app, &network_id))
         .header("X-Content-Type-Options", "nosniff")
         .body(fs::read(&file_path)?)
         .map_err(|err| anyhow!("failed to build app protocol response: {err}"))
@@ -111,4 +116,24 @@ fn protocol_error_response(prefix: &str, err: &anyhow::Error) -> Response<Vec<u8
         .header("Content-Type", "text/plain; charset=utf-8")
         .body(format!("{prefix} error: {err}").into_bytes())
         .expect("failed to build protocol error response")
+}
+
+fn active_network_id(ctx: &UriSchemeContext<'_, Wry>) -> AnyResult<String> {
+    const ATTEMPTS: usize = 100;
+
+    let state = ctx.app_handle().state::<AppState>();
+
+    tokio::task::block_in_place(|| {
+        for _ in 0..ATTEMPTS {
+            if let Ok(sage) = state.inner().try_lock() {
+                return Ok(sage.network_id());
+            }
+
+            std::thread::yield_now();
+        }
+
+        Err(anyhow!(
+            "active network id unavailable because Sage state is locked"
+        ))
+    })
 }

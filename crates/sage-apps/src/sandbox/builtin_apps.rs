@@ -206,7 +206,7 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
 
     let granted_permissions = SageGrantedPermissions::for_builtin_requested(manifest.permissions())
         .map_err(|err| {
-            eprintln!("runtime app granted_permissions failed: {err}");
+            tracing::error!("runtime app granted_permissions failed: {err}");
             AppBuildError::InternalError
         })?;
 
@@ -216,14 +216,14 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
         manifest.clone(),
     )
     .map_err(|err| {
-        eprintln!("runtime app snapshot failed: {err}");
+        tracing::error!("runtime app snapshot failed: {err}");
         AppBuildError::InternalError
     })?;
 
     let common = SageAppCommon::new(
         SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).map_err(
             |err| {
-                eprintln!("runtime app identity failed: {err}");
+                tracing::error!("runtime app identity failed: {err}");
                 AppBuildError::InternalError
             },
         )?,
@@ -233,7 +233,7 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
         SageAppWalletScope::AllWallets,
     )
     .map_err(|err| {
-        eprintln!("runtime app common failed: {err}");
+        tracing::error!("runtime app common failed: {err}");
         AppBuildError::InternalError
     })?;
 

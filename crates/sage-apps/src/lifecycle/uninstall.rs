@@ -25,12 +25,12 @@ pub async fn uninstall_app(
     let resolved_app = match resolve_stopped_app(&app_handle, &app_id).await {
         Ok(app) => Some(app),
         Err(ResolveStoppedError::AppDirMissing) => {
-            eprintln!("[uninstall_app] app dir missing/unresolvable {app_id}; removing dir only");
+            tracing::error!("[uninstall_app] app dir missing/unresolvable {app_id}; removing dir only");
             None
         }
 
         Err(ResolveStoppedError::CloseAttemptsHit) => {
-            eprintln!("[uninstall_app] close attempts hit {app_id}");
+            tracing::error!("[uninstall_app] close attempts hit {app_id}");
             return Err(io::Error::other(
                 "failed to uninstall app because runtime could not be stopped",
             )
@@ -45,7 +45,7 @@ pub async fn uninstall_app(
         )
         .await
         .unwrap_or_else(|_| {
-            eprintln!("[uninstall_app] storage cleanup timed out for {app_id}");
+            tracing::error!("[uninstall_app] storage cleanup timed out for {app_id}");
             Err("storage cleanup timed out".to_string())
         });
         resolved_app.try_with_app(|installed| {

@@ -223,6 +223,7 @@ async fn check_gates(
     let gate = sandbox::evaluate_app_launch_gate(app, &effective);
 
     if !gate.allowed {
+        tracing::error!("App launch blocked by sandbox policy");
         return Err(gate
             .message
             .unwrap_or_else(|| "App launch blocked by sandbox policy".into()));

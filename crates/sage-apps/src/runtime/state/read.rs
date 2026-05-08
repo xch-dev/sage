@@ -251,7 +251,7 @@ fn retry_immediate_lookup<T>(
 
         if Instant::now() >= deadline {
             let err = format!("{label} is busy after {attempts} attempts");
-            eprintln!("{err}");
+            tracing::error!("{err}");
             return Err(err);
         }
     }

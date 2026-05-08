@@ -6,11 +6,15 @@ fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
 }
 
-pub fn build_app_csp(app: &SharedSageApp) -> String {
+pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
 
     app.with(|app| {
-        for entry in app.granted_permissions().network().whitelist_iter() {
+        for entry in app
+            .granted_permissions()
+            .network()
+            .effective_whitelist_for_network(network_id)
+        {
             connect_sources.insert(entry.as_permission_string());
         }
     });

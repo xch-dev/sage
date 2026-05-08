@@ -172,7 +172,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let app_dir = builtin_system_apps_root().join(spec.dir_name);
 
     if !app_dir.is_dir() {
-        eprintln!(
+        tracing::error!(
             "[build_builtin_system_app] missing app_dir for {app_id}: {}",
             app_dir.display()
         );
@@ -182,7 +182,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let manifest = match read_builtin_manifest(&app_dir) {
         Ok(m) => m,
         Err(err) => {
-            eprintln!(
+            tracing::error!(
                 "[build_builtin_system_app] manifest failure for {app_id} at {}: {err:?}",
                 app_dir.display()
             );
@@ -216,7 +216,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(p) => p,
         Err(err) => {
-            eprintln!(
+            tracing::error!(
                 "[build_builtin_system_app] granted_permissions failure for {app_id}: {err:?}\nmanifest: {manifest:?}"
             );
             return Err(AppBuildError::InternalError);
@@ -230,7 +230,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(s) => s,
         Err(err) => {
-            eprintln!("[build_builtin_system_app] snapshot failure for {app_id}: {err:?}");
+            tracing::error!("[build_builtin_system_app] snapshot failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };
@@ -242,7 +242,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(i) => i,
         Err(err) => {
-            eprintln!("[build_builtin_system_app] identity failure for {app_id}: {err:?}");
+            tracing::error!("[build_builtin_system_app] identity failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };
@@ -256,7 +256,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(c) => c,
         Err(err) => {
-            eprintln!("[build_builtin_system_app] common failure for {app_id}: {err:?}");
+            tracing::error!("[build_builtin_system_app] common failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };

@@ -3,7 +3,81 @@ import type {
   SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
   UserBridgeCapability,
+  SageAppCapabilityDefinitionView,
+  SageAppPackageManifest,
 } from '@sage-system-app/sdk';
+
+type RequestedWhitelistByNetwork = Record<
+  string,
+  {
+    required?: SageNetworkWhitelistEntry[];
+    optional?: SageNetworkWhitelistEntry[];
+  }
+>;
+
+function sortCapabilities(
+  values: Iterable<UserBridgeCapability>,
+): UserBridgeCapability[] {
+  return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+}
+
+export function isUserGrantableCapabilityDefinition(
+  definitions: SageAppCapabilityDefinitionView[],
+  capability: UserBridgeCapability,
+): boolean {
+  return (
+    definitions.find((definition) => definition.key === capability)?.flags
+      .userGrantable === true
+  );
+}
+
+export function requiredNetworkWhitelistByNetworkInput(
+  value: unknown,
+): Record<string, SageNetworkWhitelistEntry[]> {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as RequestedWhitelistByNetwork)
+      .map(([networkId, whitelist]) => [
+        networkId,
+        sortNetworkEntries(whitelist?.required ?? []),
+      ])
+      .filter(([, entries]) => entries.length > 0),
+  );
+}
+
+export function initialGrantedPermissionsInput(
+  manifest: SageAppPackageManifest,
+  definitions: SageAppCapabilityDefinitionView[],
+): SageGrantedPermissionsInput {
+  return {
+    capabilities: sortCapabilities(
+      (manifest.permissions.capabilities.required ?? []).filter((capability) =>
+        isUserGrantableCapabilityDefinition(definitions, capability),
+      ),
+    ),
+    network: {
+      whitelist: sortNetworkEntries(
+        manifest.permissions.network.whitelist.required ?? [],
+      ),
+      whitelistByNetwork: requiredNetworkWhitelistByNetworkInput(
+        manifest.permissions.network.whitelistByNetwork,
+      ),
+    },
+  };
+}
+
+export function emptyGrantedPermissionsInput(): SageGrantedPermissionsInput {
+  return {
+    capabilities: [],
+    network: {
+      whitelist: [],
+      whitelistByNetwork: {},
+    },
+  };
+}
 
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');

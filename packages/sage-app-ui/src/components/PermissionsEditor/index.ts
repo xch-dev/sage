@@ -1,2 +1,6 @@
 export { PermissionsEditor } from './PermissionsEditor';
-export { inputToGrantedPermissionsView } from './utils';
+export {
+  emptyGrantedPermissionsInput,
+  initialGrantedPermissionsInput,
+  inputToGrantedPermissionsView,
+} from './utils';
