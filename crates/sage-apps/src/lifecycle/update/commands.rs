@@ -1,52 +1,100 @@
+use std::collections::BTreeMap;
 use std::io;
 
 use tauri::{command, AppHandle, State};
 
+use crate::bridge::methods::system::{emit_listed_apps_changed, emit_pending_update_changed};
 use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::download_url_snapshot;
-use crate::lifecycle::update::logic::{
-    check_app_update_for_app, fetch_pending_update,
-    fetch_pending_update_for_resolved_stopped_app,
-};
-use crate::runtime::resolve_app;
+use crate::lifecycle::update::logic::{check_app_update_for_app, fetch_pending_update};
+use crate::runtime::{resolve_app, start_app_update_runtime};
 use crate::types::{
     SageApp, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput,
+    UserSageAppPendingUpdateView,
 };
+use crate::AppsHostState;
 
 #[command]
 #[specta::specta]
 pub async fn check_app_update(
+    state: State<'_, AppState>,
+    apps_state: State<'_, AppsHostState>,
     app_handle: AppHandle,
     app_id: String,
 ) -> Result<Option<SageAppUrlPreview>> {
-    let app = resolve_app(&app_handle, &app_id)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    check_app_update_for_app(&app).await
-}
-
-#[command]
-#[specta::specta]
-pub async fn download_app_update(app_handle: AppHandle, app_id: String) -> Result<SageAppView> {
-    let app = resolve_app(&app_handle, &app_id)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
-
-    let app = app.clone_app_for_operation();
-
-    let Some(pending) = fetch_pending_update(&app).await? else {
-        return Ok((&app).into());
+    let base_path = {
+        let state = state.lock().await;
+        state.path.clone()
     };
 
-    app.try_mutate(|app| {
-        app.set_pending_update(Some(pending))
-            .map_err(|err| err.to_string())
-    })
-        .map_err(io::Error::other)?;
+    let resolved = resolve_app(&app_handle, &app_id)
+        .await
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
-    Ok((&app).into())
+    let preview = check_app_update_for_app(&resolved).await?;
+
+    let Some(preview) = preview else {
+        return Ok(None);
+    };
+
+    let app = resolved.clone_app_for_operation();
+
+    match fetch_pending_update(&app).await {
+        Ok(Some(pending)) => {
+            app.try_mutate(|sage_app| {
+                sage_app
+                    .set_pending_update(Some(pending))
+                    .map_err(|err| err.to_string())
+            })
+                .map_err(io::Error::other)?;
+
+            emit_pending_update_changed(&app_handle, &apps_state, &app).await;
+            emit_listed_apps_changed(&app_handle, &apps_state, &base_path).await;
+
+            if should_review_pending_update(&app) {
+                open_update_runtime(
+                    &app_handle,
+                    &apps_state,
+                    &app_id,
+                    None,
+                    "failed to start app update review runtime",
+                )
+                    .await;
+            }
+        }
+
+        Ok(None) => {
+            app.try_mutate(|sage_app| {
+                sage_app
+                    .set_pending_update(None)
+                    .map_err(|err| err.to_string())
+            })
+                .map_err(io::Error::other)?;
+
+            emit_pending_update_changed(&app_handle, &apps_state, &app).await;
+            emit_listed_apps_changed(&app_handle, &apps_state, &base_path).await;
+        }
+
+        Err(err) => {
+            tracing::warn!(
+                error = %err,
+                app_id = %app_id,
+                "app update exists but pending update could not be prepared"
+            );
+
+            open_update_runtime(
+                &app_handle,
+                &apps_state,
+                &app_id,
+                Some(err.to_string()),
+                "failed to start app update issue runtime",
+            )
+                .await;
+        }
+    }
+
+    Ok(Some(preview))
 }
 
 #[command]
@@ -80,12 +128,8 @@ pub async fn apply_app_update(
         })
     })?;
 
-    let pending = match pending {
-        Some(pending) => pending,
-        None => fetch_pending_update_for_resolved_stopped_app(&resolved)
-            .await?
-            .ok_or_else(|| io::Error::other(format!("app {app_id} has no available update")))?,
-    };
+    let pending =
+        pending.ok_or_else(|| io::Error::other(format!("app {app_id} has no pending update")))?;
 
     let app_path = resolved.with_app(|app| app.with(SageApp::app_path));
 
@@ -113,4 +157,50 @@ pub async fn apply_app_update(
         .map_err(io::Error::other)?;
 
     Ok(resolved.with_app(|app| app.into()))
+}
+
+fn should_review_pending_update(app: &crate::types::SharedSageApp) -> bool {
+    app.with(|sage_app| {
+        let Some(user_app) = sage_app.as_user() else {
+            return false;
+        };
+
+        user_app
+            .pending_update()
+            .map(|pending| {
+                UserSageAppPendingUpdateView::from_pending_update(
+                    pending,
+                    user_app.common().granted_permissions(),
+                )
+                    .decision()
+                    .is_review()
+            })
+            .unwrap_or(false)
+    })
+}
+
+async fn open_update_runtime(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+    issue: Option<String>,
+    error_message: &'static str,
+) {
+    let mut query = BTreeMap::new();
+    query.insert("appId".to_string(), app_id.to_string());
+
+    if let Some(issue) = issue {
+        query.insert("issue".to_string(), issue);
+    }
+
+    let _ = start_app_update_runtime(app_handle, apps_state, app_id.to_string(), query)
+        .await
+        .map_err(|err| {
+            tracing::error!(
+                error = %err,
+                app_id = %app_id,
+                "{error_message}"
+            );
+            err
+        });
 }

@@ -157,7 +157,6 @@ pub fn run() {
             apps::list_installed_apps,
             apps::uninstall_app,
             apps::check_app_update,
-            apps::download_app_update,
             apps::apply_app_update,
             apps::apps_clear_runtime_browsing_data,
             apps::apps_start_system_app,

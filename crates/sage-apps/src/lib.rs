@@ -23,7 +23,7 @@ pub use environment::commands::apps_set_environment_theme;
 pub use lifecycle::{apps_clear_runtime_browsing_data, uninstall::uninstall_app};
 pub use lifecycle::{
     install::commands::list_installed_apps,
-    update::commands::{apply_app_update, check_app_update, download_app_update},
+    update::commands::{apply_app_update, check_app_update},
 };
 pub use runtime::commands::{
     apps_clear_active_taskbar_runtime, apps_create_inline_runtime, apps_dev_reload_runtime,

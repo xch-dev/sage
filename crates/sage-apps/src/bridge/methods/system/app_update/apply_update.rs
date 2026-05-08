@@ -9,7 +9,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::commands::{apply_app_update, download_app_update};
+use crate::lifecycle::update::commands::{apply_app_update};
 use crate::types::{SageAppView, SageGrantedPermissionsInput};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -53,15 +53,6 @@ impl BridgeMethod for AppUpdateApplyUpdate {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: AppUpdateApplyUpdateParams = parse_required_params(self, request)?;
-
-        download_app_update(tools.app_handle.clone(), params.app_id.clone())
-            .await
-            .map_err(|err| {
-                BridgeMethodHandleError::internal_error(format!(
-                    "failed to download update for {}: {err}",
-                    params.app_id
-                ))
-            })?;
 
         let app = apply_app_update(
             tools.app_state.clone(),

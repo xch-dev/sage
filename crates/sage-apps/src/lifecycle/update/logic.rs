@@ -2,7 +2,7 @@ use std::io;
 
 use crate::host::Result;
 use crate::lifecycle::{fetch_url_manifest, fetch_url_manifest_preview};
-use crate::types::{ResolvedApp, ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 pub async fn check_app_update_for_app(
     app: &ResolvedApp,
@@ -91,56 +91,6 @@ pub async fn fetch_pending_update(
 
     if preview.manifest_hash() == deps.active_snapshot.manifest_hash()
         && manifest == deps.active_snapshot.manifest()
-    {
-        return Ok(None);
-    }
-
-    Ok(Some(UserSageAppPendingUpdate::new(
-        app_url,
-        preview.manifest_hash().to_string(),
-        manifest.clone(),
-    )))
-}
-
-pub async fn fetch_pending_update_for_resolved_stopped_app(
-    resolved: &ResolvedStoppedApp,
-) -> Result<Option<UserSageAppPendingUpdate>> {
-    let deps = resolved.try_with_app(|app| {
-        app.try_with(|sage_app| {
-            let Some(user_app) = sage_app.as_user() else {
-                return Ok(None);
-            };
-
-            Ok::<_, anyhow::Error>(Some((
-                user_app.source().clone(),
-                user_app.common().active_snapshot().clone(),
-            )))
-        })
-    })?;
-
-    let Some((source, active_snapshot)) = deps else {
-        return Ok(None);
-    };
-
-    let app_url = match source {
-        UserSageAppSource::Url { app_url } => app_url,
-        UserSageAppSource::Zip => return Ok(None),
-    };
-
-    let (manifest, manifest_hash) = fetch_url_manifest(&app_url.manifest_url())
-        .await
-        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
-
-    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
-
-    let manifest = preview
-        .require_full_manifest()
-        .map_err(|err| io::Error::other(format!("update manifest is not installable: {err}")))?;
-
-    if preview.manifest_hash() == active_snapshot.manifest_hash()
-        && manifest == active_snapshot.manifest()
     {
         return Ok(None);
     }

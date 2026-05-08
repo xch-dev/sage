@@ -398,9 +398,6 @@ async uninstallApp(appId: string) : Promise<null> {
 async checkAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
     return await TAURI_INVOKE("check_app_update", { appId });
 },
-async downloadAppUpdate(appId: string) : Promise<SageAppView> {
-    return await TAURI_INVOKE("download_app_update", { appId });
-},
 async applyAppUpdate(appId: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<SageAppView> {
     return await TAURI_INVOKE("apply_app_update", { appId, grantedPermissionsInput });
 },
@@ -2845,7 +2842,8 @@ visible: boolean }
  */
 export type UpdateOptionResponse = Record<string, never>
 export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_keys" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "storage.persistent_webview"
-export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest }
+export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | { kind: "review"; required_user_grantable_capabilities: UserBridgeCapability[] }
+export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
 export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: SageAppUrl }
 export type UserSageAppView = { common: SageAppCommonView; source: UserSageAppSource; pendingUpdate?: UserSageAppPendingUpdateView | null }
 /**

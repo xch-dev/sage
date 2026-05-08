@@ -55,7 +55,12 @@ impl From<&UserSageApp> for UserSageAppView {
         Self {
             common: app.common().into(),
             source: app.source().clone(),
-            pending_update: app.pending_update().map(Into::into),
+            pending_update: app.pending_update().map(|pending| {
+                UserSageAppPendingUpdateView::from_pending_update(
+                    pending,
+                    app.common().granted_permissions(),
+                )
+            }),
         }
     }
 }

@@ -437,8 +437,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     async (appId: string, grantedPermissions: SageGrantedPermissionsInput) => {
       setBusy(appId, true);
       try {
-        await commands.downloadAppUpdate(appId);
-
         return await commands.applyAppUpdate(appId, grantedPermissions);
       } finally {
         setBusy(appId, false);
