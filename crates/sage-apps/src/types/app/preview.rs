@@ -1,8 +1,10 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::types::{SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl};
 use crate::types::normalizers::normalized_non_empty_string;
+use crate::types::{
+    SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
+};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -59,7 +61,7 @@ impl SageAppUrlPreview {
             app_url: app_url.clone(),
             manifest_hash: normalized_non_empty_string(manifest_hash, "manifest hash")?,
             manifest,
-            icon
+            icon,
         })
     }
 
@@ -72,7 +74,8 @@ impl SageAppUrlPreview {
             app_url,
             SageAppPackageManifestPreview::Full { manifest },
             manifest_hash,
-        ).await
+        )
+        .await
     }
 
     pub async fn from_pending_update(pending: &UserSageAppPendingUpdate) -> Self {
@@ -84,7 +87,7 @@ impl SageAppUrlPreview {
             manifest: SageAppPackageManifestPreview::Full {
                 manifest: pending.manifest().clone(),
             },
-            icon
+            icon,
         }
     }
 

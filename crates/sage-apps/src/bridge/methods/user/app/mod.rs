@@ -19,7 +19,9 @@ pub use request_network_whitelist_grant::AppRequestNetworkWhitelistGrant;
 use crate::bridge::methods::BridgeTools;
 use crate::bridge::methods::shared::BridgeMethodHandleError;
 
-pub(crate) fn resolve_app_base_path(tools: &BridgeTools<'_>) -> Result<PathBuf, BridgeMethodHandleError> {
+pub(crate) fn resolve_app_base_path(
+    tools: &BridgeTools<'_>,
+) -> Result<PathBuf, BridgeMethodHandleError> {
     tools.app_handle.path().app_data_dir().map_err(|err| {
         BridgeMethodHandleError::internal_error(format!("failed to resolve app data dir: {err}"))
     })

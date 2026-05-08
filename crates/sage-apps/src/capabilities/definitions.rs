@@ -214,12 +214,14 @@ pub(crate) fn get_system_capability_definition(
             "Allows the system app to receive events when Sage app runtimes change.",
             system_app_flags(),
         ),
-        SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged => CapabilityDefinition::new(
-            capability,
-            "Observe active runtime changes",
-            "Allows the system app to receive events when the active Sage app runtime changes.",
-            system_app_flags(),
-        ),
+        SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged => {
+            CapabilityDefinition::new(
+                capability,
+                "Observe active runtime changes",
+                "Allows the system app to receive events when the active Sage app runtime changes.",
+                system_app_flags(),
+            )
+        }
         SystemBridgeCapability::RuntimeManagerHideSelf => CapabilityDefinition::new(
             capability,
             "Hide itself",

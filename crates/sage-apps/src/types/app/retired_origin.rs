@@ -62,7 +62,6 @@ impl RetiredAppOriginEntry {
     }
 }
 
-
 #[cfg(test)]
 impl RetiredAppOriginEntry {
     pub fn cleanup_pending(&self) -> bool {

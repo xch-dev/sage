@@ -1,5 +1,5 @@
 use crate::capabilities::list::UserBridgeCapability;
-use crate::types::{SharedSageApp};
+use crate::types::SharedSageApp;
 
 use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};
 
@@ -37,7 +37,10 @@ fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> 
     caps
 }
 
-pub fn evaluate_app_launch_gate(app: &SharedSageApp, effective: &SandboxState) -> AppLaunchGateResult {
+pub fn evaluate_app_launch_gate(
+    app: &SharedSageApp,
+    effective: &SandboxState,
+) -> AppLaunchGateResult {
     if app.is_system_app() || app.id().starts_with("__sage_test_") {
         return AppLaunchGateResult {
             allowed: true,

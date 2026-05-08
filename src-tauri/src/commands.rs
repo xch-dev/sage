@@ -1,10 +1,15 @@
 use std::{fs, time::Duration};
 
+use crate::{
+    app_state::{self, AppState, Initialized, RpcTask},
+    error::Result,
+};
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
+use sage_apps::ensure_initial_sandbox_run;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
@@ -12,11 +17,6 @@ use specta::{Type, specta};
 use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
-use sage_apps::ensure_initial_sandbox_run;
-use crate::{
-    app_state::{self, AppState, Initialized, RpcTask},
-    error::Result,
-};
 
 #[command]
 #[specta]

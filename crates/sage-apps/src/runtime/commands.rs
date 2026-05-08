@@ -1,17 +1,22 @@
 use std::collections::BTreeMap;
 
-use serde::{Deserialize};
+use serde::Deserialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
-use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
-use crate::runtime::state::list_runtimes;
-use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::{clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime, start_app_update_runtime, start_donation_runtime, start_sandbox_tests_runtime, RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView};
 use crate::AppsHostState;
 use crate::runtime::events::emit_runtime_manager_runtimes_changed;
+use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
+use crate::runtime::state::list_runtimes;
+use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::workspace::{enter_apps_workspace, leave_apps_workspace};
+use crate::runtime::{
+    RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView,
+    clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime,
+    start_app_install_runtime, start_app_update_runtime, start_donation_runtime,
+    start_sandbox_tests_runtime,
+};
 use crate::types::AppPresentation;
 
 #[derive(Debug, Deserialize, Type)]
@@ -137,9 +142,7 @@ pub async fn apps_start_system_app(
 
             start_donation_runtime(&app, &apps_state, args.app_id, query).await?
         }
-        StartSystemAppArgs::SandboxTests => {
-            start_sandbox_tests_runtime(&app, &apps_state).await?
-        }
+        StartSystemAppArgs::SandboxTests => start_sandbox_tests_runtime(&app, &apps_state).await?,
     };
 
     Ok(runtime.into())
@@ -152,13 +155,19 @@ pub async fn apps_create_inline_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateInstalledRuntimeArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    let created_runtime = create_runtime(&app_handle, &apps_state, CreateRuntimeArgs {
-        app_id: args.app_id.clone(),
-        presentation: AppPresentation::Taskbar,
-        mode: SageAppRuntimeMode::Inline,
-        debug_layout: false,
-        query: BTreeMap::new(),
-    }).await.map(Into::into);
+    let created_runtime = create_runtime(
+        &app_handle,
+        &apps_state,
+        CreateRuntimeArgs {
+            app_id: args.app_id.clone(),
+            presentation: AppPresentation::Taskbar,
+            mode: SageAppRuntimeMode::Inline,
+            debug_layout: false,
+            query: BTreeMap::new(),
+        },
+    )
+    .await
+    .map(Into::into);
 
     emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
 

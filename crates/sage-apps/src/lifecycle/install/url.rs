@@ -6,7 +6,10 @@ use uuid::Uuid;
 
 use super::AppInstallSource;
 use crate::lifecycle::registry::read_installed_app_by_id;
-use crate::lifecycle::{download_url_snapshot, fetch_url_manifest_preview, read_retired_app_origins, write_retired_app_origins};
+use crate::lifecycle::{
+    download_url_snapshot, fetch_url_manifest_preview, read_retired_app_origins,
+    write_retired_app_origins,
+};
 use crate::types::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageApp,
     UserSageAppSource,
@@ -161,7 +164,12 @@ mod tests {
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::write_retired_app_origins;
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{AppPresentation, InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp};
+    use crate::types::{
+        AppPresentation, InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon,
+        SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageAppWalletScope,
+        SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp,
+    };
     use tempfile::{TempDir, tempdir};
 
     fn fake_retired_app_origins(
@@ -247,9 +255,9 @@ mod tests {
             granted_permissions,
             InstalledSageAppStorage::Unmanaged,
             snapshot,
-            SageAppWalletScope::AllWallets
+            SageAppWalletScope::AllWallets,
         )
-            .unwrap();
+        .unwrap();
 
         if storage_may_contain_secrets {
             common.mark_storage_may_contain_secrets();
@@ -260,7 +268,7 @@ mod tests {
                 common,
                 UserSageAppSource::url("https://example.com/app/").unwrap(),
             )
-                .into_sage_app(),
+            .into_sage_app(),
         );
 
         if storage_may_contain_secrets {
@@ -272,7 +280,8 @@ mod tests {
                 SageAppRuntimeMode::Inline,
                 SageAppRuntimeVisibility::Visible,
                 false,
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         app

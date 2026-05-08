@@ -11,9 +11,11 @@ mod app_state;
 mod commands;
 mod error;
 
+use sage_apps::{
+    AppsHostState, handle_system_app_protocol_request, handle_user_app_protocol_request,
+};
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
-use sage_apps::{handle_system_app_protocol_request, handle_user_app_protocol_request, AppsHostState};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -219,11 +221,8 @@ pub fn run() {
             let app_handle = app.handle().clone();
             let cleanup_base_path = path.clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(err) = apps::process_pending_storage_cleanup(
-                    &app_handle,
-                    &cleanup_base_path,
-                )
-                .await
+                if let Err(err) =
+                    apps::process_pending_storage_cleanup(&app_handle, &cleanup_base_path).await
                 {
                     eprintln!("failed to retry pending storage cleanup on startup: {err}");
                 }

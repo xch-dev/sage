@@ -1,7 +1,7 @@
+mod bridge;
 pub mod csp;
 pub mod protocol;
-mod bridge;
 
+pub(crate) use bridge::*;
 pub use csp::*;
 pub use protocol::*;
-pub(crate) use bridge::*;

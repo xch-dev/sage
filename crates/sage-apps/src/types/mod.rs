@@ -11,31 +11,29 @@ mod view;
 pub use app::SharedSageApp;
 
 pub(crate) use app::{
-    CorruptedInstalledSageApp, ListedSageApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
-    SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, AppPresentation, AppModalPresentation, SystemSageApp,
-    UserSageApp, UserSageAppPendingUpdate, UserSageAppSource, SageAppView, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp,
-    ListedSageAppView, UserSageAppView, SageAppIconView, SageAppWalletScope
+    AppModalPresentation, AppPresentation, CorruptedInstalledSageApp, ListedSageApp,
+    ListedSageAppView, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry,
+    SageApp, SageAppCommon, SageAppIconView, SageAppIdentity, SageAppSnapshot, SageAppUrlPreview,
+    SageAppView, SageAppWalletScope, SystemSageApp, UserSageApp, UserSageAppPendingUpdate,
+    UserSageAppSource, UserSageAppView,
 };
 pub(crate) use manifest::{
-    SageAppManifestFile, SageAppManifestHeaderV0,
-    SageAppPackageManifest, SageAppPackageManifestPreview,
-    parse_manifest_header_v0_from_value,
+    SageAppManifestFile, SageAppManifestHeaderV0, SageAppPackageManifest,
+    SageAppPackageManifestPreview, parse_manifest_header_v0_from_value,
 };
 pub(crate) use network::SageNetworkWhitelistEntry;
 pub(crate) use permissions::{
-    SageGrantedPermissions, SageGrantedSystemPermissions,
-    SageRequestedPermissions,
+    SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
 pub(crate) use storage::{
     InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
 };
-pub(crate) use view::{
-    SageAppCapabilityDefinitionView,
-    SageGrantedPermissionsInput,
-};
+pub(crate) use view::{SageAppCapabilityDefinitionView, SageGrantedPermissionsInput};
 
 #[cfg(test)]
-pub(crate) use manifest::{SageAppPackageManifestParts, SageAppManifestSageVersion, SageAppManifestVersion};
+pub(crate) use manifest::{
+    SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifestParts,
+};
 #[cfg(test)]
 pub(crate) use permissions::{SageRequestedCapabilities, SageRequestedNetworkPermissions};
 pub(crate) use url::{MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppUrl};

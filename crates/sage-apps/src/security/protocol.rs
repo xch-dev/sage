@@ -1,4 +1,7 @@
-use crate::runtime::{app_id_from_webview_label, resolve_possibly_impostor_running_app_immediate, PossiblyImpostorRuntime};
+use crate::runtime::{
+    PossiblyImpostorRuntime, app_id_from_webview_label,
+    resolve_possibly_impostor_running_app_immediate,
+};
 use crate::security::build_app_csp;
 use anyhow::{Result as AnyResult, anyhow};
 use std::fs;
@@ -48,14 +51,16 @@ pub fn handle_system_app_protocol_request(
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", &err))
 }
 
-fn get_protocol_request_runtime(ctx: &UriSchemeContext<'_, Wry>) -> AnyResult<PossiblyImpostorRuntime> {
+fn get_protocol_request_runtime(
+    ctx: &UriSchemeContext<'_, Wry>,
+) -> AnyResult<PossiblyImpostorRuntime> {
     let webview_label = ctx.webview_label();
 
-    let app_id = app_id_from_webview_label(webview_label)
-        .ok_or_else(|| anyhow!("invalid webview label"))?;
+    let app_id =
+        app_id_from_webview_label(webview_label).ok_or_else(|| anyhow!("invalid webview label"))?;
 
     resolve_possibly_impostor_running_app_immediate(&ctx.app_handle().state(), app_id)
-            .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))
+        .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))
 }
 
 fn handle_app_protocol_request(
@@ -74,9 +79,8 @@ fn handle_app_protocol_request(
     let content_app = runtime.content_app();
     let request_path = request.uri().path();
 
-    let file_path = content_app.with(|app| {
-        app.active_snapshot().resolve_file_path(request_path)
-    })?;
+    let file_path =
+        content_app.with(|app| app.active_snapshot().resolve_file_path(request_path))?;
 
     let mime = mime_guess::from_path(&file_path)
         .first_or_octet_stream()

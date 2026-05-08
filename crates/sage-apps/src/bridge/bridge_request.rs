@@ -1,19 +1,27 @@
 use crate::AppsHostState;
-use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
+use crate::bridge::event_emit::emit_bridge_response_to_app;
 use crate::bridge::methods::BridgeMethodCapability;
+use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::state::{ensure_approval_expiry_loop, get_pending_approval, list_pending_approvals, remove_pending_approval, write_pending_approval};
-use crate::bridge::{emit_system_runtime_event_to_listeners, BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse};
+use crate::bridge::state::{
+    ensure_approval_expiry_loop, get_pending_approval, list_pending_approvals,
+    remove_pending_approval, write_pending_approval,
+};
+use crate::bridge::{
+    BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
+    RustBridgeRequest, RustBridgeResponse, emit_system_runtime_event_to_listeners,
+};
+use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
-use crate::runtime::{resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime, SharedImpostorRuntime};
+use crate::lifecycle::ensure_app_is_enabled_for_scope;
+use crate::runtime::{
+    SharedImpostorRuntime, resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
+};
+use crate::security::assert_bridge_origin;
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
-use crate::bridge::event_emit::emit_bridge_response_to_app;
-use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
-use crate::lifecycle::{ensure_app_is_enabled_for_scope};
-use crate::security::assert_bridge_origin;
 
 pub(super) async fn process(
     app_handle: AppHandle,
@@ -38,7 +46,15 @@ pub(super) async fn process(
         }
     };
 
-    process_shared(&app_handle, &app_state, &origin, BridgeRegistryKind::User, &request, false).await
+    process_shared(
+        &app_handle,
+        &app_state,
+        &origin,
+        BridgeRegistryKind::User,
+        &request,
+        false,
+    )
+    .await
 }
 
 pub(super) async fn process_system(
@@ -63,7 +79,15 @@ pub(super) async fn process_system(
         }
     };
 
-    process_shared(&app_handle, &app_state, &origin, BridgeRegistryKind::System, &request, false).await
+    process_shared(
+        &app_handle,
+        &app_state,
+        &origin,
+        BridgeRegistryKind::System,
+        &request,
+        false,
+    )
+    .await
 }
 
 pub(super) async fn process_after_approval(
@@ -77,23 +101,28 @@ pub(super) async fn process_after_approval(
 
     sync_bridge_approval_runtime(app_handle, apps_state).await?;
 
-    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
-        list_pending_approvals(apps_state).await,
-    );
+    let approvals_changed_event =
+        BridgeApprovalsChangedEvent::new_from_list(list_pending_approvals(apps_state).await);
 
-    emit_system_runtime_event_to_listeners(
-        app_handle,
-        apps_state,
-        approvals_changed_event,
-    ).await;
+    emit_system_runtime_event_to_listeners(app_handle, apps_state, approvals_changed_event).await;
 
-    let app = resolve_app(app_handle, &pending.app_id).await
+    let app = resolve_app(app_handle, &pending.app_id)
+        .await
         .map_err(|err| format!("Failed to resolve app: {err}"))?;
 
-    let origin = assert_bridge_origin(app_handle, &app.with_app(SharedSageApp::webview_label)).await?;
+    let origin =
+        assert_bridge_origin(app_handle, &app.with_app(SharedSageApp::webview_label)).await?;
 
     let invoke_result = if args.approved {
-        process_shared(app_handle, app_state, &origin, pending.registry_kind, &pending.request, true).await?
+        process_shared(
+            app_handle,
+            app_state,
+            &origin,
+            pending.registry_kind,
+            &pending.request,
+            true,
+        )
+        .await?
     } else {
         RustBridgeInvokeResult::error(
             &pending.request.id,
@@ -129,12 +158,13 @@ async fn process_shared(
 
     let method = match assert_method(&registry, request) {
         Ok(method) => method,
-        Err(response) => return Ok(response.into())
+        Err(response) => return Ok(response.into()),
     };
 
-    let authority_app = origin
-        .impostor_runtime
-        .as_ref().map_or_else(|| app.clone_for_runtime_owner(), SharedImpostorRuntime::impostor_app);
+    let authority_app = origin.impostor_runtime.as_ref().map_or_else(
+        || app.clone_for_runtime_owner(),
+        SharedImpostorRuntime::impostor_app,
+    );
 
     match method.capability() {
         BridgeMethodCapability::Ungated => {}
@@ -170,13 +200,11 @@ async fn process_shared(
 
             Ok(response.into())
         }
-        Err(err) => {
-            Ok(RustBridgeInvokeResult::error(
-                &request.id,
-                err.code,
-                err.message,
-            ))
-        }
+        Err(err) => Ok(RustBridgeInvokeResult::error(
+            &request.id,
+            err.code,
+            err.message,
+        )),
     }
 }
 
@@ -189,12 +217,15 @@ async fn execute_bridge_request(
 ) -> RustBridgeResponse {
     let method = match assert_method(&registry, request) {
         Ok(method) => method,
-        Err(response) => return response
+        Err(response) => return response,
     };
 
     let result = method
         .handle(
-            BridgeContext { app: &origin.app, impostor_runtime: &origin.impostor_runtime},
+            BridgeContext {
+                app: &origin.app,
+                impostor_runtime: &origin.impostor_runtime,
+            },
             BridgeTools {
                 app_handle,
                 app_state,
@@ -232,20 +263,15 @@ async fn request_approval(
         &approval,
         request,
     )
-        .await;
+    .await;
 
     ensure_approval_expiry_loop(app_handle, &apps_state).await;
 
-    let approvals_changed_event = BridgeApprovalsChangedEvent::new_from_list(
-        list_pending_approvals(&apps_state).await
-    );
+    let approvals_changed_event =
+        BridgeApprovalsChangedEvent::new_from_list(list_pending_approvals(&apps_state).await);
     emit_system_runtime_event_to_listeners(app_handle, &apps_state, approvals_changed_event).await;
 
-    start_bridge_approval_runtime(
-        app_handle,
-        &apps_state,
-        Vec::from([app_id]),
-    ).await?;
+    start_bridge_approval_runtime(app_handle, &apps_state, Vec::from([app_id])).await?;
 
     Ok(())
 }
@@ -298,12 +324,7 @@ fn verify_user_capability(
         app.common()
             .requested_permissions()
             .capabilities()
-            .resolve_effective_grants(
-                app.common()
-                    .granted_permissions()
-                    .capabilities()
-                    .copied(),
-            )
+            .resolve_effective_grants(app.common().granted_permissions().capabilities().copied())
     });
 
     if !effective_capabilities.contains(&capability) {
@@ -331,9 +352,10 @@ fn verify_system_capability(
         ));
     }
 
-    let granted = app.with(|app| app
-        .system_granted_permissions()
-        .is_some_and(|permissions| permissions.capabilities().contains(&capability)));
+    let granted = app.with(|app| {
+        app.system_granted_permissions()
+            .is_some_and(|permissions| permissions.capabilities().contains(&capability))
+    });
 
     if !granted {
         return Err(RustBridgeResponse::error(
@@ -375,7 +397,9 @@ async fn assert_system_bridge_origin(
 }
 
 fn assert_bridge_version(request: &RustBridgeRequest) -> Result<(), RustBridgeInvokeResult> {
-    if let Some(version) = &request.bridge_version && version != "v1" {
+    if let Some(version) = &request.bridge_version
+        && version != "v1"
+    {
         return Err(RustBridgeInvokeResult::error(
             &request.id,
             "unsupported_bridge_version",

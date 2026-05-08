@@ -1,9 +1,9 @@
-use serde::Serialize;
-use specta::Type;
 use crate::system_apps::SystemAppUsage;
+use crate::types::SageApp;
 use crate::types::app::common::SageAppCommon;
 use crate::types::permissions::SageGrantedSystemPermissions;
-use crate::types::SageApp;
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind")]
@@ -66,7 +66,7 @@ impl AppModalPresentation {
         Self {
             visible_over_app_ids: app_ids,
             visible_over_launchpad: false,
-            priority
+            priority,
         }
     }
 
@@ -74,7 +74,7 @@ impl AppModalPresentation {
         Self {
             visible_over_app_ids: vec![app_id],
             visible_over_launchpad: true,
-            priority
+            priority,
         }
     }
 
@@ -102,7 +102,7 @@ impl AppModalPresentation {
         self.visible_over_app_ids = target_app_ids;
         true
     }
-    
+
     pub fn priority(&self) -> i32 {
         self.priority
     }

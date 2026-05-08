@@ -1,6 +1,6 @@
-use serde::{Serialize};
-use specta::Type;
 use crate::types::SageNetworkWhitelistEntry;
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]

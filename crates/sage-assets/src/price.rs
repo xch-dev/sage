@@ -14,10 +14,7 @@ impl XchUsdPrice {
     pub async fn fetch() -> Result<Self, UriError> {
         let response = price_client()?
             .get("https://api.coingecko.com/api/v3/simple/price")
-            .query(&[
-                ("ids", "chia"),
-                ("vs_currencies", "usd"),
-            ])
+            .query(&[("ids", "chia"), ("vs_currencies", "usd")])
             .send()
             .await?
             .error_for_status()?

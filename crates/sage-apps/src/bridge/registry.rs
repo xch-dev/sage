@@ -1,9 +1,9 @@
 use super::methods::BridgeMethod;
 use super::methods::system::*;
 use super::methods::user::*;
-use std::collections::HashMap;
 use crate::bridge::methods::user::environment::EnvironmentThemeGetCurrent;
 use crate::bridge::methods::user::wallet::read_methods::WalletGetXchUsdPrice;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BridgeRegistryKind {

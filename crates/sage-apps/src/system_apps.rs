@@ -1,14 +1,18 @@
+use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SystemSageApp,
+};
+use crate::utils::builtin_apps_root;
+use anyhow::Result as AnyResult;
+use serde::Serialize;
+use specta::Type;
+use std::fmt::Display;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
-use std::fmt::Display;
-use anyhow::{Result as AnyResult};
-use serde::Serialize;
-use specta::Type;
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions, SystemSageApp};
-use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
@@ -43,7 +47,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerKillRuntime,
             SystemBridgeCapability::RuntimeManagerListenRuntimesChanged,
         ],
-        user_grantable_capabilities: &[]
+        user_grantable_capabilities: &[],
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_UPDATE_ID,
@@ -58,7 +62,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::WalletListWallets,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
-        user_grantable_capabilities: &[]
+        user_grantable_capabilities: &[],
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_APP_INSTALL_ID,
@@ -72,7 +76,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::WalletListWallets,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
-        user_grantable_capabilities: &[]
+        user_grantable_capabilities: &[],
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_BRIDGE_APPROVAL_ID,
@@ -86,7 +90,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::RuntimeManagerHideSelf,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
-        user_grantable_capabilities: &[]
+        user_grantable_capabilities: &[],
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_DONATION_ID,
@@ -96,9 +100,7 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
             SystemBridgeCapability::DonationGetDetails,
             SystemBridgeCapability::RuntimeManagerCloseSelf,
         ],
-        user_grantable_capabilities: &[
-            UserBridgeCapability::WalletSendXchAutoSubmit,
-        ],
+        user_grantable_capabilities: &[UserBridgeCapability::WalletSendXchAutoSubmit],
     },
     BuiltinSystemAppSpec {
         app_id: SYSTEM_APP_SANDBOX_TESTS_ID,
@@ -150,10 +152,13 @@ pub fn builtin_system_apps_root() -> PathBuf {
     builtin_apps_root().join("system")
 }
 
-fn read_builtin_manifest(app_dir: &Path) -> Result<SageAppPackageManifest, ReadBuiltinManifestError> {
+fn read_builtin_manifest(
+    app_dir: &Path,
+) -> Result<SageAppPackageManifest, ReadBuiltinManifestError> {
     let manifest_path = app_dir.join("sage-manifest.json");
 
-    let manifest_text = fs::read_to_string(&manifest_path).map_err(|_| ReadBuiltinManifestError::NotFound)?;
+    let manifest_text =
+        fs::read_to_string(&manifest_path).map_err(|_| ReadBuiltinManifestError::NotFound)?;
 
     serde_json::from_str(&manifest_text).map_err(|_| ReadBuiltinManifestError::ParseFailed)
 }
@@ -223,9 +228,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(s) => s,
         Err(err) => {
-            eprintln!(
-                "[build_builtin_system_app] snapshot failure for {app_id}: {err:?}"
-            );
+            eprintln!("[build_builtin_system_app] snapshot failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };
@@ -237,9 +240,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     ) {
         Ok(i) => i,
         Err(err) => {
-            eprintln!(
-                "[build_builtin_system_app] identity failure for {app_id}: {err:?}"
-            );
+            eprintln!("[build_builtin_system_app] identity failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };
@@ -249,13 +250,11 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
-        SageAppWalletScope::AllWallets
+        SageAppWalletScope::AllWallets,
     ) {
         Ok(c) => c,
         Err(err) => {
-            eprintln!(
-                "[build_builtin_system_app] common failure for {app_id}: {err:?}"
-            );
+            eprintln!("[build_builtin_system_app] common failure for {app_id}: {err:?}");
             return Err(AppBuildError::InternalError);
         }
     };
@@ -273,7 +272,9 @@ pub fn list_builtin_system_apps() -> AnyResult<Vec<SageApp>> {
     let mut out = Vec::new();
 
     for spec in BUILTIN_SYSTEM_APPS {
-        if let Some(app) = build_builtin_system_app(spec.app_id).map_err(|err| anyhow::anyhow!(format!("{err}")))? {
+        if let Some(app) = build_builtin_system_app(spec.app_id)
+            .map_err(|err| anyhow::anyhow!(format!("{err}")))?
+        {
             out.push(app);
         }
     }

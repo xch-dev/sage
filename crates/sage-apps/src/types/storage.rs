@@ -1,8 +1,8 @@
+use crate::types::SharedSageApp;
 use crate::utils::unix_timestamp_ms;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use uuid::Uuid;
-use crate::types::SharedSageApp;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "camelCase")]

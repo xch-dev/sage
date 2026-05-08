@@ -1,8 +1,7 @@
 use anyhow::{Context, Result as AnyResult};
 
 use crate::types::{
-    MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppPackageManifest,
-    SageAppPackageManifestPreview,
+    MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppPackageManifest, SageAppPackageManifestPreview,
 };
 use crate::utils::bytes_sha256_hex;
 
@@ -13,9 +12,9 @@ pub async fn fetch_url_manifest(
 
     match preview {
         SageAppPackageManifestPreview::Full { manifest } => Ok((manifest, hash)),
-        SageAppPackageManifestPreview::Partial { parse_error, .. } => {
-            Err(anyhow::anyhow!("failed to parse manifest json: {parse_error}"))
-        }
+        SageAppPackageManifestPreview::Partial { parse_error, .. } => Err(anyhow::anyhow!(
+            "failed to parse manifest json: {parse_error}"
+        )),
     }
 }
 
@@ -40,7 +39,10 @@ pub async fn fetch_url_manifest_preview(
     let manifest_text = std::str::from_utf8(&bytes)
         .with_context(|| format!("manifest is not valid UTF-8: {manifest_url}"))?;
 
-    Ok((parse_manifest_preview(manifest_text, manifest_url)?, manifest_hash))
+    Ok((
+        parse_manifest_preview(manifest_text, manifest_url)?,
+        manifest_hash,
+    ))
 }
 
 pub fn parse_manifest_preview(

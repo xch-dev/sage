@@ -6,7 +6,10 @@ use crate::host::AppState;
 use crate::host::Result;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview};
 use crate::runtime::resolve_app;
-use crate::types::{ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{
+    ResolvedStoppedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView,
+    SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+};
 
 #[command]
 #[specta::specta]
@@ -14,7 +17,8 @@ pub async fn check_app_update(
     app_handle: AppHandle,
     app_id: String,
 ) -> Result<Option<SageAppUrlPreview>> {
-    let app = resolve_app(&app_handle, &app_id).await
+    let app = resolve_app(&app_handle, &app_id)
+        .await
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let app = app.clone_app_for_operation();
@@ -41,7 +45,8 @@ pub async fn check_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash).await
+    let preview = SageAppUrlPreview::new(&app_url, manifest_preview, manifest_hash)
+        .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     if preview.manifest_hash() == active_snapshot.manifest_hash()
@@ -64,15 +69,10 @@ pub async fn check_app_update(
 
 #[command]
 #[specta::specta]
-pub async fn download_app_update(
-    app_handle: AppHandle,
-    app_id: String,
-) -> Result<SageAppView> {
+pub async fn download_app_update(app_handle: AppHandle, app_id: String) -> Result<SageAppView> {
     let app = resolve_app(&app_handle, &app_id)
         .await
-        .map_err(|err| {
-            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
-        })?;
+        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let app = app.clone_app_for_operation();
 
@@ -84,7 +84,7 @@ pub async fn download_app_update(
         app.set_pending_update(Some(pending))
             .map_err(|err| err.to_string())
     })
-        .map_err(io::Error::other)?;
+    .map_err(io::Error::other)?;
 
     Ok((&app).into())
 }
@@ -135,23 +135,17 @@ pub async fn apply_app_update(
         pending.manifest(),
         pending.manifest_hash(),
     )
-        .await
-        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+    .await
+    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
     resolved
         .try_with_app(|app| {
             app.try_mutate(|sage_app| {
                 let granted_permissions = granted_permissions_input
                     .resolve(pending.manifest().permissions())
-                    .map_err(|err| {
-                        anyhow::anyhow!("invalid update permissions: {err}")
-                    })?;
+                    .map_err(|err| anyhow::anyhow!("invalid update permissions: {err}"))?;
 
-                sage_app.apply_update(
-                    &pending,
-                    granted_permissions,
-                    snapshot,
-                )?;
+                sage_app.apply_update(&pending, granted_permissions, snapshot)?;
 
                 Ok::<_, anyhow::Error>(())
             })
@@ -187,7 +181,8 @@ async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppP
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash).await
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
+        .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     let manifest = preview
@@ -236,7 +231,8 @@ async fn fetch_pending_update_for_resolved_stopped_app(
         .await
         .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
 
-    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash).await
+    let preview = SageAppUrlPreview::from_full_manifest(&app_url, manifest, manifest_hash)
+        .await
         .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
 
     let manifest = preview

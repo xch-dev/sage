@@ -27,10 +27,12 @@ impl RuntimeManagerRuntimesChangedEvent {
 
 impl SystemRuntimeEvent for RuntimeManagerRuntimesChangedEvent {
     const TYPE: &'static str = "runtimeManager.runtimesChanged";
-    const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::RuntimeManagerListenRuntimesChanged;
+    const REQUIRED_CAPABILITY: SystemBridgeCapability =
+        SystemBridgeCapability::RuntimeManagerListenRuntimesChanged;
 }
 
 impl SystemRuntimeEvent for RuntimeManagerActiveTaskbarRuntimeChangedEvent {
     const TYPE: &'static str = "runtimeManager.activeTaskbarRuntimeChanged";
-    const REQUIRED_CAPABILITY: SystemBridgeCapability = SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged;
+    const REQUIRED_CAPABILITY: SystemBridgeCapability =
+        SystemBridgeCapability::RuntimeManagerListenActiveTaskbarRuntimeChanged;
 }

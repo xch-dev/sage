@@ -3,13 +3,17 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result as AnyResult;
-use async_trait::async_trait;
-use tauri::{AppHandle, Manager, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
+    UserSageAppSource,
+};
+use anyhow::Result as AnyResult;
+use async_trait::async_trait;
+use tauri::{AppHandle, Manager, State};
 
 pub mod commands;
 pub mod url;
@@ -124,7 +128,7 @@ where
         },
         None,
     )
-        .await
+    .await
 }
 
 async fn install_app_from_source_with_storage<S, R>(
@@ -285,7 +289,11 @@ mod tests {
     use super::*;
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::registry::read_installed_app_by_id;
-    use crate::types::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
+    use crate::types::{
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts,
+        SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
     use tempfile::tempdir;
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -433,7 +441,7 @@ mod tests {
                 manifest.clone(),
             )
             .unwrap(),
-            SageAppWalletScope::AllWallets
+            SageAppWalletScope::AllWallets,
         )
         .unwrap();
         let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);

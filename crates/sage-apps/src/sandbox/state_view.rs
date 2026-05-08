@@ -1,9 +1,9 @@
-use tauri::State;
-use crate::AppsHostState;
 use super::types::{
     SandboxCapabilityResult, SandboxCapabilityStatus, SandboxRunState, SandboxState,
     SandboxStateView,
 };
+use crate::AppsHostState;
+use tauri::State;
 
 fn effective_cap(
     baseline: &SandboxCapabilityResult,
@@ -52,16 +52,11 @@ pub fn build_effective_state(
     }
 }
 
-pub async fn build_state_view(
-    apps_state: &State<'_, AppsHostState>,
-) -> SandboxStateView {
+pub async fn build_state_view(apps_state: &State<'_, AppsHostState>) -> SandboxStateView {
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
 
-    let effective = build_effective_state(
-        &baseline,
-        current_run.as_ref(),
-    );
+    let effective = build_effective_state(&baseline, current_run.as_ref());
 
     SandboxStateView {
         baseline,

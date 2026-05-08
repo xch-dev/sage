@@ -1,8 +1,8 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::event_emit::UserRuntimeEvent;
+use crate::capabilities::list::UserBridgeCapability;
 use crate::lifecycle::update::types::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::types::SageNetworkWhitelistEntry;
 
@@ -26,7 +26,8 @@ impl GrantedCapabilitiesChangeEvent {
 
 impl UserRuntimeEvent for GrantedCapabilitiesChangeEvent {
     const TYPE: &'static str = "grantedCapabilitiesChange";
-    const REQUIRED_CAPABILITY: UserBridgeCapability = UserBridgeCapability::AppRequestCapabilityGrant;
+    const REQUIRED_CAPABILITY: UserBridgeCapability =
+        UserBridgeCapability::AppRequestCapabilityGrant;
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -49,7 +50,8 @@ impl GrantedNetworkWhitelistChangeEvent {
 
 impl UserRuntimeEvent for GrantedNetworkWhitelistChangeEvent {
     const TYPE: &'static str = "grantedNetworkWhitelistChange";
-    const REQUIRED_CAPABILITY: UserBridgeCapability = UserBridgeCapability::AppRequestNetworkWhitelistGrant;
+    const REQUIRED_CAPABILITY: UserBridgeCapability =
+        UserBridgeCapability::AppRequestNetworkWhitelistGrant;
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -68,5 +70,6 @@ impl BeforeStopEvent {
 
 impl UserRuntimeEvent for BeforeStopEvent {
     const TYPE: &'static str = "lifecycle.beforeStop";
-    const REQUIRED_CAPABILITY: UserBridgeCapability = UserBridgeCapability::AppLifecycleSetBeforeStopListener;
+    const REQUIRED_CAPABILITY: UserBridgeCapability =
+        UserBridgeCapability::AppLifecycleSetBeforeStopListener;
 }

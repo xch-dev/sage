@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 
 use crate::bridge::RustBridgeRequest;
-use crate::capabilities::list::SystemBridgeCapability;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::runtime::{list_runtimes, SageAppRuntimeRecordView};
+use crate::capabilities::list::SystemBridgeCapability;
+use crate::runtime::{SageAppRuntimeRecordView, list_runtimes};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerListRuntimes;
@@ -40,8 +40,11 @@ impl BridgeMethod for RuntimeManagerListRuntimes {
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        let runtime_views = runtimes.iter().map(Into::into).collect::<Vec<SageAppRuntimeRecordView>>();
-        
+        let runtime_views = runtimes
+            .iter()
+            .map(Into::into)
+            .collect::<Vec<SageAppRuntimeRecordView>>();
+
         Ok(Box::new(runtime_views))
     }
 }

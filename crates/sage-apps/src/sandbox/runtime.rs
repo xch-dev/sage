@@ -1,11 +1,11 @@
 use crate::AppsHostState;
-use crate::runtime::{SageAppRuntimeMode};
-use crate::runtime::start::{create_runtime, CreateRuntimeArgs};
+use crate::runtime::SageAppRuntimeMode;
+use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
 use crate::runtime::stop::close_runtime_internal;
+use crate::types::AppPresentation;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
-use crate::types::AppPresentation;
 
 pub(crate) async fn stop_test_apps(
     app: &AppHandle,
@@ -31,13 +31,8 @@ pub(crate) async fn start_test_app(
         query_map.insert((*k).to_string(), v.clone());
     }
 
-    start_internal_runtime_for_sandbox(
-        app,
-        apps_state,
-        app_id,
-        query_map.into_iter().collect(),
-    )
-    .await
+    start_internal_runtime_for_sandbox(app, apps_state, app_id, query_map.into_iter().collect())
+        .await
 }
 
 pub(super) fn unique_run_id(prefix: &str) -> String {
@@ -60,9 +55,7 @@ async fn start_internal_runtime_for_sandbox(
         query,
     };
 
-    create_runtime(app, apps_state, args)
-        .await
-        .map(|_| ())
+    create_runtime(app, apps_state, args).await.map(|_| ())
 }
 
 fn debug_test_apps_enabled() -> bool {

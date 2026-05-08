@@ -1,12 +1,12 @@
 use async_trait::async_trait;
 
-use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeRequest};
 use crate::bridge::bridge_request::process_after_approval;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::bridge::{ResolveBridgeApprovalArgs, RustBridgeRequest};
 use crate::capabilities::list::SystemBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
@@ -38,12 +38,7 @@ impl BridgeMethod for BridgeApprovalsResolve {
     ) -> BridgeHandleResult {
         let params: ResolveBridgeApprovalArgs = parse_required_params(self, request)?;
 
-        process_after_approval(
-            tools.app_handle,
-            tools.app_state,
-            tools.host_state,
-            params,
-        )
+        process_after_approval(tools.app_handle, tools.app_state, tools.host_state, params)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 

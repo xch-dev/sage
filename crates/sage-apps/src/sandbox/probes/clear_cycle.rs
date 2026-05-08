@@ -1,6 +1,6 @@
 use crate::AppsHostState;
-use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
 use crate::runtime::stop::close_runtime_internal;
+use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
 use crate::sandbox::BUILTIN_STORAGE_CLEAR_PERSISTENT_ID;
 use crate::sandbox::probes::poll::{poll_persistence_read, poll_persistence_write};
 use crate::sandbox::runtime::{start_test_app, stop_test_apps, unique_run_id};
@@ -20,22 +20,29 @@ pub(in crate::sandbox) async fn run_clear_cycle_test(
         app_id,
         &[("runId", run_id.clone()), ("phase", "write".into())],
     )
-        .await?;
+    .await?;
 
     let write_results = poll_persistence_write(apps_state, &run_id, 1, 2_000).await?;
     let Some(write) = write_results.into_iter().find(|item| item.app_id == app_id) else {
         let () = close_runtime_internal(app, apps_state, app_id).await;
-        return Ok((false, Some("Timed out waiting for victim storage write result.".into())));
+        return Ok((
+            false,
+            Some("Timed out waiting for victim storage write result.".into()),
+        ));
     };
 
     let () = close_runtime_internal(app, apps_state, app_id).await;
 
-    if write.data.error.is_some() || !write.data.local_storage_wrote || !write.data.indexed_db_wrote {
+    if write.data.error.is_some() || !write.data.local_storage_wrote || !write.data.indexed_db_wrote
+    {
         return Ok((
             false,
-            Some(write.data.error.unwrap_or_else(|| {
-                "Victim storage write probe failed.".into()
-            })),
+            Some(
+                write
+                    .data
+                    .error
+                    .unwrap_or_else(|| "Victim storage write probe failed.".into()),
+            ),
         ));
     }
 
@@ -53,12 +60,15 @@ pub(in crate::sandbox) async fn run_clear_cycle_test(
         app_id,
         &[("runId", run_id.clone()), ("phase", "read".into())],
     )
-        .await?;
+    .await?;
 
     let read_results = poll_persistence_read(apps_state, &run_id, 1, 2_000).await?;
     let Some(read) = read_results.into_iter().find(|item| item.app_id == app_id) else {
         let () = close_runtime_internal(app, apps_state, app_id).await;
-        return Ok((false, Some("Timed out waiting for victim storage read result.".into())));
+        return Ok((
+            false,
+            Some("Timed out waiting for victim storage read result.".into()),
+        ));
     };
 
     let () = close_runtime_internal(app, apps_state, app_id).await;

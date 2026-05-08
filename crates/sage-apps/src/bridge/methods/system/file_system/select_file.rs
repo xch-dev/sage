@@ -3,12 +3,11 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri_plugin_dialog::DialogExt;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::RustBridgeRequest;
 use crate::capabilities::list::SystemBridgeCapability;
 
 #[derive(Debug, Clone, Deserialize, Type)]

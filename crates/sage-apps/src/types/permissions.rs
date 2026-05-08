@@ -1,7 +1,7 @@
+use crate::capabilities::get_user_capability_definition;
 use crate::capabilities::list::{
     SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
 };
-use crate::capabilities::{get_user_capability_definition};
 use crate::types::invariants::{
     build_user_grantable_capability_set, split_required_optional_set, validate_permissions_policy,
     validate_requested_capabilities_are_requestable,
@@ -188,10 +188,7 @@ impl SageGrantedPermissions {
             capabilities.insert(capability);
         }
 
-        let network = SageGrantedNetworkPermissions::new(
-            &requested.network,
-            network_whitelist,
-        )?;
+        let network = SageGrantedNetworkPermissions::new(&requested.network, network_whitelist)?;
 
         let effective_capabilities = requested
             .capabilities
@@ -431,7 +428,7 @@ impl<'de> Deserialize<'de> for SageGrantedPermissions {
             raw.network.whitelist_iter().cloned(),
             "granted permissions",
         )
-            .map_err(serde::de::Error::custom)?;
+        .map_err(serde::de::Error::custom)?;
 
         Ok(Self {
             capabilities: raw.capabilities,

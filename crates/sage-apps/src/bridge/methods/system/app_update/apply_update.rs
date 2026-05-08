@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::RustBridgeRequest;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::lifecycle::update::commands::{apply_app_update, download_app_update};
 use crate::types::{SageAppView, SageGrantedPermissionsInput};
@@ -69,13 +69,13 @@ impl BridgeMethod for AppUpdateApplyUpdate {
             params.app_id.clone(),
             params.granted_permissions,
         )
-            .await
-            .map_err(|err| {
-                BridgeMethodHandleError::internal_error(format!(
-                    "failed to apply update for {}: {err}",
-                    params.app_id
-                ))
-            })?;
+        .await
+        .map_err(|err| {
+            BridgeMethodHandleError::internal_error(format!(
+                "failed to apply update for {}: {err}",
+                params.app_id
+            ))
+        })?;
 
         Ok(Box::new(AppUpdateApplyUpdateResult { app }))
     }

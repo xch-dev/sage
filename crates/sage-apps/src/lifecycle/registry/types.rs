@@ -1,6 +1,9 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot,
+    SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource,
+};
 
 #[derive(Debug, Serialize)]
 pub struct PersistedUserSageApp {
@@ -59,7 +62,7 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
             persisted.granted_permissions,
             persisted.storage,
             persisted.active_snapshot,
-            persisted.wallet_scope
+            persisted.wallet_scope,
         )?;
 
         Ok(UserSageApp::new_installed(common, persisted.source))

@@ -1,9 +1,12 @@
-use serde::{Serialize};
-use specta::Type;
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, SageApp, SharedSageApp, UserSageApp, UserSageAppSource};
-use crate::types::app::view::system_apps::SystemSageAppView;
 use crate::types::app::view::common::SageAppCommonView;
 use crate::types::app::view::preview::UserSageAppPendingUpdateView;
+use crate::types::app::view::system_apps::SystemSageAppView;
+use crate::types::{
+    CorruptedInstalledSageApp, ListedSageApp, SageApp, SharedSageApp, UserSageApp,
+    UserSageAppSource,
+};
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]

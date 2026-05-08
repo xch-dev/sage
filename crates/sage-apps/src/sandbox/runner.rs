@@ -7,9 +7,9 @@ use super::types::{
     build_running_sandbox_state, mark_cap,
 };
 use crate::AppsHostState;
+use crate::bridge::methods::system::emit_sandbox_state_changed;
 use crate::utils::unix_timestamp_ms;
 use tauri::{AppHandle, Manager, State};
-use crate::bridge::methods::system::emit_sandbox_state_changed;
 
 pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     let apps_state = app.state::<AppsHostState>();

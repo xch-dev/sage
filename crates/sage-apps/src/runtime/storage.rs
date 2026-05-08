@@ -1,15 +1,18 @@
-use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
-use tokio::time::sleep;
 use crate::AppsHostState;
-use crate::lifecycle::{clear_app_storage_by_target};
-use crate::runtime::{SageAppRuntimeImpostorKind};
-use crate::runtime::start::{create_impostor_runtime_from_stopped, CreateImpostorRuntimeArgs};
+use crate::lifecycle::clear_app_storage_by_target;
+use crate::runtime::SageAppRuntimeImpostorKind;
+use crate::runtime::start::{CreateImpostorRuntimeArgs, create_impostor_runtime_from_stopped};
 use crate::runtime::stop::close_runtime_internal;
-use crate::sandbox::{build_builtin_runtime_app, SandboxStorageClearProbePhase, SandboxStorageClearProbeResult, BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID};
+use crate::sandbox::{
+    BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID, SandboxStorageClearProbePhase,
+    SandboxStorageClearProbeResult, build_builtin_runtime_app,
+};
 use crate::storage::cleanup_target_from_storage;
 use crate::types::SharedSageApp;
 use crate::utils::unix_timestamp_ms;
+use std::time::Duration;
+use tauri::{AppHandle, Manager, State};
+use tokio::time::sleep;
 
 pub(crate) async fn run_verified_storage_clear_cycle(
     app_handle: &AppHandle,
@@ -27,7 +30,7 @@ pub(crate) async fn run_verified_storage_clear_cycle(
         &run_id,
         SandboxStorageClearProbePhase::Write,
     )
-        .await?;
+    .await?;
 
     if write.error.is_some() || !write.local_storage_present || !write.indexed_db_present {
         return Err(write
@@ -42,7 +45,7 @@ pub(crate) async fn run_verified_storage_clear_cycle(
         &run_id,
         SandboxStorageClearProbePhase::CheckPresent,
     )
-        .await?;
+    .await?;
 
     if present.error.is_some() || !present.local_storage_present || !present.indexed_db_present {
         return Err(present
@@ -50,9 +53,7 @@ pub(crate) async fn run_verified_storage_clear_cycle(
             .unwrap_or_else(|| "storage clear presence probe failed".into()));
     }
 
-    let storage = resolved_app.with_app(|app| {
-        app.with(|app| app.storage().clone())
-    });
+    let storage = resolved_app.with_app(|app| app.with(|app| app.storage().clone()));
 
     let target = cleanup_target_from_storage(&storage);
     clear_app_storage_by_target(app_handle, &target).await?;
@@ -64,14 +65,16 @@ pub(crate) async fn run_verified_storage_clear_cycle(
         &run_id,
         SandboxStorageClearProbePhase::CheckAbsent,
     )
-        .await?;
+    .await?;
 
     if let Some(error) = absent.error {
         return Err(error);
     }
 
     if absent.local_storage_present || absent.indexed_db_present {
-        return Err("storage clear verification failed because probe data was still visible".into());
+        return Err(
+            "storage clear verification failed because probe data was still visible".into(),
+        );
     }
 
     resolved_app
@@ -103,7 +106,7 @@ async fn run_storage_clear_phase(
         SandboxStorageClearProbePhase::CheckPresent => "check_present",
         SandboxStorageClearProbePhase::CheckAbsent => "check_absent",
     }
-        .to_string();
+    .to_string();
 
     let impostor_app = build_builtin_runtime_app(BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID)
         .map_err(|err| format!("failed to build storage clear probe runtime app: {err}"))?
@@ -127,7 +130,7 @@ async fn run_storage_clear_phase(
             query,
         },
     )
-        .await?;
+    .await?;
 
     let out = poll_clear_cycle_phase(apps_state, run_id, &app_id, phase, 10_000).await;
 

@@ -1,8 +1,8 @@
-use serde::{Serialize};
-use specta::Type;
-use crate::types::{SystemSageApp};
+use crate::types::SystemSageApp;
 use crate::types::app::view::common::SageAppCommonView;
 use crate::types::app::view::permission::SageGrantedSystemPermissionsView;
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

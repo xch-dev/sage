@@ -1,13 +1,13 @@
-use std::{fs, io};
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
+use std::{fs, io};
 use tauri::{AppHandle, Manager, State};
 
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
@@ -64,8 +64,8 @@ impl BridgeMethod for AppInstallInstallZip {
             params.granted_permissions,
             params.wallet_scope,
         )
-            .await
-            .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
+        .await
+        .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 
         Ok(Box::new(AppInstallInstallResult::new(app)))
     }
@@ -95,13 +95,20 @@ pub async fn install_app_zip(
     let source = ZipInstallSource::new(&root, zip_path.clone());
     let unpack_dir = source.unpack_dir.clone();
 
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, wallet_scope, source).await;
+    let result = install_app_from_source(
+        &app,
+        &base_path,
+        granted_permissions_input,
+        wallet_scope,
+        source,
+    )
+    .await;
 
     if unpack_dir.exists() {
         let _ = fs::remove_dir_all(&unpack_dir);
     }
 
-    result
-        .map(|app| (&app).into())
-        .map_err(|err| io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into())
+    result.map(|app| (&app).into()).map_err(|err| {
+        io::Error::other(format!("failed to install app zip {zip_path}: {err}")).into()
+    })
 }

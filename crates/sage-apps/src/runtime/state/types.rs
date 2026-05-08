@@ -1,12 +1,12 @@
-use std::collections::{BTreeMap, BTreeSet};
-use std::sync::Arc;
-use serde::{Deserialize, Serialize};
-use specta::Type;
-use tokio::sync::{Mutex, oneshot};
-use parking_lot::RwLock;
 use crate::capabilities::list::UserBridgeCapability;
 use crate::types::{AppPresentation, SageApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
+use parking_lot::RwLock;
+use serde::{Deserialize, Serialize};
+use specta::Type;
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
+use tokio::sync::{Mutex, oneshot};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub enum SageAppRuntimeMode {
@@ -125,7 +125,7 @@ impl std::fmt::Display for CreateRuntimeRecordError {
 pub(in crate::runtime) fn runtime_id_for(app: &SharedSageApp) -> String {
     let (app_id, is_system_app) = app.with(|app| (app.id().to_string(), app.is_system()));
     if is_system_app {
-        return format!("system-runtime-{app_id}")
+        return format!("system-runtime-{app_id}");
     }
 
     format!("runtime-{app_id}")
@@ -225,9 +225,7 @@ impl SageAppRuntimeRecord {
         target_app_ids: Vec<String>,
     ) -> Result<bool, String> {
         match &mut self.presentation {
-            AppPresentation::Modal(presentation) => {
-                Ok(presentation.update_app_ids(target_app_ids))
-            }
+            AppPresentation::Modal(presentation) => Ok(presentation.update_app_ids(target_app_ids)),
             AppPresentation::Taskbar => Err("Presentation mode is not modal".to_string()),
         }
     }
@@ -254,9 +252,7 @@ impl SageAppRuntimeRecord {
 }
 
 impl SharedSageApp {
-    pub(crate) fn taint_storage_if_runtime_can_persist_secrets(
-        &self,
-    ) -> Result<(), String> {
+    pub(crate) fn taint_storage_if_runtime_can_persist_secrets(&self) -> Result<(), String> {
         if self.is_system_app() {
             return Ok(());
         }

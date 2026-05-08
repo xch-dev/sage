@@ -1,5 +1,5 @@
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::capabilities::definitions::get_user_capability_definition;
+use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy)]

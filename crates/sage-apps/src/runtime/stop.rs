@@ -1,19 +1,27 @@
-use std::fmt::Display;
 use crate::AppsHostState;
-use crate::runtime::{find_active_taskbar_runtime, find_impostor_runtime_by_victim_app_id_optional, GetRuntimeError, RuntimeChangeSet, SageAppRuntimeRecord, SharedRuntime};
-use crate::runtime::state::{find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id, remove_before_stop_listeners_by_app_id, remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready, remove_impostor_runtime_by_victim_app_id};
+use crate::bridge::emit_user_runtime_event_to_app_id;
+use crate::bridge::methods::user::app::events::BeforeStopEvent;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
+use crate::runtime::manager::sync_modal_runtime_visibility;
+use crate::runtime::state::{
+    find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
+    remove_before_stop_listeners_by_app_id, remove_impostor_runtime_by_victim_app_id,
+    remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id,
+    write_pending_stop_ready,
+};
 use crate::runtime::webview_locator::find_webview_in_sage_window;
+use crate::runtime::{
+    GetRuntimeError, RuntimeChangeSet, SageAppRuntimeRecord, SharedRuntime,
+    find_active_taskbar_runtime, find_impostor_runtime_by_victim_app_id_optional,
+};
 use serde::{Deserialize, Serialize};
 use specta::Type;
+use std::fmt::Display;
 use std::time::Duration;
 use tauri::{AppHandle, State};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use uuid::Uuid;
-use crate::bridge::emit_user_runtime_event_to_app_id;
-use crate::bridge::methods::user::app::events::BeforeStopEvent;
-use crate::runtime::events::{emit_runtime_manager_runtimes_changed};
-use crate::runtime::manager::sync_modal_runtime_visibility;
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;
 
@@ -24,11 +32,10 @@ pub struct SystemKillRuntimeResult {
     pub app_id: String,
 }
 
-
 #[derive(Debug, Clone)]
 pub enum SystemKillRuntimeError {
     NotFound,
-    RuntimeSync(String)
+    RuntimeSync(String),
 }
 
 impl Display for SystemKillRuntimeError {
@@ -48,14 +55,7 @@ pub(crate) async fn kill_runtime(
 ) -> Result<(), SystemKillRuntimeError> {
     let mut changes = RuntimeChangeSet::default();
 
-    kill_runtime_inner(
-        app_handle,
-        apps_state,
-        app_id,
-        reason,
-        &mut changes,
-    )
-        .await?;
+    kill_runtime_inner(app_handle, apps_state, app_id, reason, &mut changes).await?;
 
     changes.emit(app_handle, apps_state).await;
 
@@ -69,25 +69,18 @@ pub(super) async fn kill_runtime_inner(
     reason: &str,
     changes: &mut RuntimeChangeSet,
 ) -> Result<(), SystemKillRuntimeError> {
-    let shared_runtime = get_runtime_by_app_id(apps_state, app_id)
-        .await
-        .map_err(|err| match err {
-            GetRuntimeError::NotFound => SystemKillRuntimeError::NotFound,
-        })?;
+    let shared_runtime =
+        get_runtime_by_app_id(apps_state, app_id)
+            .await
+            .map_err(|err| match err {
+                GetRuntimeError::NotFound => SystemKillRuntimeError::NotFound,
+            })?;
 
-    let host_window_label =
-        shared_runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
+    let host_window_label = shared_runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
 
-    let active_taskbar_runtime =
-        find_active_taskbar_runtime(apps_state, &host_window_label).await;
+    let active_taskbar_runtime = find_active_taskbar_runtime(apps_state, &host_window_label).await;
 
-    close_runtime_internal_with_reason(
-        app_handle,
-        apps_state,
-        app_id,
-        reason,
-    )
-        .await;
+    close_runtime_internal_with_reason(app_handle, apps_state, app_id, reason).await;
 
     changes.runtimes_changed();
 
@@ -97,12 +90,7 @@ pub(super) async fn kill_runtime_inner(
         changes.active_taskbar_changed(&host_window_label);
     }
 
-    sync_modal_runtime_visibility(
-        app_handle,
-        apps_state,
-        &host_window_label,
-        changes,
-    )
+    sync_modal_runtime_visibility(app_handle, apps_state, &host_window_label, changes)
         .await
         .map_err(SystemKillRuntimeError::RuntimeSync)?;
 
@@ -124,7 +112,9 @@ pub(super) async fn close_runtime_internal_with_reason(
     _reason: &str,
 ) {
     // Impostor?
-    if let Some(impostor) = find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await {
+    if let Some(impostor) =
+        find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await
+    {
         let webview_label = impostor.webview_label();
 
         if let Some(webview) = find_webview_in_sage_window(app, &webview_label) {
@@ -179,7 +169,12 @@ async fn wait_for_before_stop_ack(
 
     write_pending_stop_ready(apps_state, &request_id, tx).await;
 
-    let _ = emit_user_runtime_event_to_app_id(app_handle, &runtime.app_id(), BeforeStopEvent::new(&request_id)).await;
+    let _ = emit_user_runtime_event_to_app_id(
+        app_handle,
+        &runtime.app_id(),
+        BeforeStopEvent::new(&request_id),
+    )
+    .await;
     let _ = timeout(Duration::from_millis(BEFORE_STOP_TIMEOUT_MS), rx).await;
 
     remove_pending_stop_ready(apps_state, &request_id).await;

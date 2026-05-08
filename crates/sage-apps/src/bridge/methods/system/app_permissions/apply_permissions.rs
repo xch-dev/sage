@@ -2,17 +2,17 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::RustBridgeRequest;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::lifecycle::update::permissions::update_app_permissions_for_app;
 use crate::lifecycle::update::scope::update_app_wallet_scope_for_app;
 use crate::runtime::resolve_app;
-use crate::types::{SageGrantedPermissionsInput, SageApp, UserSageAppView, SageAppWalletScope};
+use crate::types::{SageApp, SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -66,18 +66,18 @@ impl BridgeMethod for AppPermissionsApplyPermissions {
                 ))
             })?;
 
-        let requested = resolved.with_app(|app| {
-            app.with(|sage_app| sage_app.requested_permissions().clone())
-        });
+        let requested =
+            resolved.with_app(|app| app.with(|sage_app| sage_app.requested_permissions().clone()));
 
-        let granted_permissions = params
-            .granted_permissions
-            .resolve(&requested)
-            .map_err(|err| {
-                BridgeMethodHandleError::invalid_request(format!(
-                    "invalid granted permissions: {err}"
-                ))
-            })?;
+        let granted_permissions =
+            params
+                .granted_permissions
+                .resolve(&requested)
+                .map_err(|err| {
+                    BridgeMethodHandleError::invalid_request(format!(
+                        "invalid granted permissions: {err}"
+                    ))
+                })?;
 
         let app = resolved.clone_app_for_operation();
 
@@ -108,6 +108,8 @@ impl BridgeMethod for AppPermissionsApplyPermissions {
                 ))
             })?;
 
-        Ok(Box::new(AppPermissionsApplyPermissionsResult { app: app_view }))
+        Ok(Box::new(AppPermissionsApplyPermissionsResult {
+            app: app_view,
+        }))
     }
 }

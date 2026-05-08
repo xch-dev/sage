@@ -1,8 +1,8 @@
-use serde::{Deserialize, Deserializer};
-use std::path::{Component, Path, PathBuf};
-use serde::Serialize;
 use crate::types::manifest::SageAppPackageManifest;
 use crate::types::normalizers::normalized_non_empty_string;
+use serde::Serialize;
+use serde::{Deserialize, Deserializer};
+use std::path::{Component, Path, PathBuf};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppSnapshot {
@@ -119,11 +119,7 @@ impl<'de> Deserialize<'de> for SageAppSnapshot {
     {
         let raw = SageAppSnapshotDeserialize::deserialize(deserializer)?;
 
-        SageAppSnapshot::new(
-            raw.manifest_hash,
-            raw.snapshot_dir,
-            raw.manifest,
-        )
+        SageAppSnapshot::new(raw.manifest_hash, raw.snapshot_dir, raw.manifest)
             .map_err(serde::de::Error::custom)
     }
 }

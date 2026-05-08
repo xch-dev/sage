@@ -3,9 +3,9 @@ use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
 use crate::AppsHostState;
-use crate::bridge::{comms_debug, RustBridgeResponse};
+use crate::bridge::{RustBridgeResponse, comms_debug};
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::lifecycle::{ensure_app_is_enabled_for_scope};
+use crate::lifecycle::ensure_app_is_enabled_for_scope;
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
 use crate::runtime::{list_runtimes, resolve_possibly_impostor_running_app_immediate};
 use crate::types::SharedSageApp;
@@ -57,8 +57,7 @@ pub(crate) async fn emit_user_runtime_event_to_listeners<T>(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     event: T,
-)
-where
+) where
     T: UserRuntimeEvent,
 {
     let Ok(runtimes) = list_runtimes(apps_state).await else {
@@ -96,8 +95,7 @@ pub(crate) async fn emit_system_runtime_event_to_listeners<T>(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     event: T,
-)
-where
+) where
     T: SystemRuntimeEvent,
 {
     let Ok(runtimes) = list_runtimes(apps_state).await else {
@@ -147,17 +145,10 @@ where
         };
 
         if can_receive {
-            comms_debug!(
-                "system:event:emit type={} app={}",
-                T::TYPE,
-                app_id,
-            );
+            comms_debug!("system:event:emit type={} app={}", T::TYPE, app_id,);
 
-            let result = emit_system_runtime_event_to_app_id(
-                app_handle,
-                &app_id,
-                event.clone(),
-            ).await;
+            let result =
+                emit_system_runtime_event_to_app_id(app_handle, &app_id, event.clone()).await;
 
             if let Err(err) = result {
                 comms_debug!(
@@ -187,7 +178,8 @@ where
         AppRuntimeEventRail::User,
         T::TYPE,
         event,
-    ).await
+    )
+    .await
 }
 
 pub(crate) async fn emit_system_runtime_event_to_app_id<T>(
@@ -204,7 +196,8 @@ where
         AppRuntimeEventRail::System,
         T::TYPE,
         event,
-    ).await
+    )
+    .await
 }
 
 pub(crate) fn emit_user_runtime_event_to_sage_webview<T>(
@@ -215,10 +208,7 @@ where
     T: UserRuntimeEvent,
 {
     get_sage_webview(app_handle)?
-        .emit(
-            SAGE_RUNTIME_EVENT_NAME,
-            runtime_event(T::TYPE, event),
-        )
+        .emit(SAGE_RUNTIME_EVENT_NAME, runtime_event(T::TYPE, event))
         .map_err(|err| format!("failed to emit runtime event to Sage webview: {err}"))
 }
 
@@ -230,10 +220,7 @@ where
     T: SystemRuntimeEvent,
 {
     get_sage_webview(app_handle)?
-        .emit(
-            SAGE_RUNTIME_EVENT_NAME,
-            runtime_event(T::TYPE, event),
-        )
+        .emit(SAGE_RUNTIME_EVENT_NAME, runtime_event(T::TYPE, event))
         .map_err(|err| format!("failed to emit runtime event to Sage webview: {err}"))
 }
 

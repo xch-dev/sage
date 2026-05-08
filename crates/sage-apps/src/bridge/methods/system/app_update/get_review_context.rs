@@ -2,12 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::RustBridgeRequest;
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::lifecycle::update::commands::check_app_update;
 use crate::runtime::resolve_app;

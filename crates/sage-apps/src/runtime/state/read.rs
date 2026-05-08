@@ -75,10 +75,7 @@ pub(crate) fn find_impostor_runtime_by_victim_app_id_optional_immediate(
     victim_app_id: &str,
 ) -> Result<Option<SharedImpostorRuntime>, String> {
     retry_immediate_lookup("impostor runtime lookup", || {
-        find_impostor_runtime_by_victim_app_id_optional_immediate_once(
-            apps_state,
-            victim_app_id,
-        )
+        find_impostor_runtime_by_victim_app_id_optional_immediate_once(apps_state, victim_app_id)
     })
 }
 
@@ -120,9 +117,7 @@ pub(crate) async fn list_runtimes(
         by_runtime_id.values().cloned().collect::<Vec<_>>()
     };
 
-    runtimes.retain(|runtime| {
-        !runtime.with_runtime(super::types::SageAppRuntimeRecord::internal)
-    });
+    runtimes.retain(|runtime| !runtime.with_runtime(super::types::SageAppRuntimeRecord::internal));
 
     runtimes.sort_by_key(|runtime| {
         Reverse(runtime.with_runtime(super::types::SageAppRuntimeRecord::started_at))
@@ -136,10 +131,13 @@ pub(crate) async fn find_active_taskbar_runtime(
     host_window_label: &str,
 ) -> Option<SharedRuntime> {
     let taskbar_runtimes = get_taskbar_runtimes(apps_state, host_window_label).await;
-    taskbar_runtimes.iter().find(|runtime| runtime.with_runtime(
-        |runtime|
-            runtime.visibility() == SageAppRuntimeVisibility::Visible
-    )).cloned()
+    taskbar_runtimes
+        .iter()
+        .find(|runtime| {
+            runtime
+                .with_runtime(|runtime| runtime.visibility() == SageAppRuntimeVisibility::Visible)
+        })
+        .cloned()
 }
 
 pub(in crate::runtime) async fn is_apps_workspace_active(
@@ -163,11 +161,16 @@ async fn get_taskbar_runtimes(
             .collect()
     };
 
-    runtimes.iter().filter(|runtime| runtime.with_runtime(
-        |runtime|
-            runtime.presentation() == AppPresentation::Taskbar
-            && runtime.host_window_label() == host_window_label
-    )).cloned().collect()
+    runtimes
+        .iter()
+        .filter(|runtime| {
+            runtime.with_runtime(|runtime| {
+                runtime.presentation() == AppPresentation::Taskbar
+                    && runtime.host_window_label() == host_window_label
+            })
+        })
+        .cloned()
+        .collect()
 }
 
 fn find_runtime_by_app_id_optional_immediate_once(

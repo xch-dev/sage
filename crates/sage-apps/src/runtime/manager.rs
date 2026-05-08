@@ -3,12 +3,17 @@ use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
 use crate::AppsHostState;
+use crate::runtime::events::{
+    emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed,
+};
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
+use crate::runtime::stop::kill_runtime_inner;
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
-use crate::runtime::{find_active_taskbar_runtime, resolve_running_app, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
-use crate::runtime::events::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
-use crate::runtime::stop::{kill_runtime_inner};
-use crate::runtime::workspace::{ensure_apps_workspace_active};
+use crate::runtime::workspace::ensure_apps_workspace_active;
+use crate::runtime::{
+    SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime, find_active_taskbar_runtime,
+    resolve_running_app,
+};
 use crate::types::{AppPresentation, ResolvedRunningApp};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -60,8 +65,10 @@ pub(crate) async fn focus_taskbar_runtime(
 
     if let Some(current_taskbar_runtime) = current_active_taskbar_runtime {
         let current_taskbar_runtime_id = current_taskbar_runtime.runtime_id();
-        let is_same_taskbar_runtime = current_taskbar_runtime_id == runtime_window_identity.runtime_id;
-        let current_taskbar_runtime = find_runtime_by_runtime_id_optional(apps_state, &current_taskbar_runtime_id).await;
+        let is_same_taskbar_runtime =
+            current_taskbar_runtime_id == runtime_window_identity.runtime_id;
+        let current_taskbar_runtime =
+            find_runtime_by_runtime_id_optional(apps_state, &current_taskbar_runtime_id).await;
 
         if !is_same_taskbar_runtime && let Some(current_active_runtime) = current_taskbar_runtime {
             hide_runtime_inner(app_handle, &current_active_runtime, &mut changes)?;
@@ -74,7 +81,7 @@ pub(crate) async fn focus_taskbar_runtime(
         &runtime_window_identity.host_window_label,
         &mut changes,
     )
-        .await?;
+    .await?;
 
     changes.active_taskbar_changed(&runtime_window_identity.host_window_label);
     changes.emit(app_handle, apps_state).await;
@@ -95,22 +102,17 @@ pub(crate) async fn hide_runtime(
     let runtime_window_identity = runtime_window_identity(&resolved_running_app);
     let host_window_label = runtime_window_identity.host_window_label;
 
-    let active_taskbar_runtime =
-        find_active_taskbar_runtime(apps_state, &host_window_label).await;
+    let active_taskbar_runtime = find_active_taskbar_runtime(apps_state, &host_window_label).await;
 
     let mut changes = RuntimeChangeSet::default();
 
     hide_runtime_inner(app_handle, &runtime, &mut changes)?;
 
-    sync_modal_runtime_visibility(
-        app_handle,
-        apps_state,
-        &host_window_label,
-        &mut changes,
-    )
-        .await?;
+    sync_modal_runtime_visibility(app_handle, apps_state, &host_window_label, &mut changes).await?;
 
-    if let Some(active_taskbar_runtime) = active_taskbar_runtime && active_taskbar_runtime.app_id() == app_id {
+    if let Some(active_taskbar_runtime) = active_taskbar_runtime
+        && active_taskbar_runtime.app_id() == app_id
+    {
         changes.active_taskbar_changed(&host_window_label);
     }
 
@@ -125,12 +127,7 @@ pub(crate) async fn hide_all_runtimes(
 ) -> Result<(), String> {
     let mut changes = RuntimeChangeSet::default();
 
-    hide_all_runtimes_inner(
-        app_handle,
-        apps_state,
-        &mut changes,
-    )
-        .await?;
+    hide_all_runtimes_inner(app_handle, apps_state, &mut changes).await?;
 
     changes.emit(app_handle, apps_state).await;
 
@@ -144,10 +141,7 @@ pub(crate) async fn hide_all_runtimes_inner(
 ) -> Result<(), String> {
     let sage_window = get_sage_window(app_handle)?;
 
-    if find_active_taskbar_runtime(
-        apps_state,
-        sage_window.label(),
-    )
+    if find_active_taskbar_runtime(apps_state, sage_window.label())
         .await
         .is_some()
     {
@@ -175,13 +169,7 @@ pub(crate) async fn clear_active_taskbar_runtime(
         changes.active_taskbar_changed(window_label);
     }
 
-    sync_modal_runtime_visibility(
-        app_handle,
-        apps_state,
-        window_label,
-        &mut changes,
-    )
-        .await?;
+    sync_modal_runtime_visibility(app_handle, apps_state, window_label, &mut changes).await?;
 
     changes.emit(app_handle, apps_state).await;
 
@@ -196,13 +184,7 @@ pub(crate) async fn kill_taskbar_runtime(
 ) -> Result<(), String> {
     let mut changes = RuntimeChangeSet::default();
 
-    kill_runtime_inner(
-        app_handle,
-        apps_state,
-        app_id,
-        reason,
-        &mut changes,
-    )
+    kill_runtime_inner(app_handle, apps_state, app_id, reason, &mut changes)
         .await
         .map_err(|err| format!("Failed to kill taskbar runtime: {err:?}"))?;
 
@@ -219,11 +201,9 @@ pub(super) async fn sync_modal_runtime_visibility(
 ) -> Result<(), String> {
     ensure_apps_workspace_active(apps_state).await?;
 
-    let active_taskbar_runtime =
-        find_active_taskbar_runtime(apps_state, host_window_label).await;
+    let active_taskbar_runtime = find_active_taskbar_runtime(apps_state, host_window_label).await;
 
-    let active_app_id =
-        active_taskbar_runtime.map(|runtime| runtime.app_id());
+    let active_app_id = active_taskbar_runtime.map(|runtime| runtime.app_id());
 
     let mut candidates = Vec::new();
 
@@ -246,11 +226,7 @@ pub(super) async fn sync_modal_runtime_visibility(
                 None => modal.visible_over_launchpad(),
             };
 
-            Some((
-                eligible,
-                modal.priority(),
-                record.runtime_id(),
-            ))
+            Some((eligible, modal.priority(), record.runtime_id()))
         }) else {
             continue;
         };
@@ -270,23 +246,12 @@ pub(super) async fn sync_modal_runtime_visibility(
         .map(|candidate| candidate.runtime_id.clone());
 
     for candidate in candidates {
-        let should_show =
-            Some(candidate.runtime_id.clone()) == winner_runtime_id;
+        let should_show = Some(candidate.runtime_id.clone()) == winner_runtime_id;
 
         if should_show {
-            show_runtime_inner(
-                app_handle,
-                apps_state,
-                &candidate.runtime,
-                changes,
-            )
-                .await?;
+            show_runtime_inner(app_handle, apps_state, &candidate.runtime, changes).await?;
         } else {
-            hide_runtime_inner(
-                app_handle,
-                &candidate.runtime,
-                changes,
-            )?;
+            hide_runtime_inner(app_handle, &candidate.runtime, changes)?;
         }
     }
 
@@ -294,10 +259,12 @@ pub(super) async fn sync_modal_runtime_visibility(
 }
 
 fn runtime_window_identity(resolved_running_app: &ResolvedRunningApp) -> RuntimeWindowIdentity {
-    resolved_running_app.runtime().with_runtime(|record| RuntimeWindowIdentity {
-        runtime_id: record.runtime_id(),
-        host_window_label: record.host_window_label().to_string(),
-    })
+    resolved_running_app
+        .runtime()
+        .with_runtime(|record| RuntimeWindowIdentity {
+            runtime_id: record.runtime_id(),
+            host_window_label: record.host_window_label().to_string(),
+        })
 }
 
 fn assert_taskbar_presentation(resolved_running_app: &ResolvedRunningApp) -> Result<(), String> {
@@ -316,17 +283,19 @@ async fn show_runtime_inner(
 ) -> Result<(), String> {
     ensure_apps_workspace_active(apps_state).await?;
 
-    if runtime.with_runtime(|runtime| {
-        runtime.visibility() == SageAppRuntimeVisibility::Visible
-    }) {
+    if runtime.with_runtime(|runtime| runtime.visibility() == SageAppRuntimeVisibility::Visible) {
         return Ok(());
     }
 
     let app_webview_label = runtime.with_runtime(SageAppRuntimeRecord::webview_label);
     let webview = get_webview_in_sage_window(app_handle, &app_webview_label)?;
 
-    webview.show().map_err(|err| format!("failed to show webview: {err}"))?;
-    webview.set_focus().map_err(|err| format!("failed to focus webview: {err}"))?;
+    webview
+        .show()
+        .map_err(|err| format!("failed to show webview: {err}"))?;
+    webview
+        .set_focus()
+        .map_err(|err| format!("failed to focus webview: {err}"))?;
 
     runtime.with_runtime_mut(SageAppRuntimeRecord::mark_visible);
     changes.runtimes_changed();
@@ -339,16 +308,16 @@ fn hide_runtime_inner(
     runtime: &SharedRuntime,
     changes: &mut RuntimeChangeSet,
 ) -> Result<(), String> {
-    if runtime.with_runtime(|runtime| {
-        runtime.visibility() == SageAppRuntimeVisibility::Hidden
-    }) {
+    if runtime.with_runtime(|runtime| runtime.visibility() == SageAppRuntimeVisibility::Hidden) {
         return Ok(());
     }
 
     let app_webview_label = runtime.with_runtime(SageAppRuntimeRecord::webview_label);
     let webview = get_webview_in_sage_window(app_handle, &app_webview_label)?;
 
-    webview.hide().map_err(|err| format!("failed to hide webview: {err}"))?;
+    webview
+        .hide()
+        .map_err(|err| format!("failed to hide webview: {err}"))?;
     webview
         .set_position(LogicalPosition::new(0.0, 0.0))
         .map_err(|err| format!("failed to set webview position: {err}"))?;
@@ -375,11 +344,7 @@ impl RuntimeChangeSet {
         }
     }
 
-    pub(crate) async fn emit(
-        self,
-        app_handle: &AppHandle,
-        apps_state: &State<'_, AppsHostState>,
-    ) {
+    pub(crate) async fn emit(self, app_handle: &AppHandle, apps_state: &State<'_, AppsHostState>) {
         if self.runtimes_changed {
             emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
         }
@@ -393,7 +358,7 @@ impl RuntimeChangeSet {
                 &window_label,
                 active.as_ref(),
             )
-                .await;
+            .await;
         }
     }
 }

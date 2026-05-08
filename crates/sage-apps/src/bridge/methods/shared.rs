@@ -1,11 +1,11 @@
 use crate::AppsHostState;
-use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::host::AppState;
+use crate::runtime::SharedImpostorRuntime;
 use crate::types::SharedSageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
-use crate::runtime::SharedImpostorRuntime;
 
 #[async_trait]
 pub(crate) trait BridgeMethod: Send + Sync {
@@ -52,7 +52,7 @@ pub(crate) struct BridgeMethodHandleError {
 }
 
 pub(crate) type BridgeApprovalRequestResult =
-Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
+    Result<Option<RustBridgeApprovalRequest>, BridgeMethodHandleError>;
 
 impl BridgeMethodHandleError {
     pub(super) fn new(code: &'static str, message: impl Into<String>) -> Self {

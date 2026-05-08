@@ -1,10 +1,10 @@
-use std::collections::BTreeSet;
-use serde::{Serialize};
-use specta::Type;
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{SageGrantedPermissions, SageGrantedSystemPermissions};
 use crate::types::app::view::network::SageNetworkWhitelistEntryView;
 use crate::types::permissions::SageGrantedNetworkPermissions;
+use crate::types::{SageGrantedPermissions, SageGrantedSystemPermissions};
+use serde::Serialize;
+use specta::Type;
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -37,11 +37,7 @@ impl From<&SageGrantedPermissions> for SageGrantedPermissionsView {
 impl From<&SageGrantedNetworkPermissions> for SageGrantedNetworkPermissionsView {
     fn from(value: &SageGrantedNetworkPermissions) -> Self {
         Self {
-            whitelist: value
-                .whitelist()
-                .iter()
-                .map(Into::into)
-                .collect(),
+            whitelist: value.whitelist().iter().map(Into::into).collect(),
         }
     }
 }

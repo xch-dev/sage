@@ -1,10 +1,13 @@
 use anyhow::{Context, Result as AnyResult};
+use sha2::{Digest, Sha256};
 use std::path::Path;
 use std::{fs, path::PathBuf};
-use sha2::{Digest, Sha256};
 
 use crate::system_apps::AppBuildError;
-use crate::types::{InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource};
+use crate::types::{
+    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource,
+};
 use crate::utils::builtin_apps_root;
 
 macro_rules! sandbox_test_id_prefix {
@@ -152,27 +155,29 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
             .whitelist()
             .required()
             .cloned(),
-    ).map_err(|_| AppBuildError::InternalError)?;
+    )
+    .map_err(|_| AppBuildError::InternalError)?;
 
     let snapshot = SageAppSnapshot::new(
         format!("builtin:{}", spec.app_id),
         app_dir.to_string_lossy().to_string(),
         manifest.clone(),
-    ).map_err(|_| AppBuildError::InternalError)?;
+    )
+    .map_err(|_| AppBuildError::InternalError)?;
 
     let common = SageAppCommon::new(
         SageAppIdentity::new(
             spec.app_id.to_string(),
             spec.app_id.to_string(),
             app_dir.to_string_lossy().to_string(),
-        ).map_err(|_| AppBuildError::InternalError)?,
+        )
+        .map_err(|_| AppBuildError::InternalError)?,
         granted_permissions,
         builtin_storage(spec.app_id),
         snapshot,
-        SageAppWalletScope::AllWallets
-    ).map_err(|_| AppBuildError::InternalError)?;
-
-
+        SageAppWalletScope::AllWallets,
+    )
+    .map_err(|_| AppBuildError::InternalError)?;
 
     let entry_file = app_dir.join(common.entry_file());
     if !entry_file.is_file() {
@@ -184,9 +189,7 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
     Ok(Some(SageApp::User(app)))
 }
 
-pub fn build_builtin_runtime_app(
-    app_id: &str,
-) -> Result<Option<SageApp>, AppBuildError> {
+pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBuildError> {
     if app_id != BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID {
         return Ok(None);
     }
@@ -199,9 +202,7 @@ pub fn build_builtin_runtime_app(
 
     let manifest = read_builtin_manifest(&app_dir).map_err(|_| AppBuildError::ManifestFailure)?;
 
-    let granted_permissions = SageGrantedPermissions::for_builtin_requested(
-        manifest.permissions(),
-    )
+    let granted_permissions = SageGrantedPermissions::for_builtin_requested(manifest.permissions())
         .map_err(|err| {
             eprintln!("runtime app granted_permissions failed: {err}");
             AppBuildError::InternalError
@@ -212,30 +213,27 @@ pub fn build_builtin_runtime_app(
         app_dir.to_string_lossy().to_string(),
         manifest.clone(),
     )
-        .map_err(|err| {
-            eprintln!("runtime app snapshot failed: {err}");
-            AppBuildError::InternalError
-        })?;
+    .map_err(|err| {
+        eprintln!("runtime app snapshot failed: {err}");
+        AppBuildError::InternalError
+    })?;
 
     let common = SageAppCommon::new(
-        SageAppIdentity::new(
-            app_id,
-            app_id,
-            app_dir.to_string_lossy().to_string(),
-        )
-            .map_err(|err| {
+        SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).map_err(
+            |err| {
                 eprintln!("runtime app identity failed: {err}");
                 AppBuildError::InternalError
-            })?,
+            },
+        )?,
         granted_permissions,
         InstalledSageAppStorage::Unmanaged,
         snapshot,
-        SageAppWalletScope::AllWallets
+        SageAppWalletScope::AllWallets,
     )
-        .map_err(|err| {
-            eprintln!("runtime app common failed: {err}");
-            AppBuildError::InternalError
-        })?;
+    .map_err(|err| {
+        eprintln!("runtime app common failed: {err}");
+        AppBuildError::InternalError
+    })?;
 
     let entry_file = app_dir.join(common.entry_file());
     if !entry_file.is_file() {

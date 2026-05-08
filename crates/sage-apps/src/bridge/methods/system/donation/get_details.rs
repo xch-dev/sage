@@ -1,12 +1,15 @@
-use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use specta::Type;
-use crate::bridge::methods::shared::{parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::RustBridgeRequest;
+use crate::bridge::methods::shared::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::runtime::resolve_app;
 use crate::types::SageAppIconView;
+use async_trait::async_trait;
+use serde::{Deserialize, Serialize};
+use specta::Type;
 
 #[derive(Debug, Clone, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

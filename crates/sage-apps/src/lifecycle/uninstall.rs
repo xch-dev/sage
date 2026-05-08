@@ -1,15 +1,12 @@
-use crate::host::{AppState, Result};
-use crate::lifecycle::{
-    apps_root, enqueue_retired_app_origin,
-    record_storage_cleanup_failure,
-};
-use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle, ResolveStoppedError};
-use std::{fs, io};
-use std::time::Duration;
-use tauri::{command, AppHandle, Manager, State};
-use tokio::time::timeout;
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
+use crate::host::{AppState, Result};
+use crate::lifecycle::{apps_root, enqueue_retired_app_origin, record_storage_cleanup_failure};
+use crate::runtime::{ResolveStoppedError, resolve_stopped_app, run_verified_storage_clear_cycle};
+use std::time::Duration;
+use std::{fs, io};
+use tauri::{AppHandle, Manager, State, command};
+use tokio::time::timeout;
 
 #[command]
 #[specta::specta]
@@ -37,20 +34,20 @@ pub async fn uninstall_app(
             return Err(io::Error::other(
                 "failed to uninstall app because runtime could not be stopped",
             )
-                .into());
+            .into());
         }
     };
 
     if let Some(resolved_app) = resolved_app {
         let cleanup_result = timeout(
             Duration::from_millis(2_000),
-            run_verified_storage_clear_cycle(&app_handle, &resolved_app)
+            run_verified_storage_clear_cycle(&app_handle, &resolved_app),
         )
-            .await
-            .unwrap_or_else(|_| {
-                eprintln!("[uninstall_app] storage cleanup timed out for {app_id}");
-                Err("storage cleanup timed out".to_string())
-            });
+        .await
+        .unwrap_or_else(|_| {
+            eprintln!("[uninstall_app] storage cleanup timed out for {app_id}");
+            Err("storage cleanup timed out".to_string())
+        });
         resolved_app.try_with_app(|installed| {
             if cleanup_result.is_ok() {
                 enqueue_retired_app_origin(installed, false)

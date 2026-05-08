@@ -9,10 +9,16 @@ use tauri::{AppHandle, command};
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use uuid::Uuid;
 
-use crate::lifecycle::{read_pending_storage_cleanup_entries, read_retired_app_origins, write_pending_storage_cleanup_entries, write_retired_app_origins};
+use crate::lifecycle::{
+    read_pending_storage_cleanup_entries, read_retired_app_origins,
+    write_pending_storage_cleanup_entries, write_retired_app_origins,
+};
 use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
 use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
-use crate::types::{InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget, RetiredAppOriginEntry, SharedSageApp};
+use crate::types::{
+    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
+    RetiredAppOriginEntry, SharedSageApp,
+};
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn allocate_new_storage(
@@ -154,10 +160,7 @@ pub async fn clear_app_storage_by_target(
     Ok(())
 }
 
-pub fn enqueue_retired_app_origin(
-    app: &SharedSageApp,
-    cleanup_pending: bool,
-) -> AnyResult<()> {
+pub fn enqueue_retired_app_origin(app: &SharedSageApp, cleanup_pending: bool) -> AnyResult<()> {
     let base_path = app.with(|app| {
         let user = app.as_user()?;
 
@@ -214,7 +217,12 @@ mod tests {
         app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
     };
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp, UserSageApp, UserSageAppSource};
+    use crate::types::{
+        AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppWalletScope,
+        SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp,
+        UserSageApp, UserSageAppSource,
+    };
     use tempfile::tempdir;
 
     fn write_index(app_dir: &Path) {
@@ -277,7 +285,7 @@ mod tests {
             granted_permissions,
             storage,
             snapshot,
-            SageAppWalletScope::AllWallets
+            SageAppWalletScope::AllWallets,
         )
         .unwrap();
 
@@ -296,7 +304,8 @@ mod tests {
                 SageAppRuntimeMode::Inline,
                 SageAppRuntimeVisibility::Visible,
                 false,
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         assert!(app.is_user_app(), "sample app should remain a user app");

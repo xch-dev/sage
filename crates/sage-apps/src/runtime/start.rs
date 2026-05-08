@@ -4,13 +4,20 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
-use crate::runtime::state::{SageAppRuntimeRecord, write_runtime, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, remove_impostor_runtime_by_victim_app_id, write_impostor_runtime};
-use crate::runtime::webview_locator::{
-    get_sage_window, get_webview_in_sage_window,
+use crate::runtime::state::{
+    SageAppRuntimeRecord, remove_impostor_runtime_by_victim_app_id, remove_runtime_by_runtime_id,
+    remove_runtime_id_by_app_id, write_impostor_runtime, write_runtime,
 };
-use crate::runtime::{build_entry_src, build_entry_src_for, is_allowed_app_url, resolve_app, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime};
+use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
+use crate::runtime::{
+    SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode,
+    SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime, build_entry_src,
+    build_entry_src_for, is_allowed_app_url, resolve_app,
+};
 use crate::storage::parse_data_store_id;
-use crate::types::{AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
+use crate::types::{
+    AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
+};
 use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Type)]
@@ -34,9 +41,12 @@ pub async fn create_runtime(
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    let app = match resolve_app(app_handle, &args.app_id).await.map_err(|e| e.to_string())? {
+    let app = match resolve_app(app_handle, &args.app_id)
+        .await
+        .map_err(|e| e.to_string())?
+    {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
-        ResolvedApp::Stopped(stopped) => stopped.into_app()
+        ResolvedApp::Stopped(stopped) => stopped.into_app(),
     };
 
     let is_internal = app.with(|app| app.common().is_sandbox_test());
@@ -56,7 +66,8 @@ pub async fn create_runtime(
         args.mode,
         SageAppRuntimeVisibility::Hidden,
         is_internal,
-    ).map_err(|err| err.to_string())?;
+    )
+    .map_err(|err| err.to_string())?;
     let shared_runtime = write_runtime(apps_state, runtime).await;
 
     let runtime_for_nav = shared_runtime.clone();
@@ -64,11 +75,11 @@ pub async fn create_runtime(
         webview_label.to_string(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
-        .transparent(true)
-        .on_navigation(move |url| {
-            runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
-        })
-        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+    .transparent(true)
+    .on_navigation(move |url| {
+        runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
+    })
+    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     let builder = build_initialization_script(builder);
     let builder = build_storage(builder, &app)?;
@@ -78,16 +89,14 @@ pub async fn create_runtime(
     } else {
         (0.0, 0.0, 1.0, 1.0)
     };
-    let add_child_result = get_sage_window(app_handle)?
-        .add_child(
-            builder,
-            LogicalPosition::new(x, y),
-            LogicalSize::new(width, height),
-        );
+    let add_child_result = get_sage_window(app_handle)?.add_child(
+        builder,
+        LogicalPosition::new(x, y),
+        LogicalSize::new(width, height),
+    );
     if let Err(e) = add_child_result {
-        let (runtime_id, app_id) = shared_runtime.with_runtime(|runtime| {
-            (runtime.runtime_id(), runtime.app().id())
-        });
+        let (runtime_id, app_id) =
+            shared_runtime.with_runtime(|runtime| (runtime.runtime_id(), runtime.app().id()));
         drop(shared_runtime);
         remove_runtime_by_runtime_id(apps_state, &runtime_id).await;
         remove_runtime_id_by_app_id(apps_state, &app_id).await;
@@ -95,7 +104,8 @@ pub async fn create_runtime(
     }
 
     if !args.debug_layout {
-        get_webview_in_sage_window(app_handle, &webview_label)?.hide()
+        get_webview_in_sage_window(app_handle, &webview_label)?
+            .hide()
             .map_err(|err| format!("{err}"))?;
     }
 
@@ -138,10 +148,8 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
         webview_label.to_string(),
         WebviewUrl::CustomProtocol(entry_url.clone()),
     )
-        .on_navigation(move |next_url| {
-            *next_url == entry_url
-        })
-        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+    .on_navigation(move |next_url| *next_url == entry_url)
+    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     let builder = build_initialization_script(builder);
     let builder = build_persistent_storage_target(builder, &victim_app)?;
@@ -163,7 +171,8 @@ pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
         return Err(format!("failed to create impostor child webview: {err}"));
     }
 
-    get_webview_in_sage_window(&app_handle, &webview_label)?.hide()
+    get_webview_in_sage_window(&app_handle, &webview_label)?
+        .hide()
         .map_err(|err| format!("{err}"))?;
 
     Ok(shared_runtime)
@@ -204,7 +213,10 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
     (x, y, cell_w, cell_h)
 }
 
-async fn check_gates(apps_state: &State<'_, AppsHostState>, app: &SharedSageApp) -> Result<(), String> {
+async fn check_gates(
+    apps_state: &State<'_, AppsHostState>,
+    app: &SharedSageApp,
+) -> Result<(), String> {
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
     let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
@@ -219,11 +231,14 @@ async fn check_gates(apps_state: &State<'_, AppsHostState>, app: &SharedSageApp)
     Ok(())
 }
 
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> Result<WebviewBuilder<Wry>, String> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+) -> Result<WebviewBuilder<Wry>, String> {
     let has_persistent_storage = app.with(|app| {
-        app.granted_permissions()
-            .capabilities()
-            .any(|cap| *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview)
+        app.granted_permissions().capabilities().any(|cap| {
+            *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview
+        })
     });
 
     if !has_persistent_storage {
@@ -260,9 +275,7 @@ fn build_persistent_storage_target(
     Ok(builder)
 }
 
-fn build_initialization_script(
-    mut builder: WebviewBuilder<Wry>,
-) -> WebviewBuilder<Wry> {
+fn build_initialization_script(mut builder: WebviewBuilder<Wry>) -> WebviewBuilder<Wry> {
     if !cfg!(debug_assertions) {
         return builder;
     }

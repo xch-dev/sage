@@ -1,6 +1,6 @@
-use serde::{Serialize};
-use specta::Type;
 use crate::types::{SageAppPackageManifest, SageAppSnapshot};
+use serde::Serialize;
+use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

@@ -1,15 +1,20 @@
+use crate::AppsHostState;
+use crate::lifecycle::read_installed_app_by_id;
+use crate::runtime::stop::close_runtime_internal;
+use crate::runtime::{
+    GetRuntimeError, SharedImpostorRuntime, SharedRuntime,
+    find_impostor_runtime_by_victim_app_id_optional,
+    find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional,
+    find_runtime_by_app_id_optional_immediate,
+};
+use crate::sandbox::build_builtin_test_app;
+use crate::system_apps::build_builtin_system_app;
+use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
 use std::collections::BTreeMap;
 use std::fmt::Display;
-use crate::lifecycle::read_installed_app_by_id;
-use crate::sandbox::build_builtin_test_app;
-use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
 use tauri::{AppHandle, Manager, State};
+use tokio::time::{Duration, sleep};
 use url::Url;
-use crate::AppsHostState;
-use crate::runtime::{find_impostor_runtime_by_victim_app_id_optional, find_impostor_runtime_by_victim_app_id_optional_immediate, find_runtime_by_app_id_optional, find_runtime_by_app_id_optional_immediate, GetRuntimeError, SharedImpostorRuntime, SharedRuntime};
-use crate::runtime::stop::close_runtime_internal;
-use tokio::time::{sleep, Duration};
-use crate::system_apps::build_builtin_system_app;
 
 const MAX_STOP_RESOLVE_ATTEMPTS: usize = 5;
 
@@ -23,10 +28,10 @@ pub enum ResolveError {
 #[derive(Debug, Copy, Clone)]
 pub enum ResolveStoppedError {
     AppDirMissing,
-    CloseAttemptsHit
+    CloseAttemptsHit,
 }
 
-pub(in crate) enum PossiblyImpostorRuntime {
+pub(crate) enum PossiblyImpostorRuntime {
     Legit(SharedRuntime),
     Impostor(SharedImpostorRuntime),
 }
@@ -89,7 +94,7 @@ pub fn build_entry_src_for(
         identity_app.origin_id(),
         entry_file
     ))
-        .expect("failed to build app entry URL");
+    .expect("failed to build app entry URL");
 
     for (key, value) in query {
         url.query_pairs_mut().append_pair(&key, &value);
@@ -98,10 +103,7 @@ pub fn build_entry_src_for(
     url
 }
 
-pub fn build_entry_src(
-    app: &SharedSageApp,
-    query: BTreeMap<String, String>,
-) -> Url {
+pub fn build_entry_src(app: &SharedSageApp, query: BTreeMap<String, String>) -> Url {
     build_entry_src_for(app, app, query)
 }
 
@@ -168,32 +170,31 @@ pub async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, R
         .map_err(|_| ResolveError::AppDirMissing)?;
 
     if let Ok(app) = read_installed_app_by_id(&base_path, app_id) {
-        return Ok(
-            ResolvedApp::Stopped(ResolvedStoppedApp::new(
-                SharedSageApp::new(SageApp::User(app)),
-                guard
-            ))
-        );
+        return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
+            SharedSageApp::new(SageApp::User(app)),
+            guard,
+        )));
     }
-    if let Some(app) = build_builtin_system_app(app_id)
-        .map_err(|err| {
-            ResolveError::BuildFailed(format!(
-                "failed to resolve builtin system app {app_id}: {err}"
-            ))
-        })?
-    {
+    if let Some(app) = build_builtin_system_app(app_id).map_err(|err| {
+        ResolveError::BuildFailed(format!(
+            "failed to resolve builtin system app {app_id}: {err}"
+        ))
+    })? {
         return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
             SharedSageApp::new(app),
             guard,
         )));
     }
 
-    let Some(app) = build_builtin_test_app(app_id)
-        .map_err(|err| ResolveError::BuildFailed(format!(
+    let Some(app) = build_builtin_test_app(app_id).map_err(|err| {
+        ResolveError::BuildFailed(format!(
             "failed to resolve builtin sandbox app {app_id}: {err}"
-        )))?
+        ))
+    })?
     else {
-        return Err(ResolveError::NotFound(format!("failed to resolve app {app_id}")));
+        return Err(ResolveError::NotFound(format!(
+            "failed to resolve app {app_id}"
+        )));
     };
 
     Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
@@ -206,8 +207,7 @@ pub(crate) async fn resolve_possibly_impostor_running_app(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<PossiblyImpostorRuntime, GetRuntimeError> {
-    if let Some(runtime) =
-        find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await
+    if let Some(runtime) = find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await
     {
         return Ok(PossiblyImpostorRuntime::Impostor(runtime));
     }
@@ -252,8 +252,12 @@ impl PossiblyImpostorRuntime {
 
     pub(crate) fn identity_webview_label(&self) -> String {
         match self {
-            PossiblyImpostorRuntime::Legit(runtime) => runtime.with_runtime(|runtime| runtime.webview_label().to_string()),
-            PossiblyImpostorRuntime::Impostor(runtime) => runtime.with_runtime(|runtime| runtime.victim_app().webview_label()),
+            PossiblyImpostorRuntime::Legit(runtime) => {
+                runtime.with_runtime(|runtime| runtime.webview_label().to_string())
+            }
+            PossiblyImpostorRuntime::Impostor(runtime) => {
+                runtime.with_runtime(|runtime| runtime.victim_app().webview_label())
+            }
         }
     }
 

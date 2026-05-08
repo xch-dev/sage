@@ -8,8 +8,11 @@ use std::{
 use anyhow::{Context, Result as AnyResult};
 
 use crate::lifecycle::types::PersistedUserSageApp;
-use crate::system_apps::{list_builtin_system_apps, SystemAppUsage};
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry, SageApp, SageAppIconView, UserSageApp, UserSageAppSource};
+use crate::system_apps::{SystemAppUsage, list_builtin_system_apps};
+use crate::types::{
+    CorruptedInstalledSageApp, ListedSageApp, PendingStorageCleanupEntry, RetiredAppOriginEntry,
+    SageApp, SageAppIconView, UserSageApp, UserSageAppSource,
+};
 
 const INSTALLED_METADATA_FILE: &str = ".sage-installed.json";
 const PENDING_STORAGE_CLEANUP_FILE: &str = ".sage-pending-storage-cleanup.json";
@@ -40,13 +43,12 @@ pub fn read_installed_user_app_from_dir(dir: &Path) -> AnyResult<UserSageApp> {
     let text =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
-    let persisted: PersistedUserSageApp = serde_json::from_str(&text)
-        .map_err(|err| {
-            anyhow::anyhow!(
+    let persisted: PersistedUserSageApp = serde_json::from_str(&text).map_err(|err| {
+        anyhow::anyhow!(
             "failed to parse installed app metadata {}: {err}\n\n{text}",
             path.display()
         )
-        })?;
+    })?;
 
     persisted.try_into()
 }
@@ -121,9 +123,9 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
                         path.to_string_lossy().to_string(),
                         err.to_string(),
                     )
-                        .with_manifest_header(manifest_header)
-                        .with_source(source)
-                        .with_icon(icon),
+                    .with_manifest_header(manifest_header)
+                    .with_source(source)
+                    .with_icon(icon),
                 ));
             }
         }
@@ -131,7 +133,8 @@ pub fn list_installed_apps_internal(root: &Path) -> AnyResult<Vec<ListedSageApp>
 
     for app in list_builtin_system_apps()? {
         if let SageApp::System(app) = app
-            && app.usage() == SystemAppUsage::Standalone {
+            && app.usage() == SystemAppUsage::Standalone
+        {
             apps.push(ListedSageApp::System(app));
         }
     }
@@ -273,11 +276,15 @@ fn read_corrupted_installed_app_fallback(
 mod tests {
     use super::*;
 
+    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
     use crate::lifecycle::storage::record_storage_cleanup_failure;
-    use crate::types::{ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
+    use crate::types::{
+        ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppManifestFile,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput,
+        SageRequestedPermissions, SharedSageApp, UserSageAppSource,
+    };
     use std::fs;
     use tempfile::tempdir;
-    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()
@@ -301,11 +308,7 @@ mod tests {
         .unwrap()
     }
 
-    async fn sample_app(
-        base: &Path,
-        app_id: &str,
-        origin_id: &str,
-    ) -> SharedSageApp {
+    async fn sample_app(base: &Path, app_id: &str, origin_id: &str) -> SharedSageApp {
         sample_app_named(base, app_id, origin_id, "Test App").await
     }
 
@@ -329,8 +332,8 @@ mod tests {
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         SharedSageApp::new(installed.into_sage_app())
     }

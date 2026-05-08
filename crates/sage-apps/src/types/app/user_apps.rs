@@ -1,22 +1,22 @@
 use crate::capabilities::list::BridgeCapability;
+use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
+use crate::types::SageAppUrl;
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::app::system_apps::SystemSageApp;
+use crate::types::app::view::SageAppIconView;
 use crate::types::permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
 use crate::types::storage::InstalledSageAppStorage;
-use crate::types::SageAppUrl;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::OwnedMutexGuard;
-use crate::lifecycle::{write_metadata_for_app};
-use crate::types::app::view::SageAppIconView;
 
 #[derive(Debug)]
 pub struct ResolvedStoppedApp {
@@ -129,9 +129,7 @@ impl SharedSageApp {
     {
         let mut app = self.inner.write();
 
-        let previous_app = app
-            .clone_for_rollback()
-            .map_err(|err| err.to_string())?;
+        let previous_app = app.clone_for_rollback().map_err(|err| err.to_string())?;
 
         match f(&mut app) {
             Ok(value) => {
@@ -179,7 +177,10 @@ impl SharedSageApp {
     }
 
     pub fn pending_update(&self) -> Option<UserSageAppPendingUpdate> {
-        self.with(|app| app.as_user().and_then(|user| user.pending_update().cloned()))
+        self.with(|app| {
+            app.as_user()
+                .and_then(|user| user.pending_update().cloned())
+        })
     }
 
     pub fn is_capability_granted(&self, capability: BridgeCapability) -> bool {
@@ -188,12 +189,9 @@ impl SharedSageApp {
                 app.granted_permissions().has_capability(capability)
             }
 
-            BridgeCapability::System(capability) => {
-                app.system_granted_permissions()
-                    .is_some_and(|permissions| {
-                        permissions.capabilities().contains(&capability)
-                    })
-            }
+            BridgeCapability::System(capability) => app
+                .system_granted_permissions()
+                .is_some_and(|permissions| permissions.capabilities().contains(&capability)),
         })
     }
 
@@ -443,10 +441,7 @@ impl CorruptedInstalledSageApp {
         }
     }
 
-    pub(crate) fn with_icon(
-        mut self,
-        icon: Option<SageAppIconView>,
-    ) -> Self {
+    pub(crate) fn with_icon(mut self, icon: Option<SageAppIconView>) -> Self {
         self.icon = icon;
         self
     }

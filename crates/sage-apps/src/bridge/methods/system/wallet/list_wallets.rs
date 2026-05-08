@@ -55,10 +55,7 @@ impl BridgeMethod for WalletListWallets {
         let sage = tools.app_state.lock().await;
 
         let keys = sage.get_keys(GetKeys {}).map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!(
-                "{} failed: {err}",
-                self.name()
-            ))
+            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
         })?;
 
         Ok(Box::new(WalletListWalletsResult {

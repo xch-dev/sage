@@ -1,3 +1,3 @@
 mod events;
 
-pub(crate) use events::{emit_listed_apps_changed, ListedAppsChangedEvent};
+pub(crate) use events::{ListedAppsChangedEvent, emit_listed_apps_changed};

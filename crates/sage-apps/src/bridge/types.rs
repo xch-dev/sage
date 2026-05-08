@@ -1,11 +1,11 @@
-use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
+use crate::bridge::registry::BridgeRegistryKind;
+use crate::capabilities::list::UserBridgeCapability;
+use crate::runtime::SharedImpostorRuntime;
 use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
-use crate::bridge::registry::BridgeRegistryKind;
-use crate::runtime::SharedImpostorRuntime;
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -71,7 +71,6 @@ pub struct RustBridgeApprovalRequest {
     pub body: RustBridgeApprovalBody,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum RustBridgeApprovalBody {
@@ -127,7 +126,7 @@ impl TryFrom<RustBridgeInvokeResult> for RustBridgeResponse {
         match value {
             RustBridgeInvokeResult::Success(response) => Ok(Self::Success(response)),
             RustBridgeInvokeResult::Error(response) => Ok(Self::Error(response)),
-            RustBridgeInvokeResult::Pending => Err("Invoke result is pending".to_string())
+            RustBridgeInvokeResult::Pending => Err("Invoke result is pending".to_string()),
         }
     }
 }

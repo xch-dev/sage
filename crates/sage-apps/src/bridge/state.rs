@@ -1,22 +1,24 @@
 use crate::AppsHostState;
-use crate::bridge::{comms_debug, RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::registry::BridgeRegistryKind;
 use crate::bridge::types::PendingBridgeApproval;
+use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest, comms_debug};
+use crate::runtime::{
+    emit_bridge_approvals_changed, emit_timeout_for_pending_approval, sync_bridge_approval_runtime,
+};
+use crate::utils::unix_timestamp_ms;
 use std::collections::BTreeMap;
 use std::time::Duration;
-use tauri::{AppHandle, Manager, State};
 use tauri::async_runtime::JoinHandle;
+use tauri::{AppHandle, Manager, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
-use crate::bridge::registry::BridgeRegistryKind;
-use crate::runtime::{emit_bridge_approvals_changed, emit_timeout_for_pending_approval, sync_bridge_approval_runtime};
-use crate::utils::unix_timestamp_ms;
 
 const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 30_000;
 
 #[derive(Debug, Default)]
 pub struct BridgeState {
     pending_approvals: Mutex<BTreeMap<String, PendingBridgeApproval>>,
-    approval_expiry_task: Mutex<Option<JoinHandle<()>>>
+    approval_expiry_task: Mutex<Option<JoinHandle<()>>>,
 }
 
 pub(crate) async fn write_pending_approval(
@@ -78,9 +80,7 @@ pub(crate) async fn remove_pending_approval(
     pending.remove(approval_id);
 }
 
-pub(crate) async fn pending_approval_app_ids(
-    apps_state: &State<'_, AppsHostState>,
-) -> Vec<String> {
+pub(crate) async fn pending_approval_app_ids(apps_state: &State<'_, AppsHostState>) -> Vec<String> {
     use std::collections::BTreeSet;
 
     list_pending_approvals(apps_state)

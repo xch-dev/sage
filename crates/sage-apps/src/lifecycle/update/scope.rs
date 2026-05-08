@@ -15,7 +15,7 @@ pub async fn update_app_wallet_scope_for_app(
         sage_app.common_mut().update_wallet_scope(wallet_scope);
         Ok::<_, anyhow::Error>(())
     })
-        .map_err(|err| anyhow::anyhow!(err))?;
+    .map_err(|err| anyhow::anyhow!(err))?;
 
     let base_path: PathBuf = {
         let state = app_handle.state::<AppState>();

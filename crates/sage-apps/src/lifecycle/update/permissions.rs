@@ -1,15 +1,17 @@
 use std::path::Path;
 
-use anyhow::Context;
-use tauri::AppHandle;
 use crate::bridge::emit_user_runtime_event_to_app_id;
+use crate::bridge::methods::user::app::{
+    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
+};
 use crate::capabilities::list::UserBridgeCapability;
-use crate::bridge::methods::user::app::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
 use crate::runtime::resolve_app;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
+use anyhow::Context;
+use tauri::AppHandle;
 
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
@@ -103,22 +105,23 @@ fn apply_granted_permissions_to_app(
     app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<AppUpdateResult> {
-    let (previous, new) = app.try_mutate(|sage_app| {
-        let previous = sage_app.common().granted_permissions().clone();
+    let (previous, new) = app
+        .try_mutate(|sage_app| {
+            let previous = sage_app.common().granted_permissions().clone();
 
-        sage_app
-            .common_mut()
-            .update_permissions(granted_permissions)
-            .context("failed to update app permissions")?;
+            sage_app
+                .common_mut()
+                .update_permissions(granted_permissions)
+                .context("failed to update app permissions")?;
 
-        let new = sage_app.common().granted_permissions().clone();
+            let new = sage_app.common().granted_permissions().clone();
 
-        Ok::<_, anyhow::Error>((previous, new))
-    }).map_err(|err| anyhow::anyhow!(err))?;
+            Ok::<_, anyhow::Error>((previous, new))
+        })
+        .map_err(|err| anyhow::anyhow!(err))?;
 
     Ok(AppUpdateResult::new(GrantedPermissionsChange::diff(
-        &previous,
-        &new,
+        &previous, &new,
     )))
 }
 
@@ -133,9 +136,9 @@ async fn emit_granted_permissions_change(
         let _ = emit_user_runtime_event_to_app_id(
             app_handle,
             app_id,
-            GrantedCapabilitiesChangeEvent::from_change(capability_change)
+            GrantedCapabilitiesChangeEvent::from_change(capability_change),
         )
-            .await;
+        .await;
     }
 
     let network_change = change.network_whitelist();
@@ -144,9 +147,9 @@ async fn emit_granted_permissions_change(
         let _ = emit_user_runtime_event_to_app_id(
             app_handle,
             app_id,
-            GrantedNetworkWhitelistChangeEvent::from_change(network_change)
+            GrantedNetworkWhitelistChangeEvent::from_change(network_change),
         )
-            .await;
+        .await;
     }
 }
 
@@ -155,10 +158,14 @@ mod tests {
     use super::*;
 
     use crate::capabilities::list::UserBridgeCapability;
-    use crate::lifecycle::registry::{read_installed_app_by_id};
-    use crate::types::{SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageAppSource};
+    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
+    use crate::lifecycle::registry::read_installed_app_by_id;
+    use crate::types::{
+        SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions, UserSageAppSource,
+    };
     use tempfile::tempdir;
-    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()
@@ -188,38 +195,25 @@ mod tests {
                 ],
             ),
         )
-            .unwrap();
+        .unwrap();
 
-        let (manifest_version, sage_version) =
-            SageAppPackageManifestParts::v0_defaults();
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
 
-        let manifest = SageAppPackageManifest::try_from(
-            SageAppPackageManifestParts {
-                manifest_version,
-                name: "Test App".to_string(),
-                icon: None,
-                sage_version,
-                version: "1.0.0".to_string(),
-                permissions: requested_permissions.clone(),
-                files: vec![
-                    SageAppManifestFile::new(
-                        "index.html",
-                        "a".repeat(64),
-                        4,
-                    )
-                        .unwrap(),
-                ],
-                entry: Some("index.html".to_string()),
-                author: None,
-                donation: None,
-            },
-        )
-            .unwrap();
+        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
+            name: "Test App".to_string(),
+            icon: None,
+            sage_version,
+            version: "1.0.0".to_string(),
+            permissions: requested_permissions.clone(),
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 4).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap();
 
-        let granted = SageGrantedPermissionsInput::new(
-            [],
-            [],
-        );
+        let granted = SageGrantedPermissionsInput::new([], []);
 
         let installed = install_app_from_source_for_test(
             base,
@@ -231,8 +225,8 @@ mod tests {
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         SharedSageApp::new(installed.into_sage_app())
     }
@@ -243,7 +237,9 @@ mod tests {
         let app = sample_app(dir.path(), "app-1").await;
 
         let granted = app
-            .try_with(|app| SageGrantedPermissions::new(app.common().requested_permissions(), [], []))
+            .try_with(|app| {
+                SageGrantedPermissions::new(app.common().requested_permissions(), [], [])
+            })
             .unwrap();
 
         let update_result = apply_granted_permissions_to_app(&app, &granted).unwrap();
@@ -275,19 +271,19 @@ mod tests {
 
         let granted = app
             .try_with(|app| {
-                app.common()
-                    .granted_permissions()
-                    .with_capability_added(
-                        app.common().requested_permissions(),
-                        UserBridgeCapability::WalletSendXch,
-                    )
+                app.common().granted_permissions().with_capability_added(
+                    app.common().requested_permissions(),
+                    UserBridgeCapability::WalletSendXch,
+                )
             })
             .unwrap();
 
         let update_result = apply_granted_permissions_to_app(&app, &granted).unwrap();
 
-        let outcome =
-            GrantCapabilityOutcome::from_update(UserBridgeCapability::WalletSendXch, &update_result);
+        let outcome = GrantCapabilityOutcome::from_update(
+            UserBridgeCapability::WalletSendXch,
+            &update_result,
+        );
 
         match outcome {
             GrantCapabilityOutcome::Granted { capability, change } => {
@@ -334,19 +330,19 @@ mod tests {
 
         let same_granted = app
             .try_with(|app| {
-                app.common()
-                    .granted_permissions()
-                    .with_capability_added(
-                        app.common().requested_permissions(),
-                        UserBridgeCapability::WalletSendXch,
-                    )
+                app.common().granted_permissions().with_capability_added(
+                    app.common().requested_permissions(),
+                    UserBridgeCapability::WalletSendXch,
+                )
             })
             .unwrap();
 
         let update_result = apply_granted_permissions_to_app(&app, &same_granted).unwrap();
 
-        let outcome =
-            GrantCapabilityOutcome::from_update(UserBridgeCapability::WalletSendXch, &update_result);
+        let outcome = GrantCapabilityOutcome::from_update(
+            UserBridgeCapability::WalletSendXch,
+            &update_result,
+        );
 
         match outcome {
             GrantCapabilityOutcome::AlreadyGranted {

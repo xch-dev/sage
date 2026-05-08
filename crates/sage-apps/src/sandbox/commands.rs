@@ -1,11 +1,11 @@
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State, command};
 
-use crate::AppsHostState;
-use crate::runtime::resolve_app;
 use super::gate::evaluate_app_launch_gate;
 use super::runner::{begin_sandbox_run, sandbox_runner};
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{AppLaunchGateResult, SandboxStateView};
+use crate::AppsHostState;
+use crate::runtime::resolve_app;
 
 #[command]
 #[specta::specta]
@@ -31,10 +31,8 @@ pub async fn apps_get_app_launch_gate(
 
     let effective = build_effective_state(&baseline, current_run.as_ref());
 
-    let evaluated_gate = resolved_app.with_app(|app| {
-        evaluate_app_launch_gate(app, &effective)
-    });
-    
+    let evaluated_gate = resolved_app.with_app(|app| evaluate_app_launch_gate(app, &effective));
+
     Ok(evaluated_gate)
 }
 

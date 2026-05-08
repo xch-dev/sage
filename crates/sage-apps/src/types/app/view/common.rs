@@ -1,9 +1,12 @@
-use serde::{Serialize};
-use specta::Type;
-use url::Url;
 use crate::types::app::view::permission::SageGrantedPermissionsView;
 use crate::types::app::view::snapshot::SageAppSnapshotView;
-use crate::types::{SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl, SageAppWalletScope};
+use crate::types::{
+    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview,
+    SageAppUrl, SageAppWalletScope,
+};
+use serde::Serialize;
+use specta::Type;
+use url::Url;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -45,7 +48,7 @@ impl From<&SageAppIdentity> for SageAppIdentityView {
     fn from(value: &SageAppIdentity) -> Self {
         Self {
             id: value.id().to_string(),
-            origin_id: value.origin_id().to_string()
+            origin_id: value.origin_id().to_string(),
         }
     }
 }
@@ -57,20 +60,13 @@ impl SageAppIconView {
     }
 
     pub(crate) fn author_avatar_from_common(common: &SageAppCommon) -> Option<Self> {
-        let avatar_path = common
-            .active_snapshot()
-            .manifest()
-            .author()?
-            .avatar()?;
+        let avatar_path = common.active_snapshot().manifest().author()?.avatar()?;
 
         Self::from_common_file(common, avatar_path)
     }
 
     fn from_common_file(common: &SageAppCommon, path: &str) -> Option<Self> {
-        let file_path = common
-            .active_snapshot()
-            .resolve_file_path(path)
-            .ok()?;
+        let file_path = common.active_snapshot().resolve_file_path(path).ok()?;
 
         Self::from_file_path(&file_path)
     }
@@ -101,7 +97,9 @@ impl SageAppIconView {
             SageAppPackageManifestPreview::Full { manifest } => {
                 Self::from_url_manifest(base, manifest).await
             }
-            SageAppPackageManifestPreview::Partial { manifest_header, .. } => {
+            SageAppPackageManifestPreview::Partial {
+                manifest_header, ..
+            } => {
                 let icon_path = manifest_header.icon.as_deref()?;
 
                 Self::from_url(base, icon_path).await
@@ -109,10 +107,7 @@ impl SageAppIconView {
         }
     }
 
-    async fn from_url(
-        base: &SageAppUrl,
-        icon_path: &str,
-    ) -> Option<Self> {
+    async fn from_url(base: &SageAppUrl, icon_path: &str) -> Option<Self> {
         let base_url = Url::parse(base.as_str()).ok()?;
         let resolved = base_url.join(icon_path).ok()?;
 

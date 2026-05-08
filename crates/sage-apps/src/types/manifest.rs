@@ -139,7 +139,7 @@ impl<'de> Deserialize<'de> for SageAppPackageManifest {
             author: raw.author,
             donation: raw.donation,
         })
-            .map_err(serde::de::Error::custom)
+        .map_err(serde::de::Error::custom)
     }
 }
 
@@ -396,7 +396,7 @@ mod tests {
                 ],
             ),
         )
-            .unwrap()
+        .unwrap()
     }
 
     fn manifest_header_parts() -> (SageAppManifestVersion, SageAppManifestSageVersion) {
@@ -439,7 +439,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -458,7 +458,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("name cannot be empty"));
     }
@@ -479,7 +479,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("version cannot be empty"));
     }
@@ -500,7 +500,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(err.to_string().contains("unsupported manifestVersion 1"));
     }
@@ -521,7 +521,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
         assert_eq!(manifest.total_bytes(), 123);
     }

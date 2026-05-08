@@ -1,7 +1,7 @@
-mod get_current;
 mod events;
+mod get_current;
 
+pub use events::EnvironmentThemeChangedEvent;
 pub use get_current::{
-    EnvironmentThemeGetCurrent, EnvironmentThemeView, EnvironmentThemeGetCurrentResult
+    EnvironmentThemeGetCurrent, EnvironmentThemeGetCurrentResult, EnvironmentThemeView,
 };
-pub use events::{EnvironmentThemeChangedEvent};

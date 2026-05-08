@@ -4,7 +4,7 @@ use tauri::{State, command};
 
 use crate::host::{AppState, Result};
 use crate::lifecycle::{apps_root, list_installed_apps_internal};
-use crate::types::{ListedSageAppView};
+use crate::types::ListedSageAppView;
 
 #[command]
 #[specta::specta]

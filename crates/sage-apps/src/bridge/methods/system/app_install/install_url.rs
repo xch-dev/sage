@@ -1,16 +1,16 @@
-use std::io;
 use async_trait::async_trait;
-use serde::{Deserialize};
+use serde::Deserialize;
 use specta::Type;
+use std::io;
 use tauri::{AppHandle, Manager, State};
 
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::methods::system::AppInstallInstallResult;
+use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::host::AppState;
 use crate::lifecycle::install::install_app_from_source;
@@ -61,8 +61,8 @@ impl BridgeMethod for AppInstallInstallUrl {
             params.granted_permissions,
             params.wallet_scope,
         )
-            .await
-            .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
+        .await
+        .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 
         Ok(Box::new(AppInstallInstallResult::new(app)))
     }
@@ -81,12 +81,16 @@ pub async fn install_app_url(
     };
     let parsed_app_url = SageAppUrl::parse(&app_url)
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
-    let result = install_app_from_source(&app, &base_path, granted_permissions_input, wallet_scope, parsed_app_url)
-        .await;
+    let result = install_app_from_source(
+        &app,
+        &base_path,
+        granted_permissions_input,
+        wallet_scope,
+        parsed_app_url,
+    )
+    .await;
 
-    result
-        .map(|app| (&app).into())
-        .map_err(|err| {
-            io::Error::other(format!("failed to install app URL {app_url}: {err}")).into()
-        })
+    result.map(|app| (&app).into()).map_err(|err| {
+        io::Error::other(format!("failed to install app URL {app_url}: {err}")).into()
+    })
 }

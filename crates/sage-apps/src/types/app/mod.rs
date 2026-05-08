@@ -18,11 +18,12 @@ pub(crate) use donation::SageAppDonation;
 pub(crate) use preview::{SageAppUrlPreview, UserSageAppPendingUpdate};
 pub(crate) use retired_origin::RetiredAppOriginEntry;
 pub(crate) use snapshot::SageAppSnapshot;
-pub(crate) use system_apps::{AppPresentation, AppModalPresentation, SystemSageApp};
+pub(crate) use system_apps::{AppModalPresentation, AppPresentation, SystemSageApp};
 pub(crate) use user_apps::{
-    CorruptedInstalledSageApp, ListedSageApp, UserSageApp, UserSageAppSource, SageApp, ResolvedApp, ResolvedStoppedApp, ResolvedRunningApp
+    CorruptedInstalledSageApp, ListedSageApp, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp,
+    SageApp, UserSageApp, UserSageAppSource,
 };
-pub(crate) use view::{ListedSageAppView, SageAppView, UserSageAppView, SageAppIconView};
+pub(crate) use view::{ListedSageAppView, SageAppIconView, SageAppView, UserSageAppView};
 pub(crate) use wallet_scope::SageAppWalletScope;
 
 pub(super) use flags::SageAppFlags;

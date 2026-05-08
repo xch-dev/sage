@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::list::UserBridgeCapability;
 use crate::runtime::SageAppRuntimeImpostorKind;
 
 #[derive(Debug, Clone, Copy)]
@@ -77,9 +77,7 @@ fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
     let is_storage_clear_probe = ctx
         .impostor_runtime
         .as_ref()
-        .is_some_and(|runtime| {
-            runtime.kind() == SageAppRuntimeImpostorKind::StorageClearProbe
-        });
+        .is_some_and(|runtime| runtime.kind() == SageAppRuntimeImpostorKind::StorageClearProbe);
 
     if !is_sandbox_test && !is_storage_clear_probe {
         return Err(BridgeMethodHandleError::invalid_request(

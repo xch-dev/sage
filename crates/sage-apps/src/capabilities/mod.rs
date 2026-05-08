@@ -1,6 +1,6 @@
 mod definitions;
-mod types;
 pub mod list;
+mod types;
 
 pub(crate) use definitions::{
     get_system_capability_definition, get_user_capability_definition, user_registry,

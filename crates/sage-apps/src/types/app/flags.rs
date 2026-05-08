@@ -1,5 +1,5 @@
-use crate::capabilities::list::UserBridgeCapability;
 use crate::capabilities::CapabilityFlags;
+use crate::capabilities::list::UserBridgeCapability;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 

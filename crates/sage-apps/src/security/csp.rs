@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::types::{SharedSageApp};
+use crate::types::SharedSageApp;
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")

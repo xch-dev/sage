@@ -6,7 +6,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::runtime::stop::{kill_runtime, SystemKillRuntimeError};
+use crate::runtime::stop::{SystemKillRuntimeError, kill_runtime};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerCloseSelf;
@@ -37,19 +37,10 @@ impl BridgeMethod for RuntimeManagerCloseSelf {
     ) -> BridgeHandleResult {
         let app_id = ctx.app.id();
 
-        match kill_runtime(
-            tools.app_handle,
-            tools.host_state,
-            &app_id,
-            "self_close",
-        )
-            .await
-        {
-            Ok(_) |
-            Err(SystemKillRuntimeError::NotFound) |
-            Err(SystemKillRuntimeError::RuntimeSync(_)) => {
-                Ok(Box::new(()))
-            }
+        match kill_runtime(tools.app_handle, tools.host_state, &app_id, "self_close").await {
+            Ok(_)
+            | Err(SystemKillRuntimeError::NotFound)
+            | Err(SystemKillRuntimeError::RuntimeSync(_)) => Ok(Box::new(())),
         }
     }
 }

@@ -1,9 +1,7 @@
-use std::path::PathBuf;
-use serde::{Deserialize, Deserializer, Serialize};
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
+use crate::types::app::SageAppWalletScope;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
-use crate::types::app::SageAppWalletScope;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::invariants::{
     resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
@@ -11,6 +9,8 @@ use crate::types::invariants::{
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::InstalledSageAppStorage;
+use serde::{Deserialize, Deserializer, Serialize};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppIdentity {
@@ -37,7 +37,14 @@ impl SageAppCommon {
         snapshot: SageAppSnapshot,
         wallet_scope: SageAppWalletScope,
     ) -> anyhow::Result<Self> {
-        Self::build(identity, granted_permissions, storage, snapshot, wallet_scope, None)
+        Self::build(
+            identity,
+            granted_permissions,
+            storage,
+            snapshot,
+            wallet_scope,
+            None,
+        )
     }
 
     pub fn clone_for_rollback(&self) -> Self {
@@ -152,7 +159,9 @@ impl SageAppCommon {
         Ok(common)
     }
 
-    pub fn identity(&self) -> &SageAppIdentity { &self.identity }
+    pub fn identity(&self) -> &SageAppIdentity {
+        &self.identity
+    }
     pub fn id(&self) -> &str {
         &self.identity.id
     }
@@ -274,11 +283,6 @@ impl<'de> Deserialize<'de> for SageAppIdentity {
     {
         let raw = SageAppIdentityRaw::deserialize(deserializer)?;
 
-        SageAppIdentity::new(
-            raw.id,
-            raw.origin_id,
-            raw.app_dir,
-        )
-            .map_err(serde::de::Error::custom)
+        SageAppIdentity::new(raw.id, raw.origin_id, raw.app_dir).map_err(serde::de::Error::custom)
     }
 }

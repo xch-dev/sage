@@ -1,18 +1,18 @@
-use std::{fs};
-use std::path::Path;
-use async_trait::async_trait;
-use serde::Deserialize;
-use specta::Type;
-use uuid::Uuid;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
-    parse_required_params, BridgeApprovalRequestResult, BridgeHandleResult,
-    BridgeMethodCapability, BridgeMethodHandleError,
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
 use crate::lifecycle::{read_manifest, unzip_to_dir};
 use crate::types::SageAppPackageManifest;
+use async_trait::async_trait;
+use serde::Deserialize;
+use specta::Type;
+use std::fs;
+use std::path::Path;
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -49,8 +49,8 @@ impl BridgeMethod for AppInstallPreviewZip {
     ) -> BridgeHandleResult {
         let params: AppInstallPreviewZipParams = parse_required_params(self, request)?;
 
-        let manifest = preview_manifest(&params.zip_path)
-            .map_err(BridgeMethodHandleError::internal_error)?;
+        let manifest =
+            preview_manifest(&params.zip_path).map_err(BridgeMethodHandleError::internal_error)?;
 
         Ok(Box::new(manifest))
     }

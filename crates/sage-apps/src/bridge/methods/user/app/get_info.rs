@@ -3,11 +3,11 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::list::UserBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;
@@ -55,33 +55,30 @@ impl BridgeMethod for AppGetInfo {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let result = ctx
-            .app
-            .with(|app| {
-                let network = app
-                    .granted_permissions()
-                    .network()
-                    .whitelist_iter()
-                    .map(|entry| SageNetworkPermissionInfo {
-                        scheme: entry.scheme().to_string(),
-                        host: entry.host().to_string(),
-                        required: app
-                            .requested_permissions()
-                            .network()
-                            .whitelist()
-                            .is_required(entry),
-                    })
-                    .collect::<Vec<_>>();
-                AppGetInfoResult {
-                    id: app.id().to_string(),
-                    name: app.name().to_string(),
-                    version: app.version().to_string(),
-                    requested_permissions: app.requested_permissions().clone(),
-                    capabilities: app.granted_permissions().shared_capabilities(),
-                    network,
-                }
+        let result = ctx.app.with(|app| {
+            let network = app
+                .granted_permissions()
+                .network()
+                .whitelist_iter()
+                .map(|entry| SageNetworkPermissionInfo {
+                    scheme: entry.scheme().to_string(),
+                    host: entry.host().to_string(),
+                    required: app
+                        .requested_permissions()
+                        .network()
+                        .whitelist()
+                        .is_required(entry),
+                })
+                .collect::<Vec<_>>();
+            AppGetInfoResult {
+                id: app.id().to_string(),
+                name: app.name().to_string(),
+                version: app.version().to_string(),
+                requested_permissions: app.requested_permissions().clone(),
+                capabilities: app.granted_permissions().shared_capabilities(),
+                network,
             }
-        );
+        });
 
         Ok(Box::new(result))
     }

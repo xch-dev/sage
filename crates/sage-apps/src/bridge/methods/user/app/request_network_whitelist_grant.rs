@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::capabilities::list::UserBridgeCapability;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
@@ -11,6 +10,7 @@ use crate::bridge::methods::user::app::resolve_app_base_path;
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::capabilities::list::UserBridgeCapability;
 use crate::lifecycle::update::permissions::grant_network_whitelist_entry;
 use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
 use crate::types::SageNetworkWhitelistEntry;
@@ -51,14 +51,12 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
     ) -> BridgeApprovalRequestResult {
         let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
-        if ctx
-            .app
-            .with(|app| app.granted_permissions()
+        if ctx.app.with(|app| {
+            app.granted_permissions()
                 .network()
                 .whitelist_iter()
                 .any(|entry| entry == &params.entry)
-            )
-        {
+        }) {
             return Ok(None);
         }
 

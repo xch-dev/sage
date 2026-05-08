@@ -1,7 +1,9 @@
 use tauri::State;
 
 use crate::AppsHostState;
-use crate::runtime::state::types::{SageAppRuntimeImpostorRecord, SageAppRuntimeRecord, SharedRuntime, SharedImpostorRuntime};
+use crate::runtime::state::types::{
+    SageAppRuntimeImpostorRecord, SageAppRuntimeRecord, SharedImpostorRuntime, SharedRuntime,
+};
 
 pub(in crate::runtime) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,
@@ -61,16 +63,12 @@ pub(in crate::runtime) async fn write_pending_stop_ready(
     pending.insert(request_id.to_string(), tx);
 }
 
-pub(in crate::runtime) async fn activate_apps_workspace(
-    apps_state: &State<'_, AppsHostState>,
-) {
+pub(in crate::runtime) async fn activate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
     let mut active = apps_state.runtime.apps_workspace_active.write().await;
     *active = true;
 }
 
-pub(in crate::runtime) async fn deactivate_apps_workspace(
-    apps_state: &State<'_, AppsHostState>,
-) {
+pub(in crate::runtime) async fn deactivate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
     let mut active = apps_state.runtime.apps_workspace_active.write().await;
     *active = false;
 }
