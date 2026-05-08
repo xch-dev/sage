@@ -275,6 +275,7 @@ fn read_corrupted_installed_app_fallback(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
     use crate::lifecycle::storage::record_storage_cleanup_failure;
@@ -320,7 +321,7 @@ mod tests {
     ) -> SharedSageApp {
         let manifest = sample_manifest(name);
 
-        let granted = SageGrantedPermissionsInput::new([], []);
+        let granted = SageGrantedPermissionsInput::new([], [], BTreeMap::new());
 
         let installed = install_app_from_source_for_test(
             base,

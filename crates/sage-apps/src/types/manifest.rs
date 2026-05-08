@@ -387,7 +387,9 @@ mod tests {
             SageRequestedNetworkPermissions::new(
                 [entry("https", "required.example.com")],
                 [entry("wss", "optional.example.com")],
-            ),
+                [],
+            )
+            .unwrap(),
             SageRequestedCapabilities::new(
                 [UserBridgeCapability::WalletSendXch],
                 [

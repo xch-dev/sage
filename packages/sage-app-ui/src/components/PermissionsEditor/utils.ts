@@ -1,4 +1,9 @@
-import type { SageNetworkWhitelistEntry } from '@sage-system-app/sdk';
+import type {
+  SageGrantedPermissionsInput,
+  SageGrantedPermissionsView,
+  SageNetworkWhitelistEntry,
+  UserBridgeCapability,
+} from '@sage-system-app/sdk';
 
 export function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(' ');
@@ -32,4 +37,25 @@ export function formatCapabilityLeafLabel(key: string): string {
 
 export function normalizeKey(key: string): string {
   return key.trim().toLowerCase();
+}
+
+export function inputToGrantedPermissionsView(
+  permissions: SageGrantedPermissionsInput,
+): SageGrantedPermissionsView {
+  return {
+    capabilities: [...new Set(permissions.capabilities ?? [])].sort((a, b) =>
+      a.localeCompare(b),
+    ) as UserBridgeCapability[],
+    network: {
+      whitelist: sortNetworkEntries(permissions.network?.whitelist ?? []),
+      whitelistByNetwork: Object.fromEntries(
+        Object.entries(permissions.network?.whitelistByNetwork ?? {}).map(
+          ([networkId, whitelist]) => [
+            networkId,
+            sortNetworkEntries(whitelist ?? []),
+          ],
+        ),
+      ),
+    },
+  };
 }

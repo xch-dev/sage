@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   appIconFromCommonView,
   AppModalShell,
+  inputToGrantedPermissionsView,
   PermissionsEditor,
 } from '@sage-app/ui';
 import { formatSageError, getSageSystemClient } from '@sage-system-app/sdk';
@@ -73,7 +74,7 @@ export function UpdateReviewBody({ state }: any) {
       ...state.app,
       common: {
         ...state.app.common,
-        grantedPermissions,
+        grantedPermissions: inputToGrantedPermissionsView(grantedPermissions),
         activeSnapshot: {
           ...state.app.common.activeSnapshot,
           manifest: preview.manifest.manifest,
@@ -110,7 +111,7 @@ export function UpdateReviewBody({ state }: any) {
       <div className='space-y-4'>
         <PermissionsEditor
           app={reviewApp}
-          grantedPermissions={grantedPermissions}
+          grantedPermissions={reviewApp.common.grantedPermissions}
           capabilityDefinitions={state.definitions}
           editable={!submitting}
           onGrantedPermissionsChange={setGrantedPermissions}

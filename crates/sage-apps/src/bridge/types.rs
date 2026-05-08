@@ -71,7 +71,7 @@ pub struct RustBridgeApprovalRequest {
     pub body: RustBridgeApprovalBody,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum RustBridgeApprovalBody {
     GetSecretKey {

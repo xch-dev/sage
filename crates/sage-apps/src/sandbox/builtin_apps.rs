@@ -1,5 +1,6 @@
-use anyhow::{Context, Result as AnyResult};
 use sha2::{Digest, Sha256};
+use anyhow::{Context, Result as AnyResult};
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::{fs, path::PathBuf};
 
@@ -155,6 +156,7 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
             .whitelist()
             .required()
             .cloned(),
+        BTreeMap::new(),
     )
     .map_err(|_| AppBuildError::InternalError)?;
 

@@ -294,6 +294,7 @@ mod tests {
         SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
     };
+    use std::collections::BTreeMap;
     use tempfile::tempdir;
 
     fn sample_manifest() -> SageAppPackageManifest {
@@ -311,7 +312,9 @@ mod tests {
                         "api.example.com",
                     )],
                     [],
-                ),
+                    [],
+                )
+                .unwrap(),
                 SageRequestedCapabilities::new(
                     [UserBridgeCapability::StoragePersistentWebview],
                     [UserBridgeCapability::WalletSendXch],
@@ -340,6 +343,7 @@ mod tests {
                 "https",
                 "api.example.com",
             )],
+            BTreeMap::new(),
         );
 
         let installed = install_app_from_source_with_storage(
@@ -384,6 +388,7 @@ mod tests {
                 "https",
                 "evil.example.com",
             )],
+            BTreeMap::new(),
         );
 
         let err = install_app_from_source_with_storage(
@@ -406,7 +411,7 @@ mod tests {
 
         assert!(
             err.to_string()
-                .contains("granted network whitelist entry not requested")
+                .contains("granted shared network whitelist entry not requested")
         );
     }
 
@@ -423,6 +428,7 @@ mod tests {
             manifest.permissions(),
             [UserBridgeCapability::StoragePersistentWebview],
             [],
+            BTreeMap::new(),
         )
         .unwrap();
 

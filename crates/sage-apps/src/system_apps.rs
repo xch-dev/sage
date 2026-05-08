@@ -8,6 +8,7 @@ use crate::utils::builtin_apps_root;
 use anyhow::Result as AnyResult;
 use serde::Serialize;
 use specta::Type;
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::{
     fs,
@@ -211,6 +212,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
             .whitelist()
             .required()
             .cloned(),
+        BTreeMap::new(),
     ) {
         Ok(p) => p,
         Err(err) => {

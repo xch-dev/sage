@@ -156,6 +156,7 @@ async fn emit_granted_permissions_change(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
@@ -186,7 +187,9 @@ mod tests {
             SageRequestedNetworkPermissions::new(
                 [network_whitelist_entry("https", "required.example.com")],
                 [network_whitelist_entry("wss", "optional.example.com")],
-            ),
+                [],
+            )
+            .unwrap(),
             SageRequestedCapabilities::new(
                 [],
                 [
@@ -213,7 +216,7 @@ mod tests {
         })
         .unwrap();
 
-        let granted = SageGrantedPermissionsInput::new([], []);
+        let granted = SageGrantedPermissionsInput::new([], [], BTreeMap::new());
 
         let installed = install_app_from_source_for_test(
             base,
@@ -238,7 +241,12 @@ mod tests {
 
         let granted = app
             .try_with(|app| {
-                SageGrantedPermissions::new(app.common().requested_permissions(), [], [])
+                SageGrantedPermissions::new(
+                    app.common().requested_permissions(),
+                    [],
+                    [],
+                    BTreeMap::new(),
+                )
             })
             .unwrap();
 
@@ -322,6 +330,7 @@ mod tests {
                     app.common().requested_permissions(),
                     [UserBridgeCapability::WalletSendXch],
                     [network_whitelist_entry("https", "required.example.com")],
+                    BTreeMap::new(),
                 )
             })
             .unwrap();
@@ -439,6 +448,7 @@ mod tests {
                     app.common().requested_permissions(),
                     [],
                     [network_whitelist_entry("https", "required.example.com")],
+                    BTreeMap::new(),
                 )
             })
             .unwrap();

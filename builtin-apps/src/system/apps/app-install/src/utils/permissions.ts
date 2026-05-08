@@ -25,6 +25,22 @@ function sortNetwork(
   return [...values].sort((a, b) => networkKey(a).localeCompare(networkKey(b)));
 }
 
+function normalizeGrantedPermissionsView(
+  permissions: SageGrantedPermissionsInput,
+): SageGrantedPermissionsView {
+  return {
+    capabilities: sortCapabilities(permissions.capabilities ?? []),
+    network: {
+      whitelist: sortNetwork(permissions.network.whitelist ?? []),
+      whitelistByNetwork: Object.fromEntries(
+        Object.entries(permissions.network.whitelistByNetwork ?? {}).map(
+          ([networkId, whitelist]) => [networkId, sortNetwork(whitelist ?? [])],
+        ),
+      ),
+    },
+  };
+}
+
 function definitionMap(definitions: SageAppCapabilityDefinitionView[]) {
   return new Map(
     definitions.map((definition) => [
@@ -44,7 +60,10 @@ function isUserGrantable(
 export function emptyGrantedPermissions(): SageGrantedPermissionsInput {
   return {
     capabilities: [],
-    network: { whitelist: [] },
+    network: {
+      whitelist: [],
+      whitelistByNetwork: {},
+    },
   };
 }
 
@@ -78,7 +97,7 @@ export function installManifest(
 
 export function buildPreviewApp(
   manifest: SageAppPackageManifest,
-  grantedPermissions: SageGrantedPermissionsView,
+  grantedPermissions: SageGrantedPermissionsInput,
 ): UserSageAppView {
   return {
     common: {
@@ -86,8 +105,8 @@ export function buildPreviewApp(
         id: '__install_preview__',
         originId: '__install_preview__',
       },
-      grantedPermissions,
-      walletScope: {kind: 'selectedWallets', fingerprints: []},
+      grantedPermissions: normalizeGrantedPermissionsView(grantedPermissions),
+      walletScope: { kind: 'selectedWallets', fingerprints: [] },
       activeSnapshot: { manifest },
       icon: null,
     },

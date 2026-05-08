@@ -211,6 +211,7 @@ pub async fn apps_clear_runtime_browsing_data(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeMap;
 
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::{
@@ -274,8 +275,13 @@ mod tests {
             vec![UserBridgeCapability::StoragePersistentWebview]
         };
 
-        let granted_permissions =
-            SageGrantedPermissions::new(&requested_permissions, granted_capabilities, []).unwrap();
+        let granted_permissions = SageGrantedPermissions::new(
+            &requested_permissions,
+            granted_capabilities,
+            [],
+            BTreeMap::new(),
+        )
+        .unwrap();
 
         let snapshot =
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();

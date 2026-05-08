@@ -117,7 +117,7 @@ export function PermissionsReviewBody({
         {tab === 'permissions' ? (
           <PermissionsEditor
             app={state.app}
-            grantedPermissions={grantedPermissions}
+            grantedPermissions={state.app.common.grantedPermissions}
             capabilityDefinitions={state.definitions}
             editable={!submitting}
             onGrantedPermissionsChange={setGrantedPermissions}

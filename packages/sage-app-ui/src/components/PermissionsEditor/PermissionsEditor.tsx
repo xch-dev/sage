@@ -28,6 +28,10 @@ interface Props {
   editable?: boolean;
 }
 
+type NetworkWhitelistByNetwork = Partial<
+  Record<string, SageNetworkWhitelistEntry[]>
+>;
+
 export function PermissionsEditor({
   app,
   grantedPermissions,
@@ -52,9 +56,14 @@ export function PermissionsEditor({
     [grantedPermissions.capabilities],
   );
 
-  const grantedNetworkWhitelist = useMemo(
+  const grantedNetworkWhitelist = useMemo<SageNetworkWhitelistEntry[]>(
     () => grantedPermissions.network.whitelist ?? [],
     [grantedPermissions.network.whitelist],
+  );
+
+  const grantedNetworkWhitelistByNetwork = useMemo<NetworkWhitelistByNetwork>(
+    () => grantedPermissions.network.whitelistByNetwork ?? {},
+    [grantedPermissions.network.whitelistByNetwork],
   );
 
   const requestedRequiredCapabilities = useMemo(
@@ -67,14 +76,19 @@ export function PermissionsEditor({
     [manifest.permissions?.capabilities?.optional],
   );
 
-  const requestedRequiredNetwork = useMemo(
+  const requestedRequiredNetwork = useMemo<SageNetworkWhitelistEntry[]>(
     () => manifest.permissions?.network?.whitelist?.required ?? [],
     [manifest.permissions?.network?.whitelist?.required],
   );
 
-  const requestedOptionalNetwork = useMemo(
+  const requestedOptionalNetwork = useMemo<SageNetworkWhitelistEntry[]>(
     () => manifest.permissions?.network?.whitelist?.optional ?? [],
     [manifest.permissions?.network?.whitelist?.optional],
+  );
+
+  const requestedNetworkByNetwork = useMemo(
+    () => manifest.permissions?.network?.whitelistByNetwork ?? {},
+    [manifest.permissions?.network?.whitelistByNetwork],
   );
 
   const userGrantableRequiredCapabilities = useMemo(
@@ -93,20 +107,39 @@ export function PermissionsEditor({
       definitionsByKey,
     );
 
-    const networkEntries = buildNetworkEntries(
+    const sharedNetworkEntries = buildNetworkEntries(
       requestedRequiredNetwork,
       requestedOptionalNetwork,
       grantedNetworkWhitelist,
       'required',
+      null,
     );
 
-    return sortPermissionEntries([...capabilityEntries, ...networkEntries]);
+    const networkSpecificEntries = Object.entries(
+      requestedNetworkByNetwork,
+    ).flatMap(([networkId, whitelist]) =>
+      buildNetworkEntries(
+        whitelist?.required ?? [],
+        whitelist?.optional ?? [],
+        grantedNetworkWhitelistByNetwork[networkId] ?? [],
+        'required',
+        networkId,
+      ),
+    );
+
+    return sortPermissionEntries([
+      ...capabilityEntries,
+      ...sharedNetworkEntries,
+      ...networkSpecificEntries,
+    ]);
   }, [
     requestedRequiredCapabilities,
     grantedCapabilities,
     requestedRequiredNetwork,
     requestedOptionalNetwork,
     grantedNetworkWhitelist,
+    requestedNetworkByNetwork,
+    grantedNetworkWhitelistByNetwork,
     definitionsByKey,
   ]);
 
@@ -118,20 +151,39 @@ export function PermissionsEditor({
       definitionsByKey,
     );
 
-    const networkEntries = buildNetworkEntries(
+    const sharedNetworkEntries = buildNetworkEntries(
       requestedRequiredNetwork,
       requestedOptionalNetwork,
       grantedNetworkWhitelist,
       'optional',
+      null,
     );
 
-    return sortPermissionEntries([...capabilityEntries, ...networkEntries]);
+    const networkSpecificEntries = Object.entries(
+      requestedNetworkByNetwork,
+    ).flatMap(([networkId, whitelist]) =>
+      buildNetworkEntries(
+        whitelist?.required ?? [],
+        whitelist?.optional ?? [],
+        grantedNetworkWhitelistByNetwork[networkId] ?? [],
+        'optional',
+        networkId,
+      ),
+    );
+
+    return sortPermissionEntries([
+      ...capabilityEntries,
+      ...sharedNetworkEntries,
+      ...networkSpecificEntries,
+    ]);
   }, [
     requestedOptionalCapabilities,
     grantedCapabilities,
     requestedRequiredNetwork,
     requestedOptionalNetwork,
     grantedNetworkWhitelist,
+    requestedNetworkByNetwork,
+    grantedNetworkWhitelistByNetwork,
     definitionsByKey,
   ]);
 
@@ -204,6 +256,7 @@ export function PermissionsEditor({
         capabilities: [...nextSet].sort((a, b) => a.localeCompare(b)),
         network: {
           whitelist: grantedNetworkWhitelist,
+          whitelistByNetwork: grantedNetworkWhitelistByNetwork,
         },
       });
 
@@ -214,11 +267,25 @@ export function PermissionsEditor({
       return;
     }
 
+    const networkId = entry.networkId;
+
+    const currentWhitelist: SageNetworkWhitelistEntry[] =
+      networkId === null
+        ? grantedNetworkWhitelist
+        : (grantedNetworkWhitelistByNetwork[networkId] ?? []);
+
+    const requiredNetwork: SageNetworkWhitelistEntry[] =
+      networkId === null
+        ? requestedRequiredNetwork
+        : (requestedNetworkByNetwork[networkId]?.required ?? []);
+
     const nextKeys = new Set<string>(
-      grantedNetworkWhitelist.map((item) => networkKey(item)),
+      currentWhitelist.map((item: SageNetworkWhitelistEntry) =>
+        networkKey(item),
+      ),
     );
 
-    for (const requiredEntry of requestedRequiredNetwork) {
+    for (const requiredEntry of requiredNetwork) {
       nextKeys.add(networkKey(requiredEntry));
     }
 
@@ -252,10 +319,26 @@ export function PermissionsEditor({
       .map(keyToNetworkEntry)
       .filter((item): item is SageNetworkWhitelistEntry => item !== null);
 
+    if (networkId !== null) {
+      emitGrantedPermissions({
+        capabilities: grantedCapabilities,
+        network: {
+          whitelist: grantedNetworkWhitelist,
+          whitelistByNetwork: {
+            ...grantedNetworkWhitelistByNetwork,
+            [networkId]: sortNetworkEntries(nextWhitelist),
+          },
+        },
+      });
+
+      return;
+    }
+
     emitGrantedPermissions({
       capabilities: grantedCapabilities,
       network: {
         whitelist: sortNetworkEntries(nextWhitelist),
+        whitelistByNetwork: grantedNetworkWhitelistByNetwork,
       },
     });
   }

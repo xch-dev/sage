@@ -28,6 +28,7 @@ export type PermissionEntry =
       kind: 'network';
       key: string;
       host: string;
+      networkId: string | null;
       label: string;
       description: string | null;
       required: boolean;

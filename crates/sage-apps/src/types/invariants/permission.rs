@@ -44,6 +44,24 @@ pub fn validate_requested_capabilities_are_requestable(
     Ok(())
 }
 
+pub fn validate_network_id(network_id: &str) -> anyhow::Result<()> {
+    if network_id.trim() != network_id {
+        anyhow::bail!("network whitelist network id must not contain leading or trailing whitespace");
+    }
+
+    if network_id.is_empty() {
+        anyhow::bail!("network whitelist network id cannot be empty");
+    }
+
+    if !matches!(network_id, "mainnet" | "testnet11") {
+        anyhow::bail!(
+            "unsupported network whitelist network id: {network_id}; expected mainnet or testnet11"
+        );
+    }
+
+    Ok(())
+}
+
 pub fn build_user_grantable_capability_set(
     requested: &SageRequestedCapabilities,
     capabilities: impl IntoIterator<Item = UserBridgeCapability>,

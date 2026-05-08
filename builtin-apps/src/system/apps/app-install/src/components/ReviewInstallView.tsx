@@ -163,7 +163,7 @@ export function ReviewInstallView({
         {step === 'permissions' ? (
           <PermissionsEditor
             app={previewApp}
-            grantedPermissions={grantedPermissions}
+            grantedPermissions={previewApp.common.grantedPermissions}
             capabilityDefinitions={definitions}
             editable={!installing}
             onGrantedPermissionsChange={setGrantedPermissions}

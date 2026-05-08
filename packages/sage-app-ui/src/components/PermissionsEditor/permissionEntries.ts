@@ -89,6 +89,7 @@ export function buildNetworkEntries(
   requestedOptional: SageNetworkWhitelistEntry[],
   grantedNetworkWhitelist: SageNetworkWhitelistEntry[],
   section: 'required' | 'optional',
+  networkId: string | null = null,
 ): PermissionEntry[] {
   const requiredKeys = new Set(requestedRequired.map(networkKey));
   const optionalKeys = new Set(requestedOptional.map(networkKey));
@@ -146,6 +147,7 @@ export function buildNetworkEntries(
       kind: 'network',
       key: host,
       host,
+      networkId,
       label: host,
       description: null,
       required: hostHasRequired,

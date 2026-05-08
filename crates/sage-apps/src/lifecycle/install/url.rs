@@ -170,6 +170,7 @@ mod tests {
         SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
         SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp,
     };
+    use std::collections::BTreeMap;
     use tempfile::{TempDir, tempdir};
 
     fn fake_retired_app_origins(
@@ -196,7 +197,9 @@ mod tests {
             SageRequestedNetworkPermissions::new(
                 [],
                 [SageNetworkWhitelistEntry::new("https", "api.example.com").unwrap()],
-            ),
+                [],
+            )
+            .unwrap(),
             SageRequestedCapabilities::new(
                 [],
                 [
@@ -244,8 +247,13 @@ mod tests {
             vec![UserBridgeCapability::StoragePersistentWebview]
         };
 
-        let granted_permissions =
-            SageGrantedPermissions::new(manifest.permissions(), granted_capabilities, []).unwrap();
+        let granted_permissions = SageGrantedPermissions::new(
+            manifest.permissions(),
+            granted_capabilities,
+            [],
+            BTreeMap::new(),
+        )
+        .unwrap();
 
         let snapshot =
             SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();

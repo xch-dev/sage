@@ -85,20 +85,26 @@ impl SageAppCommon {
         &mut self,
         granted_permissions: &SageGrantedPermissions,
     ) -> anyhow::Result<()> {
-        let required_network = self
-            .active_manifest()
-            .permissions()
-            .network()
-            .whitelist()
-            .required()
-            .cloned();
+        let requested = self.active_manifest().permissions();
+
+        let required_network = requested.network().whitelist().required().cloned();
 
         let granted_network = granted_permissions.network().whitelist_iter().cloned();
 
+        let mut whitelist_by_network = granted_permissions.network().whitelist_by_network().clone();
+
+        for (network_id, whitelist) in requested.network().whitelist_by_network() {
+            whitelist_by_network
+                .entry(network_id.clone())
+                .or_default()
+                .extend(whitelist.required().cloned());
+        }
+
         let granted_permissions = SageGrantedPermissions::new(
-            self.active_manifest().permissions(),
+            requested,
             granted_permissions.capabilities().copied(),
             required_network.chain(granted_network),
+            whitelist_by_network,
         )?;
 
         let next = Self::build(

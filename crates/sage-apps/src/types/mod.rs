@@ -6,16 +6,16 @@ mod normalizers;
 mod permissions;
 mod storage;
 mod url;
-mod view;
 
 pub use app::SharedSageApp;
 
 pub(crate) use app::{
+    view::*,
     AppModalPresentation, AppPresentation, CorruptedInstalledSageApp, ListedSageApp,
-    ListedSageAppView, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry,
-    SageApp, SageAppCommon, SageAppIconView, SageAppIdentity, SageAppSnapshot, SageAppUrlPreview,
-    SageAppView, SageAppWalletScope, SystemSageApp, UserSageApp, UserSageAppPendingUpdate,
-    UserSageAppSource, UserSageAppView,
+    ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry,
+    SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageAppUrlPreview,
+    SageAppWalletScope, SystemSageApp, UserSageApp, UserSageAppPendingUpdate,
+    UserSageAppSource
 };
 pub(crate) use manifest::{
     SageAppManifestFile, SageAppManifestHeaderV0, SageAppPackageManifest,
@@ -28,7 +28,6 @@ pub(crate) use permissions::{
 pub(crate) use storage::{
     InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
 };
-pub(crate) use view::{SageAppCapabilityDefinitionView, SageGrantedPermissionsInput};
 
 #[cfg(test)]
 pub(crate) use manifest::{
