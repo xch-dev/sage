@@ -202,12 +202,44 @@ pub fn run() {
     }
 
     tauri_builder
-        .register_uri_scheme_protocol("sage-app", move |ctx, request| {
-            handle_user_app_protocol_request(&ctx, &request)
-        })
-        .register_uri_scheme_protocol("sage-system-app", move |ctx, request| {
-            handle_system_app_protocol_request(&ctx, &request)
-        })
+        .register_asynchronous_uri_scheme_protocol(
+            "sage-app",
+            move |ctx, request, responder| {
+                let app_handle = ctx.app_handle().clone();
+                let webview_label = ctx.webview_label().to_string();
+                let request = request;
+
+                tauri::async_runtime::spawn(async move {
+                    let response = handle_user_app_protocol_request(
+                        app_handle,
+                        webview_label,
+                        request,
+                    )
+                        .await;
+
+                    responder.respond(response);
+                });
+            },
+        )
+        .register_asynchronous_uri_scheme_protocol(
+            "sage-system-app",
+            move |ctx, request, responder| {
+                let app_handle = ctx.app_handle().clone();
+                let webview_label = ctx.webview_label().to_string();
+                let request = request;
+
+                tauri::async_runtime::spawn(async move {
+                    let response = handle_system_app_protocol_request(
+                        app_handle,
+                        webview_label,
+                        request,
+                    )
+                        .await;
+
+                    responder.respond(response);
+                });
+            },
+        )
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
