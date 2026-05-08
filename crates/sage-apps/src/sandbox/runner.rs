@@ -84,25 +84,16 @@ async fn update_current_run_state(
 pub async fn sandbox_runner(app: AppHandle) {
     let apps_state = app.state::<AppsHostState>();
 
-    let (run_id, mut current_state) = {
+    let mut current_state = {
         let current_run = apps_state.sandbox.current_run.lock().await.clone();
 
         current_run.map_or_else(
             || {
-                let run_id = "sandbox-run-missing-current-run".to_string();
-
-                tracing::warn!(
-                    run_id = %run_id,
-                    "sandbox runner started without current_run"
-                );
-
-                (run_id, build_running_sandbox_state(unix_timestamp_ms()))
+                build_running_sandbox_state(unix_timestamp_ms())
             },
-            |r| (r.run_id, r.state),
+            |r| r.state,
         )
     };
-
-    tracing::info!(run_id = %run_id, "sandbox runner started");
 
     let isolation_fut = run_isolation_test(&app, &apps_state);
     let persistence_fut = run_persistence_test(&app, &apps_state);
@@ -126,13 +117,6 @@ pub async fn sandbox_runner(app: AppHandle) {
 
                 match res {
                     Ok((passed, details)) => {
-                        tracing::info!(
-                            run_id = %run_id,
-                            passed,
-                            details = ?details,
-                            "sandbox probe finished: storage isolation"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StorageIsolationFromSage,
@@ -142,12 +126,6 @@ pub async fn sandbox_runner(app: AppHandle) {
                         );
                     }
                     Err(err) => {
-                        tracing::error!(
-                            run_id = %run_id,
-                            error = %err,
-                            "sandbox probe errored: storage isolation"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StorageIsolationFromSage,
@@ -166,15 +144,6 @@ pub async fn sandbox_runner(app: AppHandle) {
 
                 match res {
                     Ok((normal, incog)) => {
-                        tracing::info!(
-                            run_id = %run_id,
-                            normal_passed = normal.0,
-                            normal_details = ?normal.1,
-                            incognito_passed = incog.0,
-                            incognito_details = ?incog.1,
-                            "sandbox probe finished: storage persistence"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StoragePersistenceNormal,
@@ -192,12 +161,6 @@ pub async fn sandbox_runner(app: AppHandle) {
                         );
                     }
                     Err(err) => {
-                        tracing::error!(
-                            run_id = %run_id,
-                            error = %err,
-                            "sandbox probe errored: storage persistence"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StoragePersistenceNormal,
@@ -224,13 +187,6 @@ pub async fn sandbox_runner(app: AppHandle) {
 
                 match res {
                     Ok((passed, details)) => {
-                        tracing::info!(
-                            run_id = %run_id,
-                            passed,
-                            details = ?details,
-                            "sandbox probe finished: storage clear cycle"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StorageClearCycle,
@@ -240,12 +196,6 @@ pub async fn sandbox_runner(app: AppHandle) {
                         );
                     }
                     Err(err) => {
-                        tracing::error!(
-                            run_id = %run_id,
-                            error = %err,
-                            "sandbox probe errored: storage clear cycle"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::StorageClearCycle,
@@ -264,13 +214,6 @@ pub async fn sandbox_runner(app: AppHandle) {
 
                 match res {
                     Ok((passed, details)) => {
-                        tracing::info!(
-                            run_id = %run_id,
-                            passed,
-                            details = ?details,
-                            "sandbox probe finished: network allowlist"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::NetworkAllowlistEnforced,
@@ -280,12 +223,6 @@ pub async fn sandbox_runner(app: AppHandle) {
                         );
                     }
                     Err(err) => {
-                        tracing::error!(
-                            run_id = %run_id,
-                            error = %err,
-                            "sandbox probe errored: network allowlist"
-                        );
-
                         mark_cap(
                             &mut current_state,
                             SandboxCapability::NetworkAllowlistEnforced,
@@ -317,17 +254,6 @@ pub async fn sandbox_runner(app: AppHandle) {
             SandboxCapabilityStatus::Passed
         };
     current_state.finished_at = Some(unix_timestamp_ms());
-
-    tracing::info!(
-        run_id = %run_id,
-        overall = ?current_state.overall_critical_status,
-        storage_isolation = ?current_state.storage_isolation_from_sage.status,
-        persistence_normal = ?current_state.storage_persistence_normal.status,
-        persistence_incognito = ?current_state.storage_non_persistence_incognito.status,
-        clear_cycle = ?current_state.storage_clear_cycle.status,
-        network = ?current_state.network_allowlist_enforced.status,
-        "sandbox runner finished"
-    );
 
     *apps_state.sandbox.baseline.lock().await = current_state.clone();
     *apps_state.sandbox.current_run.lock().await = None;
