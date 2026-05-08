@@ -3,6 +3,7 @@ import {
   listSandboxCapabilities,
   type SandboxGateState,
 } from '../sandboxState';
+import { resolveBackgroundTintWithAlpha } from '@sage-app/ui';
 
 function statusClass(status: string) {
   switch (status) {
@@ -101,15 +102,37 @@ export function SandboxResultList({
             >
               <div className='flex items-start justify-between gap-3'>
                 <div className='min-w-0'>
-                  <div className='truncate text-sm font-medium'>
-                    {formatCapabilityLabel(capability)}
-                  </div>
-
-                  {result.details ? (
-                    <div className='mt-1 text-xs text-muted-foreground'>
-                      {result.details}
+                  <div className='flex items-center gap-2'>
+                    <div className='truncate text-sm font-medium'>
+                      {formatCapabilityLabel(capability)}
                     </div>
-                  ) : null}
+
+                    {result.details ? (
+                      <div className='group relative shrink-0'>
+                        <button
+                          type='button'
+                          className='flex h-4 w-4 items-center justify-center rounded-full border border-border text-[10px] text-muted-foreground hover:bg-muted'
+                        >
+                          ?
+                        </button>
+
+                        <div
+                          className='
+                            pointer-events-none absolute left-1/2 top-full z-50 mt-2
+                            hidden w-max max-w-[min(280px,calc(100vw-32px))]
+                            -translate-x-1/2 rounded-md border
+                            p-2 text-xs shadow-md break-words
+                            backdrop-blur-sm group-hover:block
+                          '
+                          style={{
+                            backgroundColor: resolveBackgroundTintWithAlpha(),
+                          }}
+                        >
+                          {result.details}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
 
                 <span

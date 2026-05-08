@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react';
 import {
-  colorWithAlpha,
-  resolveModalTint,
   SystemModalShell,
 } from './SystemModalShell';
 import {
   AppIcon,
 } from '../../components';
+import { resolveBackgroundTintWithAlpha } from '../utils';
 
 interface AppModalShellProps {
   title: string;
@@ -32,8 +31,6 @@ export function AppModalShell({
   contentClassName = '',
   bodyPadded = true,
 }: AppModalShellProps) {
-  const tint = resolveModalTint();
-
   return (
     <SystemModalShell
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
@@ -47,7 +44,7 @@ export function AppModalShell({
         <header
           className='grid h-16 shrink-0 grid-cols-[4rem_1fr] border-b border-border'
           style={{
-            backgroundColor: colorWithAlpha(tint, 1),
+            backgroundColor: resolveBackgroundTintWithAlpha(1),
           }}
         >
           <div className='border-r border-border'>
