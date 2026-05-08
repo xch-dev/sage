@@ -10,7 +10,7 @@ import { useUpdatePermissions } from '../hooks/useUpdatePermissions';
 import { NoUpdateBody } from './NoUpdateBody';
 import { PartialUpdateBody } from './PartialUpdateBody';
 
-export function UpdateReviewBody({ state }: any) {
+export function UpdateReviewBody({ state, onReload }: any) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,21 +50,35 @@ export function UpdateReviewBody({ state }: any) {
   // ---- No update
   if (!preview) {
     return (
-      <NoUpdateBody
-        name={state.app.common.activeSnapshot.manifest.name}
-        onClose={close}
-      />
+      <AppModalShell
+        title='Review app update'
+        appIcon={appIconFromCommonView(state.app.common)}
+        appName={state.app.common.activeSnapshot.manifest.name}
+        footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
+      >
+        <NoUpdateBody
+          name={state.app.common.activeSnapshot.manifest.name}
+          onClose={close}
+        />
+      </AppModalShell>
     );
   }
 
   // ---- Partial / unsupported
   if (preview.manifest.kind === 'partial') {
     return (
-      <PartialUpdateBody
-        header={preview.manifest.manifest_header}
-        error={preview.manifest.parse_error}
-        onClose={close}
-      />
+      <AppModalShell
+        title='Update cannot be installed'
+        appIcon={appIconFromCommonView(state.app.common)}
+        appName={state.app.common.activeSnapshot.manifest.name}
+        footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
+      >
+        <PartialUpdateBody
+          header={preview.manifest.manifest_header}
+          error={preview.manifest.parse_error}
+          onClose={close}
+        />
+      </AppModalShell>
     );
   }
 
@@ -124,5 +138,31 @@ export function UpdateReviewBody({ state }: any) {
         )}
       </div>
     </AppModalShell>
+  );
+}
+
+function UpdateIssueFooter({
+  onReload,
+  onClose,
+}: {
+  onReload: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className='flex items-center justify-between gap-2'>
+      <button
+        className='rounded-md border border-border px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground'
+        onClick={onReload}
+      >
+        Re-check update
+      </button>
+
+      <button
+        className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground transition-opacity hover:opacity-90'
+        onClick={onClose}
+      >
+        Close
+      </button>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { formatSageError, useSageSystemClient } from '@sage-system-app/sdk';
 import type { LoadState, Mode } from '../types';
 
@@ -6,10 +6,12 @@ export function useLoadState() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const sage = useSageSystemClient();
 
-  useEffect(() => {
+  const reload = useCallback(() => {
     let cancelled = false;
 
     async function load() {
+      setState({ kind: 'loading' });
+
       try {
         const params = new URLSearchParams(window.location.search);
         const appId = params.get('appId');
@@ -27,7 +29,9 @@ export function useLoadState() {
 
         if (mode === 'review-permissions') {
           const permissionsContext = await sage.appPermissions.getReviewContext(
-            { appId },
+            {
+              appId,
+            },
           );
 
           if (!cancelled) {
@@ -41,12 +45,11 @@ export function useLoadState() {
               wallets: walletsResult.wallets,
             });
           }
+
           return;
         }
 
-        const updateContext = await sage.appUpdate.getReviewContext({
-          appId,
-        });
+        const updateContext = await sage.appUpdate.getReviewContext({ appId });
 
         if (!cancelled) {
           setState({
@@ -67,10 +70,13 @@ export function useLoadState() {
     }
 
     void load();
+
     return () => {
       cancelled = true;
     };
   }, [sage]);
 
-  return state;
+  useEffect(() => reload(), [reload]);
+
+  return { state, reload };
 }

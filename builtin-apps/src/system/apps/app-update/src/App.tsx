@@ -6,7 +6,7 @@ import { useSageSystemClient } from '@sage-system-app/sdk';
 
 export function App() {
   const sage = useSageSystemClient();
-  const state = useLoadState();
+  const { state, reload } = useLoadState();
 
   if (state.kind === 'loading') {
     return (
@@ -28,5 +28,5 @@ export function App() {
     return <PermissionsReviewBody state={state} />;
   }
 
-  return <UpdateReviewBody state={state} />;
+  return <UpdateReviewBody state={state} onReload={reload} />;
 }
