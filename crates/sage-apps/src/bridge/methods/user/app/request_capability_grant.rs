@@ -77,6 +77,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         let result = match grant_capability(
             tools.app_handle,
+            tools.host_state,
             &base_path,
             &ctx.app.id(),
             params.capability,

@@ -81,7 +81,7 @@ impl BridgeMethod for AppPermissionsApplyPermissions {
 
         let app = resolved.clone_app_for_operation();
 
-        update_app_permissions_for_app(tools.app_handle, &app, &granted_permissions)
+        update_app_permissions_for_app(tools.app_handle, tools.host_state, &app, &granted_permissions)
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!(

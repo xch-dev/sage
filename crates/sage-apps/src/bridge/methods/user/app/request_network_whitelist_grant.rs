@@ -11,7 +11,9 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::capabilities::list::UserBridgeCapability;
-use crate::lifecycle::update::permissions::grant_network_whitelist_entry;
+use crate::lifecycle::update::permissions::{
+    grant_network_whitelist_entry,
+};
 use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
 use crate::types::SageNetworkWhitelistEntry;
 
@@ -22,15 +24,24 @@ pub struct AppRequestNetworkWhitelistGrant;
 #[serde(rename_all = "camelCase")]
 pub struct RequestNetworkWhitelistGrantParams {
     pub entry: SageNetworkWhitelistEntry,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub network_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RequestNetworkWhitelistGrantResult {
     pub granted: bool,
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub already_granted: Option<bool>,
+
     pub entry: SageNetworkWhitelistEntry,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_id: Option<String>,
+
     pub full_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
 }
 
@@ -51,18 +62,26 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
     ) -> BridgeApprovalRequestResult {
         let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
-        if ctx.app.with(|app| {
-            app.granted_permissions()
-                .network()
-                .whitelist_iter()
-                .any(|entry| entry == &params.entry)
-        }) {
+        let already_granted = ctx.app.with(|app| {
+            let network = app.granted_permissions().network();
+
+            match params.network_id.as_deref() {
+                Some(network_id) => network
+                    .whitelist_by_network()
+                    .get(network_id)
+                    .is_some_and(|entries| entries.contains(&params.entry)),
+                None => network.whitelist_iter().any(|entry| entry == &params.entry),
+            }
+        });
+
+        if already_granted {
             return Ok(None);
         }
 
         Ok(Some(RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::NetworkWhitelistGrant {
                 entry: params.entry,
+                network_id: params.network_id,
             },
         }))
     }
@@ -77,21 +96,25 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
 
         let base_path = resolve_app_base_path(&tools)?;
 
-        let result = match grant_network_whitelist_entry(
+        let grant_result = grant_network_whitelist_entry(
             tools.app_handle,
+            tools.host_state,
             &base_path,
             &ctx.app.id(),
+            params.network_id.as_deref(),
             &params.entry,
         )
-        .await
-        {
+            .await;
+
+        let result = match grant_result {
             Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
-                entry,
-                full_granted_network_whitelist,
-            }) => RequestNetworkWhitelistGrantResult {
+                   entry,
+                   full_granted_network_whitelist,
+               }) => RequestNetworkWhitelistGrantResult {
                 granted: true,
                 already_granted: Some(true),
                 entry,
+                network_id: params.network_id,
                 full_granted_network_whitelist,
             },
 
@@ -100,6 +123,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
                     granted: true,
                     already_granted: None,
                     entry,
+                    network_id: params.network_id,
                     full_granted_network_whitelist: change.full,
                 }
             }

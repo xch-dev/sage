@@ -11,7 +11,7 @@ mod system_apps;
 pub mod webview_locator;
 mod workspace;
 
-pub use manager::RuntimeTargetParams;
+pub use manager::{RuntimeTargetParams, process_sage_network_change};
 
 pub(crate) use manager::*;
 pub(crate) use resolve::*;

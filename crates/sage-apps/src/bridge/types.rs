@@ -86,6 +86,9 @@ pub enum RustBridgeApprovalBody {
     },
     NetworkWhitelistGrant {
         entry: SageNetworkWhitelistEntry,
+
+        #[serde(skip_serializing_if = "Option::is_none")]
+        network_id: Option<String>,
     },
 }
 

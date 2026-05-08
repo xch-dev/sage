@@ -8,53 +8,63 @@ use crate::capabilities::list::UserBridgeCapability;
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
-use crate::runtime::resolve_app;
+use crate::runtime::{reload_app_runtime, resolve_app};
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 use anyhow::Context;
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
+use crate::AppsHostState;
 
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<()> {
-    let app_id = app.id();
-
-    let update_result = apply_granted_permissions_to_app(app, granted_permissions)?;
-
-    emit_granted_permissions_change(app_handle, &app_id, update_result.change()).await;
+    apply_granted_permissions(app_handle, apps_state, app, granted_permissions).await?;
 
     Ok(())
 }
 
 pub async fn grant_capability(
     app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     _base_path: &Path,
     app_id: &str,
     capability: UserBridgeCapability,
 ) -> anyhow::Result<GrantCapabilityOutcome> {
-    let update = grant_capability_internal(app_handle, app_id, capability).await?;
-
-    emit_granted_permissions_change(app_handle, app_id, update.change()).await;
+    let update = grant_capability_internal(app_handle, apps_state, app_id, capability).await?;
 
     Ok(GrantCapabilityOutcome::from_update(capability, &update))
 }
 
 pub async fn grant_network_whitelist_entry(
     app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     _base_path: &Path,
     app_id: &str,
+    network_id: Option<&str>,
     entry: &SageNetworkWhitelistEntry,
 ) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
-    let update = grant_network_whitelist_entry_internal(app_handle, app_id, entry).await?;
+    let update = grant_network_whitelist_entry_internal(
+        app_handle,
+        apps_state,
+        app_id,
+        network_id,
+        entry,
+    )
+        .await?;
 
-    emit_granted_permissions_change(app_handle, app_id, update.change()).await;
-
-    Ok(GrantNetworkWhitelistOutcome::from_update(entry, &update))
+    Ok(GrantNetworkWhitelistOutcome::from_update(
+        network_id,
+        entry,
+        &update,
+    ))
 }
+
 
 async fn grant_capability_internal(
     app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     capability: UserBridgeCapability,
 ) -> anyhow::Result<AppUpdateResult> {
@@ -67,27 +77,39 @@ async fn grant_capability_internal(
             .with_capability_added(sage_app.common().requested_permissions(), capability)
     })?;
 
-    apply_granted_permissions_to_app(&app, &granted_permissions)
+    apply_granted_permissions(app_handle, apps_state, &app, &granted_permissions).await
 }
 
 async fn grant_network_whitelist_entry_internal(
     app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
     app_id: &str,
+    network_id: Option<&str>,
     entry: &SageNetworkWhitelistEntry,
 ) -> anyhow::Result<AppUpdateResult> {
     let app = resolve_app_for_permission_update(app_handle, app_id).await?;
 
     let granted_permissions = app.try_with(|sage_app| {
-        sage_app
-            .common()
-            .granted_permissions()
-            .with_network_whitelist_entry_added(
-                sage_app.common().requested_permissions(),
-                entry.clone(),
-            )
+        match network_id {
+            Some(network_id) => sage_app
+                .common()
+                .granted_permissions()
+                .with_network_whitelist_entry_for_network_added(
+                    sage_app.common().requested_permissions(),
+                    network_id,
+                    entry.clone(),
+                ),
+            None => sage_app
+                .common()
+                .granted_permissions()
+                .with_network_whitelist_entry_added(
+                    sage_app.common().requested_permissions(),
+                    entry.clone(),
+                ),
+        }
     })?;
 
-    apply_granted_permissions_to_app(&app, &granted_permissions)
+    apply_granted_permissions(app_handle, apps_state, &app, &granted_permissions).await
 }
 
 async fn resolve_app_for_permission_update(
@@ -101,7 +123,26 @@ async fn resolve_app_for_permission_update(
     Ok(resolved_app.clone_app_for_operation())
 }
 
-fn apply_granted_permissions_to_app(
+async fn apply_granted_permissions(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app: &SharedSageApp,
+    granted_permissions: &SageGrantedPermissions,
+) -> anyhow::Result<AppUpdateResult> {
+    let update_result = mutate_granted_permissions(app, granted_permissions)?;
+
+    emit_granted_permissions_change(app_handle, &app.id(), update_result.change()).await;
+
+    if update_result.change().network_changed() {
+        reload_app_runtime(app_handle, apps_state, &app.id())
+            .await
+            .map_err(|err| anyhow::anyhow!("failed to reload app runtime after network permission change: {err}"))?;
+    }
+
+    Ok(update_result)
+}
+
+fn mutate_granted_permissions(
     app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<AppUpdateResult> {
@@ -250,7 +291,7 @@ mod tests {
             })
             .unwrap();
 
-        let update_result = apply_granted_permissions_to_app(&app, &granted).unwrap();
+        let update_result = mutate_granted_permissions(&app, &granted).unwrap();
 
         assert_eq!(
             entries(update_result.change().network_whitelist().full.clone()),
@@ -286,7 +327,7 @@ mod tests {
             })
             .unwrap();
 
-        let update_result = apply_granted_permissions_to_app(&app, &granted).unwrap();
+        let update_result = mutate_granted_permissions(&app, &granted).unwrap();
 
         let outcome = GrantCapabilityOutcome::from_update(
             UserBridgeCapability::WalletSendXch,
@@ -335,7 +376,7 @@ mod tests {
             })
             .unwrap();
 
-        apply_granted_permissions_to_app(&app, &granted).unwrap();
+        mutate_granted_permissions(&app, &granted).unwrap();
 
         let same_granted = app
             .try_with(|app| {
@@ -346,7 +387,7 @@ mod tests {
             })
             .unwrap();
 
-        let update_result = apply_granted_permissions_to_app(&app, &same_granted).unwrap();
+        let update_result = mutate_granted_permissions(&app, &same_granted).unwrap();
 
         let outcome = GrantCapabilityOutcome::from_update(
             UserBridgeCapability::WalletSendXch,
@@ -388,9 +429,9 @@ mod tests {
             })
             .unwrap();
 
-        let update_result = apply_granted_permissions_to_app(&app, &granted).unwrap();
+        let update_result = mutate_granted_permissions(&app, &granted).unwrap();
 
-        let outcome = GrantNetworkWhitelistOutcome::from_update(&entry, &update_result);
+        let outcome = GrantNetworkWhitelistOutcome::from_update(None, &entry, &update_result);
 
         match outcome {
             GrantNetworkWhitelistOutcome::Granted { entry, change } => {
@@ -453,7 +494,7 @@ mod tests {
             })
             .unwrap();
 
-        apply_granted_permissions_to_app(&app, &granted).unwrap();
+        mutate_granted_permissions(&app, &granted).unwrap();
 
         let entry = network_whitelist_entry("https", "required.example.com");
 
@@ -468,9 +509,9 @@ mod tests {
             })
             .unwrap();
 
-        let update_result = apply_granted_permissions_to_app(&app, &same_granted).unwrap();
+        let update_result = mutate_granted_permissions(&app, &same_granted).unwrap();
 
-        let outcome = GrantNetworkWhitelistOutcome::from_update(&entry, &update_result);
+        let outcome = GrantNetworkWhitelistOutcome::from_update(None, &entry, &update_result);
 
         match outcome {
             GrantNetworkWhitelistOutcome::AlreadyGranted {

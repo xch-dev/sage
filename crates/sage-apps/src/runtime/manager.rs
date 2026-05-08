@@ -7,7 +7,7 @@ use crate::runtime::events::{
     emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed,
 };
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
-use crate::runtime::stop::kill_runtime_inner;
+use crate::runtime::stop::{kill_runtime_inner};
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
 use crate::runtime::workspace::ensure_apps_workspace_active;
 use crate::runtime::{
@@ -38,6 +38,36 @@ struct ModalVisibilityCandidate {
     eligible: bool,
     priority: i32,
     runtime_id: String,
+}
+
+pub async fn process_sage_network_change(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) {
+    // Possible infinite loop is intentional here since failing to reload runtimes may cause a security issue
+    // If this gets stuck, Sage main thread freezes and the user will kill it manually. Problem solved
+    // It should never happen. But if it does, it won't be silent.
+    // Another option is to try to kill Sage itself from here
+    loop {
+        match reload_all_user_runtimes(app_handle, apps_state).await {
+            Ok(()) => break,
+            Err(err) => {
+                tracing::error!(
+                    error = %err,
+                    "failed to reload app runtimes after sync network change"
+                );
+                match kill_all_user_runtimes(app_handle, apps_state).await {
+                    Ok(()) => break,
+                    Err(err) => {
+                        tracing::error!(
+                            error = %err,
+                            "failed to kill app runtimes after sync network change"
+                        );
+                    }
+                }
+            }
+        }
+    }
 }
 
 pub(crate) async fn focus_taskbar_runtime(
@@ -187,6 +217,70 @@ pub(crate) async fn kill_taskbar_runtime(
     kill_runtime_inner(app_handle, apps_state, app_id, reason, &mut changes)
         .await
         .map_err(|err| format!("Failed to kill taskbar runtime: {err:?}"))?;
+
+    changes.emit(app_handle, apps_state).await;
+
+    Ok(())
+}
+
+pub(crate) async fn reload_app_runtime(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<(), String> {
+    let Ok(resolved_running_app) = resolve_running_app(apps_state, app_id).await else {
+        return Ok(());
+    };
+
+    let webview_label = resolved_running_app
+        .runtime()
+        .with_runtime(|runtime| runtime.webview_label().to_string());
+
+    get_webview_in_sage_window(app_handle, &webview_label)?
+        .reload()
+        .map_err(|err| err.to_string())
+}
+
+async fn reload_all_user_runtimes(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) -> Result<(), String> {
+    for runtime in list_runtimes(apps_state).await? {
+        let (webview_label, should_reload) = runtime.with_runtime(|runtime| {
+            (
+                runtime.webview_label().to_string(),
+                runtime.app().is_user_app() && !runtime.internal(),
+            )
+        });
+
+        if should_reload {
+            get_webview_in_sage_window(app_handle, &webview_label)?
+                .reload()
+                .map_err(|err| err.to_string())?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn kill_all_user_runtimes(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+) -> Result<(), String> {
+    let mut changes = RuntimeChangeSet::default();
+    for runtime in list_runtimes(apps_state).await? {
+        let (app_id, should_kill) = runtime.with_runtime(|runtime| {
+            (
+                runtime.app_id(),
+                runtime.app().is_user_app() && !runtime.internal(),
+            )
+        });
+
+        if should_kill {
+            kill_runtime_inner(app_handle, apps_state, &app_id, "kill-all", &mut changes)
+                .await.map_err(|err| err.to_string())?;
+        }
+    }
 
     changes.emit(app_handle, apps_state).await;
 
