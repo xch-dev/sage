@@ -38,10 +38,6 @@ pub async fn initialize(
     app_state::initialize(app_handle.clone(), &mut sage).await?;
     drop(sage);
 
-    if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
-        eprintln!("failed to start initial sandbox run: {err}");
-    }
-
     let app_state = (*state).clone();
 
     tokio::spawn(async move {
@@ -158,8 +154,14 @@ pub async fn set_rpc_run_on_startup(
 
 #[command]
 #[specta]
-pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
-    state.lock().await.switch_wallet().await?;
+pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
+    {
+        state.lock().await.switch_wallet().await?;
+    }
+
+    if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
+        eprintln!("failed to start initial sandbox run: {err}");
+    }
     Ok(())
 }
 

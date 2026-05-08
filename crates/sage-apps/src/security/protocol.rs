@@ -119,19 +119,20 @@ fn protocol_error_response(prefix: &str, err: &anyhow::Error) -> Response<Vec<u8
 }
 
 fn active_network_id(ctx: &UriSchemeContext<'_, Wry>) -> AnyResult<String> {
-    const ATTEMPTS: usize = 100;
-
+    use std::time::{Duration, Instant};
+    const TIMEOUT: Duration = Duration::from_millis(20);
     let state = ctx.app_handle().state::<AppState>();
-
     tokio::task::block_in_place(|| {
-        for _ in 0..ATTEMPTS {
+        let started = Instant::now();
+        loop {
             if let Ok(sage) = state.inner().try_lock() {
                 return Ok(sage.network_id());
             }
-
+            if started.elapsed() >= TIMEOUT {
+                break;
+            }
             std::thread::yield_now();
         }
-
         Err(anyhow!(
             "active network id unavailable because Sage state is locked"
         ))
