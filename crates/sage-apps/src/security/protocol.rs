@@ -130,7 +130,7 @@ async fn active_network_id(app_handle: &AppHandle) -> AnyResult<String> {
     use std::time::Duration;
     use tokio::time::timeout;
 
-    const TIMEOUT: Duration = Duration::from_millis(1_500);
+    const TIMEOUT: Duration = Duration::from_millis(500);
 
     let state = app_handle.state::<AppState>();
 

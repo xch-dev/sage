@@ -9,7 +9,7 @@ use crate::runtime::SageAppRuntimeVisibility;
 use crate::runtime::state::types::{SharedImpostorRuntime, SharedRuntime};
 use crate::types::AppPresentation;
 
-const IMMEDIATE_LOCK_RETRY_TIMEOUT_MS: u64 = 20;
+const IMMEDIATE_LOCK_RETRY_TIMEOUT_MS: u64 = 500;
 
 pub enum GetRuntimeError {
     NotFound,
