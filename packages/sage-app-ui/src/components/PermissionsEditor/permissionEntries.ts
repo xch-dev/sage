@@ -143,9 +143,10 @@ export function buildNetworkEntries(
     };
 
     entries.push({
-      id: `network:${host}`,
+      id:
+        networkId === null ? `network:${host}` : `network:${networkId}:${host}`,
       kind: 'network',
-      key: host,
+      key: networkId === null ? host : `${networkId}:${host}`,
       host,
       networkId,
       label: host,

@@ -26,10 +26,43 @@ export function buildGroupedPermissionTree(
   const roots: PermissionGroupNode[] = [];
 
   const networkEntries = entries.filter((entry) => entry.kind === 'network');
+
   if (networkEntries.length > 0) {
     const networkNode = makeNode('network', 'Network access');
-    networkNode.entries = sortPermissionEntries(networkEntries);
     networkNode.sensitivityRank = 1;
+
+    const sharedEntries = networkEntries.filter(
+      (entry) => entry.networkId === null,
+    );
+    const networkSpecificEntries = networkEntries.filter(
+      (entry) => entry.networkId !== null,
+    );
+
+    if (sharedEntries.length > 0) {
+      networkNode.entries = sortPermissionEntries(sharedEntries);
+    }
+
+    const entriesByNetwork = new Map<string, typeof networkSpecificEntries>();
+
+    for (const entry of networkSpecificEntries) {
+      const networkId = entry.networkId;
+      if (networkId === null) continue;
+
+      entriesByNetwork.set(networkId, [
+        ...(entriesByNetwork.get(networkId) ?? []),
+        entry,
+      ]);
+    }
+
+    for (const [networkId, entries] of entriesByNetwork) {
+      const child = makeNode(`network:${networkId}`, networkId);
+      child.entries = sortPermissionEntries(entries);
+      child.sensitivityRank = 1;
+      networkNode.children.push(child);
+    }
+
+    networkNode.children.sort((a, b) => a.label.localeCompare(b.label));
+
     roots.push(networkNode);
   }
 
