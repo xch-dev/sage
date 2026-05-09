@@ -23,11 +23,7 @@ function isActiveRoute(pathname: string, url: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith(url)) {
-    return true;
-  }
-
-  return url === '/apps' && pathname.startsWith('/system-apps');
+  return pathname.startsWith(url);
 }
 
 export function NavLink({

@@ -1,4 +1,4 @@
-# Sage Apps — Quick Start (WIP)
+# Sage AppsLaunchpad — Quick Start (WIP)
 
 This is the fastest way to get a basic Sage App running.
 

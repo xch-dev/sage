@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
 import { useApps } from '@/contexts/AppsContext';
 import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
 
 export function AppHost() {
-  const { appId = '' } = useParams();
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const { getTaskbarRuntime} = useApps();
+  const { activeTaskbarRuntime, getTaskbarRuntime } = useApps();
+
+  const appId = activeTaskbarRuntime?.appId ?? null;
 
   const runtime = useMemo(() => {
-    return getTaskbarRuntime(appId);
+    return appId ? getTaskbarRuntime(appId) : null;
   }, [getTaskbarRuntime, appId]);
 
   const webviewLabel = runtime?.webviewLabel ?? null;

@@ -57,11 +57,9 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
-import { Apps } from '@/pages/Apps.tsx';
-import { AppHost } from '@/pages/AppHost.tsx';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
-import { AppsWorkspace } from '@/pages/AppsWorkspace.tsx';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
+import { Apps } from '@/pages/Apps.tsx';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -142,15 +140,7 @@ const router = createHashRouter(
         <Route path='' element={<Swap />} />
       </Route>
       <Route path='/apps' element={<Wallet />}>
-        <Route element={<AppsWorkspace />}>
-          <Route path='' element={<Apps />} />
-          <Route path=':appId' element={<AppHost />} />
-        </Route>
-      </Route>
-      <Route path='/system-apps' element={<Wallet />}>
-        <Route element={<AppsWorkspace />}>
-          <Route path=':appId' element={<AppHost />} />
-        </Route>
+        <Route index element={<Apps />} />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />

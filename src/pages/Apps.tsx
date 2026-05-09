@@ -1,577 +1,298 @@
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CorruptedAppCard } from '@/components/apps/CorruptedAppCard';
-import { AppsLaunchpadContextMenu } from '@/components/apps/AppsLaunchpadContextMenu';
-import { Button } from '@/components/ui/button';
-import { formatSandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
-import {
-  commands,
-  ListedSageAppView,
-  SystemSageAppView,
-  UserSageAppView,
-} from '@/bindings.ts';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+
+import { commands, type UserSageAppView } from '@/bindings';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { Plus } from 'lucide-react';
-import { AppsPageActionsMenu } from '@/components/apps/AppsPageActionsMenu';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppTile } from '@/components/apps/AppTile';
-import { formatAppError } from '@/lib/apps/formatAppError.ts';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+
 import {
-  openAppPermissionsReview,
-  openAppUpdateReview,
-} from '@/lib/apps/openAppUpdate.ts';
+  AppTaskBar,
+  type AppTaskBarTab,
+} from '@/components/apps/AppTaskBar.tsx';
 
-type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
-type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
-type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
-type CorruptedEntry = Extract<ListedSageAppView, { kind: 'corrupted' }>;
+import { AppHost } from '@/components/apps/AppHost';
+import { AppsLaunchpad } from '@/components/apps/AppsLaunchpad';
+import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 
-type AppContextMenuState = {
-  app: InstalledEntry;
-  x: number;
-  y: number;
-} | null;
-
-function isInstalledEntry(entry: ListedSageAppView): entry is InstalledEntry {
-  return entry.kind === 'user' || entry.kind === 'system';
-}
-
-function isUserInstalledEntry(
-  entry: InstalledEntry,
-): entry is UserInstalledEntry {
-  return entry.kind === 'user';
-}
-
-function isCorruptedEntry(entry: ListedSageAppView): entry is CorruptedEntry {
-  return entry.kind === 'corrupted';
-}
-
-function clampContextMenuPosition(args: {
-  x: number;
-  y: number;
-  containerWidth: number;
-  containerHeight: number;
-}) {
-  const menuWidth = 260;
-  const menuHeight = 260;
-  const padding = 8;
-
-  return {
-    x: Math.max(
-      padding,
-      Math.min(args.x, args.containerWidth - menuWidth - padding),
-    ),
-    y: Math.max(
-      padding,
-      Math.min(args.y, args.containerHeight - menuHeight - padding),
-    ),
-  };
-}
-
-function formatErrorMessage(err: unknown): string {
-  if (err instanceof Error) {
-    return err.message;
-  }
-
-  if (typeof err === 'string') {
-    return err;
-  }
-
-  try {
-    return JSON.stringify(err, null, 2);
-  } catch {
-    return String(err);
-  }
-}
-
-async function openApp(appId: string) {
-  return await commands.appsCreateInlineRuntime({
-    appId,
-  });
-}
+import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 
 export function Apps() {
-  const [contextMenu, setContextMenu] = useState<AppContextMenuState>(null);
-  const pageRef = useRef<HTMLDivElement | null>(null);
+  const [workspaceActive, setWorkspaceActive] = useState(false);
 
-  const [updateCheckStateByAppId, setUpdateCheckStateByAppId] = useState<
-    Record<string, 'idle' | 'up_to_date'>
-  >({});
+  useEffect(() => {
+    let cancelled = false;
 
-  const [clearingDataByAppId, setClearingDataByAppId] = useState<
-    Record<string, boolean>
-  >({});
+    void commands
+      .appsEnterWorkspace()
+      .then(() => {
+        if (!cancelled) {
+          setWorkspaceActive(true);
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to activate apps workspace:', err);
+      });
 
-  const [clearDataErrorByAppId, setClearDataErrorByAppId] = useState<
-    Record<string, string | null>
-  >({});
+    return () => {
+      cancelled = true;
+
+      setWorkspaceActive(false);
+
+      void commands.appsLeaveWorkspace().catch((err) => {
+        console.error('Failed to deactivate apps workspace:', err);
+      });
+    };
+  }, []);
 
   const {
-    apps,
     runtimes,
-    loading,
-    error,
-    refresh,
-    uninstallApp,
-    clearAppStorage,
+    getApp,
+    getListedApp,
     pendingUpdates,
     pendingUpdateActivity,
     setPendingUpdateActivity,
     busyAppIds,
-    getLaunchGate,
+    activeTaskbarRuntime,
   } = useApps();
 
-  const runningAppIds = useMemo(() => {
-    return new Set(runtimes.map((runtime) => runtime.app.common.identity.id));
+  const runtimesRef = useRef(runtimes);
+
+  useEffect(() => {
+    runtimesRef.current = runtimes;
   }, [runtimes]);
 
-  const installedApps = useMemo(
-    () =>
-      apps.filter((entry): entry is InstalledEntry => isInstalledEntry(entry)),
-    [apps],
-  );
+  useEffect(() => {
+    if (!import.meta.env.DEV) {
+      return;
+    }
 
-  const corruptedApps = useMemo(() => apps.filter(isCorruptedEntry), [apps]);
+    let cleanup: (() => void) | null = null;
 
-  const contextMenuAppId = contextMenu?.app.common.identity.id ?? null;
+    void import('@/dev/system-apps/setupDevSystemAppsReload').then(
+      ({ setupDevSystemAppsReload }) => {
+        cleanup = setupDevSystemAppsReload(() => runtimesRef.current);
+      },
+    );
 
-  const contextMenuPendingUpdate = contextMenuAppId
-    ? (pendingUpdates[contextMenuAppId] ?? { kind: 'none' as const })
-    : { kind: 'none' as const };
-
-  const contextMenuUpdateActivity = contextMenuAppId
-    ? (pendingUpdateActivity[contextMenuAppId] ?? { kind: 'idle' as const })
-    : { kind: 'idle' as const };
-
-  const contextMenuBusy = contextMenuAppId
-    ? (busyAppIds[contextMenuAppId] ?? false) ||
-      contextMenuUpdateActivity.kind === 'applying'
-    : false;
-
-  const contextMenuCheckState =
-    contextMenuUpdateActivity.kind === 'checking'
-      ? 'checking'
-      : contextMenuAppId
-        ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
-        : 'idle';
-
-  const contextMenuAppIsRunning = contextMenuAppId
-    ? runningAppIds.has(contextMenuAppId)
-    : false;
-
-  const contextMenuClearDataBusy = contextMenuAppId
-    ? (clearingDataByAppId[contextMenuAppId] ?? false)
-    : false;
-
-  const contextMenuClearDataError = contextMenuAppId
-    ? (clearDataErrorByAppId[contextMenuAppId] ?? null)
-    : null;
-
-  const contextMenuHasUpdate = contextMenuPendingUpdate.kind !== 'none';
-  const contextMenuUpdateIsInstallable =
-    contextMenuPendingUpdate.kind === 'readyToApply';
-
-  const closeContextMenu = useCallback(() => {
-    setContextMenu((prevContextMenu) => {
-      if (prevContextMenu) {
-        setUpdateCheckStateByAppId((prev) => {
-          if (prev[prevContextMenu.app.common.identity.id] !== 'up_to_date') {
-            return prev;
-          }
-
-          return {
-            ...prev,
-            [prevContextMenu.app.common.identity.id]: 'idle',
-          };
-        });
-      }
-
-      return null;
-    });
+    return () => {
+      cleanup?.();
+    };
   }, []);
 
-  async function handleCheckForUpdate(appId: string) {
-    setPendingUpdateActivity(appId, { kind: 'checking' });
-
-    setUpdateCheckStateByAppId((prev) => ({
-      ...prev,
-      [appId]: 'idle',
-    }));
-
-    setClearDataErrorByAppId((prev) => ({
-      ...prev,
-      [appId]: null,
-    }));
-
-    try {
-      const preview = await commands.checkAppUpdate(appId);
-
-      if (!preview) {
-        setUpdateCheckStateByAppId((prev) => ({
-          ...prev,
-          [appId]: 'up_to_date',
-        }));
-      }
-    } catch (err) {
-      const message = formatAppError(err);
-
-      console.error('checkAppUpdate failed:', err);
-
-      setClearDataErrorByAppId((prev) => ({
-        ...prev,
-        [appId]: `Update check failed: ${message}`,
-      }));
-    } finally {
-      setPendingUpdateActivity(appId, { kind: 'idle' });
-    }
-  }
-
-  async function handleApplyUpdate(appId: string) {
-    setPendingUpdateActivity(appId, { kind: 'applying' });
-
-    setClearDataErrorByAppId((prev) => ({
-      ...prev,
-      [appId]: null,
-    }));
-
-    try {
-      await commands.applyAppUpdate(appId);
-    } catch (err) {
-      const message = formatAppError(err);
-
-      console.error('applyAppUpdate failed:', err);
-
-      setPendingUpdateActivity(appId, { kind: 'idle' });
-
-      setClearDataErrorByAppId((prev) => ({
-        ...prev,
-        [appId]: `Update failed: ${message}`,
-      }));
-    }
-  }
-
-  const handleClearData = useCallback(
-    async (app: InstalledEntry) => {
-      const appId = app.common.identity.id;
-
-      setClearingDataByAppId((prev) => ({
-        ...prev,
-        [appId]: true,
-      }));
-
-      setClearDataErrorByAppId((prev) => ({
-        ...prev,
-        [appId]: null,
-      }));
-
-      try {
-        await clearAppStorage(appId);
-        await refresh();
-      } catch (err) {
-        setClearDataErrorByAppId((prev) => ({
-          ...prev,
-          [appId]: formatErrorMessage(err),
-        }));
-      } finally {
-        setClearingDataByAppId((prev) =>
-          Object.fromEntries(
-            Object.entries(prev).filter(([key]) => key !== appId),
-          ),
-        );
-      }
-    },
-    [clearAppStorage, refresh],
-  );
+  const [tabOrder, setTabOrder] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!contextMenu || contextMenuCheckState !== 'up_to_date') {
-      return;
-    }
+    setTabOrder((prev) => {
+      const runtimeIds = runtimes
+        .filter((runtime) => {
+          const installedApp = getListedApp(runtime.app.common.identity.id);
 
-    const timeoutId = window.setTimeout(() => {
-      setUpdateCheckStateByAppId((prev) => {
-        if (prev[contextMenu.app.common.identity.id] !== 'up_to_date') {
-          return prev;
-        }
+          if (!installedApp) {
+            return false;
+          }
 
-        return {
-          ...prev,
-          [contextMenu.app.common.identity.id]: 'idle',
-        };
-      });
-    }, 3000);
+          if (installedApp.kind === 'user') {
+            return true;
+          }
 
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [contextMenu, contextMenuCheckState]);
+          return runtime.presentation.kind === 'Taskbar';
+        })
+        .map((runtime) => runtime.app.common.identity.id);
 
-  useEffect(() => {
-    if (!contextMenu) {
-      return;
-    }
+      const kept = prev.filter((runtimeAppId) =>
+        runtimeIds.includes(runtimeAppId),
+      );
 
-    const handleClose = () => {
-      if (clearingDataByAppId[contextMenu.app.common.identity.id]) {
-        return;
-      }
+      const added = runtimeIds.filter(
+        (runtimeAppId) => !kept.includes(runtimeAppId),
+      );
 
-      closeContextMenu();
-    };
+      return [...kept, ...added];
+    });
+  }, [runtimes, getListedApp]);
 
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        if (clearingDataByAppId[contextMenu.app.common.identity.id]) {
-          return;
-        }
+  const activeRuntimeAppId = activeTaskbarRuntime?.appId ?? null;
 
-        closeContextMenu();
-      }
-    };
+  const activeRuntimeExists = activeRuntimeAppId
+    ? runtimes.some(
+        (runtime) => runtime.app.common.identity.id === activeRuntimeAppId,
+      )
+    : false;
 
-    window.addEventListener('click', handleClose);
-    window.addEventListener('resize', handleClose);
-    window.addEventListener('scroll', handleClose, true);
-    window.addEventListener('keydown', handleKeyDown);
+  const activeApp: UserSageAppView | null =
+    activeRuntimeAppId && activeRuntimeExists
+      ? (getApp(activeRuntimeAppId) ?? null)
+      : null;
 
-    return () => {
-      window.removeEventListener('click', handleClose);
-      window.removeEventListener('resize', handleClose);
-      window.removeEventListener('scroll', handleClose, true);
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [contextMenu, clearingDataByAppId, closeContextMenu]);
+  const activeAppId = activeApp?.common.identity.id ?? null;
 
-  if (loading) {
-    return (
-      <div className='mx-auto w-full max-w-6xl p-4 md:p-6'>
-        <Alert>
-          <AlertTitle>Loading apps...</AlertTitle>
-          <AlertDescription>Please wait.</AlertDescription>
-        </Alert>
-      </div>
+  const activePendingUpdate = activeAppId
+    ? (pendingUpdates[activeAppId] ?? { kind: 'none' as const })
+    : { kind: 'none' as const };
+
+  const activeUpdateActivity = activeAppId
+    ? (pendingUpdateActivity[activeAppId] ?? { kind: 'idle' as const })
+    : { kind: 'idle' as const };
+
+  const activeBusy = activeAppId
+    ? (busyAppIds[activeAppId] ?? false) ||
+      activeUpdateActivity.kind === 'applying'
+    : false;
+
+  const activeManifest = activeApp?.common.activeSnapshot.manifest;
+
+  const hasDonation = !!activeManifest?.donation?.address;
+
+  const tabs = useMemo<AppTaskBarTab[]>(() => {
+    const runtimeByAppId = new Map(
+      runtimes.map(
+        (runtime) => [runtime.app.common.identity.id, runtime] as const,
+      ),
     );
+
+    const out: AppTaskBarTab[] = [];
+
+    for (const runtimeAppId of tabOrder) {
+      const runtime = runtimeByAppId.get(runtimeAppId);
+
+      if (!runtime) {
+        continue;
+      }
+
+      const installedApp = getListedApp(runtime.app.common.identity.id);
+
+      if (!installedApp) {
+        continue;
+      }
+
+      if (
+        installedApp.kind === 'system' &&
+        runtime.presentation.kind !== 'Taskbar'
+      ) {
+        continue;
+      }
+
+      out.push({
+        app: installedApp,
+        isActive:
+          runtime.app.common.identity.id === activeTaskbarRuntime?.appId,
+      });
+    }
+
+    return out;
+  }, [runtimes, tabOrder, getListedApp, activeTaskbarRuntime?.appId]);
+
+  async function handleApplyActiveUpdate() {
+    if (!activeAppId) {
+      return;
+    }
+
+    setPendingUpdateActivity(activeAppId, { kind: 'applying' });
+
+    try {
+      await commands.appsClearActiveTaskbarRuntime({
+        windowLabel: getCurrentWindow().label,
+      });
+
+      await commands.applyAppUpdate(activeAppId);
+    } catch (err) {
+      console.error('Failed to apply app update:', err);
+
+      setPendingUpdateActivity(activeAppId, {
+        kind: 'idle',
+      });
+    }
+  }
+
+  if (!workspaceActive) {
+    return null;
   }
 
   return (
-    <div
-      ref={pageRef}
-      className='relative flex h-full min-h-0 flex-col overflow-hidden'
-    >
-      <div className='mx-auto flex w-full max-w-7xl shrink-0 items-center justify-between gap-4 p-4 md:p-6'>
-        <div>
-          <h1 className='text-2xl font-semibold tracking-tight'>Apps</h1>
-          <p className='text-sm text-muted-foreground'>
-            Launch and manage installed Sage apps.
-          </p>
-        </div>
-
-        <div className='flex items-center gap-2'>
-          <Button
-            variant='outline'
-            onClick={() => {
-              void commands.appsStartSystemApp({
-                kind: 'appInstall',
-                source: { kind: 'selectSource' },
-              });
-            }}
-          >
-            <Plus className='mr-2 h-4 w-4' />
-            Install App
-          </Button>
-
-          <AppsPageActionsMenu
-            onOpenSandboxTests={() => {
-              void commands.appsStartSystemApp({
-                kind: 'sandboxTests',
-              });
-            }}
-            onClose={() => {
-              //
-            }}
-          />
-        </div>
-      </div>
-
-      <div className='mx-auto w-full max-w-7xl flex-1 min-h-0 overflow-auto px-4 pb-4 md:px-6 md:pb-6'>
-        {error ? (
-          <Alert className='mb-6'>
-            <AlertTitle>Apps error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        ) : null}
-
-        {installedApps.length === 0 ? (
-          <Alert className='mb-6'>
-            <AlertTitle>No apps installed</AlertTitle>
-            <AlertDescription>
-              Install a Sage app package to get started.
-            </AlertDescription>
-          </Alert>
-        ) : null}
-
-        {installedApps.length > 0 ? (
-          <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'>
-            {installedApps.map((app) => (
-              <AppTile
-                key={app.common.identity.id}
-                app={app}
-                launchDecision={
-                  app.kind === 'system'
-                    ? {
-                        allowed: true,
-                        title: 'System app',
-                        description: 'System apps are managed by Sage.',
-                      }
-                    : formatSandboxLaunchDecision(
-                        getLaunchGate(app.common.identity.id),
-                      )
-                }
-                onOpen={() => {
-                  void openApp(app.common.identity.id);
-                }}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-
-                  const pageEl = pageRef.current;
-                  if (!pageEl) {
-                    return;
-                  }
-
-                  const pageRect = pageEl.getBoundingClientRect();
-
-                  const localX = event.clientX - pageRect.left;
-                  const localY = event.clientY - pageRect.top;
-
-                  const position = clampContextMenuPosition({
-                    x: localX,
-                    y: localY,
-                    containerWidth: pageRect.width,
-                    containerHeight: pageRect.height,
-                  });
-
-                  setClearDataErrorByAppId((prev) => ({
-                    ...prev,
-                    [app.common.identity.id]: null,
-                  }));
-
-                  setContextMenu({
-                    app,
-                    x: position.x,
-                    y: position.y,
-                  });
-                }}
-              />
-            ))}
-          </div>
-        ) : null}
-
-        {corruptedApps.length > 0 ? (
-          <div className='mt-8 space-y-4'>
-            <div>
-              <h2 className='text-lg font-semibold tracking-tight'>
-                Corrupted apps
-              </h2>
-              <p className='text-sm text-muted-foreground'>
-                These app installations could not be loaded correctly.
-              </p>
-            </div>
-
-            <div className='space-y-4'>
-              {corruptedApps.map((entry) => (
-                <CorruptedAppCard
-                  key={entry.id}
-                  app={entry}
-                  onRemove={() => uninstallApp(entry.id)}
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <AppsLaunchpadContextMenu
-        open={!!contextMenu}
-        x={contextMenu?.x ?? 0}
-        y={contextMenu?.y ?? 0}
-        busy={contextMenuBusy}
-        hasUpdate={contextMenuHasUpdate}
-        updateIsInstallable={contextMenuUpdateIsInstallable}
-        isRunning={contextMenuAppIsRunning}
-        updateCheckState={contextMenuCheckState}
-        clearDataBusy={contextMenuClearDataBusy}
-        clearDataError={contextMenuClearDataError}
-        onClose={closeContextMenu}
-        onOpen={() => {
-          if (!contextMenu) {
-            return;
-          }
-
-          setUpdateCheckStateByAppId((prev) => ({
-            ...prev,
-            [contextMenu.app.common.identity.id]: 'idle',
-          }));
-
-          void openApp(contextMenu.app.common.identity.id);
-          closeContextMenu();
+    <div className='relative flex h-full min-h-0 w-full flex-col overflow-hidden'>
+      <AppTaskBar
+        tabs={tabs}
+        activeAppId={activeTaskbarRuntime?.appId ?? null}
+        onOpenApps={() => {
+          void commands.appsClearActiveTaskbarRuntime({
+            windowLabel: getCurrentWindow().label,
+          });
         }}
-        onCheckForUpdate={() => {
-          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
-            return;
-          }
-
-          void handleCheckForUpdate(contextMenu.app.common.identity.id);
+        onSelectApp={(tab) => {
+          void commands.appsFocusTaskbarRuntime({
+            appId: tab.app.common.identity.id,
+          });
         }}
-        onUpdate={() => {
-          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
-            return;
-          }
-
-          const appId = contextMenu.app.common.identity.id;
-          const pendingUpdate = pendingUpdates[appId] ?? { kind: 'none' };
-
-          closeContextMenu();
-
-          if (pendingUpdate.kind === 'requiresReview') {
-            void openAppUpdateReview(appId);
-            return;
-          }
-
-          if (pendingUpdate.kind === 'readyToApply') {
-            void handleApplyUpdate(appId);
-          }
+        onCloseApp={(tab) => {
+          void commands.appsKillTaskbarRuntime({
+            appId: tab.app.common.identity.id,
+          });
         }}
-        onChangePermissions={() => {
-          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
+        onReorderTabs={setTabOrder}
+        activeAppHasDonation={hasDonation}
+        onOpenDonation={() => {
+          if (!activeApp) {
             return;
           }
 
-          const appId = contextMenu.app.common.identity.id;
-
-          void openAppPermissionsReview(appId);
-          closeContextMenu();
-        }}
-        onClearData={() => {
-          if (!contextMenu) {
-            return;
-          }
-
-          void handleClearData(contextMenu.app);
-        }}
-        onUninstall={() => {
-          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
-            return;
-          }
-
-          setUpdateCheckStateByAppId((prev) => ({
-            ...prev,
-            [contextMenu.app.common.identity.id]: 'idle',
-          }));
-
-          void uninstallApp(contextMenu.app.common.identity.id).finally(() => {
-            closeContextMenu();
+          void commands.appsStartSystemApp({
+            kind: 'donation',
+            appId: activeApp.common.identity.id,
           });
         }}
       />
+
+      {activeApp?.source.kind === 'url' &&
+      activePendingUpdate.kind !== 'none' ? (
+        <Alert className='shrink-0 rounded-none border-x-0 border-t-0'>
+          <AlertTitle>
+            {activePendingUpdate.kind === 'requiresReview'
+              ? 'Update needs review'
+              : 'Update ready'}
+          </AlertTitle>
+
+          <AlertDescription className='flex items-center justify-between gap-4'>
+            <span>
+              {activePendingUpdate.kind === 'requiresReview'
+                ? `An update is available for ${activeApp.common.activeSnapshot.manifest.name} and needs review before it can be applied.`
+                : `An update is ready to apply for ${activeApp.common.activeSnapshot.manifest.name}.`}
+            </span>
+
+            <Button
+              variant='outline'
+              disabled={activeBusy}
+              onClick={() => {
+                if (!activeAppId) {
+                  return;
+                }
+
+                if (activePendingUpdate.kind === 'requiresReview') {
+                  void openAppUpdateReview(activeAppId);
+                  return;
+                }
+
+                if (activePendingUpdate.kind === 'readyToApply') {
+                  void handleApplyActiveUpdate();
+                }
+              }}
+            >
+              {activeUpdateActivity.kind === 'applying'
+                ? 'Applying...'
+                : activePendingUpdate.kind === 'requiresReview'
+                  ? 'Review update'
+                  : 'Apply update'}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : null}
+
+      <div className='relative flex-1 min-h-0 overflow-hidden'>
+        {activeTaskbarRuntime?.appId ? <AppHost /> : <AppsLaunchpad />}
+
+        <SystemAppModalLayer />
+      </div>
     </div>
   );
 }
