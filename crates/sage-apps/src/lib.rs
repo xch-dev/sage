@@ -41,7 +41,7 @@ pub use security::{handle_system_app_protocol_request, handle_user_app_protocol_
 pub use bridge::ts_exports::{export_system_bridge_typescript, export_user_bridge_typescript};
 
 // Operations
-pub use lifecycle::process_pending_storage_cleanup;
+pub use lifecycle::{process_pending_storage_cleanup, start_background_app_update_checker};
 pub use sandbox::runner::ensure_initial_sandbox_run;
 pub use runtime::{process_sage_network_change};
 

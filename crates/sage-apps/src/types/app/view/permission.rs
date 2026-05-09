@@ -96,20 +96,6 @@ impl SageGrantedPermissionsInput {
             self.network.whitelist_by_network.clone(),
         )
     }
-
-    pub fn capabilities(&self) -> impl Iterator<Item = UserBridgeCapability> + '_ {
-        self.capabilities.iter().copied()
-    }
-
-    pub fn network_whitelist(&self) -> impl Iterator<Item = SageNetworkWhitelistEntry> + '_ {
-        self.network.whitelist.iter().cloned()
-    }
-
-    pub fn network_whitelist_by_network(
-        &self,
-    ) -> &BTreeMap<String, BTreeSet<SageNetworkWhitelistEntry>> {
-        &self.network.whitelist_by_network
-    }
 }
 
 impl From<&SageGrantedPermissions> for SageGrantedPermissionsView {
@@ -166,5 +152,15 @@ impl From<CapabilityDefinition<UserBridgeCapability>> for SageAppCapabilityDefin
             description: definition.description().to_string(),
             flags: definition.flags().into(),
         }
+    }
+}
+
+impl From<&SageGrantedPermissions> for SageGrantedPermissionsInput {
+    fn from(value: &SageGrantedPermissions) -> Self {
+        Self::new(
+            value.capabilities().copied(),
+            value.network().whitelist_iter().cloned(),
+            value.network().whitelist_by_network().clone(),
+        )
     }
 }

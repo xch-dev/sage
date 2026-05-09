@@ -464,17 +464,17 @@ impl CorruptedInstalledSageApp {
     }
 }
 
+impl UserSageApp {
+    pub(crate) fn into_sage_app(self) -> SageApp {
+        SageApp::User(self)
+    }
+}
+
 #[cfg(test)]
 impl UserSageAppSource {
     pub(crate) fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
         let app_url = SageAppUrl::parse(app_url.as_ref())?;
         Ok(Self::Url { app_url })
-    }
-}
-
-impl UserSageApp {
-    pub(crate) fn into_sage_app(self) -> SageApp {
-        SageApp::User(self)
     }
 }
 

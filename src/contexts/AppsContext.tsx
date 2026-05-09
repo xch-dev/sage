@@ -17,16 +17,10 @@ import {
   type SageAppRuntimeRecordView,
   type SageAppUrlPreview,
   SageAppView,
-  SageGrantedPermissionsInput,
   type SandboxStateView,
   type SystemSageAppView,
   type UserSageAppView,
 } from '@/bindings';
-
-interface PerformAppUpdateOptions {
-  restartIfRunning?: boolean;
-  visibleAfterRestart?: boolean;
-}
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
@@ -106,11 +100,7 @@ interface AppsContextValue {
 
   uninstallApp: (appId: string) => Promise<void>;
   checkForUpdate: (appId: string) => Promise<SageAppUrlPreview | null>;
-  performAppUpdate: (
-    appId: string,
-    grantedPermissions: SageGrantedPermissionsInput,
-    options?: PerformAppUpdateOptions,
-  ) => Promise<SageAppView>;
+  performAppUpdate: (appId: string) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
   activeTaskbarRuntime: ActiveTaskbarRuntime;
 }
@@ -434,10 +424,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const performAppUpdate = useCallback(
-    async (appId: string, grantedPermissions: SageGrantedPermissionsInput) => {
+    async (appId: string) => {
       setBusy(appId, true);
       try {
-        return await commands.applyAppUpdate(appId, grantedPermissions);
+        return await commands.applyAppUpdate(appId);
       } finally {
         setBusy(appId, false);
       }

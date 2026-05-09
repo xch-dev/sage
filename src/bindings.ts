@@ -398,8 +398,8 @@ async uninstallApp(appId: string) : Promise<null> {
 async checkAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
     return await TAURI_INVOKE("check_app_update", { appId });
 },
-async applyAppUpdate(appId: string, grantedPermissionsInput: SageGrantedPermissionsInput) : Promise<SageAppView> {
-    return await TAURI_INVOKE("apply_app_update", { appId, grantedPermissionsInput });
+async applyAppUpdate(appId: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apply_app_update", { appId });
 },
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
@@ -2258,9 +2258,7 @@ export type SageAppUrlPreview = { appUrl: SageAppUrl; manifestHash: string; mani
 export type SageAppView = ({ kind: "system" } & SystemSageAppView) | ({ kind: "user" } & UserSageAppView)
 export type SageAppWalletScope = { kind: "allWallets" } | { kind: "selectedWallets"; fingerprints: number[] }
 export type SageAppsError = { kind: ErrorKind; reason: string }
-export type SageGrantedNetworkPermissionsInput = { whitelist?: SageNetworkWhitelistEntry[]; whitelistByNetwork?: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type SageGrantedNetworkPermissionsView = { whitelist: SageNetworkWhitelistEntryView[]; whitelistByNetwork?: Partial<{ [key in string]: SageNetworkWhitelistEntryView[] }> }
-export type SageGrantedPermissionsInput = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissionsInput }
 export type SageGrantedPermissionsView = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissionsView }
 export type SageGrantedSystemPermissionsView = { capabilities: SystemBridgeCapability[] }
 export type SageNetworkWhitelistEntry = { scheme: string; host: string }

@@ -6351,6 +6351,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "erased-serde",
+ "futures",
  "hex",
  "mime_guess",
  "parking_lot",

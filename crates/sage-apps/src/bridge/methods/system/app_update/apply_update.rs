@@ -9,7 +9,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::commands::{apply_app_update};
+use crate::lifecycle::update::logic::apply_app_update_inner;
 use crate::types::{SageAppView, SageGrantedPermissionsInput};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -54,11 +54,11 @@ impl BridgeMethod for AppUpdateApplyUpdate {
     ) -> BridgeHandleResult {
         let params: AppUpdateApplyUpdateParams = parse_required_params(self, request)?;
 
-        let app = apply_app_update(
-            tools.app_state.clone(),
-            tools.app_handle.clone(),
-            params.app_id.clone(),
-            params.granted_permissions,
+        let app = apply_app_update_inner(
+            tools.app_handle,
+            tools.host_state,
+            &params.app_id,
+            Some(params.granted_permissions),
         )
         .await
         .map_err(|err| {

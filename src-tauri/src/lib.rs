@@ -249,6 +249,8 @@ pub fn run() {
             app.manage(app_state);
             app.manage(AppsHostState::default());
 
+            apps::start_background_app_update_checker(app.handle().clone());
+
             let app_handle = app.handle().clone();
             let cleanup_base_path = path.clone();
             tauri::async_runtime::spawn(async move {

@@ -61,7 +61,7 @@ impl BridgeMethod for AppPermissionsGetReviewContext {
                     params.app_id
                 ))
             })?;
-
+        
         let app = resolved
             .with_app(|app| {
                 app.with(|sage_app| match sage_app {
