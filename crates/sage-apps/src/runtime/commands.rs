@@ -5,19 +5,17 @@ use specta::Type;
 use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
-use crate::runtime::events::emit_runtime_manager_runtimes_changed;
-use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
+use crate::runtime::start::start_user_app;
 use crate::runtime::state::list_runtimes;
 use crate::runtime::stop::SystemKillRuntimeResult;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
 use crate::runtime::workspace::{enter_apps_workspace, leave_apps_workspace};
 use crate::runtime::{
-    RuntimeTargetParams, SageAppRuntimeMode, SageAppRuntimeRecordView,
+    RuntimeTargetParams, SageAppRuntimeRecordView,
     clear_active_taskbar_runtime, focus_taskbar_runtime, kill_taskbar_runtime,
     start_app_install_runtime, start_app_update_runtime, start_donation_runtime,
     start_sandbox_tests_runtime,
 };
-use crate::types::AppPresentation;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
@@ -65,6 +63,8 @@ pub struct StartDonationArgs {
 #[serde(rename_all = "camelCase")]
 pub struct CreateInstalledRuntimeArgs {
     pub app_id: String,
+    #[serde(default)]
+    pub focus: Option<bool>,
 }
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -155,25 +155,7 @@ pub async fn apps_create_inline_runtime(
     apps_state: State<'_, AppsHostState>,
     args: CreateInstalledRuntimeArgs,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    let created_runtime = create_runtime(
-        &app_handle,
-        &apps_state,
-        CreateRuntimeArgs {
-            app_id: args.app_id.clone(),
-            presentation: AppPresentation::Taskbar,
-            mode: SageAppRuntimeMode::Inline,
-            debug_layout: false,
-            query: BTreeMap::new(),
-        },
-    )
-    .await
-    .map(Into::into);
-
-    emit_runtime_manager_runtimes_changed(&app_handle, &apps_state).await;
-
-    focus_taskbar_runtime(&app_handle, &apps_state, &args.app_id).await?;
-
-    created_runtime
+    start_user_app(&app_handle, &apps_state, args).await
 }
 
 #[tauri::command]

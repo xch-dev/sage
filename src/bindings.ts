@@ -808,7 +808,7 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
-export type CreateInstalledRuntimeArgs = { appId: string }
+export type CreateInstalledRuntimeArgs = { appId: string; focus?: boolean | null }
 export type CreateTransaction = { 
 /**
  * Pre-selected coins to use in the transaction prior to coin selection

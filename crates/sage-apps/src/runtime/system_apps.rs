@@ -5,7 +5,7 @@ use tauri::{AppHandle, State};
 use crate::AppsHostState;
 use crate::bridge::state::pending_approval_app_ids;
 use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
+use crate::runtime::start::{CreateRuntimeArgs, start_system_app};
 use crate::runtime::stop::kill_runtime_inner;
 use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SharedRuntime};
 use crate::system_apps::{
@@ -14,31 +14,12 @@ use crate::system_apps::{
 };
 use crate::types::{AppModalPresentation, AppPresentation};
 
-pub(crate) async fn start_system_app_runtime(
-    app_handle: &AppHandle,
-    apps_state: &State<'_, AppsHostState>,
-    args: CreateRuntimeArgs,
-) -> Result<SharedRuntime, String> {
-    let runtime = create_runtime(app_handle, apps_state, args).await?;
-
-    let host_window_label = runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
-
-    let mut changes = RuntimeChangeSet::default();
-    changes.runtimes_changed();
-
-    sync_modal_runtime_visibility(app_handle, apps_state, &host_window_label, &mut changes).await?;
-
-    changes.emit(app_handle, apps_state).await;
-
-    Ok(runtime)
-}
-
 pub(crate) async fn start_app_install_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     query: BTreeMap<String, String>,
 ) -> Result<SharedRuntime, String> {
-    start_system_app_runtime(
+    start_system_app(
         app,
         apps_state,
         CreateRuntimeArgs {
@@ -58,7 +39,7 @@ pub(crate) async fn start_app_update_runtime(
     target_app_id: String,
     query: BTreeMap<String, String>,
 ) -> Result<SharedRuntime, String> {
-    start_system_app_runtime(
+    start_system_app(
         app,
         apps_state,
         CreateRuntimeArgs {
@@ -80,7 +61,7 @@ pub(crate) async fn start_bridge_approval_runtime(
     apps_state: &State<'_, AppsHostState>,
     target_app_ids: Vec<String>,
 ) -> Result<SharedRuntime, String> {
-    start_system_app_runtime(
+    start_system_app(
         app,
         apps_state,
         CreateRuntimeArgs {
@@ -103,7 +84,7 @@ pub(crate) async fn start_donation_runtime(
     target_app_id: String,
     query: BTreeMap<String, String>,
 ) -> Result<SharedRuntime, String> {
-    start_system_app_runtime(
+    start_system_app(
         app,
         apps_state,
         CreateRuntimeArgs {
@@ -167,7 +148,7 @@ pub(crate) async fn start_sandbox_tests_runtime(
     app: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<SharedRuntime, String> {
-    start_system_app_runtime(
+    start_system_app(
         app,
         apps_state,
         CreateRuntimeArgs {

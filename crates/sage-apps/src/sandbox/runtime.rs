@@ -1,8 +1,6 @@
 use crate::AppsHostState;
-use crate::runtime::SageAppRuntimeMode;
-use crate::runtime::start::{CreateRuntimeArgs, create_runtime};
+use crate::runtime::start::{start_sandbox_test};
 use crate::runtime::stop::close_runtime_internal;
-use crate::types::AppPresentation;
 use std::collections::{BTreeMap, HashMap};
 use tauri::{AppHandle, State};
 use uuid::Uuid;
@@ -45,22 +43,5 @@ async fn start_internal_runtime_for_sandbox(
     app_id: &str,
     query: BTreeMap<String, String>,
 ) -> Result<(), String> {
-    let debug_test_apps = debug_test_apps_enabled();
-
-    let args = CreateRuntimeArgs {
-        app_id: app_id.to_string(),
-        presentation: AppPresentation::Taskbar,
-        mode: SageAppRuntimeMode::Inline,
-        debug_layout: debug_test_apps,
-        query,
-    };
-
-    create_runtime(app, apps_state, args).await.map(|_| ())
-}
-
-fn debug_test_apps_enabled() -> bool {
-    cfg!(debug_assertions)
-        && std::env::var("SAGE_DEBUG_TEST_APPS")
-            .map(|v| v == "1")
-            .unwrap_or(false)
+    start_sandbox_test(app, apps_state, app_id, query).await
 }

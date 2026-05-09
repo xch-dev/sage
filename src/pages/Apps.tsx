@@ -192,10 +192,6 @@ export function Apps() {
     setPendingUpdateActivity(activeAppId, { kind: 'applying' });
 
     try {
-      await commands.appsClearActiveTaskbarRuntime({
-        windowLabel: getCurrentWindow().label,
-      });
-
       await commands.applyAppUpdate(activeAppId);
     } catch (err) {
       console.error('Failed to apply app update:', err);

@@ -9,16 +9,15 @@ use crate::runtime::state::{
     remove_runtime_id_by_app_id, write_impostor_runtime, write_runtime,
 };
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
-use crate::runtime::{
-    SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode,
-    SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime, build_entry_src,
-    build_entry_src_for, is_allowed_app_url, resolve_app,
-};
+use crate::runtime::{SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime, build_entry_src, build_entry_src_for, is_allowed_app_url, resolve_app, RuntimeChangeSet, SageAppRuntimeRecordView, focus_taskbar_runtime};
 use crate::storage::parse_data_store_id;
 use crate::types::{
     AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
 };
 use crate::{AppsHostState, sandbox};
+use crate::runtime::commands::CreateInstalledRuntimeArgs;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
+use crate::runtime::manager::sync_modal_runtime_visibility;
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -36,7 +35,71 @@ pub(in crate::runtime) struct CreateImpostorRuntimeArgs {
     pub query: BTreeMap<String, String>,
 }
 
-pub async fn create_runtime(
+pub(crate) async fn start_user_app(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    args: CreateInstalledRuntimeArgs,
+) -> Result<SageAppRuntimeRecordView, String> {
+    let created_runtime = create_runtime(
+        app_handle,
+        apps_state,
+        CreateRuntimeArgs {
+            app_id: args.app_id.clone(),
+            presentation: AppPresentation::Taskbar,
+            mode: SageAppRuntimeMode::Inline,
+            debug_layout: false,
+            query: BTreeMap::new(),
+        },
+    )
+        .await
+        .map(Into::into);
+
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+
+    if args.focus.unwrap_or(true) {
+        focus_taskbar_runtime(app_handle, apps_state, &args.app_id).await?;
+    }
+
+    created_runtime
+}
+
+pub(crate) async fn start_system_app(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    args: CreateRuntimeArgs,
+) -> Result<SharedRuntime, String> {
+    let runtime = create_runtime(app_handle, apps_state, args).await?;
+
+    let host_window_label = runtime.with_runtime(SageAppRuntimeRecord::host_window_label);
+
+    let mut changes = RuntimeChangeSet::default();
+    changes.runtimes_changed();
+
+    sync_modal_runtime_visibility(app_handle, apps_state, &host_window_label, &mut changes).await?;
+
+    changes.emit(app_handle, apps_state).await;
+
+    Ok(runtime)
+}
+
+pub(crate) async fn start_sandbox_test(
+    app: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+    query: BTreeMap<String, String>,
+) -> Result<(), String> {
+    let args = CreateRuntimeArgs {
+        app_id: app_id.to_string(),
+        presentation: AppPresentation::Taskbar,
+        mode: SageAppRuntimeMode::Inline,
+        debug_layout: debug_test_apps_enabled(),
+        query,
+    };
+
+    create_runtime(app, apps_state, args).await.map(|_| ())
+}
+
+async fn create_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
@@ -295,4 +358,11 @@ window.__SAGE_APPS_COMMS_DEBUG__ = true;
     );
 
     builder
+}
+
+fn debug_test_apps_enabled() -> bool {
+    cfg!(debug_assertions)
+        && std::env::var("SAGE_DEBUG_TEST_APPS")
+        .map(|v| v == "1")
+        .unwrap_or(false)
 }

@@ -10,25 +10,24 @@ use crate::types::ListedSageApp;
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        println!("Starting background app update checker");
-        let mut interval = tokio::time::interval(Duration::from_secs(10));
-        interval.tick().await;
+        tracing::info!("starting background app update checker");
+
+        let mut interval = tokio::time::interval(Duration::from_secs(10 * 60));
 
         loop {
-            interval.tick().await;
-
             if let Err(err) = run_background_app_update_check(&app_handle).await {
                 tracing::error!(
                     error = %err,
                     "background app update check failed"
                 );
             }
+
+            interval.tick().await;
         }
     });
 }
 
 async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Result<()> {
-    println!("Running background app update check");
     let app_state: State<'_, AppState> = app_handle.state();
     let host_state: State<'_, AppsHostState> = app_handle.state();
 
@@ -52,7 +51,6 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
         let host_state = host_state.clone();
 
         async move {
-            println!("Checking update for app: {}", app_id);
             let result = check_app_update_inner(&app_handle, &host_state, &app_id).await;
 
             if let Err(err) = &result {
