@@ -19,7 +19,7 @@ pub struct SageAppIdentity {
     app_dir: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct SageAppCommon {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
@@ -47,7 +47,7 @@ impl SageAppCommon {
         )
     }
 
-    pub fn clone_for_rollback(&self) -> Self {
+    pub fn clone_durable(&self) -> Self {
         Self {
             identity: self.identity.clone(),
             granted_permissions: self.granted_permissions.clone(),
@@ -290,5 +290,30 @@ impl<'de> Deserialize<'de> for SageAppIdentity {
         let raw = SageAppIdentityRaw::deserialize(deserializer)?;
 
         SageAppIdentity::new(raw.id, raw.origin_id, raw.app_dir).map_err(serde::de::Error::custom)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct SageAppCommonRaw {
+    identity: SageAppIdentity,
+    granted_permissions: SageGrantedPermissions,
+    flags: SageAppFlags,
+    storage: InstalledSageAppStorage,
+    active_snapshot: SageAppSnapshot,
+    wallet_scope: SageAppWalletScope,
+}
+
+impl TryFrom<SageAppCommonRaw> for SageAppCommon {
+    type Error = anyhow::Error;
+
+    fn try_from(raw: SageAppCommonRaw) -> anyhow::Result<Self> {
+        SageAppCommon::build(
+            raw.identity,
+            raw.granted_permissions,
+            raw.storage,
+            raw.active_snapshot,
+            raw.wallet_scope,
+            Some(&raw.flags),
+        )
     }
 }

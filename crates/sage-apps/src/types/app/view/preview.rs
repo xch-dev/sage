@@ -17,12 +17,19 @@ pub struct UserSageAppPendingUpdateView {
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct UserSageAppPendingUpdateDecisionReviewView {
+    required_user_grantable_capabilities: Vec<UserBridgeCapability>,
+    required_network_whitelist: Vec<crate::types::SageNetworkWhitelistEntry>,
+    required_network_whitelist_by_network:
+        std::collections::BTreeMap<String, Vec<crate::types::SageNetworkWhitelistEntry>>,
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum UserSageAppPendingUpdateDecisionView {
     Apply,
-    Review {
-        required_user_grantable_capabilities: Vec<UserBridgeCapability>,
-    },
+    Review(UserSageAppPendingUpdateDecisionReviewView),
 }
 
 impl UserSageAppPendingUpdateView {
@@ -63,12 +70,52 @@ impl UserSageAppPendingUpdateDecisionView {
             .filter(|capability| !active_grants.has_capability(*capability))
             .collect::<Vec<_>>();
 
-        if required_user_grantable_capabilities.is_empty() {
+        let required_network_whitelist = pending_permissions
+            .network()
+            .whitelist()
+            .required()
+            .filter(|entry| !active_grants.network().whitelist().contains(*entry))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let required_network_whitelist_by_network = pending_permissions
+            .network()
+            .whitelist_by_network()
+            .iter()
+            .filter_map(|(network_id, requested_whitelist)| {
+                let granted_entries = active_grants
+                    .network()
+                    .whitelist_by_network()
+                    .get(network_id);
+
+                let missing = requested_whitelist
+                    .required()
+                    .filter(|entry| {
+                        !granted_entries
+                            .is_some_and(|entries| entries.contains(*entry))
+                    })
+                    .cloned()
+                    .collect::<Vec<_>>();
+
+                if missing.is_empty() {
+                    None
+                } else {
+                    Some((network_id.clone(), missing))
+                }
+            })
+            .collect::<std::collections::BTreeMap<_, _>>();
+
+        if required_user_grantable_capabilities.is_empty()
+            && required_network_whitelist.is_empty()
+            && required_network_whitelist_by_network.is_empty()
+        {
             Self::Apply
         } else {
-            Self::Review {
+            Self::Review(UserSageAppPendingUpdateDecisionReviewView {
                 required_user_grantable_capabilities,
-            }
+                required_network_whitelist,
+                required_network_whitelist_by_network,
+            })
         }
     }
 

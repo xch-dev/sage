@@ -2,7 +2,7 @@ use crate::capabilities::list::BridgeCapability;
 use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
 use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
-use crate::types::app::common::SageAppCommon;
+use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
@@ -249,7 +249,7 @@ pub enum UserSageAppSource {
     Url { app_url: SageAppUrl },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct UserSageApp {
     common: SageAppCommon,
     source: UserSageAppSource,
@@ -290,9 +290,21 @@ impl UserSageApp {
         }
     }
 
-    pub(crate) fn clone_for_rollback(&self) -> Self {
+    pub(crate) fn load_persisted(
+        common: SageAppCommon,
+        source: UserSageAppSource,
+        pending_update: Option<UserSageAppPendingUpdate>,
+    ) -> Self {
         Self {
-            common: self.common.clone_for_rollback(),
+            common,
+            source,
+            pending_update,
+        }
+    }
+
+    pub(crate) fn clone_durable(&self) -> Self {
+        Self {
+            common: self.common.clone_durable(),
             source: self.source.clone(),
             pending_update: self.pending_update.clone(),
         }
@@ -344,7 +356,7 @@ impl SageApp {
 
     pub(crate) fn clone_for_rollback(&self) -> anyhow::Result<Self> {
         match self {
-            Self::User(app) => Ok(Self::User(app.clone_for_rollback())),
+            Self::User(app) => Ok(Self::User(app.clone_durable())),
             Self::System(_) => {
                 anyhow::bail!("system apps are immutable")
             }
@@ -484,6 +496,35 @@ impl CorruptedInstalledSageApp {
 impl UserSageApp {
     pub(crate) fn into_sage_app(self) -> SageApp {
         SageApp::User(self)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct UserSageAppRaw {
+    common: SageAppCommonRaw,
+    source: UserSageAppSource,
+
+    #[serde(default)]
+    pending_update: Option<UserSageAppPendingUpdate>,
+}
+
+impl<'de> Deserialize<'de> for UserSageApp {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = UserSageAppRaw::deserialize(deserializer)?;
+
+        let common = raw
+            .common
+            .try_into()
+            .map_err(serde::de::Error::custom)?;
+
+        Ok(UserSageApp::load_persisted(
+            common,
+            raw.source,
+            raw.pending_update,
+        ))
     }
 }
 

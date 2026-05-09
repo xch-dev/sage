@@ -1,4 +1,7 @@
-export { PermissionsEditor } from './PermissionsEditor';
+export {
+  AppPermissionEditor,
+  UpdateDecisionPermissionEditor,
+} from './PermissionsEditor';
 export {
   emptyGrantedPermissionsInput,
   initialGrantedPermissionsInput,

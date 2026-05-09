@@ -96,6 +96,22 @@ impl SageGrantedPermissionsInput {
             self.network.whitelist_by_network.clone(),
         )
     }
+
+    pub fn with_additional(mut self, additional: SageGrantedPermissionsInput) -> Self {
+        self.capabilities.extend(additional.capabilities);
+
+        self.network.whitelist.extend(additional.network.whitelist);
+
+        for (network_id, entries) in additional.network.whitelist_by_network {
+            self.network
+                .whitelist_by_network
+                .entry(network_id)
+                .or_default()
+                .extend(entries);
+        }
+
+        self
+    }
 }
 
 impl From<&SageGrantedPermissions> for SageGrantedPermissionsView {
@@ -155,12 +171,55 @@ impl From<CapabilityDefinition<UserBridgeCapability>> for SageAppCapabilityDefin
     }
 }
 
-impl From<&SageGrantedPermissions> for SageGrantedPermissionsInput {
-    fn from(value: &SageGrantedPermissions) -> Self {
-        Self::new(
-            value.capabilities().copied(),
-            value.network().whitelist_iter().cloned(),
-            value.network().whitelist_by_network().clone(),
-        )
+impl From<(&SageGrantedPermissions, &SageRequestedPermissions)> for SageGrantedPermissionsInput {
+    fn from((granted, requested): (&SageGrantedPermissions, &SageRequestedPermissions)) -> Self {
+        let capabilities = granted
+            .capabilities()
+            .copied()
+            .filter(|capability| requested.capabilities().is_allowed(*capability));
+
+        let network_whitelist = granted
+            .network()
+            .whitelist_iter()
+            .filter(|entry| requested.network().whitelist().is_allowed(entry))
+            .cloned()
+            .chain(requested.network().whitelist().required().cloned());
+
+        let mut whitelist_by_network = granted
+            .network()
+            .whitelist_by_network()
+            .iter()
+            .filter_map(|(network_id, granted_entries)| {
+                let requested_whitelist = requested
+                    .network()
+                    .whitelist_by_network()
+                    .get(network_id)?;
+
+                let entries = granted_entries
+                    .iter()
+                    .filter(|entry| requested_whitelist.is_allowed(entry))
+                    .cloned()
+                    .collect::<BTreeSet<_>>();
+
+                if entries.is_empty() {
+                    None
+                } else {
+                    Some((network_id.clone(), entries))
+                }
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        for (network_id, requested_whitelist) in requested.network().whitelist_by_network() {
+            let required = requested_whitelist.required().cloned().collect::<Vec<_>>();
+
+            if !required.is_empty() {
+                whitelist_by_network
+                    .entry(network_id.clone())
+                    .or_default()
+                    .extend(required);
+            }
+        }
+
+        Self::new(capabilities, network_whitelist, whitelist_by_network)
     }
 }

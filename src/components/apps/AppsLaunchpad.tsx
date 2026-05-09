@@ -17,7 +17,6 @@ import { AppTile } from '@/components/apps/AppTile';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
 import {
   openAppPermissionsReview,
-  openAppUpdateReview,
 } from '@/lib/apps/openAppUpdate.ts';
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
@@ -527,18 +526,10 @@ export function AppsLaunchpad() {
           }
 
           const appId = contextMenu.app.common.identity.id;
-          const pendingUpdate = pendingUpdates[appId] ?? { kind: 'none' };
 
           closeContextMenu();
 
-          if (pendingUpdate.kind === 'requiresReview') {
-            void openAppUpdateReview(appId);
-            return;
-          }
-
-          if (pendingUpdate.kind === 'readyToApply') {
-            void handleApplyUpdate(appId);
-          }
+          void handleApplyUpdate(appId);
         }}
         onChangePermissions={() => {
           if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {

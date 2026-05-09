@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   appIconFromCommonView,
   AppModalShell,
-  PermissionsEditor,
+  AppPermissionEditor,
   WalletScopeEditor,
 } from '@sage-app/ui';
 import {
@@ -115,7 +115,7 @@ export function PermissionsReviewBody({
         </div>
 
         {tab === 'permissions' ? (
-          <PermissionsEditor
+          <AppPermissionEditor
             app={state.app}
             grantedPermissions={state.app.common.grantedPermissions}
             capabilityDefinitions={state.definitions}

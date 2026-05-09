@@ -3,7 +3,6 @@ import type {
   AppUpdateReviewContext,
   SageAppCapabilityDefinitionView,
   SageGrantedPermissionsInput,
-  SageGrantedPermissionsView,
   UserSageAppView,
 } from '@sage-system-app/sdk';
 import { definitionMap } from '../utils/definitions';
@@ -24,7 +23,6 @@ export function useUpdatePermissions(args: {
     [definitions],
   );
 
-  // auto-adjust permissions when update context changes
   useEffect(() => {
     if (!context) {
       setGrantedPermissions(app.common.grantedPermissions);

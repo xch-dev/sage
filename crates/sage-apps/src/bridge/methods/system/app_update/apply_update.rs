@@ -16,7 +16,7 @@ use crate::types::{SageAppView, SageGrantedPermissionsInput};
 #[serde(rename_all = "camelCase")]
 pub struct AppUpdateApplyUpdateParams {
     pub app_id: String,
-    pub granted_permissions: SageGrantedPermissionsInput,
+    pub additional_granted_permissions: SageGrantedPermissionsInput,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -58,7 +58,7 @@ impl BridgeMethod for AppUpdateApplyUpdate {
             tools.app_handle,
             tools.host_state,
             &params.app_id,
-            Some(params.granted_permissions),
+            Some(params.additional_granted_permissions),
         )
         .await
         .map_err(|err| {

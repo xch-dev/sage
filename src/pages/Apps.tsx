@@ -16,8 +16,6 @@ import { AppHost } from '@/components/apps/AppHost';
 import { AppsLaunchpad } from '@/components/apps/AppsLaunchpad';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 
-import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
-
 export function Apps() {
   const [workspaceActive, setWorkspaceActive] = useState(false);
 
@@ -263,15 +261,7 @@ export function Apps() {
                 if (!activeAppId) {
                   return;
                 }
-
-                if (activePendingUpdate.kind === 'requiresReview') {
-                  void openAppUpdateReview(activeAppId);
-                  return;
-                }
-
-                if (activePendingUpdate.kind === 'readyToApply') {
-                  void handleApplyActiveUpdate();
-                }
+                void handleApplyActiveUpdate();
               }}
             >
               {activeUpdateActivity.kind === 'applying'

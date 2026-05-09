@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::types::normalizers::normalized_non_empty_string;
@@ -6,7 +6,7 @@ use crate::types::{
     SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
 };
 
-#[derive(Debug, Clone, Serialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSageAppPendingUpdate {
     app_url: SageAppUrl,

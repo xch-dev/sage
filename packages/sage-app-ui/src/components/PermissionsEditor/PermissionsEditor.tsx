@@ -20,32 +20,148 @@ import { buildGroupedPermissionTree } from './permissionTree';
 import { networkKey, sortNetworkEntries } from './utils';
 import { PermissionSection } from './PermissionSection';
 
-interface Props {
+interface AppPermissionEditorProps {
   app: UserSageAppView | SystemSageAppView;
   grantedPermissions: SageGrantedPermissionsView;
   capabilityDefinitions: SageAppCapabilityDefinitionView[];
   onGrantedPermissionsChange?: (next: SageGrantedPermissionsInput) => void;
   editable?: boolean;
+  emptyText?: string;
 }
+
+interface UpdateDecisionPermissionEditorProps {
+  app: UserSageAppView;
+  capabilityDefinitions: SageAppCapabilityDefinitionView[];
+  emptyText?: string;
+}
+
+interface SharedPermissionEditorProps {
+  requestedPermissions: RequestedPermissionsView;
+  grantedPermissions: SageGrantedPermissionsView;
+  capabilityDefinitions: SageAppCapabilityDefinitionView[];
+  onGrantedPermissionsChange?: (next: SageGrantedPermissionsInput) => void;
+  editable?: boolean;
+  emptyText?: string;
+}
+
+type RequestedPermissionsView = {
+  capabilities?: {
+    required?: UserBridgeCapability[];
+    optional?: UserBridgeCapability[];
+  };
+  network?: {
+    whitelist?: {
+      required?: SageNetworkWhitelistEntry[];
+      optional?: SageNetworkWhitelistEntry[];
+    };
+    whitelistByNetwork?: Partial<
+      Record<
+        string,
+        {
+          required?: SageNetworkWhitelistEntry[];
+          optional?: SageNetworkWhitelistEntry[];
+        }
+      >
+    >;
+  };
+};
 
 type NetworkWhitelistByNetwork = Partial<
   Record<string, SageNetworkWhitelistEntry[]>
 >;
 
-export function PermissionsEditor({
+export function AppPermissionEditor({
   app,
   grantedPermissions,
   capabilityDefinitions,
   onGrantedPermissionsChange,
   editable = true,
-}: Props) {
-  const manifest =
-    'pendingUpdate' in app && app.pendingUpdate
-      ? app.pendingUpdate.manifest
-      : app.common.activeSnapshot.manifest;
+  emptyText,
+}: AppPermissionEditorProps) {
+  return (
+    <SharedPermissionEditor
+      requestedPermissions={
+        app.common.activeSnapshot.manifest.permissions ?? {}
+      }
+      grantedPermissions={grantedPermissions}
+      capabilityDefinitions={capabilityDefinitions}
+      onGrantedPermissionsChange={onGrantedPermissionsChange}
+      editable={editable}
+      emptyText={emptyText}
+    />
+  );
+}
 
-  const [showAllOptional, setShowAllOptional] = useState(false);
+export function UpdateDecisionPermissionEditor({
+  app,
+  capabilityDefinitions,
+  emptyText = 'This update does not require any new permissions.',
+}: UpdateDecisionPermissionEditorProps) {
+  const decision = app.pendingUpdate?.decision;
 
+  const grantedPermissions = useMemo<SageGrantedPermissionsView>(() => {
+    if (decision?.kind !== 'review') {
+      return emptyGrantedPermissions();
+    }
+
+    return {
+      capabilities: decision.requiredUserGrantableCapabilities ?? [],
+      network: {
+        whitelist: decision.requiredNetworkWhitelist ?? [],
+        whitelistByNetwork: decision.requiredNetworkWhitelistByNetwork ?? {},
+      },
+    };
+  }, [decision]);
+
+  const requestedPermissions = useMemo<RequestedPermissionsView>(() => {
+    if (decision?.kind !== 'review') {
+      return {};
+    }
+
+    return {
+      capabilities: {
+        required: decision.requiredUserGrantableCapabilities ?? [],
+        optional: [],
+      },
+      network: {
+        whitelist: {
+          required: decision.requiredNetworkWhitelist ?? [],
+          optional: [],
+        },
+        whitelistByNetwork: Object.fromEntries(
+          Object.entries(decision.requiredNetworkWhitelistByNetwork ?? {}).map(
+            ([networkId, entries]) => [
+              networkId,
+              {
+                required: entries,
+                optional: [],
+              },
+            ],
+          ),
+        ),
+      },
+    };
+  }, [decision]);
+
+  return (
+    <SharedPermissionEditor
+      requestedPermissions={requestedPermissions}
+      grantedPermissions={grantedPermissions}
+      capabilityDefinitions={capabilityDefinitions}
+      editable={false}
+      emptyText={emptyText}
+    />
+  );
+}
+
+function SharedPermissionEditor({
+  requestedPermissions,
+  grantedPermissions,
+  capabilityDefinitions,
+  onGrantedPermissionsChange,
+  editable = true,
+  emptyText = 'This app does not request any permissions.',
+}: SharedPermissionEditorProps) {
   const definitionsByKey = useMemo(
     () => capabilityDefinitionMap(capabilityDefinitions),
     [capabilityDefinitions],
@@ -66,30 +182,20 @@ export function PermissionsEditor({
     [grantedPermissions.network.whitelistByNetwork],
   );
 
-  const requestedRequiredCapabilities = useMemo(
-    () => manifest.permissions?.capabilities?.required ?? [],
-    [manifest.permissions?.capabilities?.required],
-  );
+  const requestedRequiredCapabilities =
+    requestedPermissions.capabilities?.required ?? [];
 
-  const requestedOptionalCapabilities = useMemo(
-    () => manifest.permissions?.capabilities?.optional ?? [],
-    [manifest.permissions?.capabilities?.optional],
-  );
+  const requestedOptionalCapabilities =
+    requestedPermissions.capabilities?.optional ?? [];
 
-  const requestedRequiredNetwork = useMemo<SageNetworkWhitelistEntry[]>(
-    () => manifest.permissions?.network?.whitelist?.required ?? [],
-    [manifest.permissions?.network?.whitelist?.required],
-  );
+  const requestedRequiredNetwork =
+    requestedPermissions.network?.whitelist?.required ?? [];
 
-  const requestedOptionalNetwork = useMemo<SageNetworkWhitelistEntry[]>(
-    () => manifest.permissions?.network?.whitelist?.optional ?? [],
-    [manifest.permissions?.network?.whitelist?.optional],
-  );
+  const requestedOptionalNetwork =
+    requestedPermissions.network?.whitelist?.optional ?? [];
 
-  const requestedNetworkByNetwork = useMemo(
-    () => manifest.permissions?.network?.whitelistByNetwork ?? {},
-    [manifest.permissions?.network?.whitelistByNetwork],
-  );
+  const requestedNetworkByNetwork =
+    requestedPermissions.network?.whitelistByNetwork ?? {};
 
   const userGrantableRequiredCapabilities = useMemo(
     () =>
@@ -187,31 +293,6 @@ export function PermissionsEditor({
     definitionsByKey,
   ]);
 
-  const grantedOptionalEntries = useMemo(
-    () => optionalEntries.filter((entry) => entry.granted),
-    [optionalEntries],
-  );
-
-  const ungrantedOptionalEntries = useMemo(
-    () => optionalEntries.filter((entry) => !entry.granted),
-    [optionalEntries],
-  );
-
-  const visibleOptionalEntries = useMemo(
-    () => (showAllOptional ? optionalEntries : grantedOptionalEntries),
-    [showAllOptional, optionalEntries, grantedOptionalEntries],
-  );
-
-  const requiredGroups = useMemo(
-    () => buildGroupedPermissionTree(requiredEntries),
-    [requiredEntries],
-  );
-
-  const optionalGroups = useMemo(
-    () => buildGroupedPermissionTree(visibleOptionalEntries),
-    [visibleOptionalEntries],
-  );
-
   function emitGrantedPermissions(next: SageGrantedPermissionsInput) {
     onGrantedPermissionsChange?.(next);
   }
@@ -280,9 +361,7 @@ export function PermissionsEditor({
         : (requestedNetworkByNetwork[networkId]?.required ?? []);
 
     const nextKeys = new Set<string>(
-      currentWhitelist.map((item: SageNetworkWhitelistEntry) =>
-        networkKey(item),
-      ),
+      currentWhitelist.map((item) => networkKey(item)),
     );
 
     for (const requiredEntry of requiredNetwork) {
@@ -343,10 +422,65 @@ export function PermissionsEditor({
     });
   }
 
+  return (
+    <PermissionSections
+      requiredEntries={requiredEntries}
+      optionalEntries={optionalEntries}
+      editable={editable}
+      emptyText={emptyText}
+      onToggleEntry={handleToggleEntry}
+    />
+  );
+}
+
+function PermissionSections({
+  requiredEntries,
+  optionalEntries,
+  editable,
+  emptyText,
+  onToggleEntry,
+}: {
+  requiredEntries: PermissionEntry[];
+  optionalEntries: PermissionEntry[];
+  editable: boolean;
+  emptyText: string;
+  onToggleEntry: (
+    entry: PermissionEntry,
+    nextGranted: boolean,
+    scheme?: NetworkPermissionScheme,
+  ) => void;
+}) {
+  const [showAllOptional, setShowAllOptional] = useState(false);
+
+  const grantedOptionalEntries = useMemo(
+    () => optionalEntries.filter((entry) => entry.granted),
+    [optionalEntries],
+  );
+
+  const ungrantedOptionalEntries = useMemo(
+    () => optionalEntries.filter((entry) => !entry.granted),
+    [optionalEntries],
+  );
+
+  const visibleOptionalEntries = useMemo(
+    () => (showAllOptional ? optionalEntries : grantedOptionalEntries),
+    [showAllOptional, optionalEntries, grantedOptionalEntries],
+  );
+
+  const requiredGroups = useMemo(
+    () => buildGroupedPermissionTree(requiredEntries),
+    [requiredEntries],
+  );
+
+  const optionalGroups = useMemo(
+    () => buildGroupedPermissionTree(visibleOptionalEntries),
+    [visibleOptionalEntries],
+  );
+
   if (requiredEntries.length === 0 && optionalEntries.length === 0) {
     return (
       <div className='rounded-xl border border-border px-3 py-4 text-sm text-muted-foreground'>
-        This app does not request any permissions.
+        {emptyText}
       </div>
     );
   }
@@ -358,7 +492,7 @@ export function PermissionsEditor({
           title='Required permissions'
           groups={requiredGroups}
           editable={editable}
-          onToggleEntry={handleToggleEntry}
+          onToggleEntry={onToggleEntry}
         />
       ) : null}
 
@@ -368,7 +502,7 @@ export function PermissionsEditor({
           groups={optionalGroups}
           editable={editable}
           separated={requiredGroups.length > 0}
-          onToggleEntry={handleToggleEntry}
+          onToggleEntry={onToggleEntry}
           trailingAction={
             !showAllOptional && ungrantedOptionalEntries.length > 0 ? (
               <button
@@ -385,4 +519,14 @@ export function PermissionsEditor({
       ) : null}
     </div>
   );
+}
+
+function emptyGrantedPermissions(): SageGrantedPermissionsView {
+  return {
+    capabilities: [],
+    network: {
+      whitelist: [],
+      whitelistByNetwork: {},
+    },
+  };
 }

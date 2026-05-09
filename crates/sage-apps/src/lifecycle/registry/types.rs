@@ -1,18 +1,10 @@
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot,
-    SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource,
-};
+use crate::types::{SageApp, UserSageApp};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct PersistedUserSageApp {
-    identity: SageAppIdentity,
-    granted_permissions: SageGrantedPermissions,
-    storage: InstalledSageAppStorage,
-    active_snapshot: SageAppSnapshot,
-    wallet_scope: SageAppWalletScope,
-    source: UserSageAppSource,
+    app: UserSageApp,
 }
 
 impl TryFrom<&SageApp> for PersistedUserSageApp {
@@ -23,16 +15,7 @@ impl TryFrom<&SageApp> for PersistedUserSageApp {
             .as_user()
             .ok_or_else(|| anyhow::anyhow!("not a user app"))?;
 
-        let common = user_app.common();
-
-        Ok(Self {
-            identity: common.identity().clone(),
-            granted_permissions: common.granted_permissions().clone(),
-            storage: common.storage().clone(),
-            active_snapshot: common.active_snapshot().clone(),
-            wallet_scope: common.wallet_scope().clone(),
-            source: user_app.source().clone(),
-        })
+        Self::try_from(user_app)
     }
 }
 
@@ -40,15 +23,8 @@ impl TryFrom<&UserSageApp> for PersistedUserSageApp {
     type Error = anyhow::Error;
 
     fn try_from(user_app: &UserSageApp) -> anyhow::Result<Self> {
-        let common = user_app.common();
-
         Ok(Self {
-            identity: common.identity().clone(),
-            granted_permissions: common.granted_permissions().clone(),
-            storage: common.storage().clone(),
-            active_snapshot: common.active_snapshot().clone(),
-            wallet_scope: common.wallet_scope().clone(),
-            source: user_app.source().clone(),
+            app: user_app.clone_durable(),
         })
     }
 }
@@ -57,42 +33,6 @@ impl TryFrom<PersistedUserSageApp> for UserSageApp {
     type Error = anyhow::Error;
 
     fn try_from(persisted: PersistedUserSageApp) -> anyhow::Result<Self> {
-        let common = SageAppCommon::new(
-            persisted.identity,
-            persisted.granted_permissions,
-            persisted.storage,
-            persisted.active_snapshot,
-            persisted.wallet_scope,
-        )?;
-
-        Ok(UserSageApp::new_installed(common, persisted.source))
-    }
-}
-
-#[derive(Debug, Deserialize)]
-struct PersistedUserSageAppRaw {
-    identity: SageAppIdentity,
-    granted_permissions: SageGrantedPermissions,
-    storage: InstalledSageAppStorage,
-    active_snapshot: SageAppSnapshot,
-    wallet_scope: SageAppWalletScope,
-    source: UserSageAppSource,
-}
-
-impl<'de> Deserialize<'de> for PersistedUserSageApp {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let raw = PersistedUserSageAppRaw::deserialize(deserializer)?;
-
-        Ok(Self {
-            identity: raw.identity,
-            granted_permissions: raw.granted_permissions,
-            storage: raw.storage,
-            active_snapshot: raw.active_snapshot,
-            wallet_scope: raw.wallet_scope,
-            source: raw.source,
-        })
+        Ok(persisted.app)
     }
 }

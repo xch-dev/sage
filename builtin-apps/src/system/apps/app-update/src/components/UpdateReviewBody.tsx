@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   appIconFromCommonView,
   AppModalShell,
-  inputToGrantedPermissionsView,
-  PermissionsEditor,
+  UpdateDecisionPermissionEditor,
 } from '@sage-app/ui';
-import { formatSageError, getSageSystemClient } from '@sage-system-app/sdk';
-import { useUpdatePermissions } from '../hooks/useUpdatePermissions';
+import {
+  formatSageError,
+  getSageSystemClient,
+  type SageGrantedPermissionsInput,
+} from '@sage-system-app/sdk';
 import { NoUpdateBody } from './NoUpdateBody';
 import { PartialUpdateBody } from './PartialUpdateBody';
 
@@ -14,11 +16,30 @@ export function UpdateReviewBody({ state, onReload }: any) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { grantedPermissions, setGrantedPermissions } = useUpdatePermissions({
-    app: state.app,
-    context: state.updateContext,
-    definitions: state.definitions,
-  });
+  const preview = state.updateContext?.preview ?? null;
+
+  const additionalGrantedPermissions =
+    useMemo<SageGrantedPermissionsInput>(() => {
+      const decision = state.app.pendingUpdate?.decision;
+
+      if (decision?.kind !== 'review') {
+        return {
+          capabilities: [],
+          network: {
+            whitelist: [],
+            whitelistByNetwork: {},
+          },
+        };
+      }
+
+      return {
+        capabilities: decision.requiredUserGrantableCapabilities ?? [],
+        network: {
+          whitelist: decision.requiredNetworkWhitelist ?? [],
+          whitelistByNetwork: decision.requiredNetworkWhitelistByNetwork ?? {},
+        },
+      };
+    }, [state.app.pendingUpdate?.decision]);
 
   async function close() {
     const client = await getSageSystemClient();
@@ -34,7 +55,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
 
       await client.appUpdate.applyUpdate({
         appId: state.app.common.identity.id,
-        grantedPermissions,
+        additionalGrantedPermissions,
       });
 
       await close();
@@ -45,9 +66,6 @@ export function UpdateReviewBody({ state, onReload }: any) {
     }
   }
 
-  const preview = state.updateContext?.preview ?? null;
-
-  // ---- No update
   if (!preview) {
     return (
       <AppModalShell
@@ -64,7 +82,6 @@ export function UpdateReviewBody({ state, onReload }: any) {
     );
   }
 
-  // ---- Partial / unsupported
   if (preview.manifest.kind === 'partial') {
     return (
       <AppModalShell
@@ -81,21 +98,6 @@ export function UpdateReviewBody({ state, onReload }: any) {
       </AppModalShell>
     );
   }
-
-  // ---- Build preview app
-  const reviewApp = useMemo(() => {
-    return {
-      ...state.app,
-      common: {
-        ...state.app.common,
-        grantedPermissions: inputToGrantedPermissionsView(grantedPermissions),
-        activeSnapshot: {
-          ...state.app.common.activeSnapshot,
-          manifest: preview.manifest.manifest,
-        },
-      },
-    };
-  }, [state.app, grantedPermissions, preview]);
 
   return (
     <AppModalShell
@@ -123,12 +125,9 @@ export function UpdateReviewBody({ state, onReload }: any) {
       }
     >
       <div className='space-y-4'>
-        <PermissionsEditor
-          app={reviewApp}
-          grantedPermissions={reviewApp.common.grantedPermissions}
+        <UpdateDecisionPermissionEditor
+          app={state.app}
           capabilityDefinitions={state.definitions}
-          editable={!submitting}
-          onGrantedPermissionsChange={setGrantedPermissions}
         />
 
         {error && (

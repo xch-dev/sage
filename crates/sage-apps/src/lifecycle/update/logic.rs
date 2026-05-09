@@ -1,5 +1,5 @@
 use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::host::Result;
+use crate::host::{Result};
 use crate::lifecycle::{
     download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview,
 };
@@ -69,6 +69,7 @@ pub(super) async fn check_app_update_inner(
             return Ok(Some(preview));
         }
     };
+    println!("Pending update prepared for {app_id}, Update: {pending_update:?}");
 
     app.try_mutate(|sage_app| {
         sage_app
@@ -88,40 +89,11 @@ pub(crate) async fn apply_app_update_inner(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-    granted_permissions_input: Option<SageGrantedPermissionsInput>,
+    additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
 ) -> Result<SageAppView> {
-    let resolved = resolve_app(app_handle, app_id)
-        .await
-        .map_err(|err| {
-            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
-        })?;
+    let preflight = preflight_apply_app_update(app_handle, apps_state, app_id).await?;
 
-    let pending = resolved.with_app(|app| {
-        app.try_with(|sage_app| {
-            let user_app = sage_app
-                .as_user()
-                .ok_or_else(|| anyhow::anyhow!("system app cannot receive user update"))?;
-
-            user_app
-                .pending_update()
-                .cloned()
-                .ok_or_else(|| anyhow::anyhow!("app {app_id} has no pending update"))
-        })
-    });
-
-    let pending = match pending {
-        Ok(pending) => pending,
-        Err(err) => {
-            let app = resolved.clone_app_for_operation();
-            emit_pending_update_changed(app_handle, apps_state, &app).await;
-
-            return Err(io::Error::other(err).into());
-        }
-    };
-
-    let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
-
-    if should_review && granted_permissions_input.is_none() {
+    if preflight.should_review && additional_granted_permissions_input.is_none() {
         open_update_runtime(
             app_handle,
             apps_state,
@@ -131,66 +103,27 @@ pub(crate) async fn apply_app_update_inner(
         )
             .await;
 
+        let resolved = resolve_app(app_handle, app_id).await.map_err(|err| {
+            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
+        })?;
+
         return Ok(resolved.with_app(|app| app.into()));
     }
 
     let reopen_after_update = ReopenAfterUpdate::capture(app_handle, apps_state, app_id).await?;
 
-    let app = {
-        let resolved = crate::runtime::resolve_stopped_app(app_handle, app_id)
-            .await
-            .map_err(|err| {
-                io::Error::other(format!(
-                    "failed to resolve stopped app {app_id} for update: {err}"
-                ))
-            })?;
-
-        let granted_permissions_input = match granted_permissions_input {
-            Some(input) => input,
-            None => resolved.try_with_app(|app| {
-                app.try_with(|sage_app| {
-                    Ok::<_, anyhow::Error>(SageGrantedPermissionsInput::from(
-                        sage_app.common().granted_permissions(),
-                    ))
-                })
-            })?,
-        };
-
-        let app_path = resolved.with_app(|app| app.with(SageApp::app_path));
-
-        let snapshot = download_url_snapshot(
-            &app_path,
-            pending.app_url(),
-            pending.manifest(),
-            pending.manifest_hash(),
-        )
-            .await
-            .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
-
-        resolved
-            .try_with_app(|app| {
-                app.try_mutate(|sage_app| {
-                    let granted_permissions = granted_permissions_input
-                        .resolve(pending.manifest().permissions())
-                        .map_err(|err| anyhow::anyhow!("invalid update permissions: {err}"))?;
-
-                    sage_app.apply_update(&pending, granted_permissions, snapshot)?;
-
-                    sage_app
-                        .set_pending_update(None)
-                        .map_err(|err| anyhow::anyhow!("failed to clear pending update: {err}"))?;
-
-                    Ok::<_, anyhow::Error>(())
-                })
-            })
-            .map_err(io::Error::other)?;
-
-        resolved.into_app()
-    };
+    let app = execute_app_update(
+        app_handle,
+        app_id,
+        preflight.pending,
+        additional_granted_permissions_input,
+    )
+        .await?;
 
     emit_pending_update_changed(app_handle, apps_state, &app).await;
 
-    if reopen_after_update.should_reopen && let Err(err) = start_user_app(
+    if reopen_after_update.should_reopen
+        && let Err(err) = start_user_app(
         app_handle,
         apps_state,
         CreateInstalledRuntimeArgs {
@@ -334,6 +267,111 @@ async fn open_update_runtime(
             );
             err
         });
+}
+
+struct ApplyAppUpdatePreflight {
+    pending: UserSageAppPendingUpdate,
+    should_review: bool,
+}
+
+async fn preflight_apply_app_update(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<ApplyAppUpdatePreflight> {
+    let resolved = resolve_app(app_handle, app_id).await.map_err(|err| {
+        io::Error::other(format!("failed to read installed app {app_id}: {err}"))
+    })?;
+
+    let pending = resolved.with_app(|app| {
+        app.try_with(|sage_app| {
+            let user_app = sage_app
+                .as_user()
+                .ok_or_else(|| anyhow::anyhow!("system app cannot receive user update"))?;
+
+            user_app
+                .pending_update()
+                .cloned()
+                .ok_or_else(|| anyhow::anyhow!("app {app_id} has no pending update"))
+        })
+    });
+
+    let pending = match pending {
+        Ok(pending) => pending,
+        Err(err) => {
+            let app = resolved.clone_app_for_operation();
+            emit_pending_update_changed(app_handle, apps_state, &app).await;
+
+            return Err(io::Error::other(err).into());
+        }
+    };
+
+    let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
+
+    Ok(ApplyAppUpdatePreflight {
+        pending,
+        should_review,
+    })
+}
+
+async fn execute_app_update(
+    app_handle: &AppHandle,
+    app_id: &str,
+    pending: UserSageAppPendingUpdate,
+    additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
+) -> Result<SharedSageApp> {
+    let resolved = crate::runtime::resolve_stopped_app(app_handle, app_id)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!(
+                "failed to resolve stopped app {app_id} for update: {err}"
+            ))
+        })?;
+
+    let granted_permissions_input = resolved.try_with_app(|app| {
+        app.try_with(|sage_app| {
+            let base = SageGrantedPermissionsInput::from((
+                sage_app.common().granted_permissions(),
+                pending.manifest().permissions(),
+            ));
+
+            Ok::<_, anyhow::Error>(match additional_granted_permissions_input {
+                Some(additional) => base.with_additional(additional),
+                None => base,
+            })
+        })
+    })?;
+
+    let app_path = resolved.with_app(|app| app.with(SageApp::app_path));
+
+    let snapshot = download_url_snapshot(
+        &app_path,
+        pending.app_url(),
+        pending.manifest(),
+        pending.manifest_hash(),
+    )
+        .await
+        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+
+    resolved
+        .try_with_app(|app| {
+            app.try_mutate(|sage_app| {
+                let granted_permissions = granted_permissions_input
+                    .resolve(pending.manifest().permissions())
+                    .map_err(|err| anyhow::anyhow!("invalid update permissions: {err}"))?;
+
+                sage_app.apply_update(&pending, granted_permissions, snapshot)?;
+
+                sage_app
+                    .set_pending_update(None)
+                    .map_err(|err| anyhow::anyhow!("failed to clear pending update: {err}"))?;
+
+                Ok::<_, anyhow::Error>(())
+            })
+        })
+        .map_err(io::Error::other)?;
+
+    Ok(resolved.into_app())
 }
 
 #[derive(Debug, Clone, Copy)]

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   AppModalShell,
-  PermissionsEditor,
+  AppPermissionEditor,
   WalletScopeEditor,
 } from '@sage-app/ui';
 import {
@@ -161,7 +161,7 @@ export function ReviewInstallView({
     >
       <div className='space-y-5'>
         {step === 'permissions' ? (
-          <PermissionsEditor
+          <AppPermissionEditor
             app={previewApp}
             grantedPermissions={previewApp.common.grantedPermissions}
             capabilityDefinitions={definitions}
