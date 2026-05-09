@@ -1,12 +1,24 @@
+use crate::bridge::methods::system::emit_pending_update_changed;
+use crate::host::Result;
+use crate::lifecycle::{
+    download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview,
+};
+use crate::runtime::{resolve_app, start_app_update_runtime};
+use crate::types::{
+    ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView,
+    SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate,
+    UserSageAppSource,
+};
+use crate::AppsHostState;
 use std::collections::BTreeMap;
 use std::io;
 use tauri::{AppHandle, State};
-use crate::AppsHostState;
-use crate::bridge::methods::system::{emit_pending_update_changed};
-use crate::host::Result;
-use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview};
-use crate::runtime::{resolve_app, start_app_update_runtime};
-use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+
+pub(crate) enum AppUpdatePreviewResult {
+    None,
+    AlreadyPending(SageAppUrlPreview),
+    New(SageAppUrlPreview),
+}
 
 pub(super) async fn check_app_update_inner(
     app_handle: &AppHandle,
@@ -19,17 +31,26 @@ pub(super) async fn check_app_update_inner(
 
     let app = resolved.clone_app_for_operation();
 
-    let Some(preview) = preview_app_update(&resolved).await? else {
-        app.try_mutate(|sage_app| {
-            sage_app
-                .set_pending_update(None)
-                .map_err(|err| err.to_string())
-        })
-            .map_err(io::Error::other)?;
+    let preview = match preview_app_update(&resolved).await? {
+        AppUpdatePreviewResult::None => {
+            app.try_mutate(|sage_app| {
+                sage_app
+                    .set_pending_update(None)
+                    .map_err(|err| err.to_string())
+            })
+                .map_err(io::Error::other)?;
 
-        emit_pending_update_changed(app_handle, apps_state, &app).await;
+            emit_pending_update_changed(app_handle, apps_state, &app).await;
 
-        return Ok(None);
+            return Ok(None);
+        }
+
+        AppUpdatePreviewResult::AlreadyPending(preview) => {
+            emit_pending_update_changed(app_handle, apps_state, &app).await;
+            return Ok(Some(preview));
+        }
+
+        AppUpdatePreviewResult::New(preview) => preview,
     };
 
     let pending_update = match fetch_pending_update(&app).await {
@@ -53,7 +74,8 @@ pub(super) async fn check_app_update_inner(
     })
         .map_err(io::Error::other)?;
 
-    println!("App update prepared successfully for app: {}", app_id);
+    tracing::info!(app_id = %app_id, "app update prepared successfully");
+
     emit_pending_update_changed(app_handle, apps_state, &app).await;
 
     Ok(Some(preview))
@@ -105,9 +127,9 @@ pub(crate) async fn apply_app_update_inner(
         Some(input) => input,
         None => resolved.try_with_app(|app| {
             app.try_with(|sage_app| {
-                Ok::<_, anyhow::Error>(
-                    SageGrantedPermissionsInput::from(sage_app.common().granted_permissions()),
-                )
+                Ok::<_, anyhow::Error>(SageGrantedPermissionsInput::from(
+                    sage_app.common().granted_permissions(),
+                ))
             })
         })?,
     };
@@ -146,8 +168,9 @@ pub(crate) async fn apply_app_update_inner(
 
 pub(crate) async fn preview_app_update(
     app: &ResolvedApp,
-) -> Result<Option<SageAppUrlPreview>> {
+) -> Result<AppUpdatePreviewResult> {
     let shared_sage_app = app.clone_app_for_operation();
+
     let deps = shared_sage_app.with(|app| match app {
         SageApp::System(_) => None,
         SageApp::User(user_app) => Some((
@@ -158,12 +181,12 @@ pub(crate) async fn preview_app_update(
     });
 
     let Some((source, active_snapshot, existing_pending)) = deps else {
-        return Ok(None);
+        return Ok(AppUpdatePreviewResult::None);
     };
 
     let app_url = match source {
         UserSageAppSource::Url { app_url } => app_url,
-        UserSageAppSource::Zip => return Ok(None),
+        UserSageAppSource::Zip => return Ok(AppUpdatePreviewResult::None),
     };
 
     let (manifest_preview, manifest_hash) = fetch_url_manifest_preview(&app_url.manifest_url())
@@ -178,7 +201,7 @@ pub(crate) async fn preview_app_update(
         && let Some(full_manifest) = preview.full_manifest()
         && full_manifest == active_snapshot.manifest()
     {
-        return Ok(None);
+        return Ok(AppUpdatePreviewResult::None);
     }
 
     if let Some(existing_pending) = existing_pending
@@ -186,10 +209,10 @@ pub(crate) async fn preview_app_update(
         && existing_pending.manifest_hash() == preview.manifest_hash()
         && existing_pending.manifest() == full_manifest
     {
-        return Ok(None);
+        return Ok(AppUpdatePreviewResult::AlreadyPending(preview));
     }
 
-    Ok(Some(preview))
+    Ok(AppUpdatePreviewResult::New(preview))
 }
 
 pub(crate) async fn fetch_pending_update(

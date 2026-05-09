@@ -9,7 +9,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::logic::preview_app_update;
+use crate::lifecycle::update::logic::{preview_app_update, AppUpdatePreviewResult};
 use crate::runtime::resolve_app;
 use crate::types::{SageApp, SageAppUrlPreview, UserSageAppView};
 
@@ -80,14 +80,18 @@ impl BridgeMethod for AppUpdateGetReviewContext {
                 ))
             })?;
 
-        let preview = preview_app_update(&resolved)
+        let preview = match preview_app_update(&resolved)
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!(
                     "failed to check update for {}: {err}",
                     params.app_id
                 ))
-            })?;
+            })? {
+            AppUpdatePreviewResult::None => None,
+            AppUpdatePreviewResult::AlreadyPending(preview)
+            | AppUpdatePreviewResult::New(preview) => Some(preview),
+        };
 
         Ok(Box::new(AppUpdateReviewContext { app, preview }))
     }
