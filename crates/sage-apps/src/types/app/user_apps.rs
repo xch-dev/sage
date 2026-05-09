@@ -1,7 +1,7 @@
 use crate::capabilities::list::BridgeCapability;
 use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
-use crate::types::SageAppUrl;
+use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
 use crate::types::app::common::SageAppCommon;
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -109,6 +109,23 @@ impl SharedSageApp {
         Self {
             inner: Arc::clone(&self.inner),
         }
+    }
+
+    pub(crate) fn should_review_pending_update(&self) -> bool {
+        self.with(|sage_app| {
+            let Some(user_app) = sage_app.as_user() else {
+                return false;
+            };
+
+            user_app.pending_update().is_some_and(|pending| {
+                UserSageAppPendingUpdateView::from_pending_update(
+                    pending,
+                    user_app.common().granted_permissions(),
+                )
+                    .decision()
+                    .is_review()
+            })
+        })
     }
 
     pub fn with<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {

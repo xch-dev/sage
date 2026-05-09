@@ -8,11 +8,7 @@ import { useApps } from '@/contexts/AppsContext.tsx';
 import { routeForApp } from '../lib/apps/route';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
-import {
-  commands,
-  type SageAppUrlPreview,
-  type UserSageAppView,
-} from '@/bindings';
+import { commands, type UserSageAppView } from '@/bindings';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
 import { openAppUpdateReview } from '@/lib/apps/openAppUpdate.ts';
 import { getCurrentWindow } from '@tauri-apps/api/window';
@@ -25,20 +21,17 @@ export function AppsWorkspace() {
 
     void commands
       .appsEnterWorkspace()
-
       .then(() => {
         if (!cancelled) {
           setWorkspaceActive(true);
         }
       })
-
       .catch((err) => {
         console.error('Failed to activate apps workspace:', err);
       });
 
     return () => {
       cancelled = true;
-
       setWorkspaceActive(false);
 
       void commands.appsLeaveWorkspace().catch((err) => {
@@ -54,7 +47,9 @@ export function AppsWorkspace() {
     runtimes,
     getApp,
     getListedApp,
-    updateAvailability,
+    pendingUpdates,
+    pendingUpdateActivity,
+    setPendingUpdateActivity,
     busyAppIds,
     activeTaskbarRuntime,
   } = useApps();
@@ -140,12 +135,19 @@ export function AppsWorkspace() {
     ? (getApp(appId) ?? null)
     : null;
 
-  const activeUpdatePreview: SageAppUrlPreview | null = activeApp
-    ? (updateAvailability[activeApp.common.identity.id] ?? null)
-    : null;
+  const activeAppId = activeApp?.common.identity.id ?? null;
 
-  const activeBusy = activeApp
-    ? (busyAppIds[activeApp.common.identity.id] ?? false)
+  const activePendingUpdate = activeAppId
+    ? (pendingUpdates[activeAppId] ?? { kind: 'none' as const })
+    : { kind: 'none' as const };
+
+  const activeUpdateActivity = activeAppId
+    ? (pendingUpdateActivity[activeAppId] ?? { kind: 'idle' as const })
+    : { kind: 'idle' as const };
+
+  const activeBusy = activeAppId
+    ? (busyAppIds[activeAppId] ?? false) ||
+    activeUpdateActivity.kind === 'applying'
     : false;
 
   const activeManifest = activeApp?.common.activeSnapshot.manifest;
@@ -184,6 +186,21 @@ export function AppsWorkspace() {
     return out;
   }, [runtimes, tabOrder, getListedApp, activeTaskbarRuntime?.appId]);
 
+  async function handleApplyActiveUpdate() {
+    if (!activeAppId) {
+      return;
+    }
+
+    setPendingUpdateActivity(activeAppId, { kind: 'applying' });
+
+    try {
+      await commands.applyAppUpdate(activeAppId);
+    } catch (err) {
+      console.error('Failed to apply app update:', err);
+      setPendingUpdateActivity(activeAppId, { kind: 'idle' });
+    }
+  }
+
   if (!workspaceActive) {
     return null;
   }
@@ -219,25 +236,41 @@ export function AppsWorkspace() {
         }}
       />
 
-      {activeApp?.source.kind === 'url' && activeUpdatePreview ? (
+      {activeApp?.source.kind === 'url' && activePendingUpdate.kind !== 'none' ? (
         <Alert className='shrink-0 rounded-none border-x-0 border-t-0'>
-          <AlertTitle>New version available</AlertTitle>
+          <AlertTitle>
+            {activePendingUpdate.kind === 'requiresReview'
+              ? 'Update needs review'
+              : 'Update ready'}
+          </AlertTitle>
           <AlertDescription className='flex items-center justify-between gap-4'>
             <span>
-              {activeUpdatePreview.manifest.kind === 'full'
-                ? `Version ${activeUpdatePreview.manifest.manifest.version} is available for ${activeApp.common.activeSnapshot.manifest.name}.`
-                : `An update is available for ${activeApp.common.activeSnapshot.manifest.name}, but it cannot be installed by this Sage version.`}
+              {activePendingUpdate.kind === 'requiresReview'
+                ? `An update is available for ${activeApp.common.activeSnapshot.manifest.name} and needs review before it can be applied.`
+                : `An update is ready to apply for ${activeApp.common.activeSnapshot.manifest.name}.`}
             </span>
 
             <Button
               variant='outline'
               disabled={activeBusy}
               onClick={() => {
-                if (!activeApp) return;
-                void openAppUpdateReview(activeApp.common.identity.id);
+                if (!activeAppId) return;
+
+                if (activePendingUpdate.kind === 'requiresReview') {
+                  void openAppUpdateReview(activeAppId);
+                  return;
+                }
+
+                if (activePendingUpdate.kind === 'readyToApply') {
+                  void handleApplyActiveUpdate();
+                }
               }}
             >
-              Review update
+              {activeUpdateActivity.kind === 'applying'
+                ? 'Applying...'
+                : activePendingUpdate.kind === 'requiresReview'
+                  ? 'Review update'
+                  : 'Apply update'}
             </Button>
           </AlertDescription>
         </Alert>

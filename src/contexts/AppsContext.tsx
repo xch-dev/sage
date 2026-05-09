@@ -15,8 +15,6 @@ import {
   commands,
   type ListedSageAppView,
   type SageAppRuntimeRecordView,
-  type SageAppUrlPreview,
-  SageAppView,
   type SandboxStateView,
   type SystemSageAppView,
   type UserSageAppView,
@@ -27,6 +25,16 @@ type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
 type InstalledEntry = UserInstalledEntry | SystemInstalledEntry;
 
 const SAGE_RUNTIME_EVENT_NAME = 'apps:runtime-event';
+
+export type PendingUpdateStatusView =
+  | { kind: 'none' }
+  | { kind: 'readyToApply' }
+  | { kind: 'requiresReview' };
+
+export type PendingUpdateActivity =
+  | { kind: 'idle' }
+  | { kind: 'checking' }
+  | { kind: 'applying' };
 
 interface RuntimeManagerRuntimesChangedEvent {
   type: 'runtimeManager.runtimesChanged';
@@ -58,11 +66,20 @@ interface SandboxStateChangedEvent {
   };
 }
 
+interface PendingUpdateChangedEvent {
+  type: 'appUpdate.pendingUpdateChanged';
+  payload: {
+    appId: string;
+    status: PendingUpdateStatusView;
+  };
+}
+
 type SageRuntimeEvent =
   | RuntimeManagerRuntimesChangedEvent
   | ActiveTaskbarRuntimeChangedEvent
   | ListedAppsChangedEvent
-  | SandboxStateChangedEvent;
+  | SandboxStateChangedEvent
+  | PendingUpdateChangedEvent;
 
 type ActiveTaskbarRuntime = {
   appId: string | null;
@@ -76,7 +93,8 @@ interface AppsContextValue {
   loading: boolean;
   error: string | null;
   busyAppIds: Record<string, boolean>;
-  updateAvailability: Record<string, SageAppUrlPreview | null>;
+  pendingUpdates: Record<string, PendingUpdateStatusView>;
+  pendingUpdateActivity: Record<string, PendingUpdateActivity>;
   sandboxState: SandboxStateView | null;
   launchGatesByAppId: Record<string, AppLaunchGateResult>;
 
@@ -90,17 +108,12 @@ interface AppsContextValue {
   refreshRuntimes: () => Promise<void>;
   refreshLaunchGates: (listed: ListedSageAppView[]) => Promise<void>;
   setBusy: (appId: string, busy: boolean) => void;
-  setUpdateAvailability: (
-    updater:
-      | Record<string, SageAppUrlPreview | null>
-      | ((
-          prev: Record<string, SageAppUrlPreview | null>,
-        ) => Record<string, SageAppUrlPreview | null>),
+  setPendingUpdateActivity: (
+    appId: string,
+    activity: PendingUpdateActivity,
   ) => void;
 
   uninstallApp: (appId: string) => Promise<void>;
-  checkForUpdate: (appId: string) => Promise<SageAppUrlPreview | null>;
-  performAppUpdate: (appId: string) => Promise<SageAppView>;
   clearAppStorage: (appId: string) => Promise<void>;
   activeTaskbarRuntime: ActiveTaskbarRuntime;
 }
@@ -150,15 +163,23 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   >([]);
   const [activeTaskbarRuntime, setActiveTaskbarRuntime] =
     useState<ActiveTaskbarRuntime>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyAppIds, setBusyAppIds] = useState<Record<string, boolean>>({});
-  const [updateAvailability, setUpdateAvailability] = useState<
-    Record<string, SageAppUrlPreview | null>
+
+  const [pendingUpdates, setPendingUpdates] = useState<
+    Record<string, PendingUpdateStatusView>
   >({});
+
+  const [pendingUpdateActivity, setPendingUpdateActivityState] = useState<
+    Record<string, PendingUpdateActivity>
+  >({});
+
   const [sandboxState, setSandboxState] = useState<SandboxStateView | null>(
     null,
   );
+
   const [launchGatesByAppId, setLaunchGatesByAppId] = useState<
     Record<string, AppLaunchGateResult>
   >({});
@@ -248,7 +269,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             if (isCancelled) return;
 
             const runtimeEvent = event.payload;
-            console.log('Received runtime event:', runtimeEvent);
 
             switch (runtimeEvent.type) {
               case 'runtimeManager.runtimesChanged':
@@ -282,6 +302,18 @@ export function AppsProvider({ children }: { children: ReactNode }) {
               case 'sandbox.stateChanged':
                 setSandboxState(runtimeEvent.payload.state);
                 void refreshLaunchGates(appsRef.current);
+                break;
+
+              case 'appUpdate.pendingUpdateChanged':
+                setPendingUpdates((prev) => ({
+                  ...prev,
+                  [runtimeEvent.payload.appId]: runtimeEvent.payload.status,
+                }));
+
+                setPendingUpdateActivityState((prev) => ({
+                  ...prev,
+                  [runtimeEvent.payload.appId]: { kind: 'idle' },
+                }));
                 break;
             }
           },
@@ -376,17 +408,12 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     setBusyAppIds((prev) => ({ ...prev, [appId]: busy }));
   }, []);
 
-  const setUpdateAvailabilityState = useCallback(
-    (
-      updater:
-        | Record<string, SageAppUrlPreview | null>
-        | ((
-            prev: Record<string, SageAppUrlPreview | null>,
-          ) => Record<string, SageAppUrlPreview | null>),
-    ) => {
-      setUpdateAvailability((prev) =>
-        typeof updater === 'function' ? updater(prev) : updater,
-      );
+  const setPendingUpdateActivity = useCallback(
+    (appId: string, activity: PendingUpdateActivity) => {
+      setPendingUpdateActivityState((prev) => ({
+        ...prev,
+        [appId]: activity,
+      }));
     },
     [],
   );
@@ -394,10 +421,17 @@ export function AppsProvider({ children }: { children: ReactNode }) {
   const uninstallApp = useCallback(
     async (appId: string) => {
       setBusy(appId, true);
+
       try {
         await commands.uninstallApp(appId);
 
-        setUpdateAvailability((prev) =>
+        setPendingUpdates((prev) =>
+          Object.fromEntries(
+            Object.entries(prev).filter(([key]) => key !== appId),
+          ),
+        );
+
+        setPendingUpdateActivityState((prev) =>
           Object.fromEntries(
             Object.entries(prev).filter(([key]) => key !== appId),
           ),
@@ -408,26 +442,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
             Object.entries(prev).filter(([key]) => key !== appId),
           ),
         );
-      } finally {
-        setBusy(appId, false);
-      }
-    },
-    [setBusy],
-  );
-
-  const checkForUpdate = useCallback(async (appId: string) => {
-    const preview = await commands.checkAppUpdate(appId);
-
-    setUpdateAvailability((prev) => ({ ...prev, [appId]: preview }));
-
-    return preview;
-  }, []);
-
-  const performAppUpdate = useCallback(
-    async (appId: string) => {
-      setBusy(appId, true);
-      try {
-        return await commands.applyAppUpdate(appId);
       } finally {
         setBusy(appId, false);
       }
@@ -452,7 +466,8 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       busyAppIds,
-      updateAvailability,
+      pendingUpdates,
+      pendingUpdateActivity,
       sandboxState,
       launchGatesByAppId,
 
@@ -466,11 +481,9 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       refreshRuntimes,
       refreshLaunchGates,
       setBusy,
-      setUpdateAvailability: setUpdateAvailabilityState,
+      setPendingUpdateActivity,
 
       uninstallApp,
-      checkForUpdate,
-      performAppUpdate,
       clearAppStorage,
       activeTaskbarRuntime,
     }),
@@ -481,7 +494,8 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       busyAppIds,
-      updateAvailability,
+      pendingUpdates,
+      pendingUpdateActivity,
       sandboxState,
       launchGatesByAppId,
       getApp,
@@ -493,10 +507,8 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       refreshRuntimes,
       refreshLaunchGates,
       setBusy,
-      setUpdateAvailabilityState,
+      setPendingUpdateActivity,
       uninstallApp,
-      checkForUpdate,
-      performAppUpdate,
       clearAppStorage,
       activeTaskbarRuntime,
     ],
@@ -507,8 +519,10 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
 export function useApps() {
   const value = useContext(AppsContext);
+
   if (!value) {
     throw new Error('useApps must be used within AppsProvider');
   }
+
   return value;
 }

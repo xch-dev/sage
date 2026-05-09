@@ -2,16 +2,24 @@ use crate::AppsHostState;
 use crate::bridge::emit_system_runtime_event_to_listeners;
 use crate::bridge::event_emit::SystemRuntimeEvent;
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::types::{SageApp, SharedSageApp, UserSageAppView};
+use crate::types::{SageApp, SharedSageApp};
 use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
 #[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase", tag = "kind")]
+pub(crate) enum PendingUpdateStatusView {
+    None,
+    ReadyToApply,
+    RequiresReview,
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct PendingUpdateChangedEvent {
     pub app_id: String,
-    pub app: UserSageAppView,
+    pub status: PendingUpdateStatusView,
 }
 
 impl SystemRuntimeEvent for PendingUpdateChangedEvent {
@@ -22,11 +30,19 @@ impl SystemRuntimeEvent for PendingUpdateChangedEvent {
 pub(crate) async fn emit_pending_update_changed(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    app: &SharedSageApp,
+    shared_sage_app: &SharedSageApp,
 ) {
-    let Some((app_id, app)) = app.with(|app| match app {
+    let Some((app_id, status)) = shared_sage_app.with(|sage_app| match sage_app {
         SageApp::User(user_app) => {
-            Some((user_app.common().id().to_string(), UserSageAppView::from(user_app)))
+            let status = if user_app.pending_update().is_none() {
+                PendingUpdateStatusView::None
+            } else if shared_sage_app.should_review_pending_update() {
+                PendingUpdateStatusView::RequiresReview
+            } else {
+                PendingUpdateStatusView::ReadyToApply
+            };
+
+            Some((user_app.common().id().to_string(), status))
         }
         SageApp::System(_) => None,
     }) else {
@@ -36,7 +52,7 @@ pub(crate) async fn emit_pending_update_changed(
     emit_system_runtime_event_to_listeners(
         app_handle,
         apps_state,
-        PendingUpdateChangedEvent { app_id, app },
+        PendingUpdateChangedEvent { app_id, status },
     )
         .await;
 }

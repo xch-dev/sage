@@ -6,7 +6,7 @@ use crate::bridge::methods::system::{emit_pending_update_changed};
 use crate::host::Result;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest, fetch_url_manifest_preview};
 use crate::runtime::{resolve_app, start_app_update_runtime};
-use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppPendingUpdateView, UserSageAppSource};
+use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 pub(super) async fn check_app_update_inner(
     app_handle: &AppHandle,
@@ -53,6 +53,7 @@ pub(super) async fn check_app_update_inner(
     })
         .map_err(io::Error::other)?;
 
+    println!("App update prepared successfully for app: {}", app_id);
     emit_pending_update_changed(app_handle, apps_state, &app).await;
 
     Ok(Some(preview))
@@ -85,7 +86,7 @@ pub(crate) async fn apply_app_update_inner(
     let pending =
         pending.ok_or_else(|| io::Error::other(format!("app {app_id} has no pending update")))?;
 
-    let should_review = resolved.with_app(should_review_pending_update);
+    let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
 
     if should_review && granted_permissions_input.is_none() {
         open_update_runtime(
@@ -239,25 +240,6 @@ pub(crate) async fn fetch_pending_update(
         preview.manifest_hash().to_string(),
         manifest.clone(),
     )))
-}
-
-fn should_review_pending_update(app: &SharedSageApp) -> bool {
-    app.with(|sage_app| {
-        let Some(user_app) = sage_app.as_user() else {
-            return false;
-        };
-
-        user_app
-            .pending_update()
-            .is_some_and(|pending| {
-                UserSageAppPendingUpdateView::from_pending_update(
-                    pending,
-                    user_app.common().granted_permissions(),
-                )
-                    .decision()
-                    .is_review()
-            })
-    })
 }
 
 async fn open_update_runtime(

@@ -9,7 +9,7 @@ const outRoot = resolve(packageRoot, '../../build/dist/system');
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
 const onlyApps = process.argv.slice(2);
-const concurrency = Number(process.env.SYSTEM_APPS_CONCURRENCY ?? 4);
+const concurrency = Number(process.env.SYSTEM_APPS_CONCURRENCY ?? 6);
 
 function listAllApps() {
   return readdirSync(appsRoot)

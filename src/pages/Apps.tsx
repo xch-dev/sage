@@ -6,7 +6,6 @@ import { formatSandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
 import {
   commands,
   ListedSageAppView,
-  SageAppUrlPreview,
   SystemSageAppView,
   UserSageAppView,
 } from '@/bindings.ts';
@@ -84,10 +83,6 @@ function formatErrorMessage(err: unknown): string {
   }
 }
 
-function isFullUpdatePreview(preview: SageAppUrlPreview | null): boolean {
-  return preview?.manifest.kind === 'full';
-}
-
 async function openApp(appId: string) {
   return await commands.appsCreateInlineRuntime({
     appId,
@@ -99,7 +94,7 @@ export function Apps() {
   const pageRef = useRef<HTMLDivElement | null>(null);
 
   const [updateCheckStateByAppId, setUpdateCheckStateByAppId] = useState<
-    Record<string, 'idle' | 'checking' | 'up_to_date'>
+    Record<string, 'idle' | 'up_to_date'>
   >({});
 
   const [clearingDataByAppId, setClearingDataByAppId] = useState<
@@ -117,9 +112,10 @@ export function Apps() {
     error,
     refresh,
     uninstallApp,
-    checkForUpdate,
     clearAppStorage,
-    updateAvailability,
+    pendingUpdates,
+    pendingUpdateActivity,
+    setPendingUpdateActivity,
     busyAppIds,
     getLaunchGate,
   } = useApps();
@@ -136,29 +132,43 @@ export function Apps() {
 
   const corruptedApps = useMemo(() => apps.filter(isCorruptedEntry), [apps]);
 
-  const contextMenuPreview = contextMenu
-    ? updateAvailability[contextMenu.app.common.identity.id]
+  const contextMenuAppId = contextMenu?.app.common.identity.id ?? null;
+
+  const contextMenuPendingUpdate = contextMenuAppId
+    ? (pendingUpdates[contextMenuAppId] ?? { kind: 'none' as const })
+    : { kind: 'none' as const };
+
+  const contextMenuUpdateActivity = contextMenuAppId
+    ? (pendingUpdateActivity[contextMenuAppId] ?? { kind: 'idle' as const })
+    : { kind: 'idle' as const };
+
+  const contextMenuBusy = contextMenuAppId
+    ? (busyAppIds[contextMenuAppId] ?? false) ||
+      contextMenuUpdateActivity.kind === 'applying'
+    : false;
+
+  const contextMenuCheckState =
+    contextMenuUpdateActivity.kind === 'checking'
+      ? 'checking'
+      : contextMenuAppId
+        ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
+        : 'idle';
+
+  const contextMenuAppIsRunning = contextMenuAppId
+    ? runningAppIds.has(contextMenuAppId)
+    : false;
+
+  const contextMenuClearDataBusy = contextMenuAppId
+    ? (clearingDataByAppId[contextMenuAppId] ?? false)
+    : false;
+
+  const contextMenuClearDataError = contextMenuAppId
+    ? (clearDataErrorByAppId[contextMenuAppId] ?? null)
     : null;
 
-  const contextMenuBusy = contextMenu
-    ? (busyAppIds[contextMenu.app.common.identity.id] ?? false)
-    : false;
-
-  const contextMenuCheckState = contextMenu
-    ? (updateCheckStateByAppId[contextMenu.app.common.identity.id] ?? 'idle')
-    : 'idle';
-
-  const contextMenuAppIsRunning = contextMenu
-    ? runningAppIds.has(contextMenu.app.common.identity.id)
-    : false;
-
-  const contextMenuClearDataBusy = contextMenu
-    ? (clearingDataByAppId[contextMenu.app.common.identity.id] ?? false)
-    : false;
-
-  const contextMenuClearDataError = contextMenu
-    ? (clearDataErrorByAppId[contextMenu.app.common.identity.id] ?? null)
-    : null;
+  const contextMenuHasUpdate = contextMenuPendingUpdate.kind !== 'none';
+  const contextMenuUpdateIsInstallable =
+    contextMenuPendingUpdate.kind === 'readyToApply';
 
   const closeContextMenu = useCallback(() => {
     setContextMenu((prevContextMenu) => {
@@ -180,9 +190,11 @@ export function Apps() {
   }, []);
 
   async function handleCheckForUpdate(appId: string) {
+    setPendingUpdateActivity(appId, { kind: 'checking' });
+
     setUpdateCheckStateByAppId((prev) => ({
       ...prev,
-      [appId]: 'checking',
+      [appId]: 'idle',
     }));
 
     setClearDataErrorByAppId((prev) => ({
@@ -191,25 +203,48 @@ export function Apps() {
     }));
 
     try {
-      const preview = await checkForUpdate(appId);
+      const preview = await commands.checkAppUpdate(appId);
 
-      setUpdateCheckStateByAppId((prev) => ({
-        ...prev,
-        [appId]: preview ? 'idle' : 'up_to_date',
-      }));
+      if (!preview) {
+        setUpdateCheckStateByAppId((prev) => ({
+          ...prev,
+          [appId]: 'up_to_date',
+        }));
+      }
     } catch (err) {
       const message = formatAppError(err);
 
-      console.error('checkForUpdate failed:', err);
-
-      setUpdateCheckStateByAppId((prev) => ({
-        ...prev,
-        [appId]: 'idle',
-      }));
+      console.error('checkAppUpdate failed:', err);
 
       setClearDataErrorByAppId((prev) => ({
         ...prev,
         [appId]: `Update check failed: ${message}`,
+      }));
+    } finally {
+      setPendingUpdateActivity(appId, { kind: 'idle' });
+    }
+  }
+
+  async function handleApplyUpdate(appId: string) {
+    setPendingUpdateActivity(appId, { kind: 'applying' });
+
+    setClearDataErrorByAppId((prev) => ({
+      ...prev,
+      [appId]: null,
+    }));
+
+    try {
+      await commands.applyAppUpdate(appId);
+    } catch (err) {
+      const message = formatAppError(err);
+
+      console.error('applyAppUpdate failed:', err);
+
+      setPendingUpdateActivity(appId, { kind: 'idle' });
+
+      setClearDataErrorByAppId((prev) => ({
+        ...prev,
+        [appId]: `Update failed: ${message}`,
       }));
     }
   }
@@ -459,8 +494,8 @@ export function Apps() {
         x={contextMenu?.x ?? 0}
         y={contextMenu?.y ?? 0}
         busy={contextMenuBusy}
-        hasUpdate={!!contextMenuPreview}
-        updateIsInstallable={isFullUpdatePreview(contextMenuPreview)}
+        hasUpdate={contextMenuHasUpdate}
+        updateIsInstallable={contextMenuUpdateIsInstallable}
         isRunning={contextMenuAppIsRunning}
         updateCheckState={contextMenuCheckState}
         clearDataBusy={contextMenuClearDataBusy}
@@ -487,18 +522,23 @@ export function Apps() {
           void handleCheckForUpdate(contextMenu.app.common.identity.id);
         }}
         onUpdate={() => {
-          if (
-            !contextMenu ||
-            !contextMenuPreview ||
-            !isUserInstalledEntry(contextMenu.app)
-          ) {
+          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
             return;
           }
 
           const appId = contextMenu.app.common.identity.id;
+          const pendingUpdate = pendingUpdates[appId] ?? { kind: 'none' };
 
           closeContextMenu();
-          void openAppUpdateReview(appId);
+
+          if (pendingUpdate.kind === 'requiresReview') {
+            void openAppUpdateReview(appId);
+            return;
+          }
+
+          if (pendingUpdate.kind === 'readyToApply') {
+            void handleApplyUpdate(appId);
+          }
         }}
         onChangePermissions={() => {
           if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
