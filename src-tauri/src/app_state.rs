@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use sage::{Result, Sage};
 use sage_api::SyncEvent as ApiEvent;
+#[cfg(not(mobile))]
+use sage_apps::{AppsHostState, process_sage_network_change};
 use sage_wallet::SyncEvent;
+#[cfg(not(mobile))]
+use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
-#[cfg(not(mobile))]
-use sage_apps::{process_sage_network_change, AppsHostState};
-#[cfg(not(mobile))]
-use tauri::{Manager};
 
 pub struct Initialized(pub Mutex<bool>);
 

@@ -11,9 +11,7 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::capabilities::list::UserBridgeCapability;
-use crate::lifecycle::update::permissions::{
-    grant_network_whitelist_entry,
-};
+use crate::lifecycle::update::permissions::grant_network_whitelist_entry;
 use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
 use crate::types::SageNetworkWhitelistEntry;
 
@@ -104,13 +102,13 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
             params.network_id.as_deref(),
             &params.entry,
         )
-            .await;
+        .await;
 
         let result = match grant_result {
             Ok(GrantNetworkWhitelistOutcome::AlreadyGranted {
-                   entry,
-                   full_granted_network_whitelist,
-               }) => RequestNetworkWhitelistGrantResult {
+                entry,
+                full_granted_network_whitelist,
+            }) => RequestNetworkWhitelistGrantResult {
                 granted: true,
                 already_granted: Some(true),
                 entry,

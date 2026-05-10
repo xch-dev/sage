@@ -88,9 +88,7 @@ pub async fn sandbox_runner(app: AppHandle) {
         let current_run = apps_state.sandbox.current_run.lock().await.clone();
 
         current_run.map_or_else(
-            || {
-                build_running_sandbox_state(unix_timestamp_ms())
-            },
+            || build_running_sandbox_state(unix_timestamp_ms()),
             |r| r.state,
         )
     };

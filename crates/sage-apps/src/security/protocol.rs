@@ -30,7 +30,7 @@ pub async fn handle_user_app_protocol_request(
             Err(_) => Ok(not_found_response()),
         }
     }
-        .await;
+    .await;
 
     result.unwrap_or_else(|_| not_found_response())
 }
@@ -51,7 +51,7 @@ pub async fn handle_system_app_protocol_request(
             .await
             .map_err(|err| anyhow!("sage-system-app error: {err}"))
     }
-        .await;
+    .await;
 
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", &err))
 }

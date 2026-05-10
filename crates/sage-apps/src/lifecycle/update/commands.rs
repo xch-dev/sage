@@ -1,11 +1,9 @@
-use tauri::{command, AppHandle, State};
+use tauri::{AppHandle, State, command};
 
-use crate::host::Result;
-use crate::lifecycle::update::logic::{check_app_update_inner, apply_app_update_inner};
-use crate::types::{
-    SageAppUrlPreview, SageAppView,
-};
 use crate::AppsHostState;
+use crate::host::Result;
+use crate::lifecycle::update::logic::{apply_app_update_inner, check_app_update_inner};
+use crate::types::{SageAppUrlPreview, SageAppView};
 
 #[command]
 #[specta::specta]
@@ -24,10 +22,5 @@ pub async fn apply_app_update(
     apps_state: State<'_, AppsHostState>,
     app_id: String,
 ) -> Result<SageAppView> {
-    apply_app_update_inner(
-        &app_handle,
-        &apps_state,
-        &app_id,
-        None,
-    ).await
+    apply_app_update_inner(&app_handle, &apps_state, &app_id, None).await
 }

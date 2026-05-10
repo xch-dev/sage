@@ -181,16 +181,16 @@ impl SageGrantedPermissions {
 
             if !definition.flags().user_grantable() {
                 anyhow::bail!(
-                "extra granted capability is not user grantable: {}",
-                capability.key()
-            );
+                    "extra granted capability is not user grantable: {}",
+                    capability.key()
+                );
             }
 
             if definition.flags().requestable_by_app() {
                 anyhow::bail!(
-                "extra granted capability must not be app-manifest requestable: {}",
-                capability.key()
-            );
+                    "extra granted capability must not be app-manifest requestable: {}",
+                    capability.key()
+                );
             }
 
             capabilities.insert(capability);

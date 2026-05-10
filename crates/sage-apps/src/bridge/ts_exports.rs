@@ -1,4 +1,15 @@
-use crate::bridge::methods::system::{AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent, DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams, FileSystemSelectFileResult, ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent, SandboxStateChangedEvent, SystemWalletView, WalletListWalletsResult};
+use crate::bridge::methods::system::{
+    AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams,
+    AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams,
+    AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams,
+    AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult,
+    AppUpdateGetReviewContextParams, AppUpdateReviewContext, BridgeApprovalsChangedEvent,
+    DonationDetails, DonationGetDetailsParams, FileSystemSelectFileParams,
+    FileSystemSelectFileResult, ListedAppsChangedEvent, PendingBridgeApprovalView,
+    PendingUpdateChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    RuntimeManagerRuntimesChangedEvent, SandboxStateChangedEvent, SystemWalletView,
+    WalletListWalletsResult,
+};
 use crate::bridge::methods::user::{
     app::{
         GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,

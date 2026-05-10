@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use crate::AppsHostState;
 use crate::bridge::emit_user_runtime_event_to_app_id;
 use crate::bridge::methods::user::app::{
     GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
@@ -12,7 +13,6 @@ use crate::runtime::{reload_app_runtime, resolve_app};
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 use anyhow::Context;
 use tauri::{AppHandle, State};
-use crate::AppsHostState;
 
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
@@ -45,22 +45,14 @@ pub async fn grant_network_whitelist_entry(
     network_id: Option<&str>,
     entry: &SageNetworkWhitelistEntry,
 ) -> anyhow::Result<GrantNetworkWhitelistOutcome> {
-    let update = grant_network_whitelist_entry_internal(
-        app_handle,
-        apps_state,
-        app_id,
-        network_id,
-        entry,
-    )
-        .await?;
+    let update =
+        grant_network_whitelist_entry_internal(app_handle, apps_state, app_id, network_id, entry)
+            .await?;
 
     Ok(GrantNetworkWhitelistOutcome::from_update(
-        network_id,
-        entry,
-        &update,
+        network_id, entry, &update,
     ))
 }
-
 
 async fn grant_capability_internal(
     app_handle: &AppHandle,
@@ -89,24 +81,22 @@ async fn grant_network_whitelist_entry_internal(
 ) -> anyhow::Result<AppUpdateResult> {
     let app = resolve_app_for_permission_update(app_handle, app_id).await?;
 
-    let granted_permissions = app.try_with(|sage_app| {
-        match network_id {
-            Some(network_id) => sage_app
-                .common()
-                .granted_permissions()
-                .with_network_whitelist_entry_for_network_added(
-                    sage_app.common().requested_permissions(),
-                    network_id,
-                    entry.clone(),
-                ),
-            None => sage_app
-                .common()
-                .granted_permissions()
-                .with_network_whitelist_entry_added(
-                    sage_app.common().requested_permissions(),
-                    entry.clone(),
-                ),
-        }
+    let granted_permissions = app.try_with(|sage_app| match network_id {
+        Some(network_id) => sage_app
+            .common()
+            .granted_permissions()
+            .with_network_whitelist_entry_for_network_added(
+                sage_app.common().requested_permissions(),
+                network_id,
+                entry.clone(),
+            ),
+        None => sage_app
+            .common()
+            .granted_permissions()
+            .with_network_whitelist_entry_added(
+                sage_app.common().requested_permissions(),
+                entry.clone(),
+            ),
     })?;
 
     apply_granted_permissions(app_handle, apps_state, &app, &granted_permissions).await
@@ -136,7 +126,11 @@ async fn apply_granted_permissions(
     if update_result.change().network_changed() {
         reload_app_runtime(app_handle, apps_state, &app.id())
             .await
-            .map_err(|err| anyhow::anyhow!("failed to reload app runtime after network permission change: {err}"))?;
+            .map_err(|err| {
+                anyhow::anyhow!(
+                    "failed to reload app runtime after network permission change: {err}"
+                )
+            })?;
     }
 
     Ok(update_result)

@@ -1,5 +1,5 @@
-use sha2::{Digest, Sha256};
 use anyhow::{Context, Result as AnyResult};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::{fs, path::PathBuf};

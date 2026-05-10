@@ -1,12 +1,12 @@
-use std::time::Duration;
 use futures::future::join_all;
+use std::time::Duration;
 
-use tauri::{AppHandle, Manager, State};
-use crate::{AppsHostState};
+use crate::AppsHostState;
 use crate::host::AppState;
-use crate::lifecycle::{apps_root, list_installed_apps_internal};
 use crate::lifecycle::update::logic::check_app_update_inner;
+use crate::lifecycle::{apps_root, list_installed_apps_internal};
 use crate::types::ListedSageApp;
+use tauri::{AppHandle, Manager, State};
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
@@ -55,10 +55,10 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
 
             if let Err(err) = &result {
                 tracing::warn!(
-                error = %err,
-                app_id = %app_id,
-                "failed to check app update in background"
-            );
+                    error = %err,
+                    app_id = %app_id,
+                    "failed to check app update in background"
+                );
             }
 
             result

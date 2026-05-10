@@ -2,8 +2,8 @@ use crate::bridge::bridge_request::{process, process_system};
 use crate::bridge::{RustBridgeInvokeResult, RustBridgeRequest};
 use crate::capabilities::user_registry;
 use crate::host::AppState;
-use tauri::{AppHandle, State, Webview};
 use crate::types::SageAppCapabilityDefinitionView;
+use tauri::{AppHandle, State, Webview};
 
 #[tauri::command]
 #[specta::specta]

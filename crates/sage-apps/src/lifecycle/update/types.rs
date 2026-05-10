@@ -211,15 +211,9 @@ impl GrantedNetworkWhitelistByNetworkChange {
         let mut full = BTreeMap::new();
 
         for network_id in network_ids {
-            let previous_entries = previous
-                .get(&network_id)
-                .cloned()
-                .unwrap_or_default();
+            let previous_entries = previous.get(&network_id).cloned().unwrap_or_default();
 
-            let next_entries = next
-                .get(&network_id)
-                .cloned()
-                .unwrap_or_default();
+            let next_entries = next.get(&network_id).cloned().unwrap_or_default();
 
             let removed_entries = previous_entries
                 .difference(&next_entries)
@@ -240,10 +234,7 @@ impl GrantedNetworkWhitelistByNetworkChange {
             }
 
             if !next_entries.is_empty() {
-                full.insert(
-                    network_id,
-                    next_entries.into_iter().collect::<Vec<_>>(),
-                );
+                full.insert(network_id, next_entries.into_iter().collect::<Vec<_>>());
             }
         }
 

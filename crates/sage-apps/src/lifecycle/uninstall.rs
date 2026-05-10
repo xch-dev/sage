@@ -25,7 +25,9 @@ pub async fn uninstall_app(
     let resolved_app = match resolve_stopped_app(&app_handle, &app_id).await {
         Ok(app) => Some(app),
         Err(ResolveStoppedError::AppDirMissing) => {
-            tracing::error!("[uninstall_app] app dir missing/unresolvable {app_id}; removing dir only");
+            tracing::error!(
+                "[uninstall_app] app dir missing/unresolvable {app_id}; removing dir only"
+            );
             None
         }
 

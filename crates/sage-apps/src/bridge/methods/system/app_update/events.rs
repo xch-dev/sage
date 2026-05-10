@@ -54,5 +54,5 @@ pub(crate) async fn emit_pending_update_changed(
         apps_state,
         PendingUpdateChangedEvent { app_id, status },
     )
-        .await;
+    .await;
 }

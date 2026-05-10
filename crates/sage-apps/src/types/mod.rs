@@ -10,12 +10,10 @@ mod url;
 pub use app::SharedSageApp;
 
 pub(crate) use app::{
-    view::*,
-    AppModalPresentation, AppPresentation, CorruptedInstalledSageApp, ListedSageApp,
-    ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry,
-    SageApp, SageAppCommon, SageAppIdentity, SageAppSnapshot, SageAppUrlPreview,
-    SageAppWalletScope, SystemSageApp, UserSageApp, UserSageAppPendingUpdate,
-    UserSageAppSource
+    AppModalPresentation, AppPresentation, CorruptedInstalledSageApp, ListedSageApp, ResolvedApp,
+    ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
+    SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, SageAppWalletScope, SystemSageApp,
+    UserSageApp, UserSageAppPendingUpdate, UserSageAppSource, view::*,
 };
 pub(crate) use manifest::{
     SageAppManifestFile, SageAppManifestHeaderV0, SageAppPackageManifest,

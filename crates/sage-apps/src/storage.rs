@@ -1,6 +1,6 @@
+use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
-use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
 
 #[cfg(target_os = "windows")]
 pub fn data_directory_for(directory_name: &str) -> PathBuf {

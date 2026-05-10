@@ -5,7 +5,10 @@ use specta::Type;
 
 use crate::capabilities::get_user_capability_definition;
 use crate::capabilities::list::UserBridgeCapability;
-use crate::types::invariants::{split_required_optional_set, validate_network_id, validate_permissions_policy, validate_requested_capabilities_are_requestable};
+use crate::types::invariants::{
+    split_required_optional_set, validate_network_id, validate_permissions_policy,
+    validate_requested_capabilities_are_requestable,
+};
 use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 
 #[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]

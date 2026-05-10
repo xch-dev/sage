@@ -4,20 +4,24 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
+use crate::runtime::commands::CreateInstalledRuntimeArgs;
+use crate::runtime::events::emit_runtime_manager_runtimes_changed;
+use crate::runtime::manager::sync_modal_runtime_visibility;
 use crate::runtime::state::{
     SageAppRuntimeRecord, remove_impostor_runtime_by_victim_app_id, remove_runtime_by_runtime_id,
     remove_runtime_id_by_app_id, write_impostor_runtime, write_runtime,
 };
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
-use crate::runtime::{SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime, build_entry_src, build_entry_src_for, is_allowed_app_url, resolve_app, RuntimeChangeSet, SageAppRuntimeRecordView, focus_taskbar_runtime};
+use crate::runtime::{
+    RuntimeChangeSet, SageAppRuntimeImpostorKind, SageAppRuntimeImpostorRecord, SageAppRuntimeMode,
+    SageAppRuntimeRecordView, SageAppRuntimeVisibility, SharedImpostorRuntime, SharedRuntime,
+    build_entry_src, build_entry_src_for, focus_taskbar_runtime, is_allowed_app_url, resolve_app,
+};
 use crate::storage::parse_data_store_id;
 use crate::types::{
     AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
 };
 use crate::{AppsHostState, sandbox};
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::events::emit_runtime_manager_runtimes_changed;
-use crate::runtime::manager::sync_modal_runtime_visibility;
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -51,8 +55,8 @@ pub(crate) async fn start_user_app(
             query: BTreeMap::new(),
         },
     )
-        .await
-        .map(Into::into);
+    .await
+    .map(Into::into);
 
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
 
@@ -363,6 +367,6 @@ window.__SAGE_APPS_COMMS_DEBUG__ = true;
 fn debug_test_apps_enabled() -> bool {
     cfg!(debug_assertions)
         && std::env::var("SAGE_DEBUG_TEST_APPS")
-        .map(|v| v == "1")
-        .unwrap_or(false)
+            .map(|v| v == "1")
+            .unwrap_or(false)
 }

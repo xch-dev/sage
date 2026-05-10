@@ -131,10 +131,7 @@ impl From<&SageGrantedNetworkPermissions> for SageGrantedNetworkPermissionsView 
                 .whitelist_by_network()
                 .iter()
                 .map(|(network_id, entries)| {
-                    (
-                        network_id.clone(),
-                        entries.iter().map(Into::into).collect(),
-                    )
+                    (network_id.clone(), entries.iter().map(Into::into).collect())
                 })
                 .collect(),
         }
@@ -190,10 +187,8 @@ impl From<(&SageGrantedPermissions, &SageRequestedPermissions)> for SageGrantedP
             .whitelist_by_network()
             .iter()
             .filter_map(|(network_id, granted_entries)| {
-                let requested_whitelist = requested
-                    .network()
-                    .whitelist_by_network()
-                    .get(network_id)?;
+                let requested_whitelist =
+                    requested.network().whitelist_by_network().get(network_id)?;
 
                 let entries = granted_entries
                     .iter()

@@ -42,8 +42,8 @@ pub use bridge::ts_exports::{export_system_bridge_typescript, export_user_bridge
 
 // Operations
 pub use lifecycle::{process_pending_storage_cleanup, start_background_app_update_checker};
+pub use runtime::process_sage_network_change;
 pub use sandbox::runner::ensure_initial_sandbox_run;
-pub use runtime::{process_sage_network_change};
 
 // Docs
 pub use build::docs::generate_docs;

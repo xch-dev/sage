@@ -7,7 +7,7 @@ use crate::runtime::events::{
     emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed,
 };
 use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
-use crate::runtime::stop::{kill_runtime_inner};
+use crate::runtime::stop::kill_runtime_inner;
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
 use crate::runtime::workspace::ensure_apps_workspace_active;
 use crate::runtime::{
@@ -278,7 +278,8 @@ async fn kill_all_user_runtimes(
 
         if should_kill {
             kill_runtime_inner(app_handle, apps_state, &app_id, "kill-all", &mut changes)
-                .await.map_err(|err| err.to_string())?;
+                .await
+                .map_err(|err| err.to_string())?;
         }
     }
 

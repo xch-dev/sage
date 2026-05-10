@@ -91,8 +91,7 @@ impl UserSageAppPendingUpdateDecisionView {
                 let missing = requested_whitelist
                     .required()
                     .filter(|entry| {
-                        !granted_entries
-                            .is_some_and(|entries| entries.contains(*entry))
+                        !granted_entries.is_some_and(|entries| entries.contains(*entry))
                     })
                     .cloned()
                     .collect::<Vec<_>>();

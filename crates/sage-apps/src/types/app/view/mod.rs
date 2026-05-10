@@ -7,6 +7,6 @@ mod system_apps;
 mod user_apps;
 
 pub(crate) use common::SageAppIconView;
-pub(crate) use user_apps::{ListedSageAppView, SageAppView, UserSageAppView};
 pub(crate) use permission::{SageAppCapabilityDefinitionView, SageGrantedPermissionsInput};
 pub(crate) use preview::UserSageAppPendingUpdateView;
+pub(crate) use user_apps::{ListedSageAppView, SageAppView, UserSageAppView};

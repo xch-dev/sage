@@ -1,7 +1,6 @@
 use crate::capabilities::list::BridgeCapability;
 use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
-use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
 use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
 use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -12,6 +11,7 @@ use crate::types::permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
 use crate::types::storage::InstalledSageAppStorage;
+use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::path::PathBuf;
@@ -122,8 +122,8 @@ impl SharedSageApp {
                     pending,
                     user_app.common().granted_permissions(),
                 )
-                    .decision()
-                    .is_review()
+                .decision()
+                .is_review()
             })
         })
     }
@@ -515,10 +515,7 @@ impl<'de> Deserialize<'de> for UserSageApp {
     {
         let raw = UserSageAppRaw::deserialize(deserializer)?;
 
-        let common = raw
-            .common
-            .try_into()
-            .map_err(serde::de::Error::custom)?;
+        let common = raw.common.try_into().map_err(serde::de::Error::custom)?;
 
         Ok(UserSageApp::load_persisted(
             common,
