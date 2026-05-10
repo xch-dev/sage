@@ -59,7 +59,7 @@ export function AppsLaunchpadContextMenu({
     ? isRunning
       ? 'Update and reopen'
       : 'Update'
-    : 'Update issue';
+    : 'Review update';
 
   return (
     <>
