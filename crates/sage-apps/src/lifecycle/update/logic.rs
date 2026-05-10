@@ -91,6 +91,10 @@ pub(crate) async fn apply_app_update_inner(
     app_id: &str,
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
 ) -> Result<SageAppView> {
+    let _update_guard = apps_state
+        .try_begin_app_update(app_id)
+        .map_err(io::Error::other)?;
+
     let preflight = preflight_apply_app_update(app_handle, apps_state, app_id).await?;
 
     if preflight.should_review && additional_granted_permissions_input.is_none() {

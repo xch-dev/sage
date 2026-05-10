@@ -7,7 +7,7 @@ use sage::Sage;
 use sage_api::ErrorKind;
 use serde::{Deserialize, Serialize};
 use specta::Type;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -17,6 +17,7 @@ pub type AppState = Arc<Mutex<Sage>>;
 #[derive(Debug, Default)]
 pub struct AppsHostState {
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
+    pub app_update_locks: RwLock<HashSet<String>>,
     pub runtime: AppRuntimeState,
     pub bridge: BridgeState,
     pub sandbox: SandboxStateStore,
@@ -35,6 +36,17 @@ impl AppsHostState {
             .or_insert_with(|| Arc::new(Mutex::new(())))
             .clone()
     }
+
+    pub fn try_begin_app_update(&self, app_id: &str) -> anyhow::Result<AppUpdateLockGuard<'_>> {
+        let mut locks = self.app_update_locks.write();
+        if !locks.insert(app_id.to_string()) {
+            anyhow::bail!("app update already in progress for {app_id}");
+        }
+        Ok(AppUpdateLockGuard {
+            state: self,
+            app_id: app_id.to_string(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -51,6 +63,12 @@ pub struct AppsEnvironmentState {
 #[derive(Debug, Default)]
 pub struct AppsEnvironmentThemeState {
     pub current: Mutex<Option<EnvironmentThemeView>>,
+}
+
+#[derive(Debug)]
+pub struct AppUpdateLockGuard<'a> {
+    state: &'a AppsHostState,
+    app_id: String,
 }
 
 impl From<sage::Error> for SageAppsError {
@@ -86,6 +104,12 @@ impl From<anyhow::Error> for SageAppsError {
             kind: ErrorKind::Internal,
             reason: error.to_string(),
         }
+    }
+}
+
+impl Drop for AppUpdateLockGuard<'_> {
+    fn drop(&mut self) {
+        self.state.app_update_locks.write().remove(&self.app_id);
     }
 }
 
