@@ -3,9 +3,12 @@ use std::sync::Arc;
 use sage::{Result, Sage};
 use sage_api::SyncEvent as ApiEvent;
 use sage_wallet::SyncEvent;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
+#[cfg(not(mobile))]
 use sage_apps::{process_sage_network_change, AppsHostState};
+#[cfg(not(mobile))]
+use tauri::{Manager};
 
 pub struct Initialized(pub Mutex<bool>);
 
@@ -18,6 +21,7 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
 
     tokio::spawn(async move {
         while let Some(event) = receiver.recv().await {
+            #[cfg(not(mobile))]
             if let SyncEvent::NetworkChanged { .. } = &event {
                 let apps_state = app_handle.state::<AppsHostState>();
 

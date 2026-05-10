@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
+  Navigate,
   Route,
   RouterProvider,
 } from 'react-router-dom';
@@ -60,6 +61,7 @@ import Wallet from './pages/Wallet';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
+import { platform } from '@tauri-apps/plugin-os';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -89,6 +91,10 @@ function ThemeAwareToastContainer() {
     />
   );
 }
+
+const currentPlatform = platform();
+const supportsSageApps =
+  currentPlatform !== 'android' && currentPlatform !== 'ios';
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -140,7 +146,12 @@ const router = createHashRouter(
         <Route path='' element={<Swap />} />
       </Route>
       <Route path='/apps' element={<Wallet />}>
-        <Route index element={<Apps />} />
+        <Route
+          index
+          element={
+            supportsSageApps ? <Apps /> : <Navigate to='/wallet' replace />
+          }
+        />
       </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />

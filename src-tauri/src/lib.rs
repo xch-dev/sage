@@ -2,7 +2,6 @@ use app_state::{AppState, Initialized, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
-use sage_apps as apps;
 use tauri::Manager;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
@@ -11,21 +10,20 @@ mod app_state;
 mod commands;
 mod error;
 
+#[cfg(not(mobile))]
+use sage_apps as apps;
+
+#[cfg(not(mobile))]
 use sage_apps::{
     AppsHostState, handle_system_app_protocol_request, handle_user_app_protocol_request,
 };
+
 #[cfg(all(debug_assertions, not(mobile)))]
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    default_provider()
-        .install_default()
-        .expect("could not install AWS LC provider");
-
-    let builder = Builder::<tauri::Wry>::new()
-        .error_handling(ErrorHandlingMode::Throw)
-        .commands(collect_commands![
+macro_rules! sage_commands {
+    ($($extra_command:tt)*) => {
+        collect_commands![
             commands::initialize,
             commands::login,
             commands::logout,
@@ -145,6 +143,21 @@ pub fn run() {
             commands::get_logs,
             commands::is_asset_owned,
             commands::get_xch_usd_price,
+            $($extra_command)*
+        ]
+    };
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    default_provider()
+        .install_default()
+        .expect("could not install AWS LC provider");
+
+    #[cfg(not(mobile))]
+    let builder = Builder::<tauri::Wry>::new()
+        .error_handling(ErrorHandlingMode::Throw)
+        .commands(sage_commands![
             apps::apps_enter_workspace,
             apps::apps_leave_workspace,
             apps::apps_invoke_bridge,
@@ -167,6 +180,12 @@ pub fn run() {
             apps::apps_kill_taskbar_runtime,
             apps::apps_dev_reload_runtime,
         ])
+        .events(collect_events![SyncEvent]);
+
+    #[cfg(mobile)]
+    let builder = Builder::<tauri::Wry>::new()
+        .error_handling(ErrorHandlingMode::Throw)
+        .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
 
     #[cfg(all(debug_assertions, not(mobile)))]
@@ -200,66 +219,70 @@ pub fn run() {
             .plugin(tauri_plugin_sage::init());
     }
 
+    #[cfg(not(mobile))]
+    {
+        tauri_builder = tauri_builder
+            .register_asynchronous_uri_scheme_protocol(
+                "sage-app",
+                move |ctx, request, responder| {
+                    let app_handle = ctx.app_handle().clone();
+                    let webview_label = ctx.webview_label().to_string();
+
+                    tauri::async_runtime::spawn(async move {
+                        let response =
+                            handle_user_app_protocol_request(app_handle, webview_label, request)
+                                .await;
+
+                        responder.respond(response);
+                    });
+                },
+            )
+            .register_asynchronous_uri_scheme_protocol(
+                "sage-system-app",
+                move |ctx, request, responder| {
+                    let app_handle = ctx.app_handle().clone();
+                    let webview_label = ctx.webview_label().to_string();
+
+                    tauri::async_runtime::spawn(async move {
+                        let response =
+                            handle_system_app_protocol_request(app_handle, webview_label, request)
+                                .await;
+
+                        responder.respond(response);
+                    });
+                },
+            );
+    }
+
     tauri_builder
-        .register_asynchronous_uri_scheme_protocol(
-            "sage-app",
-            move |ctx, request, responder| {
-                let app_handle = ctx.app_handle().clone();
-                let webview_label = ctx.webview_label().to_string();
-                let request = request;
-
-                tauri::async_runtime::spawn(async move {
-                    let response = handle_user_app_protocol_request(
-                        app_handle,
-                        webview_label,
-                        request,
-                    )
-                        .await;
-
-                    responder.respond(response);
-                });
-            },
-        )
-        .register_asynchronous_uri_scheme_protocol(
-            "sage-system-app",
-            move |ctx, request, responder| {
-                let app_handle = ctx.app_handle().clone();
-                let webview_label = ctx.webview_label().to_string();
-                let request = request;
-
-                tauri::async_runtime::spawn(async move {
-                    let response = handle_system_app_protocol_request(
-                        app_handle,
-                        webview_label,
-                        request,
-                    )
-                        .await;
-
-                    responder.respond(response);
-                });
-            },
-        )
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
+
             app.manage(Initialized(Mutex::new(false)));
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
-            app.manage(AppsHostState::default());
 
-            apps::start_background_app_update_checker(app.handle().clone());
+            #[cfg(not(mobile))]
+            {
+                app.manage(AppsHostState::default());
 
-            let app_handle = app.handle().clone();
-            let cleanup_base_path = path.clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(err) =
-                    apps::process_pending_storage_cleanup(&app_handle, &cleanup_base_path).await
-                {
-                    eprintln!("failed to retry pending storage cleanup on startup: {err}");
-                }
-            });
+                apps::start_background_app_update_checker(app.handle().clone());
+
+                let app_handle = app.handle().clone();
+                let cleanup_base_path = path.clone();
+
+                tauri::async_runtime::spawn(async move {
+                    if let Err(err) =
+                        apps::process_pending_storage_cleanup(&app_handle, &cleanup_base_path).await
+                    {
+                        eprintln!("failed to retry pending storage cleanup on startup: {err}");
+                    }
+                });
+            }
 
             Ok(())
         })
