@@ -173,7 +173,7 @@ pub fn run() {
             apps::apply_app_update,
             apps::apps_clear_runtime_browsing_data,
             apps::apps_start_system_app,
-            apps::apps_create_inline_runtime,
+            apps::apps_start_user_app,
             apps::apps_list_runtimes,
             apps::apps_focus_taskbar_runtime,
             apps::apps_clear_active_taskbar_runtime,
@@ -269,6 +269,16 @@ pub fn run() {
             #[cfg(not(mobile))]
             {
                 app.manage(AppsHostState::default());
+
+                let apps_settings = apps::read_apps_settings(&path).unwrap_or_else(|err| {
+                    eprintln!("failed to read Sage apps settings: {err}");
+                    Default::default()
+                });
+
+                let apps_state = app.state::<AppsHostState>();
+                tauri::async_runtime::block_on(async {
+                    *apps_state.settings.current.lock().await = apps_settings;
+                });
 
                 apps::start_background_app_update_checker(app.handle().clone());
 

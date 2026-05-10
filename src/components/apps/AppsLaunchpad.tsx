@@ -83,7 +83,7 @@ function formatErrorMessage(err: unknown): string {
 }
 
 async function openApp(appId: string) {
-  return await commands.appsCreateInlineRuntime({
+  return await commands.appsStartUserApp({
     appId,
   });
 }

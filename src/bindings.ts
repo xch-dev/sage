@@ -407,8 +407,8 @@ async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
 async appsStartSystemApp(args: StartSystemAppArgs) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_start_system_app", { args });
 },
-async appsCreateInlineRuntime(args: CreateInstalledRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
-    return await TAURI_INVOKE("apps_create_inline_runtime", { args });
+async appsStartUserApp(args: CreateInstalledRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_start_user_app", { args });
 },
 async appsListRuntimes() : Promise<SageAppRuntimeRecordView[]> {
     return await TAURI_INVOKE("apps_list_runtimes");

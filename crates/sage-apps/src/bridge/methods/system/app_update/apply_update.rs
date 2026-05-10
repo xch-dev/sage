@@ -9,7 +9,7 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::logic::apply_app_update_inner;
+use crate::lifecycle::update::apply_app_update_inner;
 use crate::types::{SageAppView, SageGrantedPermissionsInput};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]

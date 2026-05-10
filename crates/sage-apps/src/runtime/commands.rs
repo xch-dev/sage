@@ -105,6 +105,16 @@ pub async fn apps_leave_workspace(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn apps_start_user_app(
+    app_handle: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+    args: CreateInstalledRuntimeArgs,
+) -> Result<SageAppRuntimeRecordView, String> {
+    start_user_app(&app_handle, &apps_state, args).await
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn apps_start_system_app(
     app: AppHandle,
     apps_state: State<'_, AppsHostState>,
@@ -145,16 +155,6 @@ pub async fn apps_start_system_app(
     };
 
     Ok(runtime.into())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn apps_create_inline_runtime(
-    app_handle: AppHandle,
-    apps_state: State<'_, AppsHostState>,
-    args: CreateInstalledRuntimeArgs,
-) -> Result<SageAppRuntimeRecordView, String> {
-    start_user_app(&app_handle, &apps_state, args).await
 }
 
 #[tauri::command]

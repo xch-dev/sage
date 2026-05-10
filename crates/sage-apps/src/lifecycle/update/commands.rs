@@ -2,7 +2,8 @@ use tauri::{AppHandle, State, command};
 
 use crate::AppsHostState;
 use crate::host::Result;
-use crate::lifecycle::update::logic::{apply_app_update_inner, check_app_update_inner};
+use crate::lifecycle::update::apply_app_update_inner;
+use crate::lifecycle::update::check::check_app_update_inner;
 use crate::types::{SageAppUrlPreview, SageAppView};
 
 #[command]
