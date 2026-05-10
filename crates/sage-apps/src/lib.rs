@@ -19,14 +19,14 @@ pub use settings::{SageAppsSettings, read_apps_settings};
 
 // Commands
 pub use bridge::commands::{
-    apps_invoke_bridge, apps_invoke_system_bridge, get_user_capability_definitions,
+    apps_invoke_bridge, apps_invoke_system_bridge, apps_get_user_capability_definitions,
 };
 pub use environment::commands::apps_set_environment_theme;
 pub use lifecycle::{
     apps_clear_runtime_browsing_data,
-    install::commands::list_installed_apps,
-    update::commands::{apply_app_update, check_app_update},
-    uninstall::uninstall_app
+    install::commands::apps_list_installed_apps,
+    update::commands::{apps_apply_app_update, apps_check_app_update},
+    uninstall::apps_uninstall_app
 };
 pub use runtime::commands::{
     apps_enter_workspace, apps_leave_workspace,
@@ -37,6 +37,7 @@ pub use runtime::commands::{
 pub use sandbox::commands::{
     apps_get_app_launch_gate, apps_get_sandbox_state, apps_rerun_sandbox_tests,
 };
+pub use settings::{apps_get_auto_update_enabled, apps_set_auto_update_enabled};
 
 // Bridge protocol
 pub use security::{handle_system_app_protocol_request, handle_user_app_protocol_request};

@@ -181,7 +181,7 @@ export function Apps() {
     }
 
     try {
-      await commands.applyAppUpdate(activeAppId);
+      await commands.appsApplyAppUpdate(activeAppId);
     } catch (err) {
       console.error('Failed to apply app update:', err);
     }

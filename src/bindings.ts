@@ -374,8 +374,8 @@ async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeRes
 async appsInvokeSystemBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
     return await TAURI_INVOKE("apps_invoke_system_bridge", { request });
 },
-async getUserCapabilityDefinitions() : Promise<SageAppCapabilityDefinitionView[]> {
-    return await TAURI_INVOKE("get_user_capability_definitions");
+async appsGetUserCapabilityDefinitions() : Promise<SageAppCapabilityDefinitionView[]> {
+    return await TAURI_INVOKE("apps_get_user_capability_definitions");
 },
 async appsSetEnvironmentTheme(theme: EnvironmentThemeView) : Promise<null> {
     return await TAURI_INVOKE("apps_set_environment_theme", { theme });
@@ -389,17 +389,17 @@ async appsGetAppLaunchGate(appId: string) : Promise<AppLaunchGateResult> {
 async appsRerunSandboxTests() : Promise<SandboxStateView> {
     return await TAURI_INVOKE("apps_rerun_sandbox_tests");
 },
-async listInstalledApps() : Promise<ListedSageAppView[]> {
-    return await TAURI_INVOKE("list_installed_apps");
+async appsListInstalledApps() : Promise<ListedSageAppView[]> {
+    return await TAURI_INVOKE("apps_list_installed_apps");
 },
-async uninstallApp(appId: string) : Promise<null> {
-    return await TAURI_INVOKE("uninstall_app", { appId });
+async appsUninstallApp(appId: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_uninstall_app", { appId });
 },
-async checkAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
-    return await TAURI_INVOKE("check_app_update", { appId });
+async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
+    return await TAURI_INVOKE("apps_check_app_update", { appId });
 },
-async applyAppUpdate(appId: string) : Promise<SageAppView> {
-    return await TAURI_INVOKE("apply_app_update", { appId });
+async appsApplyAppUpdate(appId: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apps_apply_app_update", { appId });
 },
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
@@ -424,6 +424,12 @@ async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRu
 },
 async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
+},
+async appsGetAutoUpdateEnabled() : Promise<boolean> {
+    return await TAURI_INVOKE("apps_get_auto_update_enabled");
+},
+async appsSetAutoUpdateEnabled(enabled: boolean) : Promise<boolean> {
+    return await TAURI_INVOKE("apps_set_auto_update_enabled", { enabled });
 }
 }
 

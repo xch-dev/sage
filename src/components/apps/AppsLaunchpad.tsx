@@ -191,7 +191,7 @@ export function AppsLaunchpad() {
     }));
 
     try {
-      const preview = await commands.checkAppUpdate(appId);
+      const preview = await commands.appsCheckAppUpdate(appId);
 
       if (!preview) {
         setUpdateCheckStateByAppId((prev) => ({
@@ -218,7 +218,7 @@ export function AppsLaunchpad() {
     }));
 
     try {
-      await commands.applyAppUpdate(appId);
+      await commands.appsApplyAppUpdate(appId);
     } catch (err) {
       const message = formatAppError(err);
 

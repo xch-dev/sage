@@ -6,8 +6,43 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::lifecycle::apps_root;
+use tauri::{command, State};
+use crate::AppsHostState;
+use crate::host::{AppState, Result};
 
 const APPS_SETTINGS_FILE: &str = ".sage-apps-settings.json";
+
+#[command]
+#[specta::specta]
+pub async fn apps_get_auto_update_enabled(
+    apps_state: State<'_, AppsHostState>,
+) -> Result<bool> {
+    Ok(apps_state.settings.read().await.auto_update_enabled)
+}
+
+#[command]
+#[specta::specta]
+pub async fn apps_set_auto_update_enabled(
+    state: State<'_, AppState>,
+    apps_state: State<'_, AppsHostState>,
+    enabled: bool,
+) -> Result<bool> {
+    let base_path = {
+        let state = state.lock().await;
+        state.path.clone()
+    };
+
+    let enabled = apps_state
+        .settings
+        .try_mutate(&base_path, |settings| {
+            settings.auto_update_enabled = enabled;
+            Ok::<_, String>(settings.auto_update_enabled)
+        })
+        .await
+        .map_err(std::io::Error::other)?;
+
+    Ok(enabled)
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, Default)]
 #[serde(rename_all = "camelCase")]

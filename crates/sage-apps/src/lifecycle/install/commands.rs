@@ -8,7 +8,7 @@ use crate::types::ListedSageAppView;
 
 #[command]
 #[specta::specta]
-pub async fn list_installed_apps(state: State<'_, AppState>) -> Result<Vec<ListedSageAppView>> {
+pub async fn apps_list_installed_apps(state: State<'_, AppState>) -> Result<Vec<ListedSageAppView>> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()

@@ -8,7 +8,7 @@ use crate::types::{SageAppUrlPreview, SageAppView};
 
 #[command]
 #[specta::specta]
-pub async fn check_app_update(
+pub async fn apps_check_app_update(
     apps_state: State<'_, AppsHostState>,
     app_handle: AppHandle,
     app_id: String,
@@ -18,7 +18,7 @@ pub async fn check_app_update(
 
 #[command]
 #[specta::specta]
-pub async fn apply_app_update(
+pub async fn apps_apply_app_update(
     app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     app_id: String,

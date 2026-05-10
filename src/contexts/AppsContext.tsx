@@ -217,7 +217,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const listed = await commands.listInstalledApps();
+      const listed = await commands.appsListInstalledApps();
 
       setApps(listed);
       setLoading(false);
@@ -394,7 +394,7 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       setBusy(appId, true);
 
       try {
-        await commands.uninstallApp(appId);
+        await commands.appsUninstallApp(appId);
 
         setPendingUpdates((prev) =>
           Object.fromEntries(

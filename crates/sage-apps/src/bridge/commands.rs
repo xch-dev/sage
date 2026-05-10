@@ -29,6 +29,6 @@ pub async fn apps_invoke_system_bridge(
 
 #[tauri::command]
 #[specta::specta]
-pub fn get_user_capability_definitions() -> Result<Vec<SageAppCapabilityDefinitionView>, String> {
+pub fn apps_get_user_capability_definitions() -> Result<Vec<SageAppCapabilityDefinitionView>, String> {
     Ok(user_registry().values().copied().map(Into::into).collect())
 }

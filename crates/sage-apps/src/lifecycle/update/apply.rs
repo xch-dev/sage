@@ -78,30 +78,34 @@ pub(super) async fn try_auto_apply_pending_update(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> crate::host::Result<bool> {
-    let resolved = resolve_app(app_handle, app_id)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+    let should_attempt_apply = {
+        let resolved = resolve_app(app_handle, app_id).await.map_err(|err| {
+            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
+        })?;
 
-    if let ResolvedApp::Running(_) = resolved {
-        return Ok(false);
-    }
+        if let ResolvedApp::Running(_) = resolved {
+            return Ok(false);
+        }
 
-    let has_pending_update = resolved.with_app(|app| {
-        app.with(|sage_app| {
-            sage_app
-                .as_user()
-                .and_then(|user_app| user_app.pending_update())
-                .is_some()
-        })
-    });
+        let has_pending_update = resolved.with_app(|app| {
+            app.with(|sage_app| {
+                sage_app
+                    .as_user()
+                    .and_then(|user_app| user_app.pending_update())
+                    .is_some()
+            })
+        });
 
-    if !has_pending_update {
-        return Ok(false);
-    }
+        if !has_pending_update {
+            return Ok(false);
+        }
 
-    let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
+        let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
 
-    if should_review {
+        !should_review
+    };
+
+    if !should_attempt_apply {
         return Ok(false);
     }
 

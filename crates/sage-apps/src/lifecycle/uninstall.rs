@@ -10,7 +10,7 @@ use tokio::time::timeout;
 
 #[command]
 #[specta::specta]
-pub async fn uninstall_app(
+pub async fn apps_uninstall_app(
     app_handle: AppHandle,
     state: State<'_, AppState>,
     app_id: String,
