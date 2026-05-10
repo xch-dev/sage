@@ -31,11 +31,6 @@ export type PendingUpdateStatusView =
   | { kind: 'readyToApply' }
   | { kind: 'requiresReview' };
 
-export type PendingUpdateActivity =
-  | { kind: 'idle' }
-  | { kind: 'checking' }
-  | { kind: 'applying' };
-
 interface RuntimeManagerRuntimesChangedEvent {
   type: 'runtimeManager.runtimesChanged';
   payload: {
@@ -94,7 +89,6 @@ interface AppsContextValue {
   error: string | null;
   busyAppIds: Record<string, boolean>;
   pendingUpdates: Record<string, PendingUpdateStatusView>;
-  pendingUpdateActivity: Record<string, PendingUpdateActivity>;
   sandboxState: SandboxStateView | null;
   launchGatesByAppId: Record<string, AppLaunchGateResult>;
 
@@ -108,10 +102,6 @@ interface AppsContextValue {
   refreshRuntimes: () => Promise<void>;
   refreshLaunchGates: (listed: ListedSageAppView[]) => Promise<void>;
   setBusy: (appId: string, busy: boolean) => void;
-  setPendingUpdateActivity: (
-    appId: string,
-    activity: PendingUpdateActivity,
-  ) => void;
 
   uninstallApp: (appId: string) => Promise<void>;
   clearAppStorage: (appId: string) => Promise<void>;
@@ -170,10 +160,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
 
   const [pendingUpdates, setPendingUpdates] = useState<
     Record<string, PendingUpdateStatusView>
-  >({});
-
-  const [pendingUpdateActivity, setPendingUpdateActivityState] = useState<
-    Record<string, PendingUpdateActivity>
   >({});
 
   const [sandboxState, setSandboxState] = useState<SandboxStateView | null>(
@@ -309,11 +295,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
                   ...prev,
                   [runtimeEvent.payload.appId]: runtimeEvent.payload.status,
                 }));
-
-                setPendingUpdateActivityState((prev) => ({
-                  ...prev,
-                  [runtimeEvent.payload.appId]: { kind: 'idle' },
-                }));
                 break;
             }
           },
@@ -408,16 +389,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
     setBusyAppIds((prev) => ({ ...prev, [appId]: busy }));
   }, []);
 
-  const setPendingUpdateActivity = useCallback(
-    (appId: string, activity: PendingUpdateActivity) => {
-      setPendingUpdateActivityState((prev) => ({
-        ...prev,
-        [appId]: activity,
-      }));
-    },
-    [],
-  );
-
   const uninstallApp = useCallback(
     async (appId: string) => {
       setBusy(appId, true);
@@ -426,12 +397,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
         await commands.uninstallApp(appId);
 
         setPendingUpdates((prev) =>
-          Object.fromEntries(
-            Object.entries(prev).filter(([key]) => key !== appId),
-          ),
-        );
-
-        setPendingUpdateActivityState((prev) =>
           Object.fromEntries(
             Object.entries(prev).filter(([key]) => key !== appId),
           ),
@@ -467,7 +432,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       pendingUpdates,
-      pendingUpdateActivity,
       sandboxState,
       launchGatesByAppId,
 
@@ -481,7 +445,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       refreshRuntimes,
       refreshLaunchGates,
       setBusy,
-      setPendingUpdateActivity,
 
       uninstallApp,
       clearAppStorage,
@@ -495,7 +458,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       error,
       busyAppIds,
       pendingUpdates,
-      pendingUpdateActivity,
       sandboxState,
       launchGatesByAppId,
       getApp,
@@ -507,7 +469,6 @@ export function AppsProvider({ children }: { children: ReactNode }) {
       refreshRuntimes,
       refreshLaunchGates,
       setBusy,
-      setPendingUpdateActivity,
       uninstallApp,
       clearAppStorage,
       activeTaskbarRuntime,

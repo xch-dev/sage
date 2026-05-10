@@ -113,8 +113,6 @@ export function AppsLaunchpad() {
     uninstallApp,
     clearAppStorage,
     pendingUpdates,
-    pendingUpdateActivity,
-    setPendingUpdateActivity,
     busyAppIds,
     getLaunchGate,
   } = useApps();
@@ -137,21 +135,14 @@ export function AppsLaunchpad() {
     ? (pendingUpdates[contextMenuAppId] ?? { kind: 'none' as const })
     : { kind: 'none' as const };
 
-  const contextMenuUpdateActivity = contextMenuAppId
-    ? (pendingUpdateActivity[contextMenuAppId] ?? { kind: 'idle' as const })
-    : { kind: 'idle' as const };
-
   const contextMenuBusy = contextMenuAppId
-    ? (busyAppIds[contextMenuAppId] ?? false) ||
-      contextMenuUpdateActivity.kind === 'applying'
+    ? (busyAppIds[contextMenuAppId] ?? false)
     : false;
 
   const contextMenuCheckState =
-    contextMenuUpdateActivity.kind === 'checking'
-      ? 'checking'
-      : contextMenuAppId
-        ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
-        : 'idle';
+    contextMenuAppId
+      ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
+      : 'idle';
 
   const contextMenuAppIsRunning = contextMenuAppId
     ? runningAppIds.has(contextMenuAppId)
@@ -189,8 +180,6 @@ export function AppsLaunchpad() {
   }, []);
 
   async function handleCheckForUpdate(appId: string) {
-    setPendingUpdateActivity(appId, { kind: 'checking' });
-
     setUpdateCheckStateByAppId((prev) => ({
       ...prev,
       [appId]: 'idle',
@@ -219,14 +208,10 @@ export function AppsLaunchpad() {
         ...prev,
         [appId]: `Update check failed: ${message}`,
       }));
-    } finally {
-      setPendingUpdateActivity(appId, { kind: 'idle' });
     }
   }
 
   async function handleApplyUpdate(appId: string) {
-    setPendingUpdateActivity(appId, { kind: 'applying' });
-
     setClearDataErrorByAppId((prev) => ({
       ...prev,
       [appId]: null,
@@ -238,8 +223,6 @@ export function AppsLaunchpad() {
       const message = formatAppError(err);
 
       console.error('applyAppUpdate failed:', err);
-
-      setPendingUpdateActivity(appId, { kind: 'idle' });
 
       setClearDataErrorByAppId((prev) => ({
         ...prev,

@@ -69,7 +69,6 @@ pub(super) async fn check_app_update_inner(
             return Ok(Some(preview));
         }
     };
-    println!("Pending update prepared for {app_id}, Update: {pending_update:?}");
 
     app.try_mutate(|sage_app| {
         sage_app

@@ -49,8 +49,6 @@ export function Apps() {
     getApp,
     getListedApp,
     pendingUpdates,
-    pendingUpdateActivity,
-    setPendingUpdateActivity,
     busyAppIds,
     activeTaskbarRuntime,
   } = useApps();
@@ -130,13 +128,8 @@ export function Apps() {
     ? (pendingUpdates[activeAppId] ?? { kind: 'none' as const })
     : { kind: 'none' as const };
 
-  const activeUpdateActivity = activeAppId
-    ? (pendingUpdateActivity[activeAppId] ?? { kind: 'idle' as const })
-    : { kind: 'idle' as const };
-
   const activeBusy = activeAppId
-    ? (busyAppIds[activeAppId] ?? false) ||
-      activeUpdateActivity.kind === 'applying'
+    ? (busyAppIds[activeAppId] ?? false)
     : false;
 
   const activeManifest = activeApp?.common.activeSnapshot.manifest;
@@ -187,16 +180,10 @@ export function Apps() {
       return;
     }
 
-    setPendingUpdateActivity(activeAppId, { kind: 'applying' });
-
     try {
       await commands.applyAppUpdate(activeAppId);
     } catch (err) {
       console.error('Failed to apply app update:', err);
-
-      setPendingUpdateActivity(activeAppId, {
-        kind: 'idle',
-      });
     }
   }
 
@@ -264,9 +251,7 @@ export function Apps() {
                 void handleApplyActiveUpdate();
               }}
             >
-              {activeUpdateActivity.kind === 'applying'
-                ? 'Applying...'
-                : activePendingUpdate.kind === 'requiresReview'
+              {activePendingUpdate.kind === 'requiresReview'
                   ? 'Review update'
                   : 'Apply update'}
             </Button>
