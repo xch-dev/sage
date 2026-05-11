@@ -24,7 +24,7 @@ pub(crate) use permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
 pub(crate) use storage::{
-    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
+    SageAppStorage, PendingStorageCleanupEntry,
 };
 
 #[cfg(test)]

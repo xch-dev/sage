@@ -19,7 +19,7 @@ use crate::runtime::{
 };
 use crate::storage::parse_data_store_id;
 use crate::types::{
-    AppPresentation, InstalledSageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
+    AppPresentation, SageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
 };
 use crate::{AppsHostState, sandbox};
 
@@ -324,17 +324,17 @@ fn build_persistent_storage_target(
 
     match storage {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
-        InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
+        SageAppStorage::AppleDataStore { identifier_hex } => {
             let identifier = parse_data_store_id(&identifier_hex)?;
             builder = builder.data_store_identifier(identifier);
         }
 
         #[cfg(target_os = "windows")]
-        InstalledSageAppStorage::WindowsProfile { directory_name } => {
+        SageAppStorage::WindowsProfile { directory_name } => {
             builder = builder.data_directory(crate::storage::data_directory_for(directory_name));
         }
 
-        InstalledSageAppStorage::Unmanaged => {}
+        SageAppStorage::Unmanaged => {}
 
         #[allow(unreachable_patterns)]
         _ => {}

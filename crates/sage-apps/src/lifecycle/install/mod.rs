@@ -7,7 +7,7 @@ use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
 use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
     SageAppSnapshot, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
     UserSageAppSource,
 };
@@ -69,7 +69,7 @@ trait InstallStorageResolver {
     fn resolve_storage(
         &self,
         existing: Option<&UserSageApp>,
-    ) -> AnyResult<Option<InstalledSageAppStorage>>;
+    ) -> AnyResult<Option<SageAppStorage>>;
 }
 
 struct TauriStorageResolver;
@@ -78,7 +78,7 @@ impl InstallStorageResolver for TauriStorageResolver {
     fn resolve_storage(
         &self,
         existing: Option<&UserSageApp>,
-    ) -> AnyResult<Option<InstalledSageAppStorage>> {
+    ) -> AnyResult<Option<SageAppStorage>> {
         Ok(existing.map(|app| app.common().storage().clone()))
     }
 }
@@ -124,7 +124,7 @@ where
         SageAppWalletScope::AllWallets,
         source,
         &TestStorageResolver {
-            storage: InstalledSageAppStorage::Unmanaged,
+            storage: SageAppStorage::Unmanaged,
         },
         None,
     )
@@ -205,7 +205,7 @@ pub fn recreate_app_dir(app_dir: &Path) -> AnyResult<()> {
 
 #[cfg(test)]
 pub(crate) struct TestStorageResolver {
-    storage: InstalledSageAppStorage,
+    storage: SageAppStorage,
 }
 
 #[cfg(test)]
@@ -213,7 +213,7 @@ impl InstallStorageResolver for TestStorageResolver {
     fn resolve_storage(
         &self,
         _existing: Option<&UserSageApp>,
-    ) -> AnyResult<Option<InstalledSageAppStorage>> {
+    ) -> AnyResult<Option<SageAppStorage>> {
         Ok(Some(self.storage.clone()))
     }
 }
@@ -357,7 +357,7 @@ mod tests {
                 source: UserSageAppSource::Zip,
             },
             &TestStorageResolver {
-                storage: InstalledSageAppStorage::Unmanaged,
+                storage: SageAppStorage::Unmanaged,
             },
             None,
         )
@@ -370,7 +370,7 @@ mod tests {
         assert_eq!(common.name(), "Test App");
         assert_eq!(common.entry_file(), "index.html");
         assert_eq!(common.icon_file(), None);
-        assert_eq!(common.storage(), &InstalledSageAppStorage::Unmanaged);
+        assert_eq!(common.storage(), &SageAppStorage::Unmanaged);
         assert_eq!(installed.source(), &UserSageAppSource::Zip);
 
         let reread = read_installed_app_by_id(dir.path(), "fake-app").unwrap();
@@ -402,7 +402,7 @@ mod tests {
                 source: UserSageAppSource::Zip,
             },
             &TestStorageResolver {
-                storage: InstalledSageAppStorage::Unmanaged,
+                storage: SageAppStorage::Unmanaged,
             },
             None,
         )
@@ -440,7 +440,7 @@ mod tests {
             )
             .unwrap(),
             granted_permissions,
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             SageAppSnapshot::new(
                 "hash".to_string(),
                 app_dir.to_string_lossy().to_string(),

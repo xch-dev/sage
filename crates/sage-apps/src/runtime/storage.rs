@@ -7,7 +7,6 @@ use crate::sandbox::{
     BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID, SandboxStorageClearProbePhase,
     SandboxStorageClearProbeResult, build_builtin_runtime_app,
 };
-use crate::storage::cleanup_target_from_storage;
 use crate::types::SharedSageApp;
 use crate::utils::unix_timestamp_ms;
 use std::time::Duration;
@@ -55,8 +54,7 @@ pub(crate) async fn run_verified_storage_clear_cycle(
 
     let storage = resolved_app.with_app(|app| app.with(|app| app.storage().clone()));
 
-    let target = cleanup_target_from_storage(&storage);
-    clear_app_storage_by_target(app_handle, &target).await?;
+    clear_app_storage_by_target(app_handle, &storage).await?;
 
     let absent = run_storage_clear_phase(
         app_handle,

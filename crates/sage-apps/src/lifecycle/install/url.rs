@@ -165,7 +165,7 @@ mod tests {
     use crate::lifecycle::write_retired_app_origins;
     use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
     use crate::types::{
-        AppPresentation, InstalledSageAppStorage, RetiredAppOriginEntry, SageAppCommon,
+        AppPresentation, SageAppStorage, RetiredAppOriginEntry, SageAppCommon,
         SageAppIdentity, SageAppManifestFile, SageAppPackageManifestParts, SageAppWalletScope,
         SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities,
         SageRequestedNetworkPermissions, SageRequestedPermissions, SharedSageApp,
@@ -261,7 +261,7 @@ mod tests {
         let mut common = SageAppCommon::new(
             SageAppIdentity::new(app_id, origin_id, app_dir.to_string_lossy().to_string()).unwrap(),
             granted_permissions,
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             snapshot,
             SageAppWalletScope::AllWallets,
         )

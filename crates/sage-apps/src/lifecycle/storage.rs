@@ -1,22 +1,26 @@
-use std::path::Path;
-
-#[cfg(target_os = "windows")]
-use anyhow::Context;
-use anyhow::{Result as AnyResult, anyhow};
-#[cfg(target_os = "windows")]
-use std::fs;
+use anyhow::{Result as AnyResult};
 use tauri::{AppHandle, command};
-#[cfg(any(target_os = "macos", target_os = "ios"))]
+use std::path::Path;
 use uuid::Uuid;
+#[cfg(target_os = "windows")]
+use {
+    std::fs,
+    anyhow::Context,
+    tauri::Manager,
+};
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use {
+    anyhow::anyhow,
+    crate::storage::parse_data_store_id,
+};
 
 use crate::lifecycle::{
     read_pending_storage_cleanup_entries, read_retired_app_origins,
     write_pending_storage_cleanup_entries, write_retired_app_origins,
 };
 use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
-use crate::storage::{cleanup_target_from_storage, parse_data_store_id};
 use crate::types::{
-    InstalledSageAppStorage, PendingStorageCleanupEntry, PendingStorageCleanupTarget,
+    SageAppStorage, PendingStorageCleanupEntry,
     RetiredAppOriginEntry, SharedSageApp,
 };
 
@@ -24,7 +28,7 @@ use crate::types::{
 pub async fn allocate_new_storage(
     app: &AppHandle,
     _base_path: &Path,
-) -> AnyResult<InstalledSageAppStorage> {
+) -> AnyResult<SageAppStorage> {
     loop {
         let identifier = *Uuid::new_v4().as_bytes();
         let existing_ids = app
@@ -33,7 +37,7 @@ pub async fn allocate_new_storage(
             .map_err(|err| anyhow!("failed to fetch data store identifiers: {err}"))?;
 
         if existing_ids.iter().all(|existing| *existing != identifier) {
-            return Ok(InstalledSageAppStorage::AppleDataStore {
+            return Ok(SageAppStorage::AppleDataStore {
                 identifier_hex: hex::encode(identifier),
             });
         }
@@ -44,7 +48,7 @@ pub async fn allocate_new_storage(
 pub async fn allocate_new_storage(
     _app: &AppHandle,
     base_path: &Path,
-) -> AnyResult<InstalledSageAppStorage> {
+) -> AnyResult<SageAppStorage> {
     let profiles_root = base_path.join("profiles");
     fs::create_dir_all(&profiles_root).with_context(|| {
         format!(
@@ -54,11 +58,11 @@ pub async fn allocate_new_storage(
     })?;
 
     loop {
-        let directory_name = format!("profile-{}", uuid::Uuid::new_v4());
+        let directory_name = format!("profile-{}", Uuid::new_v4());
         let candidate = profiles_root.join(&directory_name);
 
         if !candidate.exists() {
-            return Ok(InstalledSageAppStorage::WindowsProfile { directory_name });
+            return Ok(SageAppStorage::WindowsProfile { directory_name });
         }
     }
 }
@@ -67,8 +71,8 @@ pub async fn allocate_new_storage(
 pub async fn allocate_new_storage(
     _app: &AppHandle,
     _base_path: &Path,
-) -> AnyResult<InstalledSageAppStorage> {
-    Ok(InstalledSageAppStorage::Unmanaged)
+) -> AnyResult<SageAppStorage> {
+    Ok(SageAppStorage::Unmanaged)
 }
 
 pub fn record_storage_cleanup_failure(
@@ -78,7 +82,7 @@ pub fn record_storage_cleanup_failure(
 ) -> AnyResult<()> {
     let mut entries = read_pending_storage_cleanup_entries(base_path)?;
 
-    let target = cleanup_target_from_storage(&app.with(|app| app.storage().clone()));
+    let target = app.with(|app| app.storage().clone());
 
     if let Some(entry) = entries.iter_mut().find(|entry| entry.target() == &target) {
         entry.record_failed_attempt(error);
@@ -112,11 +116,11 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, base_path: &Path) 
 
 pub async fn clear_app_storage_by_target(
     app: &AppHandle,
-    target: &PendingStorageCleanupTarget,
+    target: &SageAppStorage,
 ) -> Result<(), String> {
     match target {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
-        PendingStorageCleanupTarget::AppleDataStore { identifier_hex } => {
+        SageAppStorage::AppleDataStore { identifier_hex } => {
             let target_id = parse_data_store_id(identifier_hex)?;
             let existing_ids = app
                 .fetch_data_store_identifiers()
@@ -131,7 +135,7 @@ pub async fn clear_app_storage_by_target(
         }
 
         #[cfg(target_os = "windows")]
-        PendingStorageCleanupTarget::WindowsProfile { directory_name } => {
+        SageAppStorage::WindowsProfile { directory_name } => {
             let app_data_dir = app
                 .path()
                 .app_data_dir()
@@ -139,7 +143,7 @@ pub async fn clear_app_storage_by_target(
 
             let profile_dir = app_data_dir.join(crate::storage::data_directory_for(directory_name));
 
-            match std::fs::remove_dir_all(&profile_dir) {
+            match fs::remove_dir_all(&profile_dir) {
                 Ok(()) => {}
                 Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
                 Err(err) => {
@@ -151,7 +155,7 @@ pub async fn clear_app_storage_by_target(
             }
         }
 
-        PendingStorageCleanupTarget::Unmanaged => {}
+        SageAppStorage::Unmanaged => {}
 
         #[allow(unreachable_patterns)]
         _ => {}
@@ -212,6 +216,7 @@ pub async fn apps_clear_runtime_browsing_data(
 mod tests {
     use super::*;
     use std::collections::BTreeMap;
+    use std::fs;
 
     use crate::capabilities::list::UserBridgeCapability;
     use crate::lifecycle::{
@@ -227,15 +232,15 @@ mod tests {
     use tempfile::tempdir;
 
     fn write_index(app_dir: &Path) {
-        std::fs::create_dir_all(app_dir).unwrap();
-        std::fs::write(app_dir.join("index.html"), "x").unwrap();
+        fs::create_dir_all(app_dir).unwrap();
+        fs::write(app_dir.join("index.html"), "x").unwrap();
     }
 
     fn sample_app_with(
         base_path: &Path,
         app_id: &str,
         name: &str,
-        storage: InstalledSageAppStorage,
+        storage: SageAppStorage,
         source: UserSageAppSource,
         storage_may_contain_secrets: bool,
     ) -> SharedSageApp {
@@ -319,7 +324,7 @@ mod tests {
         app
     }
 
-    fn sample_app(base_path: &Path, storage: InstalledSageAppStorage) -> SharedSageApp {
+    fn sample_app(base_path: &Path, storage: SageAppStorage) -> SharedSageApp {
         sample_app_with(
             base_path,
             "url-abc123",
@@ -331,49 +336,15 @@ mod tests {
     }
 
     #[test]
-    fn target_from_storage_maps_apple_data_store() {
-        let target = cleanup_target_from_storage(&InstalledSageAppStorage::AppleDataStore {
-            identifier_hex: "abc123".into(),
-        });
-
-        assert_eq!(
-            target,
-            PendingStorageCleanupTarget::AppleDataStore {
-                identifier_hex: "abc123".into(),
-            }
-        );
-    }
-
-    #[test]
-    fn target_from_storage_maps_windows_profile() {
-        let target = cleanup_target_from_storage(&InstalledSageAppStorage::WindowsProfile {
-            directory_name: "profile-1".into(),
-        });
-
-        assert_eq!(
-            target,
-            PendingStorageCleanupTarget::WindowsProfile {
-                directory_name: "profile-1".into(),
-            }
-        );
-    }
-
-    #[test]
-    fn target_from_storage_maps_unmanaged() {
-        let target = cleanup_target_from_storage(&InstalledSageAppStorage::Unmanaged);
-        assert_eq!(target, PendingStorageCleanupTarget::Unmanaged);
-    }
-
-    #[test]
     fn record_storage_cleanup_failure_creates_unmanaged_target() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
 
         record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
 
         let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
         assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].target(), &PendingStorageCleanupTarget::Unmanaged);
+        assert_eq!(entries[0].target(), &SageAppStorage::Unmanaged);
         assert_eq!(entries[0].attempt_count(), 1);
         assert_eq!(entries[0].last_error(), Some("boom"));
     }
@@ -383,7 +354,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let app = sample_app(
             dir.path(),
-            InstalledSageAppStorage::AppleDataStore {
+            SageAppStorage::AppleDataStore {
                 identifier_hex: "abc123".into(),
             },
         );
@@ -394,7 +365,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert_eq!(
             entries[0].target(),
-            &PendingStorageCleanupTarget::AppleDataStore {
+            &SageAppStorage::AppleDataStore {
                 identifier_hex: "abc123".into(),
             }
         );
@@ -405,7 +376,7 @@ mod tests {
         let dir = tempdir().unwrap();
         let app = sample_app(
             dir.path(),
-            InstalledSageAppStorage::WindowsProfile {
+            SageAppStorage::WindowsProfile {
                 directory_name: "profile-1".into(),
             },
         );
@@ -416,7 +387,7 @@ mod tests {
         assert_eq!(entries.len(), 1);
         assert_eq!(
             entries[0].target(),
-            &PendingStorageCleanupTarget::WindowsProfile {
+            &SageAppStorage::WindowsProfile {
                 directory_name: "profile-1".into(),
             }
         );
@@ -426,14 +397,14 @@ mod tests {
     fn record_storage_cleanup_failure_merges_existing_entry_by_target() {
         let dir = tempdir().unwrap();
 
-        let app_a = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
+        let app_a = sample_app(dir.path(), SageAppStorage::Unmanaged);
         record_storage_cleanup_failure(dir.path(), &app_a, "first").unwrap();
 
         let app_b = sample_app_with(
             dir.path(),
             "url-other",
             "Other App",
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             UserSageAppSource::url("https://example.com/other/").unwrap(),
             true,
         );
@@ -455,7 +426,7 @@ mod tests {
             dir.path(),
             "url-abc123",
             "Test App",
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             UserSageAppSource::Zip,
             true,
         );
@@ -469,7 +440,7 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_creates_new_entry_for_url_app() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
 
         enqueue_retired_app_origin(&app, true).unwrap();
 
@@ -484,7 +455,7 @@ mod tests {
     #[test]
     fn enqueue_retired_app_origin_updates_existing_origin_entry() {
         let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), InstalledSageAppStorage::Unmanaged);
+        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
 
         enqueue_retired_app_origin(&app, true).unwrap();
         enqueue_retired_app_origin(&app, false).unwrap();
@@ -502,7 +473,7 @@ mod tests {
             dir.path(),
             "url-abc123",
             "Test App",
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             UserSageAppSource::url("https://example.com/app/").unwrap(),
             false,
         );
@@ -513,7 +484,7 @@ mod tests {
             dir.path(),
             "url-abc123",
             "Test App",
-            InstalledSageAppStorage::Unmanaged,
+            SageAppStorage::Unmanaged,
             UserSageAppSource::url("https://example.com/app/").unwrap(),
             true,
         );

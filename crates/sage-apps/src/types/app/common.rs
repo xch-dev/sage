@@ -8,7 +8,7 @@ use crate::types::invariants::{
 };
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
-use crate::types::storage::InstalledSageAppStorage;
+use crate::types::storage::SageAppStorage;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::path::PathBuf;
 
@@ -24,7 +24,7 @@ pub struct SageAppCommon {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
     flags: SageAppFlags,
-    storage: InstalledSageAppStorage,
+    storage: SageAppStorage,
     active_snapshot: SageAppSnapshot,
     wallet_scope: SageAppWalletScope,
 }
@@ -33,7 +33,7 @@ impl SageAppCommon {
     pub fn new(
         identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
-        storage: InstalledSageAppStorage,
+        storage: SageAppStorage,
         snapshot: SageAppSnapshot,
         wallet_scope: SageAppWalletScope,
     ) -> anyhow::Result<Self> {
@@ -131,7 +131,7 @@ impl SageAppCommon {
     fn build(
         identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
-        storage: InstalledSageAppStorage,
+        storage: SageAppStorage,
         snapshot: SageAppSnapshot,
         wallet_scope: SageAppWalletScope,
         previous_flags: Option<&SageAppFlags>,
@@ -212,7 +212,7 @@ impl SageAppCommon {
         &self.flags
     }
 
-    pub fn storage(&self) -> &InstalledSageAppStorage {
+    pub fn storage(&self) -> &SageAppStorage {
         &self.storage
     }
 
@@ -298,7 +298,7 @@ pub(crate) struct SageAppCommonRaw {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
     flags: SageAppFlags,
-    storage: InstalledSageAppStorage,
+    storage: SageAppStorage,
     active_snapshot: SageAppSnapshot,
     wallet_scope: SageAppWalletScope,
 }

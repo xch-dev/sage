@@ -1,6 +1,6 @@
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
     SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
     SystemSageApp,
 };
@@ -250,7 +250,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
     let common = match SageAppCommon::new(
         identity,
         granted_permissions,
-        InstalledSageAppStorage::Unmanaged,
+        SageAppStorage::Unmanaged,
         snapshot,
         SageAppWalletScope::AllWallets,
     ) {

@@ -10,7 +10,7 @@ use crate::types::app::view::SageAppIconView;
 use crate::types::permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
-use crate::types::storage::InstalledSageAppStorage;
+use crate::types::storage::SageAppStorage;
 use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -425,7 +425,7 @@ impl SageApp {
         self.common().flags()
     }
 
-    pub(crate) fn storage(&self) -> &InstalledSageAppStorage {
+    pub(crate) fn storage(&self) -> &SageAppStorage {
         self.common().storage()
     }
 

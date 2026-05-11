@@ -6,7 +6,7 @@ use std::{fs, path::PathBuf};
 
 use crate::system_apps::AppBuildError;
 use crate::types::{
-    InstalledSageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
     SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource,
 };
 use crate::utils::builtin_apps_root;
@@ -91,26 +91,26 @@ pub fn builtin_runtime_apps_root() -> PathBuf {
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-fn builtin_storage(app_id: &str) -> InstalledSageAppStorage {
+fn builtin_storage(app_id: &str) -> SageAppStorage {
     let mut hasher = Sha256::new();
     hasher.update(format!("builtin-storage:{app_id}").as_bytes());
     let digest = hasher.finalize();
 
-    InstalledSageAppStorage::AppleDataStore {
+    SageAppStorage::AppleDataStore {
         identifier_hex: hex::encode(&digest[..16]),
     }
 }
 
 #[cfg(target_os = "windows")]
-fn builtin_storage(app_id: &str) -> InstalledSageAppStorage {
-    InstalledSageAppStorage::WindowsProfile {
+fn builtin_storage(app_id: &str) -> SageAppStorage {
+    SageAppStorage::WindowsProfile {
         directory_name: format!("builtin-profile-{app_id}"),
     }
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-fn builtin_storage(_app_id: &str) -> InstalledSageAppStorage {
-    InstalledSageAppStorage::Unmanaged
+fn builtin_storage(_app_id: &str) -> SageAppStorage {
+    SageAppStorage::Unmanaged
 }
 
 fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
@@ -228,7 +228,7 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
             },
         )?,
         granted_permissions,
-        InstalledSageAppStorage::Unmanaged,
+        SageAppStorage::Unmanaged,
         snapshot,
         SageAppWalletScope::AllWallets,
     )

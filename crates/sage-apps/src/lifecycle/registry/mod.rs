@@ -279,11 +279,7 @@ mod tests {
 
     use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
     use crate::lifecycle::storage::record_storage_cleanup_failure;
-    use crate::types::{
-        ListedSageApp, PendingStorageCleanupTarget, RetiredAppOriginEntry, SageAppManifestFile,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput,
-        SageRequestedPermissions, SharedSageApp, UserSageAppSource,
-    };
+    use crate::types::{ListedSageApp, RetiredAppOriginEntry, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageAppStorage, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
     use std::fs;
     use tempfile::tempdir;
 
@@ -526,7 +522,7 @@ mod tests {
 
         let loaded = read_pending_storage_cleanup_entries(base.path()).unwrap();
         assert_eq!(loaded, entries);
-        assert_eq!(loaded[0].target(), &PendingStorageCleanupTarget::Unmanaged);
+        assert_eq!(loaded[0].target(), &SageAppStorage::Unmanaged);
     }
 
     #[tokio::test]

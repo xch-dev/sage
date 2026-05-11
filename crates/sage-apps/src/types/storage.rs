@@ -6,15 +6,7 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
-pub enum InstalledSageAppStorage {
-    AppleDataStore { identifier_hex: String },
-    WindowsProfile { directory_name: String },
-    Unmanaged,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(tag = "kind", rename_all = "camelCase")]
-pub enum PendingStorageCleanupTarget {
+pub enum SageAppStorage {
     AppleDataStore { identifier_hex: String },
     WindowsProfile { directory_name: String },
     Unmanaged,
@@ -26,7 +18,7 @@ pub struct PendingStorageCleanupEntry {
     id: String,
     app_id: String,
     app_name: String,
-    target: PendingStorageCleanupTarget,
+    target: SageAppStorage,
     created_at_ms: i64,
     last_attempt_at_ms: Option<i64>,
     attempt_count: u32,
@@ -34,7 +26,7 @@ pub struct PendingStorageCleanupEntry {
 }
 
 impl PendingStorageCleanupEntry {
-    pub fn new(app: &SharedSageApp, target: PendingStorageCleanupTarget, error: &str) -> Self {
+    pub fn new(app: &SharedSageApp, target: SageAppStorage, error: &str) -> Self {
         let now = unix_timestamp_ms();
 
         Self {
@@ -55,7 +47,7 @@ impl PendingStorageCleanupEntry {
         self.last_error = Some(error.to_string());
     }
 
-    pub fn target(&self) -> &PendingStorageCleanupTarget {
+    pub fn target(&self) -> &SageAppStorage {
         &self.target
     }
 }

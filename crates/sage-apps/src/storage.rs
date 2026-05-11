@@ -1,4 +1,3 @@
-use crate::types::{InstalledSageAppStorage, PendingStorageCleanupTarget};
 #[cfg(target_os = "windows")]
 use std::path::PathBuf;
 
@@ -22,22 +21,4 @@ pub fn parse_data_store_id(identifier_hex: &str) -> Result<[u8; 16], String> {
     let mut out = [0_u8; 16];
     out.copy_from_slice(&bytes);
     Ok(out)
-}
-
-pub fn cleanup_target_from_storage(
-    storage: &InstalledSageAppStorage,
-) -> PendingStorageCleanupTarget {
-    match storage {
-        InstalledSageAppStorage::AppleDataStore { identifier_hex } => {
-            PendingStorageCleanupTarget::AppleDataStore {
-                identifier_hex: identifier_hex.clone(),
-            }
-        }
-        InstalledSageAppStorage::WindowsProfile { directory_name } => {
-            PendingStorageCleanupTarget::WindowsProfile {
-                directory_name: directory_name.clone(),
-            }
-        }
-        InstalledSageAppStorage::Unmanaged => PendingStorageCleanupTarget::Unmanaged,
-    }
 }
