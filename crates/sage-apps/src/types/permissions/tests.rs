@@ -136,15 +136,18 @@ fn effective_whitelist_for_network_merges_shared_and_network_specific_entries() 
             BTreeSet::from([network_entry("https", "mainnet-required.example.com")]),
         )]),
     )
-    .unwrap();
+        .unwrap();
 
-    let effective = granted.network().effective_whitelist_for_network("mainnet");
+    let effective = granted
+        .network()
+        .effective_whitelist_for_network("mainnet")
+        .into_iter()
+        .collect::<BTreeSet<_>>();
 
-    assert_eq!(
-        effective,
-        [
-            network_entry("https", "required.example.com"),
-            network_entry("https", "mainnet-required.example.com"),
-        ]
-    );
+    let expected = BTreeSet::from([
+        network_entry("https", "required.example.com"),
+        network_entry("https", "mainnet-required.example.com"),
+    ]);
+
+    assert_eq!(effective, expected);
 }

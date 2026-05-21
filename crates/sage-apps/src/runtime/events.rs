@@ -33,7 +33,7 @@ pub(crate) async fn emit_timeout_for_pending_approval(
         .await
         .map_err(|err| format!("Failed to resolve app: {err}"))?;
 
-    let app = running_app.with_app(SharedSageApp::clone_for_resolved_running_app);
+    let app = running_app.with_app(SharedSageApp::clone);
 
     let response = RustBridgeResponse::error(
         &pending.request.id,

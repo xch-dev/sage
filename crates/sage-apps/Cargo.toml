@@ -21,6 +21,7 @@ tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }
 hex = { workspace = true }
+sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10.9"
 uuid = { version = "1.19.0", features = ["v4", "serde"] }
 tempfile = "3"

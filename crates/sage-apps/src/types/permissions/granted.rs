@@ -396,3 +396,48 @@ impl<'de> Deserialize<'de> for SageGrantedNetworkPermissions {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions,
+    };
+
+    #[test]
+    fn granted_permissions_reject_unrequested_shared_network_whitelist_entry() {
+        let requested = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [SageNetworkWhitelistEntry::new_unchecked(
+                    "https",
+                    "api.example.com",
+                )],
+                [],
+                [],
+            )
+                .unwrap(),
+            SageRequestedCapabilities::new(
+                [UserBridgeCapability::StoragePersistentWebview],
+                [UserBridgeCapability::WalletSendXch],
+            ),
+        )
+            .unwrap();
+
+        let err = SageGrantedPermissions::new(
+            &requested,
+            [UserBridgeCapability::StoragePersistentWebview],
+            [SageNetworkWhitelistEntry::new_unchecked(
+                "https",
+                "evil.example.com",
+            )],
+            BTreeMap::new(),
+        )
+            .unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("granted shared network whitelist entry not requested")
+        );
+    }
+}

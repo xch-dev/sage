@@ -162,7 +162,7 @@ async fn process_shared(
     };
 
     let authority_app = origin.impostor_runtime.as_ref().map_or_else(
-        || app.clone_for_runtime_owner(),
+        || app.clone(),
         SharedImpostorRuntime::impostor_app,
     );
 

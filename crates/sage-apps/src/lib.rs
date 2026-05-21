@@ -12,9 +12,11 @@ mod system_apps;
 mod types;
 mod utils;
 mod settings;
+mod db;
 
 // State
 pub use host::AppsHostState;
+pub use db::AppsDb;
 pub use settings::{SageAppsSettings, read_apps_settings};
 
 // Commands

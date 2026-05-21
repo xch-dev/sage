@@ -3,7 +3,7 @@ use serde::Deserialize;
 use specta::Type;
 use std::{fs, io};
 use tauri::{AppHandle, Manager, State};
-
+use crate::AppsHostState;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
@@ -60,6 +60,7 @@ impl BridgeMethod for AppInstallInstallZip {
         let app = install_app_zip(
             tools.app_handle.clone(),
             state,
+            tools.host_state.clone(),
             params.zip_path,
             params.granted_permissions,
             params.wallet_scope,
@@ -74,6 +75,7 @@ impl BridgeMethod for AppInstallInstallZip {
 pub async fn install_app_zip(
     app: AppHandle,
     state: State<'_, AppState>,
+    host_state: State<'_, AppsHostState>,
     zip_path: String,
     granted_permissions_input: SageGrantedPermissionsInput,
     wallet_scope: SageAppWalletScope,
@@ -97,6 +99,7 @@ pub async fn install_app_zip(
 
     let result = install_app_from_source(
         &app,
+        &host_state,
         &base_path,
         granted_permissions_input,
         wallet_scope,

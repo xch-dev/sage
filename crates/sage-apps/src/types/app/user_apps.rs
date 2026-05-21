@@ -81,7 +81,7 @@ impl ResolvedApp {
 
     pub fn clone_app_for_operation(&self) -> SharedSageApp {
         match self {
-            Self::Stopped(stopped) => stopped.app.clone_for_resolved_running_app(),
+            Self::Stopped(stopped) => stopped.app.clone(),
             Self::Running(running) => running.runtime.app(),
         }
     }
@@ -99,13 +99,7 @@ impl SharedSageApp {
         }
     }
 
-    pub(crate) fn clone_for_runtime_owner(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-        }
-    }
-
-    pub(crate) fn clone_for_resolved_running_app(&self) -> Self {
+    pub(crate) fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
         }

@@ -11,7 +11,6 @@ use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions
 use crate::types::storage::SageAppStorage;
 use serde::{Deserialize, Deserializer, Serialize};
 use std::path::PathBuf;
-
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppIdentity {
     id: String,
@@ -128,6 +127,24 @@ impl SageAppCommon {
         self.flags.clear_storage_may_contain_secrets();
     }
 
+    pub(crate) fn replace_storage_and_origin(
+        &mut self,
+        storage: SageAppStorage,
+        origin_id: impl Into<String>,
+    ) -> anyhow::Result<()> {
+        self.storage = storage;
+        self.identity.replace_origin_id(origin_id)?;
+        self.clear_storage_may_contain_secrets();
+
+        Ok(())
+    }
+
+    pub(crate) fn has_persistent_webview_storage(&self) -> bool {
+        self.granted_permissions().capabilities().any(|cap| {
+            *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview
+        })
+    }
+
     fn build(
         identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
@@ -173,7 +190,7 @@ impl SageAppCommon {
     }
 
     pub fn origin_id(&self) -> &str {
-        &self.identity.origin_id
+        self.identity.origin_id()
     }
 
     pub fn name(&self) -> &str {
@@ -260,6 +277,11 @@ impl SageAppIdentity {
             origin_id: normalized_non_empty_string(origin_id, "app origin id")?,
             app_dir: normalized_non_empty_string(app_dir, "app directory")?,
         })
+    }
+
+    pub(crate) fn replace_origin_id(&mut self, origin_id: impl Into<String>) -> anyhow::Result<()> {
+        self.origin_id = normalized_non_empty_string(origin_id, "app origin id")?;
+        Ok(())
     }
 
     pub fn id(&self) -> &str {

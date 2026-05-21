@@ -12,11 +12,12 @@ use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
+use crate::db::AppsDb;
 use crate::settings::{write_apps_settings, SageAppsSettings};
 
 pub type AppState = Arc<Mutex<Sage>>;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct AppsHostState {
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub app_update_locks: RwLock<HashSet<String>>,
@@ -25,9 +26,23 @@ pub struct AppsHostState {
     pub sandbox: SandboxStateStore,
     pub environment: AppsEnvironmentState,
     pub settings: AppsSettingsState,
+    pub db: AppsDb,
 }
 
 impl AppsHostState {
+    pub fn new(db: AppsDb) -> Self {
+        Self {
+            app_operation_locks: Default::default(),
+            app_update_locks: Default::default(),
+            runtime: Default::default(),
+            bridge: Default::default(),
+            sandbox: Default::default(),
+            environment: Default::default(),
+            settings: Default::default(),
+            db,
+        }
+    }
+
     pub fn operation_lock_for_app(&self, app_id: &str) -> Arc<Mutex<()>> {
         if let Some(lock) = self.app_operation_locks.read().get(app_id) {
             return lock.clone();
@@ -141,7 +156,7 @@ impl AppsSettingsState {
         E: ToString,
     {
         let mut settings = self.current.lock().await;
-        let previous = settings.clone();
+        let previous = *settings;
 
         match f(&mut settings) {
             Ok(value) => {
@@ -161,6 +176,6 @@ impl AppsSettingsState {
     }
 
     pub(crate) async fn read(&self) -> SageAppsSettings {
-        self.current.lock().await.clone()
+        *self.current.lock().await
     }
 }

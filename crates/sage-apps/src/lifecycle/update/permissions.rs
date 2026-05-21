@@ -194,7 +194,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::capabilities::list::UserBridgeCapability;
-    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
+    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
     use crate::lifecycle::registry::read_installed_app_by_id;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
@@ -259,7 +259,6 @@ mod tests {
             FakeInstallSource {
                 manifest,
                 app_id: app_id.into(),
-                origin_id: app_id.into(),
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )

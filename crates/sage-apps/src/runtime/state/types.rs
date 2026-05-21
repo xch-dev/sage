@@ -174,7 +174,7 @@ impl SageAppRuntimeRecord {
 
         Ok(Self {
             runtime_id: runtime_id_for(app),
-            app: app.clone_for_runtime_owner(),
+            app: app.clone(),
             host_window_label: host_window_label.to_string(),
             webview_label: webview_label.to_string(),
             presentation,
@@ -201,7 +201,7 @@ impl SageAppRuntimeRecord {
     }
 
     pub(crate) fn app(&self) -> SharedSageApp {
-        self.app.clone_for_runtime_owner()
+        self.app.clone()
     }
 
     pub(crate) fn app_id(&self) -> String {
@@ -309,7 +309,7 @@ impl SharedRuntime {
     }
 
     pub fn app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.app.clone_for_resolved_running_app())
+        self.with_runtime(|runtime| runtime.app.clone())
     }
 
     pub fn with_app<T>(&self, f: impl FnOnce(&SharedSageApp) -> T) -> T {
@@ -352,8 +352,8 @@ impl SageAppRuntimeImpostorRecord {
     ) -> Self {
         Self {
             runtime_id: impostor_runtime_id_for(victim_app, kind),
-            victim_app: victim_app.clone_for_runtime_owner(),
-            impostor_app: impostor_app.clone_for_runtime_owner(),
+            victim_app: victim_app.clone(),
+            impostor_app: impostor_app.clone(),
             host_window_label: host_window_label.to_string(),
             webview_label: webview_label.to_string(),
             kind,
@@ -365,16 +365,14 @@ impl SageAppRuntimeImpostorRecord {
         self.runtime_id.clone()
     }
 
-    pub fn victim_app(&self) -> SharedSageApp {
-        self.victim_app.clone_for_runtime_owner()
-    }
+    pub fn victim_app(&self) -> SharedSageApp { self.victim_app.clone() }
 
     pub fn impostor_app(&self) -> SharedSageApp {
-        self.impostor_app.clone_for_runtime_owner()
+        self.impostor_app.clone()
     }
 
     pub fn victim_app_id(&self) -> String {
-        self.victim_app.id()
+        self.victim_app.id().to_string()
     }
 
     pub fn webview_label(&self) -> &str {
@@ -407,11 +405,11 @@ impl SharedImpostorRuntime {
     }
 
     pub fn victim_app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.victim_app.clone_for_resolved_running_app())
+        self.with_runtime(|runtime| runtime.victim_app.clone())
     }
 
     pub fn impostor_app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.impostor_app.clone_for_resolved_running_app())
+        self.with_runtime(|runtime| runtime.impostor_app.clone())
     }
 
     pub fn victim_app_id(&self) -> String {

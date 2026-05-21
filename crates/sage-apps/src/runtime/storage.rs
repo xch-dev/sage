@@ -1,13 +1,13 @@
 use crate::AppsHostState;
 use crate::lifecycle::clear_app_storage_by_target;
 use crate::runtime::SageAppRuntimeImpostorKind;
-use crate::runtime::start::{CreateImpostorRuntimeArgs, create_impostor_runtime_from_stopped};
+use crate::runtime::start::{CreateImpostorRuntimeArgs, create_impostor_runtime_for_victim};
 use crate::runtime::stop::close_runtime_internal;
 use crate::sandbox::{
     BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID, SandboxStorageClearProbePhase,
     SandboxStorageClearProbeResult, build_builtin_runtime_app,
 };
-use crate::types::SharedSageApp;
+use crate::types::{ResolvedStoppedApp, SharedSageApp};
 use crate::utils::unix_timestamp_ms;
 use std::time::Duration;
 use tauri::{AppHandle, Manager, State};
@@ -15,7 +15,7 @@ use tokio::time::sleep;
 
 pub(crate) async fn run_verified_storage_clear_cycle(
     app_handle: &AppHandle,
-    resolved_app: &crate::types::ResolvedStoppedApp,
+    resolved_app: &ResolvedStoppedApp,
 ) -> Result<(), String> {
     let apps_state: State<'_, AppsHostState> = app_handle.state();
 
@@ -93,7 +93,7 @@ pub(crate) async fn run_verified_storage_clear_cycle(
 async fn run_storage_clear_phase(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    resolved_app: &crate::types::ResolvedStoppedApp,
+    resolved_app: &ResolvedStoppedApp,
     run_id: &str,
     phase: SandboxStorageClearProbePhase,
 ) -> Result<SandboxStorageClearProbeResult, String> {
@@ -117,7 +117,7 @@ async fn run_storage_clear_phase(
     query.insert("phase".to_string(), phase_string);
     query.insert("appId".to_string(), app_id.clone());
 
-    create_impostor_runtime_from_stopped(
+    create_impostor_runtime_for_victim(
         app_handle.clone(),
         apps_state.clone(),
         resolved_app,

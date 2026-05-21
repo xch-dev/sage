@@ -8,12 +8,9 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use super::AppInstallSource;
-use crate::lifecycle::{
-    detect_package_root, list_installed_apps_internal, prepare_zip_snapshot, read_manifest,
-    unzip_to_dir,
-};
+use crate::lifecycle::{detect_package_root, prepare_zip_snapshot, read_manifest, unzip_to_dir};
 use crate::types::{
-    ListedSageApp, SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
+    SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
 };
 use crate::utils::slugify_app_name;
 
@@ -40,9 +37,9 @@ impl ZipInstallSource {
 
 #[async_trait]
 impl AppInstallSource for ZipInstallSource {
-    type Prepared = PreparedZipInstall;
+    type PreparedArtifact = PreparedZipInstall;
 
-    async fn prepare(&self) -> AnyResult<Self::Prepared> {
+    async fn prepare(&self) -> AnyResult<Self::PreparedArtifact> {
         if self.unpack_dir.exists() {
             fs::remove_dir_all(&self.unpack_dir)?;
         }
@@ -58,11 +55,11 @@ impl AppInstallSource for ZipInstallSource {
         })
     }
 
-    fn manifest<'a>(&self, prepared: &'a Self::Prepared) -> &'a SageAppPackageManifest {
+    fn manifest<'a>(&self, prepared: &'a Self::PreparedArtifact) -> &'a SageAppPackageManifest {
         &prepared.manifest
     }
 
-    fn source(&self, _prepared: &Self::Prepared) -> UserSageAppSource {
+    fn source(&self, _prepared: &Self::PreparedArtifact) -> UserSageAppSource {
         UserSageAppSource::Zip
     }
 
@@ -70,15 +67,18 @@ impl AppInstallSource for ZipInstallSource {
         &self,
         root: &Path,
         _base_path: &Path,
-        prepared: &Self::Prepared,
+        prepared: &Self::PreparedArtifact,
     ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-        resolve_zip_install_target(root, prepared.manifest.name())
+        let app_id = generate_zip_app_id(prepared.manifest.name());
+        let app_dir = root.join(&app_id);
+
+        Ok((app_id, app_dir, None))
     }
 
     async fn create_snapshot(
         &self,
         app_dir: &Path,
-        prepared: &Self::Prepared,
+        prepared: &Self::PreparedArtifact,
     ) -> AnyResult<SageAppSnapshot> {
         prepare_zip_snapshot(&prepared.package_root, app_dir, &prepared.manifest)
     }
@@ -88,37 +88,29 @@ pub fn generate_zip_app_id(name: &str) -> String {
     format!("{}-{}", slugify_app_name(name), Uuid::new_v4())
 }
 
-pub fn resolve_zip_install_target(
-    root: &Path,
-    app_name: &str,
-) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
-    if let Some(existing) = find_existing_installed_app_by_name(root, app_name)? {
-        let app_dir = Path::new(&existing.common().app_dir()).to_path_buf();
-        return Ok((existing.common().id().to_string(), app_dir, Some(existing)));
-    }
-
-    let app_id = generate_zip_app_id(app_name);
-    Ok((app_id.clone(), root.join(&app_id), None))
-}
-
-fn find_existing_installed_app_by_name(
-    root: &Path,
-    app_name: &str,
-) -> AnyResult<Option<UserSageApp>> {
-    Ok(list_installed_apps_internal(root)?
-        .into_iter()
-        .find_map(|app| match app {
-            ListedSageApp::User(installed) if installed.common().name() == app_name => {
-                Some(installed)
-            }
-            _ => None,
-        }))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::types::{SageAppManifestFile, SageAppPackageManifestParts, SageRequestedPermissions};
     use tempfile::tempdir;
+
+    fn sample_manifest(name: &str) -> SageAppPackageManifest {
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
+
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
+            name: name.to_string(),
+            icon: None,
+            sage_version,
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::empty(),
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+            .unwrap()
+    }
 
     #[test]
     fn generate_zip_app_id_uses_slug_and_uuid() {
@@ -129,11 +121,22 @@ mod tests {
     }
 
     #[test]
-    fn resolve_zip_install_target_creates_new_target_when_no_existing_app() {
+    fn zip_resolve_target_always_creates_new_install_target() {
         let dir = tempdir().unwrap();
 
-        let (app_id, app_dir, existing) =
-            resolve_zip_install_target(dir.path(), "Test App").unwrap();
+        let source = ZipInstallSource {
+            zip_path: "unused.zip".into(),
+            unpack_dir: dir.path().join(".tmp-unused"),
+        };
+
+        let prepared = PreparedZipInstall {
+            package_root: dir.path().to_path_buf(),
+            manifest: sample_manifest("Test App"),
+        };
+
+        let (app_id, app_dir, existing) = source
+            .resolve_target(dir.path(), dir.path(), &prepared)
+            .unwrap();
 
         assert!(existing.is_none());
         assert!(app_id.starts_with("test-app-"));
@@ -141,16 +144,29 @@ mod tests {
     }
 
     #[test]
-    fn zip_origin_id_defaults_to_app_id() {
+    fn zip_resolve_target_does_not_reuse_existing_app_with_same_name() {
+        let dir = tempdir().unwrap();
+
         let source = ZipInstallSource {
             zip_path: "unused.zip".into(),
-            unpack_dir: std::env::temp_dir(),
+            unpack_dir: dir.path().join(".tmp-unused"),
         };
 
-        let origin = source
-            .origin_id(Path::new("/unused"), "zip-app-123", None)
+        let prepared = PreparedZipInstall {
+            package_root: dir.path().to_path_buf(),
+            manifest: sample_manifest("Test App"),
+        };
+
+        let (first_app_id, _, _) = source
+            .resolve_target(dir.path(), dir.path(), &prepared)
             .unwrap();
 
-        assert_eq!(origin, "zip-app-123");
+        let (second_app_id, _, _) = source
+            .resolve_target(dir.path(), dir.path(), &prepared)
+            .unwrap();
+
+        assert_ne!(first_app_id, second_app_id);
+        assert!(first_app_id.starts_with("test-app-"));
+        assert!(second_app_id.starts_with("test-app-"));
     }
 }

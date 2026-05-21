@@ -18,9 +18,7 @@ use crate::runtime::{
     build_entry_src, build_entry_src_for, focus_taskbar_runtime, is_allowed_app_url, resolve_app,
 };
 use crate::storage::parse_data_store_id;
-use crate::types::{
-    AppPresentation, SageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp,
-};
+use crate::types::{AppPresentation, SageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Type)]
@@ -121,6 +119,7 @@ async fn create_runtime(
         check_gates(apps_state, &app).await?;
     }
 
+    rotate_incognito_app_storage_and_origin_if_needed(app_handle, apps_state, &app).await?;
     app.taint_storage_if_runtime_can_persist_secrets()?;
 
     let sage_window = get_sage_window(app_handle)?;
@@ -179,14 +178,14 @@ async fn create_runtime(
     Ok(shared_runtime)
 }
 
-pub(in crate::runtime) async fn create_impostor_runtime_from_stopped(
+pub(in crate::runtime) async fn create_impostor_runtime_for_victim(
     app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     stopped: &ResolvedStoppedApp,
     impostor_app: SharedSageApp,
     args: CreateImpostorRuntimeArgs,
 ) -> Result<SharedImpostorRuntime, String> {
-    let victim_app = stopped.with_app(SharedSageApp::clone_for_runtime_owner);
+    let victim_app = stopped.with_app(SharedSageApp::clone);
 
     if !impostor_app.with(|app| app.common().is_sandbox_test())
         && !impostor_app.id().starts_with("__sage_runtime_")
@@ -299,17 +298,25 @@ async fn check_gates(
     Ok(())
 }
 
+async fn rotate_incognito_app_storage_and_origin_if_needed(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app: &SharedSageApp,
+) -> Result<(), String> {
+    if !app.is_user_app()
+        || app.with(|app| app.common().has_persistent_webview_storage())
+    {
+        return Ok(());
+    }
+
+    crate::lifecycle::rotate_app_storage_and_origin(app_handle, apps_state, app).await
+}
+
 fn build_storage(
     builder: WebviewBuilder<Wry>,
-    app: &SharedSageApp,
+    app: &SharedSageApp
 ) -> Result<WebviewBuilder<Wry>, String> {
-    let has_persistent_storage = app.with(|app| {
-        app.granted_permissions().capabilities().any(|cap| {
-            *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview
-        })
-    });
-
-    if !has_persistent_storage {
+    if !app.with(|app| app.common().has_persistent_webview_storage()) {
         return Ok(builder.incognito(true));
     }
 

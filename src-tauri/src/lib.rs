@@ -270,7 +270,10 @@ pub fn run() {
 
             #[cfg(not(mobile))]
             {
-                app.manage(AppsHostState::default());
+                let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
+                    .expect("failed to initialize Sage apps database");
+
+                app.manage(AppsHostState::new(apps_db));
 
                 let apps_settings = apps::read_apps_settings(&path).unwrap_or_else(|err| {
                     eprintln!("failed to read Sage apps settings: {err}");

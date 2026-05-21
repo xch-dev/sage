@@ -3,7 +3,7 @@ use serde::Deserialize;
 use specta::Type;
 use std::io;
 use tauri::{AppHandle, Manager, State};
-
+use crate::AppsHostState;
 use crate::bridge::RustBridgeRequest;
 use crate::bridge::methods::shared::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
@@ -57,6 +57,7 @@ impl BridgeMethod for AppInstallInstallUrl {
         let app = install_app_url(
             tools.app_handle.clone(),
             state,
+            tools.host_state.clone(),
             params.app_url,
             params.granted_permissions,
             params.wallet_scope,
@@ -71,6 +72,7 @@ impl BridgeMethod for AppInstallInstallUrl {
 pub async fn install_app_url(
     app: AppHandle,
     state: State<'_, AppState>,
+    host_state: State<'_, AppsHostState>,
     app_url: String,
     granted_permissions_input: SageGrantedPermissionsInput,
     wallet_scope: SageAppWalletScope,
@@ -83,6 +85,7 @@ pub async fn install_app_url(
         .map_err(|err| io::Error::other(format!("invalid app URL {app_url}: {err}")))?;
     let result = install_app_from_source(
         &app,
+        &host_state,
         &base_path,
         granted_permissions_input,
         wallet_scope,

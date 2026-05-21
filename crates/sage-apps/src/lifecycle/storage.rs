@@ -1,31 +1,57 @@
 use anyhow::{Result as AnyResult};
-use tauri::{AppHandle, command};
+use tauri::{AppHandle, command, State, Manager};
 use std::path::Path;
 use uuid::Uuid;
 #[cfg(target_os = "windows")]
 use {
     std::fs,
     anyhow::Context,
-    tauri::Manager,
 };
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use {
     anyhow::anyhow,
     crate::storage::parse_data_store_id,
 };
+use crate::AppsHostState;
+use crate::runtime::{resolve_stopped_app};
+use crate::types::{SageAppStorage, SharedSageApp};
 
-use crate::lifecycle::{
-    read_pending_storage_cleanup_entries, read_retired_app_origins,
-    write_pending_storage_cleanup_entries, write_retired_app_origins,
-};
-use crate::runtime::{resolve_stopped_app, run_verified_storage_clear_cycle};
-use crate::types::{
-    SageAppStorage, PendingStorageCleanupEntry,
-    RetiredAppOriginEntry, SharedSageApp,
-};
+pub struct RegisteredSageAppStorage {
+    pub storage_id: i64,
+    pub storage: SageAppStorage,
+}
+
+#[command]
+#[specta::specta]
+pub async fn apps_clear_runtime_browsing_data(
+    app_handle: AppHandle,
+    app_id: String,
+) -> Result<(), String> {
+    let apps_state: State<'_, AppsHostState> = app_handle.state();
+
+    let resolved_app = resolve_stopped_app(&app_handle, &app_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    rotate_stopped_app_storage_and_origin(&app_handle, &apps_state, &resolved_app).await
+}
+
+pub async fn allocate_new_storage(
+    app: &AppHandle,
+    host_state: &State<'_, AppsHostState>,
+    base_path: &Path,
+) -> AnyResult<RegisteredSageAppStorage> {
+    let storage = allocate_new_os_storage(app, base_path).await?;
+    let storage_id = host_state.db.register_storage(&storage).await?;
+
+    Ok(RegisteredSageAppStorage {
+        storage_id,
+        storage,
+    })
+}
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-pub async fn allocate_new_storage(
+pub async fn allocate_new_os_storage(
     app: &AppHandle,
     _base_path: &Path,
 ) -> AnyResult<SageAppStorage> {
@@ -45,7 +71,7 @@ pub async fn allocate_new_storage(
 }
 
 #[cfg(target_os = "windows")]
-pub async fn allocate_new_storage(
+pub async fn allocate_new_os_storage(
     _app: &AppHandle,
     base_path: &Path,
 ) -> AnyResult<SageAppStorage> {
@@ -68,50 +94,33 @@ pub async fn allocate_new_storage(
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-pub async fn allocate_new_storage(
+pub async fn allocate_new_os_storage(
     _app: &AppHandle,
     _base_path: &Path,
 ) -> AnyResult<SageAppStorage> {
     Ok(SageAppStorage::Unmanaged)
 }
 
-pub fn record_storage_cleanup_failure(
-    base_path: &Path,
-    app: &SharedSageApp,
-    error: &str,
-) -> AnyResult<()> {
-    let mut entries = read_pending_storage_cleanup_entries(base_path)?;
+pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path) -> AnyResult<()> {
+    let host_state: State<'_, AppsHostState> = app.state();
 
-    let target = app.with(|app| app.storage().clone());
+    for abandoned in host_state.db.list_abandoned_managed_storages().await? {
+        clear_app_storage_by_target(app, &abandoned.storage)
+            .await
+            .map_err(anyhow::Error::msg)?;
 
-    if let Some(entry) = entries.iter_mut().find(|entry| entry.target() == &target) {
-        entry.record_failed_attempt(error);
-    } else {
-        entries.push(PendingStorageCleanupEntry::new(app, target, error));
+        host_state
+            .db
+            .delete_origins_for_abandoned_storage(abandoned.id)
+            .await?;
+
+        host_state
+            .db
+            .delete_abandoned_storage(abandoned.id)
+            .await?;
     }
 
-    write_pending_storage_cleanup_entries(base_path, &entries)
-}
-
-pub async fn process_pending_storage_cleanup(app: &AppHandle, base_path: &Path) -> AnyResult<()> {
-    let entries = read_pending_storage_cleanup_entries(base_path)?;
-    if entries.is_empty() {
-        return Ok(());
-    }
-
-    let mut remaining = Vec::new();
-
-    for mut entry in entries {
-        match clear_app_storage_by_target(app, entry.target()).await {
-            Ok(()) => {}
-            Err(err) => {
-                entry.record_failed_attempt(&err);
-                remaining.push(entry);
-            }
-        }
-    }
-
-    write_pending_storage_cleanup_entries(base_path, &remaining)
+    Ok(())
 }
 
 pub async fn clear_app_storage_by_target(
@@ -164,336 +173,73 @@ pub async fn clear_app_storage_by_target(
     Ok(())
 }
 
-pub fn enqueue_retired_app_origin(app: &SharedSageApp, cleanup_pending: bool) -> AnyResult<()> {
-    let base_path = app.with(|app| {
-        let user = app.as_user()?;
-
-        match user.source() {
-            crate::types::UserSageAppSource::Url { .. } => {}
-            crate::types::UserSageAppSource::Zip => return None,
-        }
-
-        let app_path = app.app_path();
-
-        app_path
-            .parent()
-            .and_then(Path::parent)
-            .map(Path::to_path_buf)
-    });
-
-    let Some(base_path) = base_path else {
-        return Ok(());
-    };
-
-    let mut entries = read_retired_app_origins(&base_path)?;
-
-    if let Some(existing) = entries
-        .iter_mut()
-        .find(|entry| entry.origin_id() == app.origin_id())
-    {
-        existing.update_retirement_state(app, cleanup_pending);
-    } else {
-        entries.push(RetiredAppOriginEntry::new(app, cleanup_pending));
-    }
-
-    write_retired_app_origins(&base_path, &entries)
-}
-
-#[command]
-#[specta::specta]
-pub async fn apps_clear_runtime_browsing_data(
-    app_handle: AppHandle,
-    app_id: String,
+pub async fn rotate_stopped_app_storage_and_origin(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    resolved_app: &crate::types::ResolvedStoppedApp,
 ) -> Result<(), String> {
-    let resolved_app = resolve_stopped_app(&app_handle, &app_id)
-        .await
-        .map_err(|e| e.to_string())?;
+    let app = resolved_app.with_app(SharedSageApp::clone);
 
-    run_verified_storage_clear_cycle(&app_handle, &resolved_app).await
+    rotate_app_storage_and_origin(app_handle, apps_state, &app).await
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::collections::BTreeMap;
-    use std::fs;
+pub(crate) async fn rotate_app_storage_and_origin(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app: &SharedSageApp,
+) -> Result<(), String> {
+    let app_id = app.id();
 
-    use crate::capabilities::list::UserBridgeCapability;
-    use crate::lifecycle::{
-        app_dir, read_pending_storage_cleanup_entries, read_retired_app_origins,
-    };
-    use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeRecord, SageAppRuntimeVisibility};
-    use crate::types::{
-        AppPresentation, SageAppCommon, SageAppIdentity, SageAppManifestFile,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppWalletScope,
-        SageGrantedPermissions, SageRequestedCapabilities, SageRequestedPermissions, SharedSageApp,
-        UserSageApp, UserSageAppSource,
-    };
-    use tempfile::tempdir;
+    let (previous_storage, previous_origin_id) =
+        app.with(|app| (app.storage().clone(), app.origin_id().to_string()));
 
-    fn write_index(app_dir: &Path) {
-        fs::create_dir_all(app_dir).unwrap();
-        fs::write(app_dir.join("index.html"), "x").unwrap();
-    }
+    let base_path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
 
-    fn sample_app_with(
-        base_path: &Path,
-        app_id: &str,
-        name: &str,
-        storage: SageAppStorage,
-        source: UserSageAppSource,
-        storage_may_contain_secrets: bool,
-    ) -> SharedSageApp {
-        let app_dir = app_dir(base_path, app_id);
-        write_index(&app_dir);
+    let next_storage = allocate_new_storage(app_handle, apps_state, &base_path)
+        .await
+        .map_err(|err| format!("failed to allocate rotated storage: {err}"))?;
 
-        let requested_permissions = SageRequestedPermissions::new(
-            crate::types::SageRequestedNetworkPermissions::empty(),
-            SageRequestedCapabilities::new(
-                [UserBridgeCapability::StoragePersistentWebview],
-                [UserBridgeCapability::WalletGetSecretKey],
+    let next_origin_id = crate::lifecycle::install::fresh_origin_id(&app_id);
+
+    let origin_row_id = apps_state
+        .db
+        .register_origin(&next_origin_id, next_storage.storage_id)
+        .await
+        .map_err(|err| format!("failed to register rotated app origin: {err}"))?;
+
+    app.try_mutate(|sage_app| {
+        sage_app.common_mut().replace_storage_and_origin(
+            next_storage.storage.clone(),
+            next_origin_id.clone(),
+        )?;
+
+        Ok::<_, anyhow::Error>(())
+    })
+        .map_err(|err| format!("failed to persist rotated app storage/origin: {err}"))?;
+
+    if let Err(err) = apps_state
+        .db
+        .update_app_assignment(&app_id, next_storage.storage_id, origin_row_id)
+        .await
+    {
+        let rollback_result = app.try_mutate(|sage_app| {
+            sage_app
+                .common_mut()
+                .replace_storage_and_origin(previous_storage, previous_origin_id)?;
+
+            Ok::<_, anyhow::Error>(())
+        });
+
+        return Err(match rollback_result {
+            Ok(()) => format!("failed to update rotated app assignment: {err}"),
+            Err(rollback_err) => format!(
+                "failed to update rotated app assignment: {err}; also failed to roll back app metadata: {rollback_err}"
             ),
-        )
-        .unwrap();
-
-        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
-        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
-            manifest_version,
-            name: name.to_string(),
-            icon: None,
-            sage_version,
-            version: "1.0.0".to_string(),
-            permissions: requested_permissions.clone(),
-            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
-            entry: Some("index.html".to_string()),
-            author: None,
-            donation: None,
-        })
-        .unwrap();
-
-        let granted_capabilities = if storage_may_contain_secrets {
-            vec![
-                UserBridgeCapability::StoragePersistentWebview,
-                UserBridgeCapability::WalletGetSecretKey,
-            ]
-        } else {
-            vec![UserBridgeCapability::StoragePersistentWebview]
-        };
-
-        let granted_permissions = SageGrantedPermissions::new(
-            &requested_permissions,
-            granted_capabilities,
-            [],
-            BTreeMap::new(),
-        )
-        .unwrap();
-
-        let snapshot =
-            SageAppSnapshot::new("hash", app_dir.to_string_lossy().to_string(), manifest).unwrap();
-
-        let mut common = SageAppCommon::new(
-            SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).unwrap(),
-            granted_permissions,
-            storage,
-            snapshot,
-            SageAppWalletScope::AllWallets,
-        )
-        .unwrap();
-
-        if storage_may_contain_secrets {
-            common.mark_storage_may_contain_secrets();
-        }
-
-        let app = SharedSageApp::new(UserSageApp::new_installed(common, source).into_sage_app());
-
-        if storage_may_contain_secrets {
-            let _record = SageAppRuntimeRecord::new(
-                &app,
-                "test",
-                "sage-app://test/index.html",
-                AppPresentation::Taskbar,
-                SageAppRuntimeMode::Inline,
-                SageAppRuntimeVisibility::Visible,
-                false,
-            )
-            .unwrap();
-        }
-
-        assert!(app.is_user_app(), "sample app should remain a user app");
-
-        app
+        });
     }
 
-    fn sample_app(base_path: &Path, storage: SageAppStorage) -> SharedSageApp {
-        sample_app_with(
-            base_path,
-            "url-abc123",
-            "Test App",
-            storage,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
-            true,
-        )
-    }
-
-    #[test]
-    fn record_storage_cleanup_failure_creates_unmanaged_target() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
-
-        record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
-
-        let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].target(), &SageAppStorage::Unmanaged);
-        assert_eq!(entries[0].attempt_count(), 1);
-        assert_eq!(entries[0].last_error(), Some("boom"));
-    }
-
-    #[test]
-    fn record_storage_cleanup_failure_creates_apple_target() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(
-            dir.path(),
-            SageAppStorage::AppleDataStore {
-                identifier_hex: "abc123".into(),
-            },
-        );
-
-        record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
-
-        let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(
-            entries[0].target(),
-            &SageAppStorage::AppleDataStore {
-                identifier_hex: "abc123".into(),
-            }
-        );
-    }
-
-    #[test]
-    fn record_storage_cleanup_failure_creates_windows_target() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(
-            dir.path(),
-            SageAppStorage::WindowsProfile {
-                directory_name: "profile-1".into(),
-            },
-        );
-
-        record_storage_cleanup_failure(dir.path(), &app, "boom").unwrap();
-
-        let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(
-            entries[0].target(),
-            &SageAppStorage::WindowsProfile {
-                directory_name: "profile-1".into(),
-            }
-        );
-    }
-
-    #[test]
-    fn record_storage_cleanup_failure_merges_existing_entry_by_target() {
-        let dir = tempdir().unwrap();
-
-        let app_a = sample_app(dir.path(), SageAppStorage::Unmanaged);
-        record_storage_cleanup_failure(dir.path(), &app_a, "first").unwrap();
-
-        let app_b = sample_app_with(
-            dir.path(),
-            "url-other",
-            "Other App",
-            SageAppStorage::Unmanaged,
-            UserSageAppSource::url("https://example.com/other/").unwrap(),
-            true,
-        );
-
-        record_storage_cleanup_failure(dir.path(), &app_b, "second").unwrap();
-
-        let entries = read_pending_storage_cleanup_entries(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].app_id(), "url-abc123");
-        assert_eq!(entries[0].app_name(), "Test App");
-        assert_eq!(entries[0].attempt_count(), 2);
-        assert_eq!(entries[0].last_error(), Some("second"));
-    }
-
-    #[test]
-    fn enqueue_retired_app_origin_ignores_zip_apps() {
-        let dir = tempdir().unwrap();
-        let app = sample_app_with(
-            dir.path(),
-            "url-abc123",
-            "Test App",
-            SageAppStorage::Unmanaged,
-            UserSageAppSource::Zip,
-            true,
-        );
-
-        enqueue_retired_app_origin(&app, true).unwrap();
-
-        let entries = read_retired_app_origins(dir.path()).unwrap();
-        assert!(entries.is_empty());
-    }
-
-    #[test]
-    fn enqueue_retired_app_origin_creates_new_entry_for_url_app() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
-
-        enqueue_retired_app_origin(&app, true).unwrap();
-
-        let entries = read_retired_app_origins(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].app_id(), app.id());
-        assert_eq!(entries[0].origin_id(), app.origin_id());
-        assert!(entries[0].cleanup_pending());
-        assert!(entries[0].storage_may_contain_secrets());
-    }
-
-    #[test]
-    fn enqueue_retired_app_origin_updates_existing_origin_entry() {
-        let dir = tempdir().unwrap();
-        let app = sample_app(dir.path(), SageAppStorage::Unmanaged);
-
-        enqueue_retired_app_origin(&app, true).unwrap();
-        enqueue_retired_app_origin(&app, false).unwrap();
-
-        let entries = read_retired_app_origins(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert!(!entries[0].cleanup_pending());
-    }
-
-    #[test]
-    fn enqueue_retired_app_origin_updates_secret_taint_flag() {
-        let dir = tempdir().unwrap();
-
-        let clean_app = sample_app_with(
-            dir.path(),
-            "url-abc123",
-            "Test App",
-            SageAppStorage::Unmanaged,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
-            false,
-        );
-
-        enqueue_retired_app_origin(&clean_app, false).unwrap();
-
-        let tainted_app = sample_app_with(
-            dir.path(),
-            "url-abc123",
-            "Test App",
-            SageAppStorage::Unmanaged,
-            UserSageAppSource::url("https://example.com/app/").unwrap(),
-            true,
-        );
-
-        enqueue_retired_app_origin(&tainted_app, true).unwrap();
-
-        let entries = read_retired_app_origins(dir.path()).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert!(entries[0].storage_may_contain_secrets());
-        assert!(entries[0].cleanup_pending());
-    }
+    Ok(())
 }

@@ -11,7 +11,7 @@ pub use app::SharedSageApp;
 
 pub(crate) use app::{
     AppModalPresentation, AppPresentation, CorruptedInstalledSageApp, ListedSageApp, ResolvedApp,
-    ResolvedRunningApp, ResolvedStoppedApp, RetiredAppOriginEntry, SageApp, SageAppCommon,
+    ResolvedRunningApp, ResolvedStoppedApp, SageApp, SageAppCommon,
     SageAppIdentity, SageAppSnapshot, SageAppUrlPreview, SageAppWalletScope, SystemSageApp,
     UserSageApp, UserSageAppPendingUpdate, UserSageAppSource, view::*,
 };
@@ -23,9 +23,7 @@ pub(crate) use network::SageNetworkWhitelistEntry;
 pub(crate) use permissions::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
 };
-pub(crate) use storage::{
-    SageAppStorage, PendingStorageCleanupEntry,
-};
+pub(crate) use storage::{SageAppStorage};
 
 #[cfg(test)]
 pub(crate) use manifest::{
