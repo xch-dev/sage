@@ -61,45 +61,6 @@ impl AppsDb {
 
         Ok(listed)
     }
-
-    pub async fn unregister_app(&self, app_id: &str) -> Result<()> {
-        sqlx::query("DELETE FROM sage_apps WHERE app_id = ?")
-            .bind(app_id)
-            .execute(&self.pool)
-            .await
-            .with_context(|| format!("failed to unregister app {app_id}"))?;
-
-        Ok(())
-    }
-
-    pub async fn update_app_assignment(
-        &self,
-        app_id: &str,
-        storage_id: i64,
-        origin_row_id: i64,
-    ) -> Result<()> {
-        let now = crate::utils::unix_timestamp_ms();
-
-        sqlx::query(
-            r#"
-            UPDATE sage_apps
-            SET
-                storage_id = ?,
-                origin_row_id = ?,
-                updated_at_ms = ?
-            WHERE app_id = ?
-            "#,
-        )
-            .bind(storage_id)
-            .bind(origin_row_id)
-            .bind(now)
-            .bind(app_id)
-            .execute(&self.pool)
-            .await
-            .with_context(|| format!("failed to update app assignment {app_id}"))?;
-
-        Ok(())
-    }
 }
 
 impl AppsDbTx {
@@ -202,6 +163,15 @@ impl AppsDbTx {
             .await
             .with_context(|| format!("failed to persist app {}", common.id()))?;
 
+        Ok(())
+    }
+
+    pub(crate) async fn delete_user_app(&mut self, app_id: &str) -> anyhow::Result<()> {
+        sqlx::query("DELETE FROM sage_apps WHERE app_id = ?")
+            .bind(app_id)
+            .execute(&mut self.conn)
+            .await
+            .with_context(|| format!("failed to unregister app {app_id}"))?;
         Ok(())
     }
 

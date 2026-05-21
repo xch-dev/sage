@@ -34,11 +34,31 @@ pub async fn apps_uninstall_app(
 
     let host_state: State<'_, AppsHostState> = app_handle.state();
 
-    host_state
+    let mut tx = host_state
         .db
-        .unregister_app(&app_id)
+        .begin_immediate()
         .await
-        .map_err(|err| io::Error::other(format!("failed to unregister app {app_id}: {err}")))?;
+        .map_err(|err| {
+            io::Error::other(format!(
+                "failed to begin uninstall transaction for {app_id}: {err}"
+            ))
+        })?;
+
+    if let Err(err) = tx.delete_user_app(&app_id).await {
+        tx.rollback().await;
+
+        return Err(io::Error::other(format!(
+            "failed to delete app {app_id} from db: {err}"
+        ))
+            .into());
+    }
+
+    if let Err(err) = tx.commit().await {
+        return Err(io::Error::other(format!(
+            "failed to commit uninstall transaction for {app_id}: {err}"
+        ))
+            .into());
+    }
 
     if dir.exists() {
         fs::remove_dir_all(&dir).map_err(|err| {
