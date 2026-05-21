@@ -43,6 +43,24 @@ impl SageAppCommon {
         )
     }
 
+    pub(crate) fn from_persisted_parts(
+        identity: SageAppIdentity,
+        granted_permissions: SageGrantedPermissions,
+        storage: SageAppStorage,
+        origin_webview_storage_may_contain_secrets: bool,
+        snapshot: SageAppSnapshot,
+        wallet_scope: SageAppWalletScope,
+    ) -> anyhow::Result<Self> {
+        Self::build(
+            identity,
+            granted_permissions,
+            storage,
+            origin_webview_storage_may_contain_secrets,
+            snapshot,
+            wallet_scope,
+        )
+    }
+
     pub(crate) fn apply_update(
         &mut self,
         pending: &UserSageAppPendingUpdate,

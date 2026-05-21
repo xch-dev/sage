@@ -20,6 +20,7 @@ use crate::runtime::{
 use crate::storage::parse_data_store_id;
 use crate::types::{AppPresentation, SageAppStorage, ResolvedApp, ResolvedStoppedApp, SharedSageApp};
 use crate::{AppsHostState, sandbox};
+use crate::lifecycle::AppMutationManager;
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -120,7 +121,7 @@ async fn create_runtime(
     }
 
     rotate_incognito_app_storage_and_origin_if_needed(app_handle, apps_state, &app).await?;
-    mark_origin_may_contain_secrets_if_needed(apps_state, &app).await?;
+    mark_origin_may_contain_secrets_if_needed(app_handle, apps_state, &app).await?;
 
     let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
@@ -304,6 +305,7 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
     app: &SharedSageApp,
 ) -> Result<(), String> {
     if !app.is_user_app()
+        || app.with(|app| app.common().is_sandbox_test())
         || app.with(|app| app.common().has_persistent_webview_storage())
     {
         return Ok(());
@@ -372,54 +374,37 @@ window.__SAGE_APPS_COMMS_DEBUG__ = true;
 }
 
 async fn mark_origin_may_contain_secrets_if_needed(
+    app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app: &SharedSageApp,
 ) -> Result<(), String> {
-    if app.is_system_app() || !app.runtime_can_persist_secrets() {
+    if app.is_system_app()
+        || app.with(|app| app.common().is_sandbox_test())
+        || !app.runtime_can_persist_secrets()
+    {
         return Ok(());
     }
 
-    let previous_origin_webview_storage_may_contain_secrets = app.with(|app| {
+    if app.with(|app| {
         app.common()
             .origin_webview_storage_may_contain_secrets()
-    });
-    if previous_origin_webview_storage_may_contain_secrets {
+    }) {
         return Ok(());
     }
 
-    let origin_id = app.origin_id();
+    let manager = AppMutationManager::new(app_handle, apps_state);
 
-    app.try_mutate(|sage_app| {
-        sage_app
-            .common_mut()
-            .mark_origin_webview_storage_may_contain_secrets()?;
+    manager
+        .mutate_shared_app(app, |ctx| {
+            Box::pin(async move {
+                ctx.draft_mut()
+                    .mark_origin_webview_storage_may_contain_secrets()?;
 
-        Ok::<_, anyhow::Error>(())
-    })
-        .map_err(|err| format!("failed to persist origin taint snapshot: {err}"))?;
-
-    if let Err(err) = apps_state
-        .db
-        .mark_origin_may_contain_secrets(&origin_id)
+                Ok(())
+            })
+        })
         .await
-    {
-        let rollback = app.try_mutate(|sage_app| {
-            sage_app
-                .common_mut()
-                .replace_origin_webview_storage_may_contain_secrets(previous_origin_webview_storage_may_contain_secrets)?;
-
-            Ok::<_, anyhow::Error>(())
-        });
-
-        return Err(match rollback {
-            Ok(()) => format!("failed to mark origin as containing secrets: {err}"),
-            Err(rollback_err) => format!(
-                "failed to mark origin as containing secrets: {err}; also failed to roll back app metadata taint snapshot: {rollback_err}"
-            ),
-        });
-    }
-
-    Ok(())
+        .map_err(|err| format!("failed to mark origin as containing secrets: {err}"))
 }
 
 fn debug_test_apps_enabled() -> bool {

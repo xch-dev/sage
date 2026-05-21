@@ -50,7 +50,7 @@ pub async fn apps_uninstall_app(
         })?;
     }
 
-    emit_listed_apps_changed(&app_handle, &host_state, &base_path).await;
+    emit_listed_apps_changed(&app_handle, &host_state).await;
 
     Ok(())
 }

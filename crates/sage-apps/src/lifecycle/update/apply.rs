@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 use std::io;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::lifecycle::download_url_snapshot;
+use crate::lifecycle::{download_url_snapshot, AppMutationManager};
 use crate::runtime::commands::CreateInstalledRuntimeArgs;
 use crate::runtime::{find_active_taskbar_runtime, resolve_app, start_app_update_runtime};
 use crate::runtime::start::start_user_app;
@@ -120,6 +120,8 @@ async fn execute_app_update(
     pending: UserSageAppPendingUpdate,
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
 ) -> crate::host::Result<SharedSageApp> {
+    let apps_state: State<'_, AppsHostState> = app_handle.state();
+
     let resolved = crate::runtime::resolve_stopped_app(app_handle, app_id)
         .await
         .map_err(|err| {
@@ -128,8 +130,10 @@ async fn execute_app_update(
             ))
         })?;
 
-    let granted_permissions_input = resolved.try_with_app(|app| {
-        app.try_with(|sage_app| {
+    let app = resolved.into_app();
+
+    let granted_permissions_input = app
+        .try_with(|sage_app| {
             let base = SageGrantedPermissionsInput::from((
                 sage_app.common().granted_permissions(),
                 pending.manifest().permissions(),
@@ -140,9 +144,9 @@ async fn execute_app_update(
                 None => base,
             })
         })
-    })?;
+        .map_err(io::Error::other)?;
 
-    let app_path = resolved.with_app(|app| app.with(SageApp::app_path));
+    let app_path = app.with(SageApp::app_path);
 
     let snapshot = download_url_snapshot(
         &app_path,
@@ -153,25 +157,34 @@ async fn execute_app_update(
         .await
         .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
-    resolved
-        .try_with_app(|app| {
-            app.try_mutate(|sage_app| {
-                let granted_permissions = granted_permissions_input
-                    .resolve(pending.manifest().permissions())
-                    .map_err(|err| anyhow::anyhow!("invalid update permissions: {err}"))?;
+    let granted_permissions = granted_permissions_input
+        .resolve(pending.manifest().permissions())
+        .map_err(|err| io::Error::other(format!("invalid update permissions: {err}")))?;
 
-                sage_app.apply_update(&pending, granted_permissions, snapshot)?;
+    let manager = AppMutationManager::new(app_handle, &apps_state);
 
-                sage_app
-                    .set_pending_update(None)
-                    .map_err(|err| anyhow::anyhow!("failed to clear pending update: {err}"))?;
+    manager
+        .mutate_shared_app(&app, move |ctx| {
+            Box::pin(async move {
+                ctx.draft_mut()
+                    .app_mut()
+                    .apply_update(
+                        &pending,
+                        granted_permissions,
+                        snapshot,
+                    )?;
 
-                Ok::<_, anyhow::Error>(())
+                ctx.draft_mut()
+                    .app_mut()
+                    .set_pending_update(None)?;
+
+                Ok(())
             })
         })
+        .await
         .map_err(io::Error::other)?;
 
-    Ok(resolved.into_app())
+    Ok(app)
 }
 
 async fn open_update_runtime(

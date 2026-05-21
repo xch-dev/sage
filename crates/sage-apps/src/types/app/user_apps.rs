@@ -1,5 +1,4 @@
 use crate::capabilities::list::BridgeCapability;
-use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
 use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
 use crate::types::app::preview::UserSageAppPendingUpdate;
@@ -34,13 +33,6 @@ impl ResolvedStoppedApp {
     }
 
     pub fn with_app<T>(&self, f: impl FnOnce(&SharedSageApp) -> T) -> T {
-        f(&self.app)
-    }
-
-    pub fn try_with_app<T, E>(
-        &self,
-        f: impl FnOnce(&SharedSageApp) -> Result<T, E>,
-    ) -> Result<T, E> {
         f(&self.app)
     }
 
@@ -104,6 +96,11 @@ impl SharedSageApp {
         }
     }
 
+    pub(crate) fn replace_committed(&self, next: SageApp) {
+        let mut app = self.inner.write();
+        *app = next;
+    }
+
     pub(crate) fn should_review_pending_update(&self) -> bool {
         self.with(|sage_app| {
             let Some(user_app) = sage_app.as_user() else {
@@ -136,33 +133,6 @@ impl SharedSageApp {
     pub fn try_with<T, E>(&self, f: impl FnOnce(&SageApp) -> Result<T, E>) -> Result<T, E> {
         let app = self.inner.read();
         f(&app)
-    }
-    pub fn try_mutate<T, E>(
-        &self,
-        f: impl FnOnce(&mut SageApp) -> Result<T, E>,
-    ) -> Result<T, String>
-    where
-        E: ToString,
-    {
-        let mut app = self.inner.write();
-
-        let previous_app = app.clone_for_rollback().map_err(|err| err.to_string())?;
-
-        match f(&mut app) {
-            Ok(value) => {
-                if let Err(err) = write_metadata_for_app(&app) {
-                    *app = previous_app;
-                    return Err(format!("failed to persist app metadata: {err}"));
-                }
-
-                Ok(value)
-            }
-
-            Err(err) => {
-                *app = previous_app;
-                Err(err.to_string())
-            }
-        }
     }
 
     pub fn is_user_app(&self) -> bool {

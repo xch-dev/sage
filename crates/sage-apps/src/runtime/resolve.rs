@@ -1,5 +1,4 @@
 use crate::AppsHostState;
-use crate::lifecycle::read_installed_app_by_id;
 use crate::runtime::stop::close_runtime_internal;
 use crate::runtime::{
     GetRuntimeError, SharedImpostorRuntime, SharedRuntime,
@@ -20,7 +19,6 @@ const MAX_STOP_RESOLVE_ATTEMPTS: usize = 5;
 
 #[derive(Debug)]
 pub enum ResolveError {
-    AppDirMissing,
     NotFound(String),
     BuildFailed(String),
 }
@@ -39,7 +37,6 @@ pub(crate) enum PossiblyImpostorRuntime {
 impl Display for ResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            ResolveError::AppDirMissing => "app dir missing".to_string(),
             ResolveError::NotFound(msg) => msg.clone(),
             ResolveError::BuildFailed(msg) => msg.clone(),
         };
@@ -127,8 +124,7 @@ pub async fn resolve_stopped_app(
 
     for attempt in 1..=MAX_STOP_RESOLVE_ATTEMPTS {
         let resolved_app = resolve_app(app, app_id).await.map_err(|e| match e {
-            ResolveError::AppDirMissing
-            | ResolveError::NotFound(_)
+            ResolveError::NotFound(_)
             | ResolveError::BuildFailed(_) => ResolveStoppedError::AppDirMissing,
         })?;
         match resolved_app {
@@ -164,16 +160,21 @@ pub async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, R
         return Ok(ResolvedApp::Running(ResolvedRunningApp::new(runtime)));
     }
 
-    let base_path = app
-        .path()
-        .app_data_dir()
-        .map_err(|_| ResolveError::AppDirMissing)?;
+    match state.db.get_user_app(app_id).await {
+        Ok(Some(app)) => {
+            return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
+                SharedSageApp::new(SageApp::User(app)),
+                guard,
+            )));
+        }
 
-    if let Ok(app) = read_installed_app_by_id(&base_path, app_id) {
-        return Ok(ResolvedApp::Stopped(ResolvedStoppedApp::new(
-            SharedSageApp::new(SageApp::User(app)),
-            guard,
-        )));
+        Ok(None) => {}
+
+        Err(err) => {
+            return Err(ResolveError::BuildFailed(format!(
+                "failed to read installed app {app_id}: {err}"
+            )));
+        }
     }
     if let Some(app) = build_builtin_system_app(app_id).map_err(|err| {
         ResolveError::BuildFailed(format!(

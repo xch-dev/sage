@@ -14,6 +14,7 @@ use {
 };
 use crate::AppsHostState;
 use crate::runtime::{resolve_stopped_app};
+use crate::runtime::start::start_user_app;
 use crate::types::{SageAppStorage, SharedSageApp};
 
 pub struct RegisteredSageAppStorage {
@@ -29,11 +30,31 @@ pub async fn apps_clear_runtime_browsing_data(
 ) -> Result<(), String> {
     let apps_state: State<'_, AppsHostState> = app_handle.state();
 
+    let was_running = crate::runtime::find_runtime_by_app_id_optional(&apps_state, &app_id)
+        .await
+        .is_some();
+
     let resolved_app = resolve_stopped_app(&app_handle, &app_id)
         .await
         .map_err(|e| e.to_string())?;
 
-    rotate_stopped_app_storage_and_origin(&app_handle, &apps_state, &resolved_app).await
+    rotate_stopped_app_storage_and_origin(&app_handle, &apps_state, &resolved_app).await?;
+
+    drop(resolved_app);
+
+    if was_running {
+        start_user_app(
+            &app_handle,
+            &apps_state,
+            crate::runtime::commands::CreateInstalledRuntimeArgs {
+                app_id,
+                focus: Some(true),
+            },
+        )
+            .await?;
+    }
+
+    Ok(())
 }
 
 pub async fn allocate_new_storage(
@@ -190,18 +211,6 @@ pub(crate) async fn rotate_app_storage_and_origin(
 ) -> Result<(), String> {
     let app_id = app.id();
 
-    let (
-        previous_storage,
-        previous_origin_id,
-        previous_origin_webview_storage_may_contain_secrets,
-    ) = app.with(|app| {
-        (
-            app.storage().clone(),
-            app.origin_id().to_string(),
-            app.common().origin_webview_storage_may_contain_secrets(),
-        )
-    });
-
     let base_path = app_handle
         .path()
         .app_data_dir()
@@ -213,47 +222,33 @@ pub(crate) async fn rotate_app_storage_and_origin(
 
     let next_origin_id = crate::lifecycle::install::fresh_origin_id(&app_id);
 
-    let origin_row_id = apps_state
-        .db
-        .register_origin(&next_origin_id, next_storage.storage_id)
-        .await
-        .map_err(|err| format!("failed to register rotated app origin: {err}"))?;
+    let manager = crate::lifecycle::mutation::AppMutationManager::new(app_handle, apps_state);
 
-    app.try_mutate(|sage_app| {
-        sage_app.common_mut().replace_storage_and_origin(
-            next_storage.storage.clone(),
-            next_origin_id.clone(),
-            false,
-        )?;
+    manager
+        .mutate_shared_app(app, |ctx| {
+            Box::pin(async move {
+                let origin_row_id = ctx
+                    .tx()
+                    .register_origin(&next_origin_id, next_storage.storage_id)
+                    .await?;
 
-        Ok::<_, anyhow::Error>(())
-    })
-        .map_err(|err| format!("failed to persist rotated app storage/origin: {err}"))?;
+                ctx.tx()
+                    .update_app_assignment(
+                        &app_id,
+                        next_storage.storage_id,
+                        origin_row_id,
+                    )
+                    .await?;
 
-    if let Err(err) = apps_state
-        .db
-        .update_app_assignment(&app_id, next_storage.storage_id, origin_row_id)
-        .await
-    {
-        let rollback_result = app.try_mutate(|sage_app| {
-            sage_app
-                .common_mut()
-                .replace_storage_and_origin(
-                    previous_storage,
-                    previous_origin_id,
-                    previous_origin_webview_storage_may_contain_secrets,
+                ctx.draft_mut().replace_storage_and_origin(
+                    next_storage.storage.clone(),
+                    next_origin_id,
+                    false,
                 )?;
 
-            Ok::<_, anyhow::Error>(())
-        });
-
-        return Err(match rollback_result {
-            Ok(()) => format!("failed to update rotated app assignment: {err}"),
-            Err(rollback_err) => format!(
-                "failed to update rotated app assignment: {err}; also failed to roll back app metadata: {rollback_err}"
-            ),
-        });
-    }
-
-    Ok(())
+                Ok(())
+            })
+        })
+        .await
+        .map_err(|err| format!("failed to rotate app storage/origin: {err}"))
 }

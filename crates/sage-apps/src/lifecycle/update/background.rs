@@ -2,8 +2,7 @@ use futures::future::join_all;
 use std::time::Duration;
 
 use crate::AppsHostState;
-use crate::host::AppState;
-use crate::lifecycle::{apps_root, list_installed_apps_internal};
+use crate::lifecycle::{list_installed_apps_internal};
 use crate::types::ListedSageApp;
 use tauri::{AppHandle, Manager, State};
 use crate::lifecycle::update::apply::try_auto_apply_pending_update;
@@ -29,15 +28,9 @@ pub fn start_background_app_update_checker(app_handle: AppHandle) {
 }
 
 async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Result<()> {
-    let app_state: State<'_, AppState> = app_handle.state();
     let host_state: State<'_, AppsHostState> = app_handle.state();
 
-    let base_path = {
-        let state = app_state.lock().await;
-        state.path.clone()
-    };
-
-    let installed_apps = list_installed_apps_internal(&apps_root(&base_path))?;
+    let installed_apps = list_installed_apps_internal(&host_state.db).await?;
 
     let app_ids = installed_apps
         .into_iter()

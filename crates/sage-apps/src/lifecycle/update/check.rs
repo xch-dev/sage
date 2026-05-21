@@ -2,7 +2,7 @@ use std::io;
 use tauri::{AppHandle, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::lifecycle::{fetch_url_manifest, fetch_url_manifest_preview};
+use crate::lifecycle::{fetch_url_manifest, fetch_url_manifest_preview, AppMutationManager};
 use crate::runtime::resolve_app;
 use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
@@ -22,14 +22,21 @@ pub(crate) async fn check_app_update_inner(
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
 
     let app = resolved.clone_app_for_operation();
+    let mutation_manager = AppMutationManager::new(app_handle, apps_state);
 
     let preview = match preview_app_update(&resolved).await? {
         AppUpdatePreviewResult::None => {
-            app.try_mutate(|sage_app| {
-                sage_app
-                    .set_pending_update(None)
-                    .map_err(|err| err.to_string())
-            })
+            mutation_manager
+                .mutate_shared_app(&app, |ctx| {
+                    Box::pin(async move {
+                        ctx.draft_mut()
+                            .app_mut()
+                            .set_pending_update(None)?;
+
+                        Ok(())
+                    })
+                })
+                .await
                 .map_err(io::Error::other)?;
 
             emit_pending_update_changed(app_handle, apps_state, &app).await;
@@ -59,11 +66,17 @@ pub(crate) async fn check_app_update_inner(
         }
     };
 
-    app.try_mutate(|sage_app| {
-        sage_app
-            .set_pending_update(pending_update)
-            .map_err(|err| err.to_string())
-    })
+    mutation_manager
+        .mutate_shared_app(&app, |ctx| {
+            Box::pin(async move {
+                ctx.draft_mut()
+                    .app_mut()
+                    .set_pending_update(pending_update)?;
+
+                Ok(())
+            })
+        })
+        .await
         .map_err(io::Error::other)?;
 
     tracing::info!(app_id = %app_id, "app update prepared successfully");

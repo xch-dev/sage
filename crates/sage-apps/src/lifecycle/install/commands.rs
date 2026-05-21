@@ -2,13 +2,17 @@ use std::{fs, io};
 
 use tauri::{State, command};
 
+use crate::AppsHostState;
 use crate::host::{AppState, Result};
 use crate::lifecycle::{apps_root, list_installed_apps_internal};
 use crate::types::ListedSageAppView;
 
 #[command]
 #[specta::specta]
-pub async fn apps_list_installed_apps(state: State<'_, AppState>) -> Result<Vec<ListedSageAppView>> {
+pub async fn apps_list_installed_apps(
+    state: State<'_, AppState>,
+    apps_state: State<'_, AppsHostState>,
+) -> Result<Vec<ListedSageAppView>> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()
@@ -23,7 +27,8 @@ pub async fn apps_list_installed_apps(state: State<'_, AppState>) -> Result<Vec<
         ))
     })?;
 
-    list_installed_apps_internal(&root)
+    list_installed_apps_internal(&apps_state.db)
+        .await
         .map(|apps| apps.iter().map(Into::into).collect())
         .map_err(|err| io::Error::other(format!("failed to list installed apps: {err}")).into())
 }

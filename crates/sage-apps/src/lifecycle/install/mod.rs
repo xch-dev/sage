@@ -10,9 +10,9 @@ use uuid::Uuid;
 
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
-use crate::lifecycle::{allocate_new_storage, apps_root, write_metadata_for_app};
+use crate::lifecycle::{allocate_new_storage, apps_root};
 use crate::types::{
-    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
+    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
     SageAppStorage, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
     UserSageAppSource,
 };
@@ -36,7 +36,7 @@ pub trait AppInstallSource {
         root: &Path,
         base_path: &Path,
         prepared: &Self::PreparedArtifact,
-    ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)>;
+    ) -> AnyResult<(String, PathBuf)>;
 
     async fn create_snapshot(
         &self,
@@ -75,7 +75,7 @@ where
         .await;
 
     let host_state: State<'_, AppsHostState> = app.state();
-    emit_listed_apps_changed(app, &host_state, base_path).await;
+    emit_listed_apps_changed(app, &host_state).await;
 
     install_result
 }
@@ -96,10 +96,10 @@ where
 
     let prepared_artifact = source.prepare().await?;
 
-    let (app_id, app_dir, existing_app) =
+    let (app_id, app_dir) =
         source.resolve_target(&root, base_path, &prepared_artifact)?;
 
-    if existing_app.is_some() {
+    if host_state.db.app_exists(&app_id).await? {
         anyhow::bail!("App is already installed");
     }
 
@@ -122,15 +122,26 @@ where
     )
         .await?;
 
-    let origin_row_id = host_state
-        .db
+    let mut tx = host_state.db.begin_immediate().await?;
+
+    let origin_row_id = tx
         .register_origin(&origin_id, registered_storage.storage_id)
         .await?;
 
-    host_state
-        .db
-        .register_app(&app_id, registered_storage.storage_id, origin_row_id)
+    tx.insert_user_app(&installed, registered_storage.storage_id, origin_row_id)
         .await?;
+
+    let reread = tx.load_user_app(&app_id).await?;
+
+    let expected = serde_json::to_value(&installed)?;
+    let actual = serde_json::to_value(&reread)?;
+
+    if expected != actual {
+        tx.rollback().await;
+        anyhow::bail!("installed app DB round-trip mismatch");
+    }
+
+    tx.commit().await?;
 
     Ok(installed)
 }
@@ -167,16 +178,10 @@ where
         wallet_scope,
     )?;
 
-    let installed = UserSageApp::new_installed(common, source.source(&prepared_artifact));
-    let installed_sage_app = installed.into_sage_app();
-
-    write_metadata_for_app(&installed_sage_app)?;
-
-    let SageApp::User(installed) = installed_sage_app else {
-        unreachable!("installed app is always user app");
-    };
-
-    Ok(installed)
+    Ok(UserSageApp::new_installed(
+        common,
+        source.source(&prepared_artifact),
+    ))
 }
 
 #[cfg(test)]
@@ -193,12 +198,8 @@ where
 
     let prepared_artifact = source.prepare().await?;
 
-    let (app_id, app_dir, existing_app) =
+    let (app_id, app_dir) =
         source.resolve_target(&root, base_path, &prepared_artifact)?;
-
-    if existing_app.is_some() {
-        anyhow::bail!("App is already installed");
-    }
 
     materialize_installed_app(
         source,
@@ -265,9 +266,9 @@ impl AppInstallSource for FakeInstallSource {
         root: &Path,
         _base_path: &Path,
         _prepared: &Self::PreparedArtifact,
-    ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
+    ) -> AnyResult<(String, PathBuf)> {
         let app_dir = root.join(&self.app_id);
-        Ok((self.app_id.clone(), app_dir, None))
+        Ok((self.app_id.clone(), app_dir))
     }
 
     async fn create_snapshot(
@@ -293,7 +294,6 @@ mod tests {
     use tempfile::tempdir;
 
     use crate::capabilities::list::UserBridgeCapability;
-    use crate::lifecycle::registry::read_installed_app_by_id;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput,
         SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
@@ -350,7 +350,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn materialize_installed_app_builds_and_writes_metadata() {
+    async fn materialize_installed_app_builds_installed_app() {
         let dir = tempdir().unwrap();
         let app_id = "fake-app".to_string();
         let app_dir = apps_root(dir.path()).join(&app_id);
@@ -397,11 +397,6 @@ mod tests {
         assert_eq!(common.icon_file(), None);
         assert_eq!(common.storage(), &SageAppStorage::Unmanaged);
         assert_eq!(installed.source(), &UserSageAppSource::Zip);
-
-        let reread = read_installed_app_by_id(dir.path(), common.id()).unwrap();
-        assert_eq!(reread.common().id(), common.id());
-        assert_eq!(reread.common().origin_id(), common.origin_id());
-        assert_eq!(reread.common().storage(), common.storage());
     }
 
     #[test]

@@ -2,11 +2,10 @@ use crate::AppsHostState;
 use crate::bridge::emit_system_runtime_event_to_listeners;
 use crate::bridge::event_emit::SystemRuntimeEvent;
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::{apps_root, list_installed_apps_internal};
+use crate::lifecycle::{list_installed_apps_internal};
 use crate::types::ListedSageAppView;
 use serde::Serialize;
 use specta::Type;
-use std::path::Path;
 use tauri::{AppHandle, State};
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -24,11 +23,8 @@ impl SystemRuntimeEvent for ListedAppsChangedEvent {
 pub(crate) async fn emit_listed_apps_changed(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    base_path: &Path,
 ) {
-    let root = apps_root(base_path);
-
-    let Ok(apps) = list_installed_apps_internal(&root) else {
+    let Ok(apps) = list_installed_apps_internal(&apps_state.db).await else {
         return;
     };
 

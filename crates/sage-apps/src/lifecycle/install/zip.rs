@@ -10,7 +10,7 @@ use uuid::Uuid;
 use super::AppInstallSource;
 use crate::lifecycle::{detect_package_root, prepare_zip_snapshot, read_manifest, unzip_to_dir};
 use crate::types::{
-    SageAppPackageManifest, SageAppSnapshot, UserSageApp, UserSageAppSource,
+    SageAppPackageManifest, SageAppSnapshot, UserSageAppSource,
 };
 use crate::utils::slugify_app_name;
 
@@ -68,11 +68,11 @@ impl AppInstallSource for ZipInstallSource {
         root: &Path,
         _base_path: &Path,
         prepared: &Self::PreparedArtifact,
-    ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
+    ) -> AnyResult<(String, PathBuf)> {
         let app_id = generate_zip_app_id(prepared.manifest.name());
         let app_dir = root.join(&app_id);
 
-        Ok((app_id, app_dir, None))
+        Ok((app_id, app_dir))
     }
 
     async fn create_snapshot(
@@ -134,11 +134,10 @@ mod tests {
             manifest: sample_manifest("Test App"),
         };
 
-        let (app_id, app_dir, existing) = source
+        let (app_id, app_dir) = source
             .resolve_target(dir.path(), dir.path(), &prepared)
             .unwrap();
 
-        assert!(existing.is_none());
         assert!(app_id.starts_with("test-app-"));
         assert_eq!(app_dir, dir.path().join(&app_id));
     }
@@ -157,11 +156,11 @@ mod tests {
             manifest: sample_manifest("Test App"),
         };
 
-        let (first_app_id, _, _) = source
+        let (first_app_id, _) = source
             .resolve_target(dir.path(), dir.path(), &prepared)
             .unwrap();
 
-        let (second_app_id, _, _) = source
+        let (second_app_id, _) = source
             .resolve_target(dir.path(), dir.path(), &prepared)
             .unwrap();
 

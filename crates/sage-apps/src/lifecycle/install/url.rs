@@ -4,10 +4,9 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 
 use super::AppInstallSource;
-use crate::lifecycle::registry::read_installed_app_by_id;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest_preview};
 use crate::types::{
-    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageApp,
+    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview,
     UserSageAppSource,
 };
 use crate::utils::bytes_sha256_hex;
@@ -47,7 +46,7 @@ impl AppInstallSource for SageAppUrl {
         root: &Path,
         _base_path: &Path,
         prepared: &Self::PreparedArtifact,
-    ) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
+    ) -> AnyResult<(String, PathBuf)> {
         resolve_url_install_target(root, prepared.preview.app_url())
     }
 
@@ -74,20 +73,11 @@ pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
 pub fn resolve_url_install_target(
     root: &Path,
     app_url: &SageAppUrl,
-) -> AnyResult<(String, PathBuf, Option<UserSageApp>)> {
+) -> AnyResult<(String, PathBuf)> {
     let app_id = generate_url_app_id(app_url);
     let app_dir = root.join(&app_id);
 
-    let existing = if app_dir.exists() {
-        Some(read_installed_app_by_id(
-            root.parent().unwrap_or(root),
-            &app_id,
-        )?)
-    } else {
-        None
-    };
-
-    Ok((app_id.clone(), app_dir, existing))
+    Ok((app_id, app_dir))
 }
 
 #[cfg(test)]
@@ -119,9 +109,8 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
 
         let app_url = SageAppUrl::parse("https://example.com/app").unwrap();
-        let (app_id, app_dir, existing) = resolve_url_install_target(&root, &app_url).unwrap();
+        let (app_id, app_dir) = resolve_url_install_target(&root, &app_url).unwrap();
 
-        assert!(existing.is_none());
         assert_eq!(app_dir, root.join(&app_id));
         assert_eq!(app_id, generate_url_app_id(&app_url));
     }
