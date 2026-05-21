@@ -75,16 +75,6 @@ pub(crate) async fn run_verified_storage_clear_cycle(
         );
     }
 
-    resolved_app
-        .try_with_app(|app| {
-            app.try_mutate(|app| {
-                app.common_mut().clear_storage_may_contain_secrets();
-
-                Ok::<(), anyhow::Error>(())
-            })
-        })
-        .map_err(|err| format!("failed to persist cleared storage state: {err}"))?;
-
     close_runtime_internal(app_handle, &apps_state, &app_id).await;
 
     Ok(())

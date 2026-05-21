@@ -2,7 +2,6 @@ use crate::capabilities::list::BridgeCapability;
 use crate::lifecycle::write_metadata_for_app;
 use crate::runtime::SharedRuntime;
 use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
-use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
 use crate::types::app::system_apps::SystemSageApp;
@@ -122,6 +121,13 @@ impl SharedSageApp {
         })
     }
 
+    pub(crate) fn runtime_can_persist_secrets(&self) -> bool {
+        self.with(|app| {
+            app.common().has_secret_access()
+                && app.common().has_persistent_webview_storage()
+        })
+    }
+
     pub fn with<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {
         let app = self.inner.read();
         f(&app)
@@ -207,11 +213,7 @@ impl SharedSageApp {
     }
 
     pub fn has_secret_access(&self) -> bool {
-        self.with(|app| app.flags().has_secret_access())
-    }
-
-    pub fn storage_may_contain_secrets(&self) -> bool {
-        self.with(|app| app.flags().storage_may_contain_secrets())
+        self.with(|app| app.has_secret_access())
     }
 
     pub fn webview_label_matches(&self, label: &str) -> bool {
@@ -415,8 +417,8 @@ impl SageApp {
         }
     }
 
-    pub(crate) fn flags(&self) -> &SageAppFlags {
-        self.common().flags()
+    pub(crate) fn has_secret_access(&self) -> bool {
+        self.common().has_secret_access()
     }
 
     pub(crate) fn storage(&self) -> &SageAppStorage {

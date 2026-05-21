@@ -1,11 +1,8 @@
 use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::SageAppWalletScope;
-use crate::types::app::flags::SageAppFlags;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::invariants::{
-    resolve_app_capability_flags, validate_snapshot_entry_and_icon_exist,
-};
+use crate::types::invariants::{validate_snapshot_entry_and_icon_exist};
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::SageAppStorage;
@@ -22,14 +19,14 @@ pub struct SageAppIdentity {
 pub struct SageAppCommon {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
-    flags: SageAppFlags,
     storage: SageAppStorage,
+    origin_webview_storage_may_contain_secrets: bool,
     active_snapshot: SageAppSnapshot,
     wallet_scope: SageAppWalletScope,
 }
 
 impl SageAppCommon {
-    pub fn new(
+    pub(crate) fn new(
         identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
         storage: SageAppStorage,
@@ -40,24 +37,13 @@ impl SageAppCommon {
             identity,
             granted_permissions,
             storage,
+            false,
             snapshot,
             wallet_scope,
-            None,
         )
     }
 
-    pub fn clone_durable(&self) -> Self {
-        Self {
-            identity: self.identity.clone(),
-            granted_permissions: self.granted_permissions.clone(),
-            storage: self.storage.clone(),
-            flags: self.flags,
-            active_snapshot: self.active_snapshot.clone(),
-            wallet_scope: self.wallet_scope.clone(),
-        }
-    }
-
-    pub fn apply_update(
+    pub(crate) fn apply_update(
         &mut self,
         pending: &UserSageAppPendingUpdate,
         granted_permissions: SageGrantedPermissions,
@@ -67,9 +53,9 @@ impl SageAppCommon {
             self.identity.clone(),
             granted_permissions,
             self.storage.clone(),
+            self.origin_webview_storage_may_contain_secrets,
             snapshot,
             self.wallet_scope.clone(),
-            Some(&self.flags),
         )?;
 
         if next.active_snapshot.manifest() != pending.manifest() {
@@ -110,33 +96,88 @@ impl SageAppCommon {
             self.identity.clone(),
             granted_permissions,
             self.storage.clone(),
+            self.origin_webview_storage_may_contain_secrets,
             self.active_snapshot.clone(),
             self.wallet_scope.clone(),
-            Some(&self.flags),
         )?;
 
         *self = next;
         Ok(())
     }
 
-    pub(crate) fn mark_storage_may_contain_secrets(&mut self) {
-        self.flags.mark_storage_may_contain_secrets();
-    }
-
-    pub(crate) fn clear_storage_may_contain_secrets(&mut self) {
-        self.flags.clear_storage_may_contain_secrets();
-    }
-
     pub(crate) fn replace_storage_and_origin(
         &mut self,
         storage: SageAppStorage,
         origin_id: impl Into<String>,
+        origin_webview_storage_may_contain_secrets: bool
     ) -> anyhow::Result<()> {
-        self.storage = storage;
-        self.identity.replace_origin_id(origin_id)?;
-        self.clear_storage_may_contain_secrets();
+        let next = Self::build(
+            SageAppIdentity::new(
+                self.id().to_string(),
+                origin_id,
+                self.app_dir().to_string(),
+            )?,
+            self.granted_permissions.clone(),
+            storage,
+            origin_webview_storage_may_contain_secrets,
+            self.active_snapshot.clone(),
+            self.wallet_scope.clone(),
+        )?;
 
+        *self = next;
         Ok(())
+    }
+
+    pub(crate) fn mark_origin_webview_storage_may_contain_secrets(
+        &mut self,
+    ) -> anyhow::Result<()> {
+        self.replace_origin_webview_storage_may_contain_secrets(true)
+    }
+
+    pub(crate) fn replace_origin_webview_storage_may_contain_secrets(
+        &mut self,
+        origin_webview_storage_may_contain_secrets: bool,
+    ) -> anyhow::Result<()> {
+        let next = Self::build(
+            self.identity.clone(),
+            self.granted_permissions.clone(),
+            self.storage.clone(),
+            origin_webview_storage_may_contain_secrets,
+            self.active_snapshot.clone(),
+            self.wallet_scope.clone(),
+        )?;
+
+        *self = next;
+        Ok(())
+    }
+
+    pub(crate) fn origin_webview_storage_may_contain_secrets(&self) -> bool {
+        self.origin_webview_storage_may_contain_secrets
+    }
+
+    pub(crate) fn clone_durable(&self) -> Self {
+        Self {
+            identity: self.identity.clone(),
+            granted_permissions: self.granted_permissions.clone(),
+            storage: self.storage.clone(),
+            origin_webview_storage_may_contain_secrets: self.origin_webview_storage_may_contain_secrets,
+            active_snapshot: self.active_snapshot.clone(),
+            wallet_scope: self.wallet_scope.clone(),
+        }
+    }
+
+    pub(crate) fn capability_flags(&self) -> crate::capabilities::CapabilityFlags {
+        crate::capabilities::CapabilityFlags::from_capabilities(
+            &self.granted_permissions.capabilities_vec(),
+        )
+    }
+
+    pub(crate) fn has_secret_access(&self) -> bool {
+        self.capability_flags().accesses_sensitive_secret()
+    }
+
+    pub(crate) fn has_external_access(&self) -> bool {
+        self.capability_flags().externally_observable()
     }
 
     pub(crate) fn has_persistent_webview_storage(&self) -> bool {
@@ -149,9 +190,9 @@ impl SageAppCommon {
         identity: SageAppIdentity,
         granted_permissions: SageGrantedPermissions,
         storage: SageAppStorage,
+        origin_webview_storage_may_contain_secrets: bool,
         snapshot: SageAppSnapshot,
         wallet_scope: SageAppWalletScope,
-        previous_flags: Option<&SageAppFlags>,
     ) -> anyhow::Result<Self> {
         let manifest = snapshot.manifest();
 
@@ -160,17 +201,25 @@ impl SageAppCommon {
             granted_permissions,
         )?;
 
-        let capability_flags =
-            resolve_app_capability_flags(manifest, &granted_permissions, previous_flags)?;
-
         let common = Self {
             identity,
             granted_permissions,
-            flags: capability_flags,
             storage,
+            origin_webview_storage_may_contain_secrets,
             active_snapshot: snapshot,
             wallet_scope,
         };
+
+        if common.has_external_access() && common.has_secret_access() {
+            anyhow::bail!(
+                "app permissions cannot include both external access and sensitive secret access"
+            );
+        }
+        if common.has_external_access() && common.origin_webview_storage_may_contain_secrets {
+            anyhow::bail!(
+                "app permissions cannot include external access while origin webview storage may contain secrets"
+            );
+        }
 
         validate_snapshot_entry_and_icon_exist(
             &common.active_snapshot,
@@ -225,10 +274,6 @@ impl SageAppCommon {
         &self.granted_permissions
     }
 
-    pub fn flags(&self) -> &SageAppFlags {
-        &self.flags
-    }
-
     pub fn storage(&self) -> &SageAppStorage {
         &self.storage
     }
@@ -279,11 +324,6 @@ impl SageAppIdentity {
         })
     }
 
-    pub(crate) fn replace_origin_id(&mut self, origin_id: impl Into<String>) -> anyhow::Result<()> {
-        self.origin_id = normalized_non_empty_string(origin_id, "app origin id")?;
-        Ok(())
-    }
-
     pub fn id(&self) -> &str {
         &self.id
     }
@@ -319,8 +359,8 @@ impl<'de> Deserialize<'de> for SageAppIdentity {
 pub(crate) struct SageAppCommonRaw {
     identity: SageAppIdentity,
     granted_permissions: SageGrantedPermissions,
-    flags: SageAppFlags,
     storage: SageAppStorage,
+    origin_webview_storage_may_contain_secrets: bool,
     active_snapshot: SageAppSnapshot,
     wallet_scope: SageAppWalletScope,
 }
@@ -333,9 +373,9 @@ impl TryFrom<SageAppCommonRaw> for SageAppCommon {
             raw.identity,
             raw.granted_permissions,
             raw.storage,
+            raw.origin_webview_storage_may_contain_secrets,
             raw.active_snapshot,
             raw.wallet_scope,
-            Some(&raw.flags),
         )
     }
 }

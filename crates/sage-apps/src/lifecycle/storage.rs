@@ -190,8 +190,17 @@ pub(crate) async fn rotate_app_storage_and_origin(
 ) -> Result<(), String> {
     let app_id = app.id();
 
-    let (previous_storage, previous_origin_id) =
-        app.with(|app| (app.storage().clone(), app.origin_id().to_string()));
+    let (
+        previous_storage,
+        previous_origin_id,
+        previous_origin_webview_storage_may_contain_secrets,
+    ) = app.with(|app| {
+        (
+            app.storage().clone(),
+            app.origin_id().to_string(),
+            app.common().origin_webview_storage_may_contain_secrets(),
+        )
+    });
 
     let base_path = app_handle
         .path()
@@ -214,6 +223,7 @@ pub(crate) async fn rotate_app_storage_and_origin(
         sage_app.common_mut().replace_storage_and_origin(
             next_storage.storage.clone(),
             next_origin_id.clone(),
+            false,
         )?;
 
         Ok::<_, anyhow::Error>(())
@@ -228,7 +238,11 @@ pub(crate) async fn rotate_app_storage_and_origin(
         let rollback_result = app.try_mutate(|sage_app| {
             sage_app
                 .common_mut()
-                .replace_storage_and_origin(previous_storage, previous_origin_id)?;
+                .replace_storage_and_origin(
+                    previous_storage,
+                    previous_origin_id,
+                    previous_origin_webview_storage_may_contain_secrets,
+                )?;
 
             Ok::<_, anyhow::Error>(())
         });

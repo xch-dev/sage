@@ -120,7 +120,7 @@ async fn create_runtime(
     }
 
     rotate_incognito_app_storage_and_origin_if_needed(app_handle, apps_state, &app).await?;
-    app.taint_storage_if_runtime_can_persist_secrets()?;
+    mark_origin_may_contain_secrets_if_needed(apps_state, &app).await?;
 
     let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
@@ -369,6 +369,57 @@ window.__SAGE_APPS_COMMS_DEBUG__ = true;
     );
 
     builder
+}
+
+async fn mark_origin_may_contain_secrets_if_needed(
+    apps_state: &State<'_, AppsHostState>,
+    app: &SharedSageApp,
+) -> Result<(), String> {
+    if app.is_system_app() || !app.runtime_can_persist_secrets() {
+        return Ok(());
+    }
+
+    let previous_origin_webview_storage_may_contain_secrets = app.with(|app| {
+        app.common()
+            .origin_webview_storage_may_contain_secrets()
+    });
+    if previous_origin_webview_storage_may_contain_secrets {
+        return Ok(());
+    }
+
+    let origin_id = app.origin_id();
+
+    app.try_mutate(|sage_app| {
+        sage_app
+            .common_mut()
+            .mark_origin_webview_storage_may_contain_secrets()?;
+
+        Ok::<_, anyhow::Error>(())
+    })
+        .map_err(|err| format!("failed to persist origin taint snapshot: {err}"))?;
+
+    if let Err(err) = apps_state
+        .db
+        .mark_origin_may_contain_secrets(&origin_id)
+        .await
+    {
+        let rollback = app.try_mutate(|sage_app| {
+            sage_app
+                .common_mut()
+                .replace_origin_webview_storage_may_contain_secrets(previous_origin_webview_storage_may_contain_secrets)?;
+
+            Ok::<_, anyhow::Error>(())
+        });
+
+        return Err(match rollback {
+            Ok(()) => format!("failed to mark origin as containing secrets: {err}"),
+            Err(rollback_err) => format!(
+                "failed to mark origin as containing secrets: {err}; also failed to roll back app metadata taint snapshot: {rollback_err}"
+            ),
+        });
+    }
+
+    Ok(())
 }
 
 fn debug_test_apps_enabled() -> bool {

@@ -273,7 +273,7 @@ mod tests {
                 read_back.common().granted_permissions(),
                 app.common().granted_permissions()
             );
-            assert!(!read_back.common().flags().has_external_access());
+            assert!(!read_back.common().has_external_access());
         });
     }
 

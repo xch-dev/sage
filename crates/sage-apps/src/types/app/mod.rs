@@ -1,7 +1,6 @@
 mod author;
 mod common;
 mod donation;
-mod flags;
 mod preview;
 mod snapshot;
 mod system_apps;
@@ -22,5 +21,3 @@ pub(crate) use user_apps::{
     SageApp, UserSageApp, UserSageAppSource,
 };
 pub(crate) use wallet_scope::SageAppWalletScope;
-
-pub(super) use flags::SageAppFlags;
