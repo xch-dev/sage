@@ -17,12 +17,9 @@ mod utils;
 // State
 pub use db::AppsDb;
 pub use host::AppsHostState;
-pub use settings::{SageAppsSettings, read_apps_settings};
 
 // Commands
-pub use bridge::commands::{
-    apps_invoke_bridge, apps_invoke_system_bridge,
-};
+pub use bridge::commands::{apps_invoke_bridge, apps_invoke_system_bridge};
 pub use environment::commands::apps_set_environment_theme;
 pub use lifecycle::{
     apps_clear_runtime_browsing_data,

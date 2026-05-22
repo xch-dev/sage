@@ -3,7 +3,6 @@ use crate::bridge::state::BridgeState;
 use crate::db::AppsDb;
 use crate::runtime::AppRuntimeState;
 use crate::sandbox::SandboxStateStore;
-use crate::settings::{SageAppsSettings, write_apps_settings};
 use parking_lot::RwLock;
 use sage::Sage;
 use sage_api::ErrorKind;
@@ -11,7 +10,6 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -25,7 +23,6 @@ pub struct AppsHostState {
     pub bridge: BridgeState,
     pub sandbox: SandboxStateStore,
     pub environment: AppsEnvironmentState,
-    pub settings: AppsSettingsState,
     pub db: AppsDb,
 }
 
@@ -38,7 +35,6 @@ impl AppsHostState {
             bridge: BridgeState::default(),
             sandbox: SandboxStateStore::default(),
             environment: AppsEnvironmentState::default(),
-            settings: AppsSettingsState::default(),
             db,
         }
     }
@@ -87,11 +83,6 @@ pub struct AppsEnvironmentThemeState {
 pub struct AppUpdateLockGuard<'a> {
     state: &'a AppsHostState,
     app_id: String,
-}
-
-#[derive(Debug, Default)]
-pub struct AppsSettingsState {
-    pub current: Mutex<SageAppsSettings>,
 }
 
 impl From<sage::Error> for SageAppsError {
@@ -145,37 +136,3 @@ impl fmt::Display for SageAppsError {
 impl std::error::Error for SageAppsError {}
 
 pub type Result<T> = std::result::Result<T, SageAppsError>;
-
-impl AppsSettingsState {
-    pub(crate) async fn try_mutate<T, E>(
-        &self,
-        base_path: &Path,
-        f: impl FnOnce(&mut SageAppsSettings) -> std::result::Result<T, E>,
-    ) -> std::result::Result<T, String>
-    where
-        E: ToString,
-    {
-        let mut settings = self.current.lock().await;
-        let previous = *settings;
-
-        match f(&mut settings) {
-            Ok(value) => {
-                if let Err(err) = write_apps_settings(base_path, *settings) {
-                    *settings = previous;
-                    return Err(format!("failed to persist Sage apps settings: {err}"));
-                }
-
-                Ok(value)
-            }
-
-            Err(err) => {
-                *settings = previous;
-                Err(err.to_string())
-            }
-        }
-    }
-
-    pub(crate) async fn read(&self) -> SageAppsSettings {
-        *self.current.lock().await
-    }
-}

@@ -58,7 +58,11 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
                 return result;
             }
 
-            let auto_update_enabled = host_state.settings.read().await.auto_update_enabled;
+            let auto_update_enabled = host_state
+                .db
+                .get_auto_update_enabled()
+                .await
+                .unwrap_or(false);
 
             if auto_update_enabled {
                 match try_auto_apply_pending_update(&app_handle, &host_state, &app_id).await {

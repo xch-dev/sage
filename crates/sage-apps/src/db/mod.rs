@@ -1,5 +1,6 @@
 mod app;
 mod connection;
+mod settings;
 mod storage;
 mod transaction;
 

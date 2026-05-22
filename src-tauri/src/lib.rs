@@ -274,16 +274,6 @@ pub fn run() {
 
                 app.manage(AppsHostState::new(apps_db));
 
-                let apps_settings = apps::read_apps_settings(&path).unwrap_or_else(|err| {
-                    eprintln!("failed to read Sage apps settings: {err}");
-                    Default::default()
-                });
-
-                let apps_state = app.state::<AppsHostState>();
-                tauri::async_runtime::block_on(async {
-                    *apps_state.settings.current.lock().await = apps_settings;
-                });
-
                 apps::start_background_app_update_checker(app.handle().clone());
 
                 let app_handle = app.handle().clone();

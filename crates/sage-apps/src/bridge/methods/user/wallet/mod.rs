@@ -23,9 +23,11 @@ fn require_scoped_fingerprint(
     })?;
 
     if !ctx.app.is_wallet_in_scope(fingerprint) {
-        return Err(crate::bridge::methods::shared::BridgeMethodHandleError::invalid_request(
-            format!("wallet fingerprint not in app wallet scope: {fingerprint}"),
-        ));
+        return Err(
+            crate::bridge::methods::shared::BridgeMethodHandleError::invalid_request(format!(
+                "wallet fingerprint not in app wallet scope: {fingerprint}"
+            )),
+        );
     }
 
     Ok(fingerprint)

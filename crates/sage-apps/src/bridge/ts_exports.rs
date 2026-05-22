@@ -34,11 +34,10 @@ use crate::types::{SageAppCapabilityDefinitionView, SageAppWalletScope};
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
     GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey,
-    GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus,
-    GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
-    GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchUsdPriceResponse,
-    TransactionResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse,
+    GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
+    GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
+    GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
 };
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
