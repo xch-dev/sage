@@ -9,12 +9,12 @@ use crate::types::{CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, Sage
 impl AppsDb {
     pub async fn app_exists(&self, app_id: &str) -> Result<bool> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT 1
             FROM sage_apps
             WHERE app_id = ?
             LIMIT 1
-            "#,
+            ",
         )
             .bind(app_id)
             .fetch_optional(&self.pool)
@@ -74,7 +74,7 @@ impl AppsDbTx {
         let now = crate::utils::unix_timestamp_ms();
 
         sqlx::query(
-            r#"
+            r"
             INSERT INTO sage_apps (
                 app_id,
                 storage_id,
@@ -92,7 +92,7 @@ impl AppsDbTx {
                 updated_at_ms
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            "#,
+            ",
         )
             .bind(common.id())
             .bind(storage_id)
@@ -120,7 +120,7 @@ impl AppsDbTx {
         let now = crate::utils::unix_timestamp_ms();
 
         sqlx::query(
-            r#"
+            r"
             UPDATE sage_app_origins
             SET may_contain_secrets = ?, updated_at_ms = ?
             WHERE id = (
@@ -128,7 +128,7 @@ impl AppsDbTx {
                 FROM sage_apps
                 WHERE app_id = ?
             )
-            "#,
+            ",
         )
             .bind(i32::from(
                 common.origin_webview_storage_may_contain_secrets(),
@@ -140,7 +140,7 @@ impl AppsDbTx {
             .with_context(|| format!("failed to persist origin taint for app {}", common.id()))?;
 
         sqlx::query(
-            r#"
+            r"
             UPDATE sage_apps
             SET
                 app_dir = ?,
@@ -154,7 +154,7 @@ impl AppsDbTx {
                 pending_update_manifest_json = ?,
                 updated_at_ms = ?
             WHERE app_id = ?
-            "#,
+            ",
         )
             .bind(common.app_dir())
             .bind(serde_json::to_string(app.source())?)
@@ -196,14 +196,14 @@ impl AppsDbTx {
         let now = crate::utils::unix_timestamp_ms();
 
         sqlx::query(
-            r#"
+            r"
             UPDATE sage_apps
             SET
                 storage_id = ?,
                 origin_row_id = ?,
                 updated_at_ms = ?
             WHERE app_id = ?
-            "#,
+            ",
         )
             .bind(storage_id)
             .bind(origin_row_id)
@@ -224,7 +224,7 @@ impl AppsDbTx {
         let now = crate::utils::unix_timestamp_ms();
 
         let result = sqlx::query(
-            r#"
+            r"
             INSERT INTO sage_app_origins (
                 origin_id,
                 storage_id,
@@ -233,7 +233,7 @@ impl AppsDbTx {
                 updated_at_ms
             )
             VALUES (?, ?, 0, ?, ?)
-            "#,
+            ",
         )
             .bind(origin_id)
             .bind(storage_id)
@@ -249,11 +249,11 @@ impl AppsDbTx {
 
 async fn list_user_app_ids_from_conn(conn: &mut SqliteConnection) -> Result<Vec<String>> {
     let rows = sqlx::query(
-        r#"
+        r"
         SELECT app_id
         FROM sage_apps
         ORDER BY app_id ASC
-        "#,
+        ",
     )
         .fetch_all(conn)
         .await
@@ -292,7 +292,7 @@ async fn load_user_app_from_conn(
 }
 
 fn load_user_app_sql() -> &'static str {
-    r#"
+    r"
     SELECT
         apps.app_id,
         apps.app_dir,
@@ -313,7 +313,7 @@ fn load_user_app_sql() -> &'static str {
     INNER JOIN sage_app_storages storages
         ON storages.id = apps.storage_id
     WHERE apps.app_id = ?
-    "#
+    "
 }
 
 fn row_to_user_app(row: SqliteRow) -> Result<UserSageApp> {
@@ -359,7 +359,7 @@ async fn load_corrupted_user_app_from_conn(
     error: anyhow::Error,
 ) -> Result<ListedSageApp> {
     let row = sqlx::query(
-        r#"
+        r"
         SELECT
             app_id,
             app_dir,
@@ -368,7 +368,7 @@ async fn load_corrupted_user_app_from_conn(
             active_snapshot_dir
         FROM sage_apps
         WHERE app_id = ?
-        "#,
+        ",
     )
         .bind(app_id)
         .fetch_one(conn)

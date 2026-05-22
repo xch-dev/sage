@@ -17,14 +17,14 @@ impl AppsDb {
         let now = crate::utils::unix_timestamp_ms();
 
         let result = sqlx::query(
-            r#"
+            r"
             INSERT INTO sage_app_storages (
                 storage_json,
                 created_at_ms,
                 updated_at_ms
             )
             VALUES (?, ?, ?)
-            "#,
+            ",
         )
             .bind(storage_json)
             .bind(now)
@@ -38,13 +38,13 @@ impl AppsDb {
 
     pub async fn get_app_storage(&self, app_id: &str) -> Result<Option<SageAppStorage>> {
         let row = sqlx::query(
-            r#"
+            r"
             SELECT storage_json
             FROM sage_apps apps
             INNER JOIN sage_app_storages storages
                 ON storages.id = apps.storage_id
             WHERE apps.app_id = ?
-            "#,
+            ",
         )
             .bind(app_id)
             .fetch_optional(&self.pool)
@@ -66,7 +66,7 @@ impl AppsDb {
         &self,
     ) -> Result<Vec<AbandonedStorageCleanupTarget>> {
         let rows = sqlx::query(
-            r#"
+            r"
         SELECT
             storages.id AS storage_id,
             storages.storage_json AS storage_json,
@@ -78,7 +78,7 @@ impl AppsDb {
             SELECT storage_id FROM sage_apps
         )
         ORDER BY storages.id ASC, origins.id ASC
-        "#,
+        ",
         )
             .fetch_all(&self.pool)
             .await
@@ -121,13 +121,13 @@ impl AppsDb {
 
     pub async fn delete_origins_for_abandoned_storage(&self, storage_id: i64) -> Result<u64> {
         let result = sqlx::query(
-            r#"
+            r"
             DELETE FROM sage_app_origins
             WHERE storage_id = ?
               AND storage_id NOT IN (
                   SELECT storage_id FROM sage_apps
               )
-            "#,
+            ",
         )
             .bind(storage_id)
             .execute(&self.pool)
@@ -141,13 +141,13 @@ impl AppsDb {
 
     pub async fn delete_abandoned_storage(&self, storage_id: i64) -> Result<()> {
         sqlx::query(
-            r#"
+            r"
             DELETE FROM sage_app_storages
             WHERE id = ?
               AND id NOT IN (
                 SELECT storage_id FROM sage_apps
               )
-            "#,
+            ",
         )
             .bind(storage_id)
             .execute(&self.pool)
