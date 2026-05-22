@@ -117,23 +117,22 @@ const BUILTIN_SYSTEM_APPS: &[BuiltinSystemAppSpec] = &[
     },
 ];
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub enum AppBuildError {
     AppDirMissing,
-    ManifestFailure,
+    ManifestFailure(String),
     InternalError,
     EntryFileNotFound,
 }
 
 impl Display for AppBuildError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let str = match self {
-            AppBuildError::AppDirMissing => String::from("app directory missing"),
-            AppBuildError::ManifestFailure => String::from("manifest failure"),
-            AppBuildError::InternalError => String::from("internal error"),
-            AppBuildError::EntryFileNotFound => String::from("entry not found"),
-        };
-        write!(f, "{str}")
+        match self {
+            AppBuildError::AppDirMissing => write!(f, "app directory is missing"),
+            AppBuildError::ManifestFailure(err) => write!(f, "manifest failure: {err}"),
+            AppBuildError::EntryFileNotFound => write!(f, "entry file not found"),
+            AppBuildError::InternalError => write!(f, "internal app build error"),
+        }
     }
 }
 
@@ -186,7 +185,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
                 "[build_builtin_system_app] manifest failure for {app_id} at {}: {err:?}",
                 app_dir.display()
             );
-            return Err(AppBuildError::ManifestFailure);
+            return Err(AppBuildError::ManifestFailure(format!("{err:?}")));
         }
     };
 

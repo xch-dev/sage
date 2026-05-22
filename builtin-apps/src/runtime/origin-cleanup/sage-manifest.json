@@ -1,6 +1,9 @@
 {
   "manifestVersion": 0,
   "name": "Sage Origin Cleanup",
+  "sageVersion": {
+    "min": "0.0.0"
+  },
   "version": "1.0.0",
   "permissions": {
     "network": {
@@ -14,14 +17,7 @@
       "optional": []
     }
   },
-  "files": [
-    {
-      "path": "index.html",
-      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "size": 1
-    }
-  ],
-  "entry": "index.html",
-  "icon": null
+  "files": [],
+  "entry": "index.html"
 }
 

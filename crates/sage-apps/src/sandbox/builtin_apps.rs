@@ -118,20 +118,17 @@ fn read_builtin_manifest(app_dir: &Path) -> AnyResult<SageAppPackageManifest> {
 
     let manifest_text = fs::read_to_string(&manifest_path).with_context(|| {
         format!(
-            "failed to read builtin test app manifest {}",
+            "failed to read builtin app manifest {}",
             manifest_path.display()
         )
     })?;
 
-    let manifest: SageAppPackageManifest =
-        serde_json::from_str(&manifest_text).with_context(|| {
-            format!(
-                "failed to parse builtin test app manifest {}",
-                manifest_path.display()
-            )
-        })?;
-
-    Ok(manifest)
+    serde_json::from_str::<SageAppPackageManifest>(&manifest_text).with_context(|| {
+        format!(
+            "failed to parse builtin app manifest {}",
+            manifest_path.display()
+        )
+    })
 }
 
 pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildError> {
@@ -145,7 +142,9 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
         return Err(AppBuildError::AppDirMissing);
     }
 
-    let manifest = read_builtin_manifest(&app_dir).map_err(|_| AppBuildError::ManifestFailure)?;
+    let manifest = read_builtin_manifest(&app_dir).map_err(|err| {
+        AppBuildError::ManifestFailure(format!("{err:#}"))
+    })?;
 
     let granted_permissions = SageGrantedPermissions::new(
         manifest.permissions(),
@@ -202,7 +201,15 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
         return Err(AppBuildError::AppDirMissing);
     }
 
-    let manifest = read_builtin_manifest(&app_dir).map_err(|_| AppBuildError::ManifestFailure)?;
+    let manifest = read_builtin_manifest(&app_dir).map_err(|err| {
+        tracing::error!(
+        error = %err,
+        app_dir = %app_dir.display(),
+        "failed to build builtin runtime app manifest"
+    );
+
+        AppBuildError::ManifestFailure(format!("{err:#}"))
+    })?;
 
     let granted_permissions = SageGrantedPermissions::for_builtin_requested(manifest.permissions())
         .map_err(|err| {

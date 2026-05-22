@@ -132,6 +132,7 @@ pub async fn process_pending_storage_cleanup(
         .db
         .list_abandoned_storage_cleanup_targets()
         .await?;
+    tracing::info!("found {} abandoned cleanup targets", cleanup_targets.len());
 
     for target in cleanup_targets {
         tracing::info!(
@@ -162,6 +163,10 @@ pub async fn process_pending_storage_cleanup(
                     .map_err(anyhow::Error::msg)?;
             }
         }
+        tracing::info!(
+            storage_id = target.storage_id,
+            "origin cleanup completed"
+        );
 
         host_state
             .db

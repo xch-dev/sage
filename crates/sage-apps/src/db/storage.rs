@@ -157,3 +157,51 @@ impl AppsDb {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[tokio::test]
+    async fn abandoned_unmanaged_storage_is_returned_for_origin_cleanup() {
+        let dir = tempdir().unwrap();
+        let db = AppsDb::initialize(dir.path()).await.unwrap();
+
+        let storage_id = db
+            .register_storage(&SageAppStorage::Unmanaged)
+            .await
+            .unwrap();
+
+        let mut tx = db.begin_immediate().await.unwrap();
+
+        tx.register_origin("origin-1", storage_id).await.unwrap();
+
+        tx.commit().await.unwrap();
+
+        let targets = db.list_abandoned_storage_cleanup_targets().await.unwrap();
+
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets[0].storage_id, storage_id);
+        assert_eq!(targets[0].storage, SageAppStorage::Unmanaged);
+        assert_eq!(targets[0].origin_ids, vec!["origin-1".to_string()]);
+    }
+
+    #[tokio::test]
+    async fn abandoned_unmanaged_storage_without_origins_is_returned() {
+        let dir = tempdir().unwrap();
+        let db = AppsDb::initialize(dir.path()).await.unwrap();
+
+        let storage_id = db
+            .register_storage(&SageAppStorage::Unmanaged)
+            .await
+            .unwrap();
+
+        let targets = db.list_abandoned_storage_cleanup_targets().await.unwrap();
+
+        assert_eq!(targets.len(), 1);
+        assert_eq!(targets[0].storage_id, storage_id);
+        assert_eq!(targets[0].storage, SageAppStorage::Unmanaged);
+        assert!(targets[0].origin_ids.is_empty());
+    }
+}

@@ -10,6 +10,7 @@ use crate::lifecycle::update::check::check_app_update_inner;
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(5000)).await;
         tracing::info!("starting background app update checker");
 
         let mut interval = tokio::time::interval(Duration::from_secs(60 * 10));
