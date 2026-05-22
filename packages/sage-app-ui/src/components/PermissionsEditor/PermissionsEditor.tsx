@@ -382,15 +382,29 @@ function SharedPermissionEditor({
     if (scheme === 'wss') {
       if (nextGranted) {
         nextKeys.add(wssKey);
-        nextKeys.add(httpsKey);
       } else {
         nextKeys.delete(wssKey);
       }
     }
 
+    const requestedKeys =
+      networkId === null
+        ? new Set([
+            ...requestedRequiredNetwork.map(networkKey),
+            ...requestedOptionalNetwork.map(networkKey),
+          ])
+        : new Set([
+            ...(requestedNetworkByNetwork[networkId]?.required ?? []).map(
+              networkKey,
+            ),
+            ...(requestedNetworkByNetwork[networkId]?.optional ?? []).map(
+              networkKey,
+            ),
+          ]);
+
     for (const key of Array.from(nextKeys)) {
-      if (key.startsWith('wss://')) {
-        nextKeys.add(`https://${key.slice('wss://'.length)}`);
+      if (!requestedKeys.has(key)) {
+        nextKeys.delete(key);
       }
     }
 
