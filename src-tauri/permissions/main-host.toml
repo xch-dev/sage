@@ -127,7 +127,6 @@ commands.allow = [
     "apps_start_system_app",
     "apps_clear_runtime_browsing_data",
     "apps_set_environment_theme",
-    "apps_get_user_capability_definitions",
     "apps_get_sandbox_state",
     "apps_get_app_launch_gate",
     "apps_rerun_sandbox_tests",

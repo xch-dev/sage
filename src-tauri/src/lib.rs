@@ -162,7 +162,6 @@ pub fn run() {
             apps::apps_leave_workspace,
             apps::apps_invoke_bridge,
             apps::apps_invoke_system_bridge,
-            apps::apps_get_user_capability_definitions,
             apps::apps_set_environment_theme,
             apps::apps_get_sandbox_state,
             apps::apps_get_app_launch_gate,

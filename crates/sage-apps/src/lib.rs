@@ -21,7 +21,7 @@ pub use settings::{SageAppsSettings, read_apps_settings};
 
 // Commands
 pub use bridge::commands::{
-    apps_get_user_capability_definitions, apps_invoke_bridge, apps_invoke_system_bridge,
+    apps_invoke_bridge, apps_invoke_system_bridge,
 };
 pub use environment::commands::apps_set_environment_theme;
 pub use lifecycle::{

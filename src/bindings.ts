@@ -374,9 +374,6 @@ async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeRes
 async appsInvokeSystemBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
     return await TAURI_INVOKE("apps_invoke_system_bridge", { request });
 },
-async appsGetUserCapabilityDefinitions() : Promise<SageAppCapabilityDefinitionView[]> {
-    return await TAURI_INVOKE("apps_get_user_capability_definitions");
-},
 async appsSetEnvironmentTheme(theme: EnvironmentThemeView) : Promise<null> {
     return await TAURI_INVOKE("apps_set_environment_theme", { theme });
 },
@@ -2243,8 +2240,6 @@ export type RustBridgeInvokeResult = ({ kind: "success" } & RustBridgeSuccessRes
 export type RustBridgeRequest = { bridgeVersion: string | null; id: string; method: string; paramsJson: string | null }
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
 export type SageAppAuthor = { name: string; avatar: string | null }
-export type SageAppCapabilityDefinitionView = { key: string; label: string; description: string; flags: SageAppCapabilityFlagsView }
-export type SageAppCapabilityFlagsView = { externallyObservable: boolean; accessesSensitiveSecret: boolean; requestableByApp: boolean; userGrantable: boolean }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
 export type SageAppDonation = { address: string }
 export type SageAppIconView = { mime: string; bytes: number[] }
