@@ -12,7 +12,7 @@ pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
         tracing::info!("starting background app update checker");
 
-        let mut interval = tokio::time::interval(Duration::from_secs(10));
+        let mut interval = tokio::time::interval(Duration::from_secs(60 * 10));
 
         loop {
             if let Err(err) = run_background_app_update_check(&app_handle).await {

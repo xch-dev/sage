@@ -52,11 +52,11 @@ impl AppInstallSource for SageAppUrl {
 
     async fn create_snapshot(
         &self,
-        app_dir: &Path,
+        snapshot_dir: &Path,
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<SageAppSnapshot> {
         download_url_snapshot(
-            app_dir,
+            snapshot_dir,
             prepared.preview.app_url(),
             prepared.preview.require_full_manifest()?,
             prepared.preview.manifest_hash(),

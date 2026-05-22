@@ -33,15 +33,13 @@ fn write_file(path: &Path, bytes: &[u8]) -> AnyResult<()> {
 }
 
 pub async fn download_url_snapshot(
-    app_dir: &Path,
+    snapshot_dir: &Path,
     app_url: &SageAppUrl,
     manifest: &SageAppPackageManifest,
     manifest_hash: &str,
 ) -> AnyResult<SageAppSnapshot> {
-    let snapshot_dir = app_dir.join("active");
-
     if snapshot_dir.exists() {
-        fs::remove_dir_all(&snapshot_dir).with_context(|| {
+        fs::remove_dir_all(snapshot_dir).with_context(|| {
             format!(
                 "failed to remove existing snapshot dir {}",
                 snapshot_dir.display()
@@ -49,7 +47,7 @@ pub async fn download_url_snapshot(
         })?;
     }
 
-    fs::create_dir_all(&snapshot_dir)
+    fs::create_dir_all(snapshot_dir)
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
     for file in manifest.files() {
@@ -66,7 +64,7 @@ pub async fn download_url_snapshot(
             ));
         }
 
-        let output_path = snapshot_dir.join(PathBuf::from(&file.path()));
+        let output_path = snapshot_dir.join(PathBuf::from(file.path()));
         write_file(&output_path, &bytes)?;
     }
 
@@ -75,4 +73,23 @@ pub async fn download_url_snapshot(
         snapshot_dir.to_string_lossy().to_string(),
         manifest.clone(),
     )
+}
+
+pub(crate) fn write_snapshot_manifest(snapshot: &SageAppSnapshot) -> anyhow::Result<()> {
+    let manifest_path = Path::new(snapshot.snapshot_dir())
+        .join(crate::types::MANIFEST_FILE_NAME);
+
+    fs::write(
+        &manifest_path,
+        serde_json::to_string_pretty(snapshot.manifest())?,
+    )
+        .with_context(|| format!("failed to write snapshot manifest {}", manifest_path.display()))?;
+
+    Ok(())
+}
+
+pub(crate) fn fresh_snapshot_dir(app_dir: &Path) -> PathBuf {
+    app_dir
+        .join("snapshots")
+        .join(uuid::Uuid::new_v4().to_string())
 }

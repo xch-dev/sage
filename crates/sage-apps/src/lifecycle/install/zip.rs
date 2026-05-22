@@ -77,10 +77,10 @@ impl AppInstallSource for ZipInstallSource {
 
     async fn create_snapshot(
         &self,
-        app_dir: &Path,
+        snapshot_dir: &Path,
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<SageAppSnapshot> {
-        prepare_zip_snapshot(&prepared.package_root, app_dir, &prepared.manifest)
+        prepare_zip_snapshot(&prepared.package_root, snapshot_dir, &prepared.manifest)
     }
 }
 

@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::io;
+use std::{fs, io};
 use tauri::{AppHandle, Manager, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_pending_update_changed;
@@ -146,16 +146,38 @@ async fn execute_app_update(
         })
         .map_err(io::Error::other)?;
 
-    let app_path = app.with(SageApp::app_path);
+    let app_dir = app.with(SageApp::app_path);
+
+    let old_snapshot_dir = app.with(|app| {
+        app.common()
+            .active_snapshot()
+            .snapshot_dir()
+            .to_string()
+    });
+
+    let snapshot_dir = crate::lifecycle::fresh_snapshot_dir(&app_dir);
+
+    fs::create_dir_all(&snapshot_dir).map_err(|err| {
+        io::Error::other(format!(
+            "failed to create update snapshot directory {}: {err}",
+            snapshot_dir.display()
+        ))
+    })?;
 
     let snapshot = download_url_snapshot(
-        &app_path,
+        &snapshot_dir,
         pending.app_url(),
         pending.manifest(),
         pending.manifest_hash(),
     )
         .await
         .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+
+    crate::lifecycle::write_snapshot_manifest(&snapshot).map_err(|err| {
+        io::Error::other(format!("failed to write update snapshot manifest: {err}"))
+    })?;
+
+    let new_snapshot_dir = snapshot.snapshot_dir().to_string();
 
     let granted_permissions = granted_permissions_input
         .resolve(pending.manifest().permissions())
@@ -168,11 +190,7 @@ async fn execute_app_update(
             Box::pin(async move {
                 ctx.draft_mut()
                     .app_mut()
-                    .apply_update(
-                        &pending,
-                        granted_permissions,
-                        snapshot,
-                    )?;
+                    .apply_update(&pending, granted_permissions, snapshot)?;
 
                 ctx.draft_mut()
                     .app_mut()
@@ -183,6 +201,10 @@ async fn execute_app_update(
         })
         .await
         .map_err(io::Error::other)?;
+
+    if old_snapshot_dir != new_snapshot_dir {
+        let _ = fs::remove_dir_all(old_snapshot_dir);
+    }
 
     Ok(app)
 }

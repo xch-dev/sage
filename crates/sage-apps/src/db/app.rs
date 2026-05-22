@@ -4,11 +4,7 @@ use anyhow::{Context, Result};
 use sqlx::{Row, SqliteConnection, sqlite::SqliteRow};
 
 use crate::db::{AppsDb, AppsDbTx};
-use crate::types::{
-    CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, SageAppIconView, SageAppIdentity,
-    SageAppSnapshot, SageAppStorage, SageAppWalletScope, SageGrantedPermissions, UserSageApp,
-    UserSageAppPendingUpdate, UserSageAppSource,
-};
+use crate::types::{CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, SageAppIconView, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
 
 impl AppsDb {
     pub async fn app_exists(&self, app_id: &str) -> Result<bool> {
@@ -86,13 +82,16 @@ impl AppsDbTx {
                 app_dir,
                 source_json,
                 granted_permissions_json,
-                active_snapshot_json,
                 wallet_scope_json,
-                pending_update_json,
+                active_snapshot_manifest_hash,
+                active_snapshot_dir,
+                pending_update_app_url,
+                pending_update_manifest_hash,
+                pending_update_manifest_json,
                 created_at_ms,
                 updated_at_ms
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             "#,
         )
             .bind(common.id())
@@ -101,9 +100,12 @@ impl AppsDbTx {
             .bind(common.app_dir())
             .bind(serde_json::to_string(app.source())?)
             .bind(serde_json::to_string(common.granted_permissions())?)
-            .bind(serde_json::to_string(common.active_snapshot())?)
             .bind(serde_json::to_string(common.wallet_scope())?)
-            .bind(serde_json::to_string(&app.pending_update())?)
+            .bind(common.active_snapshot().manifest_hash())
+            .bind(common.active_snapshot().snapshot_dir())
+            .bind(app.pending_update().map(|p| p.app_url().to_string()))
+            .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
+            .bind(app.pending_update().map(|p| serde_json::to_string(p.manifest())).transpose()?)
             .bind(now)
             .bind(now)
             .execute(&mut self.conn)
@@ -144,9 +146,12 @@ impl AppsDbTx {
                 app_dir = ?,
                 source_json = ?,
                 granted_permissions_json = ?,
-                active_snapshot_json = ?,
                 wallet_scope_json = ?,
-                pending_update_json = ?,
+                active_snapshot_manifest_hash = ?,
+                active_snapshot_dir = ?,
+                pending_update_app_url = ?,
+                pending_update_manifest_hash = ?,
+                pending_update_manifest_json = ?,
                 updated_at_ms = ?
             WHERE app_id = ?
             "#,
@@ -154,9 +159,16 @@ impl AppsDbTx {
             .bind(common.app_dir())
             .bind(serde_json::to_string(app.source())?)
             .bind(serde_json::to_string(common.granted_permissions())?)
-            .bind(serde_json::to_string(common.active_snapshot())?)
             .bind(serde_json::to_string(common.wallet_scope())?)
-            .bind(serde_json::to_string(&app.pending_update())?)
+            .bind(common.active_snapshot().manifest_hash())
+            .bind(common.active_snapshot().snapshot_dir())
+            .bind(app.pending_update().map(|p| p.app_url().to_string()))
+            .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
+            .bind(
+                app.pending_update()
+                    .map(|p| serde_json::to_string(p.manifest()))
+                    .transpose()?,
+            )
             .bind(now)
             .bind(common.id())
             .execute(&mut self.conn)
@@ -286,9 +298,12 @@ fn load_user_app_sql() -> &'static str {
         apps.app_dir,
         apps.source_json,
         apps.granted_permissions_json,
-        apps.active_snapshot_json,
         apps.wallet_scope_json,
-        apps.pending_update_json,
+        apps.active_snapshot_manifest_hash,
+        apps.active_snapshot_dir,
+        apps.pending_update_app_url,
+        apps.pending_update_manifest_hash,
+        apps.pending_update_manifest_json,
         origins.origin_id,
         origins.may_contain_secrets,
         storages.storage_json
@@ -319,17 +334,12 @@ fn row_to_user_app(row: SqliteRow) -> Result<UserSageApp> {
         serde_json::from_str(&row.try_get::<String, _>("granted_permissions_json")?)
             .context("failed to deserialize granted permissions")?;
 
-    let active_snapshot: SageAppSnapshot =
-        serde_json::from_str(&row.try_get::<String, _>("active_snapshot_json")?)
-            .context("failed to deserialize active snapshot")?;
-
     let wallet_scope: SageAppWalletScope =
         serde_json::from_str(&row.try_get::<String, _>("wallet_scope_json")?)
             .context("failed to deserialize wallet scope")?;
 
-    let pending_update: Option<UserSageAppPendingUpdate> =
-        serde_json::from_str(&row.try_get::<String, _>("pending_update_json")?)
-            .context("failed to deserialize pending update")?;
+    let active_snapshot = snapshot_from_row(&row)?;
+    let pending_update = pending_update_from_row(&row)?;
 
     let common = SageAppCommon::from_persisted_parts(
         SageAppIdentity::new(app_id, origin_id, app_dir)?,
@@ -354,7 +364,8 @@ async fn load_corrupted_user_app_from_conn(
             app_id,
             app_dir,
             source_json,
-            active_snapshot_json
+            active_snapshot_manifest_hash,
+            active_snapshot_dir
         FROM sage_apps
         WHERE app_id = ?
         "#,
@@ -374,29 +385,21 @@ async fn load_corrupted_user_app_from_conn(
         .try_get::<Option<String>, _>("source_json")?
         .and_then(|json| serde_json::from_str::<UserSageAppSource>(&json).ok());
 
-    let active_snapshot_json = row.try_get::<Option<String>, _>("active_snapshot_json")?;
+    let snapshot_dir = row.try_get::<Option<String>, _>("active_snapshot_dir")?;
 
-    let active_snapshot_value = active_snapshot_json
+    let manifest_header = snapshot_dir
         .as_deref()
-        .and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok());
-
-    let manifest_header = active_snapshot_value
-        .as_ref()
-        .and_then(|snapshot| snapshot.get("manifest").cloned())
+        .and_then(|dir| {
+            let path = Path::new(dir).join(crate::types::MANIFEST_FILE_NAME);
+            std::fs::read_to_string(path).ok()
+        })
+        .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
         .and_then(|manifest| crate::types::parse_manifest_header_v0_from_value(manifest).ok());
 
     let icon = manifest_header
         .as_ref()
         .and_then(|header| header.icon.as_deref())
-        .and_then(|icon_path| {
-            active_snapshot_value.as_ref().and_then(|snapshot| {
-                snapshot
-                    .get("snapshotDir")
-                    .or_else(|| snapshot.get("snapshot_dir"))
-                    .and_then(serde_json::Value::as_str)
-                    .map(|snapshot_dir| Path::new(snapshot_dir).join(icon_path))
-            })
-        })
+        .and_then(|icon_path| snapshot_dir.as_deref().map(|dir| Path::new(dir).join(icon_path)))
         .and_then(|path| SageAppIconView::from_file_path(&path));
 
     Ok(ListedSageApp::Corrupted(
@@ -405,4 +408,43 @@ async fn load_corrupted_user_app_from_conn(
             .with_source(source)
             .with_icon(icon),
     ))
+}
+
+fn read_snapshot_manifest(snapshot_dir: &str) -> Result<SageAppPackageManifest> {
+    let manifest_path = Path::new(snapshot_dir).join(crate::types::MANIFEST_FILE_NAME);
+
+    let text = std::fs::read_to_string(&manifest_path)
+        .with_context(|| format!("failed to read snapshot manifest {}", manifest_path.display()))?;
+
+    serde_json::from_str(&text)
+        .with_context(|| format!("failed to parse snapshot manifest {}", manifest_path.display()))
+}
+
+fn snapshot_from_row(row: &SqliteRow) -> Result<SageAppSnapshot> {
+    let manifest_hash: String = row.try_get("active_snapshot_manifest_hash")?;
+    let snapshot_dir: String = row.try_get("active_snapshot_dir")?;
+    let manifest = read_snapshot_manifest(&snapshot_dir)?;
+
+    SageAppSnapshot::new(manifest_hash, snapshot_dir, manifest)
+}
+
+fn pending_update_from_row(row: &SqliteRow) -> Result<Option<UserSageAppPendingUpdate>> {
+    let Some(app_url) = row.try_get::<Option<String>, _>("pending_update_app_url")? else {
+        return Ok(None);
+    };
+
+    let manifest_hash: String = row
+        .try_get::<Option<String>, _>("pending_update_manifest_hash")?
+        .context("pending update app url exists without manifest hash")?;
+
+    let manifest_json: String = row
+        .try_get::<Option<String>, _>("pending_update_manifest_json")?
+        .context("pending update app url exists without manifest")?;
+
+    Ok(Some(UserSageAppPendingUpdate::new(
+        SageAppUrl::parse(&app_url)?,
+        manifest_hash,
+        serde_json::from_str(&manifest_json)
+            .context("failed to deserialize pending update manifest")?,
+    )))
 }

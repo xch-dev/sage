@@ -40,7 +40,7 @@ pub trait AppInstallSource {
 
     async fn create_snapshot(
         &self,
-        app_dir: &Path,
+        snapshot_dir: &Path,
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<SageAppSnapshot>;
 }
@@ -160,9 +160,14 @@ where
 
     create_app_dir(&target.app_dir)?;
 
+    let snapshot_dir = crate::lifecycle::fresh_snapshot_dir(&target.app_dir);
+    fs::create_dir_all(&snapshot_dir)?;
+
     let snapshot = source
-        .create_snapshot(&target.app_dir, &prepared_artifact)
+        .create_snapshot(&snapshot_dir, &prepared_artifact)
         .await?;
+
+    crate::lifecycle::write_snapshot_manifest(&snapshot)?;
 
     let granted_permissions = granted_permissions_input.resolve(manifest.permissions())?;
 
@@ -273,14 +278,15 @@ impl AppInstallSource for FakeInstallSource {
 
     async fn create_snapshot(
         &self,
-        app_dir: &Path,
+        snapshot_dir: &Path,
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<SageAppSnapshot> {
-        fs::write(app_dir.join("index.html"), "x")?;
+        fs::create_dir_all(snapshot_dir)?;
+        fs::write(snapshot_dir.join("index.html"), "x")?;
 
         Ok(SageAppSnapshot::new(
             "fake-hash",
-            app_dir.to_string_lossy().to_string(),
+            snapshot_dir.to_string_lossy().to_string(),
             prepared.manifest.clone(),
         )?)
     }

@@ -9,7 +9,7 @@ use anyhow::{Result as AnyResult};
 use crate::system_apps::{SystemAppUsage, list_builtin_system_apps};
 use crate::types::{
     ListedSageApp,
-    SageApp, UserSageAppSource,
+    SageApp,
 };
 
 pub fn apps_root(base_path: &Path) -> PathBuf {
@@ -73,17 +73,13 @@ mod tests {
         .unwrap()
     }
 
-    async fn sample_app(base: &Path, app_id: &str) -> SharedSageApp {
-        sample_app_named(base, app_id, "Test App").await
-    }
-
     async fn sample_app_named(
         base: &Path,
+        db: &crate::db::AppsDb,
         app_id: &str,
         name: &str,
     ) -> SharedSageApp {
         let manifest = sample_manifest(name);
-
         let granted = SageGrantedPermissionsInput::new([], [], BTreeMap::new());
 
         let installed = install_app_from_source_for_test(
@@ -95,8 +91,26 @@ mod tests {
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )
-        .await
-        .unwrap();
+            .await
+            .unwrap();
+
+        let storage_id = db
+            .register_storage(installed.common().storage())
+            .await
+            .unwrap();
+
+        let mut tx = db.begin_immediate().await.unwrap();
+
+        let origin_row_id = tx
+            .register_origin(installed.common().origin_id(), storage_id)
+            .await
+            .unwrap();
+
+        tx.insert_user_app(&installed, storage_id, origin_row_id)
+            .await
+            .unwrap();
+
+        tx.commit().await.unwrap();
 
         SharedSageApp::new(installed.into_sage_app())
     }
@@ -113,12 +127,22 @@ mod tests {
         let base = tempdir().unwrap();
         let db = crate::db::AppsDb::initialize(base.path()).await.unwrap();
 
-        // TODO
+        let _alpha = sample_app_named(base.path(), &db, "a", "Alpha").await;
+        let _zeta = sample_app_named(base.path(), &db, "z", "Zeta").await;
 
         let listed = without_system_apps(
             list_installed_apps_internal(&db).await.unwrap()
         );
 
-        assert!(listed.is_empty());
+        let names: Vec<_> = listed
+            .into_iter()
+            .map(|entry| match entry {
+                ListedSageApp::User(app) => app.common().name().to_string(),
+                ListedSageApp::System(app) => app.common().name().to_string(),
+                ListedSageApp::Corrupted(app) => app.id().to_string(),
+            })
+            .collect();
+
+        assert_eq!(names, vec!["Alpha".to_string(), "Zeta".to_string()]);
     }
 }

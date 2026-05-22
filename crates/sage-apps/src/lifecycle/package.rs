@@ -82,13 +82,11 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> AnyResult<()> {
 
 pub fn prepare_zip_snapshot(
     package_root: &Path,
-    app_dir: &Path,
+    snapshot_dir: &Path,
     manifest: &SageAppPackageManifest,
 ) -> AnyResult<SageAppSnapshot> {
-    let snapshot_dir = app_dir.join("active");
-
     if snapshot_dir.exists() {
-        fs::remove_dir_all(&snapshot_dir).with_context(|| {
+        fs::remove_dir_all(snapshot_dir).with_context(|| {
             format!(
                 "failed to remove existing snapshot dir {}",
                 snapshot_dir.display()
@@ -96,7 +94,14 @@ pub fn prepare_zip_snapshot(
         })?;
     }
 
-    copy_dir_recursive(package_root, &snapshot_dir).with_context(|| {
+    fs::create_dir_all(snapshot_dir).with_context(|| {
+        format!(
+            "failed to create snapshot dir {}",
+            snapshot_dir.display()
+        )
+    })?;
+
+    copy_dir_recursive(package_root, snapshot_dir).with_context(|| {
         format!(
             "failed to copy unpacked package {} into snapshot {}",
             package_root.display(),
