@@ -51,39 +51,51 @@ export function PermissionRow({
       (scheme) => entry.schemes[scheme].visible,
     );
 
+    const primaryScheme = visibleSchemes.includes('wss') ? 'wss' : 'https';
+    const primaryState = entry.schemes[primaryScheme];
+    const checkboxDisabled = !editable || primaryState.disabled;
+
     return (
       <div className='flex min-h-9 items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-muted/50'>
+        <input
+          type='checkbox'
+          checked={primaryState.granted}
+          disabled={checkboxDisabled}
+          onChange={(event) => {
+            onToggle(entry, event.target.checked, primaryScheme);
+          }}
+          className='h-4 w-4 shrink-0'
+        />
+
         <div className='min-w-0 flex items-center gap-2'>
           <span className='truncate font-mono text-sm'>{entry.host}</span>
 
           <div className='inline-flex overflow-hidden rounded-md border border-border'>
-            {(['https', 'wss'] as const)
-              .filter((scheme) => entry.schemes[scheme].visible)
-              .map((scheme, index) => {
-                const state = entry.schemes[scheme];
+            {visibleSchemes.map((scheme, index) => {
+              const state = entry.schemes[scheme];
 
-                return (
-                  <button
-                    key={scheme}
-                    type='button'
-                    disabled={!editable || state.disabled}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      onToggle(entry, !state.granted, scheme);
-                    }}
-                    className={[
-                      'h-6 px-2 text-[11px] font-medium transition-colors',
-                      index > 0 ? 'border-l border-border' : '',
-                      state.granted
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      state.disabled ? 'opacity-60 cursor-not-allowed' : '',
-                    ].join(' ')}
-                  >
-                    {scheme.toUpperCase()}
-                  </button>
-                );
-              })}
+              return (
+                <button
+                  key={scheme}
+                  type='button'
+                  disabled={!editable || state.disabled}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    onToggle(entry, !state.granted, scheme);
+                  }}
+                  className={[
+                    'h-6 px-2 text-[11px] font-medium transition-colors',
+                    index > 0 ? 'border-l border-border' : '',
+                    state.granted
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    state.disabled ? 'opacity-60 cursor-not-allowed' : '',
+                  ].join(' ')}
+                >
+                  {scheme.toUpperCase()}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
