@@ -1,4 +1,5 @@
 import { CircleHelp } from 'lucide-react';
+import { resolveBackgroundTintWithAlpha } from '../../presentation';
 
 export function CapabilityHelp({
   description,
@@ -18,7 +19,13 @@ export function CapabilityHelp({
         <CircleHelp className='h-3.5 w-3.5' />
       </button>
 
-      <span className='pointer-events-none absolute left-1/2 top-6 z-50 hidden w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border bg-popover p-2 text-left text-xs text-popover-foreground shadow-md group-hover:block'>
+      <span
+        className='pointer-events-none absolute bottom-6 left-1/2 z-50 hidden w-[min(18rem,calc(100vw-2rem))] -translate-x-1/2 rounded-md border p-2 text-left text-xs text-popover-foreground shadow-md group-hover:block'
+        style={{
+          background: resolveBackgroundTintWithAlpha(),
+          backdropFilter: 'blur(16px)',
+        }}
+      >
         {description}
       </span>
     </span>
