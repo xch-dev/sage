@@ -8,6 +8,7 @@ use crate::bridge::methods::shared::{
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::types::RustBridgeApprovalBody;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
+use crate::bridge::methods::user::wallet::require_scoped_fingerprint;
 use crate::capabilities::list::UserBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
@@ -25,10 +26,11 @@ impl BridgeMethod for WalletGetSecretKey {
 
     fn approval_request(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let params: GetSecretKey = parse_required_params(self, request)?;
+        require_scoped_fingerprint(&ctx, Some(params.fingerprint))?;
 
         Ok(Some(RustBridgeApprovalRequest {
             body: RustBridgeApprovalBody::GetSecretKey {
@@ -39,11 +41,12 @@ impl BridgeMethod for WalletGetSecretKey {
 
     async fn handle(
         &self,
-        _ctx: BridgeContext<'_>,
+        ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: GetSecretKey = parse_required_params(self, request)?;
+        require_scoped_fingerprint(&ctx, Some(params.fingerprint))?;
 
         let sage = tools.app_state.lock().await;
 

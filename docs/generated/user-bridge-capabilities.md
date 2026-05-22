@@ -98,20 +98,6 @@ Allows the app to request access to an additional network target after installat
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
-## `wallet.get_keys`
-
-**List wallet keys**
-
-Allows the app to list wallet keys configured in Sage.
-
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
-| Accesses sensitive secret | `false` |
-
 ## `wallet.get_key`
 
 **Read wallet key**

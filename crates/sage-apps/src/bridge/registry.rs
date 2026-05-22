@@ -54,7 +54,6 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, AppLifecycleReadyToStop);
 
     // Wallet keys / secrets
-    insert_method(&mut methods, WalletGetKeys);
     insert_method(&mut methods, WalletGetKey);
     insert_method(&mut methods, WalletGetSecretKey);
 

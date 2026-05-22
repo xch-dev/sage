@@ -12,7 +12,7 @@ pub use bridge::{BridgePing, BridgeSend};
 
 pub use wallet::{
     WalletCheckAddress, WalletGetCoins, WalletGetCoinsByIds, WalletGetDerivations, WalletGetKey,
-    WalletGetKeys, WalletGetPendingTransactions, WalletGetSecretKey, WalletGetSpendableCoinCount,
+    WalletGetPendingTransactions, WalletGetSecretKey, WalletGetSpendableCoinCount,
     WalletGetSyncStatus, WalletGetTransaction, WalletGetTransactions, WalletGetVersion,
     WalletSendXch,
 };

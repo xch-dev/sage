@@ -213,18 +213,6 @@ impl SageAppRuntimeRecord {
     }
 }
 
-impl SharedSageApp {
-    pub fn webview_label(&self) -> String {
-        self.with(|app| {
-            if app.is_system() {
-                format!("system-app-{}", app.id())
-            } else {
-                format!("app-{}", app.id())
-            }
-        })
-    }
-}
-
 impl std::fmt::Debug for AppRuntimeState {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AppRuntimeState").finish()

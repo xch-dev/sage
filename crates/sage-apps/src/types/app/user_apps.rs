@@ -89,7 +89,7 @@ pub struct SharedSageApp {
 }
 
 impl SharedSageApp {
-    pub fn new(app: SageApp) -> Self {
+    pub(crate) fn new(app: SageApp) -> Self {
         Self {
             inner: Arc::new(parking_lot::RwLock::new(app)),
         }
@@ -129,12 +129,12 @@ impl SharedSageApp {
         })
     }
 
-    pub fn with<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {
+    pub(crate) fn with<T>(&self, f: impl FnOnce(&SageApp) -> T) -> T {
         let app = self.inner.read();
         f(&app)
     }
 
-    pub fn try_with<T, E>(&self, f: impl FnOnce(&SageApp) -> Result<T, E>) -> Result<T, E> {
+    pub(crate) fn try_with<T, E>(&self, f: impl FnOnce(&SageApp) -> Result<T, E>) -> Result<T, E> {
         let app = self.inner.read();
         f(&app)
     }
@@ -147,34 +147,23 @@ impl SharedSageApp {
         self.with(SageApp::is_system)
     }
 
-    pub fn id(&self) -> String {
+    pub fn is_wallet_in_scope(&self, fingerprint: u32) -> bool {
+        self.with(|app| app.common().is_wallet_in_scope(fingerprint))
+    }
+
+    pub(crate) fn id(&self) -> String {
         self.with(|app| app.id().to_string())
     }
 
-    pub fn name(&self) -> String {
+    pub(crate) fn name(&self) -> String {
         self.with(|app| app.name().to_string())
     }
 
-    pub fn origin_id(&self) -> String {
+    pub(crate) fn origin_id(&self) -> String {
         self.with(|app| app.origin_id().to_string())
     }
 
-    pub fn app_path(&self) -> PathBuf {
-        self.with(SageApp::app_path)
-    }
-
-    pub fn source(&self) -> Option<UserSageAppSource> {
-        self.with(|app| app.as_user().map(|user| user.source().clone()))
-    }
-
-    pub fn pending_update(&self) -> Option<UserSageAppPendingUpdate> {
-        self.with(|app| {
-            app.as_user()
-                .and_then(|user| user.pending_update().cloned())
-        })
-    }
-
-    pub fn is_capability_granted(&self, capability: BridgeCapability) -> bool {
+    pub(crate) fn is_capability_granted(&self, capability: BridgeCapability) -> bool {
         self.with(|app| match capability {
             BridgeCapability::User(capability) => {
                 app.granted_permissions().has_capability(capability)
@@ -186,11 +175,17 @@ impl SharedSageApp {
         })
     }
 
-    pub fn has_secret_access(&self) -> bool {
-        self.with(SageApp::has_secret_access)
+    pub(crate) fn webview_label(&self) -> String {
+        self.with(|app| {
+            if app.is_system() {
+                format!("system-app-{}", app.id())
+            } else {
+                format!("app-{}", app.id())
+            }
+        })
     }
 
-    pub fn webview_label_matches(&self, label: &str) -> bool {
+    pub(crate) fn webview_label_matches(&self, label: &str) -> bool {
         let app_id = self.id();
 
         if let Some(extracted_app_id) = label.strip_prefix("app-") {
@@ -389,10 +384,6 @@ impl SageApp {
             Self::System(app) => Some(app.system_granted_permissions()),
             Self::User(_) => None,
         }
-    }
-
-    pub(crate) fn has_secret_access(&self) -> bool {
-        self.common().has_secret_access()
     }
 
     pub(crate) fn storage(&self) -> &SageAppStorage {

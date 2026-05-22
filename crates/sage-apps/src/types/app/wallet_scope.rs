@@ -10,6 +10,8 @@ pub enum SageAppWalletScope {
 
 impl Default for SageAppWalletScope {
     fn default() -> Self {
-        Self::AllWallets
+        Self::SelectedWallets {
+            fingerprints: vec![],
+        }
     }
 }

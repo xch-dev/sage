@@ -84,12 +84,6 @@
 |---|---|
 | Capability | `wallet.get_key` |
 
-## `wallet.getKeys`
-
-| Field | Value |
-|---|---|
-| Capability | `wallet.get_keys` |
-
 ## `wallet.getPendingTransactions`
 
 | Field | Value |

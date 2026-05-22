@@ -25,6 +25,7 @@ function buildFallbackAppInfo(): Generated.AppGetInfoResult {
           required: [],
           optional: [],
         },
+        whitelistByNetwork: {},
       },
       capabilities: {
         required: [],
@@ -145,10 +146,6 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
-      async getKeys() {
-        return await callHost<Generated.GetKeysResponse>('wallet.getKeys');
-      },
-
       async getKey(input: Generated.GetKey) {
         return await callHost<Generated.GetKeyResponse>('wallet.getKey', input);
       },

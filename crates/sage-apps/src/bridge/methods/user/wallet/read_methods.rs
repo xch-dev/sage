@@ -9,7 +9,7 @@ use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::UserBridgeCapability;
 
 use sage_api::{
-    CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetKey, GetKeys, GetPendingTransactions,
+    CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetPendingTransactions,
     GetSpendableCoinCount, GetSyncStatus, GetTransaction, GetTransactions, GetVersion,
     GetXchUsdPrice,
 };
@@ -147,68 +147,6 @@ macro_rules! define_wallet_read_params_async_method {
         }
     };
 }
-
-macro_rules! define_wallet_read_params_sync_method {
-    ($struct_name:ident, $capability:ident, $method_name:expr, $request_ty:ty, $handler:ident) => {
-        #[derive(Debug, Clone, Copy)]
-        pub struct $struct_name;
-
-        #[async_trait]
-        impl BridgeMethod for $struct_name {
-            fn name(&self) -> &'static str {
-                $method_name
-            }
-
-            fn capability(&self) -> BridgeMethodCapability {
-                BridgeMethodCapability::user(UserBridgeCapability::$capability)
-            }
-
-            fn approval_request(
-                &self,
-                _ctx: BridgeContext<'_>,
-                _request: &RustBridgeRequest,
-            ) -> BridgeApprovalRequestResult {
-                Ok(None)
-            }
-
-            async fn handle(
-                &self,
-                _ctx: BridgeContext<'_>,
-                tools: BridgeTools<'_>,
-                request: &RustBridgeRequest,
-            ) -> BridgeHandleResult {
-                let params: $request_ty = parse_required_params(self, request)?;
-
-                let sage = tools.app_state.lock().await;
-
-                let result = sage.$handler(params).map_err(|err| {
-                    BridgeMethodHandleError::internal_error(format!(
-                        "failed to execute {}: {err}",
-                        self.name()
-                    ))
-                })?;
-
-                Ok(Box::new(result))
-            }
-        }
-    };
-}
-
-define_wallet_read_no_params_sync_method!(
-    WalletGetKeys,
-    WalletGetKeys,
-    "wallet.getKeys",
-    GetKeys,
-    get_keys
-);
-
-define_wallet_read_params_sync_method!(
-    WalletGetKey,
-    WalletGetKey,
-    "wallet.getKey",
-    GetKey,
-    get_key
-);
 
 define_wallet_read_no_params_async_method!(
     WalletGetSyncStatus,

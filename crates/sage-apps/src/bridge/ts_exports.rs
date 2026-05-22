@@ -33,8 +33,8 @@ use crate::sandbox::SandboxStateView;
 use crate::types::{SageAppCapabilityDefinitionView, SageAppWalletScope};
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse, GetKeys,
-    GetKeysResponse, GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey,
     GetSecretKeyResponse, GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus,
     GetSyncStatusResponse, GetTransaction, GetTransactionResponse, GetTransactions,
     GetTransactionsResponse, GetVersion, GetVersionResponse, GetXchUsdPriceResponse,
@@ -64,8 +64,6 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKeys>();
-    types.register::<GetKeysResponse>();
     types.register::<GetKey>();
     types.register::<GetKeyResponse>();
     types.register::<GetXchUsdPriceResponse>();

@@ -57,12 +57,6 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request access to an additional network target after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
-        UserBridgeCapability::WalletGetKeys => CapabilityDefinition::new(
-            capability,
-            "List wallet keys",
-            "Allows the app to list wallet keys configured in Sage.",
-            CapabilityFlags::new(false, false, true, true, true),
-        ),
         UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
             capability,
             "Read wallet key",
