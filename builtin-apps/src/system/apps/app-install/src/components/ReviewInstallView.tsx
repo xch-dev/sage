@@ -38,6 +38,7 @@ export function ReviewInstallView({
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<SystemWalletView[]>([]);
   const [walletsLoading, setWalletsLoading] = useState(true);
+  const [permissionsViewed, setPermissionsViewed] = useState(false);
 
   const [walletScope, setWalletScope] = useState<SageAppWalletScope>({
     kind: 'allWallets',
@@ -114,6 +115,8 @@ export function ReviewInstallView({
       appName={manifest.name}
       appIcon={resolveInstallIcon(source)}
       title={step === 'permissions' ? 'Review permissions' : 'Select wallets'}
+      requireScrollEnd={step === 'permissions'}
+      onScrollEndChange={setPermissionsViewed}
       footer={
         <div className='flex justify-between gap-2'>
           <button
@@ -138,7 +141,7 @@ export function ReviewInstallView({
             {step === 'permissions' ? (
               <button
                 className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
-                disabled={installing}
+                disabled={installing || !permissionsViewed}
                 onClick={() => {
                   setError(null);
                   setStep('wallets');

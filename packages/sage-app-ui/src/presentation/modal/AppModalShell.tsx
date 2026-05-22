@@ -1,10 +1,12 @@
-import type { ReactNode } from 'react';
 import {
-  SystemModalShell,
-} from './SystemModalShell';
-import {
-  AppIcon,
-} from '../../components';
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { SystemModalShell } from './SystemModalShell';
+import { AppIcon } from '../../components';
 import { resolveBackgroundTintWithAlpha } from '../utils';
 
 interface AppModalShellProps {
@@ -18,6 +20,8 @@ interface AppModalShellProps {
   bodyClassName?: string;
   contentClassName?: string;
   bodyPadded?: boolean;
+  requireScrollEnd?: boolean;
+  onScrollEndChange?: (reached: boolean) => void;
 }
 
 export function AppModalShell({
@@ -30,7 +34,39 @@ export function AppModalShell({
   bodyClassName = '',
   contentClassName = '',
   bodyPadded = true,
+  requireScrollEnd = false,
+  onScrollEndChange,
 }: AppModalShellProps) {
+  const bodyRef = useRef<HTMLElement | null>(null);
+  const [scrolledToEnd, setScrolledToEnd] = useState(!requireScrollEnd);
+
+  const updateScrolledToEnd = useCallback(() => {
+    if (!requireScrollEnd) {
+      setScrolledToEnd(true);
+      onScrollEndChange?.(true);
+      return;
+    }
+
+    const body = bodyRef.current;
+    if (!body) return;
+
+    const next =
+      body.scrollHeight <= body.clientHeight + 2 ||
+      body.scrollTop + body.clientHeight >= body.scrollHeight - 2;
+
+    setScrolledToEnd(next);
+    onScrollEndChange?.(next);
+  }, [requireScrollEnd, onScrollEndChange]);
+
+  useEffect(() => {
+    setScrolledToEnd(!requireScrollEnd);
+    onScrollEndChange?.(!requireScrollEnd);
+
+    const frame = requestAnimationFrame(updateScrolledToEnd);
+
+    return () => cancelAnimationFrame(frame);
+  }, [requireScrollEnd, updateScrolledToEnd, onScrollEndChange]);
+
   return (
     <SystemModalShell
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
@@ -65,9 +101,12 @@ export function AppModalShell({
         </header>
 
         <main
+          ref={bodyRef}
+          onScroll={updateScrolledToEnd}
           className={[
             'min-h-0 overflow-auto',
             bodyPadded ? 'px-6 py-5' : '',
+            requireScrollEnd ? 'pb-10' : '',
             bodyClassName,
           ].join(' ')}
         >
@@ -75,7 +114,20 @@ export function AppModalShell({
         </main>
 
         {footer ? (
-          <footer className='shrink-0 border-t border-border px-6 py-3'>
+          <footer className='relative shrink-0 border-t border-border px-6 py-3'>
+            <div
+              className={[
+                'pointer-events-none absolute inset-x-0 -top-8 flex items-center justify-center transition-opacity duration-200',
+                requireScrollEnd && !scrolledToEnd
+                  ? 'opacity-100'
+                  : 'opacity-0',
+              ].join(' ')}
+            >
+              <span className='animate-bounce text-sm font-medium text-foreground'>
+                ↓ Scroll for more ↓
+              </span>
+            </div>
+
             {footer}
           </footer>
         ) : null}

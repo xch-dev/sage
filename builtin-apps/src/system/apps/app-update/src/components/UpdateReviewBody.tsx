@@ -15,6 +15,7 @@ import { PartialUpdateBody } from './PartialUpdateBody';
 export function UpdateReviewBody({ state, onReload }: any) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionsViewed, setPermissionsViewed] = useState(false);
 
   const preview = state.updateContext?.preview ?? null;
 
@@ -104,6 +105,8 @@ export function UpdateReviewBody({ state, onReload }: any) {
       title='Review app update'
       appIcon={appIconFromCommonView(state.app.common)}
       appName={state.app.common.activeSnapshot.manifest.name}
+      requireScrollEnd
+      onScrollEndChange={setPermissionsViewed}
       footer={
         <div className='flex justify-end gap-2'>
           <button
@@ -116,7 +119,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
 
           <button
             className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground'
-            disabled={submitting}
+            disabled={submitting || !permissionsViewed}
             onClick={submit}
           >
             {submitting ? 'Updating…' : 'Confirm update'}
