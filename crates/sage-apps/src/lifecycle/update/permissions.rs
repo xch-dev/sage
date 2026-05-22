@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Context;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 
 use crate::AppsHostState;
 use crate::bridge::emit_user_runtime_event_to_app_id;
@@ -9,12 +9,15 @@ use crate::bridge::methods::user::app::{
     GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
 };
 use crate::capabilities::list::UserBridgeCapability;
+use crate::host::AppState;
 use crate::lifecycle::AppMutationManager;
 use crate::lifecycle::update::types::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome,
     GrantedPermissionsChange,
 };
-use crate::runtime::{reload_app_runtime, resolve_app};
+use crate::runtime::{find_runtime_by_app_id_optional, kill_taskbar_runtime, reload_app_runtime, resolve_app, SageAppRuntimeVisibility};
+use crate::runtime::commands::CreateInstalledRuntimeArgs;
+use crate::runtime::start::start_user_app;
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 
 pub async fn update_app_permissions_for_app(
@@ -121,6 +124,24 @@ async fn apply_granted_permissions(
     app: &SharedSageApp,
     granted_permissions: &SageGrantedPermissions,
 ) -> anyhow::Result<AppUpdateResult> {
+    let app_id = app.id();
+
+    let running_before = find_runtime_by_app_id_optional(apps_state, &app_id)
+        .await
+        .map(|runtime| {
+            runtime.with_runtime(|record| {
+                (
+                    record.visibility() == SageAppRuntimeVisibility::Visible,
+                    record.app().with(|app| app.common().has_persistent_webview_storage()),
+                )
+            })
+        });
+
+    let previous_persistent_storage = running_before.map_or_else(
+        || app.with(|sage_app| sage_app.common().has_persistent_webview_storage()),
+        |(_, persistent)| persistent,
+    );
+
     let update_result = mutate_granted_permissions(
         app_handle,
         apps_state,
@@ -129,14 +150,53 @@ async fn apply_granted_permissions(
     )
         .await?;
 
-    emit_granted_permissions_change(app_handle, &app.id(), update_result.change()).await;
+    emit_granted_permissions_change(app_handle, &app_id, update_result.change()).await;
 
-    if update_result.change().network_changed() {
-        reload_app_runtime(app_handle, apps_state, &app.id())
+    let next_persistent_storage =
+        app.with(|sage_app| sage_app.common().has_persistent_webview_storage());
+
+    let persistent_storage_changed = previous_persistent_storage != next_persistent_storage;
+
+    if persistent_storage_changed {
+        if let Some((was_visible, _)) = running_before {
+            kill_taskbar_runtime(
+                app_handle,
+                apps_state,
+                &app_id,
+                "persistent_webview_storage_permission_changed",
+            )
+                .await
+                .map_err(|err| {
+                    anyhow::anyhow!(
+                    "failed to kill app runtime after persistent storage permission change: {err}"
+                )
+                })?;
+
+            start_user_app(
+                app_handle,
+                apps_state,
+                CreateInstalledRuntimeArgs {
+                    app_id,
+                    focus: Some(was_visible),
+                },
+            )
+                .await
+                .map_err(|err| {
+                    anyhow::anyhow!(
+                    "failed to reopen app runtime after persistent storage permission change: {err}"
+                )
+                })?;
+        }
+
+        return Ok(update_result);
+    }
+
+    if network_change_affects_current_network(app_handle, update_result.change()).await {
+        reload_app_runtime(app_handle, apps_state, &app_id)
             .await
             .map_err(|err| {
                 anyhow::anyhow!(
-                    "failed to reload app runtime after network permission change: {err}"
+                    "failed to reload app runtime after relevant network permission change: {err}"
                 )
             })?;
     }
@@ -209,6 +269,26 @@ async fn emit_granted_permissions_change(
         )
             .await;
     }
+}
+
+async fn network_change_affects_current_network(
+    app_handle: &AppHandle,
+    change: &GrantedPermissionsChange,
+) -> bool {
+    if !change.network_whitelist().is_empty() {
+        return true;
+    }
+
+    let app_state = app_handle.state::<AppState>();
+    let network_id = {
+        let state = app_state.lock().await;
+        state.config.network.default_network.clone()
+    };
+
+    !change
+        .network_whitelist_by_network()
+        .for_network(&network_id)
+        .is_empty()
 }
 
 #[cfg(test)]
