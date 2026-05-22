@@ -3,6 +3,7 @@ import {
   appIconFromCommonView,
   AppModalShell,
   AppPermissionEditor,
+  inputToGrantedPermissionsView,
   WalletScopeEditor,
 } from '@sage-app/ui';
 import {
@@ -117,7 +118,9 @@ export function PermissionsReviewBody({
         {tab === 'permissions' ? (
           <AppPermissionEditor
             app={state.app}
-            grantedPermissions={state.app.common.grantedPermissions}
+            grantedPermissions={inputToGrantedPermissionsView(
+              grantedPermissions,
+            )}
             capabilityDefinitions={state.definitions}
             editable={!submitting}
             onGrantedPermissionsChange={setGrantedPermissions}
