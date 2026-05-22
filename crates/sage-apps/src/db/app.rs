@@ -275,7 +275,7 @@ async fn load_user_app_optional_from_conn(
         .await
         .with_context(|| format!("failed to load app {app_id}"))?;
 
-    row.map(row_to_user_app).transpose()
+    row.as_ref().map(row_to_user_app).transpose()
 }
 
 async fn load_user_app_from_conn(
@@ -288,7 +288,7 @@ async fn load_user_app_from_conn(
         .await
         .with_context(|| format!("failed to load app {app_id}"))?;
 
-    row_to_user_app(row)
+    row_to_user_app(&row)
 }
 
 fn load_user_app_sql() -> &'static str {
@@ -316,7 +316,7 @@ fn load_user_app_sql() -> &'static str {
     "
 }
 
-fn row_to_user_app(row: SqliteRow) -> Result<UserSageApp> {
+fn row_to_user_app(row: &SqliteRow) -> Result<UserSageApp> {
     let app_id: String = row.try_get("app_id")?;
     let app_dir: String = row.try_get("app_dir")?;
     let origin_id: String = row.try_get("origin_id")?;
@@ -338,8 +338,8 @@ fn row_to_user_app(row: SqliteRow) -> Result<UserSageApp> {
         serde_json::from_str(&row.try_get::<String, _>("wallet_scope_json")?)
             .context("failed to deserialize wallet scope")?;
 
-    let active_snapshot = snapshot_from_row(&row)?;
-    let pending_update = pending_update_from_row(&row)?;
+    let active_snapshot = snapshot_from_row(row)?;
+    let pending_update = pending_update_from_row(row)?;
 
     let common = SageAppCommon::from_persisted_parts(
         SageAppIdentity::new(app_id, origin_id, app_dir)?,

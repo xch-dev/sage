@@ -91,17 +91,14 @@ impl<'a> AppMutationManager<'a> {
 
         let (draft, mut tx) = ctx.into_parts();
 
-        if let Err(err) = self.validate(draft.app()) {
+        if let Err(err) = Self::validate(draft.app()) {
             tx.rollback().await;
             return Err(err);
         }
 
-        let draft_user_app = match draft.app().as_user() {
-            Some(user_app) => user_app,
-            None => {
-                tx.rollback().await;
-                return Err("only user apps can be persisted by app mutation manager".to_string());
-            }
+        let Some(draft_user_app) = draft.app().as_user() else {
+            tx.rollback().await;
+            return Err("only user apps can be persisted by app mutation manager".to_string());
         };
 
         if let Err(err) = tx.persist_user_app(draft_user_app).await {
@@ -117,7 +114,7 @@ impl<'a> AppMutationManager<'a> {
             }
         };
 
-        if let Err(err) = self.assert_round_trip(draft.app(), &reloaded) {
+        if let Err(err) = Self::assert_round_trip(draft.app(), &reloaded) {
             tx.rollback().await;
             return Err(err);
         }
@@ -131,7 +128,7 @@ impl<'a> AppMutationManager<'a> {
         Ok(value)
     }
 
-    fn validate(&self, app: &SageApp) -> Result<(), String> {
+    fn validate(app: &SageApp) -> Result<(), String> {
         if app.is_system() {
             return Ok(());
         }
@@ -157,7 +154,7 @@ impl<'a> AppMutationManager<'a> {
         Ok(())
     }
 
-    fn assert_round_trip(&self, expected: &SageApp, actual: &SageApp) -> Result<(), String> {
+    fn assert_round_trip(expected: &SageApp, actual: &SageApp) -> Result<(), String> {
         let expected = expected
             .as_user()
             .ok_or_else(|| "expected app is not a user app".to_string())?;

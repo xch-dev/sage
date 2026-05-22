@@ -9,17 +9,17 @@ use crate::types::SageNetworkWhitelistEntry;
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GrantedCapabilitiesChangeEvent {
-    pub removed_granted_capabilities: Vec<UserBridgeCapability>,
-    pub added_granted_capabilities: Vec<UserBridgeCapability>,
-    pub full_granted_capabilities: Vec<UserBridgeCapability>,
+    pub removed: Vec<UserBridgeCapability>,
+    pub added: Vec<UserBridgeCapability>,
+    pub full: Vec<UserBridgeCapability>,
 }
 
 impl GrantedCapabilitiesChangeEvent {
     pub fn from_change(change: &GrantedCapabilitiesChange) -> Self {
         Self {
-            removed_granted_capabilities: change.removed.clone(),
-            added_granted_capabilities: change.added.clone(),
-            full_granted_capabilities: change.full.clone(),
+            removed: change.removed.clone(),
+            added: change.added.clone(),
+            full: change.full.clone(),
         }
     }
 }
@@ -33,17 +33,17 @@ impl UserRuntimeEvent for GrantedCapabilitiesChangeEvent {
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GrantedNetworkWhitelistChangeEvent {
-    pub removed_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
-    pub added_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
-    pub full_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
+    pub removed: Vec<SageNetworkWhitelistEntry>,
+    pub added: Vec<SageNetworkWhitelistEntry>,
+    pub full: Vec<SageNetworkWhitelistEntry>,
 }
 
 impl GrantedNetworkWhitelistChangeEvent {
     pub fn from_change(change: &GrantedNetworkWhitelistChange) -> Self {
         Self {
-            removed_granted_network_whitelist: change.removed.clone(),
-            added_granted_network_whitelist: change.added.clone(),
-            full_granted_network_whitelist: change.full.clone(),
+            removed: change.removed.clone(),
+            added: change.added.clone(),
+            full: change.full.clone(),
         }
     }
 }

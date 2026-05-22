@@ -18,8 +18,8 @@ pub struct RuntimeManagerKillRuntimeResponse {
 }
 
 impl RuntimeManagerKillRuntimeResponse {
-    pub fn ok() -> Box<Self> {
-        Box::new(Self { ok: true })
+    pub fn ok() -> Self {
+        Self { ok: true }
     }
 }
 
@@ -57,10 +57,8 @@ impl BridgeMethod for RuntimeManagerKillRuntime {
         )
         .await
         {
-            Ok(_)
-            | Err(SystemKillRuntimeError::NotFound)
-            | Err(SystemKillRuntimeError::RuntimeSync(_)) => {
-                Ok(RuntimeManagerKillRuntimeResponse::ok())
+            Ok(()) | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => {
+                Ok(Box::new(RuntimeManagerKillRuntimeResponse::ok()))
             }
         }
     }

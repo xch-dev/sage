@@ -188,7 +188,7 @@ impl SharedSageApp {
     }
 
     pub fn has_secret_access(&self) -> bool {
-        self.with(|app| app.has_secret_access())
+        self.with(SageApp::has_secret_access)
     }
 
     pub fn webview_label_matches(&self, label: &str) -> bool {

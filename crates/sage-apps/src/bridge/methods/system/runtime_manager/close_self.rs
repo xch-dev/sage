@@ -38,9 +38,7 @@ impl BridgeMethod for RuntimeManagerCloseSelf {
         let app_id = ctx.app.id();
 
         match kill_runtime(tools.app_handle, tools.host_state, &app_id, "self_close").await {
-            Ok(_)
-            | Err(SystemKillRuntimeError::NotFound)
-            | Err(SystemKillRuntimeError::RuntimeSync(_)) => Ok(Box::new(())),
+            Ok(()) | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => Ok(Box::new(())),
         }
     }
 }

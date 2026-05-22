@@ -32,13 +32,13 @@ pub struct AppsHostState {
 impl AppsHostState {
     pub fn new(db: AppsDb) -> Self {
         Self {
-            app_operation_locks: Default::default(),
-            app_update_locks: Default::default(),
-            runtime: Default::default(),
-            bridge: Default::default(),
-            sandbox: Default::default(),
-            environment: Default::default(),
-            settings: Default::default(),
+            app_operation_locks: RwLock::default(),
+            app_update_locks: RwLock::default(),
+            runtime: AppRuntimeState::default(),
+            bridge: BridgeState::default(),
+            sandbox: SandboxStateStore::default(),
+            environment: AppsEnvironmentState::default(),
+            settings: AppsSettingsState::default(),
             db,
         }
     }
@@ -160,7 +160,7 @@ impl AppsSettingsState {
 
         match f(&mut settings) {
             Ok(value) => {
-                if let Err(err) = write_apps_settings(base_path, &settings) {
+                if let Err(err) = write_apps_settings(base_path, *settings) {
                     *settings = previous;
                     return Err(format!("failed to persist Sage apps settings: {err}"));
                 }

@@ -43,7 +43,7 @@ impl BridgeMethod for SandboxRerunTests {
         let runner_app = tools.app_handle.clone();
 
         tokio::spawn(async move {
-            sandbox_runner(runner_app).await;
+            Box::pin(sandbox_runner(runner_app)).await;
         });
 
         Ok(Box::new(view))

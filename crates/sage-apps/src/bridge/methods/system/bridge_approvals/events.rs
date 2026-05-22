@@ -16,7 +16,7 @@ impl BridgeApprovalsChangedEvent {
         Self {
             approvals: approvals
                 .into_iter()
-                .map(|approval| approval.into())
+                .map(Into::into)
                 .collect(),
         }
     }

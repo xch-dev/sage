@@ -131,10 +131,6 @@ impl GrantedPermissionsChange {
         }
     }
 
-    pub fn network_changed(&self) -> bool {
-        !self.network_whitelist.is_empty() || !self.network_whitelist_by_network.is_empty()
-    }
-
     pub fn capabilities(&self) -> &GrantedCapabilitiesChange {
         &self.capabilities
     }
@@ -243,10 +239,6 @@ impl GrantedNetworkWhitelistByNetworkChange {
             added,
             full,
         }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.removed.is_empty() && self.added.is_empty()
     }
 
     pub fn for_network(&self, network_id: &str) -> GrantedNetworkWhitelistChange {

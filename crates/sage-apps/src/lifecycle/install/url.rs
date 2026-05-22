@@ -47,7 +47,7 @@ impl AppInstallSource for SageAppUrl {
         _base_path: &Path,
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<(String, PathBuf)> {
-        resolve_url_install_target(root, prepared.preview.app_url())
+        Ok(resolve_url_install_target(root, prepared.preview.app_url()))
     }
 
     async fn create_snapshot(
@@ -73,11 +73,11 @@ pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
 pub fn resolve_url_install_target(
     root: &Path,
     app_url: &SageAppUrl,
-) -> AnyResult<(String, PathBuf)> {
+) -> (String, PathBuf) {
     let app_id = generate_url_app_id(app_url);
     let app_dir = root.join(&app_id);
 
-    Ok((app_id, app_dir))
+    (app_id, app_dir)
 }
 
 #[cfg(test)]
@@ -109,7 +109,7 @@ mod tests {
         std::fs::create_dir_all(&root).unwrap();
 
         let app_url = SageAppUrl::parse("https://example.com/app").unwrap();
-        let (app_id, app_dir) = resolve_url_install_target(&root, &app_url).unwrap();
+        let (app_id, app_dir) = resolve_url_install_target(&root, &app_url);
 
         assert_eq!(app_dir, root.join(&app_id));
         assert_eq!(app_id, generate_url_app_id(&app_url));

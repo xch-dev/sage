@@ -29,10 +29,9 @@ pub enum ResolveStoppedError {
 impl Display for ResolveError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            ResolveError::NotFound(msg) => msg.clone(),
-            ResolveError::BuildFailed(msg) => msg.clone(),
+            ResolveError::NotFound(msg) | ResolveError::BuildFailed(msg) => msg.clone(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -42,7 +41,7 @@ impl Display for ResolveStoppedError {
             ResolveStoppedError::CloseAttemptsHit => "too many close attempts".to_string(),
             ResolveStoppedError::AppDirMissing => "app dir missing".to_string(),
         };
-        write!(f, "{}", str)
+        write!(f, "{str}")
     }
 }
 
@@ -76,7 +75,7 @@ pub fn build_entry_src_for(
     query: BTreeMap<String, String>,
 ) -> Url {
     let scheme = protocol_scheme_for_app(identity_app);
-    let entry_file = content_app.with(|app| app.entry_file());
+    let entry_file = content_app.with(SageApp::entry_file);
 
     let mut url = Url::parse(&format!(
         "{scheme}://{}/{}",

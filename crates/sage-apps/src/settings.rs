@@ -69,7 +69,7 @@ pub fn read_apps_settings(base_path: &Path) -> anyhow::Result<SageAppsSettings> 
         .with_context(|| format!("failed to parse {}", path.display()))
 }
 
-pub fn write_apps_settings(base_path: &Path, settings: &SageAppsSettings) -> anyhow::Result<()> {
+pub fn write_apps_settings(base_path: &Path, settings: SageAppsSettings) -> anyhow::Result<()> {
     let root = apps_root(base_path);
     fs::create_dir_all(&root)
         .with_context(|| format!("failed to create apps root {}", root.display()))?;
@@ -77,7 +77,7 @@ pub fn write_apps_settings(base_path: &Path, settings: &SageAppsSettings) -> any
     let path = apps_settings_path(base_path);
     let tmp = path.with_extension("json.tmp");
 
-    let text = serde_json::to_string_pretty(settings)
+    let text = serde_json::to_string_pretty(&settings)
         .context("failed to serialize Sage apps settings")?;
 
     fs::write(&tmp, format!("{text}\n"))

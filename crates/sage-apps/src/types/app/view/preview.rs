@@ -16,6 +16,7 @@ pub struct UserSageAppPendingUpdateView {
     decision: UserSageAppPendingUpdateDecisionView,
 }
 
+#[allow(clippy::struct_field_names)]
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UserSageAppPendingUpdateDecisionReviewView {
