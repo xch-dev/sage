@@ -41,7 +41,7 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
             .by_index(index)
             .with_context(|| format!("failed to read zip entry #{index}"))?;
 
-        let Some(enclosed_name) = entry.enclosed_name().map(PathBuf::from) else {
+        let Some(enclosed_name) = entry.enclosed_name() else {
             anyhow::bail!("zip entry has unsafe path: {}", entry.name());
         };
 
@@ -182,4 +182,111 @@ pub fn prepare_zip_snapshot(
         snapshot_dir.to_string_lossy().to_string(),
         manifest.clone(),
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::tempdir;
+    use zip::write::SimpleFileOptions;
+
+    fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
+        let file = fs::File::create(path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        let options = SimpleFileOptions::default();
+
+        for (name, contents) in entries {
+            zip.start_file(name, options).unwrap();
+            zip.write_all(contents).unwrap();
+        }
+
+        zip.finish().unwrap();
+    }
+
+    #[test]
+    fn unzip_to_dir_extracts_normal_nested_files() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("app.zip");
+        let out_dir = dir.path().join("out");
+
+        write_zip(
+            &zip_path,
+            &[
+                ("sage-app.json", br#"{"name":"test"}"#),
+                ("nested/index.html", b"<html></html>"),
+            ],
+        );
+
+        unzip_to_dir(&zip_path, &out_dir).unwrap();
+
+        assert_eq!(
+            fs::read_to_string(out_dir.join("nested/index.html")).unwrap(),
+            "<html></html>"
+        );
+    }
+
+    #[test]
+    fn unzip_to_dir_rejects_parent_directory_escape() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("evil.zip");
+        let out_dir = dir.path().join("out");
+
+        write_zip(&zip_path, &[("../evil.txt", b"owned")]);
+
+        let err = unzip_to_dir(&zip_path, &out_dir)
+            .expect_err("zip entries escaping output dir must be rejected");
+
+        let message = err.to_string();
+        assert!(
+            message.contains("unsafe path") || message.contains("escapes extraction directory"),
+            "unexpected error: {message}"
+        );
+
+        assert!(!dir.path().join("evil.txt").exists());
+    }
+
+    #[test]
+    fn unzip_to_dir_keeps_absolute_path_inside_output_dir() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("absolute.zip");
+        let out_dir = dir.path().join("out");
+
+        write_zip(&zip_path, &[("/tmp/sage-apps-test-file.txt", b"owned")]);
+
+        unzip_to_dir(&zip_path, &out_dir).unwrap();
+
+        assert!(out_dir.join("tmp/sage-apps-test-file.txt").is_file());
+        assert_eq!(
+            fs::read_to_string(out_dir.join("tmp/sage-apps-test-file.txt")).unwrap(),
+            "owned"
+        );
+    }
+
+    #[test]
+    fn unzip_to_dir_rejects_too_large_single_file() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("large.zip");
+        let out_dir = dir.path().join("out");
+
+        let file = fs::File::create(&zip_path).unwrap();
+        let mut zip = zip::ZipWriter::new(file);
+        zip.start_file("large.bin", SimpleFileOptions::default())
+            .unwrap();
+
+        let chunk = vec![0u8; 1024 * 1024];
+        for _ in 0..=MAX_ZIP_SINGLE_FILE_BYTES / chunk.len() as u64 {
+            zip.write_all(&chunk).unwrap();
+        }
+
+        zip.finish().unwrap();
+
+        let err =
+            unzip_to_dir(&zip_path, &out_dir).expect_err("oversized zip entry must be rejected");
+
+        assert!(
+            err.to_string().contains("too large"),
+            "unexpected error: {err}"
+        );
+    }
 }

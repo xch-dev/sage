@@ -132,3 +132,28 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         Ok(Box::new(result))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_non_requestable_capability() {
+        let err =
+            ensure_capability_requestable_by_app(UserBridgeCapability::WalletSendXchAutoSubmit)
+                .expect_err("auto-submit send must not be requestable by running apps");
+
+        let message = format!("{err:?}");
+
+        assert!(
+            message.contains("wallet.send_xch_auto_submit"),
+            "error should mention rejected capability, got: {message}"
+        );
+    }
+
+    #[test]
+    fn allows_requestable_capability() {
+        ensure_capability_requestable_by_app(UserBridgeCapability::WalletSendXch)
+            .expect("regular send capability should be requestable by running apps");
+    }
+}
