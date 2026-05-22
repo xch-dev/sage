@@ -12,9 +12,8 @@ use crate::AppsHostState;
 use crate::bridge::methods::system::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root};
 use crate::types::{
-    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
-    UserSageAppSource,
+    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage,
+    SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource,
 };
 
 pub mod commands;
@@ -72,7 +71,7 @@ where
         wallet_scope,
         source,
     )
-        .await;
+    .await;
 
     let host_state: State<'_, AppsHostState> = app.state();
     emit_listed_apps_changed(app, &host_state).await;
@@ -96,8 +95,7 @@ where
 
     let prepared_artifact = source.prepare().await?;
 
-    let (app_id, app_dir) =
-        source.resolve_target(&root, base_path, &prepared_artifact)?;
+    let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
 
     if host_state.db.app_exists(&app_id).await? {
         anyhow::bail!("App is already installed");
@@ -120,7 +118,7 @@ where
         granted_permissions_input,
         wallet_scope,
     )
-        .await?;
+    .await?;
 
     let mut tx = host_state.db.begin_immediate().await?;
 
@@ -203,8 +201,7 @@ where
 
     let prepared_artifact = source.prepare().await?;
 
-    let (app_id, app_dir) =
-        source.resolve_target(&root, base_path, &prepared_artifact)?;
+    let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
 
     materialize_installed_app(
         source,
@@ -218,7 +215,7 @@ where
         granted_permissions_input,
         SageAppWalletScope::AllWallets,
     )
-        .await
+    .await
 }
 
 pub fn fresh_origin_id(app_id: &str) -> String {
@@ -324,24 +321,21 @@ mod tests {
                     [],
                     [],
                 )
-                    .unwrap(),
+                .unwrap(),
                 SageRequestedCapabilities::new(
                     [UserBridgeCapability::StoragePersistentWebview],
                     [UserBridgeCapability::WalletSendXch],
                 ),
             )
-                .unwrap(),
-            files: vec![SageAppManifestFile::new(
-                "index.html".to_string(),
-                "a".repeat(64),
-                123,
-            )
-                .unwrap()],
+            .unwrap(),
+            files: vec![
+                SageAppManifestFile::new("index.html".to_string(), "a".repeat(64), 123).unwrap(),
+            ],
             entry: Some("index.html".into()),
             author: None,
             donation: None,
         })
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -391,8 +385,8 @@ mod tests {
             granted,
             SageAppWalletScope::AllWallets,
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         let common = installed.common();
 

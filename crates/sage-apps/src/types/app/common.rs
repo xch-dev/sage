@@ -2,7 +2,7 @@ use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
 use crate::types::app::SageAppWalletScope;
 use crate::types::app::preview::UserSageAppPendingUpdate;
 use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::invariants::{validate_snapshot_entry_and_icon_exist};
+use crate::types::invariants::validate_snapshot_entry_and_icon_exist;
 use crate::types::normalizers::normalized_non_empty_string;
 use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
 use crate::types::storage::SageAppStorage;
@@ -127,14 +127,10 @@ impl SageAppCommon {
         &mut self,
         storage: SageAppStorage,
         origin_id: impl Into<String>,
-        origin_webview_storage_may_contain_secrets: bool
+        origin_webview_storage_may_contain_secrets: bool,
     ) -> anyhow::Result<()> {
         let next = Self::build(
-            SageAppIdentity::new(
-                self.id().to_string(),
-                origin_id,
-                self.app_dir().to_string(),
-            )?,
+            SageAppIdentity::new(self.id().to_string(), origin_id, self.app_dir().to_string())?,
             self.granted_permissions.clone(),
             storage,
             origin_webview_storage_may_contain_secrets,
@@ -146,9 +142,7 @@ impl SageAppCommon {
         Ok(())
     }
 
-    pub(crate) fn mark_origin_webview_storage_may_contain_secrets(
-        &mut self,
-    ) -> anyhow::Result<()> {
+    pub(crate) fn mark_origin_webview_storage_may_contain_secrets(&mut self) -> anyhow::Result<()> {
         self.replace_origin_webview_storage_may_contain_secrets(true)
     }
 
@@ -178,7 +172,8 @@ impl SageAppCommon {
             identity: self.identity.clone(),
             granted_permissions: self.granted_permissions.clone(),
             storage: self.storage.clone(),
-            origin_webview_storage_may_contain_secrets: self.origin_webview_storage_may_contain_secrets,
+            origin_webview_storage_may_contain_secrets: self
+                .origin_webview_storage_may_contain_secrets,
             active_snapshot: self.active_snapshot.clone(),
             wallet_scope: self.wallet_scope.clone(),
         }

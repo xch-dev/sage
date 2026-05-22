@@ -1,7 +1,7 @@
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::types::{
-    SageAppStorage, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
-    SageAppSnapshot, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
     SystemSageApp,
 };
 use crate::utils::builtin_apps_root;

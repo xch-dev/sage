@@ -4,7 +4,11 @@ use anyhow::{Context, Result};
 use sqlx::{Row, SqliteConnection, sqlite::SqliteRow};
 
 use crate::db::{AppsDb, AppsDbTx};
-use crate::types::{CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, SageAppIconView, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{
+    CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, SageAppIconView, SageAppIdentity,
+    SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope,
+    SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+};
 
 impl AppsDb {
     pub async fn app_exists(&self, app_id: &str) -> Result<bool> {
@@ -16,10 +20,10 @@ impl AppsDb {
             LIMIT 1
             ",
         )
-            .bind(app_id)
-            .fetch_optional(&self.pool)
-            .await
-            .with_context(|| format!("failed to check if app exists {app_id}"))?;
+        .bind(app_id)
+        .fetch_optional(&self.pool)
+        .await
+        .with_context(|| format!("failed to check if app exists {app_id}"))?;
 
         Ok(row.is_some())
     }
@@ -94,23 +98,27 @@ impl AppsDbTx {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ",
         )
-            .bind(common.id())
-            .bind(storage_id)
-            .bind(origin_row_id)
-            .bind(common.app_dir())
-            .bind(serde_json::to_string(app.source())?)
-            .bind(serde_json::to_string(common.granted_permissions())?)
-            .bind(serde_json::to_string(common.wallet_scope())?)
-            .bind(common.active_snapshot().manifest_hash())
-            .bind(common.active_snapshot().snapshot_dir())
-            .bind(app.pending_update().map(|p| p.app_url().to_string()))
-            .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
-            .bind(app.pending_update().map(|p| serde_json::to_string(p.manifest())).transpose()?)
-            .bind(now)
-            .bind(now)
-            .execute(&mut self.conn)
-            .await
-            .with_context(|| format!("failed to insert app {}", common.id()))?;
+        .bind(common.id())
+        .bind(storage_id)
+        .bind(origin_row_id)
+        .bind(common.app_dir())
+        .bind(serde_json::to_string(app.source())?)
+        .bind(serde_json::to_string(common.granted_permissions())?)
+        .bind(serde_json::to_string(common.wallet_scope())?)
+        .bind(common.active_snapshot().manifest_hash())
+        .bind(common.active_snapshot().snapshot_dir())
+        .bind(app.pending_update().map(|p| p.app_url().to_string()))
+        .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
+        .bind(
+            app.pending_update()
+                .map(|p| serde_json::to_string(p.manifest()))
+                .transpose()?,
+        )
+        .bind(now)
+        .bind(now)
+        .execute(&mut self.conn)
+        .await
+        .with_context(|| format!("failed to insert app {}", common.id()))?;
 
         Ok(())
     }
@@ -130,14 +138,14 @@ impl AppsDbTx {
             )
             ",
         )
-            .bind(i32::from(
-                common.origin_webview_storage_may_contain_secrets(),
-            ))
-            .bind(now)
-            .bind(common.id())
-            .execute(&mut self.conn)
-            .await
-            .with_context(|| format!("failed to persist origin taint for app {}", common.id()))?;
+        .bind(i32::from(
+            common.origin_webview_storage_may_contain_secrets(),
+        ))
+        .bind(now)
+        .bind(common.id())
+        .execute(&mut self.conn)
+        .await
+        .with_context(|| format!("failed to persist origin taint for app {}", common.id()))?;
 
         sqlx::query(
             r"
@@ -156,24 +164,24 @@ impl AppsDbTx {
             WHERE app_id = ?
             ",
         )
-            .bind(common.app_dir())
-            .bind(serde_json::to_string(app.source())?)
-            .bind(serde_json::to_string(common.granted_permissions())?)
-            .bind(serde_json::to_string(common.wallet_scope())?)
-            .bind(common.active_snapshot().manifest_hash())
-            .bind(common.active_snapshot().snapshot_dir())
-            .bind(app.pending_update().map(|p| p.app_url().to_string()))
-            .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
-            .bind(
-                app.pending_update()
-                    .map(|p| serde_json::to_string(p.manifest()))
-                    .transpose()?,
-            )
-            .bind(now)
-            .bind(common.id())
-            .execute(&mut self.conn)
-            .await
-            .with_context(|| format!("failed to persist app {}", common.id()))?;
+        .bind(common.app_dir())
+        .bind(serde_json::to_string(app.source())?)
+        .bind(serde_json::to_string(common.granted_permissions())?)
+        .bind(serde_json::to_string(common.wallet_scope())?)
+        .bind(common.active_snapshot().manifest_hash())
+        .bind(common.active_snapshot().snapshot_dir())
+        .bind(app.pending_update().map(|p| p.app_url().to_string()))
+        .bind(app.pending_update().map(|p| p.manifest_hash().to_string()))
+        .bind(
+            app.pending_update()
+                .map(|p| serde_json::to_string(p.manifest()))
+                .transpose()?,
+        )
+        .bind(now)
+        .bind(common.id())
+        .execute(&mut self.conn)
+        .await
+        .with_context(|| format!("failed to persist app {}", common.id()))?;
 
         Ok(())
     }
@@ -205,13 +213,13 @@ impl AppsDbTx {
             WHERE app_id = ?
             ",
         )
-            .bind(storage_id)
-            .bind(origin_row_id)
-            .bind(now)
-            .bind(app_id)
-            .execute(&mut self.conn)
-            .await
-            .with_context(|| format!("failed to update app assignment {app_id}"))?;
+        .bind(storage_id)
+        .bind(origin_row_id)
+        .bind(now)
+        .bind(app_id)
+        .execute(&mut self.conn)
+        .await
+        .with_context(|| format!("failed to update app assignment {app_id}"))?;
 
         Ok(())
     }
@@ -235,13 +243,13 @@ impl AppsDbTx {
             VALUES (?, ?, 0, ?, ?)
             ",
         )
-            .bind(origin_id)
-            .bind(storage_id)
-            .bind(now)
-            .bind(now)
-            .execute(&mut self.conn)
-            .await
-            .with_context(|| format!("failed to insert origin {origin_id}"))?;
+        .bind(origin_id)
+        .bind(storage_id)
+        .bind(now)
+        .bind(now)
+        .execute(&mut self.conn)
+        .await
+        .with_context(|| format!("failed to insert origin {origin_id}"))?;
 
         Ok(result.last_insert_rowid())
     }
@@ -255,9 +263,9 @@ async fn list_user_app_ids_from_conn(conn: &mut SqliteConnection) -> Result<Vec<
         ORDER BY app_id ASC
         ",
     )
-        .fetch_all(conn)
-        .await
-        .context("failed to list installed app ids")?;
+    .fetch_all(conn)
+    .await
+    .context("failed to list installed app ids")?;
 
     rows.into_iter()
         .map(|row| row.try_get("app_id"))
@@ -278,10 +286,7 @@ async fn load_user_app_optional_from_conn(
     row.as_ref().map(row_to_user_app).transpose()
 }
 
-async fn load_user_app_from_conn(
-    conn: &mut SqliteConnection,
-    app_id: &str,
-) -> Result<UserSageApp> {
+async fn load_user_app_from_conn(conn: &mut SqliteConnection, app_id: &str) -> Result<UserSageApp> {
     let row = sqlx::query(load_user_app_sql())
         .bind(app_id)
         .fetch_one(conn)
@@ -322,13 +327,11 @@ fn row_to_user_app(row: &SqliteRow) -> Result<UserSageApp> {
     let origin_id: String = row.try_get("origin_id")?;
     let may_contain_secrets: i64 = row.try_get("may_contain_secrets")?;
 
-    let storage: SageAppStorage =
-        serde_json::from_str(&row.try_get::<String, _>("storage_json")?)
-            .context("failed to deserialize app storage")?;
+    let storage: SageAppStorage = serde_json::from_str(&row.try_get::<String, _>("storage_json")?)
+        .context("failed to deserialize app storage")?;
 
-    let source: UserSageAppSource =
-        serde_json::from_str(&row.try_get::<String, _>("source_json")?)
-            .context("failed to deserialize app source")?;
+    let source: UserSageAppSource = serde_json::from_str(&row.try_get::<String, _>("source_json")?)
+        .context("failed to deserialize app source")?;
 
     let granted_permissions: SageGrantedPermissions =
         serde_json::from_str(&row.try_get::<String, _>("granted_permissions_json")?)
@@ -370,10 +373,10 @@ async fn load_corrupted_user_app_from_conn(
         WHERE app_id = ?
         ",
     )
-        .bind(app_id)
-        .fetch_one(conn)
-        .await
-        .with_context(|| format!("failed to load corrupted app fallback {app_id}"))?;
+    .bind(app_id)
+    .fetch_one(conn)
+    .await
+    .with_context(|| format!("failed to load corrupted app fallback {app_id}"))?;
 
     let app_id: String = row.try_get("app_id")?;
 
@@ -399,7 +402,11 @@ async fn load_corrupted_user_app_from_conn(
     let icon = manifest_header
         .as_ref()
         .and_then(|header| header.icon.as_deref())
-        .and_then(|icon_path| snapshot_dir.as_deref().map(|dir| Path::new(dir).join(icon_path)))
+        .and_then(|icon_path| {
+            snapshot_dir
+                .as_deref()
+                .map(|dir| Path::new(dir).join(icon_path))
+        })
         .and_then(|path| SageAppIconView::from_file_path(&path));
 
     Ok(ListedSageApp::Corrupted(
@@ -413,11 +420,19 @@ async fn load_corrupted_user_app_from_conn(
 fn read_snapshot_manifest(snapshot_dir: &str) -> Result<SageAppPackageManifest> {
     let manifest_path = Path::new(snapshot_dir).join(crate::types::MANIFEST_FILE_NAME);
 
-    let text = std::fs::read_to_string(&manifest_path)
-        .with_context(|| format!("failed to read snapshot manifest {}", manifest_path.display()))?;
+    let text = std::fs::read_to_string(&manifest_path).with_context(|| {
+        format!(
+            "failed to read snapshot manifest {}",
+            manifest_path.display()
+        )
+    })?;
 
-    serde_json::from_str(&text)
-        .with_context(|| format!("failed to parse snapshot manifest {}", manifest_path.display()))
+    serde_json::from_str(&text).with_context(|| {
+        format!(
+            "failed to parse snapshot manifest {}",
+            manifest_path.display()
+        )
+    })
 }
 
 fn snapshot_from_row(row: &SqliteRow) -> Result<SageAppSnapshot> {

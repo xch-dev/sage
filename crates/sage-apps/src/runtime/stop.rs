@@ -5,9 +5,8 @@ use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::manager::sync_modal_runtime_visibility;
 use crate::runtime::state::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    remove_before_stop_listeners_by_app_id,
-    remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id,
-    write_pending_stop_ready,
+    remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready,
 };
 use crate::runtime::webview_locator::find_webview_in_sage_window;
 use crate::runtime::{

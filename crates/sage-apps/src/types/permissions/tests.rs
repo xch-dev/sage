@@ -136,7 +136,7 @@ fn effective_whitelist_for_network_merges_shared_and_network_specific_entries() 
             BTreeSet::from([network_entry("https", "mainnet-required.example.com")]),
         )]),
     )
-        .unwrap();
+    .unwrap();
 
     let effective = granted
         .network()

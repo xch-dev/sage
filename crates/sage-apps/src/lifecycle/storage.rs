@@ -1,21 +1,15 @@
-use anyhow::{Result as AnyResult};
-use tauri::{AppHandle, command, State, Manager};
-use std::path::Path;
-use uuid::Uuid;
-#[cfg(target_os = "windows")]
-use {
-    std::fs,
-    anyhow::Context,
-};
-#[cfg(any(target_os = "macos", target_os = "ios"))]
-use {
-    anyhow::anyhow,
-    crate::storage::parse_data_store_id,
-};
 use crate::AppsHostState;
-use crate::runtime::{resolve_stopped_app};
+use crate::runtime::resolve_stopped_app;
 use crate::runtime::start::start_user_app;
 use crate::types::{SageAppStorage, SharedSageApp};
+use anyhow::Result as AnyResult;
+use std::path::Path;
+use tauri::{AppHandle, Manager, State, command};
+use uuid::Uuid;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use {crate::storage::parse_data_store_id, anyhow::anyhow};
+#[cfg(target_os = "windows")]
+use {anyhow::Context, std::fs};
 
 pub struct RegisteredSageAppStorage {
     pub storage_id: i64,
@@ -51,7 +45,7 @@ pub async fn apps_clear_runtime_browsing_data(
                 focus: Some(true),
             },
         )
-            .await?;
+        .await?;
     }
 
     Ok(())
@@ -122,10 +116,7 @@ pub async fn allocate_new_os_storage(
     Ok(SageAppStorage::Unmanaged)
 }
 
-pub async fn process_pending_storage_cleanup(
-    app: &AppHandle,
-    _base_path: &Path,
-) -> AnyResult<()> {
+pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path) -> AnyResult<()> {
     let host_state: State<'_, AppsHostState> = app.state();
 
     let cleanup_targets = host_state
@@ -153,7 +144,7 @@ pub async fn process_pending_storage_cleanup(
                             storage: target.storage.clone(),
                         },
                     )
-                        .await?;
+                    .await?;
                 }
             }
 
@@ -163,10 +154,7 @@ pub async fn process_pending_storage_cleanup(
                     .map_err(anyhow::Error::msg)?;
             }
         }
-        tracing::info!(
-            storage_id = target.storage_id,
-            "origin cleanup completed"
-        );
+        tracing::info!(storage_id = target.storage_id, "origin cleanup completed");
 
         host_state
             .db
@@ -271,11 +259,7 @@ pub(crate) async fn rotate_app_storage_and_origin(
                     .await?;
 
                 ctx.tx()
-                    .update_app_assignment(
-                        &app_id,
-                        next_storage.storage_id,
-                        origin_row_id,
-                    )
+                    .update_app_assignment(&app_id, next_storage.storage_id, origin_row_id)
                     .await?;
 
                 ctx.draft_mut().replace_storage_and_origin(

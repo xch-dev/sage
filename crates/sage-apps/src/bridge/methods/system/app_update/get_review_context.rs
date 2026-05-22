@@ -57,11 +57,7 @@ impl BridgeMethod for AppUpdateGetReviewContext {
     ) -> BridgeHandleResult {
         let params: AppUpdateGetReviewContextParams = parse_required_params(self, request)?;
 
-        let preview = check_app_update_inner(
-            tools.app_handle,
-            tools.host_state,
-            &params.app_id,
-        )
+        let preview = check_app_update_inner(tools.app_handle, tools.host_state, &params.app_id)
             .await
             .map_err(|err| {
                 BridgeMethodHandleError::internal_error(format!(

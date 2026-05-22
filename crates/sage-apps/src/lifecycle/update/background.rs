@@ -2,11 +2,11 @@ use futures::future::join_all;
 use std::time::Duration;
 
 use crate::AppsHostState;
-use crate::lifecycle::{list_installed_apps_internal};
-use crate::types::ListedSageApp;
-use tauri::{AppHandle, Manager, State};
+use crate::lifecycle::list_installed_apps_internal;
 use crate::lifecycle::update::apply::try_auto_apply_pending_update;
 use crate::lifecycle::update::check::check_app_update_inner;
+use crate::types::ListedSageApp;
+use tauri::{AppHandle, Manager, State};
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {
@@ -50,10 +50,10 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
 
             if let Err(err) = &result {
                 tracing::warn!(
-            error = %err,
-            app_id = %app_id,
-            "failed to check app update in background"
-        );
+                    error = %err,
+                    app_id = %app_id,
+                    "failed to check app update in background"
+                );
 
                 return result;
             }
@@ -64,17 +64,17 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
                 match try_auto_apply_pending_update(&app_handle, &host_state, &app_id).await {
                     Ok(true) => {
                         tracing::info!(
-                    app_id = %app_id,
-                    "auto-applied app update"
-                );
+                            app_id = %app_id,
+                            "auto-applied app update"
+                        );
                     }
                     Ok(false) => {}
                     Err(err) => {
                         tracing::warn!(
-                    error = %err,
-                    app_id = %app_id,
-                    "failed to auto-apply app update"
-                );
+                            error = %err,
+                            app_id = %app_id,
+                            "failed to auto-apply app update"
+                        );
                     }
                 }
             }

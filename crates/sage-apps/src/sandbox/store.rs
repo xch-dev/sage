@@ -4,8 +4,7 @@ use tokio::sync::Mutex;
 
 use super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
-    SandboxPersistenceWriteProbeResult, SandboxRunState,
-    build_initial_sandbox_state,
+    SandboxPersistenceWriteProbeResult, SandboxRunState, build_initial_sandbox_state,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

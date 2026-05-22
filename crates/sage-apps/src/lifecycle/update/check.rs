@@ -1,10 +1,13 @@
-use std::io;
-use tauri::{AppHandle, State};
 use crate::AppsHostState;
 use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::lifecycle::{fetch_url_manifest, fetch_url_manifest_preview, AppMutationManager};
+use crate::lifecycle::{AppMutationManager, fetch_url_manifest, fetch_url_manifest_preview};
 use crate::runtime::resolve_app;
-use crate::types::{ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource};
+use crate::types::{
+    ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp,
+    UserSageAppPendingUpdate, UserSageAppSource,
+};
+use std::io;
+use tauri::{AppHandle, State};
 
 pub(crate) enum AppUpdatePreviewResult {
     None,
@@ -29,9 +32,7 @@ pub(crate) async fn check_app_update_inner(
             mutation_manager
                 .mutate_shared_app(&app, |ctx| {
                     Box::pin(async move {
-                        ctx.draft_mut()
-                            .app_mut()
-                            .set_pending_update(None)?;
+                        ctx.draft_mut().app_mut().set_pending_update(None)?;
 
                         Ok(())
                     })
@@ -132,7 +133,6 @@ async fn preview_app_update(app: &ResolvedApp) -> crate::host::Result<AppUpdateP
 
     Ok(AppUpdatePreviewResult::New(preview))
 }
-
 
 async fn fetch_pending_update(
     app: &SharedSageApp,

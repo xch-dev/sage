@@ -14,10 +14,7 @@ pub struct BridgeApprovalsChangedEvent {
 impl BridgeApprovalsChangedEvent {
     pub(crate) fn new_from_list(approvals: Vec<PendingBridgeApproval>) -> Self {
         Self {
-            approvals: approvals
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+            approvals: approvals.into_iter().map(Into::into).collect(),
         }
     }
 }

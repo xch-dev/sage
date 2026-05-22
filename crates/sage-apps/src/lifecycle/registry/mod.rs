@@ -1,24 +1,17 @@
 pub mod types;
 
-use std::{
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
-use anyhow::{Result as AnyResult};
+use anyhow::Result as AnyResult;
 
 use crate::system_apps::{SystemAppUsage, list_builtin_system_apps};
-use crate::types::{
-    ListedSageApp,
-    SageApp,
-};
+use crate::types::{ListedSageApp, SageApp};
 
 pub fn apps_root(base_path: &Path) -> PathBuf {
     base_path.join("apps")
 }
 
-pub async fn list_installed_apps_internal(
-    db: &crate::db::AppsDb,
-) -> AnyResult<Vec<ListedSageApp>> {
+pub async fn list_installed_apps_internal(db: &crate::db::AppsDb) -> AnyResult<Vec<ListedSageApp>> {
     let mut apps = db.list_installed_apps().await?;
 
     for app in list_builtin_system_apps()? {
@@ -47,8 +40,11 @@ mod tests {
     use super::*;
     use std::collections::BTreeMap;
 
-    use crate::lifecycle::install::{install_app_from_source_for_test, FakeInstallSource};
-    use crate::types::{ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
+    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
+    use crate::types::{
+        ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource,
+    };
     use tempfile::tempdir;
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
@@ -91,8 +87,8 @@ mod tests {
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         let storage_id = db
             .register_storage(installed.common().storage())
@@ -130,9 +126,7 @@ mod tests {
         let _alpha = sample_app_named(base.path(), &db, "a", "Alpha").await;
         let _zeta = sample_app_named(base.path(), &db, "z", "Zeta").await;
 
-        let listed = without_system_apps(
-            list_installed_apps_internal(&db).await.unwrap()
-        );
+        let listed = without_system_apps(list_installed_apps_internal(&db).await.unwrap());
 
         let names: Vec<_> = listed
             .into_iter()

@@ -1,6 +1,8 @@
 use crate::bridge::BridgeOrigin;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_running_app};
+use crate::runtime::{
+    app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_running_app,
+};
 use tauri::{AppHandle, Manager};
 
 pub(crate) async fn assert_bridge_origin(
@@ -37,7 +39,5 @@ pub(crate) async fn assert_bridge_origin(
         ));
     }
 
-    Ok(BridgeOrigin {
-        app,
-    })
+    Ok(BridgeOrigin { app })
 }

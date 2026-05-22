@@ -20,8 +20,9 @@ pub struct AppsDb {
 
 impl AppsDb {
     pub async fn initialize(base_path: &Path) -> Result<Self> {
-        fs::create_dir_all(base_path)
-            .with_context(|| format!("failed to create apps db directory {}", base_path.display()))?;
+        fs::create_dir_all(base_path).with_context(|| {
+            format!("failed to create apps db directory {}", base_path.display())
+        })?;
 
         let db_path = database_path(base_path);
 
@@ -37,10 +38,12 @@ impl AppsDb {
             .await
             .with_context(|| format!("failed to open apps database {}", db_path.display()))?;
 
-        MIGRATOR
-            .run(&pool)
-            .await
-            .with_context(|| format!("failed to run apps database migrations {}", db_path.display()))?;
+        MIGRATOR.run(&pool).await.with_context(|| {
+            format!(
+                "failed to run apps database migrations {}",
+                db_path.display()
+            )
+        })?;
 
         Ok(Self { pool })
     }

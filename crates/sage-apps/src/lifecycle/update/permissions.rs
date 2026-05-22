@@ -12,12 +12,14 @@ use crate::capabilities::list::UserBridgeCapability;
 use crate::host::AppState;
 use crate::lifecycle::AppMutationManager;
 use crate::lifecycle::update::types::{
-    AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome,
-    GrantedPermissionsChange,
+    AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
-use crate::runtime::{find_runtime_by_app_id_optional, kill_taskbar_runtime, reload_app_runtime, resolve_app, SageAppRuntimeVisibility};
 use crate::runtime::commands::CreateInstalledRuntimeArgs;
 use crate::runtime::start::start_user_app;
+use crate::runtime::{
+    SageAppRuntimeVisibility, find_runtime_by_app_id_optional, kill_taskbar_runtime,
+    reload_app_runtime, resolve_app,
+};
 use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 
 pub async fn update_app_permissions_for_app(
@@ -68,10 +70,10 @@ async fn grant_capability_internal(
     let app = resolve_app_for_permission_update(app_handle, app_id).await?;
 
     let granted_permissions = app.try_with(|sage_app| {
-        sage_app.common().granted_permissions().with_capability_added(
-            sage_app.common().requested_permissions(),
-            capability,
-        )
+        sage_app
+            .common()
+            .granted_permissions()
+            .with_capability_added(sage_app.common().requested_permissions(), capability)
     })?;
 
     apply_granted_permissions(app_handle, apps_state, &app, &granted_permissions).await
@@ -132,7 +134,9 @@ async fn apply_granted_permissions(
             runtime.with_runtime(|record| {
                 (
                     record.visibility() == SageAppRuntimeVisibility::Visible,
-                    record.app().with(|app| app.common().has_persistent_webview_storage()),
+                    record
+                        .app()
+                        .with(|app| app.common().has_persistent_webview_storage()),
                 )
             })
         });
@@ -142,13 +146,9 @@ async fn apply_granted_permissions(
         |(_, persistent)| persistent,
     );
 
-    let update_result = mutate_granted_permissions(
-        app_handle,
-        apps_state,
-        app,
-        granted_permissions.clone(),
-    )
-        .await?;
+    let update_result =
+        mutate_granted_permissions(app_handle, apps_state, app, granted_permissions.clone())
+            .await?;
 
     emit_granted_permissions_change(app_handle, &app_id, update_result.change()).await;
 
@@ -165,12 +165,12 @@ async fn apply_granted_permissions(
                 &app_id,
                 "persistent_webview_storage_permission_changed",
             )
-                .await
-                .map_err(|err| {
-                    anyhow::anyhow!(
+            .await
+            .map_err(|err| {
+                anyhow::anyhow!(
                     "failed to kill app runtime after persistent storage permission change: {err}"
                 )
-                })?;
+            })?;
 
             start_user_app(
                 app_handle,
@@ -180,12 +180,12 @@ async fn apply_granted_permissions(
                     focus: Some(was_visible),
                 },
             )
-                .await
-                .map_err(|err| {
-                    anyhow::anyhow!(
+            .await
+            .map_err(|err| {
+                anyhow::anyhow!(
                     "failed to reopen app runtime after persistent storage permission change: {err}"
                 )
-                })?;
+            })?;
         }
 
         return Ok(update_result);
@@ -215,27 +215,16 @@ async fn mutate_granted_permissions(
     manager
         .mutate_shared_app(app, move |ctx| {
             Box::pin(async move {
-                let previous = ctx
-                    .draft()
-                    .app()
-                    .common()
-                    .granted_permissions()
-                    .clone();
+                let previous = ctx.draft().app().common().granted_permissions().clone();
 
                 ctx.draft_mut()
                     .update_permissions(&granted_permissions)
                     .context("failed to update app permissions")?;
 
-                let new = ctx
-                    .draft()
-                    .app()
-                    .common()
-                    .granted_permissions()
-                    .clone();
+                let new = ctx.draft().app().common().granted_permissions().clone();
 
                 Ok(AppUpdateResult::new(GrantedPermissionsChange::diff(
-                    &previous,
-                    &new,
+                    &previous, &new,
                 )))
             })
         })
@@ -256,7 +245,7 @@ async fn emit_granted_permissions_change(
             app_id,
             GrantedCapabilitiesChangeEvent::from_change(capability_change),
         )
-            .await;
+        .await;
     }
 
     let network_change = change.network_whitelist();
@@ -267,7 +256,7 @@ async fn emit_granted_permissions_change(
             app_id,
             GrantedNetworkWhitelistChangeEvent::from_change(network_change),
         )
-            .await;
+        .await;
     }
 }
 
@@ -297,7 +286,11 @@ mod tests {
     use std::collections::BTreeMap;
 
     use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
-    use crate::types::{SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserSageAppSource};
+    use crate::types::{
+        SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions, UserSageAppSource,
+    };
     use tempfile::tempdir;
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
@@ -321,7 +314,7 @@ mod tests {
                 [network_whitelist_entry("wss", "optional.example.com")],
                 [],
             )
-                .unwrap(),
+            .unwrap(),
             SageRequestedCapabilities::new(
                 [],
                 [
@@ -330,7 +323,7 @@ mod tests {
                 ],
             ),
         )
-            .unwrap();
+        .unwrap();
 
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
 
@@ -346,7 +339,7 @@ mod tests {
             author: None,
             donation: None,
         })
-            .unwrap();
+        .unwrap();
 
         let granted = SageGrantedPermissionsInput::new([], [], BTreeMap::new());
 
@@ -359,8 +352,8 @@ mod tests {
                 source: UserSageAppSource::url("https://example.com/app/").unwrap(),
             },
         )
-            .await
-            .unwrap();
+        .await
+        .unwrap();
 
         SharedSageApp::new(installed.into_sage_app())
     }
@@ -412,12 +405,7 @@ mod tests {
         );
 
         assert_eq!(
-            entries(
-                normalized
-                    .network()
-                    .whitelist_iter()
-                    .cloned()
-            ),
+            entries(normalized.network().whitelist_iter().cloned()),
             [network_whitelist_entry("https", "required.example.com")]
         );
     }
@@ -574,12 +562,7 @@ mod tests {
         }
 
         assert_eq!(
-            entries(
-                normalized
-                    .network()
-                    .whitelist_iter()
-                    .cloned()
-            ),
+            entries(normalized.network().whitelist_iter().cloned()),
             [
                 network_whitelist_entry("https", "required.example.com"),
                 network_whitelist_entry("wss", "optional.example.com"),

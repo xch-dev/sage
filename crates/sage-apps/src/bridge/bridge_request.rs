@@ -16,9 +16,7 @@ use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBr
 use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
 use crate::host::AppState;
 use crate::lifecycle::ensure_app_is_enabled_for_scope;
-use crate::runtime::{
-    resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
-};
+use crate::runtime::{resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime};
 use crate::security::assert_bridge_origin;
 use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
@@ -177,12 +175,7 @@ async fn process_shared(
         return Ok(response.into());
     }
 
-    match method.approval_request(
-        BridgeContext {
-            app,
-        },
-        request,
-    ) {
+    match method.approval_request(BridgeContext { app }, request) {
         Ok(Some(approval)) => {
             request_approval(app_handle, app.id(), registry_kind, approval, request).await?;
             Ok(RustBridgeInvokeResult::Pending {})
@@ -215,9 +208,7 @@ async fn execute_bridge_request(
 
     let result = method
         .handle(
-            BridgeContext {
-                app: &origin.app,
-            },
+            BridgeContext { app: &origin.app },
             BridgeTools {
                 app_handle,
                 app_state,

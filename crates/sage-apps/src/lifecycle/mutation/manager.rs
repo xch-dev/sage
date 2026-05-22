@@ -1,5 +1,5 @@
-use std::pin::Pin;
 use anyhow::Result;
+use std::pin::Pin;
 use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
@@ -37,10 +37,7 @@ impl AppMutationContext {
 }
 
 impl<'a> AppMutationManager<'a> {
-    pub(crate) fn new(
-        app_handle: &'a AppHandle,
-        apps_state: &'a State<'a, AppsHostState>,
-    ) -> Self {
+    pub(crate) fn new(app_handle: &'a AppHandle, apps_state: &'a State<'a, AppsHostState>) -> Self {
         Self {
             app_handle,
             apps_state,
@@ -142,9 +139,7 @@ impl<'a> AppMutationManager<'a> {
             );
         }
 
-        if common.has_external_access()
-            && common.origin_webview_storage_may_contain_secrets()
-        {
+        if common.has_external_access() && common.origin_webview_storage_may_contain_secrets() {
             return Err(
                 "app permissions cannot include external access while origin webview storage may contain secrets"
                     .to_string(),

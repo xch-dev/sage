@@ -1,14 +1,17 @@
+use crate::AppsHostState;
+use crate::bridge::methods::system::emit_pending_update_changed;
+use crate::lifecycle::{AppMutationManager, download_url_snapshot};
+use crate::runtime::commands::CreateInstalledRuntimeArgs;
+use crate::runtime::start::start_user_app;
+use crate::runtime::webview_locator::get_sage_window;
+use crate::runtime::{find_active_taskbar_runtime, resolve_app, start_app_update_runtime};
+use crate::types::{
+    ResolvedApp, SageApp, SageAppView, SageGrantedPermissionsInput, SharedSageApp,
+    UserSageAppPendingUpdate,
+};
 use std::collections::BTreeMap;
 use std::{fs, io};
 use tauri::{AppHandle, Manager, State};
-use crate::AppsHostState;
-use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::lifecycle::{download_url_snapshot, AppMutationManager};
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::{find_active_taskbar_runtime, resolve_app, start_app_update_runtime};
-use crate::runtime::start::start_user_app;
-use crate::runtime::webview_locator::get_sage_window;
-use crate::types::{ResolvedApp, SageApp, SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate};
 
 pub(crate) async fn apply_app_update_inner(
     app_handle: &AppHandle,
@@ -30,7 +33,7 @@ pub(crate) async fn apply_app_update_inner(
             None,
             "failed to start app update review runtime",
         )
-            .await;
+        .await;
 
         let resolved = resolve_app(app_handle, app_id).await.map_err(|err| {
             io::Error::other(format!("failed to read installed app {app_id}: {err}"))
@@ -47,19 +50,19 @@ pub(crate) async fn apply_app_update_inner(
         preflight.pending,
         additional_granted_permissions_input,
     )
-        .await?;
+    .await?;
 
     emit_pending_update_changed(app_handle, apps_state, &app).await;
 
     if reopen_after_update.should_reopen
         && let Err(err) = start_user_app(
-        app_handle,
-        apps_state,
-        CreateInstalledRuntimeArgs {
-            app_id: app_id.to_string(),
-            focus: Some(reopen_after_update.should_focus),
-        },
-    )
+            app_handle,
+            apps_state,
+            CreateInstalledRuntimeArgs {
+                app_id: app_id.to_string(),
+                focus: Some(reopen_after_update.should_focus),
+            },
+        )
         .await
     {
         tracing::error!(
@@ -148,12 +151,8 @@ async fn execute_app_update(
 
     let app_dir = app.with(SageApp::app_path);
 
-    let old_snapshot_dir = app.with(|app| {
-        app.common()
-            .active_snapshot()
-            .snapshot_dir()
-            .to_string()
-    });
+    let old_snapshot_dir =
+        app.with(|app| app.common().active_snapshot().snapshot_dir().to_string());
 
     let snapshot_dir = crate::lifecycle::fresh_snapshot_dir(&app_dir);
 
@@ -170,8 +169,8 @@ async fn execute_app_update(
         pending.manifest(),
         pending.manifest_hash(),
     )
-        .await
-        .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+    .await
+    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
 
     crate::lifecycle::write_snapshot_manifest(&snapshot).map_err(|err| {
         io::Error::other(format!("failed to write update snapshot manifest: {err}"))
@@ -192,9 +191,7 @@ async fn execute_app_update(
                     .app_mut()
                     .apply_update(&pending, granted_permissions, snapshot)?;
 
-                ctx.draft_mut()
-                    .app_mut()
-                    .set_pending_update(None)?;
+                ctx.draft_mut().app_mut().set_pending_update(None)?;
 
                 Ok(())
             })
@@ -314,4 +311,3 @@ impl ReopenAfterUpdate {
         })
     }
 }
-

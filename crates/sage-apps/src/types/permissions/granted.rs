@@ -416,13 +416,13 @@ mod tests {
                 [],
                 [],
             )
-                .unwrap(),
+            .unwrap(),
             SageRequestedCapabilities::new(
                 [UserBridgeCapability::StoragePersistentWebview],
                 [UserBridgeCapability::WalletSendXch],
             ),
         )
-            .unwrap();
+        .unwrap();
 
         let err = SageGrantedPermissions::new(
             &requested,
@@ -433,7 +433,7 @@ mod tests {
             )],
             BTreeMap::new(),
         )
-            .unwrap_err();
+        .unwrap_err();
 
         assert!(
             err.to_string()

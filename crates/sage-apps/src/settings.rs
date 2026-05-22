@@ -5,18 +5,16 @@ use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::lifecycle::apps_root;
-use tauri::{command, State};
 use crate::AppsHostState;
 use crate::host::{AppState, Result};
+use crate::lifecycle::apps_root;
+use tauri::{State, command};
 
 const APPS_SETTINGS_FILE: &str = ".sage-apps-settings.json";
 
 #[command]
 #[specta::specta]
-pub async fn apps_get_auto_update_enabled(
-    apps_state: State<'_, AppsHostState>,
-) -> Result<bool> {
+pub async fn apps_get_auto_update_enabled(apps_state: State<'_, AppsHostState>) -> Result<bool> {
     Ok(apps_state.settings.read().await.auto_update_enabled)
 }
 
@@ -65,8 +63,7 @@ pub fn read_apps_settings(base_path: &Path) -> anyhow::Result<SageAppsSettings> 
     let text =
         fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
 
-    serde_json::from_str(&text)
-        .with_context(|| format!("failed to parse {}", path.display()))
+    serde_json::from_str(&text).with_context(|| format!("failed to parse {}", path.display()))
 }
 
 pub fn write_apps_settings(base_path: &Path, settings: SageAppsSettings) -> anyhow::Result<()> {
@@ -83,13 +80,8 @@ pub fn write_apps_settings(base_path: &Path, settings: SageAppsSettings) -> anyh
     fs::write(&tmp, format!("{text}\n"))
         .with_context(|| format!("failed to write {}", tmp.display()))?;
 
-    fs::rename(&tmp, &path).with_context(|| {
-        format!(
-            "failed to move {} to {}",
-            tmp.display(),
-            path.display()
-        )
-    })?;
+    fs::rename(&tmp, &path)
+        .with_context(|| format!("failed to move {} to {}", tmp.display(), path.display()))?;
 
     Ok(())
 }

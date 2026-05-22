@@ -1,11 +1,11 @@
 use crate::host::AppState;
 use crate::runtime::{app_id_from_webview_label, resolve_running_app};
 use crate::security::build_app_csp;
+use crate::types::{ResolvedRunningApp, SharedSageApp};
 use anyhow::{Result as AnyResult, anyhow};
 use std::fs;
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager};
-use crate::types::{ResolvedRunningApp, SharedSageApp};
 
 pub async fn handle_user_app_protocol_request(
     app_handle: AppHandle,
@@ -61,7 +61,8 @@ async fn get_protocol_request_runtime(
     let app_id =
         app_id_from_webview_label(webview_label).ok_or_else(|| anyhow!("invalid webview label"))?;
 
-    resolve_running_app(&app_handle.state(), app_id).await
+    resolve_running_app(&app_handle.state(), app_id)
+        .await
         .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))
 }
 
@@ -93,10 +94,7 @@ async fn handle_app_protocol_request(
         .status(StatusCode::OK)
         .header("Content-Type", mime)
         .header("Cache-Control", "no-store")
-        .header(
-            "Content-Security-Policy",
-            build_app_csp(app, &network_id),
-        )
+        .header("Content-Security-Policy", build_app_csp(app, &network_id))
         .header("X-Content-Type-Options", "nosniff")
         .body(fs::read(&file_path)?)
         .map_err(|err| anyhow!("failed to build app protocol response: {err}"))

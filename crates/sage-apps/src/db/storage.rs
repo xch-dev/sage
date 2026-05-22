@@ -26,12 +26,12 @@ impl AppsDb {
             VALUES (?, ?, ?)
             ",
         )
-            .bind(storage_json)
-            .bind(now)
-            .bind(now)
-            .execute(&self.pool)
-            .await
-            .context("failed to insert storage")?;
+        .bind(storage_json)
+        .bind(now)
+        .bind(now)
+        .execute(&self.pool)
+        .await
+        .context("failed to insert storage")?;
 
         Ok(result.last_insert_rowid())
     }
@@ -46,10 +46,10 @@ impl AppsDb {
             WHERE apps.app_id = ?
             ",
         )
-            .bind(app_id)
-            .fetch_optional(&self.pool)
-            .await
-            .with_context(|| format!("failed to get storage for app {app_id}"))?;
+        .bind(app_id)
+        .fetch_optional(&self.pool)
+        .await
+        .with_context(|| format!("failed to get storage for app {app_id}"))?;
 
         let Some(row) = row else {
             return Ok(None);
@@ -80,21 +80,18 @@ impl AppsDb {
         ORDER BY storages.id ASC, origins.id ASC
         ",
         )
-            .fetch_all(&self.pool)
-            .await
-            .context("failed to list abandoned storage cleanup targets")?;
+        .fetch_all(&self.pool)
+        .await
+        .context("failed to list abandoned storage cleanup targets")?;
 
-        let mut grouped =
-            std::collections::BTreeMap::<i64, (SageAppStorage, Vec<String>)>::new();
+        let mut grouped = std::collections::BTreeMap::<i64, (SageAppStorage, Vec<String>)>::new();
 
         for row in rows {
             let storage_id: i64 = row.try_get("storage_id")?;
             let storage_json: String = row.try_get("storage_json")?;
 
             let storage = serde_json::from_str::<SageAppStorage>(&storage_json)
-                .with_context(|| {
-                    format!("failed to deserialize abandoned storage {storage_id}")
-                })?;
+                .with_context(|| format!("failed to deserialize abandoned storage {storage_id}"))?;
 
             let origin_id: Option<String> = row.try_get("origin_id")?;
 
@@ -109,13 +106,13 @@ impl AppsDb {
 
         Ok(grouped
             .into_iter()
-            .map(|(storage_id, (storage, origin_ids))| {
-                AbandonedStorageCleanupTarget {
+            .map(
+                |(storage_id, (storage, origin_ids))| AbandonedStorageCleanupTarget {
                     storage_id,
                     storage,
                     origin_ids,
-                }
-            })
+                },
+            )
             .collect())
     }
 
@@ -129,12 +126,12 @@ impl AppsDb {
               )
             ",
         )
-            .bind(storage_id)
-            .execute(&self.pool)
-            .await
-            .with_context(|| {
-                format!("failed to delete abandoned origins for storage row {storage_id}")
-            })?;
+        .bind(storage_id)
+        .execute(&self.pool)
+        .await
+        .with_context(|| {
+            format!("failed to delete abandoned origins for storage row {storage_id}")
+        })?;
 
         Ok(result.rows_affected())
     }
@@ -149,10 +146,10 @@ impl AppsDb {
               )
             ",
         )
-            .bind(storage_id)
-            .execute(&self.pool)
-            .await
-            .with_context(|| format!("failed to delete abandoned storage row {storage_id}"))?;
+        .bind(storage_id)
+        .execute(&self.pool)
+        .await
+        .with_context(|| format!("failed to delete abandoned storage row {storage_id}"))?;
 
         Ok(())
     }

@@ -1,6 +1,4 @@
-use super::probes::{
-    run_isolation_test, run_network_test, run_persistence_test,
-};
+use super::probes::{run_isolation_test, run_network_test, run_persistence_test};
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{
     SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,

@@ -246,7 +246,8 @@ where
 {
     let apps_state = app_handle.state::<AppsHostState>();
 
-    let runtime = resolve_running_app(&apps_state, app_id).await
+    let runtime = resolve_running_app(&apps_state, app_id)
+        .await
         .map_err(|err| format!("failed to resolve runtime for app {app_id}: {err}"))?;
 
     let app = runtime.into_app();

@@ -6,8 +6,7 @@ use async_trait::async_trait;
 use super::AppInstallSource;
 use crate::lifecycle::{download_url_snapshot, fetch_url_manifest_preview};
 use crate::types::{
-    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview,
-    UserSageAppSource,
+    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageAppSource,
 };
 use crate::utils::bytes_sha256_hex;
 
@@ -61,7 +60,7 @@ impl AppInstallSource for SageAppUrl {
             prepared.preview.require_full_manifest()?,
             prepared.preview.manifest_hash(),
         )
-            .await
+        .await
     }
 }
 
@@ -70,10 +69,7 @@ pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
     format!("url-{}-{}", app_url.slug(), &hash[..16])
 }
 
-pub fn resolve_url_install_target(
-    root: &Path,
-    app_url: &SageAppUrl,
-) -> (String, PathBuf) {
+pub fn resolve_url_install_target(root: &Path, app_url: &SageAppUrl) -> (String, PathBuf) {
     let app_id = generate_url_app_id(app_url);
     let app_dir = root.join(&app_id);
 

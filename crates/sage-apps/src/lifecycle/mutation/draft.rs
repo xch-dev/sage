@@ -1,6 +1,4 @@
-use crate::types::{
-    SageApp, SageAppStorage, SageGrantedPermissions,
-};
+use crate::types::{SageApp, SageAppStorage, SageGrantedPermissions};
 
 #[derive(Debug)]
 pub(crate) struct AppMutationDraft {
@@ -31,9 +29,7 @@ impl AppMutationDraft {
             .replace_storage_and_origin(storage, origin_id, origin_tainted)
     }
 
-    pub(crate) fn mark_origin_webview_storage_may_contain_secrets(
-        &mut self,
-    ) -> anyhow::Result<()> {
+    pub(crate) fn mark_origin_webview_storage_may_contain_secrets(&mut self) -> anyhow::Result<()> {
         self.app
             .common_mut()
             .mark_origin_webview_storage_may_contain_secrets()
@@ -43,6 +39,8 @@ impl AppMutationDraft {
         &mut self,
         granted_permissions: &SageGrantedPermissions,
     ) -> anyhow::Result<()> {
-        self.app.common_mut().update_permissions(granted_permissions)
+        self.app
+            .common_mut()
+            .update_permissions(granted_permissions)
     }
 }

@@ -76,14 +76,18 @@ pub async fn download_url_snapshot(
 }
 
 pub(crate) fn write_snapshot_manifest(snapshot: &SageAppSnapshot) -> anyhow::Result<()> {
-    let manifest_path = Path::new(snapshot.snapshot_dir())
-        .join(crate::types::MANIFEST_FILE_NAME);
+    let manifest_path = Path::new(snapshot.snapshot_dir()).join(crate::types::MANIFEST_FILE_NAME);
 
     fs::write(
         &manifest_path,
         serde_json::to_string_pretty(snapshot.manifest())?,
     )
-        .with_context(|| format!("failed to write snapshot manifest {}", manifest_path.display()))?;
+    .with_context(|| {
+        format!(
+            "failed to write snapshot manifest {}",
+            manifest_path.display()
+        )
+    })?;
 
     Ok(())
 }

@@ -1,7 +1,9 @@
 use crate::bridge::methods::user::environment::EnvironmentThemeView;
 use crate::bridge::state::BridgeState;
+use crate::db::AppsDb;
 use crate::runtime::AppRuntimeState;
 use crate::sandbox::SandboxStateStore;
+use crate::settings::{SageAppsSettings, write_apps_settings};
 use parking_lot::RwLock;
 use sage::Sage;
 use sage_api::ErrorKind;
@@ -12,8 +14,6 @@ use std::fmt;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use crate::db::AppsDb;
-use crate::settings::{write_apps_settings, SageAppsSettings};
 
 pub type AppState = Arc<Mutex<Sage>>;
 

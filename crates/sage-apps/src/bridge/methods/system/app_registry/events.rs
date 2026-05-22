@@ -2,7 +2,7 @@ use crate::AppsHostState;
 use crate::bridge::emit_system_runtime_event_to_listeners;
 use crate::bridge::event_emit::SystemRuntimeEvent;
 use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::{list_installed_apps_internal};
+use crate::lifecycle::list_installed_apps_internal;
 use crate::types::ListedSageAppView;
 use serde::Serialize;
 use specta::Type;

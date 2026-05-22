@@ -77,7 +77,7 @@ impl BridgeMethod for BridgeSend {
                     &payload_value,
                     tools.host_state,
                 )
-                    .await;
+                .await;
             }
 
             BridgeSendContextKind::OriginCleanup => {
@@ -86,12 +86,12 @@ impl BridgeMethod for BridgeSend {
                     &payload_value,
                     tools.host_state,
                 )
-                    .await
-                    .map_err(|err| {
-                        BridgeMethodHandleError::internal_error(format!(
-                            "failed to ingest origin cleanup payload: {err}"
-                        ))
-                    })?;
+                .await
+                .map_err(|err| {
+                    BridgeMethodHandleError::internal_error(format!(
+                        "failed to ingest origin cleanup payload: {err}"
+                    ))
+                })?;
             }
         }
 

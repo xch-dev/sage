@@ -94,12 +94,8 @@ pub fn prepare_zip_snapshot(
         })?;
     }
 
-    fs::create_dir_all(snapshot_dir).with_context(|| {
-        format!(
-            "failed to create snapshot dir {}",
-            snapshot_dir.display()
-        )
-    })?;
+    fs::create_dir_all(snapshot_dir)
+        .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
     copy_dir_recursive(package_root, snapshot_dir).with_context(|| {
         format!(

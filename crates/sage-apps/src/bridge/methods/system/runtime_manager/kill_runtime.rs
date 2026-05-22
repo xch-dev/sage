@@ -57,7 +57,8 @@ impl BridgeMethod for RuntimeManagerKillRuntime {
         )
         .await
         {
-            Ok(()) | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => {
+            Ok(())
+            | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => {
                 Ok(Box::new(RuntimeManagerKillRuntimeResponse::ok()))
             }
         }

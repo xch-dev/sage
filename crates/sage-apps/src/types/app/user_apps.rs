@@ -125,8 +125,7 @@ impl SharedSageApp {
 
     pub(crate) fn runtime_can_persist_secrets(&self) -> bool {
         self.with(|app| {
-            app.common().has_secret_access()
-                && app.common().has_persistent_webview_storage()
+            app.common().has_secret_access() && app.common().has_persistent_webview_storage()
         })
     }
 

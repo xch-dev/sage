@@ -28,36 +28,31 @@ pub async fn apps_uninstall_app(
             return Err(io::Error::other(
                 "failed to uninstall app because runtime could not be stopped",
             )
-                .into());
+            .into());
         }
     }
 
     let host_state: State<'_, AppsHostState> = app_handle.state();
 
-    let mut tx = host_state
-        .db
-        .begin_immediate()
-        .await
-        .map_err(|err| {
-            io::Error::other(format!(
-                "failed to begin uninstall transaction for {app_id}: {err}"
-            ))
-        })?;
+    let mut tx = host_state.db.begin_immediate().await.map_err(|err| {
+        io::Error::other(format!(
+            "failed to begin uninstall transaction for {app_id}: {err}"
+        ))
+    })?;
 
     if let Err(err) = tx.delete_user_app(&app_id).await {
         tx.rollback().await;
 
-        return Err(io::Error::other(format!(
-            "failed to delete app {app_id} from db: {err}"
-        ))
-            .into());
+        return Err(
+            io::Error::other(format!("failed to delete app {app_id} from db: {err}")).into(),
+        );
     }
 
     if let Err(err) = tx.commit().await {
         return Err(io::Error::other(format!(
             "failed to commit uninstall transaction for {app_id}: {err}"
         ))
-            .into());
+        .into());
     }
 
     if dir.exists() {

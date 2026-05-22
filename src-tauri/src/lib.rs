@@ -297,7 +297,9 @@ pub fn run() {
                     if let Err(err) =
                         apps::process_pending_storage_cleanup(&app_handle, &cleanup_base_path).await
                     {
-                        tracing::error!("failed to retry pending storage cleanup on startup: {err}");
+                        tracing::error!(
+                            "failed to retry pending storage cleanup on startup: {err}"
+                        );
                     }
 
                     tracing::info!("pending storage cleanup task finished");

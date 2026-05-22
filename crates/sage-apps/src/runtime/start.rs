@@ -4,23 +4,21 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
+use crate::lifecycle::AppMutationManager;
 use crate::runtime::commands::CreateInstalledRuntimeArgs;
 use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::manager::sync_modal_runtime_visibility;
 use crate::runtime::state::{
-    SageAppRuntimeRecord, remove_runtime_by_runtime_id,
-    remove_runtime_id_by_app_id, write_runtime,
+    SageAppRuntimeRecord, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_runtime,
 };
 use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
 use crate::runtime::{
-    RuntimeChangeSet, SageAppRuntimeMode,
-    SageAppRuntimeRecordView, SageAppRuntimeVisibility, SharedRuntime,
-    build_entry_src, focus_taskbar_runtime, is_allowed_app_url, resolve_app,
+    RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility,
+    SharedRuntime, build_entry_src, focus_taskbar_runtime, is_allowed_app_url, resolve_app,
 };
 use crate::storage::parse_data_store_id;
-use crate::types::{AppPresentation, SageAppStorage, ResolvedApp, SharedSageApp};
+use crate::types::{AppPresentation, ResolvedApp, SageAppStorage, SharedSageApp};
 use crate::{AppsHostState, sandbox};
-use crate::lifecycle::AppMutationManager;
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -111,12 +109,8 @@ pub(crate) async fn start_origin_cleanup_runtime(
         .replace_storage_and_origin(target.storage, target.origin_id, false)
         .map_err(|err| format!("failed to retarget origin cleanup runtime: {err}"))?;
 
-    crate::runtime::stop::close_runtime_internal(
-        app_handle,
-        apps_state,
-        app_id,
-    ).await;
-    
+    crate::runtime::stop::close_runtime_internal(app_handle, apps_state, app_id).await;
+
     create_runtime_for_app(
         app_handle,
         apps_state,
@@ -130,7 +124,7 @@ pub(crate) async fn start_origin_cleanup_runtime(
         },
         false,
     )
-        .await
+    .await
 }
 
 async fn create_runtime(
@@ -180,7 +174,7 @@ async fn create_runtime_for_app(
         SageAppRuntimeVisibility::Hidden,
         is_internal,
     )
-        .map_err(|err| err.to_string())?;
+    .map_err(|err| err.to_string())?;
 
     let shared_runtime = write_runtime(apps_state, runtime).await;
 
@@ -189,11 +183,11 @@ async fn create_runtime_for_app(
         webview_label.to_string(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
-        .transparent(true)
-        .on_navigation(move |url| {
-            runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
-        })
-        .on_new_window(move |_url, _features| NewWindowResponse::Deny);
+    .transparent(true)
+    .on_navigation(move |url| {
+        runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
+    })
+    .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     let builder = build_initialization_script(builder);
     let builder = build_storage(builder, &app)?;
@@ -299,7 +293,7 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
 
 fn build_storage(
     builder: WebviewBuilder<Wry>,
-    app: &SharedSageApp
+    app: &SharedSageApp,
 ) -> Result<WebviewBuilder<Wry>, String> {
     if !app.with(|app| app.common().has_persistent_webview_storage()) {
         return Ok(builder.incognito(true));
@@ -368,10 +362,7 @@ async fn mark_origin_may_contain_secrets_if_needed(
         return Ok(());
     }
 
-    if app.with(|app| {
-        app.common()
-            .origin_webview_storage_may_contain_secrets()
-    }) {
+    if app.with(|app| app.common().origin_webview_storage_may_contain_secrets()) {
         return Ok(());
     }
 

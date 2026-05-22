@@ -1,8 +1,6 @@
 use crate::AppsHostState;
 use crate::runtime::stop::close_runtime_internal;
-use crate::runtime::{
-    GetRuntimeError, find_runtime_by_app_id_optional,
-};
+use crate::runtime::{GetRuntimeError, find_runtime_by_app_id_optional};
 use crate::sandbox::build_builtin_test_app;
 use crate::system_apps::build_builtin_system_app;
 use crate::types::{ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
@@ -115,8 +113,9 @@ pub(crate) async fn resolve_stopped_app(
 
     for attempt in 1..=MAX_STOP_RESOLVE_ATTEMPTS {
         let resolved_app = resolve_app(app, app_id).await.map_err(|e| match e {
-            ResolveError::NotFound(_)
-            | ResolveError::BuildFailed(_) => ResolveStoppedError::AppDirMissing,
+            ResolveError::NotFound(_) | ResolveError::BuildFailed(_) => {
+                ResolveStoppedError::AppDirMissing
+            }
         })?;
         match resolved_app {
             ResolvedApp::Stopped(stopped) => {
@@ -139,7 +138,10 @@ pub(crate) async fn resolve_stopped_app(
     Err(ResolveStoppedError::CloseAttemptsHit)
 }
 
-pub(crate) async fn resolve_app(app: &AppHandle, app_id: &str) -> Result<ResolvedApp, ResolveError> {
+pub(crate) async fn resolve_app(
+    app: &AppHandle,
+    app_id: &str,
+) -> Result<ResolvedApp, ResolveError> {
     resolve_app_with_extra(app, app_id, |_| Ok(None)).await
 }
 
