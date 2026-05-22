@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -10,10 +10,19 @@ use crate::types::MANIFEST_FILE_NAME;
 use crate::types::{SageAppPackageManifest, SageAppSnapshot};
 use crate::utils::bytes_sha256_hex;
 
+const MAX_ZIP_ENTRIES: usize = 2_000;
+const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES: u64 = 200 * 1024 * 1024;
+const MAX_ZIP_SINGLE_FILE_BYTES: u64 = 50 * 1024 * 1024;
+const MAX_ZIP_COMPRESSION_RATIO: u64 = 100;
+
 pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
     let file = fs::File::open(zip_path)
         .with_context(|| format!("failed to open zip {}", zip_path.display()))?;
     let mut archive = ZipArchive::new(file).context("failed to read zip archive")?;
+
+    if archive.len() > MAX_ZIP_ENTRIES {
+        anyhow::bail!("zip archive contains too many entries");
+    }
 
     if out_dir.exists() {
         fs::remove_dir_all(out_dir)?;
@@ -21,9 +30,70 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
 
     fs::create_dir_all(out_dir)?;
 
-    archive
-        .extract(out_dir)
-        .context("failed to extract zip archive")?;
+    let root = out_dir
+        .canonicalize()
+        .with_context(|| format!("failed to canonicalize output dir {}", out_dir.display()))?;
+
+    let mut total_uncompressed = 0u64;
+
+    for index in 0..archive.len() {
+        let mut entry = archive
+            .by_index(index)
+            .with_context(|| format!("failed to read zip entry #{index}"))?;
+
+        let Some(enclosed_name) = entry.enclosed_name().map(PathBuf::from) else {
+            anyhow::bail!("zip entry has unsafe path: {}", entry.name());
+        };
+
+        let uncompressed_size = entry.size();
+        let compressed_size = entry.compressed_size();
+
+        if uncompressed_size > MAX_ZIP_SINGLE_FILE_BYTES {
+            anyhow::bail!("zip entry is too large: {}", entry.name());
+        }
+
+        if compressed_size > 0 && uncompressed_size / compressed_size > MAX_ZIP_COMPRESSION_RATIO {
+            anyhow::bail!("zip entry compression ratio is too high: {}", entry.name());
+        }
+
+        total_uncompressed = total_uncompressed
+            .checked_add(uncompressed_size)
+            .context("zip uncompressed size overflow")?;
+
+        if total_uncompressed > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES {
+            anyhow::bail!("zip archive exceeds maximum extracted size");
+        }
+
+        let target = root.join(enclosed_name);
+
+        if entry.is_dir() {
+            fs::create_dir_all(&target)
+                .with_context(|| format!("failed to create directory {}", target.display()))?;
+            continue;
+        }
+
+        let parent = target.parent().context("zip target path has no parent")?;
+
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create directory {}", parent.display()))?;
+
+        let canonical_parent = parent.canonicalize().with_context(|| {
+            format!(
+                "failed to canonicalize zip target parent {}",
+                parent.display()
+            )
+        })?;
+
+        if !canonical_parent.starts_with(&root) {
+            anyhow::bail!("zip entry escapes extraction directory: {}", entry.name());
+        }
+
+        let mut out = fs::File::create(&target)
+            .with_context(|| format!("failed to create file {}", target.display()))?;
+
+        io::copy(&mut entry, &mut out)
+            .with_context(|| format!("failed to extract zip entry {}", entry.name()))?;
+    }
 
     Ok(())
 }

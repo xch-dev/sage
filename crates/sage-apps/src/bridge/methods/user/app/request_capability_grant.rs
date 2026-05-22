@@ -34,6 +34,21 @@ pub struct RequestCapabilityGrantResult {
     pub full_granted_capabilities: Vec<UserBridgeCapability>,
 }
 
+fn ensure_capability_requestable_by_app(
+    capability: UserBridgeCapability,
+) -> Result<(), BridgeMethodHandleError> {
+    let definition = get_user_capability_definition(capability);
+
+    if !definition.flags().requestable_by_app() {
+        return Err(BridgeMethodHandleError::invalid_request(format!(
+            "capability cannot be requested by app: {}",
+            capability.key()
+        )));
+    }
+
+    Ok(())
+}
+
 #[async_trait]
 impl BridgeMethod for AppRequestCapabilityGrant {
     fn name(&self) -> &'static str {
@@ -50,6 +65,8 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
+
+        ensure_capability_requestable_by_app(params.capability)?;
 
         if ctx.app.is_capability_granted(params.capability.into()) {
             return Ok(None);
@@ -72,6 +89,8 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: RequestCapabilityGrantParams = parse_required_params(self, request)?;
+
+        ensure_capability_requestable_by_app(params.capability)?;
 
         let base_path = resolve_app_base_path(&tools)?;
 

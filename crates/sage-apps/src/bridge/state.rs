@@ -126,8 +126,15 @@ async fn approval_expiry_loop(app_handle: AppHandle) {
             comms_debug!("approval_expiry:empty_stop");
 
             let mut guard = apps_state.bridge.approval_expiry_task.lock().await;
-            *guard = None;
-            return;
+
+            let pending = apps_state.bridge.pending_approvals.lock().await;
+            if pending.is_empty() {
+                *guard = None;
+                return;
+            }
+
+            comms_debug!("approval_expiry:empty_stop_aborted_new_pending");
+            continue;
         }
 
         let now = unix_timestamp_ms() as u64;

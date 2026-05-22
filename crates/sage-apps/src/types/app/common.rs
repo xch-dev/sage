@@ -191,7 +191,11 @@ impl SageAppCommon {
 
     pub(crate) fn has_external_access(&self) -> bool {
         self.capability_flags().externally_observable()
-            || !self.granted_permissions.network().all_whitelist_entries().is_empty()
+            || !self
+                .granted_permissions
+                .network()
+                .all_whitelist_entries()
+                .is_empty()
     }
 
     pub(crate) fn has_persistent_webview_storage(&self) -> bool {
