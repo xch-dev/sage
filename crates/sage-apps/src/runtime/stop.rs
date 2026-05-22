@@ -5,14 +5,14 @@ use crate::runtime::events::emit_runtime_manager_runtimes_changed;
 use crate::runtime::manager::sync_modal_runtime_visibility;
 use crate::runtime::state::{
     find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    remove_before_stop_listeners_by_app_id, remove_impostor_runtime_by_victim_app_id,
+    remove_before_stop_listeners_by_app_id,
     remove_pending_stop_ready, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id,
     write_pending_stop_ready,
 };
 use crate::runtime::webview_locator::find_webview_in_sage_window;
 use crate::runtime::{
     GetRuntimeError, RuntimeChangeSet, SageAppRuntimeRecord, SharedRuntime,
-    find_active_taskbar_runtime, find_impostor_runtime_by_victim_app_id_optional,
+    find_active_taskbar_runtime,
 };
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -111,21 +111,6 @@ pub(super) async fn close_runtime_internal_with_reason(
     app_id: &str,
     _reason: &str,
 ) {
-    // Impostor?
-    if let Some(impostor) =
-        find_impostor_runtime_by_victim_app_id_optional(apps_state, app_id).await
-    {
-        let webview_label = impostor.webview_label();
-
-        if let Some(webview) = find_webview_in_sage_window(app, &webview_label) {
-            let _ = webview.close();
-        }
-
-        remove_impostor_runtime_by_victim_app_id(apps_state, app_id).await;
-        return;
-    }
-
-    // Legit?
     let Some(runtime_id) = find_runtime_id_by_app_id_optional(apps_state, app_id).await else {
         return;
     };

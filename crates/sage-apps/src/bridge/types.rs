@@ -1,7 +1,6 @@
 use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
 use crate::bridge::registry::BridgeRegistryKind;
 use crate::capabilities::list::UserBridgeCapability;
-use crate::runtime::SharedImpostorRuntime;
 use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -94,7 +93,6 @@ pub enum RustBridgeApprovalBody {
 
 pub(crate) struct BridgeOrigin {
     pub app: SharedSageApp,
-    pub impostor_runtime: Option<SharedImpostorRuntime>,
 }
 
 #[derive(Debug, Clone)]

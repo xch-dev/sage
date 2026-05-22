@@ -7,7 +7,7 @@ use crate::bridge::{RustBridgeResponse, comms_debug};
 use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::lifecycle::ensure_app_is_enabled_for_scope;
 use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
-use crate::runtime::{list_runtimes, resolve_possibly_impostor_running_app_immediate};
+use crate::runtime::{list_runtimes, resolve_running_app};
 use crate::types::SharedSageApp;
 
 const SAGE_RUNTIME_EVENT_NAME: &str = "apps:runtime-event";
@@ -246,11 +246,13 @@ where
 {
     let apps_state = app_handle.state::<AppsHostState>();
 
-    let runtime = resolve_possibly_impostor_running_app_immediate(&apps_state, app_id)?;
+    let runtime = resolve_running_app(&apps_state, app_id).await
+        .map_err(|err| format!("failed to resolve runtime for app {app_id}: {err}"))?;
 
-    ensure_app_is_enabled_for_scope(&app_handle.state(), &runtime.identity_app()).await?;
+    let app = runtime.into_app();
+    ensure_app_is_enabled_for_scope(&app_handle.state(), &app).await?;
 
-    let webview_label = runtime.identity_webview_label();
+    let webview_label = app.webview_label();
     comms_debug!(
         "runtime:event:emit_to_app app_id={} webview_label={} rail={:?} type={}",
         app_id,

@@ -1,0 +1,27 @@
+{
+  "manifestVersion": 0,
+  "name": "Sage Origin Cleanup",
+  "version": "1.0.0",
+  "permissions": {
+    "network": {
+      "whitelist": {
+        "required": [],
+        "optional": []
+      }
+    },
+    "capabilities": {
+      "required": ["bridge.send"],
+      "optional": []
+    }
+  },
+  "files": [
+    {
+      "path": "index.html",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "size": 1
+    }
+  ],
+  "entry": "index.html",
+  "icon": null
+}
+

@@ -2,7 +2,6 @@ use crate::AppsHostState;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
 use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
 use crate::host::AppState;
-use crate::runtime::SharedImpostorRuntime;
 use crate::types::SharedSageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
@@ -35,7 +34,6 @@ pub(crate) enum BridgeMethodCapability {
 #[derive(Debug)]
 pub(crate) struct BridgeContext<'a> {
     pub app: &'a SharedSageApp,
-    pub impostor_runtime: &'a Option<SharedImpostorRuntime>,
 }
 
 #[derive(Debug)]

@@ -1,9 +1,6 @@
 use crate::bridge::BridgeOrigin;
 use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::{
-    PossiblyImpostorRuntime, app_id_from_webview_label, is_allowed_app_url,
-    protocol_scheme_for_app, resolve_possibly_impostor_running_app,
-};
+use crate::runtime::{app_id_from_webview_label, is_allowed_app_url, protocol_scheme_for_app, resolve_running_app};
 use tauri::{AppHandle, Manager};
 
 pub(crate) async fn assert_bridge_origin(
@@ -13,16 +10,11 @@ pub(crate) async fn assert_bridge_origin(
     let app_id = app_id_from_webview_label(webview_label)
         .ok_or_else(|| format!("invalid app runtime label: {webview_label}"))?;
 
-    let runtime = resolve_possibly_impostor_running_app(&app_handle.state(), app_id)
+    let runtime = resolve_running_app(&app_handle.state(), app_id)
         .await
         .map_err(|_| format!("failed to find runtime for app {app_id}"))?;
 
-    let app = runtime.identity_app();
-
-    let impostor_runtime = match &runtime {
-        PossiblyImpostorRuntime::Legit(_) => None,
-        PossiblyImpostorRuntime::Impostor(runtime) => Some(runtime),
-    };
+    let app = runtime.into_app();
 
     if !app.webview_label_matches(webview_label) {
         return Err(format!(
@@ -47,6 +39,5 @@ pub(crate) async fn assert_bridge_origin(
 
     Ok(BridgeOrigin {
         app,
-        impostor_runtime: impostor_runtime.cloned(),
     })
 }

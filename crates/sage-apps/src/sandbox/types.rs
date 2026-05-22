@@ -101,24 +101,6 @@ pub struct SandboxNetworkProbeResult {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct SandboxStorageClearProbeResult {
-    pub run_id: String,
-    pub phase: SandboxStorageClearProbePhase,
-    pub local_storage_present: bool,
-    pub indexed_db_present: bool,
-    pub error: Option<String>,
-}
-
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
-pub enum SandboxStorageClearProbePhase {
-    Write,
-    CheckPresent,
-    CheckAbsent,
-}
-
 pub fn make_cap(
     status: SandboxCapabilityStatus,
     details: Option<String>,

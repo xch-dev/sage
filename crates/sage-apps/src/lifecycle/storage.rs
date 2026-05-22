@@ -130,19 +130,38 @@ pub async fn process_pending_storage_cleanup(
 
     let cleanup_targets = host_state
         .db
-        .list_abandoned_managed_storage_cleanup_targets()
+        .list_abandoned_storage_cleanup_targets()
         .await?;
 
     for target in cleanup_targets {
         tracing::info!(
             storage_id = target.storage_id,
             origins = ?target.origin_ids,
+            storage = ?target.storage,
             "cleaning abandoned storage"
         );
 
-        clear_app_storage_by_target(app, &target.storage)
-            .await
-            .map_err(anyhow::Error::msg)?;
+        match target.storage {
+            SageAppStorage::Unmanaged => {
+                for origin_id in &target.origin_ids {
+                    crate::runtime::run_origin_cleanup(
+                        app,
+                        &host_state,
+                        crate::runtime::OriginCleanupRuntimeTarget {
+                            origin_id: origin_id.clone(),
+                            storage: target.storage.clone(),
+                        },
+                    )
+                        .await?;
+                }
+            }
+
+            _ => {
+                clear_app_storage_by_target(app, &target.storage)
+                    .await
+                    .map_err(anyhow::Error::msg)?;
+            }
+        }
 
         host_state
             .db

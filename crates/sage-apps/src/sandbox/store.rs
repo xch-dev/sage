@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 use super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
-    SandboxPersistenceWriteProbeResult, SandboxRunState, SandboxStorageClearProbeResult,
+    SandboxPersistenceWriteProbeResult, SandboxRunState,
     build_initial_sandbox_state,
 };
 
@@ -19,7 +19,6 @@ pub struct SandboxRunResults {
     pub isolation: Vec<SandboxAppResult<SandboxIsolationProbeResult>>,
     pub persistence_write: Vec<SandboxAppResult<SandboxPersistenceWriteProbeResult>>,
     pub persistence_read: Vec<SandboxAppResult<SandboxPersistenceReadProbeResult>>,
-    pub clear_cycle: Vec<SandboxAppResult<SandboxStorageClearProbeResult>>,
     pub network: Vec<SandboxAppResult<SandboxNetworkProbeResult>>,
 }
 

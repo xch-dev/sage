@@ -17,7 +17,7 @@ use crate::capabilities::{get_system_capability_definition, get_user_capability_
 use crate::host::AppState;
 use crate::lifecycle::ensure_app_is_enabled_for_scope;
 use crate::runtime::{
-    SharedImpostorRuntime, resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
+    resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime,
 };
 use crate::security::assert_bridge_origin;
 use crate::types::SharedSageApp;
@@ -147,7 +147,6 @@ async fn process_shared(
     let registry = BridgeRegistry::new(registry_kind);
 
     let app = &origin.app;
-    let impostor_runtime = &origin.impostor_runtime;
     if let Err(err) = ensure_app_is_enabled_for_scope(app_state, app).await {
         return Ok(RustBridgeInvokeResult::error(
             &request.id,
@@ -161,16 +160,11 @@ async fn process_shared(
         Err(response) => return Ok(response.into()),
     };
 
-    let authority_app = origin.impostor_runtime.as_ref().map_or_else(
-        || app.clone(),
-        SharedImpostorRuntime::impostor_app,
-    );
-
     match method.capability() {
         BridgeMethodCapability::Ungated => {}
 
         BridgeMethodCapability::Required(capability) => {
-            if let Err(response) = verify_capability(&authority_app, request, capability) {
+            if let Err(response) = verify_capability(&origin.app, request, capability) {
                 return Ok(response.into());
             }
         }
@@ -186,7 +180,6 @@ async fn process_shared(
     match method.approval_request(
         BridgeContext {
             app,
-            impostor_runtime,
         },
         request,
     ) {
@@ -224,7 +217,6 @@ async fn execute_bridge_request(
         .handle(
             BridgeContext {
                 app: &origin.app,
-                impostor_runtime: &origin.impostor_runtime,
             },
             BridgeTools {
                 app_handle,

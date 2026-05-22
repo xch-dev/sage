@@ -9,7 +9,8 @@ use crate::bridge::methods::shared::{
 };
 use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::capabilities::list::UserBridgeCapability;
-use crate::runtime::SageAppRuntimeImpostorKind;
+use crate::runtime::ingest_origin_cleanup_bridge_send_payload;
+use crate::sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgeSend;
@@ -28,6 +29,12 @@ pub struct BridgeSendResult {
     pub ok: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum BridgeSendContextKind {
+    Sandbox,
+    OriginCleanup,
+}
+
 #[async_trait]
 impl BridgeMethod for BridgeSend {
     fn name(&self) -> &'static str {
@@ -44,7 +51,6 @@ impl BridgeMethod for BridgeSend {
         _request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         check_ctx(&ctx)?;
-
         Ok(None)
     }
 
@@ -54,7 +60,7 @@ impl BridgeMethod for BridgeSend {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        check_ctx(&ctx)?;
+        let ctx_kind = check_ctx(&ctx)?;
 
         let payload: BridgeSendRequest = parse_required_params(self, request)?;
 
@@ -64,26 +70,47 @@ impl BridgeMethod for BridgeSend {
             ))
         })?;
 
-        crate::sandbox::ingest_bridge_send_payload(&ctx.app.id(), &payload_value, tools.host_state)
-            .await;
+        match ctx_kind {
+            BridgeSendContextKind::Sandbox => {
+                crate::sandbox::ingest_bridge_send_payload(
+                    &ctx.app.id(),
+                    &payload_value,
+                    tools.host_state,
+                )
+                    .await;
+            }
+
+            BridgeSendContextKind::OriginCleanup => {
+                ingest_origin_cleanup_bridge_send_payload(
+                    &ctx.app.id(),
+                    &payload_value,
+                    tools.host_state,
+                )
+                    .await
+                    .map_err(|err| {
+                        BridgeMethodHandleError::internal_error(format!(
+                            "failed to ingest origin cleanup payload: {err}"
+                        ))
+                    })?;
+            }
+        }
 
         Ok(Box::new(BridgeSendResult { ok: true }))
     }
 }
 
-fn check_ctx(ctx: &BridgeContext<'_>) -> Result<(), BridgeMethodHandleError> {
+fn check_ctx(ctx: &BridgeContext<'_>) -> Result<BridgeSendContextKind, BridgeMethodHandleError> {
     let is_sandbox_test = ctx.app.with(|app| app.common().is_sandbox_test());
-
-    let is_storage_clear_probe = ctx
-        .impostor_runtime
-        .as_ref()
-        .is_some_and(|runtime| runtime.kind() == SageAppRuntimeImpostorKind::StorageClearProbe);
-
-    if !is_sandbox_test && !is_storage_clear_probe {
-        return Err(BridgeMethodHandleError::invalid_request(
-            "Method use is not allowed",
-        ));
+    if is_sandbox_test {
+        return Ok(BridgeSendContextKind::Sandbox);
     }
 
-    Ok(())
+    let app_id = ctx.app.id();
+    if app_id == BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID {
+        return Ok(BridgeSendContextKind::OriginCleanup);
+    }
+
+    Err(BridgeMethodHandleError::invalid_request(
+        "Method use is not allowed",
+    ))
 }

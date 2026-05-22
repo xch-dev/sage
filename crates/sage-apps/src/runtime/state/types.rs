@@ -38,36 +38,12 @@ pub struct SharedRuntime {
     inner: Arc<RwLock<SageAppRuntimeRecord>>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SageAppRuntimeImpostorKind {
-    StorageClearProbe,
-}
-
-#[derive(Debug)]
-pub struct SageAppRuntimeImpostorRecord {
-    runtime_id: String,
-    victim_app: SharedSageApp,
-    impostor_app: SharedSageApp,
-    host_window_label: String,
-    webview_label: String,
-    kind: SageAppRuntimeImpostorKind,
-    started_at: i64,
-}
-
-#[derive(Debug, Clone)]
-pub struct SharedImpostorRuntime {
-    inner: Arc<RwLock<SageAppRuntimeImpostorRecord>>,
-}
-
 #[derive(Default)]
 pub struct AppRuntimeState {
     pub apps_workspace_active: tokio::sync::RwLock<bool>,
 
     pub runtime_by_runtime_id: Mutex<BTreeMap<String, SharedRuntime>>,
     pub runtime_id_by_app_id: Mutex<BTreeMap<String, String>>,
-
-    pub impostor_by_runtime_id: Mutex<BTreeMap<String, SharedImpostorRuntime>>,
-    pub impostor_runtime_id_by_victim_app_id: Mutex<BTreeMap<String, String>>,
 
     pub before_stop_listeners_by_app_id: Mutex<BTreeSet<String>>,
     pub pending_stop_ready: Mutex<BTreeMap<String, oneshot::Sender<()>>>,
@@ -128,19 +104,6 @@ pub(in crate::runtime) fn runtime_id_for(app: &SharedSageApp) -> String {
     }
 
     format!("runtime-{app_id}")
-}
-
-pub(in crate::runtime) fn impostor_runtime_id_for(
-    victim_app: &SharedSageApp,
-    kind: SageAppRuntimeImpostorKind,
-) -> String {
-    let victim_app_id = victim_app.id();
-
-    match kind {
-        SageAppRuntimeImpostorKind::StorageClearProbe => {
-            format!("impostor-storage-clear-probe-{victim_app_id}")
-        }
-    }
 }
 
 impl SetBeforeStopListenerParams {
@@ -316,92 +279,5 @@ impl SharedRuntime {
 
     pub fn is_taskbar(&self) -> bool {
         self.with_runtime(|runtime| runtime.presentation() == AppPresentation::Taskbar)
-    }
-}
-
-impl SageAppRuntimeImpostorRecord {
-    pub fn new(
-        victim_app: &SharedSageApp,
-        impostor_app: &SharedSageApp,
-        host_window_label: &str,
-        webview_label: &str,
-        kind: SageAppRuntimeImpostorKind,
-    ) -> Self {
-        Self {
-            runtime_id: impostor_runtime_id_for(victim_app, kind),
-            victim_app: victim_app.clone(),
-            impostor_app: impostor_app.clone(),
-            host_window_label: host_window_label.to_string(),
-            webview_label: webview_label.to_string(),
-            kind,
-            started_at: unix_timestamp_ms(),
-        }
-    }
-
-    pub fn runtime_id(&self) -> String {
-        self.runtime_id.clone()
-    }
-
-    pub fn victim_app(&self) -> SharedSageApp { self.victim_app.clone() }
-
-    pub fn impostor_app(&self) -> SharedSageApp {
-        self.impostor_app.clone()
-    }
-
-    pub fn victim_app_id(&self) -> String {
-        self.victim_app.id().to_string()
-    }
-
-    pub fn webview_label(&self) -> &str {
-        &self.webview_label
-    }
-
-    pub fn host_window_label(&self) -> &str {
-        &self.host_window_label
-    }
-
-    pub fn kind(&self) -> SageAppRuntimeImpostorKind {
-        self.kind
-    }
-
-    pub fn started_at(&self) -> i64 {
-        self.started_at
-    }
-}
-
-impl SharedImpostorRuntime {
-    pub fn new(runtime: SageAppRuntimeImpostorRecord) -> Self {
-        Self {
-            inner: Arc::new(RwLock::new(runtime)),
-        }
-    }
-
-    pub fn with_runtime<T>(&self, f: impl FnOnce(&SageAppRuntimeImpostorRecord) -> T) -> T {
-        let runtime = self.inner.read();
-        f(&runtime)
-    }
-
-    pub fn victim_app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.victim_app.clone())
-    }
-
-    pub fn impostor_app(&self) -> SharedSageApp {
-        self.with_runtime(|runtime| runtime.impostor_app.clone())
-    }
-
-    pub fn victim_app_id(&self) -> String {
-        self.with_runtime(SageAppRuntimeImpostorRecord::victim_app_id)
-    }
-
-    pub fn runtime_id(&self) -> String {
-        self.with_runtime(SageAppRuntimeImpostorRecord::runtime_id)
-    }
-
-    pub fn webview_label(&self) -> String {
-        self.with_runtime(|runtime| runtime.webview_label().to_string())
-    }
-
-    pub fn kind(&self) -> SageAppRuntimeImpostorKind {
-        self.with_runtime(SageAppRuntimeImpostorRecord::kind)
     }
 }

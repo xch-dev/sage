@@ -62,7 +62,7 @@ impl AppsDb {
             .map(Some)
     }
 
-    pub async fn list_abandoned_managed_storage_cleanup_targets(
+    pub async fn list_abandoned_storage_cleanup_targets(
         &self,
     ) -> Result<Vec<AbandonedStorageCleanupTarget>> {
         let rows = sqlx::query(
@@ -84,24 +84,17 @@ impl AppsDb {
             .await
             .context("failed to list abandoned storage cleanup targets")?;
 
-        let mut grouped = std::collections::BTreeMap::<
-            i64,
-            (SageAppStorage, Vec<String>),
-        >::new();
+        let mut grouped =
+            std::collections::BTreeMap::<i64, (SageAppStorage, Vec<String>)>::new();
 
         for row in rows {
             let storage_id: i64 = row.try_get("storage_id")?;
-
             let storage_json: String = row.try_get("storage_json")?;
 
             let storage = serde_json::from_str::<SageAppStorage>(&storage_json)
                 .with_context(|| {
                     format!("failed to deserialize abandoned storage {storage_id}")
                 })?;
-
-            if matches!(storage, SageAppStorage::Unmanaged) {
-                continue;
-            }
 
             let origin_id: Option<String> = row.try_get("origin_id")?;
 

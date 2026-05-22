@@ -1,13 +1,11 @@
 use crate::host::AppState;
-use crate::runtime::{
-    PossiblyImpostorRuntime, app_id_from_webview_label,
-    resolve_possibly_impostor_running_app_immediate,
-};
+use crate::runtime::{app_id_from_webview_label, resolve_running_app};
 use crate::security::build_app_csp;
 use anyhow::{Result as AnyResult, anyhow};
 use std::fs;
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager};
+use crate::types::{ResolvedRunningApp, SharedSageApp};
 
 pub async fn handle_user_app_protocol_request(
     app_handle: AppHandle,
@@ -15,16 +13,16 @@ pub async fn handle_user_app_protocol_request(
     request: Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
     let result = async {
-        let runtime = get_protocol_request_runtime(&app_handle, &webview_label)?;
+        let runtime = get_protocol_request_runtime(&app_handle, &webview_label).await?;
 
-        if !runtime.is_user_app() {
+        let app = runtime.into_app();
+        if !app.is_user_app() {
             anyhow::bail!("not a user runtime");
         }
 
-        let identity_app = runtime.identity_app();
-        let is_sandbox_test = identity_app.with(|app| app.common().is_sandbox_test());
+        let is_sandbox_test = app.with(|app| app.common().is_sandbox_test());
 
-        match handle_app_protocol_request(&app_handle, &runtime, &request).await {
+        match handle_app_protocol_request(&app_handle, &app, &request).await {
             Ok(response) => Ok(response),
             Err(err) if is_sandbox_test => Ok(protocol_error_response("sage-app", &err)),
             Err(_) => Ok(not_found_response()),
@@ -41,13 +39,13 @@ pub async fn handle_system_app_protocol_request(
     request: Request<Vec<u8>>,
 ) -> Response<Vec<u8>> {
     let result = async {
-        let runtime = get_protocol_request_runtime(&app_handle, &webview_label)?;
-
-        if !runtime.is_system_app() {
+        let runtime = get_protocol_request_runtime(&app_handle, &webview_label).await?;
+        let app = runtime.into_app();
+        if !app.is_system_app() {
             anyhow::bail!("not a system runtime");
         }
 
-        handle_app_protocol_request(&app_handle, &runtime, &request)
+        handle_app_protocol_request(&app_handle, &app, &request)
             .await
             .map_err(|err| anyhow!("sage-system-app error: {err}"))
     }
@@ -56,25 +54,23 @@ pub async fn handle_system_app_protocol_request(
     result.unwrap_or_else(|err| protocol_error_response("sage-system-app", &err))
 }
 
-fn get_protocol_request_runtime(
+async fn get_protocol_request_runtime(
     app_handle: &AppHandle,
     webview_label: &str,
-) -> AnyResult<PossiblyImpostorRuntime> {
+) -> AnyResult<ResolvedRunningApp> {
     let app_id =
         app_id_from_webview_label(webview_label).ok_or_else(|| anyhow!("invalid webview label"))?;
 
-    resolve_possibly_impostor_running_app_immediate(&app_handle.state(), app_id)
+    resolve_running_app(&app_handle.state(), app_id).await
         .map_err(|_| anyhow!("failed to find runtime for app {app_id}"))
 }
 
 async fn handle_app_protocol_request(
     app_handle: &AppHandle,
-    runtime: &PossiblyImpostorRuntime,
+    app: &SharedSageApp,
     request: &Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
-    let identity_app = runtime.identity_app();
-
-    if request.uri().host() != Some(&identity_app.origin_id()) {
+    if request.uri().host() != Some(&app.origin_id()) {
         anyhow::bail!("host mismatch");
     }
 
@@ -82,11 +78,9 @@ async fn handle_app_protocol_request(
         anyhow::bail!("Service worker forbidden");
     }
 
-    let content_app = runtime.content_app();
     let request_path = request.uri().path();
 
-    let file_path =
-        content_app.with(|app| app.active_snapshot().resolve_file_path(request_path))?;
+    let file_path = app.with(|app| app.active_snapshot().resolve_file_path(request_path))?;
 
     let mime = mime_guess::from_path(&file_path)
         .first_or_octet_stream()
@@ -101,7 +95,7 @@ async fn handle_app_protocol_request(
         .header("Cache-Control", "no-store")
         .header(
             "Content-Security-Policy",
-            build_app_csp(&identity_app, &network_id),
+            build_app_csp(app, &network_id),
         )
         .header("X-Content-Type-Options", "nosniff")
         .body(fs::read(&file_path)?)

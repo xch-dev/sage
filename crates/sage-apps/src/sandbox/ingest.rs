@@ -6,7 +6,7 @@ use crate::AppsHostState;
 use super::store::{SandboxAppResult, replace_by_app_id};
 use super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
-    SandboxPersistenceWriteProbeResult, SandboxStorageClearProbeResult,
+    SandboxPersistenceWriteProbeResult,
 };
 
 pub async fn ingest_bridge_send_payload(
@@ -85,17 +85,6 @@ pub async fn ingest_bridge_send_payload(
             if let Ok(parsed) = serde_json::from_value::<SandboxNetworkProbeResult>(data) {
                 replace_by_app_id(
                     &mut run.network,
-                    SandboxAppResult {
-                        app_id: app_id.to_string(),
-                        data: parsed,
-                    },
-                );
-            }
-        }
-        "clear_cycle" => {
-            if let Ok(parsed) = serde_json::from_value::<SandboxStorageClearProbeResult>(data) {
-                replace_by_app_id(
-                    &mut run.clear_cycle,
                     SandboxAppResult {
                         app_id: app_id.to_string(),
                         data: parsed,

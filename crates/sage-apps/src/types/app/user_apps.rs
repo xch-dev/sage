@@ -54,6 +54,11 @@ impl ResolvedRunningApp {
         let app = self.runtime.app();
         f(&app)
     }
+
+    #[allow(clippy::wrong_self_convention)]
+    pub fn into_app(&self) -> SharedSageApp {
+        self.runtime.app().clone()
+    }
 }
 
 #[derive(Debug)]
@@ -496,12 +501,5 @@ impl UserSageAppSource {
     pub(crate) fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
         let app_url = SageAppUrl::parse(app_url.as_ref())?;
         Ok(Self::Url { app_url })
-    }
-}
-
-#[cfg(test)]
-impl CorruptedInstalledSageApp {
-    pub(crate) fn error(&self) -> &str {
-        &self.error
     }
 }

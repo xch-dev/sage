@@ -38,8 +38,8 @@ pub const BUILTIN_STORAGE_CLEAR_PERSISTENT_ID: &str =
 pub const BUILTIN_NETWORK_ALLOW_A_ID: &str = concat!(sandbox_test_id_prefix!(), "network_allow_a");
 pub const BUILTIN_NETWORK_ALLOW_B_ID: &str = concat!(sandbox_test_id_prefix!(), "network_allow_b");
 
-pub const BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID: &str =
-    concat!(runtime_id_prefix!(), "storage_clear_probe");
+pub const BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID: &str =
+    concat!(runtime_id_prefix!(), "origin_cleanup");
 
 #[derive(Debug, Clone, Copy)]
 pub struct BuiltinTestAppSpec {
@@ -192,11 +192,11 @@ pub fn build_builtin_test_app(app_id: &str) -> Result<Option<SageApp>, AppBuildE
 }
 
 pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBuildError> {
-    if app_id != BUILTIN_STORAGE_CLEAR_PROBE_RUNTIME_ID {
+    if app_id != BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID {
         return Ok(None);
     }
 
-    let app_dir = builtin_runtime_apps_root().join("storage-clear-probe");
+    let app_dir = builtin_runtime_apps_root().join("origin-cleanup");
 
     if !app_dir.is_dir() {
         return Err(AppBuildError::AppDirMissing);
@@ -215,10 +215,10 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
         app_dir.to_string_lossy().to_string(),
         manifest.clone(),
     )
-    .map_err(|err| {
-        tracing::error!("runtime app snapshot failed: {err}");
-        AppBuildError::InternalError
-    })?;
+        .map_err(|err| {
+            tracing::error!("runtime app snapshot failed: {err}");
+            AppBuildError::InternalError
+        })?;
 
     let common = SageAppCommon::new(
         SageAppIdentity::new(app_id, app_id, app_dir.to_string_lossy().to_string()).map_err(
@@ -232,10 +232,10 @@ pub fn build_builtin_runtime_app(app_id: &str) -> Result<Option<SageApp>, AppBui
         snapshot,
         SageAppWalletScope::AllWallets,
     )
-    .map_err(|err| {
-        tracing::error!("runtime app common failed: {err}");
-        AppBuildError::InternalError
-    })?;
+        .map_err(|err| {
+            tracing::error!("runtime app common failed: {err}");
+            AppBuildError::InternalError
+        })?;
 
     let entry_file = app_dir.join(common.entry_file());
     if !entry_file.is_file() {
