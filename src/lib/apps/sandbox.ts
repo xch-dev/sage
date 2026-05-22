@@ -8,7 +8,6 @@ export type SandboxCapability =
   | 'storage_isolation_from_sage'
   | 'storage_persistence_normal'
   | 'storage_non_persistence_incognito'
-  | 'storage_clear_cycle'
   | 'network_allowlist_enforced';
 
 export function formatCapabilityLabel(capability: SandboxCapability): string {
@@ -19,8 +18,6 @@ export function formatCapabilityLabel(capability: SandboxCapability): string {
       return 'persistent storage behavior';
     case 'storage_non_persistence_incognito':
       return 'incognito storage behavior';
-    case 'storage_clear_cycle':
-      return 'storage clear cycle behavior';
     case 'network_allowlist_enforced':
       return 'network allowlist enforcement';
   }
@@ -36,7 +33,6 @@ export function listSandboxCapabilities(
       'storage_non_persistence_incognito',
       sandbox.storageNonPersistenceIncognito,
     ],
-    ['storage_clear_cycle', sandbox.storageClearCycle],
     ['network_allowlist_enforced', sandbox.networkAllowlistEnforced],
   ];
 }
