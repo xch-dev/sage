@@ -13,7 +13,6 @@ fn capability_status(
         SandboxCapability::StorageNonPersistenceIncognito => {
             state.storage_non_persistence_incognito.status
         }
-        SandboxCapability::StorageClearCycle => state.storage_clear_cycle.status,
         SandboxCapability::NetworkAllowlistEnforced => state.network_allowlist_enforced.status,
     }
 }
@@ -26,10 +25,6 @@ fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> 
 
     if app.is_capability_granted(UserBridgeCapability::StoragePersistentWebview.into()) {
         caps.push(SandboxCapability::StoragePersistenceNormal);
-
-        if app.has_secret_access() {
-            caps.push(SandboxCapability::StorageClearCycle);
-        }
     } else {
         caps.push(SandboxCapability::StorageNonPersistenceIncognito);
     }

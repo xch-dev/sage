@@ -2273,11 +2273,11 @@ export type SageRequestedCapabilities = { required: UserBridgeCapability[]; opti
 export type SageRequestedNetworkPermissions = { whitelist: SageRequestedNetworkWhitelist; whitelistByNetwork: Partial<{ [key in string]: SageRequestedNetworkWhitelist }> }
 export type SageRequestedNetworkWhitelist = { required: SageNetworkWhitelistEntry[]; optional: SageNetworkWhitelistEntry[] }
 export type SageRequestedPermissions = { network: SageRequestedNetworkPermissions; capabilities: SageRequestedCapabilities }
-export type SandboxCapability = "storage_isolation_from_sage" | "storage_persistence_normal" | "storage_non_persistence_incognito" | "storage_clear_cycle" | "network_allowlist_enforced"
+export type SandboxCapability = "storage_isolation_from_sage" | "storage_persistence_normal" | "storage_non_persistence_incognito" | "network_allowlist_enforced"
 export type SandboxCapabilityResult = { status: SandboxCapabilityStatus; checkedAt: number | null; details: string | null }
 export type SandboxCapabilityStatus = "pending" | "running" | "passed" | "failed"
 export type SandboxRunState = { runId: string; state: SandboxState }
-export type SandboxState = { overallCriticalStatus: SandboxCapabilityStatus; storageIsolationFromSage: SandboxCapabilityResult; storagePersistenceNormal: SandboxCapabilityResult; storageNonPersistenceIncognito: SandboxCapabilityResult; storageClearCycle: SandboxCapabilityResult; networkAllowlistEnforced: SandboxCapabilityResult; startedAt: number | null; finishedAt: number | null }
+export type SandboxState = { overallCriticalStatus: SandboxCapabilityStatus; storageIsolationFromSage: SandboxCapabilityResult; storagePersistenceNormal: SandboxCapabilityResult; storageNonPersistenceIncognito: SandboxCapabilityResult; networkAllowlistEnforced: SandboxCapabilityResult; startedAt: number | null; finishedAt: number | null }
 export type SandboxStateView = { baseline: SandboxState; currentRun: SandboxRunState | null; effective: SandboxState }
 /**
  * Save a theme NFT to the wallet

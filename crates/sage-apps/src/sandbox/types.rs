@@ -7,7 +7,6 @@ pub enum SandboxCapability {
     StorageIsolationFromSage,
     StoragePersistenceNormal,
     StorageNonPersistenceIncognito,
-    StorageClearCycle,
     NetworkAllowlistEnforced,
 }
 
@@ -35,7 +34,6 @@ pub struct SandboxState {
     pub storage_isolation_from_sage: SandboxCapabilityResult,
     pub storage_persistence_normal: SandboxCapabilityResult,
     pub storage_non_persistence_incognito: SandboxCapabilityResult,
-    pub storage_clear_cycle: SandboxCapabilityResult,
     pub network_allowlist_enforced: SandboxCapabilityResult,
     pub started_at: Option<i64>,
     pub finished_at: Option<i64>,
@@ -155,7 +153,6 @@ pub fn mark_cap(
         SandboxCapability::StorageNonPersistenceIncognito => {
             state.storage_non_persistence_incognito = next;
         }
-        SandboxCapability::StorageClearCycle => state.storage_clear_cycle = next,
         SandboxCapability::NetworkAllowlistEnforced => {
             state.network_allowlist_enforced = next;
         }
@@ -168,7 +165,6 @@ pub fn build_initial_sandbox_state() -> SandboxState {
         storage_isolation_from_sage: make_cap(SandboxCapabilityStatus::Pending, None),
         storage_persistence_normal: make_cap(SandboxCapabilityStatus::Pending, None),
         storage_non_persistence_incognito: make_cap(SandboxCapabilityStatus::Pending, None),
-        storage_clear_cycle: make_cap(SandboxCapabilityStatus::Pending, None),
         network_allowlist_enforced: make_cap(SandboxCapabilityStatus::Pending, None),
         started_at: None,
         finished_at: None,
@@ -181,7 +177,6 @@ pub fn build_running_sandbox_state(started_at: i64) -> SandboxState {
         storage_isolation_from_sage: make_cap(SandboxCapabilityStatus::Running, None),
         storage_persistence_normal: make_cap(SandboxCapabilityStatus::Running, None),
         storage_non_persistence_incognito: make_cap(SandboxCapabilityStatus::Running, None),
-        storage_clear_cycle: make_cap(SandboxCapabilityStatus::Running, None),
         network_allowlist_enforced: make_cap(SandboxCapabilityStatus::Running, None),
         started_at: Some(started_at),
         finished_at: None,

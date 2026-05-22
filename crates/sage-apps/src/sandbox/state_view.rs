@@ -39,10 +39,6 @@ pub fn build_effective_state(
             &baseline.storage_non_persistence_incognito,
             &current.storage_non_persistence_incognito,
         ),
-        storage_clear_cycle: effective_cap(
-            &baseline.storage_clear_cycle,
-            &current.storage_clear_cycle,
-        ),
         network_allowlist_enforced: effective_cap(
             &baseline.network_allowlist_enforced,
             &current.network_allowlist_enforced,

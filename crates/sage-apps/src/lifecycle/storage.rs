@@ -122,22 +122,36 @@ pub async fn allocate_new_os_storage(
     Ok(SageAppStorage::Unmanaged)
 }
 
-pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path) -> AnyResult<()> {
+pub async fn process_pending_storage_cleanup(
+    app: &AppHandle,
+    _base_path: &Path,
+) -> AnyResult<()> {
     let host_state: State<'_, AppsHostState> = app.state();
 
-    for abandoned in host_state.db.list_abandoned_managed_storages().await? {
-        clear_app_storage_by_target(app, &abandoned.storage)
+    let cleanup_targets = host_state
+        .db
+        .list_abandoned_managed_storage_cleanup_targets()
+        .await?;
+
+    for target in cleanup_targets {
+        tracing::info!(
+            storage_id = target.storage_id,
+            origins = ?target.origin_ids,
+            "cleaning abandoned storage"
+        );
+
+        clear_app_storage_by_target(app, &target.storage)
             .await
             .map_err(anyhow::Error::msg)?;
 
         host_state
             .db
-            .delete_origins_for_abandoned_storage(abandoned.id)
+            .delete_origins_for_abandoned_storage(target.storage_id)
             .await?;
 
         host_state
             .db
-            .delete_abandoned_storage(abandoned.id)
+            .delete_abandoned_storage(target.storage_id)
             .await?;
     }
 

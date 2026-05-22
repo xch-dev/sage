@@ -2,30 +2,20 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
-  readdirSync,
   rmSync,
-  statSync,
 } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 
-const runtimeSrc = join(repoRoot, 'builtin-apps/src/runtime');
 const sandboxTestSrc = join(repoRoot, 'builtin-apps/src/sandbox-test');
 
 const outRoot = join(repoRoot, 'builtin-apps/build/dist');
-const runtimeOut = join(outRoot, 'runtime');
 const testOut = join(outRoot, 'sandbox-test');
 
 const userSdkDist = join(repoRoot, 'packages/sage-app-sdk/dist');
 const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
-
-function copyDirFresh(src, dst) {
-  rmSync(dst, { recursive: true, force: true });
-  mkdirSync(dst, { recursive: true });
-  cpSync(src, dst, { recursive: true });
-}
 
 function copyRuntimeBridge(outDir) {
   cpSync(join(userSdkDist, 'runtime-bridge.js'), join(outDir, 'bridge.js'));
@@ -46,15 +36,6 @@ function finalizeManifest(source, dist) {
     ],
     { stdio: 'inherit', cwd: repoRoot },
   );
-}
-
-function buildRuntimeApp(name) {
-  const src = join(runtimeSrc, name);
-  const out = join(runtimeOut, name);
-
-  copyDirFresh(src, out);
-  copyRuntimeBridge(out);
-  finalizeManifest(join(src, 'sage-manifest.json'), out);
 }
 
 function buildSandboxTestVariant({
@@ -80,19 +61,7 @@ if (!existsSync(userSdkDist)) {
   throw new Error(`missing user SDK dist at ${userSdkDist}`);
 }
 
-mkdirSync(runtimeOut, { recursive: true });
 mkdirSync(testOut, { recursive: true });
-
-for (const name of readdirSync(runtimeSrc)) {
-  const src = join(runtimeSrc, name);
-
-  if (!statSync(src).isDirectory()) {
-    continue;
-  }
-
-  console.log(`\n==> Building builtin runtime app: ${name}`);
-  buildRuntimeApp(name);
-}
 
 const sandboxTests = [
   {

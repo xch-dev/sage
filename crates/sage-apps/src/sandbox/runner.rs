@@ -1,5 +1,5 @@
 use super::probes::{
-    run_clear_cycle_test, run_isolation_test, run_network_test, run_persistence_test,
+    run_isolation_test, run_network_test, run_persistence_test,
 };
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{
@@ -95,20 +95,17 @@ pub async fn sandbox_runner(app: AppHandle) {
 
     let isolation_fut = run_isolation_test(&app, &apps_state);
     let persistence_fut = run_persistence_test(&app, &apps_state);
-    let clear_cycle_fut = run_clear_cycle_test(&app, &apps_state);
     let network_fut = run_network_test(&app, &apps_state);
 
     tokio::pin!(isolation_fut);
     tokio::pin!(persistence_fut);
-    tokio::pin!(clear_cycle_fut);
     tokio::pin!(network_fut);
 
     let mut isolation_done = false;
     let mut persistence_done = false;
-    let mut clear_cycle_done = false;
     let mut network_done = false;
 
-    while !(isolation_done && persistence_done && clear_cycle_done && network_done) {
+    while !(isolation_done && persistence_done && network_done) {
         tokio::select! {
             res = &mut isolation_fut, if !isolation_done => {
                 isolation_done = true;
@@ -180,33 +177,6 @@ pub async fn sandbox_runner(app: AppHandle) {
                 update_current_run_state(&app, &apps_state, current_state.clone()).await;
             }
 
-            res = &mut clear_cycle_fut, if !clear_cycle_done => {
-                clear_cycle_done = true;
-
-                match res {
-                    Ok((passed, details)) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageClearCycle,
-                            if passed { SandboxCapabilityStatus::Passed } else { SandboxCapabilityStatus::Failed },
-                            details,
-                            unix_timestamp_ms(),
-                        );
-                    }
-                    Err(err) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageClearCycle,
-                            SandboxCapabilityStatus::Failed,
-                            Some(err),
-                            unix_timestamp_ms(),
-                        );
-                    }
-                }
-
-                update_current_run_state(&app, &apps_state, current_state.clone()).await;
-            }
-
             res = &mut network_fut, if !network_done => {
                 network_done = true;
 
@@ -264,6 +234,5 @@ fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {
     state.storage_isolation_from_sage.status == SandboxCapabilityStatus::Pending
         && state.storage_persistence_normal.status == SandboxCapabilityStatus::Pending
         && state.storage_non_persistence_incognito.status == SandboxCapabilityStatus::Pending
-        && state.storage_clear_cycle.status == SandboxCapabilityStatus::Pending
         && state.network_allowlist_enforced.status == SandboxCapabilityStatus::Pending
 }

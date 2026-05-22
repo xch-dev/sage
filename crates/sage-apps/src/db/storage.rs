@@ -5,9 +5,10 @@ use crate::db::AppsDb;
 use crate::types::SageAppStorage;
 
 #[derive(Debug, Clone)]
-pub struct AbandonedStorage {
-    pub id: i64,
+pub struct AbandonedStorageCleanupTarget {
+    pub storage_id: i64,
     pub storage: SageAppStorage,
+    pub origin_ids: Vec<String>,
 }
 
 impl AppsDb {
@@ -61,35 +62,68 @@ impl AppsDb {
             .map(Some)
     }
 
-    pub async fn list_abandoned_managed_storages(&self) -> Result<Vec<AbandonedStorage>> {
+    pub async fn list_abandoned_managed_storage_cleanup_targets(
+        &self,
+    ) -> Result<Vec<AbandonedStorageCleanupTarget>> {
         let rows = sqlx::query(
             r#"
-            SELECT id, storage_json
-            FROM sage_app_storages
-            WHERE id NOT IN (
-                SELECT storage_id FROM sage_apps
-            )
-            ORDER BY id ASC
-            "#,
+        SELECT
+            storages.id AS storage_id,
+            storages.storage_json AS storage_json,
+            origins.origin_id AS origin_id
+        FROM sage_app_storages storages
+        LEFT JOIN sage_app_origins origins
+            ON origins.storage_id = storages.id
+        WHERE storages.id NOT IN (
+            SELECT storage_id FROM sage_apps
+        )
+        ORDER BY storages.id ASC, origins.id ASC
+        "#,
         )
             .fetch_all(&self.pool)
             .await
-            .context("failed to list abandoned storages")?;
+            .context("failed to list abandoned storage cleanup targets")?;
 
-        rows.into_iter()
-            .map(|row| {
-                let id: i64 = row.try_get("id")?;
-                let storage_json: String = row.try_get("storage_json")?;
-                let storage = serde_json::from_str::<SageAppStorage>(&storage_json)
-                    .with_context(|| format!("failed to deserialize abandoned storage {id}"))?;
+        let mut grouped = std::collections::BTreeMap::<
+            i64,
+            (SageAppStorage, Vec<String>),
+        >::new();
 
-                Ok(AbandonedStorage { id, storage })
+        for row in rows {
+            let storage_id: i64 = row.try_get("storage_id")?;
+
+            let storage_json: String = row.try_get("storage_json")?;
+
+            let storage = serde_json::from_str::<SageAppStorage>(&storage_json)
+                .with_context(|| {
+                    format!("failed to deserialize abandoned storage {storage_id}")
+                })?;
+
+            if matches!(storage, SageAppStorage::Unmanaged) {
+                continue;
+            }
+
+            let origin_id: Option<String> = row.try_get("origin_id")?;
+
+            let (_, origin_ids) = grouped
+                .entry(storage_id)
+                .or_insert_with(|| (storage, Vec::new()));
+
+            if let Some(origin_id) = origin_id {
+                origin_ids.push(origin_id);
+            }
+        }
+
+        Ok(grouped
+            .into_iter()
+            .map(|(storage_id, (storage, origin_ids))| {
+                AbandonedStorageCleanupTarget {
+                    storage_id,
+                    storage,
+                    origin_ids,
+                }
             })
-            .filter_map(|result| match result {
-                Ok(abandoned) if matches!(abandoned.storage, SageAppStorage::Unmanaged) => None,
-                other => Some(other),
-            })
-            .collect()
+            .collect())
     }
 
     pub async fn delete_origins_for_abandoned_storage(&self, storage_id: i64) -> Result<u64> {

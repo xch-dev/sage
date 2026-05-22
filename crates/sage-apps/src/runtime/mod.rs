@@ -18,5 +18,4 @@ pub(crate) use resolve::*;
 
 pub(crate) use events::{emit_bridge_approvals_changed, emit_timeout_for_pending_approval};
 pub(crate) use state::*;
-pub(crate) use storage::run_verified_storage_clear_cycle;
 pub(crate) use system_apps::*;
