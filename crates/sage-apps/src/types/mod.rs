@@ -30,5 +30,7 @@ pub(crate) use manifest::{
     SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifestParts,
 };
 #[cfg(test)]
+pub(crate) use network::SageRequestedNetworkWhitelist;
+#[cfg(test)]
 pub(crate) use permissions::{SageRequestedCapabilities, SageRequestedNetworkPermissions};
 pub(crate) use url::{MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppUrl};

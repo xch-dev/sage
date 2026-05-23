@@ -151,3 +151,83 @@ fn effective_whitelist_for_network_merges_shared_and_network_specific_entries() 
 
     assert_eq!(effective, expected);
 }
+
+#[test]
+fn requested_permissions_reject_secret_capability_with_required_network() {
+    let err = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::new(
+            [network_entry("https", "required.example.com")],
+            [],
+            [],
+        )
+        .unwrap(),
+        SageRequestedCapabilities::new([UserBridgeCapability::WalletGetSecretKey], []),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("cannot include both external access and sensitive secret access"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn granted_permissions_reject_secret_capability_with_optional_network_grant() {
+    let requested = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::new(
+            [],
+            [network_entry("https", "optional.example.com")],
+            [],
+        )
+        .unwrap(),
+        SageRequestedCapabilities::new([], [UserBridgeCapability::WalletGetSecretKey]),
+    )
+    .unwrap();
+
+    let err = SageGrantedPermissions::new(
+        &requested,
+        [UserBridgeCapability::WalletGetSecretKey],
+        [network_entry("https", "optional.example.com")],
+        BTreeMap::new(),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("cannot include both external access and sensitive secret access"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn granted_permissions_reject_secret_capability_with_external_capability() {
+    let requested = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::empty(),
+        SageRequestedCapabilities::new(
+            [],
+            [
+                UserBridgeCapability::WalletGetSecretKey,
+                UserBridgeCapability::WalletSendXch,
+            ],
+        ),
+    )
+    .unwrap();
+
+    let err = SageGrantedPermissions::new(
+        &requested,
+        [
+            UserBridgeCapability::WalletGetSecretKey,
+            UserBridgeCapability::WalletSendXch,
+        ],
+        [],
+        BTreeMap::new(),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("cannot include both external access and sensitive secret access"),
+        "unexpected error: {err}"
+    );
+}

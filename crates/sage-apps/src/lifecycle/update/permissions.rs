@@ -289,7 +289,7 @@ mod tests {
     use crate::types::{
         SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions, UserSageAppSource,
+        SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageAppSource,
     };
     use tempfile::tempdir;
 
@@ -308,7 +308,11 @@ mod tests {
     }
 
     async fn sample_app(base: &Path, app_id: &str) -> SharedSageApp {
-        let requested_permissions = SageRequestedPermissions::new(
+        sample_app_with_requested_permissions(base, app_id, sample_requested_permissions()).await
+    }
+
+    fn sample_requested_permissions() -> SageRequestedPermissions {
+        SageRequestedPermissions::new(
             SageRequestedNetworkPermissions::new(
                 [network_whitelist_entry("https", "required.example.com")],
                 [network_whitelist_entry("wss", "optional.example.com")],
@@ -323,8 +327,14 @@ mod tests {
                 ],
             ),
         )
-        .unwrap();
+        .unwrap()
+    }
 
+    async fn sample_app_with_requested_permissions(
+        base: &Path,
+        app_id: &str,
+        requested_permissions: SageRequestedPermissions,
+    ) -> SharedSageApp {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
 
         let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
@@ -407,6 +417,77 @@ mod tests {
         assert_eq!(
             entries(normalized.network().whitelist_iter().cloned()),
             [network_whitelist_entry("https", "required.example.com")]
+        );
+    }
+
+    #[tokio::test]
+    async fn update_app_permissions_includes_required_network_specific_entries() {
+        let dir = tempdir().unwrap();
+        let requested_permissions = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [],
+                [],
+                [(
+                    "mainnet".to_string(),
+                    SageRequestedNetworkWhitelist::new(
+                        [network_whitelist_entry(
+                            "https",
+                            "mainnet-required.example.com",
+                        )],
+                        [network_whitelist_entry(
+                            "wss",
+                            "mainnet-optional.example.com",
+                        )],
+                    ),
+                )],
+            )
+            .unwrap(),
+            SageRequestedCapabilities::empty(),
+        )
+        .unwrap();
+        let app =
+            sample_app_with_requested_permissions(dir.path(), "app-network", requested_permissions)
+                .await;
+
+        let granted = app
+            .try_with(|app| {
+                SageGrantedPermissions::new(
+                    app.common().requested_permissions(),
+                    [],
+                    [],
+                    BTreeMap::new(),
+                )
+            })
+            .unwrap();
+
+        let (update_result, normalized) =
+            preview_granted_permissions_update(&app, &granted).unwrap();
+
+        assert_eq!(
+            update_result
+                .change()
+                .network_whitelist_by_network()
+                .for_network("mainnet")
+                .full,
+            [network_whitelist_entry(
+                "https",
+                "mainnet-required.example.com"
+            )]
+        );
+
+        assert_eq!(
+            normalized
+                .network()
+                .whitelist_by_network()
+                .get("mainnet")
+                .cloned()
+                .unwrap_or_default(),
+            [network_whitelist_entry(
+                "https",
+                "mainnet-required.example.com"
+            )]
+            .into_iter()
+            .collect()
         );
     }
 
