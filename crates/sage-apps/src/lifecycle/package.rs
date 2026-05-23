@@ -412,6 +412,67 @@ mod tests {
     }
 
     #[test]
+    fn prepare_zip_snapshot_rejects_nested_undeclared_files() {
+        let dir = tempdir().unwrap();
+        let package_root = dir.path().join("package");
+        let snapshot_dir = dir.path().join("snapshot");
+        fs::create_dir_all(package_root.join("assets")).unwrap();
+        fs::write(package_root.join("index.html"), b"<html></html>").unwrap();
+        fs::write(package_root.join("assets/extra.js"), b"alert(1)").unwrap();
+
+        let manifest = sample_manifest(vec![sample_manifest_file("index.html", b"<html></html>")]);
+
+        let err = prepare_zip_snapshot(&package_root, &snapshot_dir, &manifest)
+            .expect_err("nested undeclared files must be rejected");
+
+        assert!(
+            err.to_string().contains("undeclared file: assets/extra.js"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn prepare_zip_snapshot_accepts_declared_nested_files() {
+        let dir = tempdir().unwrap();
+        let package_root = dir.path().join("package");
+        let snapshot_dir = dir.path().join("snapshot");
+        fs::create_dir_all(package_root.join("assets")).unwrap();
+        fs::write(package_root.join("index.html"), b"<html></html>").unwrap();
+        fs::write(package_root.join("assets/app.js"), b"console.log('ok')").unwrap();
+
+        let manifest = sample_manifest(vec![
+            sample_manifest_file("index.html", b"<html></html>"),
+            sample_manifest_file("assets/app.js", b"console.log('ok')"),
+        ]);
+
+        prepare_zip_snapshot(&package_root, &snapshot_dir, &manifest)
+            .expect("declared nested files should be accepted");
+
+        assert!(snapshot_dir.join("assets/app.js").is_file());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn prepare_zip_snapshot_rejects_symlinks() {
+        let dir = tempdir().unwrap();
+        let package_root = dir.path().join("package");
+        let snapshot_dir = dir.path().join("snapshot");
+        fs::create_dir_all(&package_root).unwrap();
+        fs::write(package_root.join("index.html"), b"<html></html>").unwrap();
+        std::os::unix::fs::symlink("index.html", package_root.join("index-link.html")).unwrap();
+
+        let manifest = sample_manifest(vec![sample_manifest_file("index.html", b"<html></html>")]);
+
+        let err = prepare_zip_snapshot(&package_root, &snapshot_dir, &manifest)
+            .expect_err("symlinks must be rejected");
+
+        assert!(
+            err.to_string().contains("unsupported file type"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
     fn prepare_zip_snapshot_allows_manifest_file() {
         let dir = tempdir().unwrap();
         let package_root = dir.path().join("package");
