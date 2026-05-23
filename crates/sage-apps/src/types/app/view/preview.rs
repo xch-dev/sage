@@ -123,3 +123,80 @@ impl UserSageAppPendingUpdateDecisionView {
         matches!(self, Self::Review { .. })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
+    };
+    use std::collections::BTreeMap;
+
+    fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
+        SageNetworkWhitelistEntry::new(scheme, host).unwrap()
+    }
+
+    fn manifest(permissions: SageRequestedPermissions) -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions,
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
+
+    #[test]
+    fn pending_update_decision_reviews_new_required_network_specific_entries() {
+        let old_permissions = SageRequestedPermissions::empty();
+        let active_grants =
+            SageGrantedPermissions::new(&old_permissions, [], [], BTreeMap::new()).unwrap();
+        let required_entry = entry("https", "mainnet-required.example.com");
+        let pending_permissions = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [],
+                [],
+                [(
+                    "mainnet".to_string(),
+                    SageRequestedNetworkWhitelist::new([required_entry.clone()], []),
+                )],
+            )
+            .unwrap(),
+            SageRequestedCapabilities::empty(),
+        )
+        .unwrap();
+
+        let pending = UserSageAppPendingUpdate::new(
+            SageAppUrl::parse("https://example.com/app/manifest.json").unwrap(),
+            "manifest-hash".to_string(),
+            manifest(pending_permissions),
+        );
+
+        let view = UserSageAppPendingUpdateView::from_pending_update(&pending, &active_grants);
+
+        let UserSageAppPendingUpdateDecisionView::Review(review) = view.decision() else {
+            panic!("expected pending update to require review");
+        };
+
+        assert!(review.required_user_grantable_capabilities.is_empty());
+        assert!(review.required_network_whitelist.is_empty());
+        assert_eq!(
+            review
+                .required_network_whitelist_by_network
+                .get("mainnet")
+                .unwrap(),
+            &vec![required_entry]
+        );
+    }
+}

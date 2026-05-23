@@ -406,3 +406,92 @@ impl TryFrom<SageAppCommonRaw> for SageAppCommon {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::capabilities::list::UserBridgeCapability;
+    use crate::types::{
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
+    use std::collections::BTreeMap;
+    use std::fs;
+    use tempfile::{TempDir, tempdir};
+
+    fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
+        SageNetworkWhitelistEntry::new(scheme, host).unwrap()
+    }
+
+    fn manifest(permissions: SageRequestedPermissions) -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions,
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
+
+    fn tainted_app() -> (SageAppCommon, SageNetworkWhitelistEntry, TempDir) {
+        let optional_network = entry("https", "optional.example.com");
+        let requested = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new([], [optional_network.clone()], []).unwrap(),
+            SageRequestedCapabilities::new([], [UserBridgeCapability::StoragePersistentWebview]),
+        )
+        .unwrap();
+        let granted = SageGrantedPermissions::new(
+            &requested,
+            [UserBridgeCapability::StoragePersistentWebview],
+            [],
+            BTreeMap::new(),
+        )
+        .unwrap();
+
+        let dir = tempdir().unwrap();
+        let dir_path = dir.path().to_path_buf();
+        fs::write(dir_path.join("index.html"), "x").unwrap();
+        let snapshot =
+            SageAppSnapshot::new("hash", dir_path.to_string_lossy(), manifest(requested)).unwrap();
+
+        let app = SageAppCommon::from_persisted_parts(
+            SageAppIdentity::new("app-id", "origin-id", dir_path.to_string_lossy()).unwrap(),
+            granted,
+            SageAppStorage::Unmanaged,
+            true,
+            snapshot,
+            SageAppWalletScope::AllWallets,
+        )
+        .unwrap();
+
+        (app, optional_network, dir)
+    }
+
+    #[test]
+    fn update_permissions_rejects_external_access_when_origin_storage_may_contain_secrets() {
+        let (mut app, optional_network, _dir) = tainted_app();
+
+        let granted_with_network = app
+            .granted_permissions()
+            .with_network_whitelist_entry_added(app.requested_permissions(), optional_network)
+            .unwrap();
+
+        let err = app.update_permissions(&granted_with_network).unwrap_err();
+
+        assert!(
+            err.to_string()
+                .contains("external access while origin webview storage may contain secrets"),
+            "unexpected error: {err}"
+        );
+    }
+}
