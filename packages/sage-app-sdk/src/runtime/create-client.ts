@@ -274,6 +274,11 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
           };
         },
       },
+      getNetwork() {
+        return callHost<Generated.EnvironmentGetNetworkResult>(
+          'environment.getNetwork',
+        );
+      }
     },
   };
 }

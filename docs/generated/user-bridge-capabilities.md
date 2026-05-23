@@ -350,6 +350,20 @@ Allows the app to receive events when Sage's theme changes.
 | Externally observable | `false` |
 | Accesses sensitive secret | `false` |
 
+## `environment.get_network`
+
+**Read current network**
+
+Allows the app to read Sage's currently active network information.
+
+| Flag | Value |
+|---|---|
+| Requestable by app | `true` |
+| User grantable | `false` |
+| Shared with app | `true` |
+| Externally observable | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `storage.persistent_webview`
 
 **Persistent storage**

@@ -1,10 +1,10 @@
 use crate::bridge::event_emit::UserRuntimeEvent;
 use crate::bridge::methods::user::environment::EnvironmentThemeView;
 use crate::capabilities::list::UserBridgeCapability;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct EnvironmentThemeChangedEvent {
     pub theme: EnvironmentThemeView,

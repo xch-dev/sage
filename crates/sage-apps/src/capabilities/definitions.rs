@@ -165,6 +165,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to receive events when Sage's theme changes.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
+        UserBridgeCapability::EnvironmentGetNetwork => CapabilityDefinition::new(
+            capability,
+            "Read current network",
+            "Allows the app to read Sage's currently active network information.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
     }
 }
 

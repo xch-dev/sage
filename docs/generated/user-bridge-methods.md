@@ -48,6 +48,12 @@
 |---|---|
 | Capability | `bridge.send` |
 
+## `environment.getNetwork`
+
+| Field | Value |
+|---|---|
+| Capability | `environment.get_network` |
+
 ## `environment.theme.getCurrent`
 
 | Field | Value |

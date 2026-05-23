@@ -10,6 +10,7 @@ use crate::bridge::methods::system::{
     RuntimeManagerRuntimesChangedEvent, SandboxStateChangedEvent, SystemWalletView,
     WalletListWalletsResult,
 };
+use crate::bridge::methods::user::environment::EnvironmentGetNetworkResult;
 use crate::bridge::methods::user::{
     app::{
         GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
@@ -90,6 +91,7 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetTransactionsResponse>();
     types.register::<EnvironmentThemeGetCurrentResult>();
     types.register::<EnvironmentThemeChangedEvent>();
+    types.register::<EnvironmentGetNetworkResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

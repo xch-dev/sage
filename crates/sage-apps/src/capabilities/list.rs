@@ -91,6 +91,7 @@ define_bridge_capabilities! {
         EnvironmentThemeGetCurrent => "environment.theme.get_current",
         EnvironmentThemeCssVars => "environment.theme.css_vars",
         EnvironmentThemeListenChanged => "environment.theme.listen_changed",
+        EnvironmentGetNetwork => "environment.get_network",
 
         StoragePersistentWebview => "storage.persistent_webview",
     }

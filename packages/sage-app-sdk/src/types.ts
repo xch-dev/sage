@@ -100,6 +100,7 @@ export type SageEnvironmentThemeClient = {
 
 export type SageEnvironmentClient = {
   theme: SageEnvironmentThemeClient;
+  getNetwork(): Promise<Generated.EnvironmentGetNetworkResult>;
 };
 
 export type SageClient = {

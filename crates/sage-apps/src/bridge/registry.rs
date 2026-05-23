@@ -1,7 +1,9 @@
 use super::methods::BridgeMethod;
 use super::methods::system::*;
 use super::methods::user::*;
-use crate::bridge::methods::user::environment::EnvironmentThemeGetCurrent;
+use crate::bridge::methods::user::environment::{
+    EnvironmentGetNetwork, EnvironmentThemeGetCurrent,
+};
 use crate::bridge::methods::user::wallet::read_methods::WalletGetXchUsdPrice;
 use std::collections::HashMap;
 
@@ -75,6 +77,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
 
     // Environment
     insert_method(&mut methods, EnvironmentThemeGetCurrent);
+    insert_method(&mut methods, EnvironmentGetNetwork);
 
     methods
 }
