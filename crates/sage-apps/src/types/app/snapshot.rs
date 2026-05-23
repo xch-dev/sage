@@ -123,3 +123,99 @@ impl<'de> Deserialize<'de> for SageAppSnapshot {
             .map_err(serde::de::Error::custom)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifestParts, SageRequestedPermissions,
+    };
+    use std::fs;
+    use tempfile::{TempDir, tempdir};
+
+    fn manifest_file(path: &str) -> SageAppManifestFile {
+        SageAppManifestFile::new(path, "a".repeat(64), 1).unwrap()
+    }
+
+    fn manifest() -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::empty(),
+            files: vec![manifest_file("index.html"), manifest_file("nested/file.js")],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
+
+    fn snapshot() -> (SageAppSnapshot, TempDir) {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "x").unwrap();
+        fs::create_dir_all(dir.path().join("nested")).unwrap();
+        fs::write(dir.path().join("nested/file.js"), "x").unwrap();
+
+        let snapshot =
+            SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest()).unwrap();
+
+        (snapshot, dir)
+    }
+
+    #[test]
+    fn resolve_file_path_defaults_empty_and_root_to_manifest_entry() {
+        let (snapshot, _dir) = snapshot();
+        let entry = snapshot.file_path("index.html").canonicalize().unwrap();
+
+        assert_eq!(snapshot.resolve_file_path("").unwrap(), entry);
+        assert_eq!(snapshot.resolve_file_path("/").unwrap(), entry);
+    }
+
+    #[test]
+    fn resolve_file_path_accepts_nested_snapshot_file() {
+        let (snapshot, _dir) = snapshot();
+        let nested = snapshot.file_path("nested/file.js").canonicalize().unwrap();
+
+        assert_eq!(
+            snapshot.resolve_file_path("/nested/file.js").unwrap(),
+            nested
+        );
+    }
+
+    #[test]
+    fn resolve_file_path_rejects_traversal_components() {
+        let (snapshot, _dir) = snapshot();
+
+        for path in ["../secret.txt", "/../secret.txt", "nested/../index.html"] {
+            assert!(
+                snapshot.resolve_file_path(path).is_err(),
+                "expected {path} to be rejected"
+            );
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn resolve_file_path_rejects_symlink_that_escapes_snapshot_root() {
+        let (snapshot, dir) = snapshot();
+        let external = dir.path().parent().unwrap().join("external-secret.txt");
+        fs::write(&external, "secret").unwrap();
+        std::os::unix::fs::symlink(&external, dir.path().join("nested/link.txt")).unwrap();
+
+        let err = snapshot
+            .resolve_file_path("nested/link.txt")
+            .expect_err("escaping symlink must be rejected");
+
+        assert!(
+            err.to_string().contains("escapes root"),
+            "unexpected error: {err}"
+        );
+    }
+}
