@@ -4,9 +4,12 @@ use crate::types::{
     SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview,
     SageAppUrl, SageAppWalletScope,
 };
+use anyhow::Context;
 use serde::Serialize;
 use specta::Type;
 use url::Url;
+
+const MAX_REMOTE_ICON_BYTES: u64 = 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -123,11 +126,63 @@ impl SageAppIconView {
             .unwrap_or("application/octet-stream")
             .to_string();
 
-        let bytes = resp.bytes().await.ok()?;
+        let bytes = read_remote_icon_bytes(resp).await.ok()?;
 
-        Some(Self {
-            mime,
-            bytes: bytes.to_vec(),
-        })
+        Some(Self { mime, bytes })
+    }
+}
+
+async fn read_remote_icon_bytes(mut resp: reqwest::Response) -> anyhow::Result<Vec<u8>> {
+    if let Some(content_length) = resp.content_length() {
+        ensure_remote_icon_size(content_length)?;
+    }
+
+    let mut bytes = Vec::with_capacity(usize::try_from(MAX_REMOTE_ICON_BYTES).unwrap_or(0));
+    let mut received = 0u64;
+
+    while let Some(chunk) = resp
+        .chunk()
+        .await
+        .context("failed to read remote icon body")?
+    {
+        let chunk_len = u64::try_from(chunk.len()).context("remote icon chunk too large")?;
+
+        received = received
+            .checked_add(chunk_len)
+            .context("remote icon body size overflow")?;
+
+        ensure_remote_icon_size(received)?;
+        bytes.extend_from_slice(&chunk);
+    }
+
+    Ok(bytes)
+}
+
+fn ensure_remote_icon_size(size: u64) -> anyhow::Result<()> {
+    if size > MAX_REMOTE_ICON_BYTES {
+        anyhow::bail!("remote app icon exceeds maximum size {MAX_REMOTE_ICON_BYTES}");
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn remote_icon_size_accepts_limit() {
+        ensure_remote_icon_size(MAX_REMOTE_ICON_BYTES).unwrap();
+    }
+
+    #[test]
+    fn remote_icon_size_rejects_over_limit() {
+        let err = ensure_remote_icon_size(MAX_REMOTE_ICON_BYTES + 1)
+            .expect_err("oversized remote icon must be rejected");
+
+        assert!(
+            err.to_string().contains("remote app icon exceeds"),
+            "unexpected error: {err}"
+        );
     }
 }
