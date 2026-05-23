@@ -60,6 +60,118 @@ pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
          worker-src {worker_src}; \
          base-uri {base_uri}; \
          form-action {form_action}; \
-         frame-ancestors {frame_ancestors};"
+        frame-ancestors {frame_ancestors};"
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::{
+        SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage,
+        SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
+        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+    };
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::fs;
+    use tempfile::{TempDir, tempdir};
+
+    fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
+        SageNetworkWhitelistEntry::new(scheme, host).unwrap()
+    }
+
+    fn manifest(permissions: SageRequestedPermissions) -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions,
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
+
+    fn app_with_network_grants() -> (SharedSageApp, TempDir) {
+        let shared = entry("https", "shared.example.com");
+        let mainnet = entry("https", "mainnet.example.com");
+        let testnet = entry("https", "testnet.example.com");
+
+        let requested = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [],
+                [shared.clone()],
+                [
+                    (
+                        "mainnet".to_string(),
+                        SageRequestedNetworkWhitelist::new([], [mainnet.clone()]),
+                    ),
+                    (
+                        "testnet11".to_string(),
+                        SageRequestedNetworkWhitelist::new([], [testnet.clone()]),
+                    ),
+                ],
+            )
+            .unwrap(),
+            SageRequestedCapabilities::empty(),
+        )
+        .unwrap();
+
+        let granted = SageGrantedPermissions::new(
+            &requested,
+            [],
+            [shared],
+            BTreeMap::from([
+                ("mainnet".to_string(), BTreeSet::from([mainnet])),
+                ("testnet11".to_string(), BTreeSet::from([testnet])),
+            ]),
+        )
+        .unwrap();
+
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "x").unwrap();
+        let snapshot =
+            SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest(requested))
+                .unwrap();
+        let common = crate::types::SageAppCommon::new(
+            SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
+            granted,
+            SageAppStorage::Unmanaged,
+            snapshot,
+            SageAppWalletScope::AllWallets,
+        )
+        .unwrap();
+        let app = UserSageApp::new_installed(
+            common,
+            UserSageAppSource::Url {
+                app_url: SageAppUrl::parse("https://example.com/app/").unwrap(),
+            },
+        );
+
+        (SharedSageApp::new(app.into_sage_app()), dir)
+    }
+
+    #[test]
+    fn csp_connect_src_scopes_network_specific_whitelist_to_active_network() {
+        let (app, _dir) = app_with_network_grants();
+
+        let mainnet_csp = build_app_csp(&app, "mainnet");
+        assert!(mainnet_csp.contains("https://shared.example.com"));
+        assert!(mainnet_csp.contains("https://mainnet.example.com"));
+        assert!(!mainnet_csp.contains("https://testnet.example.com"));
+
+        let testnet_csp = build_app_csp(&app, "testnet11");
+        assert!(testnet_csp.contains("https://shared.example.com"));
+        assert!(testnet_csp.contains("https://testnet.example.com"));
+        assert!(!testnet_csp.contains("https://mainnet.example.com"));
+    }
 }
