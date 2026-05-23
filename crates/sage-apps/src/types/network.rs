@@ -48,12 +48,7 @@ impl SageNetworkWhitelistEntry {
             anyhow::bail!("invalid scheme '{scheme}', only https and wss allowed");
         }
 
-        if host.is_empty()
-            || host.contains('/')
-            || host.contains('?')
-            || host.contains('#')
-            || host.contains(' ')
-        {
+        if !Self::is_csp_safe_host(&host) {
             anyhow::bail!("invalid host in network entry: {scheme}://{host}");
         }
 
@@ -74,6 +69,13 @@ impl SageNetworkWhitelistEntry {
 
     fn is_allowed_scheme(s: &str) -> bool {
         matches!(s, "https" | "wss")
+    }
+
+    fn is_csp_safe_host(host: &str) -> bool {
+        !host.is_empty()
+            && host.chars().all(|c| {
+                c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '*' | ':' | '[' | ']')
+            })
     }
 
     #[cfg(test)]
@@ -127,5 +129,45 @@ impl SageRequestedNetworkWhitelist {
 
     pub fn is_allowed(&self, entry: &SageNetworkWhitelistEntry) -> bool {
         self.is_required(entry) || self.is_optional(entry)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SageNetworkWhitelistEntry;
+
+    #[test]
+    fn network_entry_accepts_csp_safe_hosts() {
+        for host in [
+            "example.com",
+            "*.example.com",
+            "localhost:4173",
+            "127.0.0.1:4173",
+            "[::1]:4173",
+        ] {
+            SageNetworkWhitelistEntry::new("https", host)
+                .unwrap_or_else(|err| panic!("expected {host} to be accepted: {err}"));
+        }
+    }
+
+    #[test]
+    fn network_entry_rejects_csp_separators_and_controls() {
+        for host in [
+            "example.com/script.js",
+            "example.com?x=1",
+            "example.com#frag",
+            "example.com; script-src 'unsafe-inline'",
+            "example.com,https://evil.example",
+            "example.com\tfoo",
+            "example.com\nfoo",
+            "example.com'foo",
+            "example.com\"foo",
+            "example.com`foo",
+        ] {
+            assert!(
+                SageNetworkWhitelistEntry::new("https", host).is_err(),
+                "expected {host:?} to be rejected"
+            );
+        }
     }
 }
