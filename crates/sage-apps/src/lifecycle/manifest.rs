@@ -5,6 +5,8 @@ use crate::types::{
 };
 use crate::utils::bytes_sha256_hex;
 
+const MAX_URL_MANIFEST_BYTES: u64 = 1024 * 1024;
+
 pub async fn fetch_url_manifest(
     manifest_url: &SageAppManifestUrl,
 ) -> AnyResult<(SageAppPackageManifest, String)> {
@@ -23,16 +25,10 @@ pub async fn fetch_url_manifest_preview(
 ) -> AnyResult<(SageAppPackageManifestPreview, String)> {
     let manifest_url = manifest_url.as_str();
 
-    let response = reqwest::get(manifest_url)
-        .await
-        .with_context(|| format!("failed to GET manifest url {manifest_url}"))?
-        .error_for_status()
-        .with_context(|| format!("manifest request failed for {manifest_url}"))?;
-
-    let bytes = response
-        .bytes()
-        .await
-        .with_context(|| format!("failed to read manifest response body from {manifest_url}"))?;
+    let bytes =
+        crate::lifecycle::snapshot::download_bytes_with_limit(manifest_url, MAX_URL_MANIFEST_BYTES)
+            .await
+            .with_context(|| format!("failed to download manifest from {manifest_url}"))?;
 
     let manifest_hash = bytes_sha256_hex(&bytes);
 

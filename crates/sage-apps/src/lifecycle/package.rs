@@ -1,6 +1,7 @@
 use std::{
+    collections::BTreeSet,
     fs, io,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result as AnyResult};
@@ -155,6 +156,8 @@ pub fn prepare_zip_snapshot(
     snapshot_dir: &Path,
     manifest: &SageAppPackageManifest,
 ) -> AnyResult<SageAppSnapshot> {
+    validate_package_has_no_undeclared_files(package_root, manifest)?;
+
     if snapshot_dir.exists() {
         fs::remove_dir_all(snapshot_dir).with_context(|| {
             format!(
@@ -184,12 +187,84 @@ pub fn prepare_zip_snapshot(
     )
 }
 
+fn validate_package_has_no_undeclared_files(
+    package_root: &Path,
+    manifest: &SageAppPackageManifest,
+) -> AnyResult<()> {
+    let declared = manifest
+        .files()
+        .iter()
+        .map(|file| file.path().to_string())
+        .collect::<BTreeSet<_>>();
+
+    validate_dir_has_no_undeclared_files(package_root, package_root, &declared)
+}
+
+fn validate_dir_has_no_undeclared_files(
+    package_root: &Path,
+    dir: &Path,
+    declared: &BTreeSet<String>,
+) -> AnyResult<()> {
+    for entry in
+        fs::read_dir(dir).with_context(|| format!("failed to read directory {}", dir.display()))?
+    {
+        let entry = entry?;
+        let file_type = entry.file_type()?;
+        let path = entry.path();
+
+        if file_type.is_dir() {
+            validate_dir_has_no_undeclared_files(package_root, &path, declared)?;
+        } else if file_type.is_file() {
+            let relative_path = package_relative_path(package_root, &path)?;
+
+            if relative_path != MANIFEST_FILE_NAME && !declared.contains(&relative_path) {
+                anyhow::bail!("package contains undeclared file: {relative_path}");
+            }
+        } else {
+            anyhow::bail!("package contains unsupported file type: {}", path.display());
+        }
+    }
+
+    Ok(())
+}
+
+fn package_relative_path(package_root: &Path, path: &Path) -> AnyResult<String> {
+    let relative = path.strip_prefix(package_root).with_context(|| {
+        format!(
+            "failed to compute package relative path for {}",
+            path.display()
+        )
+    })?;
+
+    let mut parts = Vec::new();
+
+    for component in relative.components() {
+        match component {
+            Component::Normal(part) => {
+                let part = part.to_str().with_context(|| {
+                    format!("package path is not valid UTF-8: {}", path.display())
+                })?;
+
+                parts.push(part);
+            }
+            _ => anyhow::bail!("package path has invalid component: {}", path.display()),
+        }
+    }
+
+    Ok(parts.join("/"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Write;
     use tempfile::tempdir;
     use zip::write::SimpleFileOptions;
+
+    use crate::types::{
+        SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    };
 
     fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
         let file = fs::File::create(path).unwrap();
@@ -202,6 +277,32 @@ mod tests {
         }
 
         zip.finish().unwrap();
+    }
+
+    fn sample_manifest_file(path: &str, bytes: &[u8]) -> SageAppManifestFile {
+        SageAppManifestFile::new(path, bytes_sha256_hex(bytes), bytes.len() as u64).unwrap()
+    }
+
+    fn sample_manifest(files: Vec<SageAppManifestFile>) -> SageAppPackageManifest {
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
+
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
+            name: "Test App".to_string(),
+            icon: None,
+            sage_version,
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::new(
+                SageRequestedNetworkPermissions::empty(),
+                SageRequestedCapabilities::empty(),
+            )
+            .unwrap(),
+            files,
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
     }
 
     #[test]
@@ -288,5 +389,47 @@ mod tests {
             err.to_string().contains("too large"),
             "unexpected error: {err}"
         );
+    }
+
+    #[test]
+    fn prepare_zip_snapshot_rejects_undeclared_files() {
+        let dir = tempdir().unwrap();
+        let package_root = dir.path().join("package");
+        let snapshot_dir = dir.path().join("snapshot");
+        fs::create_dir_all(&package_root).unwrap();
+        fs::write(package_root.join("index.html"), b"<html></html>").unwrap();
+        fs::write(package_root.join("extra.js"), b"alert(1)").unwrap();
+
+        let manifest = sample_manifest(vec![sample_manifest_file("index.html", b"<html></html>")]);
+
+        let err = prepare_zip_snapshot(&package_root, &snapshot_dir, &manifest)
+            .expect_err("undeclared files must be rejected");
+
+        assert!(
+            err.to_string().contains("undeclared file: extra.js"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn prepare_zip_snapshot_allows_manifest_file() {
+        let dir = tempdir().unwrap();
+        let package_root = dir.path().join("package");
+        let snapshot_dir = dir.path().join("snapshot");
+        fs::create_dir_all(&package_root).unwrap();
+        fs::write(package_root.join("index.html"), b"<html></html>").unwrap();
+
+        let manifest = sample_manifest(vec![sample_manifest_file("index.html", b"<html></html>")]);
+        fs::write(
+            package_root.join(MANIFEST_FILE_NAME),
+            serde_json::to_string_pretty(&manifest).unwrap(),
+        )
+        .unwrap();
+
+        prepare_zip_snapshot(&package_root, &snapshot_dir, &manifest)
+            .expect("declared files plus manifest should be accepted");
+
+        assert!(snapshot_dir.join("index.html").is_file());
+        assert!(snapshot_dir.join(MANIFEST_FILE_NAME).is_file());
     }
 }

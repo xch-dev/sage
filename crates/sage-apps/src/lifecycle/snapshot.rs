@@ -6,19 +6,54 @@ use std::{
     path::{Path, PathBuf},
 };
 
-async fn download_bytes(url: &str) -> AnyResult<Vec<u8>> {
+pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyResult<Vec<u8>> {
     let response = reqwest::get(url)
         .await
         .with_context(|| format!("failed to GET {url}"))?
         .error_for_status()
         .with_context(|| format!("request failed for {url}"))?;
 
-    let bytes = response
-        .bytes()
-        .await
-        .with_context(|| format!("failed to read response body from {url}"))?;
+    if response
+        .content_length()
+        .is_some_and(|content_length| content_length > max_bytes)
+    {
+        anyhow::bail!("response body from {url} exceeds maximum size {max_bytes}");
+    }
 
-    Ok(bytes.to_vec())
+    let capacity = usize::try_from(max_bytes.min(1024 * 1024)).unwrap_or(1024 * 1024);
+    let mut bytes = Vec::with_capacity(capacity);
+    let mut response = response;
+    let mut received = 0u64;
+
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .with_context(|| format!("failed to read response body from {url}"))?
+    {
+        let chunk_len = u64::try_from(chunk.len()).context("response chunk too large")?;
+
+        received = received
+            .checked_add(chunk_len)
+            .context("response body size overflow")?;
+
+        if received > max_bytes {
+            anyhow::bail!("response body from {url} exceeds maximum size {max_bytes}");
+        }
+
+        bytes.extend_from_slice(&chunk);
+    }
+
+    Ok(bytes)
+}
+
+async fn download_exact_bytes(url: &str, expected_size: u64) -> AnyResult<Vec<u8>> {
+    let bytes = download_bytes_with_limit(url, expected_size).await?;
+
+    if u64::try_from(bytes.len()).context("response body too large")? != expected_size {
+        anyhow::bail!("response body from {url} did not match expected size {expected_size}");
+    }
+
+    Ok(bytes)
 }
 
 fn write_file(path: &Path, bytes: &[u8]) -> AnyResult<()> {
@@ -52,7 +87,7 @@ pub async fn download_url_snapshot(
 
     for file in manifest.files() {
         let url = app_url.join(file.path())?;
-        let bytes = download_bytes(&url).await?;
+        let bytes = download_exact_bytes(&url, file.size()).await?;
 
         let actual_hash = bytes_sha256_hex(&bytes);
         if actual_hash != file.sha256() {
