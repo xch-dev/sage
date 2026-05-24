@@ -3,7 +3,7 @@ use crate::runtime::{app_id_from_webview_label, resolve_running_app};
 use crate::security::build_app_csp;
 use crate::types::{ResolvedRunningApp, SharedSageApp};
 use anyhow::{Result as AnyResult, anyhow};
-use std::fs;
+use std::{fs, path::PathBuf};
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager};
 
@@ -71,17 +71,7 @@ async fn handle_app_protocol_request(
     app: &SharedSageApp,
     request: &Request<Vec<u8>>,
 ) -> AnyResult<Response<Vec<u8>>> {
-    if request.uri().host() != Some(&app.origin_id()) {
-        anyhow::bail!("host mismatch");
-    }
-
-    if request.headers().contains_key("Service-Worker") {
-        anyhow::bail!("Service worker forbidden");
-    }
-
-    let request_path = request.uri().path();
-
-    let file_path = app.with(|app| app.active_snapshot().resolve_file_path(request_path))?;
+    let file_path = protocol_file_path_for_request(app, request)?;
 
     let mime = mime_guess::from_path(&file_path)
         .first_or_octet_stream()
@@ -98,6 +88,23 @@ async fn handle_app_protocol_request(
         .header("X-Content-Type-Options", "nosniff")
         .body(fs::read(&file_path)?)
         .map_err(|err| anyhow!("failed to build app protocol response: {err}"))
+}
+
+fn protocol_file_path_for_request(
+    app: &SharedSageApp,
+    request: &Request<Vec<u8>>,
+) -> AnyResult<PathBuf> {
+    if request.uri().host() != Some(&app.origin_id()) {
+        anyhow::bail!("host mismatch");
+    }
+
+    if request.headers().contains_key("Service-Worker") {
+        anyhow::bail!("Service worker forbidden");
+    }
+
+    let request_path = request.uri().path();
+
+    app.with(|app| app.active_snapshot().resolve_file_path(request_path))
 }
 
 fn not_found_response() -> Response<Vec<u8>> {
@@ -131,4 +138,131 @@ async fn active_network_id(app_handle: &AppHandle) -> AnyResult<String> {
         .map_err(|_| anyhow!("active network id unavailable because Sage state is locked"))?;
 
     Ok(sage.network_id())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use super::*;
+    use crate::types::{
+        SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage,
+        SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageRequestedPermissions,
+        UserSageApp, UserSageAppSource,
+    };
+    use tempfile::{TempDir, tempdir};
+
+    fn manifest_file(path: &str) -> SageAppManifestFile {
+        SageAppManifestFile::new(path, "a".repeat(64), 1).unwrap()
+    }
+
+    fn manifest() -> SageAppPackageManifest {
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::empty(),
+            files: vec![manifest_file("index.html"), manifest_file("nested/app.js")],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
+
+    fn app() -> (SharedSageApp, TempDir) {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "x").unwrap();
+        fs::create_dir_all(dir.path().join("nested")).unwrap();
+        fs::write(dir.path().join("nested/app.js"), "x").unwrap();
+
+        let manifest = manifest();
+        let granted =
+            SageGrantedPermissions::new(manifest.permissions(), [], [], BTreeMap::default())
+                .unwrap();
+        let snapshot =
+            SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest).unwrap();
+        let common = crate::types::SageAppCommon::new(
+            SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
+            granted,
+            SageAppStorage::Unmanaged,
+            snapshot,
+            SageAppWalletScope::AllWallets,
+        )
+        .unwrap();
+        let app = UserSageApp::new_installed(
+            common,
+            UserSageAppSource::Url {
+                app_url: SageAppUrl::parse("https://example.com/app/").unwrap(),
+            },
+        );
+
+        (SharedSageApp::new(app.into_sage_app()), dir)
+    }
+
+    fn request(uri: &str) -> Request<Vec<u8>> {
+        Request::builder().uri(uri).body(Vec::new()).unwrap()
+    }
+
+    #[test]
+    fn protocol_file_path_accepts_matching_host_and_snapshot_path() {
+        let (app, _dir) = app();
+        let request = request("sage-app://origin-id/nested/app.js");
+        let expected = app.with(|app| app.active_snapshot().file_path("nested/app.js"));
+
+        assert_eq!(
+            protocol_file_path_for_request(&app, &request).unwrap(),
+            expected.canonicalize().unwrap()
+        );
+    }
+
+    #[test]
+    fn protocol_file_path_rejects_host_mismatch() {
+        let (app, _dir) = app();
+        let request = request("sage-app://other-origin/index.html");
+
+        let err = protocol_file_path_for_request(&app, &request).unwrap_err();
+
+        assert!(
+            err.to_string().contains("host mismatch"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn protocol_file_path_rejects_service_worker_requests() {
+        let (app, _dir) = app();
+        let request = Request::builder()
+            .uri("sage-app://origin-id/index.html")
+            .header("Service-Worker", "script")
+            .body(Vec::new())
+            .unwrap();
+
+        let err = protocol_file_path_for_request(&app, &request).unwrap_err();
+
+        assert!(
+            err.to_string().contains("Service worker forbidden"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn protocol_file_path_rejects_traversal_paths() {
+        let (app, _dir) = app();
+
+        for uri in [
+            "sage-app://origin-id/../secret.txt",
+            "sage-app://origin-id/nested/../index.html",
+        ] {
+            assert!(
+                protocol_file_path_for_request(&app, &request(uri)).is_err(),
+                "expected {uri} to be rejected"
+            );
+        }
+    }
 }
