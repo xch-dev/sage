@@ -1,16 +1,13 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SageAppCapabilityDefinitionView,
-    SystemBridgeCapability, user_registry,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageAppCapabilityDefinitionView,
+    SystemBridgeCapability, bridge_result, user_registry,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CapabilitiesListUserDefinitions;
 
-#[async_trait]
-impl BridgeMethod for CapabilitiesListUserDefinitions {
+impl BridgeMethodHandler for CapabilitiesListUserDefinitions {
     fn name(&self) -> &'static str {
         "capabilities.listUserDefinitions"
     }
@@ -38,6 +35,6 @@ impl BridgeMethod for CapabilitiesListUserDefinitions {
             .map(Into::into)
             .collect::<Vec<SageAppCapabilityDefinitionView>>();
 
-        Ok(Box::new(definitions))
+        bridge_result(definitions)
     }
 }

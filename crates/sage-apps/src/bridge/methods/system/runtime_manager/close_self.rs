@@ -1,16 +1,13 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SystemBridgeCapability,
-    SystemKillRuntimeError, kill_runtime,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RustBridgeRequest, SystemBridgeCapability,
+    SystemKillRuntimeError, bridge_result, kill_runtime,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerCloseSelf;
 
-#[async_trait]
-impl BridgeMethod for RuntimeManagerCloseSelf {
+impl BridgeMethodHandler for RuntimeManagerCloseSelf {
     fn name(&self) -> &'static str {
         "runtimeManager.closeSelf"
     }
@@ -38,7 +35,7 @@ impl BridgeMethod for RuntimeManagerCloseSelf {
         match kill_runtime(tools.app_handle, tools.host_state, &app_id, "self_close").await {
             Ok(())
             | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => {
-                Ok(Box::new(()))
+                bridge_result(())
             }
         }
     }

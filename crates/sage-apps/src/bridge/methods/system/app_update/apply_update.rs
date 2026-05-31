@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageAppView,
-    SageGrantedPermissionsInput, SystemBridgeCapability, apply_app_update_inner,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageAppView,
+    SageGrantedPermissionsInput, SystemBridgeCapability, apply_app_update_inner, bridge_result,
     parse_required_params,
 };
 
@@ -25,8 +24,7 @@ pub struct AppUpdateApplyUpdateResult {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppUpdateApplyUpdate;
 
-#[async_trait]
-impl BridgeMethod for AppUpdateApplyUpdate {
+impl BridgeMethodHandler for AppUpdateApplyUpdate {
     fn name(&self) -> &'static str {
         "appUpdate.applyUpdate"
     }
@@ -65,6 +63,6 @@ impl BridgeMethod for AppUpdateApplyUpdate {
             ))
         })?;
 
-        Ok(Box::new(AppUpdateApplyUpdateResult { app }))
+        bridge_result(AppUpdateApplyUpdateResult { app })
     }
 }

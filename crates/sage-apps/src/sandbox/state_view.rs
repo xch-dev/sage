@@ -1,10 +1,9 @@
 use tauri::State;
 
-use super::types::{
-    SandboxCapabilityResult, SandboxCapabilityStatus, SandboxRunState, SandboxState,
+use crate::{
+    AppsHostState, SandboxCapabilityResult, SandboxCapabilityStatus, SandboxRunState, SandboxState,
     SandboxStateView,
 };
-use crate::AppsHostState;
 
 fn effective_cap(
     baseline: &SandboxCapabilityResult,

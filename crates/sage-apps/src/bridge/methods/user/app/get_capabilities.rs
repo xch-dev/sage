@@ -1,16 +1,13 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SageApp, SharedCapabilitiesExt,
-    UserBridgeCapability,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageApp, SharedCapabilitiesExt,
+    UserBridgeCapability, bridge_result,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetCapabilities;
 
-#[async_trait]
-impl BridgeMethod for AppGetCapabilities {
+impl BridgeMethodHandler for AppGetCapabilities {
     fn name(&self) -> &'static str {
         "app.getCapabilities"
     }
@@ -51,6 +48,6 @@ impl BridgeMethod for AppGetCapabilities {
 
         let shared_capabilities = effective_capabilities.shared();
 
-        Ok(Box::new(shared_capabilities))
+        bridge_result(shared_capabilities)
     }
 }

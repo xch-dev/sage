@@ -3,8 +3,7 @@ use std::fmt::Display;
 
 use tauri::State;
 
-use super::types::SharedRuntime;
-use crate::{AppPresentation, AppsHostState, SageAppRuntimeVisibility};
+use crate::{AppPresentation, AppsHostState, SageAppRuntimeVisibility, SharedRuntime};
 
 pub enum GetRuntimeError {
     NotFound,

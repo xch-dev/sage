@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
     BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID, BridgeApprovalRequestResult, BridgeContext,
-    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
-    RustBridgeRequest, UserBridgeCapability, ingest_bridge_send_payload,
-    ingest_origin_cleanup_bridge_send_payload, parse_required_params,
+    BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError, BridgeMethodHandler,
+    BridgeTools, RustBridgeRequest, UserBridgeCapability, bridge_result,
+    ingest_bridge_send_payload, ingest_origin_cleanup_bridge_send_payload, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -32,8 +31,7 @@ enum BridgeSendContextKind {
     OriginCleanup,
 }
 
-#[async_trait]
-impl BridgeMethod for BridgeSend {
+impl BridgeMethodHandler for BridgeSend {
     fn name(&self) -> &'static str {
         "bridge.send"
     }
@@ -87,7 +85,7 @@ impl BridgeMethod for BridgeSend {
             }
         }
 
-        Ok(Box::new(BridgeSendResult { ok: true }))
+        bridge_result(BridgeSendResult { ok: true })
     }
 }
 

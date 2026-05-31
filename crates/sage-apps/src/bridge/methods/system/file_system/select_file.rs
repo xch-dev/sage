@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri_plugin_dialog::DialogExt;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SystemBridgeCapability,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RustBridgeRequest, SystemBridgeCapability, bridge_result,
     parse_required_params,
 };
 
@@ -35,8 +34,7 @@ pub struct FileSystemSelectFileResult {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FileSystemSelectFile;
 
-#[async_trait]
-impl BridgeMethod for FileSystemSelectFile {
+impl BridgeMethodHandler for FileSystemSelectFile {
     fn name(&self) -> &'static str {
         "fileSystem.selectFile"
     }
@@ -79,6 +77,6 @@ impl BridgeMethod for FileSystemSelectFile {
 
         let selected = dialog.blocking_pick_file().map(|path| path.to_string());
 
-        Ok(Box::new(FileSystemSelectFileResult { path: selected }))
+        bridge_result(FileSystemSelectFileResult { path: selected })
     }
 }

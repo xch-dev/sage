@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use tokio::sync::Mutex;
 
-use super::types::{
+use crate::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
     SandboxPersistenceWriteProbeResult, SandboxRunState, build_initial_sandbox_state,
 };

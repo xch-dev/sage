@@ -6349,8 +6349,6 @@ name = "sage-apps"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
- "erased-serde",
  "futures",
  "hex",
  "mime_guess",
@@ -6504,7 +6502,6 @@ name = "sage-tauri"
 version = "0.12.10"
 dependencies = [
  "anyhow",
- "async-trait",
  "aws-lc-rs",
  "chia-wallet-sdk",
  "futures",

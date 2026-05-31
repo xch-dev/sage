@@ -1,13 +1,12 @@
 use std::collections::BTreeMap;
 
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    UserBridgeCapability, bridge_result,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -34,8 +33,7 @@ pub struct EnvironmentThemeGetCurrentResult {
 #[derive(Debug, Clone, Copy)]
 pub struct EnvironmentThemeGetCurrent;
 
-#[async_trait]
-impl BridgeMethod for EnvironmentThemeGetCurrent {
+impl BridgeMethodHandler for EnvironmentThemeGetCurrent {
     fn name(&self) -> &'static str {
         "environment.theme.getCurrent"
     }
@@ -70,6 +68,6 @@ impl BridgeMethod for EnvironmentThemeGetCurrent {
                 BridgeMethodHandleError::internal_error("current theme is not initialized")
             })?;
 
-        Ok(Box::new(EnvironmentThemeGetCurrentResult { theme }))
+        bridge_result(EnvironmentThemeGetCurrentResult { theme })
     }
 }

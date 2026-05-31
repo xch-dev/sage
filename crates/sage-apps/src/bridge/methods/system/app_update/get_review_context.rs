@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageApp,
-    SageAppUrlPreview, SystemBridgeCapability, UserSageAppView, check_app_update_inner,
-    parse_required_params, resolve_app,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageApp,
+    SageAppUrlPreview, SystemBridgeCapability, UserSageAppView, bridge_result,
+    check_app_update_inner, parse_required_params, resolve_app,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -27,8 +26,7 @@ pub struct AppUpdateReviewContext {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppUpdateGetReviewContext;
 
-#[async_trait]
-impl BridgeMethod for AppUpdateGetReviewContext {
+impl BridgeMethodHandler for AppUpdateGetReviewContext {
     fn name(&self) -> &'static str {
         "appUpdate.getReviewContext"
     }
@@ -85,6 +83,6 @@ impl BridgeMethod for AppUpdateGetReviewContext {
                 ))
             })?;
 
-        Ok(Box::new(AppUpdateReviewContext { app, preview }))
+        bridge_result(AppUpdateReviewContext { app, preview })
     }
 }

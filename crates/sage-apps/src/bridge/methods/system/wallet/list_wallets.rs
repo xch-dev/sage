@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use sage_api::GetKeys;
 use serde::Serialize;
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SystemBridgeCapability,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    SystemBridgeCapability, bridge_result,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -26,8 +25,7 @@ pub struct WalletListWalletsResult {
     pub wallets: Vec<SystemWalletView>,
 }
 
-#[async_trait]
-impl BridgeMethod for WalletListWallets {
+impl BridgeMethodHandler for WalletListWallets {
     fn name(&self) -> &'static str {
         "wallet.listWallets"
     }
@@ -56,7 +54,7 @@ impl BridgeMethod for WalletListWallets {
             BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
         })?;
 
-        Ok(Box::new(WalletListWalletsResult {
+        bridge_result(WalletListWalletsResult {
             wallets: keys
                 .keys
                 .into_iter()
@@ -66,6 +64,6 @@ impl BridgeMethod for WalletListWallets {
                     emoji: key.emoji,
                 })
                 .collect(),
-        }))
+        })
     }
 }

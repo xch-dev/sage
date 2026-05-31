@@ -1,10 +1,9 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RustBridgeRequest,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RustBridgeRequest, bridge_result,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -18,8 +17,7 @@ pub struct BridgePingResult {
     pub app_name: String,
 }
 
-#[async_trait]
-impl BridgeMethod for BridgePing {
+impl BridgeMethodHandler for BridgePing {
     fn name(&self) -> &'static str {
         "bridge.ping"
     }
@@ -42,10 +40,10 @@ impl BridgeMethod for BridgePing {
         _tools: BridgeTools<'_>,
         _request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        Ok(Box::new(BridgePingResult {
+        bridge_result(BridgePingResult {
             ok: true,
             app_id: ctx.app.id(),
             app_name: ctx.app.name(),
-        }))
+        })
     }
 }

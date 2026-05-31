@@ -1,12 +1,12 @@
-use async_trait::async_trait;
 use sage_api::SendXch;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
-    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeApprovalBody,
+    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, bridge_result,
+    parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -44,8 +44,7 @@ impl From<WalletSendXchParams> for SendXch {
     }
 }
 
-#[async_trait]
-impl BridgeMethod for WalletSendXch {
+impl BridgeMethodHandler for WalletSendXch {
     fn name(&self) -> &'static str {
         "wallet.sendXch"
     }
@@ -92,6 +91,6 @@ impl BridgeMethod for WalletSendXch {
                 BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
             })?;
 
-        Ok(Box::new(result))
+        bridge_result(result)
     }
 }

@@ -1,5 +1,3 @@
-use std::pin::Pin;
-
 use anyhow::Result;
 use tauri::{AppHandle, State};
 
@@ -45,10 +43,7 @@ impl<'a> AppMutationManager<'a> {
     pub(crate) async fn mutate_shared_app<T>(
         &self,
         app: &SharedSageApp,
-        f: impl for<'m> FnOnce(
-            &'m mut AppMutationContext,
-        ) -> Pin<Box<dyn Future<Output = Result<T>> + Send + 'm>>
-        + Send,
+        f: impl for<'m> AsyncFnOnce(&'m mut AppMutationContext) -> Result<T> + Send,
     ) -> Result<T, String>
     where
         T: Send,

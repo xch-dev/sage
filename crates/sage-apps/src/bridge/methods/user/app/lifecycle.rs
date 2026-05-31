@@ -1,9 +1,7 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, ReadyToStopParams, RuntimeAckResult, RustBridgeRequest,
-    SetBeforeStopListenerParams, UserBridgeCapability, parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, ReadyToStopParams, RuntimeAckResult, RustBridgeRequest,
+    SetBeforeStopListenerParams, UserBridgeCapability, bridge_result, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -12,8 +10,7 @@ pub struct AppLifecycleSetBeforeStopListener;
 #[derive(Debug, Clone, Copy)]
 pub struct AppLifecycleReadyToStop;
 
-#[async_trait]
-impl BridgeMethod for AppLifecycleSetBeforeStopListener {
+impl BridgeMethodHandler for AppLifecycleSetBeforeStopListener {
     fn name(&self) -> &'static str {
         "app.lifecycle.setBeforeStopListener"
     }
@@ -51,12 +48,11 @@ impl BridgeMethod for AppLifecycleSetBeforeStopListener {
             listeners.remove(&ctx.app.id());
         }
 
-        Ok(Box::new(RuntimeAckResult { ok: true }))
+        bridge_result(RuntimeAckResult { ok: true })
     }
 }
 
-#[async_trait]
-impl BridgeMethod for AppLifecycleReadyToStop {
+impl BridgeMethodHandler for AppLifecycleReadyToStop {
     fn name(&self) -> &'static str {
         "app.lifecycle.readyToStop"
     }
@@ -90,6 +86,6 @@ impl BridgeMethod for AppLifecycleReadyToStop {
             let _ = sender.send(());
         }
 
-        Ok(Box::new(RuntimeAckResult { ok: true }))
+        bridge_result(RuntimeAckResult { ok: true })
     }
 }

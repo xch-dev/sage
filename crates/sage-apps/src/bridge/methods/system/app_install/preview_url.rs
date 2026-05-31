@@ -1,11 +1,11 @@
-use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageAppUrl,
-    SageAppUrlPreview, SystemBridgeCapability, fetch_url_manifest_preview, parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageAppUrl,
+    SageAppUrlPreview, SystemBridgeCapability, bridge_result, fetch_url_manifest_preview,
+    parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -17,8 +17,7 @@ pub struct AppInstallPreviewUrlParams {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppInstallPreviewUrl;
 
-#[async_trait]
-impl BridgeMethod for AppInstallPreviewUrl {
+impl BridgeMethodHandler for AppInstallPreviewUrl {
     fn name(&self) -> &'static str {
         "appInstall.previewUrl"
     }
@@ -47,7 +46,7 @@ impl BridgeMethod for AppInstallPreviewUrl {
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(preview))
+        bridge_result(preview)
     }
 }
 

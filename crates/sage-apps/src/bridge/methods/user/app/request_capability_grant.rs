@@ -1,12 +1,12 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantCapabilityOutcome,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, GrantCapabilityOutcome,
     RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability,
-    get_user_capability_definition, grant_capability, parse_required_params, resolve_app_base_path,
+    bridge_result, get_user_capability_definition, grant_capability, parse_required_params,
+    resolve_app_base_path,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -43,8 +43,7 @@ fn ensure_capability_requestable_by_app(
     Ok(())
 }
 
-#[async_trait]
-impl BridgeMethod for AppRequestCapabilityGrant {
+impl BridgeMethodHandler for AppRequestCapabilityGrant {
     fn name(&self) -> &'static str {
         "app.requestCapabilityGrant"
     }
@@ -123,7 +122,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
             }
         };
 
-        Ok(Box::new(result))
+        bridge_result(result)
     }
 }
 

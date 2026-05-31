@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantNetworkWhitelistOutcome,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, GrantNetworkWhitelistOutcome,
     RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest,
-    SageNetworkWhitelistEntry, UserBridgeCapability, grant_network_whitelist_entry,
+    SageNetworkWhitelistEntry, UserBridgeCapability, bridge_result, grant_network_whitelist_entry,
     parse_required_params, resolve_app_base_path,
 };
 
@@ -38,8 +37,7 @@ pub struct RequestNetworkWhitelistGrantResult {
     pub full_granted_network_whitelist: Vec<SageNetworkWhitelistEntry>,
 }
 
-#[async_trait]
-impl BridgeMethod for AppRequestNetworkWhitelistGrant {
+impl BridgeMethodHandler for AppRequestNetworkWhitelistGrant {
     fn name(&self) -> &'static str {
         "app.requestNetworkWhitelistGrant"
     }
@@ -128,6 +126,6 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
             }
         };
 
-        Ok(Box::new(result))
+        bridge_result(result)
     }
 }

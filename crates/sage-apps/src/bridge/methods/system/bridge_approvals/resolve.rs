@@ -1,16 +1,14 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, ResolveBridgeApprovalArgs,
-    RustBridgeRequest, SystemBridgeCapability, parse_required_params, process_after_approval,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, ResolveBridgeApprovalArgs,
+    RustBridgeRequest, SystemBridgeCapability, bridge_result, parse_required_params,
+    process_after_approval,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BridgeApprovalsResolve;
 
-#[async_trait]
-impl BridgeMethod for BridgeApprovalsResolve {
+impl BridgeMethodHandler for BridgeApprovalsResolve {
     fn name(&self) -> &'static str {
         "bridgeApprovals.resolve"
     }
@@ -39,6 +37,6 @@ impl BridgeMethod for BridgeApprovalsResolve {
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(()))
+        bridge_result(())
     }
 }

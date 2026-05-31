@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageApp,
-    SystemBridgeCapability, UserSageAppView, parse_required_params, resolve_app,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageApp,
+    SystemBridgeCapability, UserSageAppView, bridge_result, parse_required_params, resolve_app,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -23,8 +22,7 @@ pub struct AppPermissionsReviewContext {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppPermissionsGetReviewContext;
 
-#[async_trait]
-impl BridgeMethod for AppPermissionsGetReviewContext {
+impl BridgeMethodHandler for AppPermissionsGetReviewContext {
     fn name(&self) -> &'static str {
         "appPermissions.getReviewContext"
     }
@@ -72,6 +70,6 @@ impl BridgeMethod for AppPermissionsGetReviewContext {
                 ))
             })?;
 
-        Ok(Box::new(AppPermissionsReviewContext { app }))
+        bridge_result(AppPermissionsReviewContext { app })
     }
 }

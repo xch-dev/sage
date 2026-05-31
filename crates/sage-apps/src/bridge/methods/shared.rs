@@ -1,13 +1,15 @@
-use async_trait::async_trait;
+use std::future::Future;
+
+use serde::Serialize;
 use serde::de::DeserializeOwned;
+use serde_json::Value;
 
 use crate::{
     AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest, RustBridgeRequest,
     SharedSageApp, SystemBridgeCapability, UserBridgeCapability,
 };
 
-#[async_trait]
-pub(crate) trait BridgeMethod: Send + Sync {
+pub(crate) trait BridgeMethodHandler: Send + Sync {
     fn name(&self) -> &'static str;
     fn capability(&self) -> BridgeMethodCapability;
 
@@ -17,12 +19,12 @@ pub(crate) trait BridgeMethod: Send + Sync {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult;
 
-    async fn handle(
+    fn handle(
         &self,
         ctx: BridgeContext<'_>,
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
-    ) -> BridgeHandleResult;
+    ) -> impl Future<Output = BridgeHandleResult> + Send;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,8 +71,13 @@ impl BridgeMethodHandleError {
     }
 }
 
-pub(crate) type BridgeHandleResult =
-    Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
+pub(crate) type BridgeHandleResult = Result<Value, BridgeMethodHandleError>;
+
+pub(crate) fn bridge_result(value: impl Serialize) -> BridgeHandleResult {
+    serde_json::to_value(value).map_err(|err| {
+        BridgeMethodHandleError::internal_error(format!("failed to encode bridge result: {err}"))
+    })
+}
 
 impl BridgeMethodCapability {
     pub(super) fn ungated() -> Self {
@@ -87,7 +94,7 @@ impl BridgeMethodCapability {
 }
 
 pub(crate) fn parse_required_params<T>(
-    method: &impl BridgeMethod,
+    method: &impl BridgeMethodHandler,
     request: &RustBridgeRequest,
 ) -> Result<T, BridgeMethodHandleError>
 where

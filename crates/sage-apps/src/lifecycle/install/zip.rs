@@ -4,13 +4,11 @@ use std::{
 };
 
 use anyhow::Result as AnyResult;
-use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::AppInstallSource;
 use crate::{
-    SageAppPackageManifest, SageAppSnapshot, UserSageAppSource, detect_package_root,
-    prepare_zip_snapshot, read_manifest, slugify_app_name, unzip_to_dir,
+    AppInstallSource, SageAppPackageManifest, SageAppSnapshot, UserSageAppSource,
+    detect_package_root, prepare_zip_snapshot, read_manifest, slugify_app_name, unzip_to_dir,
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +32,6 @@ impl ZipInstallSource {
     }
 }
 
-#[async_trait]
 impl AppInstallSource for ZipInstallSource {
     type PreparedArtifact = PreparedZipInstall;
 

@@ -29,12 +29,10 @@ pub(crate) async fn check_app_update_inner(
     let preview = match preview_app_update(&resolved).await? {
         AppUpdatePreviewResult::None => {
             mutation_manager
-                .mutate_shared_app(&app, |ctx| {
-                    Box::pin(async move {
-                        ctx.draft_mut().app_mut().set_pending_update(None)?;
+                .mutate_shared_app(&app, async |ctx| {
+                    ctx.draft_mut().app_mut().set_pending_update(None)?;
 
-                        Ok(())
-                    })
+                    Ok(())
                 })
                 .await
                 .map_err(io::Error::other)?;
@@ -67,14 +65,12 @@ pub(crate) async fn check_app_update_inner(
     };
 
     mutation_manager
-        .mutate_shared_app(&app, |ctx| {
-            Box::pin(async move {
-                ctx.draft_mut()
-                    .app_mut()
-                    .set_pending_update(pending_update)?;
+        .mutate_shared_app(&app, async |ctx| {
+            ctx.draft_mut()
+                .app_mut()
+                .set_pending_update(pending_update)?;
 
-                Ok(())
-            })
+            Ok(())
         })
         .await
         .map_err(io::Error::other)?;

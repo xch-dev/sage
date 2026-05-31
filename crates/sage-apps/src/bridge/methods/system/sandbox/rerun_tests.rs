@@ -1,16 +1,13 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SystemBridgeCapability, begin_sandbox_run, sandbox_runner,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    SystemBridgeCapability, begin_sandbox_run, bridge_result, sandbox_runner,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct SandboxRerunTests;
 
-#[async_trait]
-impl BridgeMethod for SandboxRerunTests {
+impl BridgeMethodHandler for SandboxRerunTests {
     fn name(&self) -> &'static str {
         "sandbox.rerunTests"
     }
@@ -43,6 +40,6 @@ impl BridgeMethod for SandboxRerunTests {
             Box::pin(sandbox_runner(runner_app)).await;
         });
 
-        Ok(Box::new(view))
+        bridge_result(view)
     }
 }

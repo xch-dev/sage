@@ -2,14 +2,15 @@ use tauri::{AppHandle, Manager, State, Webview};
 
 use crate::{
     AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
-    BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
+    BridgeMethodCapability, BridgeMethodEntry, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
     BridgeTools, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
     RustBridgeRequest, RustBridgeResponse, SharedSageApp, SystemBridgeCapability,
-    UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
-    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
-    ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition,
-    get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app,
-    start_bridge_approval_runtime, sync_bridge_approval_runtime, write_pending_approval,
+    UserBridgeCapability, UserBridgeMethodEntry, UserBridgeRegistry, assert_bridge_origin,
+    emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
+    ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_pending_approval,
+    get_system_capability_definition, get_user_capability_definition, list_pending_approvals,
+    remove_pending_approval, resolve_app, start_bridge_approval_runtime,
+    sync_bridge_approval_runtime, write_pending_approval,
 };
 
 pub(crate) async fn process(
@@ -103,15 +104,12 @@ pub(crate) async fn process_after_approval(
         assert_bridge_origin(app_handle, &app.with_app(SharedSageApp::webview_label)).await?;
 
     let invoke_result = if args.approved {
-        process_shared(
-            app_handle,
-            app_state,
-            &origin,
-            pending.registry_kind,
-            &pending.request,
-            true,
-        )
-        .await?
+        if pending.registry_kind != BridgeRegistryKind::User {
+            return Err("only user bridge approvals can be resolved".to_string());
+        }
+
+        execute_approved_user_bridge_request(app_handle, app_state, &origin, &pending.request)
+            .await?
     } else {
         RustBridgeInvokeResult::error(
             &pending.request.id,
@@ -123,6 +121,44 @@ pub(crate) async fn process_after_approval(
 
     emit_bridge_response_to_app(app_handle, &origin.app, &invoke_result.try_into()?).await?;
     Ok(())
+}
+
+async fn execute_approved_user_bridge_request(
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    origin: &BridgeOrigin,
+    request: &RustBridgeRequest,
+) -> Result<RustBridgeInvokeResult, String> {
+    let registry = UserBridgeRegistry::new();
+    let app = &origin.app;
+
+    if let Err(err) = ensure_app_is_enabled_for_scope(app_state, app).await {
+        return Ok(RustBridgeInvokeResult::error(
+            &request.id,
+            "app_not_enabled_for_scope",
+            err,
+        ));
+    }
+
+    let method = match assert_user_method(&registry, request) {
+        Ok(method) => method,
+        Err(response) => return Ok(response.into()),
+    };
+
+    match method.capability() {
+        BridgeMethodCapability::Ungated => {}
+        BridgeMethodCapability::Required(capability) => {
+            if let Err(response) = verify_capability(&origin.app, request, capability) {
+                return Ok(response.into());
+            }
+        }
+    }
+
+    Ok(
+        execute_user_bridge_request(app_handle, app_state, origin, registry, request)
+            .await
+            .into(),
+    )
 }
 
 async fn process_shared(
@@ -210,14 +246,37 @@ async fn execute_bridge_request(
         .await;
 
     match result {
-        Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-            Ok(value) => RustBridgeResponse::success(&request.id, &value),
-            Err(err) => RustBridgeResponse::error(
-                &request.id,
-                "internal_error",
-                format!("failed to encode {} result: {err}", method.name()),
-            ),
-        },
+        Ok(value) => RustBridgeResponse::success(&request.id, &value),
+        Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
+    }
+}
+
+async fn execute_user_bridge_request(
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    origin: &BridgeOrigin,
+    registry: UserBridgeRegistry,
+    request: &RustBridgeRequest,
+) -> RustBridgeResponse {
+    let method = match assert_user_method(&registry, request) {
+        Ok(method) => method,
+        Err(response) => return response,
+    };
+
+    let result = method
+        .handle(
+            BridgeContext { app: &origin.app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
+            },
+            request,
+        )
+        .await;
+
+    match result {
+        Ok(value) => RustBridgeResponse::success(&request.id, &value),
         Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
     }
 }
@@ -345,7 +404,22 @@ fn verify_system_capability(
 fn assert_method<'a>(
     registry: &'a BridgeRegistry,
     request: &RustBridgeRequest,
-) -> Result<&'a dyn BridgeMethod, RustBridgeResponse> {
+) -> Result<BridgeMethodEntry<'a>, RustBridgeResponse> {
+    let Some(method) = registry.get(&request.method) else {
+        return Err(RustBridgeResponse::error(
+            &request.id,
+            "method_not_found",
+            format!("Unknown bridge method: {}", request.method),
+        ));
+    };
+
+    Ok(method)
+}
+
+fn assert_user_method<'a>(
+    registry: &'a UserBridgeRegistry,
+    request: &RustBridgeRequest,
+) -> Result<&'a UserBridgeMethodEntry, RustBridgeResponse> {
     let Some(method) = registry.get(&request.method) else {
         return Err(RustBridgeResponse::error(
             &request.id,

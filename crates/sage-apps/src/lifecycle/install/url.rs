@@ -1,12 +1,10 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::Result as AnyResult;
-use async_trait::async_trait;
 
-use super::AppInstallSource;
 use crate::{
-    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageAppSource,
-    bytes_sha256_hex, download_url_snapshot, fetch_url_manifest_preview,
+    AppInstallSource, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview,
+    UserSageAppSource, bytes_sha256_hex, download_url_snapshot, fetch_url_manifest_preview,
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +12,6 @@ pub struct PreparedUrlInstall {
     pub preview: SageAppUrlPreview,
 }
 
-#[async_trait]
 impl AppInstallSource for SageAppUrl {
     type PreparedArtifact = PreparedUrlInstall;
 

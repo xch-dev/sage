@@ -1,17 +1,14 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RuntimeTargetParams,
-    RustBridgeRequest, SageAppRuntimeRecordView, SystemBridgeCapability, hide_runtime,
-    parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RuntimeTargetParams,
+    RustBridgeRequest, SageAppRuntimeRecordView, SystemBridgeCapability, bridge_result,
+    hide_runtime, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerHideRuntime;
 
-#[async_trait]
-impl BridgeMethod for RuntimeManagerHideRuntime {
+impl BridgeMethodHandler for RuntimeManagerHideRuntime {
     fn name(&self) -> &'static str {
         "runtimeManager.hideRuntime"
     }
@@ -41,6 +38,6 @@ impl BridgeMethod for RuntimeManagerHideRuntime {
             .map_err(BridgeMethodHandleError::internal_error)?;
 
         let runtime_view: SageAppRuntimeRecordView = runtime.into();
-        Ok(Box::new(runtime_view))
+        bridge_result(runtime_view)
     }
 }

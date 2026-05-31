@@ -11,15 +11,13 @@ pub async fn update_app_wallet_scope_for_app(
     let manager = AppMutationManager::new(app_handle, &apps_state);
 
     manager
-        .mutate_shared_app(app, move |ctx| {
-            Box::pin(async move {
-                ctx.draft_mut()
-                    .app_mut()
-                    .common_mut()
-                    .update_wallet_scope(wallet_scope);
+        .mutate_shared_app(app, async move |ctx| {
+            ctx.draft_mut()
+                .app_mut()
+                .common_mut()
+                .update_wallet_scope(wallet_scope);
 
-                Ok(())
-            })
+            Ok(())
         })
         .await
         .map_err(anyhow::Error::msg)?;

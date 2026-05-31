@@ -256,25 +256,23 @@ pub(crate) async fn rotate_app_storage_and_origin(
     let manager = AppMutationManager::new(app_handle, apps_state);
 
     manager
-        .mutate_shared_app(app, |ctx| {
-            Box::pin(async move {
-                let origin_row_id = ctx
-                    .tx()
-                    .register_origin(&next_origin_id, next_storage.storage_id)
-                    .await?;
+        .mutate_shared_app(app, async |ctx| {
+            let origin_row_id = ctx
+                .tx()
+                .register_origin(&next_origin_id, next_storage.storage_id)
+                .await?;
 
-                ctx.tx()
-                    .update_app_assignment(&app_id, next_storage.storage_id, origin_row_id)
-                    .await?;
+            ctx.tx()
+                .update_app_assignment(&app_id, next_storage.storage_id, origin_row_id)
+                .await?;
 
-                ctx.draft_mut().replace_storage_and_origin(
-                    next_storage.storage.clone(),
-                    next_origin_id,
-                    false,
-                )?;
+            ctx.draft_mut().replace_storage_and_origin(
+                next_storage.storage.clone(),
+                next_origin_id,
+                false,
+            )?;
 
-                Ok(())
-            })
+            Ok(())
         })
         .await
         .map_err(|err| format!("failed to rotate app storage/origin: {err}"))

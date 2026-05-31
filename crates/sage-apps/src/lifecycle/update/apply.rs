@@ -183,16 +183,14 @@ async fn execute_app_update(
     let manager = AppMutationManager::new(app_handle, &apps_state);
 
     manager
-        .mutate_shared_app(&app, move |ctx| {
-            Box::pin(async move {
-                ctx.draft_mut()
-                    .app_mut()
-                    .apply_update(&pending, granted_permissions, snapshot)?;
+        .mutate_shared_app(&app, async move |ctx| {
+            ctx.draft_mut()
+                .app_mut()
+                .apply_update(&pending, granted_permissions, snapshot)?;
 
-                ctx.draft_mut().app_mut().set_pending_update(None)?;
+            ctx.draft_mut().app_mut().set_pending_update(None)?;
 
-                Ok(())
-            })
+            Ok(())
         })
         .await
         .map_err(io::Error::other)?;

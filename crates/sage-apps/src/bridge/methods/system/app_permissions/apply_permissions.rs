@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageApp,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageApp,
     SageAppWalletScope, SageGrantedPermissionsInput, SystemBridgeCapability, UserSageAppView,
-    parse_required_params, resolve_app, update_app_permissions_for_app,
+    bridge_result, parse_required_params, resolve_app, update_app_permissions_for_app,
     update_app_wallet_scope_for_app,
 };
 
@@ -27,8 +26,7 @@ pub struct AppPermissionsApplyPermissionsResult {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppPermissionsApplyPermissions;
 
-#[async_trait]
-impl BridgeMethod for AppPermissionsApplyPermissions {
+impl BridgeMethodHandler for AppPermissionsApplyPermissions {
     fn name(&self) -> &'static str {
         "appPermissions.applyPermissions"
     }
@@ -109,8 +107,6 @@ impl BridgeMethod for AppPermissionsApplyPermissions {
                 ))
             })?;
 
-        Ok(Box::new(AppPermissionsApplyPermissionsResult {
-            app: app_view,
-        }))
+        bridge_result(AppPermissionsApplyPermissionsResult { app: app_view })
     }
 }

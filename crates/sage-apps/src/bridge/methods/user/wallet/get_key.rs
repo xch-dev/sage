@@ -1,17 +1,15 @@
-use async_trait::async_trait;
 use sage_api::GetKey;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability, parse_required_params, require_scoped_fingerprint,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    UserBridgeCapability, bridge_result, parse_required_params, require_scoped_fingerprint,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetKey;
 
-#[async_trait]
-impl BridgeMethod for WalletGetKey {
+impl BridgeMethodHandler for WalletGetKey {
     fn name(&self) -> &'static str {
         "wallet.getKey"
     }
@@ -51,6 +49,6 @@ impl BridgeMethod for WalletGetKey {
             ))
         })?;
 
-        Ok(Box::new(result))
+        bridge_result(result)
     }
 }

@@ -9,11 +9,11 @@ pub(crate) use zip::*;
 
 use std::{
     fs,
+    future::Future,
     path::{Path, PathBuf},
 };
 
 use anyhow::Result as AnyResult;
-use async_trait::async_trait;
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
@@ -24,11 +24,10 @@ use crate::{
     fresh_snapshot_dir, write_snapshot_manifest,
 };
 
-#[async_trait]
 pub trait AppInstallSource {
     type PreparedArtifact: Send + Sync;
 
-    async fn prepare(&self) -> AnyResult<Self::PreparedArtifact>;
+    fn prepare(&self) -> impl Future<Output = AnyResult<Self::PreparedArtifact>> + Send;
 
     fn manifest<'a>(&self, prepared: &'a Self::PreparedArtifact) -> &'a SageAppPackageManifest;
 
@@ -41,11 +40,11 @@ pub trait AppInstallSource {
         prepared: &Self::PreparedArtifact,
     ) -> AnyResult<(String, PathBuf)>;
 
-    async fn create_snapshot(
+    fn create_snapshot(
         &self,
         snapshot_dir: &Path,
         prepared: &Self::PreparedArtifact,
-    ) -> AnyResult<SageAppSnapshot>;
+    ) -> impl Future<Output = AnyResult<SageAppSnapshot>> + Send;
 }
 
 #[derive(Debug)]
@@ -248,7 +247,6 @@ pub(crate) struct FakePreparedArtifact {
     manifest: SageAppPackageManifest,
 }
 
-#[async_trait]
 #[cfg(test)]
 impl AppInstallSource for FakeInstallSource {
     type PreparedArtifact = FakePreparedArtifact;

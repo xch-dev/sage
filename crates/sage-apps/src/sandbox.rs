@@ -17,4 +17,6 @@ pub use runner::*;
 pub use store::*;
 pub use types::*;
 
+pub(crate) use probes::*;
+pub(crate) use runtime::*;
 pub(crate) use state_view::*;

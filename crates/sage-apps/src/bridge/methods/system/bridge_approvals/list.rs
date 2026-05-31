@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use serde::Serialize;
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, PendingBridgeApproval, RustBridgeApprovalRequest,
-    RustBridgeRequest, SystemBridgeCapability, list_pending_approvals,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, PendingBridgeApproval, RustBridgeApprovalRequest,
+    RustBridgeRequest, SystemBridgeCapability, bridge_result, list_pending_approvals,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -21,8 +20,7 @@ pub(crate) struct PendingBridgeApprovalView {
     pub expires_at_ms: u64,
 }
 
-#[async_trait]
-impl BridgeMethod for BridgeApprovalsListPending {
+impl BridgeMethodHandler for BridgeApprovalsListPending {
     fn name(&self) -> &'static str {
         "bridgeApprovals.listPending"
     }
@@ -50,7 +48,7 @@ impl BridgeMethod for BridgeApprovalsListPending {
             .into_iter()
             .map(PendingBridgeApprovalView::from)
             .collect::<Vec<_>>();
-        Ok(Box::new(approvals))
+        bridge_result(approvals)
     }
 }
 

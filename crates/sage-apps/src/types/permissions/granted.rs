@@ -3,9 +3,9 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-use super::{SageRequestedNetworkPermissions, SageRequestedPermissions};
 use crate::{
-    SageNetworkWhitelistEntry, SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
+    SageNetworkWhitelistEntry, SageRequestedNetworkPermissions, SageRequestedPermissions,
+    SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
     build_user_grantable_capability_set, get_user_capability_definition,
     validate_permissions_policy,
 };

@@ -1,16 +1,15 @@
 use std::fs;
 use std::path::Path;
 
-use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
 use uuid::Uuid;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SageAppPackageManifest, SystemBridgeCapability, detect_package_root, parse_required_params,
-    read_manifest, unzip_to_dir,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    SageAppPackageManifest, SystemBridgeCapability, bridge_result, detect_package_root,
+    parse_required_params, read_manifest, unzip_to_dir,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -22,8 +21,7 @@ pub struct AppInstallPreviewZipParams {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppInstallPreviewZip;
 
-#[async_trait]
-impl BridgeMethod for AppInstallPreviewZip {
+impl BridgeMethodHandler for AppInstallPreviewZip {
     fn name(&self) -> &'static str {
         "appInstall.previewZip"
     }
@@ -51,7 +49,7 @@ impl BridgeMethod for AppInstallPreviewZip {
         let manifest =
             preview_manifest(&params.zip_path).map_err(BridgeMethodHandleError::internal_error)?;
 
-        Ok(Box::new(manifest))
+        bridge_result(manifest)
     }
 }
 

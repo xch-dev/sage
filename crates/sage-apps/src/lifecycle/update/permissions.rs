@@ -203,20 +203,18 @@ async fn mutate_granted_permissions(
     let manager = AppMutationManager::new(app_handle, apps_state);
 
     manager
-        .mutate_shared_app(app, move |ctx| {
-            Box::pin(async move {
-                let previous = ctx.draft().app().common().granted_permissions().clone();
+        .mutate_shared_app(app, async move |ctx| {
+            let previous = ctx.draft().app().common().granted_permissions().clone();
 
-                ctx.draft_mut()
-                    .update_permissions(&granted_permissions)
-                    .context("failed to update app permissions")?;
+            ctx.draft_mut()
+                .update_permissions(&granted_permissions)
+                .context("failed to update app permissions")?;
 
-                let new = ctx.draft().app().common().granted_permissions().clone();
+            let new = ctx.draft().app().common().granted_permissions().clone();
 
-                Ok(AppUpdateResult::new(GrantedPermissionsChange::diff(
-                    &previous, &new,
-                )))
-            })
+            Ok(AppUpdateResult::new(GrantedPermissionsChange::diff(
+                &previous, &new,
+            )))
         })
         .await
         .map_err(anyhow::Error::msg)

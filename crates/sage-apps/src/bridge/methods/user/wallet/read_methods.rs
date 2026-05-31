@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use sage_api::{
     CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetPendingTransactions,
     GetSpendableCoinCount, GetSyncStatus, GetTransaction, GetTransactions, GetVersion,
@@ -6,9 +5,9 @@ use sage_api::{
 };
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability, parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    UserBridgeCapability, bridge_result, parse_required_params,
 };
 
 macro_rules! define_wallet_read_no_params_async_method {
@@ -16,8 +15,7 @@ macro_rules! define_wallet_read_no_params_async_method {
         #[derive(Debug, Clone, Copy)]
         pub struct $struct_name;
 
-        #[async_trait]
-        impl BridgeMethod for $struct_name {
+        impl BridgeMethodHandler for $struct_name {
             fn name(&self) -> &'static str {
                 $method_name
             }
@@ -49,7 +47,7 @@ macro_rules! define_wallet_read_no_params_async_method {
                     ))
                 })?;
 
-                Ok(Box::new(result))
+                bridge_result(result)
             }
         }
     };
@@ -60,8 +58,7 @@ macro_rules! define_wallet_read_no_params_sync_method {
         #[derive(Debug, Clone, Copy)]
         pub struct $struct_name;
 
-        #[async_trait]
-        impl BridgeMethod for $struct_name {
+        impl BridgeMethodHandler for $struct_name {
             fn name(&self) -> &'static str {
                 $method_name
             }
@@ -93,7 +90,7 @@ macro_rules! define_wallet_read_no_params_sync_method {
                     ))
                 })?;
 
-                Ok(Box::new(result))
+                bridge_result(result)
             }
         }
     };
@@ -104,8 +101,7 @@ macro_rules! define_wallet_read_params_async_method {
         #[derive(Debug, Clone, Copy)]
         pub struct $struct_name;
 
-        #[async_trait]
-        impl BridgeMethod for $struct_name {
+        impl BridgeMethodHandler for $struct_name {
             fn name(&self) -> &'static str {
                 $method_name
             }
@@ -139,7 +135,7 @@ macro_rules! define_wallet_read_params_async_method {
                     ))
                 })?;
 
-                Ok(Box::new(result))
+                bridge_result(result)
             }
         }
     };

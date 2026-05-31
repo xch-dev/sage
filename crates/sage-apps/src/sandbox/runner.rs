@@ -1,12 +1,11 @@
 use tauri::{AppHandle, Manager, State};
 
-use super::probes::{run_isolation_test, run_network_test, run_persistence_test};
-use super::state_view::{build_effective_state, build_state_view};
-use super::types::{
-    SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,
-    build_running_sandbox_state, mark_cap,
+use crate::{
+    AppsHostState, SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,
+    build_effective_state, build_running_sandbox_state, build_state_view,
+    emit_sandbox_state_changed, mark_cap, run_isolation_test, run_network_test,
+    run_persistence_test, unix_timestamp_ms,
 };
-use crate::{AppsHostState, emit_sandbox_state_changed, unix_timestamp_ms};
 
 pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     let apps_state = app.state::<AppsHostState>();

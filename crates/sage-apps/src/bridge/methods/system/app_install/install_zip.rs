@@ -1,16 +1,15 @@
 use std::{fs, io};
 
-use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
 use tauri::{AppHandle, Manager, State};
 
-use super::AppInstallInstallResult;
 use crate::{
-    AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult,
-    BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, Result,
-    RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput, SystemBridgeCapability,
-    UserSageAppView, ZipInstallSource, apps_root, install_app_from_source, parse_required_params,
+    AppInstallInstallResult, AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
+    BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError, BridgeMethodHandler,
+    BridgeTools, Result, RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput,
+    SystemBridgeCapability, UserSageAppView, ZipInstallSource, apps_root, bridge_result,
+    install_app_from_source, parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -24,8 +23,7 @@ pub struct AppInstallInstallZipParams {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppInstallInstallZip;
 
-#[async_trait]
-impl BridgeMethod for AppInstallInstallZip {
+impl BridgeMethodHandler for AppInstallInstallZip {
     fn name(&self) -> &'static str {
         "appInstall.installZip"
     }
@@ -62,7 +60,7 @@ impl BridgeMethod for AppInstallInstallZip {
         .await
         .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 
-        Ok(Box::new(AppInstallInstallResult::new(app)))
+        bridge_result(AppInstallInstallResult::new(app))
     }
 }
 

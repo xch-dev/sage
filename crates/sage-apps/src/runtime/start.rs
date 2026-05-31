@@ -366,13 +366,11 @@ async fn mark_origin_may_contain_secrets_if_needed(
     let manager = AppMutationManager::new(app_handle, apps_state);
 
     manager
-        .mutate_shared_app(app, |ctx| {
-            Box::pin(async move {
-                ctx.draft_mut()
-                    .mark_origin_webview_storage_may_contain_secrets()?;
+        .mutate_shared_app(app, async |ctx| {
+            ctx.draft_mut()
+                .mark_origin_webview_storage_may_contain_secrets()?;
 
-                Ok(())
-            })
+            Ok(())
         })
         .await
         .map_err(|err| format!("failed to mark origin as containing secrets: {err}"))

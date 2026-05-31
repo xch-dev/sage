@@ -1,15 +1,15 @@
 use std::io;
 
-use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
     AppInstallInstallResult, AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
-    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
-    Result, RustBridgeRequest, SageAppUrl, SageAppWalletScope, SageGrantedPermissionsInput,
-    SystemBridgeCapability, UserSageAppView, install_app_from_source, parse_required_params,
+    BridgeHandleResult, BridgeMethodCapability, BridgeMethodHandleError, BridgeMethodHandler,
+    BridgeTools, Result, RustBridgeRequest, SageAppUrl, SageAppWalletScope,
+    SageGrantedPermissionsInput, SystemBridgeCapability, UserSageAppView, bridge_result,
+    install_app_from_source, parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -23,8 +23,7 @@ pub struct AppInstallInstallUrlParams {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct AppInstallInstallUrl;
 
-#[async_trait]
-impl BridgeMethod for AppInstallInstallUrl {
+impl BridgeMethodHandler for AppInstallInstallUrl {
     fn name(&self) -> &'static str {
         "appInstall.installUrl"
     }
@@ -61,7 +60,7 @@ impl BridgeMethod for AppInstallInstallUrl {
         .await
         .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 
-        Ok(Box::new(AppInstallInstallResult::new(app)))
+        bridge_result(AppInstallInstallResult::new(app))
     }
 }
 

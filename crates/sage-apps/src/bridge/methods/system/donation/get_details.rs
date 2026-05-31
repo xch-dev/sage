@@ -1,11 +1,10 @@
-use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SageAppIconView, SystemBridgeCapability, parse_required_params, resolve_app,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest, SageAppIconView,
+    SystemBridgeCapability, bridge_result, parse_required_params, resolve_app,
 };
 
 #[derive(Debug, Clone, Deserialize, Type)]
@@ -28,8 +27,7 @@ pub struct DonationDetails {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct DonationGetDetails;
 
-#[async_trait]
-impl BridgeMethod for DonationGetDetails {
+impl BridgeMethodHandler for DonationGetDetails {
     fn name(&self) -> &'static str {
         "donations.getDetails"
     }
@@ -82,6 +80,6 @@ impl BridgeMethod for DonationGetDetails {
             })
             .map_err(BridgeMethodHandleError::invalid_request)?;
 
-        Ok(Box::new(details))
+        bridge_result(details)
     }
 }

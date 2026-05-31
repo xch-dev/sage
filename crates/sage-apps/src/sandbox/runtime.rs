@@ -33,7 +33,7 @@ pub(crate) async fn start_test_app(
         .await
 }
 
-pub(super) fn unique_run_id(prefix: &str) -> String {
+pub(crate) fn unique_run_id(prefix: &str) -> String {
     format!("{prefix}-{}", Uuid::new_v4())
 }
 

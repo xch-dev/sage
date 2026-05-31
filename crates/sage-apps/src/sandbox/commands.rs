@@ -1,10 +1,9 @@
 use tauri::{AppHandle, State, command};
 
-use super::gate::evaluate_app_launch_gate;
-use super::runner::{begin_sandbox_run, sandbox_runner};
-use super::state_view::{build_effective_state, build_state_view};
-use super::types::{AppLaunchGateResult, SandboxStateView};
-use crate::{AppsHostState, resolve_app};
+use crate::{
+    AppLaunchGateResult, AppsHostState, SandboxStateView, begin_sandbox_run, build_effective_state,
+    build_state_view, evaluate_app_launch_gate, resolve_app, sandbox_runner,
+};
 
 #[command]
 #[specta::specta]

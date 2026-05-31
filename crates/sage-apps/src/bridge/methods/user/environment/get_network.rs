@@ -1,12 +1,11 @@
-use async_trait::async_trait;
 use sage_api::{GetNetwork, NetworkKind};
 use serde::Serialize;
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    UserBridgeCapability,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    UserBridgeCapability, bridge_result,
 };
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -23,8 +22,7 @@ pub struct EnvironmentGetNetworkResult {
 #[derive(Debug, Clone, Copy)]
 pub struct EnvironmentGetNetwork;
 
-#[async_trait]
-impl BridgeMethod for EnvironmentGetNetwork {
+impl BridgeMethodHandler for EnvironmentGetNetwork {
     fn name(&self) -> &'static str {
         "environment.getNetwork"
     }
@@ -54,13 +52,13 @@ impl BridgeMethod for EnvironmentGetNetwork {
             .get_network(GetNetwork {})
             .map_err(|err| BridgeMethodHandleError::internal_error(err.to_string()))?;
 
-        Ok(Box::new(EnvironmentGetNetworkResult {
+        bridge_result(EnvironmentGetNetworkResult {
             name: current.network.name.clone(),
             network_id: current.network.network_id(),
             kind: current.kind,
             ticker: current.network.ticker.clone(),
             prefix: current.network.prefix(),
             precision: current.network.precision,
-        }))
+        })
     }
 }

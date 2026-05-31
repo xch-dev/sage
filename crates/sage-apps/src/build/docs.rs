@@ -159,7 +159,7 @@ pub(crate) fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
     };
 
     let registry = BridgeRegistry::new(kind);
-    let mut methods = registry.iter().collect::<Vec<_>>();
+    let mut methods = registry.iter();
     methods.sort_by_key(|(name, _)| *name);
 
     let mut out = format!("# {title}\n\n");

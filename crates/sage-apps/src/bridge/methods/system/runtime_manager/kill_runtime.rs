@@ -1,10 +1,10 @@
-use async_trait::async_trait;
 use serde::Serialize;
 
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeTools, RuntimeTargetParams, RustBridgeRequest,
-    SystemBridgeCapability, SystemKillRuntimeError, kill_runtime, parse_required_params,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandler, BridgeTools, RuntimeTargetParams, RustBridgeRequest,
+    SystemBridgeCapability, SystemKillRuntimeError, bridge_result, kill_runtime,
+    parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -21,8 +21,7 @@ impl RuntimeManagerKillRuntimeResponse {
     }
 }
 
-#[async_trait]
-impl BridgeMethod for RuntimeManagerKillRuntime {
+impl BridgeMethodHandler for RuntimeManagerKillRuntime {
     fn name(&self) -> &'static str {
         "runtimeManager.killRuntime"
     }
@@ -57,7 +56,7 @@ impl BridgeMethod for RuntimeManagerKillRuntime {
         {
             Ok(())
             | Err(SystemKillRuntimeError::NotFound | SystemKillRuntimeError::RuntimeSync(_)) => {
-                Ok(Box::new(RuntimeManagerKillRuntimeResponse::ok()))
+                bridge_result(RuntimeManagerKillRuntimeResponse::ok())
             }
         }
     }

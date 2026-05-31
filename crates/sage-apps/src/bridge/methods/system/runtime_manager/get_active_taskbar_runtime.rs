@@ -1,17 +1,14 @@
-use async_trait::async_trait;
-
 use crate::{
-    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SageAppRuntimeRecordView, SystemBridgeCapability, find_active_taskbar_runtime,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, BridgeMethodHandler, BridgeTools, RustBridgeRequest,
+    SageAppRuntimeRecordView, SystemBridgeCapability, bridge_result, find_active_taskbar_runtime,
     find_runtime_by_runtime_id_optional, resolve_running_app,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerGetActiveTaskbarRuntime;
 
-#[async_trait]
-impl BridgeMethod for RuntimeManagerGetActiveTaskbarRuntime {
+impl BridgeMethodHandler for RuntimeManagerGetActiveTaskbarRuntime {
     fn name(&self) -> &'static str {
         "runtimeManager.getActiveTaskbarRuntime"
     }
@@ -51,7 +48,7 @@ impl BridgeMethod for RuntimeManagerGetActiveTaskbarRuntime {
             find_active_taskbar_runtime(tools.host_state, &host_window_label).await;
 
         let Some(active_taskbar_runtime) = active_taskbar_runtime else {
-            return Ok(Box::new(None::<SageAppRuntimeRecordView>));
+            return bridge_result(None::<SageAppRuntimeRecordView>);
         };
 
         let runtime: Option<SageAppRuntimeRecordView> = find_runtime_by_runtime_id_optional(
@@ -61,6 +58,6 @@ impl BridgeMethod for RuntimeManagerGetActiveTaskbarRuntime {
         .await
         .map(Into::into);
 
-        Ok(Box::new(runtime))
+        bridge_result(runtime)
     }
 }
