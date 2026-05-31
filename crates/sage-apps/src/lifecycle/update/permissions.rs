@@ -3,24 +3,14 @@ use std::path::Path;
 use anyhow::Context;
 use tauri::{AppHandle, Manager, State};
 
-use crate::AppsHostState;
-use crate::bridge::emit_user_runtime_event_to_app_id;
-use crate::bridge::methods::user::app::{
-    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
+use crate::{
+    AppMutationManager, AppState, AppUpdateResult, AppsHostState, CreateInstalledRuntimeArgs,
+    GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChangeEvent,
+    GrantedNetworkWhitelistChangeEvent, GrantedPermissionsChange, SageAppRuntimeVisibility,
+    SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp, UserBridgeCapability,
+    emit_user_runtime_event_to_app_id, find_runtime_by_app_id_optional, kill_taskbar_runtime,
+    reload_app_runtime, resolve_app, start_user_app,
 };
-use crate::capabilities::list::UserBridgeCapability;
-use crate::host::AppState;
-use crate::lifecycle::AppMutationManager;
-use crate::lifecycle::update::types::{
-    AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
-};
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::start::start_user_app;
-use crate::runtime::{
-    SageAppRuntimeVisibility, find_runtime_by_app_id_optional, kill_taskbar_runtime,
-    reload_app_runtime, resolve_app,
-};
-use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp};
 
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
@@ -282,16 +272,17 @@ async fn network_change_affects_current_network(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::BTreeMap;
 
-    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
-    use crate::types::{
-        SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageAppSource,
-    };
     use tempfile::tempdir;
+
+    use super::*;
+    use crate::{
+        FakeInstallSource, SageApp, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions,
+        UserSageAppSource, install_app_from_source_for_test,
+    };
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

@@ -1,17 +1,14 @@
 use async_trait::async_trait;
-
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
-};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::UserBridgeCapability;
-
 use sage_api::{
     CheckAddress, GetCoins, GetCoinsByIds, GetDerivations, GetPendingTransactions,
     GetSpendableCoinCount, GetSyncStatus, GetTransaction, GetTransactions, GetVersion,
     GetXchUsdPrice,
+};
+
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    UserBridgeCapability, parse_required_params,
 };
 
 macro_rules! define_wallet_read_no_params_async_method {

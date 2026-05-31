@@ -1,7 +1,6 @@
-use crate::bridge::bridge_request::{process, process_system};
-use crate::bridge::{RustBridgeInvokeResult, RustBridgeRequest};
-use crate::host::AppState;
 use tauri::{AppHandle, State, Webview};
+
+use crate::{AppState, RustBridgeInvokeResult, RustBridgeRequest, process, process_system};
 
 #[tauri::command]
 #[specta::specta]

@@ -1,10 +1,10 @@
-use crate::AppsHostState;
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
-use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::host::AppState;
-use crate::types::SharedSageApp;
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
+
+use crate::{
+    AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest, RustBridgeRequest,
+    SharedSageApp, SystemBridgeCapability, UserBridgeCapability,
+};
 
 #[async_trait]
 pub(crate) trait BridgeMethod: Send + Sync {
@@ -69,7 +69,7 @@ impl BridgeMethodHandleError {
     }
 }
 
-pub(super) type BridgeHandleResult =
+pub(crate) type BridgeHandleResult =
     Result<Box<dyn erased_serde::Serialize + Send>, BridgeMethodHandleError>;
 
 impl BridgeMethodCapability {
@@ -86,7 +86,7 @@ impl BridgeMethodCapability {
     }
 }
 
-pub(super) fn parse_required_params<T>(
+pub(crate) fn parse_required_params<T>(
     method: &impl BridgeMethod,
     request: &RustBridgeRequest,
 ) -> Result<T, BridgeMethodHandleError>

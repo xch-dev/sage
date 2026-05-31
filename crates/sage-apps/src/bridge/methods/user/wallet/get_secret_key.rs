@@ -1,15 +1,12 @@
 use async_trait::async_trait;
 use sage_api::GetSecretKey;
 
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
+    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, parse_required_params,
+    require_scoped_fingerprint,
 };
-use crate::bridge::methods::user::wallet::require_scoped_fingerprint;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::types::RustBridgeApprovalBody;
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
-use crate::capabilities::list::UserBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetSecretKey;

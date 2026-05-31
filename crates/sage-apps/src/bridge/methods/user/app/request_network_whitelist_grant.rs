@@ -2,18 +2,13 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantNetworkWhitelistOutcome,
+    RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest,
+    SageNetworkWhitelistEntry, UserBridgeCapability, grant_network_whitelist_entry,
+    parse_required_params, resolve_app_base_path,
 };
-use crate::bridge::methods::user::app::resolve_app_base_path;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::types::RustBridgeApprovalBody;
-use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
-use crate::capabilities::list::UserBridgeCapability;
-use crate::lifecycle::update::permissions::grant_network_whitelist_entry;
-use crate::lifecycle::update::types::GrantNetworkWhitelistOutcome;
-use crate::types::SageNetworkWhitelistEntry;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppRequestNetworkWhitelistGrant;

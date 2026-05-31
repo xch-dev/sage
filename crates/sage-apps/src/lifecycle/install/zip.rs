@@ -8,9 +8,10 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use super::AppInstallSource;
-use crate::lifecycle::{detect_package_root, prepare_zip_snapshot, read_manifest, unzip_to_dir};
-use crate::types::{SageAppPackageManifest, SageAppSnapshot, UserSageAppSource};
-use crate::utils::slugify_app_name;
+use crate::{
+    SageAppPackageManifest, SageAppSnapshot, UserSageAppSource, detect_package_root,
+    prepare_zip_snapshot, read_manifest, slugify_app_name, unzip_to_dir,
+};
 
 #[derive(Debug, Clone)]
 pub struct ZipInstallSource {
@@ -88,11 +89,10 @@ pub fn generate_zip_app_id(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::types::{
-        SageAppManifestFile, SageAppPackageManifestParts, SageRequestedPermissions,
-    };
     use tempfile::tempdir;
+
+    use super::*;
+    use crate::{SageAppManifestFile, SageAppPackageManifestParts, SageRequestedPermissions};
 
     fn sample_manifest(name: &str) -> SageAppPackageManifest {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();

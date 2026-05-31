@@ -1,9 +1,12 @@
-use crate::types::{SageAppPackageManifest, SageAppSnapshot, SageAppUrl};
-use crate::utils::bytes_sha256_hex;
-use anyhow::{Context, Result as AnyResult, anyhow};
 use std::{
     fs,
     path::{Path, PathBuf},
+};
+
+use anyhow::{Context, Result as AnyResult, anyhow};
+
+use crate::{
+    MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, bytes_sha256_hex,
 };
 
 pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyResult<Vec<u8>> {
@@ -123,7 +126,7 @@ pub async fn download_url_snapshot(
 }
 
 pub(crate) fn write_snapshot_manifest(snapshot: &SageAppSnapshot) -> anyhow::Result<()> {
-    let manifest_path = Path::new(snapshot.snapshot_dir()).join(crate::types::MANIFEST_FILE_NAME);
+    let manifest_path = Path::new(snapshot.snapshot_dir()).join(MANIFEST_FILE_NAME);
 
     fs::write(
         &manifest_path,

@@ -2,17 +2,13 @@ use std::collections::BTreeMap;
 
 use tauri::{AppHandle, State};
 
-use crate::AppsHostState;
-use crate::bridge::state::pending_approval_app_ids;
-use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::start::{CreateRuntimeArgs, start_system_app};
-use crate::runtime::stop::kill_runtime_inner;
-use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SharedRuntime};
-use crate::system_apps::{
+use crate::{
+    AppModalPresentation, AppPresentation, AppsHostState, CreateRuntimeArgs, RuntimeChangeSet,
     SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID,
-    SYSTEM_APP_DONATION_ID, SYSTEM_APP_SANDBOX_TESTS_ID,
+    SYSTEM_APP_DONATION_ID, SYSTEM_APP_SANDBOX_TESTS_ID, SageAppRuntimeMode, SageAppRuntimeRecord,
+    SharedRuntime, kill_runtime_inner, pending_approval_app_ids, start_system_app,
+    sync_modal_runtime_visibility,
 };
-use crate::types::{AppModalPresentation, AppPresentation};
 
 pub(crate) async fn start_app_install_runtime(
     app: &AppHandle,

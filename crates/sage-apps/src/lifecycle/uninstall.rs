@@ -1,10 +1,11 @@
-use crate::AppsHostState;
-use crate::bridge::methods::system::emit_listed_apps_changed;
-use crate::host::{AppState, Result};
-use crate::lifecycle::apps_root;
-use crate::runtime::{ResolveStoppedError, resolve_stopped_app};
 use std::{fs, io};
+
 use tauri::{AppHandle, Manager, State, command};
+
+use crate::{
+    AppState, AppsHostState, ResolveStoppedError, Result, apps_root, emit_listed_apps_changed,
+    resolve_stopped_app,
+};
 
 #[command]
 #[specta::specta]

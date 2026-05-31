@@ -1,13 +1,12 @@
-use crate::AppsHostState;
-use crate::bridge::methods::system::emit_pending_update_changed;
-use crate::lifecycle::{AppMutationManager, fetch_url_manifest, fetch_url_manifest_preview};
-use crate::runtime::resolve_app;
-use crate::types::{
-    ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp,
-    UserSageAppPendingUpdate, UserSageAppSource,
-};
 use std::io;
+
 use tauri::{AppHandle, State};
+
+use crate::{
+    AppMutationManager, AppsHostState, ResolvedApp, Result, SageApp, SageAppSnapshot,
+    SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+    emit_pending_update_changed, fetch_url_manifest, fetch_url_manifest_preview, resolve_app,
+};
 
 pub(crate) enum AppUpdatePreviewResult {
     None,
@@ -19,7 +18,7 @@ pub(crate) async fn check_app_update_inner(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
-) -> crate::host::Result<Option<SageAppUrlPreview>> {
+) -> Result<Option<SageAppUrlPreview>> {
     let resolved = resolve_app(app_handle, app_id)
         .await
         .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
@@ -87,7 +86,7 @@ pub(crate) async fn check_app_update_inner(
     Ok(Some(preview))
 }
 
-async fn preview_app_update(app: &ResolvedApp) -> crate::host::Result<AppUpdatePreviewResult> {
+async fn preview_app_update(app: &ResolvedApp) -> Result<AppUpdatePreviewResult> {
     let shared_sage_app = app.clone_app_for_operation();
 
     let deps = shared_sage_app.with(|app| match app {
@@ -134,9 +133,7 @@ async fn preview_app_update(app: &ResolvedApp) -> crate::host::Result<AppUpdateP
     Ok(AppUpdatePreviewResult::New(preview))
 }
 
-async fn fetch_pending_update(
-    app: &SharedSageApp,
-) -> crate::host::Result<Option<UserSageAppPendingUpdate>> {
+async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
     struct FetchDeps {
         source: UserSageAppSource,
         active_snapshot: SageAppSnapshot,

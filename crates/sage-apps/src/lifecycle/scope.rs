@@ -1,7 +1,6 @@
 use tauri::State;
 
-use crate::host::AppState;
-use crate::types::{SageAppWalletScope, SharedSageApp};
+use crate::{AppState, SageAppWalletScope, SharedSageApp};
 
 pub(crate) async fn ensure_app_is_enabled_for_scope(
     app_state: &State<'_, AppState>,

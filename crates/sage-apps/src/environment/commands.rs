@@ -1,9 +1,8 @@
 use tauri::{AppHandle, State};
 
-use crate::AppsHostState;
-use crate::bridge::emit_user_runtime_event_to_listeners;
-use crate::bridge::methods::user::environment::{
-    EnvironmentThemeChangedEvent, EnvironmentThemeView,
+use crate::{
+    AppsHostState, EnvironmentThemeChangedEvent, EnvironmentThemeView,
+    emit_user_runtime_event_to_listeners,
 };
 
 #[tauri::command]

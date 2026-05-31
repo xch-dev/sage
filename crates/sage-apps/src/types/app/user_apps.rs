@@ -1,20 +1,16 @@
-use crate::capabilities::list::BridgeCapability;
-use crate::runtime::SharedRuntime;
-use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
-use crate::types::app::preview::UserSageAppPendingUpdate;
-use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::app::system_apps::SystemSageApp;
-use crate::types::app::view::SageAppIconView;
-use crate::types::permissions::{
-    SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
-};
-use crate::types::storage::SageAppStorage;
-use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use tokio::sync::OwnedMutexGuard;
+
+use crate::{
+    BridgeCapability, SageAppCommon, SageAppCommonRaw, SageAppIconView, SageAppManifestHeaderV0,
+    SageAppSnapshot, SageAppStorage, SageAppUrl, SageGrantedPermissions,
+    SageGrantedSystemPermissions, SageRequestedPermissions, SharedRuntime, SystemSageApp,
+    UserSageAppPendingUpdate, UserSageAppPendingUpdateView,
+};
 
 #[derive(Debug)]
 pub struct ResolvedStoppedApp {
@@ -232,7 +228,7 @@ pub struct CorruptedInstalledSageApp {
     error: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+    manifest_header: Option<SageAppManifestHeaderV0>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<UserSageAppSource>,
@@ -438,7 +434,7 @@ impl CorruptedInstalledSageApp {
 
     pub(crate) fn with_manifest_header(
         mut self,
-        manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+        manifest_header: Option<SageAppManifestHeaderV0>,
     ) -> Self {
         self.manifest_header = manifest_header;
         self

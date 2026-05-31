@@ -1,7 +1,8 @@
-use crate::AppsHostState;
 use tauri::State;
 
-pub(in crate::runtime) async fn remove_runtime_id_by_app_id(
+use crate::AppsHostState;
+
+pub(crate) async fn remove_runtime_id_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) {
@@ -9,7 +10,7 @@ pub(in crate::runtime) async fn remove_runtime_id_by_app_id(
     runtime_id_by_app_id.remove(app_id);
 }
 
-pub(in crate::runtime) async fn remove_runtime_by_runtime_id(
+pub(crate) async fn remove_runtime_by_runtime_id(
     apps_state: &State<'_, AppsHostState>,
     runtime_id: &str,
 ) {
@@ -25,7 +26,7 @@ pub(in crate::runtime) async fn remove_runtime_by_runtime_id(
     remove_runtime_id_by_app_id(apps_state, &runtime.app_id()).await;
 }
 
-pub(in crate::runtime) async fn remove_before_stop_listeners_by_app_id(
+pub(crate) async fn remove_before_stop_listeners_by_app_id(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) {
@@ -37,7 +38,7 @@ pub(in crate::runtime) async fn remove_before_stop_listeners_by_app_id(
     listeners.remove(app_id);
 }
 
-pub(in crate::runtime) async fn remove_pending_stop_ready(
+pub(crate) async fn remove_pending_stop_ready(
     apps_state: &State<'_, AppsHostState>,
     request_id: &String,
 ) {

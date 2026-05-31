@@ -1,13 +1,14 @@
-use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
-use crate::types::app::SageAppWalletScope;
-use crate::types::app::preview::UserSageAppPendingUpdate;
-use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::invariants::validate_snapshot_entry_and_icon_exist;
-use crate::types::normalizers::normalized_non_empty_string;
-use crate::types::permissions::{SageGrantedPermissions, SageRequestedPermissions};
-use crate::types::storage::SageAppStorage;
-use serde::{Deserialize, Deserializer, Serialize};
 use std::path::PathBuf;
+
+use serde::{Deserialize, Deserializer, Serialize};
+
+use crate::{
+    CapabilityFlags, SANDBOX_TEST_ID_PREFIX, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageRequestedPermissions,
+    UserBridgeCapability, UserSageAppPendingUpdate, normalized_non_empty_string,
+    validate_snapshot_entry_and_icon_exist,
+};
+
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppIdentity {
     id: String,
@@ -179,10 +180,8 @@ impl SageAppCommon {
         }
     }
 
-    pub(crate) fn capability_flags(&self) -> crate::capabilities::CapabilityFlags {
-        crate::capabilities::CapabilityFlags::from_capabilities(
-            &self.granted_permissions.capabilities_vec(),
-        )
+    pub(crate) fn capability_flags(&self) -> CapabilityFlags {
+        CapabilityFlags::from_capabilities(&self.granted_permissions.capabilities_vec())
     }
 
     pub(crate) fn has_secret_access(&self) -> bool {
@@ -199,9 +198,9 @@ impl SageAppCommon {
     }
 
     pub(crate) fn has_persistent_webview_storage(&self) -> bool {
-        self.granted_permissions().capabilities().any(|cap| {
-            *cap == crate::capabilities::list::UserBridgeCapability::StoragePersistentWebview
-        })
+        self.granted_permissions()
+            .capabilities()
+            .any(|cap| *cap == UserBridgeCapability::StoragePersistentWebview)
     }
 
     fn build(
@@ -317,7 +316,7 @@ impl SageAppCommon {
         &self.active_snapshot
     }
 
-    pub fn active_manifest(&self) -> &crate::types::manifest::SageAppPackageManifest {
+    pub fn active_manifest(&self) -> &SageAppPackageManifest {
         self.active_snapshot.manifest()
     }
 
@@ -409,16 +408,18 @@ impl TryFrom<SageAppCommonRaw> for SageAppCommon {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+    use std::fs;
+
+    use tempfile::{TempDir, tempdir};
+
     use super::*;
-    use crate::capabilities::list::UserBridgeCapability;
-    use crate::types::{
+    use crate::{
         SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+        UserBridgeCapability,
     };
-    use std::collections::BTreeMap;
-    use std::fs;
-    use tempfile::{TempDir, tempdir};
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

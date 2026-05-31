@@ -7,9 +7,7 @@ use std::{
 use anyhow::{Context, Result as AnyResult};
 use zip::ZipArchive;
 
-use crate::types::MANIFEST_FILE_NAME;
-use crate::types::{SageAppPackageManifest, SageAppSnapshot};
-use crate::utils::bytes_sha256_hex;
+use crate::{MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, bytes_sha256_hex};
 
 const MAX_ZIP_ENTRIES: usize = 2_000;
 const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES: u64 = 200 * 1024 * 1024;
@@ -256,12 +254,13 @@ fn package_relative_path(package_root: &Path, path: &Path) -> AnyResult<String> 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Write;
+
     use tempfile::tempdir;
     use zip::write::SimpleFileOptions;
 
-    use crate::types::{
+    use super::*;
+    use crate::{
         SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
     };

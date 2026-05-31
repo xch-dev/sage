@@ -1,11 +1,13 @@
-use crate::host::AppState;
-use crate::runtime::{app_id_from_webview_label, resolve_running_app};
-use crate::security::build_app_csp;
-use crate::types::{ResolvedRunningApp, SharedSageApp};
-use anyhow::{Result as AnyResult, anyhow};
 use std::{fs, path::PathBuf};
+
+use anyhow::{Result as AnyResult, anyhow};
 use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager};
+
+use crate::{
+    AppState, ResolvedRunningApp, SharedSageApp, app_id_from_webview_label, build_app_csp,
+    resolve_running_app,
+};
 
 pub async fn handle_user_app_protocol_request(
     app_handle: AppHandle,
@@ -127,6 +129,7 @@ fn protocol_error_response(prefix: &str, err: &anyhow::Error) -> Response<Vec<u8
 
 async fn active_network_id(app_handle: &AppHandle) -> AnyResult<String> {
     use std::time::Duration;
+
     use tokio::time::timeout;
 
     const TIMEOUT: Duration = Duration::from_millis(500);
@@ -143,14 +146,16 @@ async fn active_network_id(app_handle: &AppHandle) -> AnyResult<String> {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use super::*;
-    use crate::types::{
-        SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage,
-        SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageRequestedPermissions,
-        UserSageApp, UserSageAppSource,
-    };
+
     use tempfile::{TempDir, tempdir};
+
+    use super::*;
+    use crate::{
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion,
+        SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions,
+        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+    };
 
     fn manifest_file(path: &str) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), 1).unwrap()
@@ -187,7 +192,7 @@ mod tests {
                 .unwrap();
         let snapshot =
             SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest).unwrap();
-        let common = crate::types::SageAppCommon::new(
+        let common = SageAppCommon::new(
             SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
             granted,
             SageAppStorage::Unmanaged,

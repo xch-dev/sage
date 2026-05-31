@@ -1,10 +1,8 @@
 use tauri::{AppHandle, State};
 
-use crate::AppsHostState;
-use crate::sandbox::{BUILTIN_PERSISTENCE_INCOGNITO_ID, BUILTIN_PERSISTENCE_PERSISTENT_ID};
-
 use super::super::runtime::{start_test_app, stop_test_apps, unique_run_id};
 use super::poll::{poll_persistence_read, poll_persistence_write};
+use crate::{AppsHostState, BUILTIN_PERSISTENCE_INCOGNITO_ID, BUILTIN_PERSISTENCE_PERSISTENT_ID};
 
 pub(in crate::sandbox) async fn run_persistence_test(
     app: &AppHandle,

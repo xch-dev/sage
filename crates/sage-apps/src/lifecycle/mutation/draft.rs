@@ -1,4 +1,4 @@
-use crate::types::{SageApp, SageAppStorage, SageGrantedPermissions};
+use crate::{SageApp, SageAppStorage, SageGrantedPermissions};
 
 #[derive(Debug)]
 pub(crate) struct AppMutationDraft {

@@ -1,27 +1,18 @@
-use crate::AppsHostState;
-use crate::bridge::event_emit::emit_bridge_response_to_app;
-use crate::bridge::methods::BridgeMethodCapability;
-use crate::bridge::methods::system::BridgeApprovalsChangedEvent;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::registry::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::state::{
-    ensure_approval_expiry_loop, get_pending_approval, list_pending_approvals,
-    remove_pending_approval, write_pending_approval,
-};
-use crate::bridge::{
-    BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
-    RustBridgeRequest, RustBridgeResponse, emit_system_runtime_event_to_listeners,
-};
-use crate::capabilities::list::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
-use crate::host::AppState;
-use crate::lifecycle::ensure_app_is_enabled_for_scope;
-use crate::runtime::{resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime};
-use crate::security::assert_bridge_origin;
-use crate::types::SharedSageApp;
 use tauri::{AppHandle, Manager, State, Webview};
 
-pub(super) async fn process(
+use crate::{
+    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
+    BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
+    BridgeTools, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
+    RustBridgeRequest, RustBridgeResponse, SharedSageApp, SystemBridgeCapability,
+    UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
+    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
+    ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition,
+    get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app,
+    start_bridge_approval_runtime, sync_bridge_approval_runtime, write_pending_approval,
+};
+
+pub(crate) async fn process(
     app_handle: AppHandle,
     webview: Webview,
     app_state: State<'_, AppState>,
@@ -55,7 +46,7 @@ pub(super) async fn process(
     .await
 }
 
-pub(super) async fn process_system(
+pub(crate) async fn process_system(
     app_handle: AppHandle,
     webview: Webview,
     app_state: State<'_, AppState>,
@@ -88,7 +79,7 @@ pub(super) async fn process_system(
     .await
 }
 
-pub(super) async fn process_after_approval(
+pub(crate) async fn process_after_approval(
     app_handle: &AppHandle,
     app_state: &State<'_, AppState>,
     apps_state: &State<'_, AppsHostState>,

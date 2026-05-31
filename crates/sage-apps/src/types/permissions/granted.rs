@@ -3,14 +3,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-use crate::capabilities::get_user_capability_definition;
-use crate::capabilities::list::{
-    SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
-};
-use crate::types::invariants::{build_user_grantable_capability_set, validate_permissions_policy};
-use crate::types::network::SageNetworkWhitelistEntry;
-
 use super::{SageRequestedNetworkPermissions, SageRequestedPermissions};
+use crate::{
+    SageNetworkWhitelistEntry, SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
+    build_user_grantable_capability_set, get_user_capability_definition,
+    validate_permissions_policy,
+};
 
 pub type NetworkWhitelistByNetwork = BTreeMap<String, BTreeSet<SageNetworkWhitelistEntry>>;
 
@@ -400,7 +398,7 @@ impl<'de> Deserialize<'de> for SageGrantedNetworkPermissions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{
+    use crate::{
         SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
         SageRequestedPermissions,
     };

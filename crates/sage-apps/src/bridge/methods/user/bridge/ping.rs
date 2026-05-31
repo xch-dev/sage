@@ -2,11 +2,10 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeTools, RustBridgeRequest,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgePing;

@@ -1,9 +1,9 @@
 use anyhow::{Context, Result as AnyResult};
 
-use crate::types::{
+use crate::{
     MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppPackageManifest, SageAppPackageManifestPreview,
+    bytes_sha256_hex, download_bytes_with_limit, parse_manifest_header_v0_from_value,
 };
-use crate::utils::bytes_sha256_hex;
 
 const MAX_URL_MANIFEST_BYTES: u64 = 1024 * 1024;
 
@@ -25,10 +25,9 @@ pub async fn fetch_url_manifest_preview(
 ) -> AnyResult<(SageAppPackageManifestPreview, String)> {
     let manifest_url = manifest_url.as_str();
 
-    let bytes =
-        crate::lifecycle::snapshot::download_bytes_with_limit(manifest_url, MAX_URL_MANIFEST_BYTES)
-            .await
-            .with_context(|| format!("failed to download manifest from {manifest_url}"))?;
+    let bytes = download_bytes_with_limit(manifest_url, MAX_URL_MANIFEST_BYTES)
+        .await
+        .with_context(|| format!("failed to download manifest from {manifest_url}"))?;
 
     let manifest_hash = bytes_sha256_hex(&bytes);
 
@@ -56,7 +55,7 @@ pub fn parse_manifest_preview(
             let value: serde_json::Value = serde_json::from_str(manifest_text)
                 .with_context(|| format!("failed to parse manifest JSON from {source_label}"))?;
 
-            let manifest_header = crate::types::parse_manifest_header_v0_from_value(value)
+            let manifest_header = parse_manifest_header_v0_from_value(value)
                 .with_context(|| {
                     format!(
                         "failed to parse fallback manifest header from {source_label}; full parse failed {parse_error}"

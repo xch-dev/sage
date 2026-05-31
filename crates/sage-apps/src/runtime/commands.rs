@@ -4,16 +4,12 @@ use serde::Deserialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
-use crate::AppsHostState;
-use crate::runtime::start::start_user_app;
-use crate::runtime::state::list_runtimes;
-use crate::runtime::stop::SystemKillRuntimeResult;
-use crate::runtime::webview_locator::get_webview_in_sage_window;
-use crate::runtime::workspace::{enter_apps_workspace, leave_apps_workspace};
-use crate::runtime::{
-    RuntimeTargetParams, SageAppRuntimeRecordView, clear_active_taskbar_runtime,
-    focus_taskbar_runtime, kill_taskbar_runtime, start_app_install_runtime,
-    start_app_update_runtime, start_donation_runtime, start_sandbox_tests_runtime,
+use crate::{
+    AppsHostState, RuntimeTargetParams, SageAppRuntimeRecordView, SystemKillRuntimeResult,
+    clear_active_taskbar_runtime, enter_apps_workspace, focus_taskbar_runtime,
+    get_runtime_by_app_id, get_webview_in_sage_window, kill_taskbar_runtime, leave_apps_workspace,
+    list_runtimes, start_app_install_runtime, start_app_update_runtime, start_donation_runtime,
+    start_sandbox_tests_runtime, start_user_app,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -213,7 +209,7 @@ pub async fn apps_dev_reload_runtime(
     apps_state: State<'_, AppsHostState>,
     params: RuntimeTargetParams,
 ) -> Result<SageAppRuntimeRecordView, String> {
-    let runtime = crate::runtime::state::get_runtime_by_app_id(&apps_state, &params.app_id)
+    let runtime = get_runtime_by_app_id(&apps_state, &params.app_id)
         .await
         .map_err(|_| "Runtime not found".to_string())?;
 

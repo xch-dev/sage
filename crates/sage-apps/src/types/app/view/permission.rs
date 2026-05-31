@@ -3,13 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::capabilities::{CapabilityDefinition, CapabilityFlags};
-use crate::types::app::view::network::SageNetworkWhitelistEntryView;
-use crate::types::permissions::SageGrantedNetworkPermissions;
-use crate::types::{
-    SageGrantedPermissions, SageGrantedSystemPermissions, SageNetworkWhitelistEntry,
-    SageRequestedPermissions,
+use crate::{
+    CapabilityDefinition, CapabilityFlags, SageGrantedNetworkPermissions, SageGrantedPermissions,
+    SageGrantedSystemPermissions, SageNetworkWhitelistEntry, SageNetworkWhitelistEntryView,
+    SageRequestedPermissions, SystemBridgeCapability, UserBridgeCapability,
 };
 
 #[allow(clippy::struct_excessive_bools)]

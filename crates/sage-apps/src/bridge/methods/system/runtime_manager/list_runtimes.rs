@@ -1,13 +1,10 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    SageAppRuntimeRecordView, SystemBridgeCapability, list_runtimes,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::runtime::{SageAppRuntimeRecordView, list_runtimes};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerListRuntimes;

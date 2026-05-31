@@ -1,13 +1,10 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    SystemBridgeCapability, begin_sandbox_run, sandbox_runner,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::sandbox::runner::{begin_sandbox_run, sandbox_runner};
 
 #[derive(Debug, Clone, Copy)]
 pub struct SandboxRerunTests;

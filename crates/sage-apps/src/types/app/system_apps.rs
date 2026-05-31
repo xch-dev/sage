@@ -1,9 +1,7 @@
-use crate::system_apps::SystemAppUsage;
-use crate::types::SageApp;
-use crate::types::app::common::SageAppCommon;
-use crate::types::permissions::SageGrantedSystemPermissions;
 use serde::Serialize;
 use specta::Type;
+
+use crate::{SageApp, SageAppCommon, SageGrantedSystemPermissions, SystemAppUsage};
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq)]
 #[serde(tag = "kind")]

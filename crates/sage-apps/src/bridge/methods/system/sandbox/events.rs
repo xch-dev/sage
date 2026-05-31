@@ -1,12 +1,11 @@
-use crate::AppsHostState;
-use crate::bridge::emit_system_runtime_event_to_listeners;
-use crate::bridge::event_emit::SystemRuntimeEvent;
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::sandbox::SandboxStateView;
-use crate::sandbox::state_view::build_state_view;
 use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, State};
+
+use crate::{
+    AppsHostState, SandboxStateView, SystemBridgeCapability, SystemRuntimeEvent, build_state_view,
+    emit_system_runtime_event_to_listeners,
+};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

@@ -5,8 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use specta::Type;
 use url::Url;
 
-use crate::types::invariants::normalize_app_url;
-use crate::utils::slugify_app_name;
+use crate::{normalize_app_url, slugify_app_name};
 
 pub const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 

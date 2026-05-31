@@ -1,7 +1,6 @@
 use tauri::{State, command};
 
-use crate::AppsHostState;
-use crate::host::Result;
+use crate::{AppsHostState, Result};
 
 #[command]
 #[specta::specta]

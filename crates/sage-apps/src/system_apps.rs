@@ -1,18 +1,19 @@
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{
-    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
-    SystemSageApp,
-};
-use crate::utils::builtin_apps_root;
-use anyhow::Result as AnyResult;
-use serde::Serialize;
-use specta::Type;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::{
     fs,
     path::{Path, PathBuf},
+};
+
+use anyhow::Result as AnyResult;
+use serde::Serialize;
+use specta::Type;
+
+use crate::{
+    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SystemBridgeCapability, SystemSageApp, UserBridgeCapability, builtin_apps_root,
+    get_user_capability_definition,
 };
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
@@ -196,7 +197,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
         .chain(manifest.permissions().capabilities().optional())
         .copied()
         .filter(|capability| {
-            crate::capabilities::get_user_capability_definition(*capability)
+            get_user_capability_definition(*capability)
                 .flags()
                 .user_grantable()
         });

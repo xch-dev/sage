@@ -1,15 +1,13 @@
 use async_trait::async_trait;
+use sage_api::GetKeys;
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    SystemBridgeCapability,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use sage_api::GetKeys;
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct WalletListWallets;

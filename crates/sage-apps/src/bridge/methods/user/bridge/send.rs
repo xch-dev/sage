@@ -2,15 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID, BridgeApprovalRequestResult, BridgeContext,
+    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
+    RustBridgeRequest, UserBridgeCapability, ingest_bridge_send_payload,
+    ingest_origin_cleanup_bridge_send_payload, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::UserBridgeCapability;
-use crate::runtime::ingest_origin_cleanup_bridge_send_payload;
-use crate::sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgeSend;
@@ -72,12 +69,7 @@ impl BridgeMethod for BridgeSend {
 
         match ctx_kind {
             BridgeSendContextKind::Sandbox => {
-                crate::sandbox::ingest_bridge_send_payload(
-                    &ctx.app.id(),
-                    &payload_value,
-                    tools.host_state,
-                )
-                .await;
+                ingest_bridge_send_payload(&ctx.app.id(), &payload_value, tools.host_state).await;
             }
 
             BridgeSendContextKind::OriginCleanup => {

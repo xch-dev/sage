@@ -2,13 +2,11 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::AppsHostState;
-use crate::bridge::{RustBridgeResponse, comms_debug};
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::lifecycle::ensure_app_is_enabled_for_scope;
-use crate::runtime::webview_locator::{get_sage_webview, get_webview_in_sage_window};
-use crate::runtime::{list_runtimes, resolve_running_app};
-use crate::types::SharedSageApp;
+use crate::{
+    AppsHostState, RustBridgeResponse, SharedSageApp, SystemBridgeCapability, UserBridgeCapability,
+    comms_debug, ensure_app_is_enabled_for_scope, get_sage_webview, get_webview_in_sage_window,
+    list_runtimes, resolve_running_app,
+};
 
 const SAGE_RUNTIME_EVENT_NAME: &str = "apps:runtime-event";
 

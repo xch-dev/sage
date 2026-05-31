@@ -4,11 +4,10 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 
 use super::AppInstallSource;
-use crate::lifecycle::{download_url_snapshot, fetch_url_manifest_preview};
-use crate::types::{
+use crate::{
     SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageAppSource,
+    bytes_sha256_hex, download_url_snapshot, fetch_url_manifest_preview,
 };
-use crate::utils::bytes_sha256_hex;
 
 #[derive(Debug, Clone)]
 pub struct PreparedUrlInstall {
@@ -78,8 +77,9 @@ pub fn resolve_url_install_target(root: &Path, app_url: &SageAppUrl) -> (String,
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[test]
     fn generate_url_app_id_is_stable_for_same_app_url() {

@@ -4,21 +4,18 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
-use crate::lifecycle::AppMutationManager;
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::events::emit_runtime_manager_runtimes_changed;
-use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::state::{
-    SageAppRuntimeRecord, remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_runtime,
+#[cfg(target_os = "windows")]
+use crate::data_directory_for;
+use crate::{
+    AppMutationManager, AppPresentation, AppsHostState, CreateInstalledRuntimeArgs,
+    OriginCleanupRuntimeTarget, ResolvedApp, RuntimeChangeSet, SageAppRuntimeMode,
+    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SageAppStorage,
+    SharedRuntime, SharedSageApp, build_entry_src, close_runtime_internal,
+    emit_runtime_manager_runtimes_changed, focus_taskbar_runtime, get_sage_window,
+    get_webview_in_sage_window, is_allowed_app_url, parse_data_store_id,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, resolve_app,
+    rotate_app_storage_and_origin, sandbox, sync_modal_runtime_visibility, write_runtime,
 };
-use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
-use crate::runtime::{
-    RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecordView, SageAppRuntimeVisibility,
-    SharedRuntime, build_entry_src, focus_taskbar_runtime, is_allowed_app_url, resolve_app,
-};
-use crate::storage::parse_data_store_id;
-use crate::types::{AppPresentation, ResolvedApp, SageAppStorage, SharedSageApp};
-use crate::{AppsHostState, sandbox};
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]
@@ -97,7 +94,7 @@ pub(crate) async fn start_sandbox_test(
 pub(crate) async fn start_origin_cleanup_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    target: crate::runtime::storage::OriginCleanupRuntimeTarget,
+    target: OriginCleanupRuntimeTarget,
     query: BTreeMap<String, String>,
 ) -> Result<SharedRuntime, String> {
     let app_id = sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
@@ -109,7 +106,7 @@ pub(crate) async fn start_origin_cleanup_runtime(
         .replace_storage_and_origin(target.storage, target.origin_id, false)
         .map_err(|err| format!("failed to retarget origin cleanup runtime: {err}"))?;
 
-    crate::runtime::stop::close_runtime_internal(app_handle, apps_state, app_id).await;
+    close_runtime_internal(app_handle, apps_state, app_id).await;
 
     create_runtime_for_app(
         app_handle,
@@ -263,7 +260,7 @@ async fn check_gates(
 ) -> Result<(), String> {
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
-    let effective = sandbox::state_view::build_effective_state(&baseline, current_run.as_ref());
+    let effective = sandbox::build_effective_state(&baseline, current_run.as_ref());
     let gate = sandbox::evaluate_app_launch_gate(app, &effective);
 
     if !gate.allowed {
@@ -288,7 +285,7 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
         return Ok(());
     }
 
-    crate::lifecycle::rotate_app_storage_and_origin(app_handle, apps_state, app).await
+    rotate_app_storage_and_origin(app_handle, apps_state, app).await
 }
 
 fn build_storage(
@@ -317,7 +314,7 @@ fn build_persistent_storage_target(
 
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder = builder.data_directory(crate::storage::data_directory_for(directory_name));
+            builder = builder.data_directory(data_directory_for(directory_name));
         }
 
         SageAppStorage::Unmanaged => {}

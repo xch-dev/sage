@@ -1,15 +1,15 @@
-use anyhow::{Context, Result as AnyResult};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::{fs, path::PathBuf};
 
-use crate::system_apps::AppBuildError;
-use crate::types::{
-    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource,
+use anyhow::{Context, Result as AnyResult};
+use sha2::{Digest, Sha256};
+
+use crate::{
+    AppBuildError, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppStorage, SageAppWalletScope, SageGrantedPermissions, UserSageApp,
+    UserSageAppSource, builtin_apps_root,
 };
-use crate::utils::builtin_apps_root;
 
 macro_rules! sandbox_test_id_prefix {
     () => {

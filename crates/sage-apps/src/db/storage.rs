@@ -1,8 +1,7 @@
 use anyhow::{Context, Result};
 use sqlx::Row;
 
-use crate::db::AppsDb;
-use crate::types::SageAppStorage;
+use crate::{AppsDb, SageAppStorage, unix_timestamp_ms};
 
 #[derive(Debug, Clone)]
 pub struct AbandonedStorageCleanupTarget {
@@ -14,7 +13,7 @@ pub struct AbandonedStorageCleanupTarget {
 impl AppsDb {
     pub async fn register_storage(&self, storage: &SageAppStorage) -> Result<i64> {
         let storage_json = serde_json::to_string(storage).context("failed to serialize storage")?;
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         let result = sqlx::query(
             r"
@@ -157,8 +156,9 @@ impl AppsDb {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[tokio::test]
     async fn abandoned_unmanaged_storage_is_returned_for_origin_cleanup() {

@@ -1,13 +1,11 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RuntimeTargetParams,
+    RustBridgeRequest, SageAppRuntimeRecordView, SystemBridgeCapability, focus_taskbar_runtime,
+    parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::runtime::{RuntimeTargetParams, SageAppRuntimeRecordView, focus_taskbar_runtime};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerFocusTaskbarRuntime;
