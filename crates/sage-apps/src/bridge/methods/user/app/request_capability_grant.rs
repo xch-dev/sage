@@ -2,7 +2,12 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, get_user_capability_definition, grant_capability, GrantCapabilityOutcome, parse_required_params, resolve_app_base_path, RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantCapabilityOutcome,
+    RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability,
+    get_user_capability_definition, grant_capability, parse_required_params, resolve_app_base_path,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppRequestCapabilityGrant;

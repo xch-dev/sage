@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result as AnyResult;
 
-use crate::{AppsDb, list_builtin_system_apps, ListedSageApp, SageApp, SystemAppUsage};
+use crate::{AppsDb, ListedSageApp, SageApp, SystemAppUsage, list_builtin_system_apps};
 
 pub fn apps_root(base_path: &Path) -> PathBuf {
     base_path.join("apps")
@@ -43,7 +43,11 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::{FakeInstallSource, install_app_from_source_for_test, ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
+    use crate::{
+        FakeInstallSource, ListedSageApp, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions,
+        SharedSageApp, UserSageAppSource, install_app_from_source_for_test,
+    };
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()
@@ -67,12 +71,7 @@ mod tests {
         .unwrap()
     }
 
-    async fn sample_app_named(
-        base: &Path,
-        db: &AppsDb,
-        app_id: &str,
-        name: &str,
-    ) -> SharedSageApp {
+    async fn sample_app_named(base: &Path, db: &AppsDb, app_id: &str, name: &str) -> SharedSageApp {
         let manifest = sample_manifest(name);
         let granted = SageGrantedPermissionsInput::new([], [], BTreeMap::new());
 

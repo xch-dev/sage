@@ -3,7 +3,11 @@ use sage_api::GetKeys;
 use serde::Serialize;
 use specta::Type;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SystemBridgeCapability};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    SystemBridgeCapability,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct WalletListWallets;

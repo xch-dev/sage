@@ -2,7 +2,10 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
-use crate::{AppsHostState, build_state_view, emit_system_runtime_event_to_listeners, SandboxStateView, SystemBridgeCapability, SystemRuntimeEvent};
+use crate::{
+    AppsHostState, SandboxStateView, SystemBridgeCapability, SystemRuntimeEvent, build_state_view,
+    emit_system_runtime_event_to_listeners,
+};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

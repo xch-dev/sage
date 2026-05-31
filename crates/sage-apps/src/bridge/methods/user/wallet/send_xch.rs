@@ -3,7 +3,11 @@ use sage_api::SendXch;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, parse_required_params, RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
+    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, parse_required_params,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletSendXch;

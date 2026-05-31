@@ -3,7 +3,14 @@ use std::path::Path;
 use anyhow::Context;
 use tauri::{AppHandle, Manager, State};
 
-use crate::{AppMutationManager, AppsHostState, AppState, AppUpdateResult, CreateInstalledRuntimeArgs, emit_user_runtime_event_to_app_id, find_runtime_by_app_id_optional, GrantCapabilityOutcome, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent, GrantedPermissionsChange, GrantNetworkWhitelistOutcome, kill_taskbar_runtime, reload_app_runtime, resolve_app, SageAppRuntimeVisibility, SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp, start_user_app, UserBridgeCapability};
+use crate::{
+    AppMutationManager, AppState, AppUpdateResult, AppsHostState, CreateInstalledRuntimeArgs,
+    GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedCapabilitiesChangeEvent,
+    GrantedNetworkWhitelistChangeEvent, GrantedPermissionsChange, SageAppRuntimeVisibility,
+    SageGrantedPermissions, SageNetworkWhitelistEntry, SharedSageApp, UserBridgeCapability,
+    emit_user_runtime_event_to_app_id, find_runtime_by_app_id_optional, kill_taskbar_runtime,
+    reload_app_runtime, resolve_app, start_user_app,
+};
 
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
@@ -270,7 +277,12 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::{FakeInstallSource, install_app_from_source_for_test, SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageAppSource};
+    use crate::{
+        FakeInstallSource, SageApp, SageAppManifestFile, SageAppPackageManifest,
+        SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions,
+        UserSageAppSource, install_app_from_source_for_test,
+    };
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

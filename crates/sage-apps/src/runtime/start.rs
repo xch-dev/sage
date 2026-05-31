@@ -4,39 +4,18 @@ use specta::Type;
 use tauri::webview::NewWindowResponse;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, WebviewUrl, Wry};
 
-use crate::{
-    AppMutationManager,
-    AppPresentation,
-    AppsHostState,
-    build_entry_src,
-    close_runtime_internal,
-    CreateInstalledRuntimeArgs,
-    emit_runtime_manager_runtimes_changed,
-    focus_taskbar_runtime,
-    get_sage_window,
-    get_webview_in_sage_window,
-    is_allowed_app_url,
-    OriginCleanupRuntimeTarget,
-    parse_data_store_id,
-    remove_runtime_by_runtime_id,
-    remove_runtime_id_by_app_id,
-    resolve_app,
-    ResolvedApp,
-    rotate_app_storage_and_origin,
-    RuntimeChangeSet,
-    SageAppRuntimeMode,
-    SageAppRuntimeRecord,
-    SageAppRuntimeRecordView,
-    SageAppRuntimeVisibility,
-    SageAppStorage,
-    sandbox,
-    SharedRuntime,
-    SharedSageApp,
-    sync_modal_runtime_visibility,
-    write_runtime,
-};
 #[cfg(target_os = "windows")]
 use crate::data_directory_for;
+use crate::{
+    AppMutationManager, AppPresentation, AppsHostState, CreateInstalledRuntimeArgs,
+    OriginCleanupRuntimeTarget, ResolvedApp, RuntimeChangeSet, SageAppRuntimeMode,
+    SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SageAppStorage,
+    SharedRuntime, SharedSageApp, build_entry_src, close_runtime_internal,
+    emit_runtime_manager_runtimes_changed, focus_taskbar_runtime, get_sage_window,
+    get_webview_in_sage_window, is_allowed_app_url, parse_data_store_id,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, resolve_app,
+    rotate_app_storage_and_origin, sandbox, sync_modal_runtime_visibility, write_runtime,
+};
 
 #[derive(Debug, Type)]
 #[serde(rename_all = "camelCase")]

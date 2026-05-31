@@ -4,27 +4,11 @@ use std::{fs, io};
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    AppMutationManager,
-    AppsHostState,
-    CreateInstalledRuntimeArgs,
-    download_url_snapshot,
-    emit_pending_update_changed,
-    find_active_taskbar_runtime,
-    find_runtime_by_app_id_optional,
-    fresh_snapshot_dir,
-    get_sage_window,
-    resolve_app,
-    resolve_stopped_app,
-    ResolvedApp,
-    Result,
-    SageApp,
-    SageAppView,
-    SageGrantedPermissionsInput,
-    SharedSageApp,
-    start_app_update_runtime,
-    start_user_app,
-    UserSageAppPendingUpdate,
-    write_snapshot_manifest,
+    AppMutationManager, AppsHostState, CreateInstalledRuntimeArgs, ResolvedApp, Result, SageApp,
+    SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate,
+    download_url_snapshot, emit_pending_update_changed, find_active_taskbar_runtime,
+    find_runtime_by_app_id_optional, fresh_snapshot_dir, get_sage_window, resolve_app,
+    resolve_stopped_app, start_app_update_runtime, start_user_app, write_snapshot_manifest,
 };
 
 pub(crate) async fn apply_app_update_inner(

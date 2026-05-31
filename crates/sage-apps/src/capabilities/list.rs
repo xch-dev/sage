@@ -175,7 +175,7 @@ impl From<SystemBridgeCapability> for BridgeCapability {
 
 #[cfg(test)]
 mod tests {
-    use crate::{SharedCapabilitiesExt, user_registry, UserBridgeCapability};
+    use crate::{SharedCapabilitiesExt, UserBridgeCapability, user_registry};
 
     fn first_shared_capability() -> UserBridgeCapability {
         user_registry()

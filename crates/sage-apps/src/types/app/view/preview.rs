@@ -2,14 +2,9 @@ use serde::Serialize;
 use specta::Type;
 
 use crate::{
+    SageAppPackageManifest, SageAppUrl, SageGrantedPermissions, SageNetworkWhitelistEntry,
+    SageRequestedPermissions, UserBridgeCapability, UserSageAppPendingUpdate,
     get_user_capability_definition,
-    SageAppPackageManifest,
-    SageAppUrl,
-    SageGrantedPermissions,
-    SageNetworkWhitelistEntry,
-    SageRequestedPermissions,
-    UserBridgeCapability,
-    UserSageAppPendingUpdate,
 };
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -134,7 +129,11 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::*;
-    use crate::{SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist};
+    use crate::{
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+        SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
+    };
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

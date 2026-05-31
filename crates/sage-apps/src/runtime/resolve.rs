@@ -5,7 +5,11 @@ use tauri::{AppHandle, Manager, State};
 use tokio::time::{Duration, sleep};
 use url::Url;
 
-use crate::{AppsHostState, build_builtin_system_app, build_builtin_test_app, close_runtime_internal, find_runtime_by_app_id_optional, GetRuntimeError, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp, SharedSageApp};
+use crate::{
+    AppsHostState, GetRuntimeError, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp, SageApp,
+    SharedSageApp, build_builtin_system_app, build_builtin_test_app, close_runtime_internal,
+    find_runtime_by_app_id_optional,
+};
 
 const MAX_STOP_RESOLVE_ATTEMPTS: usize = 5;
 

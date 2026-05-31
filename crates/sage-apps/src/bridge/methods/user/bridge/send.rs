@@ -3,19 +3,10 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult,
-    BridgeContext,
-    BridgeHandleResult,
-    BridgeMethod,
-    BridgeMethodCapability,
-    BridgeMethodHandleError,
-    BridgeTools,
-    BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID,
-    ingest_bridge_send_payload,
-    ingest_origin_cleanup_bridge_send_payload,
-    parse_required_params,
-    RustBridgeRequest,
-    UserBridgeCapability,
+    BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID, BridgeApprovalRequestResult, BridgeContext,
+    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
+    RustBridgeRequest, UserBridgeCapability, ingest_bridge_send_payload,
+    ingest_origin_cleanup_bridge_send_payload, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -78,12 +69,7 @@ impl BridgeMethod for BridgeSend {
 
         match ctx_kind {
             BridgeSendContextKind::Sandbox => {
-                ingest_bridge_send_payload(
-                    &ctx.app.id(),
-                    &payload_value,
-                    tools.host_state,
-                )
-                .await;
+                ingest_bridge_send_payload(&ctx.app.id(), &payload_value, tools.host_state).await;
             }
 
             BridgeSendContextKind::OriginCleanup => {

@@ -7,25 +7,10 @@ use tauri::{AppHandle, Manager, State};
 
 use super::AppInstallInstallResult;
 use crate::{
-    apps_root,
-    AppsHostState,
-    AppState,
-    BridgeApprovalRequestResult,
-    BridgeContext,
-    BridgeHandleResult,
-    BridgeMethod,
-    BridgeMethodCapability,
-    BridgeMethodHandleError,
-    BridgeTools,
-    install_app_from_source,
-    parse_required_params,
-    Result,
-    RustBridgeRequest,
-    SageAppWalletScope,
-    SageGrantedPermissionsInput,
-    SystemBridgeCapability,
-    UserSageAppView,
-    ZipInstallSource,
+    AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult,
+    BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, Result,
+    RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput, SystemBridgeCapability,
+    UserSageAppView, ZipInstallSource, apps_root, install_app_from_source, parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]

@@ -1,7 +1,11 @@
 use std::fmt::Write;
 use std::{fs, path::PathBuf};
 
-use crate::{BridgeCapability, BridgeMethodCapability, BridgeRegistry, BridgeRegistryKind, get_system_capability_definition, get_user_capability_definition, SystemBridgeCapability, UserBridgeCapability};
+use crate::{
+    BridgeCapability, BridgeMethodCapability, BridgeRegistry, BridgeRegistryKind,
+    SystemBridgeCapability, UserBridgeCapability, get_system_capability_definition,
+    get_user_capability_definition,
+};
 
 fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))

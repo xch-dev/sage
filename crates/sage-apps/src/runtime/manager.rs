@@ -2,7 +2,13 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
-use crate::{AppPresentation, AppsHostState, emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed, ensure_apps_workspace_active, find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, get_sage_window, get_webview_in_sage_window, kill_runtime_inner, list_runtimes, resolve_running_app, ResolvedRunningApp, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
+use crate::{
+    AppPresentation, AppsHostState, ResolvedRunningApp, SageAppRuntimeRecord,
+    SageAppRuntimeVisibility, SharedRuntime, emit_active_taskbar_runtime_changed,
+    emit_runtime_manager_runtimes_changed, ensure_apps_workspace_active,
+    find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, get_sage_window,
+    get_webview_in_sage_window, kill_runtime_inner, list_runtimes, resolve_running_app,
+};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

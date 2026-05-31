@@ -5,7 +5,9 @@ use std::{
 
 use anyhow::{Context, Result as AnyResult, anyhow};
 
-use crate::{bytes_sha256_hex, MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, SageAppUrl};
+use crate::{
+    MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, bytes_sha256_hex,
+};
 
 pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyResult<Vec<u8>> {
     let response = reqwest::get(url)

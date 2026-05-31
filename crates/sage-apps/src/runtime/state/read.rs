@@ -86,9 +86,7 @@ pub(crate) async fn find_active_taskbar_runtime(
         .cloned()
 }
 
-pub(crate) async fn is_apps_workspace_active(
-    apps_state: &State<'_, AppsHostState>,
-) -> bool {
+pub(crate) async fn is_apps_workspace_active(apps_state: &State<'_, AppsHostState>) -> bool {
     *apps_state.runtime.apps_workspace_active.read().await
 }
 

@@ -5,7 +5,11 @@ use std::{fs, path::PathBuf};
 use anyhow::{Context, Result as AnyResult};
 use sha2::{Digest, Sha256};
 
-use crate::{AppBuildError, builtin_apps_root, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppSource};
+use crate::{
+    AppBuildError, SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppStorage, SageAppWalletScope, SageGrantedPermissions, UserSageApp,
+    UserSageAppSource, builtin_apps_root,
+};
 
 macro_rules! sandbox_test_id_prefix {
     () => {

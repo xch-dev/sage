@@ -8,7 +8,10 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 use super::AppInstallSource;
-use crate::{detect_package_root, prepare_zip_snapshot, read_manifest, SageAppPackageManifest, SageAppSnapshot, slugify_app_name, unzip_to_dir, UserSageAppSource};
+use crate::{
+    SageAppPackageManifest, SageAppSnapshot, UserSageAppSource, detect_package_root,
+    prepare_zip_snapshot, read_manifest, slugify_app_name, unzip_to_dir,
+};
 
 #[derive(Debug, Clone)]
 pub struct ZipInstallSource {

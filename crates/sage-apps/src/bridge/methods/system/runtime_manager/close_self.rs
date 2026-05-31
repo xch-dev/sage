@@ -1,6 +1,10 @@
 use async_trait::async_trait;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools, kill_runtime, RustBridgeRequest, SystemBridgeCapability, SystemKillRuntimeError};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SystemBridgeCapability,
+    SystemKillRuntimeError, kill_runtime,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerCloseSelf;

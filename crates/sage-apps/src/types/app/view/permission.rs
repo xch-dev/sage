@@ -3,7 +3,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::{CapabilityDefinition, CapabilityFlags, SageGrantedNetworkPermissions, SageGrantedPermissions, SageGrantedSystemPermissions, SageNetworkWhitelistEntry, SageNetworkWhitelistEntryView, SageRequestedPermissions, SystemBridgeCapability, UserBridgeCapability};
+use crate::{
+    CapabilityDefinition, CapabilityFlags, SageGrantedNetworkPermissions, SageGrantedPermissions,
+    SageGrantedSystemPermissions, SageNetworkWhitelistEntry, SageNetworkWhitelistEntryView,
+    SageRequestedPermissions, SystemBridgeCapability, UserBridgeCapability,
+};
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, Serialize, Type, PartialEq, Eq)]

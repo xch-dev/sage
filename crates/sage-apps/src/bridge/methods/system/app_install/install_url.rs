@@ -6,25 +6,10 @@ use specta::Type;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    AppInstallInstallResult,
-    AppsHostState,
-    AppState,
-    BridgeApprovalRequestResult,
-    BridgeContext,
-    BridgeHandleResult,
-    BridgeMethod,
-    BridgeMethodCapability,
-    BridgeMethodHandleError,
-    BridgeTools,
-    install_app_from_source,
-    parse_required_params,
-    Result,
-    RustBridgeRequest,
-    SageAppUrl,
-    SageAppWalletScope,
-    SageGrantedPermissionsInput,
-    SystemBridgeCapability,
-    UserSageAppView,
+    AppInstallInstallResult, AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
+    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
+    Result, RustBridgeRequest, SageAppUrl, SageAppWalletScope, SageGrantedPermissionsInput,
+    SystemBridgeCapability, UserSageAppView, install_app_from_source, parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]

@@ -2,7 +2,11 @@ use async_trait::async_trait;
 use serde::Serialize;
 use specta::Type;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools, list_pending_approvals, PendingBridgeApproval, RustBridgeApprovalRequest, RustBridgeRequest, SystemBridgeCapability};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeTools, PendingBridgeApproval, RustBridgeApprovalRequest,
+    RustBridgeRequest, SystemBridgeCapability, list_pending_approvals,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct BridgeApprovalsListPending;

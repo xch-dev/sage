@@ -72,7 +72,13 @@ mod tests {
     use tempfile::{TempDir, tempdir};
 
     use super::*;
-    use crate::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+    use crate::{
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion,
+        SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions,
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppSource,
+    };
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

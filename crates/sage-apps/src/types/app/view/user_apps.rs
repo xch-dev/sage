@@ -1,7 +1,10 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::{CorruptedInstalledSageApp, ListedSageApp, SageApp, SageAppCommonView, SharedSageApp, SystemSageAppView, UserSageApp, UserSageAppPendingUpdateView, UserSageAppSource};
+use crate::{
+    CorruptedInstalledSageApp, ListedSageApp, SageApp, SageAppCommonView, SharedSageApp,
+    SystemSageAppView, UserSageApp, UserSageAppPendingUpdateView, UserSageAppSource,
+};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(tag = "kind", rename_all = "camelCase")]

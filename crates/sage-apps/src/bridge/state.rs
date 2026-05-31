@@ -6,7 +6,11 @@ use tauri::{AppHandle, Manager, State};
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use crate::{AppsHostState, BridgeRegistryKind, comms_debug, emit_bridge_approvals_changed, emit_timeout_for_pending_approval, PendingBridgeApproval, RustBridgeApprovalRequest, RustBridgeRequest, sync_bridge_approval_runtime, unix_timestamp_ms};
+use crate::{
+    AppsHostState, BridgeRegistryKind, PendingBridgeApproval, RustBridgeApprovalRequest,
+    RustBridgeRequest, comms_debug, emit_bridge_approvals_changed,
+    emit_timeout_for_pending_approval, sync_bridge_approval_runtime, unix_timestamp_ms,
+};
 
 const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 30_000;
 

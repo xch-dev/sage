@@ -3,7 +3,10 @@ use std::time::Duration;
 use futures::future::join_all;
 use tauri::{AppHandle, Manager, State};
 
-use crate::{AppsHostState, check_app_update_inner, list_installed_apps_internal, ListedSageApp, try_auto_apply_pending_update};
+use crate::{
+    AppsHostState, ListedSageApp, check_app_update_inner, list_installed_apps_internal,
+    try_auto_apply_pending_update,
+};
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {

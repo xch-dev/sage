@@ -1,6 +1,9 @@
 use tauri::{AppHandle, State};
 
-use crate::{AppsHostState, emit_user_runtime_event_to_listeners, EnvironmentThemeChangedEvent, EnvironmentThemeView};
+use crate::{
+    AppsHostState, EnvironmentThemeChangedEvent, EnvironmentThemeView,
+    emit_user_runtime_event_to_listeners,
+};
 
 #[tauri::command]
 #[specta::specta]

@@ -1,7 +1,9 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::{PendingBridgeApproval, PendingBridgeApprovalView, SystemBridgeCapability, SystemRuntimeEvent};
+use crate::{
+    PendingBridgeApproval, PendingBridgeApprovalView, SystemBridgeCapability, SystemRuntimeEvent,
+};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

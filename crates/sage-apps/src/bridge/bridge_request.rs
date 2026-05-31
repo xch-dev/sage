@@ -1,6 +1,16 @@
 use tauri::{AppHandle, Manager, State, Webview};
 
-use crate::{AppsHostState, AppState, assert_bridge_origin, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind, BridgeTools, emit_bridge_response_to_app, emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition, get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse, SharedSageApp, start_bridge_approval_runtime, sync_bridge_approval_runtime, SystemBridgeCapability, UserBridgeCapability, write_pending_approval};
+use crate::{
+    AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
+    BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
+    BridgeTools, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
+    RustBridgeRequest, RustBridgeResponse, SharedSageApp, SystemBridgeCapability,
+    UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
+    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
+    ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition,
+    get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app,
+    start_bridge_approval_runtime, sync_bridge_approval_runtime, write_pending_approval,
+};
 
 pub(crate) async fn process(
     app_handle: AppHandle,

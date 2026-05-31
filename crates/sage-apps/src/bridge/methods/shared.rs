@@ -1,7 +1,10 @@
 use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
-use crate::{AppsHostState, AppState, BridgeCapability, RustBridgeApprovalRequest, RustBridgeRequest, SharedSageApp, SystemBridgeCapability, UserBridgeCapability};
+use crate::{
+    AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest, RustBridgeRequest,
+    SharedSageApp, SystemBridgeCapability, UserBridgeCapability,
+};
 
 #[async_trait]
 pub(crate) trait BridgeMethod: Send + Sync {

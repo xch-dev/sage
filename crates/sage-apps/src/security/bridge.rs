@@ -1,6 +1,9 @@
 use tauri::{AppHandle, Manager};
 
-use crate::{app_id_from_webview_label, BridgeOrigin, get_webview_in_sage_window, is_allowed_app_url, protocol_scheme_for_app, resolve_running_app};
+use crate::{
+    BridgeOrigin, app_id_from_webview_label, get_webview_in_sage_window, is_allowed_app_url,
+    protocol_scheme_for_app, resolve_running_app,
+};
 
 pub(crate) async fn assert_bridge_origin(
     app_handle: &AppHandle,

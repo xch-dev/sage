@@ -9,7 +9,25 @@ use sage_api::{
 use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
-use crate::{AppGetInfoResult, AppInstallInstallResult, AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext, BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult, DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult, EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams, FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent, ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent, ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult, RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult, ResolveBridgeApprovalArgs, RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams, SystemKillRuntimeResult, SystemWalletView, WalletListWalletsResult, WalletSendXchParams};
+use crate::{
+    AppGetInfoResult, AppInstallInstallResult, AppInstallInstallUrlParams,
+    AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams,
+    AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
+    AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams,
+    AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
+    BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
+    DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
+    EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
+    FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
+    ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
+    ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult,
+    RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
+    ResolveBridgeApprovalArgs, RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
+    SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
+    SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
+    SystemKillRuntimeResult, SystemWalletView, WalletListWalletsResult, WalletSendXchParams,
+};
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
     let mut types = TypeCollection::default();

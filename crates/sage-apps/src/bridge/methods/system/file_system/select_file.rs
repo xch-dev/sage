@@ -3,7 +3,11 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri_plugin_dialog::DialogExt;
 
-use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools, parse_required_params, RustBridgeRequest, SystemBridgeCapability};
+use crate::{
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SystemBridgeCapability,
+    parse_required_params,
+};
 
 #[derive(Debug, Clone, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

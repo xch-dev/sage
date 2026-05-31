@@ -7,7 +7,10 @@ use tauri::{AppHandle, State};
 use tokio::sync::{Mutex, oneshot};
 use tokio::time::timeout;
 
-use crate::{AppsHostState, BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID, close_runtime_internal, SageAppStorage, start_origin_cleanup_runtime};
+use crate::{
+    AppsHostState, BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID, SageAppStorage, close_runtime_internal,
+    start_origin_cleanup_runtime,
+};
 
 #[derive(Debug, Clone)]
 pub struct OriginCleanupRuntimeTarget {

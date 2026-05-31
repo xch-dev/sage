@@ -5,12 +5,8 @@ use tauri::http::{Request, Response, StatusCode};
 use tauri::{AppHandle, Manager};
 
 use crate::{
-    app_id_from_webview_label,
-    AppState,
-    build_app_csp,
+    AppState, ResolvedRunningApp, SharedSageApp, app_id_from_webview_label, build_app_csp,
     resolve_running_app,
-    ResolvedRunningApp,
-    SharedSageApp,
 };
 
 pub async fn handle_user_app_protocol_request(
@@ -154,7 +150,12 @@ mod tests {
     use tempfile::{TempDir, tempdir};
 
     use super::*;
-    use crate::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageRequestedPermissions, UserSageApp, UserSageAppSource};
+    use crate::{
+        SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion,
+        SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts,
+        SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions,
+        SageRequestedPermissions, UserSageApp, UserSageAppSource,
+    };
 
     fn manifest_file(path: &str) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), 1).unwrap()

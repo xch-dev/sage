@@ -3,14 +3,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
-    BridgeApprovalRequestResult,
-    BridgeContext,
-    BridgeHandleResult,
-    BridgeMethod,
-    BridgeMethodCapability,
-    BridgeTools,
-    RustBridgeRequest,
-    SageRequestedPermissions,
+    BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
+    BridgeMethodCapability, BridgeTools, RustBridgeRequest, SageRequestedPermissions,
     UserBridgeCapability,
 };
 

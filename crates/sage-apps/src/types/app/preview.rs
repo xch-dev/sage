@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::{normalized_non_empty_string, SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl};
+use crate::{
+    SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
+    normalized_non_empty_string,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

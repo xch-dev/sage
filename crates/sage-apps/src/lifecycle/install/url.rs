@@ -4,7 +4,10 @@ use anyhow::Result as AnyResult;
 use async_trait::async_trait;
 
 use super::AppInstallSource;
-use crate::{bytes_sha256_hex, download_url_snapshot, fetch_url_manifest_preview, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageAppSource};
+use crate::{
+    SageAppPackageManifest, SageAppSnapshot, SageAppUrl, SageAppUrlPreview, UserSageAppSource,
+    bytes_sha256_hex, download_url_snapshot, fetch_url_manifest_preview,
+};
 
 #[derive(Debug, Clone)]
 pub struct PreparedUrlInstall {

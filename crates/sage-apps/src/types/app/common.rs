@@ -3,17 +3,9 @@ use std::path::PathBuf;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
-    CapabilityFlags,
-    normalized_non_empty_string,
-    SageAppPackageManifest,
-    SageAppSnapshot,
-    SageAppStorage,
-    SageAppWalletScope,
-    SageGrantedPermissions,
-    SageRequestedPermissions,
-    SANDBOX_TEST_ID_PREFIX,
-    UserBridgeCapability,
-    UserSageAppPendingUpdate,
+    CapabilityFlags, SANDBOX_TEST_ID_PREFIX, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageRequestedPermissions,
+    UserBridgeCapability, UserSageAppPendingUpdate, normalized_non_empty_string,
     validate_snapshot_entry_and_icon_exist,
 };
 
@@ -189,9 +181,7 @@ impl SageAppCommon {
     }
 
     pub(crate) fn capability_flags(&self) -> CapabilityFlags {
-        CapabilityFlags::from_capabilities(
-            &self.granted_permissions.capabilities_vec(),
-        )
+        CapabilityFlags::from_capabilities(&self.granted_permissions.capabilities_vec())
     }
 
     pub(crate) fn has_secret_access(&self) -> bool {
@@ -424,7 +414,12 @@ mod tests {
     use tempfile::{TempDir, tempdir};
 
     use super::*;
-    use crate::{SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserBridgeCapability};
+    use crate::{
+        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
+        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
+        UserBridgeCapability,
+    };
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

@@ -1,6 +1,9 @@
 use tauri::{AppHandle, State, command};
 
-use crate::{apply_app_update_inner, AppsHostState, check_app_update_inner, Result, SageAppUrlPreview, SageAppView};
+use crate::{
+    AppsHostState, Result, SageAppUrlPreview, SageAppView, apply_app_update_inner,
+    check_app_update_inner,
+};
 
 #[command]
 #[specta::specta]

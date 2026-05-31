@@ -1,6 +1,10 @@
 use tauri::{AppHandle, State};
 
-use crate::{activate_apps_workspace, AppsHostState, deactivate_apps_workspace, get_sage_window, hide_all_runtimes, hide_all_runtimes_inner, is_apps_workspace_active, RuntimeChangeSet, sync_modal_runtime_visibility};
+use crate::{
+    AppsHostState, RuntimeChangeSet, activate_apps_workspace, deactivate_apps_workspace,
+    get_sage_window, hide_all_runtimes, hide_all_runtimes_inner, is_apps_workspace_active,
+    sync_modal_runtime_visibility,
+};
 
 pub(crate) async fn ensure_apps_workspace_active(
     apps_state: &State<'_, AppsHostState>,

@@ -3,20 +3,9 @@ use std::io;
 use tauri::{AppHandle, State};
 
 use crate::{
-    AppMutationManager,
-    AppsHostState,
-    emit_pending_update_changed,
-    fetch_url_manifest,
-    fetch_url_manifest_preview,
-    resolve_app,
-    ResolvedApp,
-    Result,
-    SageApp,
-    SageAppSnapshot,
-    SageAppUrlPreview,
-    SharedSageApp,
-    UserSageAppPendingUpdate,
-    UserSageAppSource,
+    AppMutationManager, AppsHostState, ResolvedApp, Result, SageApp, SageAppSnapshot,
+    SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+    emit_pending_update_changed, fetch_url_manifest, fetch_url_manifest_preview, resolve_app,
 };
 
 pub(crate) enum AppUpdatePreviewResult {
@@ -144,9 +133,7 @@ async fn preview_app_update(app: &ResolvedApp) -> Result<AppUpdatePreviewResult>
     Ok(AppUpdatePreviewResult::New(preview))
 }
 
-async fn fetch_pending_update(
-    app: &SharedSageApp,
-) -> Result<Option<UserSageAppPendingUpdate>> {
+async fn fetch_pending_update(app: &SharedSageApp) -> Result<Option<UserSageAppPendingUpdate>> {
     struct FetchDeps {
         source: UserSageAppSource,
         active_snapshot: SageAppSnapshot,

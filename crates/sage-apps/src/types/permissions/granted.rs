@@ -4,7 +4,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
 use super::{SageRequestedNetworkPermissions, SageRequestedPermissions};
-use crate::{build_user_grantable_capability_set, get_user_capability_definition, SageNetworkWhitelistEntry, SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability, validate_permissions_policy};
+use crate::{
+    SageNetworkWhitelistEntry, SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
+    build_user_grantable_capability_set, get_user_capability_definition,
+    validate_permissions_policy,
+};
 
 pub type NetworkWhitelistByNetwork = BTreeMap<String, BTreeSet<SageNetworkWhitelistEntry>>;
 
@@ -394,7 +398,10 @@ impl<'de> Deserialize<'de> for SageGrantedNetworkPermissions {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
+    use crate::{
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions,
+    };
 
     #[test]
     fn granted_permissions_reject_unrequested_shared_network_whitelist_entry() {

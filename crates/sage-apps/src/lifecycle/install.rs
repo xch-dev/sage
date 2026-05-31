@@ -18,21 +18,10 @@ use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 use crate::{
-    allocate_new_storage,
-    apps_root,
-    AppsHostState,
-    emit_listed_apps_changed,
-    fresh_snapshot_dir,
-    SageAppCommon,
-    SageAppIdentity,
-    SageAppPackageManifest,
-    SageAppSnapshot,
-    SageAppStorage,
-    SageAppWalletScope,
-    SageGrantedPermissionsInput,
-    UserSageApp,
-    UserSageAppSource,
-    write_snapshot_manifest,
+    AppsHostState, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
+    UserSageAppSource, allocate_new_storage, apps_root, emit_listed_apps_changed,
+    fresh_snapshot_dir, write_snapshot_manifest,
 };
 
 #[async_trait]
@@ -311,7 +300,11 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::{SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserBridgeCapability};
+    use crate::{
+        SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput,
+        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions, UserBridgeCapability,
+    };
 
     fn sample_manifest() -> SageAppPackageManifest {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();

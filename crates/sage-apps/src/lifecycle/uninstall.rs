@@ -2,7 +2,10 @@ use std::{fs, io};
 
 use tauri::{AppHandle, Manager, State, command};
 
-use crate::{apps_root, AppsHostState, AppState, emit_listed_apps_changed, resolve_stopped_app, ResolveStoppedError, Result};
+use crate::{
+    AppState, AppsHostState, ResolveStoppedError, Result, apps_root, emit_listed_apps_changed,
+    resolve_stopped_app,
+};
 
 #[command]
 #[specta::specta]

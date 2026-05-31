@@ -1,6 +1,9 @@
 use std::collections::BTreeMap;
 
-use crate::{CapabilityDefinition, CapabilityFlags, SystemBridgeCapability, SystemCapabilityDefinition, UserBridgeCapability, UserCapabilityDefinition};
+use crate::{
+    CapabilityDefinition, CapabilityFlags, SystemBridgeCapability, SystemCapabilityDefinition,
+    UserBridgeCapability, UserCapabilityDefinition,
+};
 
 pub(crate) fn get_user_capability_definition(
     capability: UserBridgeCapability,
