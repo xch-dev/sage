@@ -1,0 +1,31 @@
+---
+description: Rust module and import practices
+globs: **/*.rs
+alwaysApply: false
+---
+
+# Rust Modules And Imports
+
+For Rust files:
+
+- Group imports as `std`, external crates, then `crate`, with blank lines between groups.
+- Prefer `use` imports over repeated long paths in signatures/bodies.
+- Keep conventional qualifiers when clearer, e.g. `use std::fmt; impl fmt::Display ...`.
+- Re-export intended child items from parent modules with proper visibility instead of forcing callers through long internal paths.
+- Avoid unrelated import/re-export churn.
+
+```rust
+use std::fmt;
+
+use anyhow::Result;
+
+use crate::SageApp;
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // ...
+    }
+}
+
+pub(crate) use registry::{AppRegistryEntry, list_installed_apps};
+```
