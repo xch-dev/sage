@@ -5,12 +5,12 @@ use serde::Deserialize;
 use specta::Type;
 use tauri::{AppHandle, Manager, State};
 
-use super::AppInstallInstallResult;
 use crate::{
-    AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult,
-    BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, Result,
-    RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput, SystemBridgeCapability,
-    UserSageAppView, ZipInstallSource, apps_root, install_app_from_source, parse_required_params,
+    AppInstallInstallResult, AppState, AppsHostState, BridgeApprovalRequestResult, BridgeContext,
+    BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools,
+    Result, RustBridgeRequest, SageAppWalletScope, SageGrantedPermissionsInput,
+    SystemBridgeCapability, UserSageAppView, ZipInstallSource, apps_root, install_app_from_source,
+    parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]

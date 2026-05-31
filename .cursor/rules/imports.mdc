@@ -8,12 +8,13 @@ alwaysApply: false
 
 For Rust files:
 
+- `crates/sage-apps/src/lib.rs` is exempt from this rule.
 - Group imports as `std`, external crates, then `crate`, with blank lines between groups.
-- Put `mod` groups before `use` groups.
+- Put `mod` groups first, then `pub use`, then less-visible `use` groups.
 - Within each `mod`/`use` group, don't add blank lines; only separate groups.
-- Group statements of the same kind by visibility, most visible first (`pub`, `pub(crate)`, private).
+- After `mod`, group statements of the same kind by visibility, most visible first (`pub`, `pub(crate)`, private).
 - Prefer `use` imports over repeated long paths in signatures/bodies.
-- Import crate-local items directly from `crate` (`use crate::{A, b};`), not `crate::submodule`; use at most one crate brace group per file.
+- Import crate-local items directly from `crate` (`use crate::{A, b};`), not `crate::submodule`; use at most one crate brace group per scope/module.
 - Keep conventional qualifiers when clearer, e.g. `use std::fmt; impl fmt::Display ...`.
 - Put visibility on the item definition, not the re-export, where possible.
 - Re-export child modules with `pub use child::*;` where possible; only use more restrictive re-export visibility if linting shows none of the child items are public.

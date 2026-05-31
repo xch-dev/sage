@@ -3,7 +3,6 @@ mod url;
 mod zip;
 
 pub use commands::*;
-pub use url::*;
 
 pub(crate) use zip::*;
 
