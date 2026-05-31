@@ -1,9 +1,7 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::SystemRuntimeEvent;
-use crate::capabilities::SystemBridgeCapability;
-use crate::runtime::SageAppRuntimeRecordView;
+use crate::{SageAppRuntimeRecordView, SystemBridgeCapability, SystemRuntimeEvent};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

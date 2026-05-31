@@ -11,7 +11,7 @@ pub(crate) use preview_zip::*;
 use serde::Serialize;
 use specta::Type;
 
-use crate::types::UserSageAppView;
+use crate::UserSageAppView;
 
 #[derive(Debug, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

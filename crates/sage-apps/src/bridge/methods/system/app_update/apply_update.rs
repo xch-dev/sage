@@ -2,15 +2,7 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
-};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::lifecycle::apply_app_update_inner;
-use crate::types::{SageAppView, SageGrantedPermissionsInput};
+use crate::{apply_app_update_inner, BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, parse_required_params, RustBridgeRequest, SageAppView, SageGrantedPermissionsInput, SystemBridgeCapability};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

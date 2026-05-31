@@ -9,13 +9,22 @@ use anyhow::Result as AnyResult;
 use serde::Serialize;
 use specta::Type;
 
-use crate::capabilities::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{
-    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+use crate::{
+    builtin_apps_root,
+    get_user_capability_definition,
+    SageApp,
+    SageAppCommon,
+    SageAppIdentity,
+    SageAppPackageManifest,
+    SageAppSnapshot,
+    SageAppStorage,
+    SageAppWalletScope,
+    SageGrantedPermissions,
+    SageGrantedSystemPermissions,
+    SystemBridgeCapability,
     SystemSageApp,
+    UserBridgeCapability,
 };
-use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";
@@ -198,7 +207,7 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
         .chain(manifest.permissions().capabilities().optional())
         .copied()
         .filter(|capability| {
-            crate::capabilities::get_user_capability_definition(*capability)
+            get_user_capability_definition(*capability)
                 .flags()
                 .user_grantable()
         });

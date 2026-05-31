@@ -17,12 +17,22 @@ use async_trait::async_trait;
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
-use crate::AppsHostState;
-use crate::bridge::emit_listed_apps_changed;
-use crate::lifecycle::{allocate_new_storage, apps_root};
-use crate::types::{
-    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage,
-    SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource,
+use crate::{
+    allocate_new_storage,
+    apps_root,
+    AppsHostState,
+    emit_listed_apps_changed,
+    fresh_snapshot_dir,
+    SageAppCommon,
+    SageAppIdentity,
+    SageAppPackageManifest,
+    SageAppSnapshot,
+    SageAppStorage,
+    SageAppWalletScope,
+    SageGrantedPermissionsInput,
+    UserSageApp,
+    UserSageAppSource,
+    write_snapshot_manifest,
 };
 
 #[async_trait]
@@ -163,14 +173,14 @@ where
 
     create_app_dir(&target.app_dir)?;
 
-    let snapshot_dir = crate::lifecycle::fresh_snapshot_dir(&target.app_dir);
+    let snapshot_dir = fresh_snapshot_dir(&target.app_dir);
     fs::create_dir_all(&snapshot_dir)?;
 
     let snapshot = source
         .create_snapshot(&snapshot_dir, &prepared_artifact)
         .await?;
 
-    crate::lifecycle::write_snapshot_manifest(&snapshot)?;
+    write_snapshot_manifest(&snapshot)?;
 
     let granted_permissions = granted_permissions_input.resolve(manifest.permissions())?;
 
@@ -301,12 +311,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::capabilities::UserBridgeCapability;
-    use crate::types::{
-        SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput,
-        SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,
-        SageRequestedPermissions,
-    };
+    use crate::{SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserBridgeCapability};
 
     fn sample_manifest() -> SageAppPackageManifest {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();

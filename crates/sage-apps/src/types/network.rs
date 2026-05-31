@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-use crate::types::split_required_optional_set;
+use crate::split_required_optional_set;
 
 #[derive(Debug, Clone, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SageNetworkWhitelistEntry {

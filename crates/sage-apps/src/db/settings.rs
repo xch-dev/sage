@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use sqlx::Row;
 
-use crate::db::AppsDb;
+use crate::{AppsDb, unix_timestamp_ms};
 
 const AUTO_UPDATE_ENABLED_KEY: &str = "auto_update_enabled";
 
@@ -28,7 +28,7 @@ impl AppsDb {
     }
 
     pub async fn set_auto_update_enabled(&self, enabled: bool) -> Result<bool> {
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         sqlx::query(
             r"

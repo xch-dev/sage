@@ -7,9 +7,7 @@ use std::{
 use anyhow::{Context, Result as AnyResult};
 use zip::ZipArchive;
 
-use crate::types::MANIFEST_FILE_NAME;
-use crate::types::{SageAppPackageManifest, SageAppSnapshot};
-use crate::utils::bytes_sha256_hex;
+use crate::{bytes_sha256_hex, MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot};
 
 const MAX_ZIP_ENTRIES: usize = 2_000;
 const MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES: u64 = 200 * 1024 * 1024;
@@ -262,10 +260,7 @@ mod tests {
     use zip::write::SimpleFileOptions;
 
     use super::*;
-    use crate::types::{
-        SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
-    };
+    use crate::{SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions};
 
     fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
         let file = fs::File::create(path).unwrap();

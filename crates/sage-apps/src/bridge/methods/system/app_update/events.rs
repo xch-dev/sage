@@ -2,11 +2,7 @@ use serde::Serialize;
 use specta::Type;
 use tauri::{AppHandle, State};
 
-use crate::AppsHostState;
-use crate::bridge::SystemRuntimeEvent;
-use crate::bridge::emit_system_runtime_event_to_listeners;
-use crate::capabilities::SystemBridgeCapability;
-use crate::types::{SageApp, SharedSageApp};
+use crate::{AppsHostState, emit_system_runtime_event_to_listeners, SageApp, SharedSageApp, SystemBridgeCapability, SystemRuntimeEvent};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase", tag = "kind")]

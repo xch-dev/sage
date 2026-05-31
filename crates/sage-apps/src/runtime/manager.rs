@@ -2,17 +2,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
-use crate::AppsHostState;
-use crate::runtime::ensure_apps_workspace_active;
-use crate::runtime::kill_runtime_inner;
-use crate::runtime::{
-    SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime, find_active_taskbar_runtime,
-    resolve_running_app,
-};
-use crate::runtime::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
-use crate::runtime::{find_runtime_by_runtime_id_optional, list_runtimes};
-use crate::runtime::{get_sage_window, get_webview_in_sage_window};
-use crate::types::{AppPresentation, ResolvedRunningApp};
+use crate::{AppPresentation, AppsHostState, emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed, ensure_apps_workspace_active, find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, get_sage_window, get_webview_in_sage_window, kill_runtime_inner, list_runtimes, resolve_running_app, ResolvedRunningApp, SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -286,7 +276,7 @@ async fn kill_all_user_runtimes(
     Ok(())
 }
 
-pub(super) async fn sync_modal_runtime_visibility(
+pub(crate) async fn sync_modal_runtime_visibility(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,

@@ -9,11 +9,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::Mutex;
 
-use crate::bridge::BridgeState;
-use crate::bridge::EnvironmentThemeView;
-use crate::db::AppsDb;
-use crate::runtime::AppRuntimeState;
-use crate::sandbox::SandboxStateStore;
+use crate::{AppRuntimeState, AppsDb, BridgeState, EnvironmentThemeView, SandboxStateStore};
 
 pub type AppState = Arc<Mutex<Sage>>;
 

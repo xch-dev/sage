@@ -6,14 +6,13 @@ use std::path::{Path, PathBuf};
 
 use anyhow::Result as AnyResult;
 
-use crate::system_apps::{SystemAppUsage, list_builtin_system_apps};
-use crate::types::{ListedSageApp, SageApp};
+use crate::{AppsDb, list_builtin_system_apps, ListedSageApp, SageApp, SystemAppUsage};
 
 pub fn apps_root(base_path: &Path) -> PathBuf {
     base_path.join("apps")
 }
 
-pub async fn list_installed_apps_internal(db: &crate::db::AppsDb) -> AnyResult<Vec<ListedSageApp>> {
+pub async fn list_installed_apps_internal(db: &AppsDb) -> AnyResult<Vec<ListedSageApp>> {
     let mut apps = db.list_installed_apps().await?;
 
     for app in list_builtin_system_apps()? {
@@ -44,11 +43,7 @@ mod tests {
     use tempfile::tempdir;
 
     use super::*;
-    use crate::lifecycle::{FakeInstallSource, install_app_from_source_for_test};
-    use crate::types::{
-        ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
-        SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource,
-    };
+    use crate::{FakeInstallSource, install_app_from_source_for_test, ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts, SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource};
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()
@@ -74,7 +69,7 @@ mod tests {
 
     async fn sample_app_named(
         base: &Path,
-        db: &crate::db::AppsDb,
+        db: &AppsDb,
         app_id: &str,
         name: &str,
     ) -> SharedSageApp {
@@ -124,7 +119,7 @@ mod tests {
     #[tokio::test]
     async fn installed_apps_are_sorted_by_name() {
         let base = tempdir().unwrap();
-        let db = crate::db::AppsDb::initialize(base.path()).await.unwrap();
+        let db = AppsDb::initialize(base.path()).await.unwrap();
 
         let _alpha = sample_app_named(base.path(), &db, "a", "Alpha").await;
         let _zeta = sample_app_named(base.path(), &db, "z", "Zeta").await;

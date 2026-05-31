@@ -1,6 +1,6 @@
 macro_rules! comms_debug {
     ($($arg:tt)*) => {
-        if crate::bridge::sage_apps_comms_debug_enabled() {
+        if $crate::sage_apps_comms_debug_enabled() {
             tracing::info!(target: "sage_apps_comms", $($arg)*);
         }
     };

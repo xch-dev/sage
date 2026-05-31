@@ -6,8 +6,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::{Mutex, oneshot};
 
-use crate::types::{AppPresentation, SageApp, SharedSageApp};
-use crate::utils::unix_timestamp_ms;
+use crate::{AppPresentation, SageApp, SharedSageApp, unix_timestamp_ms};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub enum SageAppRuntimeMode {

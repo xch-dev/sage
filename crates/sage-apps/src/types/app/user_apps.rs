@@ -5,17 +5,22 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use tokio::sync::OwnedMutexGuard;
 
-use crate::capabilities::BridgeCapability;
-use crate::runtime::SharedRuntime;
-use crate::types::SageAppIconView;
-use crate::types::SageAppSnapshot;
-use crate::types::SageAppStorage;
-use crate::types::SystemSageApp;
-use crate::types::UserSageAppPendingUpdate;
-use crate::types::{SageAppCommon, SageAppCommonRaw};
-use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
-use crate::types::{
-    SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
+use crate::{
+    BridgeCapability,
+    SageAppCommon,
+    SageAppCommonRaw,
+    SageAppIconView,
+    SageAppManifestHeaderV0,
+    SageAppSnapshot,
+    SageAppStorage,
+    SageAppUrl,
+    SageGrantedPermissions,
+    SageGrantedSystemPermissions,
+    SageRequestedPermissions,
+    SharedRuntime,
+    SystemSageApp,
+    UserSageAppPendingUpdate,
+    UserSageAppPendingUpdateView,
 };
 
 #[derive(Debug)]
@@ -234,7 +239,7 @@ pub struct CorruptedInstalledSageApp {
     error: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+    manifest_header: Option<SageAppManifestHeaderV0>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<UserSageAppSource>,
@@ -440,7 +445,7 @@ impl CorruptedInstalledSageApp {
 
     pub(crate) fn with_manifest_header(
         mut self,
-        manifest_header: Option<crate::types::SageAppManifestHeaderV0>,
+        manifest_header: Option<SageAppManifestHeaderV0>,
     ) -> Self {
         self.manifest_header = manifest_header;
         self

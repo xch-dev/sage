@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use sqlx::SqliteConnection;
 
-use crate::db::AppsDb;
+use crate::AppsDb;
 
 pub(crate) struct AppsDbTx {
     pub(super) conn: SqliteConnection,

@@ -16,8 +16,7 @@ use std::path::PathBuf;
 
 use tauri::Manager;
 
-use crate::bridge::BridgeMethodHandleError;
-use crate::bridge::BridgeTools;
+use crate::{BridgeMethodHandleError, BridgeTools};
 
 pub(crate) fn resolve_app_base_path(
     tools: &BridgeTools<'_>,

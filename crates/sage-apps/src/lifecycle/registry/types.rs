@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::types::{SageApp, UserSageApp};
+use crate::{SageApp, UserSageApp};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PersistedUserSageApp {

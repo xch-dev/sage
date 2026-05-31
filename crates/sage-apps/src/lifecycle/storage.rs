@@ -1,17 +1,30 @@
 use std::path::Path;
 
 use anyhow::Result as AnyResult;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use anyhow::anyhow;
 use tauri::{AppHandle, Manager, State, command};
 use uuid::Uuid;
-#[cfg(any(target_os = "macos", target_os = "ios"))]
-use {crate::storage::parse_data_store_id, anyhow::anyhow};
 #[cfg(target_os = "windows")]
 use {anyhow::Context, std::fs};
 
-use crate::AppsHostState;
-use crate::runtime::resolve_stopped_app;
-use crate::runtime::start_user_app;
-use crate::types::{SageAppStorage, SharedSageApp};
+use crate::{
+    AppMutationManager,
+    AppsHostState,
+    CreateInstalledRuntimeArgs,
+    find_runtime_by_app_id_optional,
+    fresh_origin_id,
+    OriginCleanupRuntimeTarget,
+    parse_data_store_id,
+    resolve_stopped_app,
+    ResolvedStoppedApp,
+    run_origin_cleanup,
+    SageAppStorage,
+    SharedSageApp,
+    start_user_app,
+};
+#[cfg(target_os = "windows")]
+use crate::data_directory_for;
 
 pub(crate) struct RegisteredSageAppStorage {
     pub(crate) storage_id: i64,
@@ -26,7 +39,7 @@ pub async fn apps_clear_runtime_browsing_data(
 ) -> Result<(), String> {
     let apps_state: State<'_, AppsHostState> = app_handle.state();
 
-    let was_running = crate::runtime::find_runtime_by_app_id_optional(&apps_state, &app_id)
+    let was_running = find_runtime_by_app_id_optional(&apps_state, &app_id)
         .await
         .is_some();
 
@@ -42,7 +55,7 @@ pub async fn apps_clear_runtime_browsing_data(
         start_user_app(
             &app_handle,
             &apps_state,
-            crate::runtime::CreateInstalledRuntimeArgs {
+            CreateInstalledRuntimeArgs {
                 app_id,
                 focus: Some(true),
             },
@@ -138,10 +151,10 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
         match target.storage {
             SageAppStorage::Unmanaged => {
                 for origin_id in &target.origin_ids {
-                    crate::runtime::run_origin_cleanup(
+                    run_origin_cleanup(
                         app,
                         &host_state,
-                        crate::runtime::OriginCleanupRuntimeTarget {
+                        OriginCleanupRuntimeTarget {
                             origin_id: origin_id.clone(),
                             storage: target.storage.clone(),
                         },
@@ -199,7 +212,7 @@ pub async fn clear_app_storage_by_target(
                 .app_data_dir()
                 .map_err(|e| format!("failed to resolve app data dir: {e}"))?;
 
-            let profile_dir = app_data_dir.join(crate::storage::data_directory_for(directory_name));
+            let profile_dir = app_data_dir.join(data_directory_for(directory_name));
 
             match fs::remove_dir_all(&profile_dir) {
                 Ok(()) => {}
@@ -225,7 +238,7 @@ pub async fn clear_app_storage_by_target(
 pub async fn rotate_stopped_app_storage_and_origin(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
-    resolved_app: &crate::types::ResolvedStoppedApp,
+    resolved_app: &ResolvedStoppedApp,
 ) -> Result<(), String> {
     let app = resolved_app.with_app(SharedSageApp::clone);
 
@@ -248,9 +261,9 @@ pub(crate) async fn rotate_app_storage_and_origin(
         .await
         .map_err(|err| format!("failed to allocate rotated storage: {err}"))?;
 
-    let next_origin_id = crate::lifecycle::fresh_origin_id(&app_id);
+    let next_origin_id = fresh_origin_id(&app_id);
 
-    let manager = crate::lifecycle::AppMutationManager::new(app_handle, apps_state);
+    let manager = AppMutationManager::new(app_handle, apps_state);
 
     manager
         .mutate_shared_app(app, |ctx| {

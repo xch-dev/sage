@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::bridge::*;
+use crate::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum BridgeRegistryKind {

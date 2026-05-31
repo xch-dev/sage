@@ -1,10 +1,7 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::UserRuntimeEvent;
-use crate::capabilities::UserBridgeCapability;
-use crate::lifecycle::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
-use crate::types::SageNetworkWhitelistEntry;
+use crate::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange, SageNetworkWhitelistEntry, UserBridgeCapability, UserRuntimeEvent};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

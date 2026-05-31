@@ -1,11 +1,6 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::capabilities::user_registry;
-use crate::types::SageAppCapabilityDefinitionView;
+use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools, RustBridgeRequest, SageAppCapabilityDefinitionView, SystemBridgeCapability, user_registry};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct CapabilitiesListUserDefinitions;

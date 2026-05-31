@@ -6,8 +6,7 @@ use super::super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
     SandboxPersistenceWriteProbeResult,
 };
-use crate::AppsHostState;
-use crate::utils::unix_timestamp_ms;
+use crate::{AppsHostState, unix_timestamp_ms};
 
 pub async fn poll_isolation(
     apps_state: &State<'_, AppsHostState>,

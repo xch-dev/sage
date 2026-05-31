@@ -1,12 +1,6 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, parse_required_params,
-};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::UserBridgeCapability;
-use crate::runtime::{ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams};
+use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeTools, parse_required_params, ReadyToStopParams, RuntimeAckResult, RustBridgeRequest, SetBeforeStopListenerParams, UserBridgeCapability};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppLifecycleSetBeforeStopListener;

@@ -1,9 +1,7 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::EnvironmentThemeView;
-use crate::bridge::UserRuntimeEvent;
-use crate::capabilities::UserBridgeCapability;
+use crate::{EnvironmentThemeView, UserBridgeCapability, UserRuntimeEvent};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

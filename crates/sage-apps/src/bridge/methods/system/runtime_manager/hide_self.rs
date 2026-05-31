@@ -1,13 +1,6 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
-};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::runtime::hide_runtime;
+use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, hide_runtime, RustBridgeRequest, SystemBridgeCapability};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerHideSelf;

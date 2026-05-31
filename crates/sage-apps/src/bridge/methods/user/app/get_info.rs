@@ -2,10 +2,17 @@ use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::UserBridgeCapability;
+use crate::{
+    BridgeApprovalRequestResult,
+    BridgeContext,
+    BridgeHandleResult,
+    BridgeMethod,
+    BridgeMethodCapability,
+    BridgeTools,
+    RustBridgeRequest,
+    SageRequestedPermissions,
+    UserBridgeCapability,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;
@@ -24,7 +31,7 @@ pub struct AppGetInfoResult {
     pub id: String,
     pub name: String,
     pub version: String,
-    pub requested_permissions: crate::types::SageRequestedPermissions,
+    pub requested_permissions: SageRequestedPermissions,
     pub capabilities: Vec<UserBridgeCapability>,
     pub network: Vec<SageNetworkPermissionInfo>,
 }

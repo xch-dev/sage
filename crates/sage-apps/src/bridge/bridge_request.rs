@@ -1,26 +1,6 @@
 use tauri::{AppHandle, Manager, State, Webview};
 
-use crate::AppsHostState;
-use crate::bridge::BridgeApprovalsChangedEvent;
-use crate::bridge::BridgeMethodCapability;
-use crate::bridge::emit_bridge_response_to_app;
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::{
-    BridgeOrigin, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
-    RustBridgeRequest, RustBridgeResponse, emit_system_runtime_event_to_listeners,
-};
-use crate::bridge::{BridgeRegistry, BridgeRegistryKind};
-use crate::bridge::{
-    ensure_approval_expiry_loop, get_pending_approval, list_pending_approvals,
-    remove_pending_approval, write_pending_approval,
-};
-use crate::capabilities::{BridgeCapability, SystemBridgeCapability, UserBridgeCapability};
-use crate::capabilities::{get_system_capability_definition, get_user_capability_definition};
-use crate::host::AppState;
-use crate::lifecycle::ensure_app_is_enabled_for_scope;
-use crate::runtime::{resolve_app, start_bridge_approval_runtime, sync_bridge_approval_runtime};
-use crate::security::assert_bridge_origin;
-use crate::types::SharedSageApp;
+use crate::{AppsHostState, AppState, assert_bridge_origin, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext, BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind, BridgeTools, emit_bridge_response_to_app, emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition, get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse, SharedSageApp, start_bridge_approval_runtime, sync_bridge_approval_runtime, SystemBridgeCapability, UserBridgeCapability, write_pending_approval};
 
 pub(crate) async fn process(
     app_handle: AppHandle,

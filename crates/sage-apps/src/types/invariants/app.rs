@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::types::SageAppSnapshot;
+use crate::SageAppSnapshot;
 
 pub fn validate_snapshot_entry_and_icon_exist(
     snapshot: &SageAppSnapshot,

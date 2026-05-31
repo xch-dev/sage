@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::capabilities::get_user_capability_definition;
+use crate::get_user_capability_definition;
 
 macro_rules! define_bridge_capabilities {
     (
@@ -175,8 +175,7 @@ impl From<SystemBridgeCapability> for BridgeCapability {
 
 #[cfg(test)]
 mod tests {
-    use crate::capabilities::user_registry;
-    use crate::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
+    use crate::{SharedCapabilitiesExt, user_registry, UserBridgeCapability};
 
     fn first_shared_capability() -> UserBridgeCapability {
         user_registry()

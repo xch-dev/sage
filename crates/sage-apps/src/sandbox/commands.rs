@@ -4,8 +4,7 @@ use super::gate::evaluate_app_launch_gate;
 use super::runner::{begin_sandbox_run, sandbox_runner};
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{AppLaunchGateResult, SandboxStateView};
-use crate::AppsHostState;
-use crate::runtime::resolve_app;
+use crate::{AppsHostState, resolve_app};
 
 #[command]
 #[specta::specta]

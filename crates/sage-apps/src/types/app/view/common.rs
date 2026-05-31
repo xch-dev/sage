@@ -3,12 +3,7 @@ use serde::Serialize;
 use specta::Type;
 use url::Url;
 
-use crate::types::SageAppSnapshotView;
-use crate::types::SageGrantedPermissionsView;
-use crate::types::{
-    SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview,
-    SageAppUrl, SageAppWalletScope,
-};
+use crate::{SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppSnapshotView, SageAppUrl, SageAppWalletScope, SageGrantedPermissionsView};
 
 const MAX_REMOTE_ICON_BYTES: u64 = 1024 * 1024;
 

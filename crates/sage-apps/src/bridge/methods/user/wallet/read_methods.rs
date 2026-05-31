@@ -5,13 +5,7 @@ use sage_api::{
     GetXchUsdPrice,
 };
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
-};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::UserBridgeCapability;
+use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, parse_required_params, RustBridgeRequest, UserBridgeCapability};
 
 macro_rules! define_wallet_read_no_params_async_method {
     ($struct_name:ident, $capability:ident, $method_name:expr, $request_ident:ident, $handler:ident) => {

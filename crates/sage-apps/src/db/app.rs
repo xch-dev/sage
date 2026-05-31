@@ -3,11 +3,26 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use sqlx::{Row, SqliteConnection, sqlite::SqliteRow};
 
-use crate::db::{AppsDb, AppsDbTx};
-use crate::types::{
-    CorruptedInstalledSageApp, ListedSageApp, SageAppCommon, SageAppIconView, SageAppIdentity,
-    SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope,
-    SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+use crate::{
+    AppsDb,
+    AppsDbTx,
+    CorruptedInstalledSageApp,
+    ListedSageApp,
+    MANIFEST_FILE_NAME,
+    parse_manifest_header_v0_from_value,
+    SageAppCommon,
+    SageAppIconView,
+    SageAppIdentity,
+    SageAppPackageManifest,
+    SageAppSnapshot,
+    SageAppStorage,
+    SageAppUrl,
+    SageAppWalletScope,
+    SageGrantedPermissions,
+    unix_timestamp_ms,
+    UserSageApp,
+    UserSageAppPendingUpdate,
+    UserSageAppSource,
 };
 
 impl AppsDb {
@@ -75,7 +90,7 @@ impl AppsDbTx {
         origin_row_id: i64,
     ) -> Result<()> {
         let common = app.common();
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         sqlx::query(
             r"
@@ -125,7 +140,7 @@ impl AppsDbTx {
 
     pub(crate) async fn persist_user_app(&mut self, app: &UserSageApp) -> Result<()> {
         let common = app.common();
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         sqlx::query(
             r"
@@ -201,7 +216,7 @@ impl AppsDbTx {
         storage_id: i64,
         origin_row_id: i64,
     ) -> Result<()> {
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         sqlx::query(
             r"
@@ -229,7 +244,7 @@ impl AppsDbTx {
         origin_id: &str,
         storage_id: i64,
     ) -> Result<i64> {
-        let now = crate::utils::unix_timestamp_ms();
+        let now = unix_timestamp_ms();
 
         let result = sqlx::query(
             r"
@@ -393,11 +408,11 @@ async fn load_corrupted_user_app_from_conn(
     let manifest_header = snapshot_dir
         .as_deref()
         .and_then(|dir| {
-            let path = Path::new(dir).join(crate::types::MANIFEST_FILE_NAME);
+            let path = Path::new(dir).join(MANIFEST_FILE_NAME);
             std::fs::read_to_string(path).ok()
         })
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
-        .and_then(|manifest| crate::types::parse_manifest_header_v0_from_value(manifest).ok());
+        .and_then(|manifest| parse_manifest_header_v0_from_value(manifest).ok());
 
     let icon = manifest_header
         .as_ref()
@@ -418,7 +433,7 @@ async fn load_corrupted_user_app_from_conn(
 }
 
 fn read_snapshot_manifest(snapshot_dir: &str) -> Result<SageAppPackageManifest> {
-    let manifest_path = Path::new(snapshot_dir).join(crate::types::MANIFEST_FILE_NAME);
+    let manifest_path = Path::new(snapshot_dir).join(MANIFEST_FILE_NAME);
 
     let text = std::fs::read_to_string(&manifest_path).with_context(|| {
         format!(

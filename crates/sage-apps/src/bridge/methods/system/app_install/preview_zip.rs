@@ -6,15 +6,22 @@ use serde::Deserialize;
 use specta::Type;
 use uuid::Uuid;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    BridgeApprovalRequestResult,
+    BridgeContext,
+    BridgeHandleResult,
+    BridgeMethod,
+    BridgeMethodCapability,
+    BridgeMethodHandleError,
+    BridgeTools,
+    detect_package_root,
+    parse_required_params,
+    read_manifest,
+    RustBridgeRequest,
+    SageAppPackageManifest,
+    SystemBridgeCapability,
+    unzip_to_dir,
 };
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::lifecycle::{read_manifest, unzip_to_dir};
-use crate::types::SageAppPackageManifest;
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -63,7 +70,7 @@ fn preview_manifest(zip_path: &String) -> Result<SageAppPackageManifest, String>
 
     let result = (|| -> anyhow::Result<SageAppPackageManifest> {
         unzip_to_dir(Path::new(&zip_path), &unpack_dir)?;
-        let package_root = crate::lifecycle::detect_package_root(&unpack_dir)?;
+        let package_root = detect_package_root(&unpack_dir)?;
         let manifest = read_manifest(&package_root)?;
 
         Ok(manifest)

@@ -2,14 +2,20 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::sandbox::SANDBOX_TEST_ID_PREFIX;
-use crate::types::SageAppSnapshot;
-use crate::types::SageAppStorage;
-use crate::types::SageAppWalletScope;
-use crate::types::UserSageAppPendingUpdate;
-use crate::types::normalized_non_empty_string;
-use crate::types::validate_snapshot_entry_and_icon_exist;
-use crate::types::{SageGrantedPermissions, SageRequestedPermissions};
+use crate::{
+    CapabilityFlags,
+    normalized_non_empty_string,
+    SageAppPackageManifest,
+    SageAppSnapshot,
+    SageAppStorage,
+    SageAppWalletScope,
+    SageGrantedPermissions,
+    SageRequestedPermissions,
+    SANDBOX_TEST_ID_PREFIX,
+    UserBridgeCapability,
+    UserSageAppPendingUpdate,
+    validate_snapshot_entry_and_icon_exist,
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppIdentity {
@@ -182,8 +188,8 @@ impl SageAppCommon {
         }
     }
 
-    pub(crate) fn capability_flags(&self) -> crate::capabilities::CapabilityFlags {
-        crate::capabilities::CapabilityFlags::from_capabilities(
+    pub(crate) fn capability_flags(&self) -> CapabilityFlags {
+        CapabilityFlags::from_capabilities(
             &self.granted_permissions.capabilities_vec(),
         )
     }
@@ -204,7 +210,7 @@ impl SageAppCommon {
     pub(crate) fn has_persistent_webview_storage(&self) -> bool {
         self.granted_permissions()
             .capabilities()
-            .any(|cap| *cap == crate::capabilities::UserBridgeCapability::StoragePersistentWebview)
+            .any(|cap| *cap == UserBridgeCapability::StoragePersistentWebview)
     }
 
     fn build(
@@ -320,7 +326,7 @@ impl SageAppCommon {
         &self.active_snapshot
     }
 
-    pub fn active_manifest(&self) -> &crate::types::SageAppPackageManifest {
+    pub fn active_manifest(&self) -> &SageAppPackageManifest {
         self.active_snapshot.manifest()
     }
 
@@ -418,12 +424,7 @@ mod tests {
     use tempfile::{TempDir, tempdir};
 
     use super::*;
-    use crate::capabilities::UserBridgeCapability;
-    use crate::types::{
-        SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
-    };
+    use crate::{SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions, UserBridgeCapability};
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

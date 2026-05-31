@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::types::SharedSageApp;
+use crate::SharedSageApp;
 
 fn csp_source_list(items: &[String]) -> String {
     items.join(" ")
@@ -72,13 +72,7 @@ mod tests {
     use tempfile::{TempDir, tempdir};
 
     use super::*;
-    use crate::types::{
-        SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
-        SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage,
-        SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry,
-        SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
-        SageRequestedPermissions, UserSageApp, UserSageAppSource,
-    };
+    use crate::{SageAppCommon, SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion, SageAppPackageManifest, SageAppPackageManifestParts, SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions, SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageApp, UserSageAppSource};
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()
@@ -144,7 +138,7 @@ mod tests {
         let snapshot =
             SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest(requested))
                 .unwrap();
-        let common = crate::types::SageAppCommon::new(
+        let common = SageAppCommon::new(
             SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
             granted,
             SageAppStorage::Unmanaged,

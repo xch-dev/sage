@@ -1,7 +1,6 @@
 use tauri::{AppHandle, Manager};
 
-use crate::bridge::emit_listed_apps_changed;
-use crate::types::{SageAppWalletScope, SharedSageApp};
+use crate::{AppMutationManager, emit_listed_apps_changed, SageAppWalletScope, SharedSageApp};
 
 pub async fn update_app_wallet_scope_for_app(
     app_handle: &AppHandle,
@@ -9,7 +8,7 @@ pub async fn update_app_wallet_scope_for_app(
     wallet_scope: SageAppWalletScope,
 ) -> anyhow::Result<()> {
     let apps_state = app_handle.state::<crate::AppsHostState>();
-    let manager = crate::lifecycle::AppMutationManager::new(app_handle, &apps_state);
+    let manager = AppMutationManager::new(app_handle, &apps_state);
 
     manager
         .mutate_shared_app(app, move |ctx| {

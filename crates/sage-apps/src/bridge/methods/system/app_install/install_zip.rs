@@ -6,19 +6,27 @@ use specta::Type;
 use tauri::{AppHandle, Manager, State};
 
 use super::AppInstallInstallResult;
-use crate::AppsHostState;
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
+use crate::{
+    apps_root,
+    AppsHostState,
+    AppState,
+    BridgeApprovalRequestResult,
+    BridgeContext,
+    BridgeHandleResult,
+    BridgeMethod,
+    BridgeMethodCapability,
+    BridgeMethodHandleError,
+    BridgeTools,
+    install_app_from_source,
+    parse_required_params,
+    Result,
+    RustBridgeRequest,
+    SageAppWalletScope,
+    SageGrantedPermissionsInput,
+    SystemBridgeCapability,
+    UserSageAppView,
+    ZipInstallSource,
 };
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::host::AppState;
-use crate::lifecycle::ZipInstallSource;
-use crate::lifecycle::apps_root;
-use crate::lifecycle::install_app_from_source;
-use crate::types::{SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -80,7 +88,7 @@ pub async fn install_app_zip(
     zip_path: String,
     granted_permissions_input: SageGrantedPermissionsInput,
     wallet_scope: SageAppWalletScope,
-) -> crate::host::Result<UserSageAppView> {
+) -> Result<UserSageAppView> {
     let base_path = {
         let state = state.lock().await;
         state.path.clone()

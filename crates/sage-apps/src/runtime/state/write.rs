@@ -3,7 +3,7 @@ use tauri::State;
 use super::types::{SageAppRuntimeRecord, SharedRuntime};
 use crate::AppsHostState;
 
-pub(in crate::runtime) async fn write_runtime(
+pub(crate) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,
     runtime: SageAppRuntimeRecord,
 ) -> SharedRuntime {
@@ -25,7 +25,7 @@ pub(in crate::runtime) async fn write_runtime(
     runtime
 }
 
-pub(in crate::runtime) async fn write_pending_stop_ready(
+pub(crate) async fn write_pending_stop_ready(
     apps_state: &State<'_, AppsHostState>,
     request_id: &str,
     tx: tokio::sync::oneshot::Sender<()>,
@@ -34,12 +34,12 @@ pub(in crate::runtime) async fn write_pending_stop_ready(
     pending.insert(request_id.to_string(), tx);
 }
 
-pub(in crate::runtime) async fn activate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
+pub(crate) async fn activate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
     let mut active = apps_state.runtime.apps_workspace_active.write().await;
     *active = true;
 }
 
-pub(in crate::runtime) async fn deactivate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
+pub(crate) async fn deactivate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
     let mut active = apps_state.runtime.apps_workspace_active.write().await;
     *active = false;
 }

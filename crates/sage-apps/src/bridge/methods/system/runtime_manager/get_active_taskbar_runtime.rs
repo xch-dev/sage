@@ -1,16 +1,6 @@
 use async_trait::async_trait;
 
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError,
-};
-use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::SystemBridgeCapability;
-use crate::runtime::{
-    SageAppRuntimeRecordView, find_active_taskbar_runtime, find_runtime_by_runtime_id_optional,
-    resolve_running_app,
-};
+use crate::{BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod, BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, resolve_running_app, RustBridgeRequest, SageAppRuntimeRecordView, SystemBridgeCapability};
 
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RuntimeManagerGetActiveTaskbarRuntime;

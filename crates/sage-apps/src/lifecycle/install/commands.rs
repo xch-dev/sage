@@ -2,10 +2,7 @@ use std::{fs, io};
 
 use tauri::{State, command};
 
-use crate::AppsHostState;
-use crate::host::{AppState, Result};
-use crate::lifecycle::{apps_root, list_installed_apps_internal};
-use crate::types::ListedSageAppView;
+use crate::{apps_root, AppsHostState, AppState, list_installed_apps_internal, ListedSageAppView, Result};
 
 #[command]
 #[specta::specta]

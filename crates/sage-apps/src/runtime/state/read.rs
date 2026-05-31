@@ -4,9 +4,7 @@ use std::fmt::Display;
 use tauri::State;
 
 use super::types::SharedRuntime;
-use crate::AppsHostState;
-use crate::runtime::SageAppRuntimeVisibility;
-use crate::types::AppPresentation;
+use crate::{AppPresentation, AppsHostState, SageAppRuntimeVisibility};
 
 pub enum GetRuntimeError {
     NotFound,
@@ -88,7 +86,7 @@ pub(crate) async fn find_active_taskbar_runtime(
         .cloned()
 }
 
-pub(in crate::runtime) async fn is_apps_workspace_active(
+pub(crate) async fn is_apps_workspace_active(
     apps_state: &State<'_, AppsHostState>,
 ) -> bool {
     *apps_state.runtime.apps_workspace_active.read().await
