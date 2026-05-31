@@ -1,26 +1,28 @@
-use crate::AppsHostState;
-use crate::bridge::emit_user_runtime_event_to_app_id;
-use crate::bridge::methods::user::app::events::BeforeStopEvent;
-use crate::runtime::events::emit_runtime_manager_runtimes_changed;
-use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::state::{
-    find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
-    remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
-    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready,
-};
-use crate::runtime::webview_locator::find_webview_in_sage_window;
-use crate::runtime::{
-    GetRuntimeError, RuntimeChangeSet, SageAppRuntimeRecord, SharedRuntime,
-    find_active_taskbar_runtime,
-};
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use std::fmt::Display;
 use std::time::Duration;
+
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use tauri::{AppHandle, State};
 use tokio::sync::oneshot;
 use tokio::time::timeout;
 use uuid::Uuid;
+
+use crate::AppsHostState;
+use crate::bridge::BeforeStopEvent;
+use crate::bridge::emit_user_runtime_event_to_app_id;
+use crate::runtime::emit_runtime_manager_runtimes_changed;
+use crate::runtime::find_webview_in_sage_window;
+use crate::runtime::sync_modal_runtime_visibility;
+use crate::runtime::{
+    GetRuntimeError, RuntimeChangeSet, SageAppRuntimeRecord, SharedRuntime,
+    find_active_taskbar_runtime,
+};
+use crate::runtime::{
+    find_runtime_by_runtime_id_optional, find_runtime_id_by_app_id_optional, get_runtime_by_app_id,
+    remove_before_stop_listeners_by_app_id, remove_pending_stop_ready,
+    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, write_pending_stop_ready,
+};
 
 const BEFORE_STOP_TIMEOUT_MS: u64 = 5_000;
 
@@ -61,7 +63,7 @@ pub(crate) async fn kill_runtime(
     Ok(())
 }
 
-pub(super) async fn kill_runtime_inner(
+pub(crate) async fn kill_runtime_inner(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,

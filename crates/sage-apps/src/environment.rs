@@ -1,1 +1,3 @@
-pub mod commands;
+mod commands;
+
+pub use commands::*;

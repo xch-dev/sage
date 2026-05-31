@@ -1,20 +1,22 @@
-use crate::AppsHostState;
-use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-    BridgeMethodHandleError, parse_required_params,
-};
-use crate::bridge::methods::system::AppInstallInstallResult;
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::host::AppState;
-use crate::lifecycle::install::install_app_from_source;
-use crate::types::{SageAppUrl, SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
+use std::io;
+
 use async_trait::async_trait;
 use serde::Deserialize;
 use specta::Type;
-use std::io;
 use tauri::{AppHandle, Manager, State};
+
+use crate::AppsHostState;
+use crate::bridge::AppInstallInstallResult;
+use crate::bridge::RustBridgeRequest;
+use crate::bridge::{
+    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
+    BridgeMethodHandleError, parse_required_params,
+};
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::SystemBridgeCapability;
+use crate::host::AppState;
+use crate::lifecycle::install_app_from_source;
+use crate::types::{SageAppUrl, SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

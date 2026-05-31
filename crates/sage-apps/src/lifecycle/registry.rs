@@ -1,4 +1,6 @@
-pub mod types;
+mod types;
+
+pub use types::*;
 
 use std::path::{Path, PathBuf};
 
@@ -37,15 +39,16 @@ fn listed_app_sort_key(app: &ListedSageApp) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::BTreeMap;
 
-    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::lifecycle::{FakeInstallSource, install_app_from_source_for_test};
     use crate::types::{
         ListedSageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageGrantedPermissionsInput, SageRequestedPermissions, SharedSageApp, UserSageAppSource,
     };
-    use tempfile::tempdir;
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), size).unwrap()

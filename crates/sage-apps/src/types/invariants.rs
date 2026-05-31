@@ -3,7 +3,7 @@ mod manifest;
 mod permission;
 mod url;
 
-pub(super) use app::*;
-pub(super) use manifest::*;
-pub(super) use permission::*;
-pub(super) use url::*;
+pub(crate) use app::*;
+pub(crate) use manifest::*;
+pub(crate) use permission::*;
+pub(crate) use url::*;

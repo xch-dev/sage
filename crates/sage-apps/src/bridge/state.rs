@@ -1,17 +1,19 @@
+use std::collections::BTreeMap;
+use std::time::Duration;
+
+use tauri::async_runtime::JoinHandle;
+use tauri::{AppHandle, Manager, State};
+use tokio::sync::Mutex;
+use uuid::Uuid;
+
 use crate::AppsHostState;
-use crate::bridge::registry::BridgeRegistryKind;
-use crate::bridge::types::PendingBridgeApproval;
+use crate::bridge::BridgeRegistryKind;
+use crate::bridge::PendingBridgeApproval;
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest, comms_debug};
 use crate::runtime::{
     emit_bridge_approvals_changed, emit_timeout_for_pending_approval, sync_bridge_approval_runtime,
 };
 use crate::utils::unix_timestamp_ms;
-use std::collections::BTreeMap;
-use std::time::Duration;
-use tauri::async_runtime::JoinHandle;
-use tauri::{AppHandle, Manager, State};
-use tokio::sync::Mutex;
-use uuid::Uuid;
 
 const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 30_000;
 

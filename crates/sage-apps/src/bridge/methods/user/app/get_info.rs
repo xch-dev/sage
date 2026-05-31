@@ -3,11 +3,9 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::UserBridgeCapability;
+use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::UserBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppGetInfo;

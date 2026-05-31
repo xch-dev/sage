@@ -1,13 +1,12 @@
 use serde_json::Value;
 use tauri::State;
 
-use crate::AppsHostState;
-
 use super::store::{SandboxAppResult, replace_by_app_id};
 use super::types::{
     SandboxIsolationProbeResult, SandboxNetworkProbeResult, SandboxPersistenceReadProbeResult,
     SandboxPersistenceWriteProbeResult,
 };
+use crate::AppsHostState;
 
 pub async fn ingest_bridge_send_payload(
     app_id: &str,

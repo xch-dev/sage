@@ -1,15 +1,16 @@
-use serde::{Deserialize, Deserializer, Serialize};
-use specta::Type;
 use std::path::Path;
 
-use crate::types::app::{SageAppAuthor, SageAppDonation};
-use crate::types::invariants::{
+use serde::{Deserialize, Deserializer, Serialize};
+use specta::Type;
+
+use crate::types::SageRequestedPermissions;
+use crate::types::normalized_non_empty_string;
+use crate::types::{SageAppAuthor, SageAppDonation};
+use crate::types::{
     normalize_optional_manifest_path, validate_declared_manifest_asset_exists,
     validate_manifest_file_path, validate_manifest_files, validate_package_files_match_manifest,
     validate_sha256_hex,
 };
-use crate::types::normalizers::normalized_non_empty_string;
-use crate::types::permissions::SageRequestedPermissions;
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, Type, PartialEq, Eq)]
 pub struct SageAppManifestVersion(pub u16);
@@ -363,7 +364,7 @@ pub fn parse_manifest_header_v0_from_value(
 
 #[cfg(test)]
 mod tests {
-    use crate::capabilities::list::UserBridgeCapability;
+    use crate::capabilities::UserBridgeCapability;
     use crate::types::{
         SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,

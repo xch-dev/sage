@@ -1,20 +1,22 @@
-use crate::capabilities::list::BridgeCapability;
-use crate::runtime::SharedRuntime;
-use crate::types::app::common::{SageAppCommon, SageAppCommonRaw};
-use crate::types::app::preview::UserSageAppPendingUpdate;
-use crate::types::app::snapshot::SageAppSnapshot;
-use crate::types::app::system_apps::SystemSageApp;
-use crate::types::app::view::SageAppIconView;
-use crate::types::permissions::{
-    SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
-};
-use crate::types::storage::SageAppStorage;
-use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
-use serde::{Deserialize, Serialize};
-use specta::Type;
 use std::path::PathBuf;
 use std::sync::Arc;
+
+use serde::{Deserialize, Serialize};
+use specta::Type;
 use tokio::sync::OwnedMutexGuard;
+
+use crate::capabilities::BridgeCapability;
+use crate::runtime::SharedRuntime;
+use crate::types::SageAppIconView;
+use crate::types::SageAppSnapshot;
+use crate::types::SageAppStorage;
+use crate::types::SystemSageApp;
+use crate::types::UserSageAppPendingUpdate;
+use crate::types::{SageAppCommon, SageAppCommonRaw};
+use crate::types::{SageAppUrl, UserSageAppPendingUpdateView};
+use crate::types::{
+    SageGrantedPermissions, SageGrantedSystemPermissions, SageRequestedPermissions,
+};
 
 #[derive(Debug)]
 pub struct ResolvedStoppedApp {

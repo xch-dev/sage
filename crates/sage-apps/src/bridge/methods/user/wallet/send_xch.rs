@@ -1,16 +1,16 @@
 use async_trait::async_trait;
+use sage_api::SendXch;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::bridge::methods::shared::{
+use crate::bridge::RustBridgeApprovalBody;
+use crate::bridge::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::bridge::types::RustBridgeApprovalBody;
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
 use crate::bridge::{RustBridgeApprovalRequest, RustBridgeRequest};
-use crate::capabilities::list::UserBridgeCapability;
-use sage_api::SendXch;
+use crate::capabilities::UserBridgeCapability;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletSendXch;

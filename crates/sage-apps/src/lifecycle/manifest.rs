@@ -25,10 +25,9 @@ pub async fn fetch_url_manifest_preview(
 ) -> AnyResult<(SageAppPackageManifestPreview, String)> {
     let manifest_url = manifest_url.as_str();
 
-    let bytes =
-        crate::lifecycle::snapshot::download_bytes_with_limit(manifest_url, MAX_URL_MANIFEST_BYTES)
-            .await
-            .with_context(|| format!("failed to download manifest from {manifest_url}"))?;
+    let bytes = crate::lifecycle::download_bytes_with_limit(manifest_url, MAX_URL_MANIFEST_BYTES)
+        .await
+        .with_context(|| format!("failed to download manifest from {manifest_url}"))?;
 
     let manifest_hash = bytes_sha256_hex(&bytes);
 

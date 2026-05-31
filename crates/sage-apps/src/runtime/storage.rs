@@ -8,8 +8,8 @@ use tokio::sync::{Mutex, oneshot};
 use tokio::time::timeout;
 
 use crate::AppsHostState;
-use crate::runtime::start::start_origin_cleanup_runtime;
-use crate::runtime::stop::close_runtime_internal;
+use crate::runtime::close_runtime_internal;
+use crate::runtime::start_origin_cleanup_runtime;
 use crate::sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
 use crate::types::SageAppStorage;
 

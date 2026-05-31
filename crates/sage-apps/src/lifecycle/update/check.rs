@@ -1,13 +1,15 @@
+use std::io;
+
+use tauri::{AppHandle, State};
+
 use crate::AppsHostState;
-use crate::bridge::methods::system::emit_pending_update_changed;
+use crate::bridge::emit_pending_update_changed;
 use crate::lifecycle::{AppMutationManager, fetch_url_manifest, fetch_url_manifest_preview};
 use crate::runtime::resolve_app;
 use crate::types::{
     ResolvedApp, SageApp, SageAppSnapshot, SageAppUrlPreview, SharedSageApp,
     UserSageAppPendingUpdate, UserSageAppSource,
 };
-use std::io;
-use tauri::{AppHandle, State};
 
 pub(crate) enum AppUpdatePreviewResult {
     None,

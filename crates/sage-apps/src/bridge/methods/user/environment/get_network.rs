@@ -4,12 +4,12 @@ use serde::Serialize;
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
+use crate::bridge::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::UserBridgeCapability;
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::UserBridgeCapability;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

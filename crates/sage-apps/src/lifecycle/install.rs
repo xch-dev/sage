@@ -1,3 +1,12 @@
+mod commands;
+mod url;
+mod zip;
+
+pub use commands::*;
+pub use url::*;
+
+pub(crate) use zip::*;
+
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -9,16 +18,12 @@ use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 use crate::AppsHostState;
-use crate::bridge::methods::system::emit_listed_apps_changed;
+use crate::bridge::emit_listed_apps_changed;
 use crate::lifecycle::{allocate_new_storage, apps_root};
 use crate::types::{
     SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage,
     SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp, UserSageAppSource,
 };
-
-pub mod commands;
-pub mod url;
-pub mod zip;
 
 #[async_trait]
 pub trait AppInstallSource {
@@ -291,12 +296,12 @@ impl AppInstallSource for FakeInstallSource {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::BTreeMap;
 
     use tempfile::tempdir;
 
-    use crate::capabilities::list::UserBridgeCapability;
+    use super::*;
+    use crate::capabilities::UserBridgeCapability;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifestParts, SageGrantedPermissionsInput,
         SageNetworkWhitelistEntry, SageRequestedCapabilities, SageRequestedNetworkPermissions,

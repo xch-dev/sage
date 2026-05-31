@@ -1,8 +1,9 @@
-use crate::bridge::event_emit::UserRuntimeEvent;
-use crate::bridge::methods::user::environment::EnvironmentThemeView;
-use crate::capabilities::list::UserBridgeCapability;
 use serde::Serialize;
 use specta::Type;
+
+use crate::bridge::EnvironmentThemeView;
+use crate::bridge::UserRuntimeEvent;
+use crate::capabilities::UserBridgeCapability;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

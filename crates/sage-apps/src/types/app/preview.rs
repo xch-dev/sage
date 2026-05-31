@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::types::normalizers::normalized_non_empty_string;
+use crate::types::normalized_non_empty_string;
 use crate::types::{
     SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
 };

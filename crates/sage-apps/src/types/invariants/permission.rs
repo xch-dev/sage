@@ -1,9 +1,9 @@
 use std::collections::BTreeSet;
 
-use crate::capabilities::list::UserBridgeCapability;
+use crate::capabilities::UserBridgeCapability;
 use crate::capabilities::{CapabilityFlags, get_user_capability_definition};
-use crate::types::network::SageNetworkWhitelistEntry;
-use crate::types::permissions::SageRequestedCapabilities;
+use crate::types::SageNetworkWhitelistEntry;
+use crate::types::SageRequestedCapabilities;
 
 pub fn validate_permissions_policy(
     capabilities: impl IntoIterator<Item = UserBridgeCapability>,

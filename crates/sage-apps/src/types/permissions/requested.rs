@@ -3,13 +3,13 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
+use crate::capabilities::UserBridgeCapability;
 use crate::capabilities::get_user_capability_definition;
-use crate::capabilities::list::UserBridgeCapability;
-use crate::types::invariants::{
+use crate::types::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
+use crate::types::{
     split_required_optional_set, validate_network_id, validate_permissions_policy,
     validate_requested_capabilities_are_requestable,
 };
-use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 
 #[derive(Debug, Clone, Serialize, Type, Default, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]

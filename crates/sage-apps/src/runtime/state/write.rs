@@ -1,7 +1,7 @@
 use tauri::State;
 
+use super::types::{SageAppRuntimeRecord, SharedRuntime};
 use crate::AppsHostState;
-use crate::runtime::state::types::{SageAppRuntimeRecord, SharedRuntime};
 
 pub(in crate::runtime) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,

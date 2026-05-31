@@ -1,19 +1,21 @@
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
-use crate::types::{
-    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
-    SystemSageApp,
-};
-use crate::utils::builtin_apps_root;
-use anyhow::Result as AnyResult;
-use serde::Serialize;
-use specta::Type;
 use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::{
     fs,
     path::{Path, PathBuf},
 };
+
+use anyhow::Result as AnyResult;
+use serde::Serialize;
+use specta::Type;
+
+use crate::capabilities::{SystemBridgeCapability, UserBridgeCapability};
+use crate::types::{
+    SageApp, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
+    SageAppStorage, SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SystemSageApp,
+};
+use crate::utils::builtin_apps_root;
 
 pub const SYSTEM_APP_TASK_MANAGER_ID: &str = "task-manager";
 pub const SYSTEM_APP_APP_UPDATE_ID: &str = "app-update";

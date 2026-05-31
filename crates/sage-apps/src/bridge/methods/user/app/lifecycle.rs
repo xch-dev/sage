@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
+use crate::bridge::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::UserBridgeCapability;
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::UserBridgeCapability;
 use crate::runtime::{ReadyToStopParams, RuntimeAckResult, SetBeforeStopListenerParams};
 
 #[derive(Debug, Clone, Copy)]

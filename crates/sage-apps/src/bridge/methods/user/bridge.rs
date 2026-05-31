@@ -1,5 +1,5 @@
-pub mod ping;
-pub mod send;
+mod ping;
+mod send;
 
-pub use ping::BridgePing;
-pub use send::BridgeSend;
+pub(crate) use ping::*;
+pub(crate) use send::*;

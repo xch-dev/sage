@@ -3,10 +3,10 @@ use std::collections::BTreeMap;
 use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
-use crate::bridge::state::pending_approval_app_ids;
-use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::start::{CreateRuntimeArgs, start_system_app};
-use crate::runtime::stop::kill_runtime_inner;
+use crate::bridge::pending_approval_app_ids;
+use crate::runtime::kill_runtime_inner;
+use crate::runtime::sync_modal_runtime_visibility;
+use crate::runtime::{CreateRuntimeArgs, start_system_app};
 use crate::runtime::{RuntimeChangeSet, SageAppRuntimeMode, SageAppRuntimeRecord, SharedRuntime};
 use crate::system_apps::{
     SYSTEM_APP_APP_INSTALL_ID, SYSTEM_APP_APP_UPDATE_ID, SYSTEM_APP_BRIDGE_APPROVAL_ID,

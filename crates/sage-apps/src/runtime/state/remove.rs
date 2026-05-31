@@ -1,5 +1,6 @@
-use crate::AppsHostState;
 use tauri::State;
+
+use crate::AppsHostState;
 
 pub(in crate::runtime) async fn remove_runtime_id_by_app_id(
     apps_state: &State<'_, AppsHostState>,

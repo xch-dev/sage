@@ -1,12 +1,13 @@
-use futures::future::join_all;
 use std::time::Duration;
 
-use crate::AppsHostState;
-use crate::lifecycle::list_installed_apps_internal;
-use crate::lifecycle::update::apply::try_auto_apply_pending_update;
-use crate::lifecycle::update::check::check_app_update_inner;
-use crate::types::ListedSageApp;
+use futures::future::join_all;
 use tauri::{AppHandle, Manager, State};
+
+use crate::AppsHostState;
+use crate::lifecycle::check_app_update_inner;
+use crate::lifecycle::list_installed_apps_internal;
+use crate::lifecycle::try_auto_apply_pending_update;
+use crate::types::ListedSageApp;
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
     tauri::async_runtime::spawn(async move {

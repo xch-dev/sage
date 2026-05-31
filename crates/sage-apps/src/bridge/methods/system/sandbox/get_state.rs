@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::sandbox::state_view::build_state_view;
+use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::SystemBridgeCapability;
+use crate::sandbox::build_state_view;
 
 #[derive(Debug, Clone, Copy)]
 pub struct SandboxGetState;

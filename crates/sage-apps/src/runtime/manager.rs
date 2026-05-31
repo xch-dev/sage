@@ -3,17 +3,15 @@ use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
 use crate::AppsHostState;
-use crate::runtime::events::{
-    emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed,
-};
-use crate::runtime::state::{find_runtime_by_runtime_id_optional, list_runtimes};
-use crate::runtime::stop::kill_runtime_inner;
-use crate::runtime::webview_locator::{get_sage_window, get_webview_in_sage_window};
-use crate::runtime::workspace::ensure_apps_workspace_active;
+use crate::runtime::ensure_apps_workspace_active;
+use crate::runtime::kill_runtime_inner;
 use crate::runtime::{
     SageAppRuntimeRecord, SageAppRuntimeVisibility, SharedRuntime, find_active_taskbar_runtime,
     resolve_running_app,
 };
+use crate::runtime::{emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed};
+use crate::runtime::{find_runtime_by_runtime_id_optional, list_runtimes};
+use crate::runtime::{get_sage_window, get_webview_in_sage_window};
 use crate::types::{AppPresentation, ResolvedRunningApp};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]

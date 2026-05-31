@@ -1,9 +1,6 @@
-use crate::AppsHostState;
-use crate::runtime::resolve_stopped_app;
-use crate::runtime::start::start_user_app;
-use crate::types::{SageAppStorage, SharedSageApp};
-use anyhow::Result as AnyResult;
 use std::path::Path;
+
+use anyhow::Result as AnyResult;
 use tauri::{AppHandle, Manager, State, command};
 use uuid::Uuid;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -11,9 +8,14 @@ use {crate::storage::parse_data_store_id, anyhow::anyhow};
 #[cfg(target_os = "windows")]
 use {anyhow::Context, std::fs};
 
-pub struct RegisteredSageAppStorage {
-    pub storage_id: i64,
-    pub storage: SageAppStorage,
+use crate::AppsHostState;
+use crate::runtime::resolve_stopped_app;
+use crate::runtime::start_user_app;
+use crate::types::{SageAppStorage, SharedSageApp};
+
+pub(crate) struct RegisteredSageAppStorage {
+    pub(crate) storage_id: i64,
+    pub(crate) storage: SageAppStorage,
 }
 
 #[command]
@@ -40,7 +42,7 @@ pub async fn apps_clear_runtime_browsing_data(
         start_user_app(
             &app_handle,
             &apps_state,
-            crate::runtime::commands::CreateInstalledRuntimeArgs {
+            crate::runtime::CreateInstalledRuntimeArgs {
                 app_id,
                 focus: Some(true),
             },
@@ -51,7 +53,7 @@ pub async fn apps_clear_runtime_browsing_data(
     Ok(())
 }
 
-pub async fn allocate_new_storage(
+pub(crate) async fn allocate_new_storage(
     app: &AppHandle,
     host_state: &State<'_, AppsHostState>,
     base_path: &Path,
@@ -246,9 +248,9 @@ pub(crate) async fn rotate_app_storage_and_origin(
         .await
         .map_err(|err| format!("failed to allocate rotated storage: {err}"))?;
 
-    let next_origin_id = crate::lifecycle::install::fresh_origin_id(&app_id);
+    let next_origin_id = crate::lifecycle::fresh_origin_id(&app_id);
 
-    let manager = crate::lifecycle::mutation::AppMutationManager::new(app_handle, apps_state);
+    let manager = crate::lifecycle::AppMutationManager::new(app_handle, apps_state);
 
     manager
         .mutate_shared_app(app, |ctx| {

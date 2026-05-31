@@ -3,13 +3,13 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
+use crate::bridge::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::apply_app_update_inner;
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::SystemBridgeCapability;
+use crate::lifecycle::apply_app_update_inner;
 use crate::types::{SageAppView, SageGrantedPermissionsInput};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]

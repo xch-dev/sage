@@ -1,8 +1,10 @@
-use crate::types::manifest::SageAppPackageManifest;
-use crate::types::normalizers::normalized_non_empty_string;
+use std::path::{Component, Path, PathBuf};
+
 use serde::Serialize;
 use serde::{Deserialize, Deserializer};
-use std::path::{Component, Path, PathBuf};
+
+use crate::types::SageAppPackageManifest;
+use crate::types::normalized_non_empty_string;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SageAppSnapshot {
@@ -126,13 +128,15 @@ impl<'de> Deserialize<'de> for SageAppSnapshot {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
+    use tempfile::{TempDir, tempdir};
+
     use super::*;
     use crate::types::{
         SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifestParts, SageRequestedPermissions,
     };
-    use std::fs;
-    use tempfile::{TempDir, tempdir};
 
     fn manifest_file(path: &str) -> SageAppManifestFile {
         SageAppManifestFile::new(path, "a".repeat(64), 1).unwrap()

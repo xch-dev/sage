@@ -3,10 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-use crate::capabilities::list::{SystemBridgeCapability, UserBridgeCapability};
 use crate::capabilities::{CapabilityDefinition, CapabilityFlags};
-use crate::types::app::view::network::SageNetworkWhitelistEntryView;
-use crate::types::permissions::SageGrantedNetworkPermissions;
+use crate::capabilities::{SystemBridgeCapability, UserBridgeCapability};
+use crate::types::SageGrantedNetworkPermissions;
+use crate::types::SageNetworkWhitelistEntryView;
 use crate::types::{
     SageGrantedPermissions, SageGrantedSystemPermissions, SageNetworkWhitelistEntry,
     SageRequestedPermissions,

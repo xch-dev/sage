@@ -1,11 +1,9 @@
 use async_trait::async_trait;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::{SharedCapabilitiesExt, UserBridgeCapability};
+use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::{SharedCapabilitiesExt, UserBridgeCapability};
 use crate::types::SageApp;
 
 #[derive(Debug, Clone, Copy)]

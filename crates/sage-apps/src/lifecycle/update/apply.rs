@@ -1,17 +1,19 @@
+use std::collections::BTreeMap;
+use std::{fs, io};
+
+use tauri::{AppHandle, Manager, State};
+
 use crate::AppsHostState;
-use crate::bridge::methods::system::emit_pending_update_changed;
+use crate::bridge::emit_pending_update_changed;
 use crate::lifecycle::{AppMutationManager, download_url_snapshot};
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::start::start_user_app;
-use crate::runtime::webview_locator::get_sage_window;
+use crate::runtime::CreateInstalledRuntimeArgs;
+use crate::runtime::get_sage_window;
+use crate::runtime::start_user_app;
 use crate::runtime::{find_active_taskbar_runtime, resolve_app, start_app_update_runtime};
 use crate::types::{
     ResolvedApp, SageApp, SageAppView, SageGrantedPermissionsInput, SharedSageApp,
     UserSageAppPendingUpdate,
 };
-use std::collections::BTreeMap;
-use std::{fs, io};
-use tauri::{AppHandle, Manager, State};
 
 pub(crate) async fn apply_app_update_inner(
     app_handle: &AppHandle,
@@ -76,7 +78,7 @@ pub(crate) async fn apply_app_update_inner(
     Ok(app.into())
 }
 
-pub(super) async fn try_auto_apply_pending_update(
+pub(crate) async fn try_auto_apply_pending_update(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,

@@ -78,8 +78,9 @@ pub fn resolve_url_install_target(root: &Path, app_url: &SageAppUrl) -> (String,
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[test]
     fn generate_url_app_id_is_stable_for_same_app_url() {

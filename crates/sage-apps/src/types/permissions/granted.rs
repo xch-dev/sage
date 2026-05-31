@@ -3,14 +3,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Deserializer, Serialize};
 use specta::Type;
 
-use crate::capabilities::get_user_capability_definition;
-use crate::capabilities::list::{
-    SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability,
-};
-use crate::types::invariants::{build_user_grantable_capability_set, validate_permissions_policy};
-use crate::types::network::SageNetworkWhitelistEntry;
-
 use super::{SageRequestedNetworkPermissions, SageRequestedPermissions};
+use crate::capabilities::get_user_capability_definition;
+use crate::capabilities::{SharedCapabilitiesExt, SystemBridgeCapability, UserBridgeCapability};
+use crate::types::SageNetworkWhitelistEntry;
+use crate::types::{build_user_grantable_capability_set, validate_permissions_policy};
 
 pub type NetworkWhitelistByNetwork = BTreeMap<String, BTreeSet<SageNetworkWhitelistEntry>>;
 

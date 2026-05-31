@@ -256,11 +256,12 @@ fn package_relative_path(package_root: &Path, path: &Path) -> AnyResult<String> 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::io::Write;
+
     use tempfile::tempdir;
     use zip::write::SimpleFileOptions;
 
+    use super::*;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,

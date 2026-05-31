@@ -1,1 +1,3 @@
-pub mod docs;
+mod docs;
+
+pub use docs::*;

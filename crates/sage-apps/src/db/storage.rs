@@ -157,8 +157,9 @@ impl AppsDb {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use tempfile::tempdir;
+
+    use super::*;
 
     #[tokio::test]
     async fn abandoned_unmanaged_storage_is_returned_for_origin_cleanup() {

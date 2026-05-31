@@ -1,6 +1,6 @@
 use tauri::{AppHandle, Manager};
 
-use crate::bridge::methods::system::emit_listed_apps_changed;
+use crate::bridge::emit_listed_apps_changed;
 use crate::types::{SageAppWalletScope, SharedSageApp};
 
 pub async fn update_app_wallet_scope_for_app(

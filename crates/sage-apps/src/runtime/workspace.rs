@@ -1,14 +1,14 @@
 use tauri::{AppHandle, State};
 
 use crate::AppsHostState;
-use crate::runtime::manager::sync_modal_runtime_visibility;
-use crate::runtime::state::{
+use crate::runtime::get_sage_window;
+use crate::runtime::sync_modal_runtime_visibility;
+use crate::runtime::{RuntimeChangeSet, hide_all_runtimes, hide_all_runtimes_inner};
+use crate::runtime::{
     activate_apps_workspace, deactivate_apps_workspace, is_apps_workspace_active,
 };
-use crate::runtime::webview_locator::get_sage_window;
-use crate::runtime::{RuntimeChangeSet, hide_all_runtimes, hide_all_runtimes_inner};
 
-pub(in crate::runtime) async fn ensure_apps_workspace_active(
+pub(crate) async fn ensure_apps_workspace_active(
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(), String> {
     if !is_apps_workspace_active(apps_state).await {
@@ -18,7 +18,7 @@ pub(in crate::runtime) async fn ensure_apps_workspace_active(
     Ok(())
 }
 
-pub(in crate::runtime) async fn enter_apps_workspace(
+pub(crate) async fn enter_apps_workspace(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(), String> {
@@ -37,7 +37,7 @@ pub(in crate::runtime) async fn enter_apps_workspace(
     Ok(())
 }
 
-pub(in crate::runtime) async fn leave_apps_workspace(
+pub(crate) async fn leave_apps_workspace(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) -> Result<(), String> {

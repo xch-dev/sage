@@ -1,9 +1,9 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::event_emit::UserRuntimeEvent;
-use crate::capabilities::list::UserBridgeCapability;
-use crate::lifecycle::update::types::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
+use crate::bridge::UserRuntimeEvent;
+use crate::capabilities::UserBridgeCapability;
+use crate::lifecycle::{GrantedCapabilitiesChange, GrantedNetworkWhitelistChange};
 use crate::types::SageNetworkWhitelistEntry;
 
 #[derive(Debug, Clone, Serialize, Type)]

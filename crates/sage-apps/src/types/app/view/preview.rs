@@ -1,11 +1,12 @@
+use serde::Serialize;
+use specta::Type;
+
+use crate::capabilities::UserBridgeCapability;
 use crate::capabilities::get_user_capability_definition;
-use crate::capabilities::list::UserBridgeCapability;
 use crate::types::{
     SageAppPackageManifest, SageAppUrl, SageGrantedPermissions, SageRequestedPermissions,
     UserSageAppPendingUpdate,
 };
-use serde::Serialize;
-use specta::Type;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -126,13 +127,14 @@ impl UserSageAppPendingUpdateDecisionView {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
     use super::*;
     use crate::types::{
         SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifestParts, SageNetworkWhitelistEntry, SageRequestedCapabilities,
         SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
     };
-    use std::collections::BTreeMap;
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

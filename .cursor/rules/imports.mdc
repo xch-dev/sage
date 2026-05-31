@@ -9,15 +9,22 @@ alwaysApply: false
 For Rust files:
 
 - Group imports as `std`, external crates, then `crate`, with blank lines between groups.
+- Put `mod` groups before `use` groups.
+- Within each `mod`/`use` group, don't add blank lines; only separate groups.
+- Group statements of the same kind by visibility, most visible first (`pub`, `pub(crate)`, private).
 - Prefer `use` imports over repeated long paths in signatures/bodies.
 - Keep conventional qualifiers when clearer, e.g. `use std::fmt; impl fmt::Display ...`.
-- Re-export intended child items from parent modules with proper visibility instead of forcing callers through long internal paths.
+- Put visibility on the item definition, not the re-export, where possible.
+- Re-export child modules with `pub use child::*;` where possible; only use more restrictive re-export visibility if linting shows none of the child items are public.
+- Re-export intended child items from parent modules instead of forcing callers through long internal paths.
 - Avoid unrelated import/re-export churn.
 
 ```rust
-use std::fmt;
+mod registry;
 
-use anyhow::Result;
+pub use registry::*;
+
+use std::fmt;
 
 use crate::SageApp;
 
@@ -26,6 +33,4 @@ impl fmt::Display for Error {
         // ...
     }
 }
-
-pub(crate) use registry::{AppRegistryEntry, list_installed_apps};
 ```

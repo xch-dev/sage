@@ -1,6 +1,7 @@
-use crate::capabilities::list::UserBridgeCapability;
-use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry};
 use std::collections::{BTreeMap, BTreeSet};
+
+use crate::capabilities::UserBridgeCapability;
+use crate::types::{SageGrantedPermissions, SageNetworkWhitelistEntry};
 
 #[derive(Debug)]
 pub struct AppUpdateResult {

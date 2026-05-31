@@ -5,19 +5,15 @@ mod preview;
 mod snapshot;
 mod system_apps;
 mod user_apps;
-pub mod view;
+mod view;
 mod wallet_scope;
 
-pub use user_apps::SharedSageApp;
-
-pub(crate) use author::SageAppAuthor;
-pub(crate) use common::{SageAppCommon, SageAppIdentity};
-pub(crate) use donation::SageAppDonation;
-pub(crate) use preview::{SageAppUrlPreview, UserSageAppPendingUpdate};
-pub(crate) use snapshot::SageAppSnapshot;
-pub(crate) use system_apps::{AppModalPresentation, AppPresentation, SystemSageApp};
-pub(crate) use user_apps::{
-    CorruptedInstalledSageApp, ListedSageApp, ResolvedApp, ResolvedRunningApp, ResolvedStoppedApp,
-    SageApp, UserSageApp, UserSageAppSource,
-};
-pub(crate) use wallet_scope::SageAppWalletScope;
+pub(crate) use author::*;
+pub(crate) use common::*;
+pub(crate) use donation::*;
+pub(crate) use preview::*;
+pub(crate) use snapshot::*;
+pub(crate) use system_apps::*;
+pub(crate) use user_apps::*;
+pub(crate) use view::*;
+pub(crate) use wallet_scope::*;

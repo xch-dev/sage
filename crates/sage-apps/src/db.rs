@@ -4,6 +4,6 @@ mod settings;
 mod storage;
 mod transaction;
 
-pub use connection::AppsDb;
+pub use connection::*;
 
-pub(crate) use transaction::AppsDbTx;
+pub(crate) use transaction::*;

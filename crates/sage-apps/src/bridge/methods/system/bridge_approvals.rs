@@ -2,6 +2,6 @@ mod events;
 mod list;
 mod resolve;
 
-pub(crate) use events::BridgeApprovalsChangedEvent;
-pub(crate) use list::{BridgeApprovalsListPending, PendingBridgeApprovalView};
-pub(crate) use resolve::BridgeApprovalsResolve;
+pub(crate) use events::*;
+pub(crate) use list::*;
+pub(crate) use resolve::*;

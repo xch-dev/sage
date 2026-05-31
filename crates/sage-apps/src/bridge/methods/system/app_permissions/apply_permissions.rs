@@ -3,14 +3,14 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
+use crate::bridge::{
     BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
     BridgeMethodHandleError, parse_required_params,
 };
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
-use crate::capabilities::list::SystemBridgeCapability;
-use crate::lifecycle::update::permissions::update_app_permissions_for_app;
-use crate::lifecycle::update::scope::update_app_wallet_scope_for_app;
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::capabilities::SystemBridgeCapability;
+use crate::lifecycle::update_app_permissions_for_app;
+use crate::lifecycle::update_app_wallet_scope_for_app;
 use crate::runtime::resolve_app;
 use crate::types::{SageApp, SageAppWalletScope, SageGrantedPermissionsInput, UserSageAppView};
 

@@ -5,17 +5,15 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::AppsHostState;
 use crate::bridge::emit_user_runtime_event_to_app_id;
-use crate::bridge::methods::user::app::{
-    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
-};
-use crate::capabilities::list::UserBridgeCapability;
+use crate::bridge::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
+use crate::capabilities::UserBridgeCapability;
 use crate::host::AppState;
 use crate::lifecycle::AppMutationManager;
-use crate::lifecycle::update::types::{
+use crate::lifecycle::{
     AppUpdateResult, GrantCapabilityOutcome, GrantNetworkWhitelistOutcome, GrantedPermissionsChange,
 };
-use crate::runtime::commands::CreateInstalledRuntimeArgs;
-use crate::runtime::start::start_user_app;
+use crate::runtime::CreateInstalledRuntimeArgs;
+use crate::runtime::start_user_app;
 use crate::runtime::{
     SageAppRuntimeVisibility, find_runtime_by_app_id_optional, kill_taskbar_runtime,
     reload_app_runtime, resolve_app,
@@ -282,16 +280,17 @@ async fn network_change_affects_current_network(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::BTreeMap;
 
-    use crate::lifecycle::install::{FakeInstallSource, install_app_from_source_for_test};
+    use tempfile::tempdir;
+
+    use super::*;
+    use crate::lifecycle::{FakeInstallSource, install_app_from_source_for_test};
     use crate::types::{
         SageApp, SageAppManifestFile, SageAppPackageManifest, SageAppPackageManifestParts,
         SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
         SageRequestedNetworkWhitelist, SageRequestedPermissions, UserSageAppSource,
     };
-    use tempfile::tempdir;
 
     fn network_whitelist_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

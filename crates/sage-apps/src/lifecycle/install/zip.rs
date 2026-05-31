@@ -88,11 +88,12 @@ pub fn generate_zip_app_id(name: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use tempfile::tempdir;
+
     use super::*;
     use crate::types::{
         SageAppManifestFile, SageAppPackageManifestParts, SageRequestedPermissions,
     };
-    use tempfile::tempdir;
 
     fn sample_manifest(name: &str) -> SageAppPackageManifest {
         let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();

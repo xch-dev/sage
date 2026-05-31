@@ -66,6 +66,11 @@ pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::fs;
+
+    use tempfile::{TempDir, tempdir};
+
     use super::*;
     use crate::types::{
         SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
@@ -74,9 +79,6 @@ mod tests {
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedNetworkWhitelist,
         SageRequestedPermissions, UserSageApp, UserSageAppSource,
     };
-    use std::collections::{BTreeMap, BTreeSet};
-    use std::fs;
-    use tempfile::{TempDir, tempdir};
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()

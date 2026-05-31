@@ -1,10 +1,11 @@
-use crate::bridge::methods::user::wallet::send_xch::WalletSendXchParams;
-use crate::bridge::registry::BridgeRegistryKind;
-use crate::capabilities::list::UserBridgeCapability;
-use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
+
+use crate::bridge::BridgeRegistryKind;
+use crate::bridge::WalletSendXchParams;
+use crate::capabilities::UserBridgeCapability;
+use crate::types::{SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp};
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

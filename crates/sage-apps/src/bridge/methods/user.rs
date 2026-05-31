@@ -1,18 +1,9 @@
-pub mod app;
-pub mod bridge;
-pub mod environment;
-pub mod wallet;
+mod app;
+mod bridge;
+mod environment;
+mod wallet;
 
-pub use app::{
-    AppGetCapabilities, AppGetInfo, AppLifecycleReadyToStop, AppLifecycleSetBeforeStopListener,
-    AppRequestCapabilityGrant, AppRequestNetworkWhitelistGrant,
-};
-
-pub use bridge::{BridgePing, BridgeSend};
-
-pub use wallet::{
-    WalletCheckAddress, WalletGetCoins, WalletGetCoinsByIds, WalletGetDerivations, WalletGetKey,
-    WalletGetPendingTransactions, WalletGetSecretKey, WalletGetSpendableCoinCount,
-    WalletGetSyncStatus, WalletGetTransaction, WalletGetTransactions, WalletGetVersion,
-    WalletSendXch,
-};
+pub(crate) use app::*;
+pub(crate) use bridge::*;
+pub(crate) use environment::*;
+pub(crate) use wallet::*;

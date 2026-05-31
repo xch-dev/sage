@@ -3,10 +3,8 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::bridge::RustBridgeRequest;
-use crate::bridge::methods::shared::{
-    BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability,
-};
-use crate::bridge::methods::{BridgeContext, BridgeMethod, BridgeTools};
+use crate::bridge::{BridgeApprovalRequestResult, BridgeHandleResult, BridgeMethodCapability};
+use crate::bridge::{BridgeContext, BridgeMethod, BridgeTools};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BridgePing;

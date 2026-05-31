@@ -1,16 +1,17 @@
+use tauri::{AppHandle, State};
+
 use crate::AppsHostState;
-use crate::bridge::methods::system::{
+use crate::bridge::list_pending_approvals;
+use crate::bridge::{
     BridgeApprovalsChangedEvent, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
     RuntimeManagerRuntimesChangedEvent,
 };
-use crate::bridge::state::list_pending_approvals;
 use crate::bridge::{
     PendingBridgeApproval, RustBridgeResponse, comms_debug, emit_bridge_response_to_app,
     emit_system_runtime_event_to_listeners,
 };
 use crate::runtime::{SageAppRuntimeRecordView, SharedRuntime, list_runtimes, resolve_running_app};
 use crate::types::SharedSageApp;
-use tauri::{AppHandle, State};
 
 pub(crate) async fn emit_bridge_approvals_changed(
     app_handle: &AppHandle,
@@ -44,7 +45,7 @@ pub(crate) async fn emit_timeout_for_pending_approval(
     emit_bridge_response_to_app(app_handle, &app, &response).await
 }
 
-pub(super) async fn emit_runtime_manager_runtimes_changed(
+pub(crate) async fn emit_runtime_manager_runtimes_changed(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
 ) {
@@ -62,7 +63,7 @@ pub(super) async fn emit_runtime_manager_runtimes_changed(
     emit_system_runtime_event_to_listeners(app_handle, apps_state, event).await;
 }
 
-pub(super) async fn emit_active_taskbar_runtime_changed(
+pub(crate) async fn emit_active_taskbar_runtime_changed(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,

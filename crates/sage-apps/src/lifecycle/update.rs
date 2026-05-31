@@ -1,11 +1,16 @@
 mod apply;
 mod background;
 mod check;
-pub mod commands;
-pub mod permissions;
-pub mod scope;
-pub mod types;
+mod commands;
+mod permissions;
+mod scope;
+mod types;
 
-pub(crate) use apply::apply_app_update_inner;
-pub use background::start_background_app_update_checker;
-pub(crate) use check::check_app_update_inner;
+pub use background::*;
+pub use commands::*;
+
+pub(crate) use apply::*;
+pub(crate) use check::*;
+pub(crate) use permissions::*;
+pub(crate) use scope::*;
+pub(crate) use types::*;

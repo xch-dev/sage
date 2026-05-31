@@ -1,7 +1,8 @@
-use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
-use crate::types::{AppPresentation, SageAppView};
 use serde::Serialize;
 use specta::Type;
+
+use crate::runtime::{SageAppRuntimeMode, SageAppRuntimeVisibility, SharedRuntime};
+use crate::types::{AppPresentation, SageAppView};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]

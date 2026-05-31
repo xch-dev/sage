@@ -1,7 +1,6 @@
-use crate::capabilities::list::UserBridgeCapability;
-use crate::types::SharedSageApp;
-
 use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};
+use crate::capabilities::UserBridgeCapability;
+use crate::types::SharedSageApp;
 
 fn capability_status(
     state: &SandboxState,

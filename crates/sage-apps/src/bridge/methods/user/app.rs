@@ -1,23 +1,23 @@
-pub mod events;
-pub mod get_capabilities;
-pub mod get_info;
-pub mod lifecycle;
-pub mod request_capability_grant;
-pub mod request_network_whitelist_grant;
+mod events;
+mod get_capabilities;
+mod get_info;
+mod lifecycle;
+mod request_capability_grant;
+mod request_network_whitelist_grant;
+
+pub(crate) use events::*;
+pub(crate) use get_capabilities::*;
+pub(crate) use get_info::*;
+pub(crate) use lifecycle::*;
+pub(crate) use request_capability_grant::*;
+pub(crate) use request_network_whitelist_grant::*;
 
 use std::path::PathBuf;
 
 use tauri::Manager;
 
-pub use events::{GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent};
-pub use get_capabilities::AppGetCapabilities;
-pub use get_info::AppGetInfo;
-pub use lifecycle::{AppLifecycleReadyToStop, AppLifecycleSetBeforeStopListener};
-pub use request_capability_grant::AppRequestCapabilityGrant;
-pub use request_network_whitelist_grant::AppRequestNetworkWhitelistGrant;
-
-use crate::bridge::methods::BridgeTools;
-use crate::bridge::methods::shared::BridgeMethodHandleError;
+use crate::bridge::BridgeMethodHandleError;
+use crate::bridge::BridgeTools;
 
 pub(crate) fn resolve_app_base_path(
     tools: &BridgeTools<'_>,

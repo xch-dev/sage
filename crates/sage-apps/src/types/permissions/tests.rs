@@ -1,8 +1,8 @@
-use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 
-use crate::capabilities::list::UserBridgeCapability;
-use crate::types::network::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
+use super::*;
+use crate::capabilities::UserBridgeCapability;
+use crate::types::{SageNetworkWhitelistEntry, SageRequestedNetworkWhitelist};
 
 fn network_entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
     SageNetworkWhitelistEntry::new(scheme, host).unwrap()

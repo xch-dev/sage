@@ -3,9 +3,9 @@ use std::fmt::Display;
 
 use tauri::State;
 
+use super::types::SharedRuntime;
 use crate::AppsHostState;
 use crate::runtime::SageAppRuntimeVisibility;
-use crate::runtime::state::types::SharedRuntime;
 use crate::types::AppPresentation;
 
 pub enum GetRuntimeError {

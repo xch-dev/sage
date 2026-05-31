@@ -1,8 +1,8 @@
 use serde::Serialize;
 use specta::Type;
 
-use crate::bridge::event_emit::SystemRuntimeEvent;
-use crate::capabilities::list::SystemBridgeCapability;
+use crate::bridge::SystemRuntimeEvent;
+use crate::capabilities::SystemBridgeCapability;
 use crate::runtime::SageAppRuntimeRecordView;
 
 #[derive(Debug, Clone, Serialize, Type)]
