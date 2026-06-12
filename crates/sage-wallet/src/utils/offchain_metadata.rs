@@ -57,6 +57,8 @@ pub fn compute_nft_info(did_id: Option<Bytes32>, blob: &[u8]) -> ComputedNftInfo
                 }
             }),
             is_visible: true,
+            // Computed on read paths only; insert_collection ignores this field.
+            nft_count: 0,
         })
     } else {
         None

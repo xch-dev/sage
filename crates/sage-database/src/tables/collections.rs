@@ -12,6 +12,7 @@ pub struct CollectionRow {
     pub banner_url: Option<String>,
     pub description: Option<String>,
     pub is_visible: bool,
+    pub nft_count: u32,
 }
 
 impl Database {
@@ -46,7 +47,8 @@ impl DatabaseTx<'_> {
 async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Option<CollectionRow>> {
     let hash_ref = hash.as_ref();
     let row = query!(
-        "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible 
+        "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible,
+        (SELECT COUNT(*) FROM owned_nfts WHERE owned_nfts.collection_id = collections.id AND asset_is_visible = 1) AS \"nft_count!: i64\"
         FROM collections
         WHERE hash = ?",
         hash_ref
@@ -64,6 +66,7 @@ async fn collection(conn: impl SqliteExecutor<'_>, hash: Bytes32) -> Result<Opti
             banner_url: row.banner_url,
             description: row.description,
             is_visible: row.is_visible,
+            nft_count: row.nft_count.try_into()?,
         })
     })
     .transpose()
@@ -77,8 +80,9 @@ async fn collections(
 ) -> Result<(Vec<CollectionRow>, u32)> {
     // we only return collections that have nfts
     let rows = query!(
-        "SELECT collections.hash, uuid, collections.minter_hash, collections.name, collections.icon_url, 
-        collections.banner_url, collections.description, collections.is_visible, COUNT(*) OVER() as total_count
+        "SELECT collections.hash, uuid, collections.minter_hash, collections.name, collections.icon_url,
+        collections.banner_url, collections.description, collections.is_visible, COUNT(*) OVER() as total_count,
+        (SELECT COUNT(*) FROM owned_nfts WHERE owned_nfts.collection_id = collections.id AND asset_is_visible = 1) AS \"nft_count!: i64\"
         FROM collections
         WHERE 1=1
         AND EXISTS (SELECT 1 FROM owned_nfts WHERE owned_nfts.collection_id = collections.id)
@@ -109,6 +113,7 @@ async fn collections(
                 banner_url: row.banner_url,
                 description: row.description,
                 is_visible: row.is_visible,
+                nft_count: row.nft_count.try_into()?,
             })
         })
         .collect::<Result<Vec<_>>>()?;

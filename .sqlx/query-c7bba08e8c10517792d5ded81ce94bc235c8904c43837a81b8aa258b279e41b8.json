@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT collections.hash, uuid, collections.minter_hash, collections.name, collections.icon_url, \n        collections.banner_url, collections.description, collections.is_visible, COUNT(*) OVER() as total_count\n        FROM collections\n        WHERE 1=1\n        AND EXISTS (SELECT 1 FROM owned_nfts WHERE owned_nfts.collection_id = collections.id)\n        AND (? OR is_visible = 1)\n        ORDER BY CASE WHEN collections.id = 0 THEN 1 ELSE 0 END, name ASC\n        LIMIT ?\n        OFFSET ?",
+  "query": "SELECT collections.hash, uuid, collections.minter_hash, collections.name, collections.icon_url,\n        collections.banner_url, collections.description, collections.is_visible, COUNT(*) OVER() as total_count,\n        (SELECT COUNT(*) FROM owned_nfts WHERE owned_nfts.collection_id = collections.id AND asset_is_visible = 1) AS \"nft_count!: i64\"\n        FROM collections\n        WHERE 1=1\n        AND EXISTS (SELECT 1 FROM owned_nfts WHERE owned_nfts.collection_id = collections.id)\n        AND (? OR is_visible = 1)\n        ORDER BY CASE WHEN collections.id = 0 THEN 1 ELSE 0 END, name ASC\n        LIMIT ?\n        OFFSET ?",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,11 @@
         "name": "total_count",
         "ordinal": 8,
         "type_info": "Integer"
+      },
+      {
+        "name": "nft_count!: i64",
+        "ordinal": 9,
+        "type_info": "Integer"
       }
     ],
     "parameters": {
@@ -61,8 +66,9 @@
       true,
       true,
       false,
+      false,
       false
     ]
   },
-  "hash": "5e740e307bf332541fc073cf20f72297912073527728adb5afd1391300b8ed0c"
+  "hash": "c7bba08e8c10517792d5ded81ce94bc235c8904c43837a81b8aa258b279e41b8"
 }
