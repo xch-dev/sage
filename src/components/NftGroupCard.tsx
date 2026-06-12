@@ -4,9 +4,13 @@ import {
   NftRecord,
   commands,
 } from '@/bindings';
+import { NumberFormat } from '@/components/NumberFormat';
+import { NO_COLLECTION_ID } from '@/hooks/useNftData';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { useNetwork } from '@/hooks/useNetwork';
+import { useNftPrices } from '@/hooks/useNftPrices';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { usePrices } from '@/hooks/usePrices';
 import { mintGardenCollectionUrl, mintGardenDidUrl } from '@/lib/urls';
 //import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
@@ -71,6 +75,8 @@ export function NftGroupCard({
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
+  const { collectionValues } = useNftPrices();
+  const { getPriceInUsd } = usePrices();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const isCollection = type === 'collection';
 
@@ -282,6 +288,40 @@ export function NftGroupCard({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+
+          {isCollectionRecord(item) &&
+            item.collection_id !== NO_COLLECTION_ID &&
+            (() => {
+              const value = collectionValues[item.collection_id];
+              if (!value) return null;
+
+              if (value.floorXch === null) {
+                return (
+                  <p className='text-xs text-muted-foreground truncate'>
+                    <Trans>No listings</Trans>
+                  </p>
+                );
+              }
+
+              return (
+                <p className='text-xs text-muted-foreground truncate'>
+                  <Trans>
+                    Floor{' '}
+                    <NumberFormat
+                      value={value.floorXch}
+                      maximumFractionDigits={3}
+                    />{' '}
+                    XCH · ~
+                    <NumberFormat
+                      value={value.valueXch * getPriceInUsd(null)}
+                      style='currency'
+                      currency='USD'
+                      maximumFractionDigits={2}
+                    />
+                  </Trans>
+                </p>
+              );
+            })()}
         </span>
 
         <DropdownMenu>

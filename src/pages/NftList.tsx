@@ -4,17 +4,25 @@ import { MultiSelectActions } from '@/components/MultiSelectActions';
 import { NftCardList } from '@/components/NftCardList';
 import { NftOptions } from '@/components/NftOptions';
 import { NftPageTitle } from '@/components/NftPageTitle';
+import { NumberFormat } from '@/components/NumberFormat';
 import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useNftData } from '@/hooks/useNftData';
 import { NftGroupMode, useNftParams } from '@/hooks/useNftParams';
+import { useNftPrices } from '@/hooks/useNftPrices';
 import { exportNfts } from '@/lib/exportNfts';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { ImagePlusIcon } from 'lucide-react';
+import { ImagePlusIcon, ShieldAlert } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -27,6 +35,7 @@ export function NftList() {
   } = useParams();
   const [params, setParams] = useNftParams();
   const { pageSize, sort, group, showHidden, query } = params;
+  const { nftTotalXch, nftTotalUsd } = useNftPrices();
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
   const { addError } = useErrors();
@@ -164,6 +173,42 @@ export function NftList() {
             }
           />
         </div>
+
+        {group === NftGroupMode.Collection &&
+          !collectionId &&
+          !ownerDid &&
+          !minterDid &&
+          nftTotalXch > 0 && (
+            <div className='mt-4 flex items-center gap-2 text-sm text-muted-foreground'>
+              <Trans>
+                Estimated value:{' '}
+                <NumberFormat value={nftTotalXch} maximumFractionDigits={3} />{' '}
+                XCH (~
+                <NumberFormat
+                  value={nftTotalUsd}
+                  style='currency'
+                  currency='USD'
+                  maximumFractionDigits={2}
+                />
+                )
+              </Trans>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ShieldAlert className='h-4 w-4 text-muted-foreground cursor-help' />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      <Trans>
+                        Based on MintGarden collection floor prices. This is an
+                        estimate only and does not account for liquidity
+                      </Trans>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
 
         <main aria-label={t`NFT Collection`}>
           <NftCardList
