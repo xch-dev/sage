@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "dev:system-apps": "node scripts/dev-system-apps-watch.mjs",
-    "generate:bridge-types": "cargo run -p sage-apps --bin export_bridge_types >/dev/null",
+    "generate:bridge-types": "node scripts/generate-bridge-types.mjs",
     "generate:sdk-types": "pnpm --silent --filter @sage-app/sdk run generate:types && pnpm --silent --filter @sage-system-app/sdk run generate:types",
     "generate:types": "pnpm run generate:bridge-types && pnpm run generate:sdk-types",
     "build:packages": "pnpm run generate:types && pnpm --filter @sage-app/sdk build && pnpm --filter @sage-system-app/sdk build && pnpm --filter @sage-app/ui build",
