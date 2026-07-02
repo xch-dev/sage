@@ -189,7 +189,12 @@ async fn create_runtime_for_app(
     .on_new_window(move |_url, _features| NewWindowResponse::Deny);
 
     let builder = build_initialization_script(builder);
+
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     let builder = build_storage(builder, &app)?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    let builder = build_storage(builder, &app);
 
     let (x, y, width, height) = if args.debug_layout {
         debug_layout_for_app(&app.id())
@@ -290,6 +295,7 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
     rotate_app_storage_and_origin(app_handle, apps_state, app).await
 }
 
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 fn build_storage(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
@@ -301,31 +307,50 @@ fn build_storage(
     build_persistent_storage_target(builder, app)
 }
 
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+    if !app.with(|app| app.common().has_persistent_webview_storage()) {
+        return builder.incognito(true);
+    }
+
+    build_persistent_storage_target(builder, app)
+}
+
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 fn build_persistent_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
 ) -> Result<WebviewBuilder<Wry>, String> {
     let storage = app.with(|app| app.storage().clone());
 
-    let builder = match storage {
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
+    match storage {
         SageAppStorage::AppleDataStore { identifier_hex } => {
             let identifier = parse_data_store_id(&identifier_hex)?;
-            builder.data_store_identifier(identifier)
+            Ok(builder.data_store_identifier(identifier))
         }
 
+        SageAppStorage::WindowsProfile { .. } | SageAppStorage::Unmanaged => Ok(builder),
+    }
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+fn build_persistent_storage_target(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+) -> WebviewBuilder<Wry> {
+    let storage = app.with(|app| app.storage().clone());
+
+    match storage {
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
             builder.data_directory(data_directory_for(directory_name))
         }
 
-        SageAppStorage::Unmanaged => builder,
+        #[cfg(not(target_os = "windows"))]
+        SageAppStorage::WindowsProfile { .. } => builder,
 
-        #[allow(unreachable_patterns)]
-        _ => builder,
-    };
-
-    Ok(builder)
+        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
+    }
 }
 
 fn build_initialization_script(mut builder: WebviewBuilder<Wry>) -> WebviewBuilder<Wry> {

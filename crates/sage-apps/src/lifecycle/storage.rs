@@ -64,7 +64,15 @@ pub(crate) async fn allocate_new_storage(
     host_state: &State<'_, AppsHostState>,
     base_path: &Path,
 ) -> AnyResult<RegisteredSageAppStorage> {
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
     let storage = allocate_new_os_storage(app, base_path).await?;
+
+    #[cfg(target_os = "windows")]
+    let storage = allocate_new_os_storage(app, base_path)?;
+
+    #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+    let storage = allocate_new_os_storage(app, base_path);
+
     let storage_id = host_state.db.register_storage(&storage).await?;
 
     Ok(RegisteredSageAppStorage {
@@ -94,10 +102,7 @@ pub async fn allocate_new_os_storage(
 }
 
 #[cfg(target_os = "windows")]
-pub async fn allocate_new_os_storage(
-    _app: &AppHandle,
-    base_path: &Path,
-) -> AnyResult<SageAppStorage> {
+pub fn allocate_new_os_storage(_app: &AppHandle, base_path: &Path) -> AnyResult<SageAppStorage> {
     let profiles_root = base_path.join("profiles");
     fs::create_dir_all(&profiles_root).with_context(|| {
         format!(
@@ -117,11 +122,8 @@ pub async fn allocate_new_os_storage(
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-pub async fn allocate_new_os_storage(
-    _app: &AppHandle,
-    _base_path: &Path,
-) -> AnyResult<SageAppStorage> {
-    Ok(SageAppStorage::Unmanaged)
+pub fn allocate_new_os_storage(_app: &AppHandle, _base_path: &Path) -> SageAppStorage {
+    SageAppStorage::Unmanaged
 }
 
 pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path) -> AnyResult<()> {
@@ -157,9 +159,16 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
             }
 
             _ => {
+                #[cfg(any(target_os = "macos", target_os = "ios"))]
                 clear_app_storage_by_target(app, &target.storage)
                     .await
                     .map_err(anyhow::Error::msg)?;
+
+                #[cfg(target_os = "windows")]
+                clear_app_storage_by_target(app, &target.storage).map_err(anyhow::Error::msg)?;
+
+                #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+                clear_app_storage_by_target(app, &target.storage);
             }
         }
         tracing::info!(storage_id = target.storage_id, "origin cleanup completed");
@@ -178,12 +187,12 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
     Ok(())
 }
 
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub async fn clear_app_storage_by_target(
     _app: &AppHandle,
     target: &SageAppStorage,
 ) -> Result<(), String> {
     match target {
-        #[cfg(any(target_os = "macos", target_os = "ios"))]
         SageAppStorage::AppleDataStore { identifier_hex } => {
             let target_id = parse_data_store_id(identifier_hex)?;
             let existing_ids = _app
@@ -198,6 +207,18 @@ pub async fn clear_app_storage_by_target(
             }
         }
 
+        SageAppStorage::WindowsProfile { .. } | SageAppStorage::Unmanaged => {}
+    }
+
+    Ok(())
+}
+
+#[cfg(target_os = "windows")]
+pub fn clear_app_storage_by_target(
+    _app: &AppHandle,
+    target: &SageAppStorage,
+) -> Result<(), String> {
+    match target {
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
             let app_data_dir = _app
@@ -219,14 +240,14 @@ pub async fn clear_app_storage_by_target(
             }
         }
 
-        SageAppStorage::Unmanaged => {}
-
-        #[allow(unreachable_patterns)]
-        _ => {}
+        SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => {}
     }
 
     Ok(())
 }
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+pub fn clear_app_storage_by_target(_app: &AppHandle, _target: &SageAppStorage) {}
 
 pub async fn rotate_stopped_app_storage_and_origin(
     app_handle: &AppHandle,
