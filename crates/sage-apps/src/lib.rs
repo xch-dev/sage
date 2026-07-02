@@ -57,6 +57,7 @@ pub(crate) use lifecycle::*;
 pub(crate) use runtime::*;
 pub(crate) use sandbox::*;
 pub(crate) use security::*;
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 pub(crate) use storage::*;
 pub(crate) use system_apps::*;
 pub(crate) use types::*;

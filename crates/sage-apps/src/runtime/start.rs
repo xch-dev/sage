@@ -6,15 +6,17 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, State, WebviewBuilder, Webv
 
 #[cfg(target_os = "windows")]
 use crate::data_directory_for;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use crate::parse_data_store_id;
 use crate::{
     AppMutationManager, AppPresentation, AppsHostState, CreateInstalledRuntimeArgs,
     OriginCleanupRuntimeTarget, ResolvedApp, RuntimeChangeSet, SageAppRuntimeMode,
     SageAppRuntimeRecord, SageAppRuntimeRecordView, SageAppRuntimeVisibility, SageAppStorage,
     SharedRuntime, SharedSageApp, build_entry_src, close_runtime_internal,
     emit_runtime_manager_runtimes_changed, focus_taskbar_runtime, get_sage_window,
-    get_webview_in_sage_window, is_allowed_app_url, parse_data_store_id,
-    remove_runtime_by_runtime_id, remove_runtime_id_by_app_id, resolve_app,
-    rotate_app_storage_and_origin, sandbox, sync_modal_runtime_visibility, write_runtime,
+    get_webview_in_sage_window, is_allowed_app_url, remove_runtime_by_runtime_id,
+    remove_runtime_id_by_app_id, resolve_app, rotate_app_storage_and_origin, sandbox,
+    sync_modal_runtime_visibility, write_runtime,
 };
 
 #[derive(Debug, Type)]
@@ -300,28 +302,28 @@ fn build_storage(
 }
 
 fn build_persistent_storage_target(
-    mut builder: WebviewBuilder<Wry>,
+    builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
 ) -> Result<WebviewBuilder<Wry>, String> {
     let storage = app.with(|app| app.storage().clone());
 
-    match storage {
+    let builder = match storage {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         SageAppStorage::AppleDataStore { identifier_hex } => {
             let identifier = parse_data_store_id(&identifier_hex)?;
-            builder = builder.data_store_identifier(identifier);
+            builder.data_store_identifier(identifier)
         }
 
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder = builder.data_directory(data_directory_for(directory_name));
+            builder.data_directory(data_directory_for(directory_name))
         }
 
-        SageAppStorage::Unmanaged => {}
+        SageAppStorage::Unmanaged => builder,
 
         #[allow(unreachable_patterns)]
-        _ => {}
-    }
+        _ => builder,
+    };
 
     Ok(builder)
 }

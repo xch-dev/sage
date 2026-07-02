@@ -3,6 +3,7 @@ use std::path::Path;
 use std::{fs, path::PathBuf};
 
 use anyhow::{Context, Result as AnyResult};
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 use sha2::{Digest, Sha256};
 
 use crate::{

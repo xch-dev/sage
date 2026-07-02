@@ -4,16 +4,19 @@ use anyhow::Result as AnyResult;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use anyhow::anyhow;
 use tauri::{AppHandle, Manager, State, command};
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 use uuid::Uuid;
 #[cfg(target_os = "windows")]
 use {anyhow::Context, std::fs};
 
 #[cfg(target_os = "windows")]
 use crate::data_directory_for;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use crate::parse_data_store_id;
 use crate::{
     AppMutationManager, AppsHostState, CreateInstalledRuntimeArgs, OriginCleanupRuntimeTarget,
     ResolvedStoppedApp, SageAppStorage, SharedSageApp, find_runtime_by_app_id_optional,
-    fresh_origin_id, parse_data_store_id, resolve_stopped_app, run_origin_cleanup, start_user_app,
+    fresh_origin_id, resolve_stopped_app, run_origin_cleanup, start_user_app,
 };
 
 pub(crate) struct RegisteredSageAppStorage {
@@ -176,20 +179,20 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
 }
 
 pub async fn clear_app_storage_by_target(
-    app: &AppHandle,
+    _app: &AppHandle,
     target: &SageAppStorage,
 ) -> Result<(), String> {
     match target {
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         SageAppStorage::AppleDataStore { identifier_hex } => {
             let target_id = parse_data_store_id(identifier_hex)?;
-            let existing_ids = app
+            let existing_ids = _app
                 .fetch_data_store_identifiers()
                 .await
                 .map_err(|e| format!("failed to fetch data store identifiers: {e}"))?;
 
             if existing_ids.contains(&target_id) {
-                app.remove_data_store(target_id)
+                _app.remove_data_store(target_id)
                     .await
                     .map_err(|e| format!("failed to remove data store: {e}"))?;
             }
@@ -197,7 +200,7 @@ pub async fn clear_app_storage_by_target(
 
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            let app_data_dir = app
+            let app_data_dir = _app
                 .path()
                 .app_data_dir()
                 .map_err(|e| format!("failed to resolve app data dir: {e}"))?;
