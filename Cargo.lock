@@ -6367,7 +6367,6 @@ dependencies = [
  "sqlx",
  "tauri",
  "tauri-plugin-dialog",
- "tauri-specta",
  "tempfile",
  "tokio",
  "tracing",
@@ -6380,7 +6379,6 @@ dependencies = [
 name = "sage-assets"
 version = "0.12.11"
 dependencies = [
- "anyhow",
  "base64 0.22.1",
  "chia-wallet-sdk",
  "futures-lite",
@@ -6504,13 +6502,9 @@ name = "sage-tauri"
 version = "0.12.11"
 dependencies = [
  "anyhow",
- "async-trait",
  "aws-lc-rs",
  "chia-wallet-sdk",
- "futures",
  "glob",
- "hex",
- "mime_guess",
  "reqwest 0.12.24",
  "rustls",
  "sage",
@@ -6522,7 +6516,6 @@ dependencies = [
  "sage-wallet",
  "serde",
  "serde_json",
- "sha2",
  "specta",
  "specta-typescript",
  "tauri",
@@ -6542,9 +6535,6 @@ dependencies = [
  "tempfile",
  "tokio",
  "tracing",
- "url",
- "uuid",
- "zip",
 ]
 
 [[package]]
