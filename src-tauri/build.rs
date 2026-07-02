@@ -36,13 +36,5 @@ fn setup_x86_64_android_workaround() {
 fn main() {
     setup_x86_64_android_workaround();
 
-    println!("cargo:rerun-if-changed=../crates/sage-apps/src/bridge");
-    println!("cargo:rerun-if-changed=../crates/sage-apps/src/permissions");
-    println!("cargo:rerun-if-changed=../crates/sage-apps/src/build/docs.rs");
-
-    if let Err(err) = sage_apps::generate_docs() {
-        panic!("failed to generate Sage app docs: {err}");
-    }
-
     tauri_build::build();
 }
