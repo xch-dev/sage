@@ -1,4 +1,3 @@
-import { commands, NetworkKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { marketplaces } from '@/lib/marketplaces';
 import { OfferState } from '@/state';
@@ -40,7 +40,7 @@ export function OfferCreationProgressDialog({
   isSwap,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const { isTestnet, isUnknown } = useNetwork();
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -70,13 +70,14 @@ export function OfferCreationProgressDialog({
     },
   });
 
-  useEffect(() => {
-    commands.getNetwork({}).then((data) => setNetwork(data.kind));
-  }, []);
-
   // Handle uploads when offers are created
   useEffect(() => {
-    if (createdOffers.length > 0 && network && !isProcessing && !isCanceling) {
+    if (
+      createdOffers.length > 0 &&
+      !isUnknown &&
+      !isProcessing &&
+      !isCanceling
+    ) {
       let isMounted = true;
 
       const uploadToMarketplaces = async () => {
@@ -102,10 +103,7 @@ export function OfferCreationProgressDialog({
             if (!isMounted || isCanceling) break;
             setCurrentOfferIndex(offerIndex);
             try {
-              await marketplace.uploadToMarketplace(
-                individualOffer,
-                network === 'testnet',
-              );
+              await marketplace.uploadToMarketplace(individualOffer, isTestnet);
               if (offerIndex < createdOffers.length - 1) {
                 // rate limit
                 await delay(500);
@@ -136,7 +134,8 @@ export function OfferCreationProgressDialog({
     }
   }, [
     createdOffers,
-    network,
+    isTestnet,
+    isUnknown,
     addError,
     enabledMarketplaces,
     isProcessing,

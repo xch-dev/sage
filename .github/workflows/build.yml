@@ -74,7 +74,7 @@ jobs:
           - platform: 'windows-latest'
             platform_name: Windows (ARM)
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
-          - platform: 'macos-15'
+          - platform: 'macos-26'
             platform_name: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect'
             build_dev: 'pnpm tauri ios build --export-method debugging'
@@ -150,7 +150,7 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: matrix.platform == 'macos-15'
+        if: matrix.platform_name == 'MacOS' || matrix.platform_name == 'iOS'
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
@@ -159,7 +159,13 @@ jobs:
         if: matrix.platform_name == 'iOS'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: 16.4.0
+          xcode-version: '26.5'
+
+      - name: Verify Xcode SDK
+        if: matrix.platform_name == 'iOS'
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
 
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked

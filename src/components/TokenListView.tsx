@@ -1,4 +1,5 @@
 import { DataTable } from '@/components/ui/data-table';
+import { useNetwork } from '@/hooks/useNetwork';
 import { cn } from '@/lib/utils';
 import { TokenViewProps } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
@@ -9,10 +10,12 @@ type TokenListViewProps = TokenViewProps & {
 };
 
 export function TokenListView({ tokens, actionHandlers }: TokenListViewProps) {
+  const { isTestnet } = useNetwork();
+
   return (
     <div role='region' aria-label={t`Token List`}>
       <DataTable
-        columns={columns(actionHandlers)}
+        columns={columns(actionHandlers, isTestnet)}
         data={tokens}
         aria-label={t`Token list`}
         rowLabel={t`asset`}

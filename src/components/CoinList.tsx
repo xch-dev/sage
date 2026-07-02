@@ -1,3 +1,4 @@
+import { spacescanCoinUrl } from '@/lib/urls';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -81,21 +82,28 @@ const CoinIdHeader = ({
   </Button>
 );
 
-const CoinIdCell = ({ row }: { row: Row<CoinRecord> }) => {
+const CoinIdCell = ({
+  row,
+  isTestnet,
+}: {
+  row: Row<CoinRecord>;
+  isTestnet: boolean;
+}) => {
   const coinId = row.original.coin_id;
+  const url = spacescanCoinUrl(coinId, isTestnet);
   return (
     <div
       className='cursor-pointer truncate hover:underline'
       onClick={(e) => {
         e.stopPropagation();
-        openUrl(`https://spacescan.io/coin/0x${coinId}`);
+        openUrl(url);
       }}
       aria-label={t`View coin ${coinId} on Spacescan.io`}
       role='button'
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.stopPropagation();
-          openUrl(`https://spacescan.io/coin/0x${coinId}`);
+          openUrl(url);
         }
       }}
     >
@@ -403,7 +411,9 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     accessorKey: 'coin_id',
     size: 100,
     header: () => <CoinIdHeaderWrapper {...props} />,
-    cell: CoinIdCell,
+    cell: ({ row }: { row: Row<CoinRecord> }) => (
+      <CoinIdCell row={row} isTestnet={props.isTestnet} />
+    ),
   },
   {
     accessorKey: 'amount',
@@ -436,6 +446,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
 
 export interface CoinListProps {
   precision: number;
+  isTestnet: boolean;
   coins: CoinRecord[];
   selectedCoins: RowSelectionState;
   setSelectedCoins: React.Dispatch<React.SetStateAction<RowSelectionState>>;

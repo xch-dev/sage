@@ -5,7 +5,9 @@ import {
   commands,
 } from '@/bindings';
 import { NftGroupMode } from '@/hooks/useNftParams';
+import { useNetwork } from '@/hooks/useNetwork';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { mintGardenCollectionUrl, mintGardenDidUrl } from '@/lib/urls';
 //import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -68,6 +70,7 @@ export function NftGroupCard({
   setSplitNftOffers,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
+  const { isTestnet } = useNetwork();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const isCollection = type === 'collection';
 
@@ -315,7 +318,7 @@ export function NftGroupCard({
                     disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
-                      openUrl(`https://mintgarden.io/collections/${cardId}`);
+                      openUrl(mintGardenCollectionUrl(cardId, isTestnet));
                     }}
                     aria-label={t`View ${cardName} on Mintgarden`}
                   >
@@ -360,7 +363,7 @@ export function NftGroupCard({
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    openUrl(`https://mintgarden.io/${cardId}`);
+                    openUrl(mintGardenDidUrl(cardId, isTestnet));
                   }}
                   aria-label={t`View ${cardName} on Mintgarden`}
                 >

@@ -1,14 +1,10 @@
-import {
-  commands,
-  NetworkKind,
-  OfferRecordStatus,
-  OfferSummary,
-} from '@/bindings';
+import { commands, OfferRecordStatus, OfferSummary } from '@/bindings';
 import { Assets } from '@/components/Assets';
 import { MarketplaceCard } from '@/components/MarketplaceCard';
 import { NumberFormat } from '@/components/NumberFormat';
 import { marketplaces } from '@/lib/marketplaces';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
+import { useNetwork } from '@/hooks/useNetwork';
 import { useWalletState } from '@/state';
 import { shareText } from '@buildyourwebapp/tauri-plugin-sharesheet';
 import { t } from '@lingui/core/macro';
@@ -50,9 +46,9 @@ export function OfferCard({
   content,
 }: OfferCardProps) {
   const walletState = useWalletState();
+  const { isTestnet } = useNetwork();
   // State to track which CATs are present in the wallet
   const [catPresence, setCatPresence] = useState<CatPresence>({});
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   const handleShare = async () => {
@@ -87,10 +83,6 @@ export function OfferCard({
       });
       setCatPresence(presence);
     });
-  }, []);
-
-  useEffect(() => {
-    commands.getNetwork({}).then((data) => setNetwork(data.kind));
   }, []);
 
   if (!offerSummary) return null;
@@ -264,7 +256,7 @@ export function OfferCard({
                   offer={offer || ''}
                   offerId={offerId}
                   offerSummary={offerSummary}
-                  network={network || 'unknown'}
+                  isTestnet={isTestnet}
                   marketplace={marketplace}
                 />
               ))}

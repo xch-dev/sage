@@ -740,7 +740,7 @@ puzzle_hash: string;
 /**
  * Amount in mojos
  */
-amount: number }
+amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
@@ -1828,7 +1828,7 @@ innerPuzzleHash: string | null;
 /**
  * Amount
  */
-amount: number | null }
+amount: Amount | null }
 export type ListedSageAppView = ({ kind: "user" } & UserSageAppView) | ({ kind: "system" } & SystemSageAppView) | ({ kind: "corrupted" } & CorruptedInstalledSageApp)
 export type LogFile = { name: string; text: string }
 /**
