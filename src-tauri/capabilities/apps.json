@@ -3,8 +3,5 @@
   "identifier": "app-webview",
   "description": "Minimal IPC for installed app windows and embedded user app webviews",
   "webviews": ["app-*"],
-  "permissions": [
-    "core:event:allow-listen",
-    "allow-apps-invoke-bridge"
-  ]
+  "permissions": ["core:event:allow-listen", "allow-apps-invoke-bridge"]
 }

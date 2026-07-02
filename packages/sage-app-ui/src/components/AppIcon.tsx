@@ -10,29 +10,45 @@ export type AppIconBytes = {
   mime: string;
 };
 
-export function AppIcon({ appName, appIcon }: { appName: string, appIcon: AppIcon | null }) {
+export function AppIcon({
+  appName,
+  appIcon,
+}: {
+  appName: string;
+  appIcon: AppIcon | null;
+}) {
   if (!appIcon) {
-    return <AppIconFallback name={appName} className='h-full w-full' />
+    return <AppIconFallback name={appName} className='h-full w-full' />;
   }
   if (appIcon.kind === 'url') {
-    return <AppIconFromUrl
-      name={appName}
-      iconUrl={appIcon.iconUrl}
-      className='h-full w-full'
-    />
+    return (
+      <AppIconFromUrl
+        name={appName}
+        iconUrl={appIcon.iconUrl}
+        className='h-full w-full'
+      />
+    );
   }
   if (appIcon.kind === 'bytes') {
-    return <AppIconFromBytes
-      name={appName}
-      icon={appIcon.icon}
-      className='h-full w-full'
-    />
+    return (
+      <AppIconFromBytes
+        name={appName}
+        icon={appIcon.icon}
+        className='h-full w-full'
+      />
+    );
   }
 
   return <AppIconFallback name={appName} className='h-full w-full' />;
 }
 
-export function AppIconFallback({ name, className }: { name: string; className?: string }) {
+export function AppIconFallback({
+  name,
+  className,
+}: {
+  name: string;
+  className?: string;
+}) {
   return (
     <div className={['flex items-center justify-center', className].join(' ')}>
       {name.trim().charAt(0).toUpperCase() || 'A'}
@@ -88,7 +104,11 @@ export function AppIconFromBytes({
   return <AppIconFromUrl name={name} iconUrl={iconUrl} className={className} />;
 }
 
-export function AppIconFromCommonView({ common }: { common: SageAppCommonView }) {
+export function AppIconFromCommonView({
+  common,
+}: {
+  common: SageAppCommonView;
+}) {
   const icon = common.icon;
 
   if (!icon) {

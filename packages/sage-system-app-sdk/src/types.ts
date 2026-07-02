@@ -23,7 +23,9 @@ export type SageSystemRuntimeManagerClient = {
     handler: (event: Generated.RuntimeManagerRuntimesChangedEvent) => void,
   ): () => void;
   onActiveTaskbarRuntimeChanged(
-    handler: (event: Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent) => void,
+    handler: (
+      event: Generated.RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    ) => void,
   ): () => void;
   hideSelf(): Promise<void>;
   closeSelf(): Promise<void>;

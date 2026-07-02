@@ -20,13 +20,17 @@ export async function listRuntimes(): Promise<SageAppRuntimeRecordView[]> {
   return await client.runtimeManager.listRuntimes();
 }
 
-export async function focusRuntime(appId: string): Promise<SageAppRuntimeRecordView> {
+export async function focusRuntime(
+  appId: string,
+): Promise<SageAppRuntimeRecordView> {
   return await client.runtimeManager.focusRuntime({
     appId,
   } satisfies RuntimeTargetParams);
 }
 
-export async function hideRuntime(appId: string): Promise<SageAppRuntimeRecordView> {
+export async function hideRuntime(
+  appId: string,
+): Promise<SageAppRuntimeRecordView> {
   return await client.runtimeManager.hideRuntime({
     appId,
   } satisfies RuntimeTargetParams);

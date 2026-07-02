@@ -15,9 +15,7 @@ import { AppsPageActionsMenu } from '@/components/apps/AppsPageActionsMenu';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppTile } from '@/components/apps/AppTile';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
-import {
-  openAppPermissionsReview,
-} from '@/lib/apps/openAppUpdate.ts';
+import { openAppPermissionsReview } from '@/lib/apps/openAppUpdate.ts';
 
 type UserInstalledEntry = { kind: 'user' } & UserSageAppView;
 type SystemInstalledEntry = { kind: 'system' } & SystemSageAppView;
@@ -139,10 +137,9 @@ export function AppsLaunchpad() {
     ? (busyAppIds[contextMenuAppId] ?? false)
     : false;
 
-  const contextMenuCheckState =
-    contextMenuAppId
-      ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
-      : 'idle';
+  const contextMenuCheckState = contextMenuAppId
+    ? (updateCheckStateByAppId[contextMenuAppId] ?? 'idle')
+    : 'idle';
 
   const contextMenuAppIsRunning = contextMenuAppId
     ? runningAppIds.has(contextMenuAppId)

@@ -10,9 +10,7 @@
   "permissions": {
     "network": {
       "whitelist": {
-        "required": [
-          "https://example.com"
-        ]
+        "required": ["https://example.com"]
       }
     },
     "capabilities": {

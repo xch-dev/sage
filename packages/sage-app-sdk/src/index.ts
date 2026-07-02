@@ -9,10 +9,7 @@ export {
   hasSageBridge,
 } from './client';
 
-export {
-  createBridgeRuntimeCore,
-  parseJsonOrNull,
-} from './bridge/core';
+export { createBridgeRuntimeCore, parseJsonOrNull } from './bridge/core';
 
 export * from './types';
 export * from './hooks';

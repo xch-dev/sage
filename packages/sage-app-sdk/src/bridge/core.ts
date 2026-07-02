@@ -189,12 +189,8 @@ export function createBridgeRuntimeCore(
                 result,
               );
               resolve(response.result as T);
-            }
-            else {
-              const response = toSdkBridgeErrorResponse(
-                config.version,
-                result,
-              );
+            } else {
+              const response = toSdkBridgeErrorResponse(config.version, result);
               reject(new Error(response.error.message));
             }
           }

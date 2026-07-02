@@ -3,7 +3,11 @@ import type {
   SageNetworkWhitelistEntry,
   UserBridgeCapability,
 } from '@sage-system-app/sdk';
-import type { NetworkPermissionScheme, NetworkPermissionSchemeState, PermissionEntry, } from './types';
+import type {
+  NetworkPermissionScheme,
+  NetworkPermissionSchemeState,
+  PermissionEntry,
+} from './types';
 import { formatCapabilityLeafLabel, networkKey } from './utils';
 
 export function capabilitySensitivityRank(key: string): number {

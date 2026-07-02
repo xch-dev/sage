@@ -1,4 +1,4 @@
-@import "@sage-app/sdk/theme.css";
+@import '@sage-app/sdk/theme.css';
 @config "../tailwind.config.js";
 
 @tailwind base;
@@ -8,12 +8,12 @@
 html,
 body,
 #root {
-    width: 100%;
-    height: 100%;
-    margin: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 
 body {
-    overflow: hidden;
-    background: transparent;
+  overflow: hidden;
+  background: transparent;
 }

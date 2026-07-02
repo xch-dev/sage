@@ -128,9 +128,7 @@ export function Apps() {
     ? (pendingUpdates[activeAppId] ?? { kind: 'none' as const })
     : { kind: 'none' as const };
 
-  const activeBusy = activeAppId
-    ? (busyAppIds[activeAppId] ?? false)
-    : false;
+  const activeBusy = activeAppId ? (busyAppIds[activeAppId] ?? false) : false;
 
   const activeManifest = activeApp?.common.activeSnapshot.manifest;
 
@@ -252,8 +250,8 @@ export function Apps() {
               }}
             >
               {activePendingUpdate.kind === 'requiresReview'
-                  ? 'Review update'
-                  : 'Apply update'}
+                ? 'Review update'
+                : 'Apply update'}
             </Button>
           </AlertDescription>
         </Alert>

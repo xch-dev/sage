@@ -38,6 +38,7 @@ sage-manifest.json
 ```
 
 Edit:
+
 - app name
 - permissions (capabilities)
 - entry point
@@ -93,6 +94,7 @@ Available capabilities and bridge methods:
 - `docs/generated/user-*.md`
 
 These define:
+
 - what your app can request
 - what the bridge allows you to do
 

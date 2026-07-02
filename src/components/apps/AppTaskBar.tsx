@@ -70,11 +70,16 @@ export function AppTaskBar({
   const [previewOrder, setPreviewOrder] = useState<string[] | null>(null);
   const [tabsViewportWidthPx, setTabsViewportWidthPx] = useState(0);
 
-  const baseOrder = useMemo(() => tabs.map((tab) => tab.app.common.identity.id), [tabs]);
+  const baseOrder = useMemo(
+    () => tabs.map((tab) => tab.app.common.identity.id),
+    [tabs],
+  );
   const activeOrder = previewOrder ?? baseOrder;
 
   const tabsById = useMemo(() => {
-    return new Map(tabs.map((tab) => [tab.app.common.identity.id, tab] as const));
+    return new Map(
+      tabs.map((tab) => [tab.app.common.identity.id, tab] as const),
+    );
   }, [tabs]);
 
   const orderedTabs = useMemo<AppTaskBarTab[]>(() => {
@@ -230,13 +235,7 @@ export function AppTaskBar({
     }
 
     setPreviewOrder(reorderIds(activeOrder, currentIndex, nextIndex));
-  }, [
-    dragState,
-    activeOrder,
-    tabWidthPx,
-    slotSpanPx,
-    totalStripWidthPx,
-  ]);
+  }, [dragState, activeOrder, tabWidthPx, slotSpanPx, totalStripWidthPx]);
 
   return (
     <div className='flex h-12 shrink-0 items-end gap-1 border-b bg-muted/30 px-2 pt-2 md:px-3'>

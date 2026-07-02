@@ -1,3 +1,3 @@
 packages:
-  - "packages/*"
-  - "builtin-apps/src/system"
+  - 'packages/*'
+  - 'builtin-apps/src/system'

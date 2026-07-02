@@ -66,10 +66,7 @@ export function SendXchApprovalCard({ approval, appName, expanded }: Props) {
         <ApprovalDetailRow label='To' value={summary.address} mono breakAll />
         {hasFee ? <ApprovalDetailRow label='Fee' value={summary.fee} /> : null}
         {hasMemos ? (
-          <ApprovalDetailRow
-            label='Memos'
-            value={`${memos.length} attached`}
-          />
+          <ApprovalDetailRow label='Memos' value={`${memos.length} attached`} />
         ) : null}
       </div>
 

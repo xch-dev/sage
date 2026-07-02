@@ -17,4 +17,3 @@ export type LoadState =
       source: InstallSource;
     }
   | { kind: 'error'; error: string };
-
