@@ -271,6 +271,16 @@ pub fn build_builtin_system_app(app_id: &str) -> Result<Option<SageApp>, AppBuil
 }
 
 pub fn list_builtin_system_apps() -> AnyResult<Vec<SageApp>> {
+    let system_apps_root = builtin_system_apps_root();
+
+    if !system_apps_root.is_dir() {
+        tracing::warn!(
+            "[list_builtin_system_apps] builtin system apps root is missing: {}",
+            system_apps_root.display()
+        );
+        return Ok(Vec::new());
+    }
+
     let mut out = Vec::new();
 
     for spec in BUILTIN_SYSTEM_APPS {
