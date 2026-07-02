@@ -3,6 +3,8 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
+#[cfg(not(mobile))]
+use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
 
@@ -269,6 +271,19 @@ pub fn run() {
 
             #[cfg(not(mobile))]
             {
+                let bundled_builtin_apps = app
+                    .path()
+                    .resolve("builtin-apps", BaseDirectory::Resource)?;
+
+                if bundled_builtin_apps.is_dir() {
+                    apps::set_builtin_apps_root(bundled_builtin_apps);
+                } else {
+                    tracing::warn!(
+                        "bundled builtin apps directory not found at {}; using development path",
+                        bundled_builtin_apps.display()
+                    );
+                }
+
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
 

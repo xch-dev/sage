@@ -1,7 +1,10 @@
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use sha2::{Digest, Sha256};
+
+static BUILTIN_APPS_ROOT: OnceLock<PathBuf> = OnceLock::new();
 
 pub fn unix_timestamp_ms() -> i64 {
     SystemTime::now()
@@ -39,9 +42,24 @@ pub fn slugify_app_name(name: &str) -> String {
     }
 }
 
+pub fn set_builtin_apps_root(path: impl Into<PathBuf>) {
+    let path = path.into();
+
+    if BUILTIN_APPS_ROOT.set(path.clone()).is_err() {
+        tracing::warn!(
+            "builtin apps root was already initialized; keeping {}",
+            builtin_apps_root().display()
+        );
+    }
+}
+
 pub fn builtin_apps_root() -> PathBuf {
     if let Some(path) = option_env!("SAGE_BUILTIN_APPS_DIST") {
         return PathBuf::from(path);
+    }
+
+    if let Some(path) = BUILTIN_APPS_ROOT.get() {
+        return path.clone();
     }
 
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
