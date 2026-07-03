@@ -1,19 +1,22 @@
 use tauri::State;
 
 use super::types::{
-    SandboxCapabilityResult, SandboxCapabilityStatus, SandboxRunState, SandboxState,
-    SandboxStateView,
+    SandboxCapabilityResult, SandboxRunState, SandboxState, SandboxStateView,
 };
 use crate::AppsHostState;
 
 fn effective_cap(
-    baseline: &SandboxCapabilityResult,
+    _baseline: &SandboxCapabilityResult,
     current: &SandboxCapabilityResult,
 ) -> SandboxCapabilityResult {
-    match current.status {
-        SandboxCapabilityStatus::Passed | SandboxCapabilityStatus::Failed => current.clone(),
-        SandboxCapabilityStatus::Pending | SandboxCapabilityStatus::Running => baseline.clone(),
-    }
+    // While a run is in progress we must reflect the *live* status of each
+    // capability, never the previous baseline. Falling back to a stale
+    // (previously `Passed`) baseline for a `Pending`/`Running` capability let a
+    // user-triggered rerun keep the launch gate open using results that no
+    // longer apply — and a runner that crashed mid-rerun could leave apps
+    // launchable indefinitely. Surfacing the live `Running`/`Pending` status
+    // makes the gate block until the rerun actually re-establishes each result.
+    current.clone()
 }
 
 pub fn build_effective_state(

@@ -4,9 +4,35 @@ use super::probes::{run_isolation_test, run_network_test, run_persistence_test};
 use super::state_view::{build_effective_state, build_state_view};
 use super::types::{
     SandboxCapability, SandboxCapabilityStatus, SandboxRunState, SandboxState,
-    build_running_sandbox_state, mark_cap,
+    build_initial_sandbox_state, build_running_sandbox_state, mark_cap,
 };
 use crate::{AppsHostState, emit_sandbox_state_changed, unix_timestamp_ms};
+
+/// Resets sandbox run state if the runner exits abnormally (panic / early
+/// return) before it finalizes. Without this, a crash mid-run would leave
+/// `running == true` and a stale (possibly `Passed`) baseline in place, keeping
+/// the app launch gate open even though no run is actually in flight.
+struct SandboxRunCleanup {
+    app: AppHandle,
+    completed: bool,
+}
+
+impl Drop for SandboxRunCleanup {
+    fn drop(&mut self) {
+        if self.completed {
+            return;
+        }
+
+        let app = self.app.clone();
+        tauri::async_runtime::spawn(async move {
+            let apps_state = app.state::<AppsHostState>();
+            *apps_state.sandbox.current_run.lock().await = None;
+            *apps_state.sandbox.baseline.lock().await = build_initial_sandbox_state();
+            *apps_state.sandbox.running.lock().await = false;
+            emit_sandbox_state_changed(&app, &apps_state).await;
+        });
+    }
+}
 
 pub async fn ensure_initial_sandbox_run(app: AppHandle) -> Result<(), String> {
     let apps_state = app.state::<AppsHostState>();
@@ -79,6 +105,11 @@ async fn update_current_run_state(
 }
 
 pub async fn sandbox_runner(app: AppHandle) {
+    let mut cleanup = SandboxRunCleanup {
+        app: app.clone(),
+        completed: false,
+    };
+
     let apps_state = app.state::<AppsHostState>();
 
     let mut current_state = {
@@ -225,6 +256,9 @@ pub async fn sandbox_runner(app: AppHandle) {
     *apps_state.sandbox.running.lock().await = false;
 
     emit_sandbox_state_changed(&app, &apps_state).await;
+
+    // Reached the finalize path cleanly; suppress the abnormal-exit reset.
+    cleanup.completed = true;
 }
 
 fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {
