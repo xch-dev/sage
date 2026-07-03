@@ -122,6 +122,7 @@ pub(crate) async fn start_origin_cleanup_runtime(
             query,
         },
         false,
+        None,
     )
     .await
 }
@@ -131,15 +132,21 @@ async fn create_runtime(
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    let app = match resolve_app(app_handle, &args.app_id)
+    // Keep the per-app operation guard held across the whole create/rotate
+    // sequence. Dropping it here (as `into_app` did) let two concurrent starts
+    // for the same app both observe it as stopped and both create a runtime,
+    // and let a concurrent `resolve_app` observe a runtime that was recorded
+    // before its webview existed. Holding the guard until the webview is created
+    // serializes starts so the second caller sees the finished runtime instead.
+    let (app, guard) = match resolve_app(app_handle, &args.app_id)
         .await
         .map_err(|e| e.to_string())?
     {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
-        ResolvedApp::Stopped(stopped) => stopped.into_app(),
+        ResolvedApp::Stopped(stopped) => stopped.into_app_and_guard(),
     };
 
-    create_runtime_for_app(app_handle, apps_state, app, args, true).await
+    create_runtime_for_app(app_handle, apps_state, app, args, true, Some(guard)).await
 }
 
 async fn create_runtime_for_app(
@@ -148,6 +155,10 @@ async fn create_runtime_for_app(
     app: SharedSageApp,
     args: CreateRuntimeArgs,
     apply_user_lifecycle: bool,
+    // Held (when present) for the whole create/rotate/webview sequence to
+    // serialize concurrent starts for the same app. Named with a leading
+    // underscore so it lives until the end of this function scope.
+    _op_guard: Option<tokio::sync::OwnedMutexGuard<()>>,
 ) -> Result<SharedRuntime, String> {
     let is_internal = app.with(|app| app.common().is_sandbox_test())
         || app.id() == sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;

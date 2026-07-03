@@ -35,6 +35,15 @@ impl ResolvedStoppedApp {
     pub fn into_app(self) -> SharedSageApp {
         self.app
     }
+
+    /// Splits into the app and its held per-app operation guard, letting the
+    /// caller keep the operation lock held across a create/rotate sequence
+    /// instead of dropping it (as `into_app` does). Holding the guard serializes
+    /// concurrent starts for the same app so they can't create duplicate or
+    /// pre-webview "phantom" runtimes.
+    pub fn into_app_and_guard(self) -> (SharedSageApp, OwnedMutexGuard<()>) {
+        (self.app, self._guard)
+    }
 }
 
 impl ResolvedRunningApp {
