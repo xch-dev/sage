@@ -198,6 +198,11 @@ where
     .await
 }
 
+// NOTE: These deliberately broadcast to every first-party Sage host window
+// (all trusted "main"-family webviews) via `emit`. The sensitive, per-app
+// rails (`sage-bridge:response` and the user/system runtime event rails) are
+// scoped to a single app webview via `emit_to` below so that one app can never
+// observe another app's bridge traffic.
 pub(crate) fn emit_user_runtime_event_to_sage_webview<T>(
     app_handle: &AppHandle,
     event: T,
@@ -227,8 +232,9 @@ pub(crate) async fn emit_bridge_response_to_app(
     app: &SharedSageApp,
     response: &RustBridgeResponse,
 ) -> Result<(), String> {
-    get_webview_in_sage_window(app_handle, &app.webview_label())?
-        .emit("sage-bridge:response", response)
+    let webview_label = app.webview_label();
+    get_webview_in_sage_window(app_handle, &webview_label)?
+        .emit_to(webview_label.as_str(), "sage-bridge:response", response)
         .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
@@ -261,6 +267,10 @@ where
     );
 
     get_webview_in_sage_window(app_handle, &webview_label)?
-        .emit(rail.event_name(), runtime_event(event_type, event))
+        .emit_to(
+            webview_label.as_str(),
+            rail.event_name(),
+            runtime_event(event_type, event),
+        )
         .map_err(|err| format!("failed to emit runtime event: {err}"))
 }
