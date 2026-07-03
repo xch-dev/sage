@@ -7,9 +7,10 @@ use crate::{
     RustBridgeRequest, RustBridgeResponse, SharedSageApp, SystemBridgeCapability,
     UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
     emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
-    ensure_approval_expiry_loop, get_pending_approval, get_system_capability_definition,
-    get_user_capability_definition, list_pending_approvals, remove_pending_approval, resolve_app,
-    start_bridge_approval_runtime, sync_bridge_approval_runtime, write_pending_approval,
+    ensure_approval_expiry_loop, get_system_capability_definition,
+    get_user_capability_definition, list_pending_approvals, resolve_app,
+    start_bridge_approval_runtime, sync_bridge_approval_runtime, take_pending_approval,
+    unix_timestamp_ms, write_pending_approval,
 };
 
 pub(crate) async fn process(
@@ -85,8 +86,9 @@ pub(crate) async fn process_after_approval(
     apps_state: &State<'_, AppsHostState>,
     args: ResolveBridgeApprovalArgs,
 ) -> Result<(), String> {
-    let pending = get_pending_approval(apps_state, &args.approval_id).await?;
-    remove_pending_approval(apps_state, &args.approval_id).await;
+    let pending = take_pending_approval(apps_state, &args.approval_id)
+        .await
+        .ok_or_else(|| format!("No pending approval with id {}", args.approval_id))?;
 
     sync_bridge_approval_runtime(app_handle, apps_state).await?;
 
@@ -102,7 +104,23 @@ pub(crate) async fn process_after_approval(
     let origin =
         assert_bridge_origin(app_handle, &app.with_app(SharedSageApp::webview_label)).await?;
 
-    let invoke_result = if args.approved {
+    let invoke_result = if !args.approved {
+        RustBridgeInvokeResult::error(
+            &pending.request.id,
+            "user_denied",
+            args.reason
+                .unwrap_or_else(|| "User denied the request".to_string()),
+        )
+    } else if unix_timestamp_ms() as u64 > pending.expires_at_ms {
+        // The approval expired before it was resolved. Reject rather than
+        // execute so a late `resolve(approved: true)` cannot run the gated
+        // action after its timeout window.
+        RustBridgeInvokeResult::error(
+            &pending.request.id,
+            "approval_timeout",
+            "Approval expired before it was resolved".to_string(),
+        )
+    } else {
         process_shared(
             app_handle,
             app_state,
@@ -112,13 +130,6 @@ pub(crate) async fn process_after_approval(
             true,
         )
         .await?
-    } else {
-        RustBridgeInvokeResult::error(
-            &pending.request.id,
-            "user_denied",
-            args.reason
-                .unwrap_or_else(|| "User denied the request".to_string()),
-        )
     };
 
     emit_bridge_response_to_app(app_handle, &origin.app, &invoke_result.try_into()?).await?;

@@ -46,23 +46,6 @@ pub(crate) async fn write_pending_approval(
     approval_id
 }
 
-pub(crate) async fn find_pending_approval(
-    apps_state: &State<'_, AppsHostState>,
-    approval_id: &str,
-) -> Option<PendingBridgeApproval> {
-    let pending = apps_state.bridge.pending_approvals.lock().await;
-    pending.get(approval_id).cloned()
-}
-
-pub(crate) async fn get_pending_approval(
-    apps_state: &State<'_, AppsHostState>,
-    approval_id: &str,
-) -> Result<PendingBridgeApproval, String> {
-    find_pending_approval(apps_state, approval_id)
-        .await
-        .ok_or_else(|| format!("No pending approval with id {approval_id}"))
-}
-
 pub(crate) async fn list_pending_approvals(
     apps_state: &State<'_, AppsHostState>,
 ) -> Vec<PendingBridgeApproval> {
@@ -77,6 +60,20 @@ pub(crate) async fn remove_pending_approval(
 ) {
     let mut pending = apps_state.bridge.pending_approvals.lock().await;
     pending.remove(approval_id);
+}
+
+/// Atomically removes and returns a pending approval under a single lock.
+///
+/// This is the only correct way to consume an approval before executing it:
+/// a separate `get` + `remove` allows two concurrent resolves of the same
+/// `approval_id` to both observe the record and double-execute the gated
+/// action (e.g. `wallet.sendXch` / `wallet.getSecretKey`).
+pub(crate) async fn take_pending_approval(
+    apps_state: &State<'_, AppsHostState>,
+    approval_id: &str,
+) -> Option<PendingBridgeApproval> {
+    let mut pending = apps_state.bridge.pending_approvals.lock().await;
+    pending.remove(approval_id)
 }
 
 pub(crate) async fn pending_approval_app_ids(apps_state: &State<'_, AppsHostState>) -> Vec<String> {
