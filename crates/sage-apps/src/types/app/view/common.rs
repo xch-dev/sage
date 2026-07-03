@@ -6,6 +6,7 @@ use url::Url;
 use crate::{
     SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppPackageManifestPreview,
     SageAppSnapshotView, SageAppUrl, SageAppWalletScope, SageGrantedPermissionsView,
+    security::get_with_ssrf_guard,
 };
 
 const MAX_REMOTE_ICON_BYTES: u64 = 1024 * 1024;
@@ -113,7 +114,7 @@ impl SageAppIconView {
         let base_url = Url::parse(base.as_str()).ok()?;
         let resolved = base_url.join(icon_path).ok()?;
 
-        let resp = reqwest::get(resolved).await.ok()?;
+        let resp = get_with_ssrf_guard(resolved.as_str()).await.ok()?;
         if !resp.status().is_success() {
             return None;
         }

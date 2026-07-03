@@ -73,10 +73,27 @@ impl SageNetworkWhitelistEntry {
     }
 
     fn is_csp_safe_host(host: &str) -> bool {
-        !host.is_empty()
-            && host.chars().all(|c| {
+        if host.is_empty()
+            || !host.chars().all(|c| {
                 c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '*' | ':' | '[' | ']')
             })
+        {
+            return false;
+        }
+
+        // A wildcard is only allowed as a single leading label ("*.example.com").
+        // A bare "*" (or forms like "*:443" / "a*.example.com") matches every
+        // host in CSP, which would turn the whitelist into an open connect-src.
+        if host.contains('*')
+            && host
+                .strip_prefix("*.")
+                .is_none_or(|rest| rest.contains('*'))
+        {
+            return false;
+        }
+
+        // Require at least one real label character so "*." and "." are rejected.
+        host.chars().any(char::is_alphanumeric)
     }
 
     #[cfg(test)]
@@ -168,6 +185,16 @@ mod tests {
             assert!(
                 SageNetworkWhitelistEntry::new("https", host).is_err(),
                 "expected {host:?} to be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn network_entry_rejects_match_all_wildcards() {
+        for host in ["*", "*:443", "*.", "a*.example.com", "*.*.example.com"] {
+            assert!(
+                SageNetworkWhitelistEntry::new("https", host).is_err(),
+                "expected wildcard host {host:?} to be rejected"
             );
         }
     }
