@@ -1,10 +1,12 @@
 use std::{
     collections::BTreeSet,
-    fs, io,
+    fs,
+    io::{self, Read},
     path::{Component, Path, PathBuf},
 };
 
 use anyhow::{Context, Result as AnyResult};
+use uuid::Uuid;
 use zip::ZipArchive;
 
 use crate::{MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, bytes_sha256_hex};
@@ -23,17 +25,58 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         anyhow::bail!("zip archive contains too many entries");
     }
 
+    // Extract into a private staging directory and only swap it into place once
+    // extraction fully succeeds. This means a rejected or partially-extracted
+    // archive (e.g. a zip bomb caught mid-stream) never leaves a usable tree at
+    // `out_dir`, and nothing can observe `out_dir` while it is half-written.
+    let parent = out_dir
+        .parent()
+        .context("output dir has no parent directory")?;
+    fs::create_dir_all(parent)
+        .with_context(|| format!("failed to create directory {}", parent.display()))?;
+
+    let staging = staging_dir_for(out_dir);
+    if staging.exists() {
+        fs::remove_dir_all(&staging)?;
+    }
+    fs::create_dir_all(&staging)
+        .with_context(|| format!("failed to create staging dir {}", staging.display()))?;
+
+    if let Err(err) = extract_archive_into(&mut archive, &staging) {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(err);
+    }
+
     if out_dir.exists() {
         fs::remove_dir_all(out_dir)?;
     }
 
-    fs::create_dir_all(out_dir)?;
+    if let Err(err) = fs::rename(&staging, out_dir) {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(err).with_context(|| {
+            format!("failed to move extracted package into {}", out_dir.display())
+        });
+    }
 
-    let root = out_dir
+    Ok(())
+}
+
+fn staging_dir_for(out_dir: &Path) -> PathBuf {
+    let file_name = out_dir
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "package".to_string());
+    let parent = out_dir.parent().unwrap_or_else(|| Path::new("."));
+
+    parent.join(format!(".{file_name}.staging-{}", Uuid::new_v4()))
+}
+
+fn extract_archive_into(archive: &mut ZipArchive<fs::File>, staging: &Path) -> AnyResult<()> {
+    let root = staging
         .canonicalize()
-        .with_context(|| format!("failed to canonicalize output dir {}", out_dir.display()))?;
+        .with_context(|| format!("failed to canonicalize staging dir {}", staging.display()))?;
 
-    let mut total_uncompressed = 0u64;
+    let mut total_written = 0u64;
 
     for index in 0..archive.len() {
         let mut entry = archive
@@ -47,20 +90,15 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         let uncompressed_size = entry.size();
         let compressed_size = entry.compressed_size();
 
+        // Cheap up-front rejection using the header-declared sizes. These are
+        // attacker-controlled, so they are only a fast path; the authoritative
+        // limits below are enforced against the actual decompressed byte count.
         if uncompressed_size > MAX_ZIP_SINGLE_FILE_BYTES {
             anyhow::bail!("zip entry is too large: {}", entry.name());
         }
 
         if compressed_size > 0 && uncompressed_size / compressed_size > MAX_ZIP_COMPRESSION_RATIO {
             anyhow::bail!("zip entry compression ratio is too high: {}", entry.name());
-        }
-
-        total_uncompressed = total_uncompressed
-            .checked_add(uncompressed_size)
-            .context("zip uncompressed size overflow")?;
-
-        if total_uncompressed > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES {
-            anyhow::bail!("zip archive exceeds maximum extracted size");
         }
 
         let target = root.join(enclosed_name);
@@ -90,8 +128,28 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         let mut out = fs::File::create(&target)
             .with_context(|| format!("failed to create file {}", target.display()))?;
 
-        io::copy(&mut entry, &mut out)
+        // Enforce the size caps on the *actual* decompressed stream rather than
+        // the header metadata, so a zip whose header understates its real size
+        // cannot bomb the disk. Read at most one byte past the allowed limit so
+        // we can detect (and reject) an entry that would exceed it.
+        let remaining_total = MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES.saturating_sub(total_written);
+        let per_entry_limit = remaining_total.min(MAX_ZIP_SINGLE_FILE_BYTES);
+
+        let mut limited = (&mut entry).take(per_entry_limit + 1);
+        let written = io::copy(&mut limited, &mut out)
             .with_context(|| format!("failed to extract zip entry {}", entry.name()))?;
+
+        if written > MAX_ZIP_SINGLE_FILE_BYTES {
+            anyhow::bail!("zip entry is too large: {}", entry.name());
+        }
+
+        total_written = total_written
+            .checked_add(written)
+            .context("zip uncompressed size overflow")?;
+
+        if total_written > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES {
+            anyhow::bail!("zip archive exceeds maximum extracted size");
+        }
     }
 
     Ok(())
@@ -324,6 +382,47 @@ mod tests {
             fs::read_to_string(out_dir.join("nested/index.html")).unwrap(),
             "<html></html>"
         );
+    }
+
+    fn staging_dir_count(parent: &Path) -> usize {
+        fs::read_dir(parent)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| {
+                entry
+                    .file_name()
+                    .to_string_lossy()
+                    .contains(".out.staging-")
+            })
+            .count()
+    }
+
+    #[test]
+    fn unzip_to_dir_leaves_no_staging_dir_on_success() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("app.zip");
+        let out_dir = dir.path().join("out");
+
+        write_zip(&zip_path, &[("index.html", b"<html></html>")]);
+
+        unzip_to_dir(&zip_path, &out_dir).unwrap();
+
+        assert!(out_dir.join("index.html").is_file());
+        assert_eq!(staging_dir_count(dir.path()), 0);
+    }
+
+    #[test]
+    fn unzip_to_dir_leaves_no_staging_dir_on_rejection() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("evil.zip");
+        let out_dir = dir.path().join("out");
+
+        write_zip(&zip_path, &[("../evil.txt", b"owned")]);
+
+        unzip_to_dir(&zip_path, &out_dir).unwrap_err();
+
+        assert!(!out_dir.exists());
+        assert_eq!(staging_dir_count(dir.path()), 0);
     }
 
     #[test]
