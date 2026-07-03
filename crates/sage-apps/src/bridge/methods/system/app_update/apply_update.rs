@@ -14,6 +14,9 @@ use crate::{
 pub struct AppUpdateApplyUpdateParams {
     pub app_id: String,
     pub additional_granted_permissions: SageGrantedPermissionsInput,
+    /// Manifest hash of the pending update the user actually reviewed. Apply is
+    /// rejected if the pending update no longer matches this hash.
+    pub reviewed_manifest_hash: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -56,6 +59,7 @@ impl BridgeMethod for AppUpdateApplyUpdate {
             tools.host_state,
             &params.app_id,
             Some(params.additional_granted_permissions),
+            Some(params.reviewed_manifest_hash),
         )
         .await
         .map_err(|err| {

@@ -57,6 +57,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
       await client.appUpdate.applyUpdate({
         appId: state.app.common.identity.id,
         additionalGrantedPermissions,
+        reviewedManifestHash: state.app.pendingUpdate?.manifestHash ?? '',
       });
 
       await close();

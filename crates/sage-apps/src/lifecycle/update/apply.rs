@@ -16,6 +16,7 @@ pub(crate) async fn apply_app_update_inner(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
+    expected_manifest_hash: Option<String>,
 ) -> Result<SageAppView> {
     let _update_guard = apps_state
         .try_begin_app_update(app_id)
@@ -38,6 +39,19 @@ pub(crate) async fn apply_app_update_inner(
         })?;
 
         return Ok(resolved.with_app(|app| app.into()));
+    }
+
+    // When applying a reviewed update, bind the apply to the exact manifest the
+    // user reviewed. If the pending update changed in between (e.g. the
+    // background checker fetched a newer manifest), refuse to apply the reviewed
+    // permission grants to a manifest the user never saw.
+    if let Some(expected) = expected_manifest_hash.as_deref()
+        && preflight.pending.manifest_hash() != expected
+    {
+        return Err(io::Error::other(format!(
+            "pending update for {app_id} changed since it was reviewed; re-check the update before applying"
+        ))
+        .into());
     }
 
     let reopen_after_update = ReopenAfterUpdate::capture(app_handle, apps_state, app_id).await?;
@@ -110,7 +124,7 @@ pub(crate) async fn try_auto_apply_pending_update(
         return Ok(false);
     }
 
-    apply_app_update_inner(app_handle, apps_state, app_id, None).await?;
+    apply_app_update_inner(app_handle, apps_state, app_id, None, None).await?;
 
     Ok(true)
 }
