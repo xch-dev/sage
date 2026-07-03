@@ -26,6 +26,7 @@ pub(crate) async fn write_pending_approval(
     registry_kind: BridgeRegistryKind,
     approval: &RustBridgeApprovalRequest,
     request: &RustBridgeRequest,
+    approved_fingerprint: Option<u32>,
 ) -> String {
     let approval_id = Uuid::new_v4().to_string();
     let now = unix_timestamp_ms() as u64;
@@ -40,6 +41,7 @@ pub(crate) async fn write_pending_approval(
             request: request.clone(),
             created_at_ms: now,
             expires_at_ms: now + BRIDGE_APPROVAL_TIMEOUT_MS,
+            approved_fingerprint,
         },
     );
 

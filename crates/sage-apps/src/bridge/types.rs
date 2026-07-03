@@ -105,6 +105,11 @@ pub(crate) struct PendingBridgeApproval {
     pub request: RustBridgeRequest,
     pub created_at_ms: u64,
     pub expires_at_ms: u64,
+    /// Fingerprint of the active wallet when this approval was created. Used to
+    /// bind wallet-affecting approvals (e.g. `wallet.sendXch`) to the wallet the
+    /// user actually saw, so switching wallets before resolving cannot redirect
+    /// the action to a different wallet. `None` if no wallet was active.
+    pub approved_fingerprint: Option<u32>,
 }
 
 impl RustBridgeInvokeResult {

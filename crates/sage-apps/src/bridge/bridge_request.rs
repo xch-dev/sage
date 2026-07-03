@@ -3,8 +3,9 @@ use tauri::{AppHandle, Manager, State, Webview};
 use crate::{
     AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
     BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
-    BridgeTools, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest, RustBridgeInvokeResult,
-    RustBridgeRequest, RustBridgeResponse, SharedSageApp, SystemBridgeCapability,
+    BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalBody,
+    RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
+    SharedSageApp, SystemBridgeCapability,
     UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
     emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
     ensure_approval_expiry_loop, get_system_capability_definition,
@@ -120,6 +121,16 @@ pub(crate) async fn process_after_approval(
             "approval_timeout",
             "Approval expired before it was resolved".to_string(),
         )
+    } else if wallet_binding_violated(app_state, &pending).await {
+        // Wallet-affecting approvals are bound to the wallet that was active
+        // (and shown to the user) when the approval was created. If the user
+        // switched wallets before resolving, refuse to execute rather than
+        // run the action against a different wallet.
+        RustBridgeInvokeResult::error(
+            &pending.request.id,
+            "wallet_changed",
+            "Active wallet changed since the approval was requested".to_string(),
+        )
     } else {
         process_shared(
             app_handle,
@@ -179,7 +190,15 @@ async fn process_shared(
 
     match method.approval_request(BridgeContext { app }, request) {
         Ok(Some(approval)) => {
-            request_approval(app_handle, app.id(), registry_kind, approval, request).await?;
+            request_approval(
+                app_handle,
+                app_state,
+                app.id(),
+                registry_kind,
+                approval,
+                request,
+            )
+            .await?;
             Ok(RustBridgeInvokeResult::Pending {})
         }
         Ok(None) => {
@@ -233,20 +252,59 @@ async fn execute_bridge_request(
     }
 }
 
+async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u32> {
+    app_state
+        .lock()
+        .await
+        .wallet()
+        .map(|wallet| wallet.fingerprint)
+        .ok()
+}
+
+/// Returns true if this approval is bound to a specific wallet and the active
+/// wallet no longer matches it (or is no longer available).
+async fn wallet_binding_violated(
+    app_state: &State<'_, AppState>,
+    pending: &PendingBridgeApproval,
+) -> bool {
+    // Only methods that execute against the *active* wallet need binding.
+    // (`GetSecretKey` targets an explicit fingerprint from its params, so it is
+    // unaffected by wallet switches.)
+    let requires_wallet_binding =
+        matches!(pending.approval.body, RustBridgeApprovalBody::SendXch { .. });
+
+    if !requires_wallet_binding {
+        return false;
+    }
+
+    let Some(approved_fingerprint) = pending.approved_fingerprint else {
+        return true;
+    };
+
+    active_wallet_fingerprint(app_state).await != Some(approved_fingerprint)
+}
+
 async fn request_approval(
     app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
     app_id: String,
     registry_kind: BridgeRegistryKind,
     approval: RustBridgeApprovalRequest,
     request: &RustBridgeRequest,
 ) -> Result<(), String> {
     let apps_state = app_handle.state::<AppsHostState>();
+
+    // Record which wallet was active when the approval was created, so
+    // wallet-affecting approvals can be bound to the wallet the user saw.
+    let approved_fingerprint = active_wallet_fingerprint(app_state).await;
+
     write_pending_approval(
         &apps_state,
         app_id.clone(),
         registry_kind,
         &approval,
         request,
+        approved_fingerprint,
     )
     .await;
 
