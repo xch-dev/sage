@@ -227,8 +227,9 @@ pub(crate) async fn emit_bridge_response_to_app(
     app: &SharedSageApp,
     response: &RustBridgeResponse,
 ) -> Result<(), String> {
-    get_webview_in_sage_window(app_handle, &app.webview_label())?
-        .emit("sage-bridge:response", response)
+    let webview_label = app.webview_label();
+    get_webview_in_sage_window(app_handle, &webview_label)?
+        .emit_to(webview_label.as_str(), "sage-bridge:response", response)
         .map_err(|err| format!("failed to emit bridge response: {err}"))
 }
 
@@ -261,6 +262,10 @@ where
     );
 
     get_webview_in_sage_window(app_handle, &webview_label)?
-        .emit(rail.event_name(), runtime_event(event_type, event))
+        .emit_to(
+            webview_label.as_str(),
+            rail.event_name(),
+            runtime_event(event_type, event),
+        )
         .map_err(|err| format!("failed to emit runtime event: {err}"))
 }
