@@ -26,6 +26,7 @@ pub(crate) async fn write_pending_approval(
     registry_kind: BridgeRegistryKind,
     approval: &RustBridgeApprovalRequest,
     request: &RustBridgeRequest,
+    approved_fingerprint: Option<u32>,
 ) -> String {
     let approval_id = Uuid::new_v4().to_string();
     let now = unix_timestamp_ms() as u64;
@@ -40,27 +41,11 @@ pub(crate) async fn write_pending_approval(
             request: request.clone(),
             created_at_ms: now,
             expires_at_ms: now + BRIDGE_APPROVAL_TIMEOUT_MS,
+            approved_fingerprint,
         },
     );
 
     approval_id
-}
-
-pub(crate) async fn find_pending_approval(
-    apps_state: &State<'_, AppsHostState>,
-    approval_id: &str,
-) -> Option<PendingBridgeApproval> {
-    let pending = apps_state.bridge.pending_approvals.lock().await;
-    pending.get(approval_id).cloned()
-}
-
-pub(crate) async fn get_pending_approval(
-    apps_state: &State<'_, AppsHostState>,
-    approval_id: &str,
-) -> Result<PendingBridgeApproval, String> {
-    find_pending_approval(apps_state, approval_id)
-        .await
-        .ok_or_else(|| format!("No pending approval with id {approval_id}"))
 }
 
 pub(crate) async fn list_pending_approvals(
@@ -77,6 +62,14 @@ pub(crate) async fn remove_pending_approval(
 ) {
     let mut pending = apps_state.bridge.pending_approvals.lock().await;
     pending.remove(approval_id);
+}
+
+pub(crate) async fn take_pending_approval(
+    apps_state: &State<'_, AppsHostState>,
+    approval_id: &str,
+) -> Option<PendingBridgeApproval> {
+    let mut pending = apps_state.bridge.pending_approvals.lock().await;
+    pending.remove(approval_id)
 }
 
 pub(crate) async fn pending_approval_app_ids(apps_state: &State<'_, AppsHostState>) -> Vec<String> {

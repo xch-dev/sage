@@ -105,6 +105,7 @@ pub(crate) struct PendingBridgeApproval {
     pub request: RustBridgeRequest,
     pub created_at_ms: u64,
     pub expires_at_ms: u64,
+    pub approved_fingerprint: Option<u32>,
 }
 
 impl RustBridgeInvokeResult {
