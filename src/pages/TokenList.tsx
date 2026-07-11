@@ -169,23 +169,27 @@ export function TokenList() {
     },
   };
 
+  const issueTokenButton = (
+    <Button
+      variant='outline'
+      size='icon'
+      onClick={() => navigate('/wallet/issue-token')}
+      aria-label={t`Issue new token`}
+      title={t`Issue new token`}
+    >
+      <Coins className='h-4 w-4' aria-hidden='true' />
+    </Button>
+  );
+
   return (
     <>
-      <Header title={<Trans>Assets</Trans>}>
+      <Header title={<Trans>Assets</Trans>} mobileActionItems={issueTokenButton}>
         <div className='flex items-center gap-2'>
+          {issueTokenButton}
           <ReceiveAddress />
         </div>
       </Header>
       <Container>
-        <Button
-          onClick={() => navigate('/wallet/issue-token')}
-          aria-label={t`Issue new token`}
-          className='mb-4'
-        >
-          <Coins className='h-4 w-4 mr-2' aria-hidden='true' />
-          <Trans>Issue Token</Trans>
-        </Button>
-
         <TokenOptions
           query={params.search}
           setQuery={(value) => setParams({ search: value })}
