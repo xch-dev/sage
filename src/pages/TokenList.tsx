@@ -183,7 +183,10 @@ export function TokenList() {
 
   return (
     <>
-      <Header title={<Trans>Assets</Trans>} mobileActionItems={issueTokenButton}>
+      <Header
+        title={<Trans>Assets</Trans>}
+        mobileActionItems={issueTokenButton}
+      >
         <div className='flex items-center gap-2'>
           {issueTokenButton}
           <ReceiveAddress />
