@@ -34,6 +34,7 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   const isIos = platform() === 'ios';
+  const offersEnabled = import.meta.env.VITE_DISABLE_OFFERS !== 'true';
 
   return (
     <nav
@@ -78,13 +79,15 @@ export function TopNav({ isCollapsed }: NavProps) {
         </NavLink>
       )}
 
-      <NavLink
-        url={'/offers'}
-        isCollapsed={isCollapsed}
-        message={<Trans>Offers</Trans>}
-      >
-        <Handshake className={className} aria-hidden='true' />
-      </NavLink>
+      {offersEnabled && (
+        <NavLink
+          url={'/offers'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Offers</Trans>}
+        >
+          <Handshake className={className} aria-hidden='true' />
+        </NavLink>
+      )}
 
       {!isIos && (
         <NavLink

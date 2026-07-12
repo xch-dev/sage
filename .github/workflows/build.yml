@@ -75,9 +75,17 @@ jobs:
             platform_name: Windows (ARM)
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
           - platform: 'macos-26'
-            platform_name: iOS
-            build: 'pnpm tauri ios build --export-method app-store-connect'
-            build_dev: 'pnpm tauri ios build --export-method debugging'
+            platform_name: iOS (TestFlight)
+            platform_type: iOS
+            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}1"'
+            disable_offers: 'false'
+            ipa_name: Sage_TestFlight
+          - platform: 'macos-26'
+            platform_name: iOS (App Store)
+            platform_type: iOS
+            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}2"'
+            disable_offers: 'true'
+            ipa_name: Sage_AppStore
           - platform: 'macos-15'
             platform_name: Android
             build: 'pnpm tauri android build'
@@ -90,7 +98,7 @@ jobs:
         run: rustup target add x86_64-apple-darwin
 
       - name: Add aarch64-apple-ios
-        if: matrix.platform_name == 'iOS'
+        if: matrix.platform_type == 'iOS'
         run: rustup target add aarch64-apple-ios
 
       - name: Add aarch64-pc-windows-msvc
@@ -150,19 +158,19 @@ jobs:
         run: pnpm install
 
       - name: Save API key to file
-        if: matrix.platform_name == 'MacOS' || matrix.platform_name == 'iOS'
+        if: matrix.platform_name == 'MacOS' || matrix.platform_type == 'iOS'
         run: |
           mkdir -p ~/private_keys
           echo -n '${{ secrets.APPLE_API_SECRET_KEY }}' > ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
 
       - name: Setup Xcode
-        if: matrix.platform_name == 'iOS'
+        if: matrix.platform_type == 'iOS'
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '26.5'
 
       - name: Verify Xcode SDK
-        if: matrix.platform_name == 'iOS'
+        if: matrix.platform_type == 'iOS'
         run: |
           xcodebuild -version
           xcrun --sdk iphoneos --show-sdk-version
@@ -173,15 +181,22 @@ jobs:
       # On MacOS we only notarize on tagged releases
       # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
-        if: ${{ (matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' }}
-        run: ${{ startsWith(github.event.ref, 'refs/tags/v') && matrix.build || matrix.build_dev || matrix.build }}
+        if: ${{ (matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_type == 'iOS' }}
+        run: ${{ matrix.build }}
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          VITE_DISABLE_OFFERS: ${{ matrix.disable_offers }}
           CI: true
+
+      - name: Preserve iOS IPA
+        if: matrix.platform_type == 'iOS'
+        run: |
+          mkdir -p artifacts/ios
+          cp src-tauri/gen/apple/build/arm64/Sage.ipa "artifacts/ios/${{ matrix.ipa_name }}.ipa"
 
       # On Android we need to use the NDK environment variables.
       - name: Build with NDK
@@ -195,7 +210,7 @@ jobs:
 
       # We don't currently do signing on other platforms
       - name: Build without secrets
-        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_name == 'iOS' || matrix.platform_name == 'Android') }}
+        if: ${{ !((matrix.platform_name == 'MacOS' && startsWith(github.event.ref, 'refs/tags/v')) || matrix.platform_type == 'iOS' || matrix.platform_name == 'Android') }}
         run: ${{ matrix.build }}
         env:
           CI: true
@@ -334,21 +349,21 @@ jobs:
       # iOS
       - name: Upload IPA (iOS)
         uses: actions/upload-artifact@v4
-        if: matrix.platform_name == 'iOS'
+        if: matrix.platform_type == 'iOS'
         with:
-          name: Sage_iOS.ipa
-          path: src-tauri/gen/apple/build/arm64/*.ipa
+          name: ${{ matrix.ipa_name }}.ipa
+          path: artifacts/ios/${{ matrix.ipa_name }}.ipa
 
       - name: Release (iOS)
         uses: softprops/action-gh-release@v2
-        if: matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
+        if: matrix.platform_type == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
         with:
           files: |
-            src-tauri/gen/apple/build/arm64/*.ipa
+            artifacts/ios/${{ matrix.ipa_name }}.ipa
 
-      - name: Upload to App Store (or TestFlight)
-        if: matrix.platform_name == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
-        run: xcrun altool --upload-app --type ios --file "src-tauri/gen/apple/build/arm64/Sage.ipa" --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_ISSUER
+      - name: Upload iOS build to App Store Connect
+        if: matrix.platform_type == 'iOS' && startsWith(github.event.ref, 'refs/tags/v')
+        run: xcrun altool --upload-app --type ios --file "artifacts/ios/${{ matrix.ipa_name }}.ipa" --apiKey $APPLE_API_KEY_ID --apiIssuer $APPLE_API_ISSUER
         env:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
