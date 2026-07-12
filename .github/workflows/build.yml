@@ -77,14 +77,20 @@ jobs:
           - platform: 'macos-26'
             platform_name: iOS (TestFlight)
             platform_type: iOS
-            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}1"'
+            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "$IOS_BUILD_NUMBER"'
+            build_number_variant: 1
             disable_offers: 'false'
+            disable_options: 'false'
+            disable_swap: 'false'
             ipa_name: Sage_TestFlight
           - platform: 'macos-26'
             platform_name: iOS (App Store)
             platform_type: iOS
-            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "${GITHUB_RUN_NUMBER}${GITHUB_RUN_ATTEMPT}2"'
+            build: 'pnpm tauri ios build --export-method app-store-connect --build-number "$IOS_BUILD_NUMBER"'
+            build_number_variant: 2
             disable_offers: 'true'
+            disable_options: 'true'
+            disable_swap: 'true'
             ipa_name: Sage_AppStore
           - platform: 'macos-15'
             platform_name: Android
@@ -178,6 +184,23 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
+      - name: Calculate iOS build number
+        id: ios_build_number
+        if: matrix.platform_type == 'iOS'
+        run: |
+          if ((GITHUB_RUN_ATTEMPT >= 1000)); then
+            echo "GITHUB_RUN_ATTEMPT must be less than 1000"
+            exit 1
+          fi
+
+          build_number=$((GITHUB_RUN_NUMBER * 10000 + GITHUB_RUN_ATTEMPT * 10 + ${{ matrix.build_number_variant }}))
+          if ((build_number > 4294967295)); then
+            echo "Calculated iOS build number exceeds the u32 limit"
+            exit 1
+          fi
+
+          echo "value=$build_number" >> "$GITHUB_OUTPUT"
+
       # On MacOS we only notarize on tagged releases
       # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
@@ -189,7 +212,10 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          IOS_BUILD_NUMBER: ${{ steps.ios_build_number.outputs.value }}
           VITE_DISABLE_OFFERS: ${{ matrix.disable_offers }}
+          VITE_DISABLE_OPTIONS: ${{ matrix.disable_options }}
+          VITE_DISABLE_SWAP: ${{ matrix.disable_swap }}
           CI: true
 
       - name: Preserve iOS IPA

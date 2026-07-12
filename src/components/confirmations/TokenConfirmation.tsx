@@ -1,5 +1,6 @@
 import { CoinRecord } from '@/bindings';
 import { CopyButton } from '@/components/CopyButton';
+import { offersEnabled } from '@/lib/features';
 import { fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -45,10 +46,15 @@ export function TokenConfirmation({
       icon: SplitIcon,
       title: <Trans>Split Coins</Trans>,
       variant: 'info' as const,
-      message: (
+      message: offersEnabled ? (
         <Trans>
           You are splitting coins into multiple coins of equal value. This can
           help with parallel transactions and offer creation.
+        </Trans>
+      ) : (
+        <Trans>
+          You are splitting coins into multiple coins of equal value. This can
+          help with parallel transactions.
         </Trans>
       ),
     },
@@ -254,10 +260,17 @@ export function TokenConfirmation({
 
       {type === 'issue' && (
         <div className='text-muted-foreground'>
-          <Trans>
-            Once issued, this token will appear in your wallet. You can then
-            send it to other addresses or create offers to trade it.
-          </Trans>
+          {offersEnabled ? (
+            <Trans>
+              Once issued, this token will appear in your wallet. You can then
+              send it to other addresses or create offers to trade it.
+            </Trans>
+          ) : (
+            <Trans>
+              Once issued, this token will appear in your wallet. You can then
+              send it to other addresses.
+            </Trans>
+          )}
         </div>
       )}
     </div>

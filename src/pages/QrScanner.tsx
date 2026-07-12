@@ -1,5 +1,6 @@
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
+import { offersEnabled } from '@/lib/features';
 import { useNavigationStore } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -15,7 +16,7 @@ export default function QRScanner() {
 
   const handleScanSuccess = useCallback(
     (content: string) => {
-      if (returnPath.startsWith('/offers')) {
+      if (offersEnabled && returnPath.startsWith('/offers')) {
         navigate(`/offers/view/${encodeURIComponent(content.trim())}`, {
           replace: true,
         });

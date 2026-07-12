@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_DISABLE_OFFERS?: string;
+  readonly VITE_DISABLE_OPTIONS?: string;
+  readonly VITE_DISABLE_SWAP?: string;
 }
 
 interface ImportMeta {
