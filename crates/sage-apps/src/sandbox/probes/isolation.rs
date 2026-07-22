@@ -35,7 +35,7 @@ async fn seed_host_isolation_probe(app: &AppHandle, run_id: &str) -> Result<(), 
     });
 
     let script = format!(
-        r#"(async function () {{
+        r"(async function () {{
   const eventName = {event_name_json};
   const runId = {run_id_json};
   const result = {{
@@ -142,7 +142,7 @@ async fn seed_host_isolation_probe(app: &AppHandle, run_id: &str) -> Result<(), 
   }}
 
   await window.__TAURI__.event.emit(eventName, result);
-}})();"#
+}})();"
     );
 
     if let Err(err) = webview.eval(script) {

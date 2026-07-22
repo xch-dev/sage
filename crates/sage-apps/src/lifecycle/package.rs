@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeSet,
-    fs, io,
+    fs,
+    io::{self, Read},
     path::{Component, Path, PathBuf},
 };
 
@@ -15,6 +16,20 @@ const MAX_ZIP_SINGLE_FILE_BYTES: u64 = 50 * 1024 * 1024;
 const MAX_ZIP_COMPRESSION_RATIO: u64 = 100;
 
 pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
+    unzip_to_dir_with_limits(
+        zip_path,
+        out_dir,
+        MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES,
+        MAX_ZIP_SINGLE_FILE_BYTES,
+    )
+}
+
+fn unzip_to_dir_with_limits(
+    zip_path: &Path,
+    out_dir: &Path,
+    max_total_uncompressed_bytes: u64,
+    max_single_file_bytes: u64,
+) -> AnyResult<()> {
     let file = fs::File::open(zip_path)
         .with_context(|| format!("failed to open zip {}", zip_path.display()))?;
     let mut archive = ZipArchive::new(file).context("failed to read zip archive")?;
@@ -23,17 +38,56 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         anyhow::bail!("zip archive contains too many entries");
     }
 
+    let parent = out_dir
+        .parent()
+        .context("output dir has no parent directory")?;
+    fs::create_dir_all(parent)
+        .with_context(|| format!("failed to create directory {}", parent.display()))?;
+
+    let out_name = out_dir.file_name().map_or_else(
+        || "package".to_string(),
+        |name| name.to_string_lossy().into_owned(),
+    );
+    let staging_prefix = format!(".{out_name}.staging-");
+    let staging = tempfile::Builder::new()
+        .prefix(&staging_prefix)
+        .tempdir_in(parent)
+        .with_context(|| format!("failed to create staging directory in {}", parent.display()))?;
+
+    extract_archive_into(
+        &mut archive,
+        staging.path(),
+        max_total_uncompressed_bytes,
+        max_single_file_bytes,
+    )?;
+
     if out_dir.exists() {
-        fs::remove_dir_all(out_dir)?;
+        fs::remove_dir_all(out_dir)
+            .with_context(|| format!("failed to remove output dir {}", out_dir.display()))?;
     }
 
-    fs::create_dir_all(out_dir)?;
+    fs::rename(staging.path(), out_dir).with_context(|| {
+        format!(
+            "failed to move extracted package into {}",
+            out_dir.display()
+        )
+    })?;
 
-    let root = out_dir
+    Ok(())
+}
+
+fn extract_archive_into(
+    archive: &mut ZipArchive<fs::File>,
+    staging: &Path,
+    max_total_uncompressed_bytes: u64,
+    max_single_file_bytes: u64,
+) -> AnyResult<()> {
+    let root = staging
         .canonicalize()
-        .with_context(|| format!("failed to canonicalize output dir {}", out_dir.display()))?;
+        .with_context(|| format!("failed to canonicalize staging dir {}", staging.display()))?;
 
-    let mut total_uncompressed = 0u64;
+    let mut declared_total = 0u64;
+    let mut total_written = 0u64;
 
     for index in 0..archive.len() {
         let mut entry = archive
@@ -47,7 +101,10 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         let uncompressed_size = entry.size();
         let compressed_size = entry.compressed_size();
 
-        if uncompressed_size > MAX_ZIP_SINGLE_FILE_BYTES {
+        // Header sizes are attacker-controlled, so these checks are only a
+        // cheap fast path. The authoritative limits are enforced against the
+        // actual decompressed byte count below.
+        if uncompressed_size > max_single_file_bytes {
             anyhow::bail!("zip entry is too large: {}", entry.name());
         }
 
@@ -55,11 +112,11 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
             anyhow::bail!("zip entry compression ratio is too high: {}", entry.name());
         }
 
-        total_uncompressed = total_uncompressed
+        declared_total = declared_total
             .checked_add(uncompressed_size)
             .context("zip uncompressed size overflow")?;
 
-        if total_uncompressed > MAX_ZIP_TOTAL_UNCOMPRESSED_BYTES {
+        if declared_total > max_total_uncompressed_bytes {
             anyhow::bail!("zip archive exceeds maximum extracted size");
         }
 
@@ -90,8 +147,24 @@ pub fn unzip_to_dir(zip_path: &Path, out_dir: &Path) -> AnyResult<()> {
         let mut out = fs::File::create(&target)
             .with_context(|| format!("failed to create file {}", target.display()))?;
 
-        io::copy(&mut entry, &mut out)
-            .with_context(|| format!("failed to extract zip entry {}", entry.name()))?;
+        let remaining_total = max_total_uncompressed_bytes.saturating_sub(total_written);
+        let stream_limit = remaining_total.min(max_single_file_bytes);
+        let entry_name = entry.name().to_string();
+        let mut limited = (&mut entry).take(stream_limit + 1);
+        let written = io::copy(&mut limited, &mut out)
+            .with_context(|| format!("failed to extract zip entry {entry_name}"))?;
+
+        if written > max_single_file_bytes {
+            anyhow::bail!("zip entry is too large: {entry_name}");
+        }
+
+        total_written = total_written
+            .checked_add(written)
+            .context("zip uncompressed size overflow")?;
+
+        if total_written > max_total_uncompressed_bytes {
+            anyhow::bail!("zip archive exceeds maximum extracted size");
+        }
     }
 
     Ok(())
@@ -278,6 +351,39 @@ mod tests {
         zip.finish().unwrap();
     }
 
+    fn understate_uncompressed_sizes(path: &Path, declared_size: u32) {
+        const LOCAL_FILE_HEADER: [u8; 4] = [0x50, 0x4b, 0x03, 0x04];
+        const CENTRAL_DIRECTORY_HEADER: [u8; 4] = [0x50, 0x4b, 0x01, 0x02];
+
+        let mut bytes = fs::read(path).unwrap();
+        let mut local_headers = 0;
+        let mut central_headers = 0;
+
+        for index in 0..bytes.len().saturating_sub(3) {
+            if bytes[index..index + 4] == LOCAL_FILE_HEADER {
+                bytes[index + 22..index + 26].copy_from_slice(&declared_size.to_le_bytes());
+                local_headers += 1;
+            } else if bytes[index..index + 4] == CENTRAL_DIRECTORY_HEADER {
+                bytes[index + 24..index + 28].copy_from_slice(&declared_size.to_le_bytes());
+                central_headers += 1;
+            }
+        }
+
+        assert!(local_headers > 0);
+        assert_eq!(local_headers, central_headers);
+        fs::write(path, bytes).unwrap();
+    }
+
+    fn staging_dir_count(parent: &Path, out_name: &str) -> usize {
+        let prefix = format!(".{out_name}.staging-");
+
+        fs::read_dir(parent)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|entry| entry.file_name().to_string_lossy().starts_with(&prefix))
+            .count()
+    }
+
     fn sample_manifest_file(path: &str, bytes: &[u8]) -> SageAppManifestFile {
         SageAppManifestFile::new(path, bytes_sha256_hex(bytes), bytes.len() as u64).unwrap()
     }
@@ -324,6 +430,26 @@ mod tests {
             fs::read_to_string(out_dir.join("nested/index.html")).unwrap(),
             "<html></html>"
         );
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
+    }
+
+    #[test]
+    fn unzip_to_dir_preserves_existing_output_on_rejection() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("evil.zip");
+        let out_dir = dir.path().join("out");
+        fs::create_dir(&out_dir).unwrap();
+        fs::write(out_dir.join("existing.txt"), b"keep me").unwrap();
+
+        write_zip(&zip_path, &[("../evil.txt", b"owned")]);
+
+        unzip_to_dir(&zip_path, &out_dir).unwrap_err();
+
+        assert_eq!(
+            fs::read_to_string(out_dir.join("existing.txt")).unwrap(),
+            "keep me"
+        );
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
     }
 
     #[test]
@@ -344,6 +470,8 @@ mod tests {
         );
 
         assert!(!dir.path().join("evil.txt").exists());
+        assert!(!out_dir.exists());
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
     }
 
     #[test]
@@ -388,6 +516,51 @@ mod tests {
             err.to_string().contains("too large"),
             "unexpected error: {err}"
         );
+        assert!(!out_dir.exists());
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
+    }
+
+    #[test]
+    fn unzip_to_dir_enforces_actual_single_file_size() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("understated.zip");
+        let out_dir = dir.path().join("out");
+        let contents = vec![b'x'; 64];
+
+        write_zip(&zip_path, &[("large.bin", &contents)]);
+        understate_uncompressed_sizes(&zip_path, 1);
+
+        let err = unzip_to_dir_with_limits(&zip_path, &out_dir, 256, 32)
+            .expect_err("actual decompressed size must enforce the per-file limit");
+
+        assert!(
+            err.to_string().contains("too large"),
+            "unexpected error: {err}"
+        );
+        assert!(!out_dir.exists());
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
+    }
+
+    #[test]
+    fn unzip_to_dir_enforces_actual_total_size() {
+        let dir = tempdir().unwrap();
+        let zip_path = dir.path().join("understated-total.zip");
+        let out_dir = dir.path().join("out");
+        let first = vec![b'a'; 24];
+        let second = vec![b'b'; 24];
+
+        write_zip(&zip_path, &[("first.bin", &first), ("second.bin", &second)]);
+        understate_uncompressed_sizes(&zip_path, 1);
+
+        let err = unzip_to_dir_with_limits(&zip_path, &out_dir, 40, 32)
+            .expect_err("actual decompressed size must enforce the archive limit");
+
+        assert!(
+            err.to_string().contains("maximum extracted size"),
+            "unexpected error: {err}"
+        );
+        assert!(!out_dir.exists());
+        assert_eq!(staging_dir_count(dir.path(), "out"), 0);
     }
 
     #[test]

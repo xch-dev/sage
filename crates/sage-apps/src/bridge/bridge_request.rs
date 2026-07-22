@@ -5,10 +5,9 @@ use crate::{
     BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
     BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalBody,
     RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
-    SharedSageApp, SystemBridgeCapability,
-    UserBridgeCapability, assert_bridge_origin, emit_bridge_response_to_app,
-    emit_system_runtime_event_to_listeners, ensure_app_is_enabled_for_scope,
-    ensure_approval_expiry_loop, get_system_capability_definition,
+    SharedSageApp, SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
+    emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
+    ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_system_capability_definition,
     get_user_capability_definition, list_pending_approvals, resolve_app,
     start_bridge_approval_runtime, sync_bridge_approval_runtime, take_pending_approval,
     unix_timestamp_ms, write_pending_approval,
@@ -258,8 +257,10 @@ async fn wallet_binding_violated(
     app_state: &State<'_, AppState>,
     pending: &PendingBridgeApproval,
 ) -> bool {
-    let requires_wallet_binding =
-        matches!(pending.approval.body, RustBridgeApprovalBody::SendXch { .. });
+    let requires_wallet_binding = matches!(
+        pending.approval.body,
+        RustBridgeApprovalBody::SendXch { .. }
+    );
 
     if !requires_wallet_binding {
         return false;
