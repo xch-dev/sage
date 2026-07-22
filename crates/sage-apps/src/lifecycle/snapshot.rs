@@ -7,12 +7,12 @@ use anyhow::{Context, Result as AnyResult, anyhow};
 
 use crate::{
     MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, bytes_sha256_hex,
+    security::get_with_ssrf_guard,
 };
 
 pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyResult<Vec<u8>> {
-    let response = reqwest::get(url)
-        .await
-        .with_context(|| format!("failed to GET {url}"))?
+    let response = get_with_ssrf_guard(url)
+        .await?
         .error_for_status()
         .with_context(|| format!("request failed for {url}"))?;
 

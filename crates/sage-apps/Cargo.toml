@@ -15,7 +15,7 @@ specta = { workspace = true, features = ["derive", "function", "url"] }
 specta-typescript = { workspace = true }
 tauri = { workspace = true, features = ["macos-private-api"] }
 tauri-plugin-dialog = "2.7.1"
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["net"] }
 tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }
