@@ -35,6 +35,11 @@ impl ResolvedStoppedApp {
     pub fn into_app(self) -> SharedSageApp {
         self.app
     }
+
+    /// Returns the app without releasing its per-app operation lock.
+    pub fn into_app_and_guard(self) -> (SharedSageApp, OwnedMutexGuard<()>) {
+        (self.app, self._guard)
+    }
 }
 
 impl ResolvedRunningApp {
@@ -487,5 +492,73 @@ impl UserSageAppSource {
     pub(crate) fn url(app_url: impl AsRef<str>) -> anyhow::Result<Self> {
         let app_url = SageAppUrl::parse(app_url.as_ref())?;
         Ok(Self::Url { app_url })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::sync::Arc;
+
+    use tempfile::{TempDir, tempdir};
+    use tokio::sync::Mutex;
+
+    use super::*;
+    use crate::{
+        SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
+        SageAppPackageManifest, SageAppPackageManifestParts, SageAppWalletScope,
+    };
+
+    fn test_app() -> (SharedSageApp, TempDir) {
+        let dir = tempdir().unwrap();
+        fs::write(dir.path().join("index.html"), "x").unwrap();
+
+        let requested_permissions = SageRequestedPermissions::default();
+        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions: requested_permissions.clone(),
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap();
+        let granted_permissions =
+            SageGrantedPermissions::new(&requested_permissions, [], [], BTreeMap::new()).unwrap();
+        let snapshot =
+            SageAppSnapshot::new("hash", dir.path().to_string_lossy(), manifest).unwrap();
+        let common = SageAppCommon::new(
+            SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
+            granted_permissions,
+            SageAppStorage::Unmanaged,
+            snapshot,
+            SageAppWalletScope::AllWallets,
+        )
+        .unwrap();
+        let app = UserSageApp::new_installed(common, UserSageAppSource::Zip);
+
+        (SharedSageApp::new(app.into_sage_app()), dir)
+    }
+
+    #[tokio::test]
+    async fn stopped_app_guard_can_be_held_after_extracting_app() {
+        let lock = Arc::new(Mutex::new(()));
+        let guard = lock.clone().lock_owned().await;
+        let (app, _dir) = test_app();
+        let resolved = ResolvedStoppedApp::new(app, guard);
+
+        let (_app, guard) = resolved.into_app_and_guard();
+
+        assert!(lock.clone().try_lock_owned().is_err());
+        drop(guard);
+        assert!(lock.try_lock_owned().is_ok());
     }
 }

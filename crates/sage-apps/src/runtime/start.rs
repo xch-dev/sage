@@ -122,6 +122,7 @@ pub(crate) async fn start_origin_cleanup_runtime(
             query,
         },
         false,
+        None,
     )
     .await
 }
@@ -131,15 +132,25 @@ async fn create_runtime(
     apps_state: &State<'_, AppsHostState>,
     args: CreateRuntimeArgs,
 ) -> Result<SharedRuntime, String> {
-    let app = match resolve_app(app_handle, &args.app_id)
+    // Keep the per-app operation lock until the runtime and its webview are both
+    // ready, so another start cannot observe the same app as stopped.
+    let (app, operation_guard) = match resolve_app(app_handle, &args.app_id)
         .await
         .map_err(|e| e.to_string())?
     {
         ResolvedApp::Running(running) => return Ok(running.runtime()),
-        ResolvedApp::Stopped(stopped) => stopped.into_app(),
+        ResolvedApp::Stopped(stopped) => stopped.into_app_and_guard(),
     };
 
-    create_runtime_for_app(app_handle, apps_state, app, args, true).await
+    create_runtime_for_app(
+        app_handle,
+        apps_state,
+        app,
+        args,
+        true,
+        Some(operation_guard),
+    )
+    .await
 }
 
 async fn create_runtime_for_app(
@@ -148,6 +159,7 @@ async fn create_runtime_for_app(
     app: SharedSageApp,
     args: CreateRuntimeArgs,
     apply_user_lifecycle: bool,
+    operation_guard: Option<tokio::sync::OwnedMutexGuard<()>>,
 ) -> Result<SharedRuntime, String> {
     let is_internal = app.with(|app| app.common().is_sandbox_test())
         || app.id() == sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
@@ -222,6 +234,8 @@ async fn create_runtime_for_app(
             .hide()
             .map_err(|err| format!("{err}"))?;
     }
+
+    drop(operation_guard);
 
     Ok(shared_runtime)
 }
