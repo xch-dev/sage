@@ -25,6 +25,7 @@ macro_rules! runtime_id_prefix {
 }
 
 pub const SANDBOX_TEST_ID_PREFIX: &str = sandbox_test_id_prefix!();
+pub const RUNTIME_ID_PREFIX: &str = runtime_id_prefix!();
 
 pub const BUILTIN_STORAGE_ISOLATION_PERSISTENT_ID: &str =
     concat!(sandbox_test_id_prefix!(), "storage_isolation_persistent");

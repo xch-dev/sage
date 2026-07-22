@@ -17,10 +17,10 @@ use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 use crate::{
-    AppsHostState, SageAppCommon, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot,
-    SageAppStorage, SageAppWalletScope, SageGrantedPermissionsInput, UserSageApp,
-    UserSageAppSource, allocate_new_storage, apps_root, emit_listed_apps_changed,
-    fresh_snapshot_dir, write_snapshot_manifest,
+    AppsHostState, RUNTIME_ID_PREFIX, SANDBOX_TEST_ID_PREFIX, SageAppCommon, SageAppIdentity,
+    SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppWalletScope,
+    SageGrantedPermissionsInput, UserSageApp, UserSageAppSource, allocate_new_storage, apps_root,
+    builtin_system_app_spec, emit_listed_apps_changed, fresh_snapshot_dir, write_snapshot_manifest,
 };
 
 #[async_trait]
@@ -99,6 +99,7 @@ where
     let prepared_artifact = source.prepare().await?;
 
     let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
+    ensure_installable_app_id(&app_id)?;
 
     if host_state.db.app_exists(&app_id).await? {
         anyhow::bail!("App is already installed");
@@ -225,6 +226,19 @@ pub fn fresh_origin_id(app_id: &str) -> String {
     format!("{}.{}", Uuid::new_v4(), app_id)
 }
 
+/// Rejects app IDs reserved for Sage's internal apps and runtimes.
+fn ensure_installable_app_id(app_id: &str) -> AnyResult<()> {
+    if app_id.starts_with(SANDBOX_TEST_ID_PREFIX) || app_id.starts_with(RUNTIME_ID_PREFIX) {
+        anyhow::bail!("app id uses a reserved prefix: {app_id}");
+    }
+
+    if builtin_system_app_spec(app_id).is_some() {
+        anyhow::bail!("app id collides with a builtin system app: {app_id}");
+    }
+
+    Ok(())
+}
+
 pub fn create_app_dir(app_dir: &Path) -> AnyResult<()> {
     if app_dir.exists() {
         anyhow::bail!("app directory already exists, cannot create");
@@ -349,6 +363,34 @@ mod tests {
 
         let prefix = origin.strip_suffix(".url-abc123").unwrap();
         Uuid::parse_str(prefix).unwrap();
+    }
+
+    #[test]
+    fn ensure_installable_app_id_rejects_reserved_ids() {
+        for app_id in [
+            "__sage_test_storage_isolation_persistent",
+            "__sage_runtime_origin_cleanup",
+            "task-manager",
+            "app-update",
+            "bridge-approval",
+        ] {
+            assert!(
+                ensure_installable_app_id(app_id).is_err(),
+                "expected app id {app_id:?} to be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn ensure_installable_app_id_accepts_generated_ids() {
+        for app_id in [
+            "my-app-8c8532e1-14d8-4d5f-b652-4ff29fc35a19",
+            "url-my-app-0123456789abcdef",
+            "task-manager-8c8532e1-14d8-4d5f-b652-4ff29fc35a19",
+        ] {
+            ensure_installable_app_id(app_id)
+                .unwrap_or_else(|err| panic!("expected app id {app_id:?} to be accepted: {err}"));
+        }
     }
 
     #[tokio::test]
