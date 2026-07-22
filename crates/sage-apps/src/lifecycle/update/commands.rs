@@ -22,5 +22,5 @@ pub async fn apps_apply_app_update(
     apps_state: State<'_, AppsHostState>,
     app_id: String,
 ) -> Result<SageAppView> {
-    apply_app_update_inner(&app_handle, &apps_state, &app_id, None).await
+    apply_app_update_inner(&app_handle, &apps_state, &app_id, None, None).await
 }

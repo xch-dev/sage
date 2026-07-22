@@ -16,6 +16,7 @@ pub(crate) async fn apply_app_update_inner(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
+    expected_manifest_hash: Option<&str>,
 ) -> Result<SageAppView> {
     let _update_guard = apps_state
         .try_begin_app_update(app_id)
@@ -39,6 +40,12 @@ pub(crate) async fn apply_app_update_inner(
 
         return Ok(resolved.with_app(|app| app.into()));
     }
+
+    ensure_pending_update_matches_review(
+        app_id,
+        preflight.pending.manifest_hash(),
+        expected_manifest_hash,
+    )?;
 
     let reopen_after_update = ReopenAfterUpdate::capture(app_handle, apps_state, app_id).await?;
 
@@ -110,9 +117,26 @@ pub(crate) async fn try_auto_apply_pending_update(
         return Ok(false);
     }
 
-    apply_app_update_inner(app_handle, apps_state, app_id, None).await?;
+    apply_app_update_inner(app_handle, apps_state, app_id, None, None).await?;
 
     Ok(true)
+}
+
+fn ensure_pending_update_matches_review(
+    app_id: &str,
+    pending_manifest_hash: &str,
+    expected_manifest_hash: Option<&str>,
+) -> Result<()> {
+    if let Some(expected) = expected_manifest_hash
+        && pending_manifest_hash != expected
+    {
+        return Err(io::Error::other(format!(
+            "pending update for {app_id} changed since it was reviewed; re-check the update before applying"
+        ))
+        .into());
+    }
+
+    Ok(())
 }
 
 async fn execute_app_update(
@@ -307,5 +331,24 @@ impl ReopenAfterUpdate {
             should_reopen: true,
             should_focus,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_pending_update_matches_review;
+
+    #[test]
+    fn reviewed_manifest_hash_must_match_pending_update() {
+        ensure_pending_update_matches_review("app.test", "current", None).unwrap();
+        ensure_pending_update_matches_review("app.test", "current", Some("current")).unwrap();
+
+        let err = ensure_pending_update_matches_review("app.test", "current", Some("reviewed"))
+            .expect_err("a stale review must not authorize a different pending update");
+
+        assert!(
+            err.to_string().contains("changed since it was reviewed"),
+            "unexpected error: {err}"
+        );
     }
 }
