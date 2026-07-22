@@ -28,5 +28,11 @@ export function App() {
     return <PermissionsReviewBody state={state} />;
   }
 
-  return <UpdateReviewBody state={state} onReload={reload} />;
+  return (
+    <UpdateReviewBody
+      key={state.app.pendingUpdate?.manifestHash ?? 'no-pending-update'}
+      state={state}
+      onReload={reload}
+    />
+  );
 }
