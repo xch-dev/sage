@@ -24,25 +24,34 @@ const log = (...args) => window.__SAGE_TEST__?.log?.(...args);
   const STORE_NAME = 'probe_store';
   const DB_KEY = 'sage_probe_key';
 
-  async function readIndexedDbProbe() {
-    try {
-      return await new Promise((resolve) => {
+  async function readIndexedDbProbe(expectedValue) {
+    return await new Promise((resolve, reject) => {
+      let db = null;
+
+      try {
         const open = indexedDB.open(DB_NAME);
 
-        open.onerror = () => resolve(false);
+        open.onerror = () =>
+          reject(open.error ?? new Error('IndexedDB open failed'));
+        open.onblocked = () => reject(new Error('IndexedDB open was blocked'));
 
         open.onupgradeneeded = () => {
           try {
-            const db = open.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-              db.createObjectStore(STORE_NAME);
+            const upgradeDb = open.result;
+            if (!upgradeDb.objectStoreNames.contains(STORE_NAME)) {
+              upgradeDb.createObjectStore(STORE_NAME);
             }
-          } catch {}
+          } catch (error) {
+            try {
+              open.transaction?.abort();
+            } catch {}
+            reject(error);
+          }
         };
 
         open.onsuccess = () => {
           try {
-            const db = open.result;
+            db = open.result;
 
             if (!db.objectStoreNames.contains(STORE_NAME)) {
               db.close();
@@ -56,21 +65,27 @@ const log = (...args) => window.__SAGE_TEST__?.log?.(...args);
 
             req.onerror = () => {
               db.close();
-              resolve(false);
+              reject(req.error ?? new Error('IndexedDB probe read failed'));
             };
 
             req.onsuccess = () => {
               db.close();
-              resolve(typeof req.result === 'string' && req.result.length > 0);
+              resolve(req.result === expectedValue);
             };
-          } catch {
-            resolve(false);
+          } catch (error) {
+            try {
+              db?.close();
+            } catch {}
+            reject(error);
           }
         };
-      });
-    } catch {
-      return false;
-    }
+      } catch (error) {
+        try {
+          db?.close();
+        } catch {}
+        reject(error);
+      }
+    });
   }
 
   async function report(data) {
@@ -90,16 +105,11 @@ const log = (...args) => window.__SAGE_TEST__?.log?.(...args);
   let error = null;
 
   try {
-    try {
-      const value = localStorage.getItem(LOCAL_STORAGE_KEY);
-      localStorageVisible = typeof value === 'string' && value.length > 0;
-      log('localStorageVisible', localStorageVisible);
-    } catch {
-      localStorageVisible = false;
-      log('localStorage read failed');
-    }
+    const value = localStorage.getItem(LOCAL_STORAGE_KEY);
+    localStorageVisible = value === runId;
+    log('localStorageVisible', localStorageVisible);
 
-    indexedDbVisible = await readIndexedDbProbe();
+    indexedDbVisible = await readIndexedDbProbe(runId);
     log('indexedDbVisible', indexedDbVisible);
   } catch (err) {
     error = err instanceof Error ? err.message : String(err);
