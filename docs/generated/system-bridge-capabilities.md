@@ -6,12 +6,12 @@
 
 Allows the system app to inspect running Sage app runtimes.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.focus_taskbar_runtime`
@@ -20,12 +20,12 @@ Allows the system app to inspect running Sage app runtimes.
 
 Allows the system app to focus running Sage taskbar app runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.hide_runtime`
@@ -34,12 +34,12 @@ Allows the system app to focus running Sage taskbar app runtime.
 
 Allows the system app to hide running Sage app runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.kill_runtime`
@@ -48,12 +48,12 @@ Allows the system app to hide running Sage app runtime.
 
 Allows the system app to stop running Sage app runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.get_active_taskbar_runtime`
@@ -62,12 +62,12 @@ Allows the system app to stop running Sage app runtime.
 
 Allows the system app to retrieve the currently active Sage app runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.listen_runtimes_changed`
@@ -76,12 +76,12 @@ Allows the system app to retrieve the currently active Sage app runtime.
 
 Allows the system app to receive events when Sage app runtimes change.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.listen_active_runtime_changed`
@@ -90,12 +90,12 @@ Allows the system app to receive events when Sage app runtimes change.
 
 Allows the system app to receive events when the active Sage app runtime changes.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.hide_self`
@@ -104,12 +104,12 @@ Allows the system app to receive events when the active Sage app runtime changes
 
 Allows the system app to hide its own runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `runtime_manager.close_self`
@@ -118,12 +118,12 @@ Allows the system app to hide its own runtime.
 
 Allows the system app to close its own runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `capability_definitions.read`
@@ -132,12 +132,12 @@ Allows the system app to close its own runtime.
 
 Allows the system app to read Sage capability definitions.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_permissions.read`
@@ -146,12 +146,12 @@ Allows the system app to read Sage capability definitions.
 
 Allows the system app to read app permissions for review.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_permissions.apply`
@@ -160,12 +160,12 @@ Allows the system app to read app permissions for review.
 
 Allows the system app to apply reviewed app permission changes.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_install.preview`
@@ -174,12 +174,12 @@ Allows the system app to apply reviewed app permission changes.
 
 Allows the system app to preview URL and ZIP app installations.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_install.apply`
@@ -188,12 +188,12 @@ Allows the system app to preview URL and ZIP app installations.
 
 Allows the system app to install Sage apps after review.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_update.read`
@@ -202,12 +202,12 @@ Allows the system app to install Sage apps after review.
 
 Allows the system app to read update information for installed Sage apps.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_update.apply`
@@ -216,12 +216,12 @@ Allows the system app to read update information for installed Sage apps.
 
 Allows the system app to download and apply approved Sage app updates.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app_registry.listen_listed_apps_changed`
@@ -230,12 +230,12 @@ Allows the system app to download and apply approved Sage app updates.
 
 Allows the system app to receive events when installed/listed Sage apps change.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `file_system.select_file`
@@ -244,12 +244,12 @@ Allows the system app to receive events when installed/listed Sage apps change.
 
 Allows the system app to ask the user to select a local file.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `bridge_approval.list`
@@ -258,12 +258,12 @@ Allows the system app to ask the user to select a local file.
 
 Allows the system app to list pending bridge approvals.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `bridge_approval.resolve`
@@ -272,12 +272,12 @@ Allows the system app to list pending bridge approvals.
 
 Allows the system app to resolve a pending bridge approval.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `bridge_approval.listen_changed`
@@ -286,12 +286,12 @@ Allows the system app to resolve a pending bridge approval.
 
 Allows the system app to listen for changes in pending bridge approvals.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `donation.get_details`
@@ -300,12 +300,12 @@ Allows the system app to listen for changes in pending bridge approvals.
 
 Allows the system app to retrieve details to send donation.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `sandbox.get_state`
@@ -314,12 +314,12 @@ Allows the system app to retrieve details to send donation.
 
 Allows the system app to read Sage app sandbox test state.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `sandbox.rerun_tests`
@@ -328,12 +328,12 @@ Allows the system app to read Sage app sandbox test state.
 
 Allows the system app to re-run Sage app sandbox tests.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `sandbox.listen_state_changed`
@@ -342,12 +342,12 @@ Allows the system app to re-run Sage app sandbox tests.
 
 Allows the system app to receive events when sandbox test state changes.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.list_wallets`
@@ -356,11 +356,10 @@ Allows the system app to receive events when sandbox test state changes.
 
 Allows the system app to list wallets available in Sage.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
-

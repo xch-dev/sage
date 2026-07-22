@@ -6,12 +6,12 @@
 
 Allows the app to send messages through the Sage bridge. (Only for sandbox tests)
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.get_info`
@@ -20,12 +20,12 @@ Allows the app to send messages through the Sage bridge. (Only for sandbox tests
 
 Allows the app to read its Sage app identity and permission information.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.lifecycle.ready_to_stop`
@@ -34,12 +34,12 @@ Allows the app to read its Sage app identity and permission information.
 
 Allows the app to acknowledge that it is ready to stop after a lifecycle request.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.lifecycle.set_before_stop_listener`
@@ -48,12 +48,12 @@ Allows the app to acknowledge that it is ready to stop after a lifecycle request
 
 Allows the app to register a before-stop lifecycle listener.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.get_capabilities`
@@ -62,12 +62,12 @@ Allows the app to register a before-stop lifecycle listener.
 
 Allows the app to read the capabilities currently visible to it.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.request_capability_grant`
@@ -76,12 +76,12 @@ Allows the app to read the capabilities currently visible to it.
 
 Allows the app to request a capability grant after installation.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `app.request_network_whitelist_grant`
@@ -90,12 +90,12 @@ Allows the app to request a capability grant after installation.
 
 Allows the app to request access to an additional network target after installation.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_key`
@@ -104,12 +104,12 @@ Allows the app to request access to an additional network target after installat
 
 Allows the app to read public information about a wallet key.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_secret_key`
@@ -118,13 +118,13 @@ Allows the app to read public information about a wallet key.
 
 Allows the app to read wallet secrets, including the mnemonic or private key when available.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
-| Accesses sensitive secret | `true` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `true`  |
 
 ## `wallet.send_xch`
 
@@ -132,12 +132,12 @@ Allows the app to read wallet secrets, including the mnemonic or private key whe
 
 Allows the app to request XCH transactions from your wallet.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `true` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.send_xch_auto_submit`
@@ -146,12 +146,12 @@ Allows the app to request XCH transactions from your wallet.
 
 Allows the app to submit XCH transactions without asking for per-transaction approval.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `false` |
-| User grantable | `true` |
-| Shared with app | `false` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `false` |
+| User grantable            | `true`  |
+| Shared with app           | `false` |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_sync_status`
@@ -160,12 +160,12 @@ Allows the app to submit XCH transactions without asking for per-transaction app
 
 Allows the app to read wallet sync status and current wallet balance summary.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_version`
@@ -174,12 +174,12 @@ Allows the app to read wallet sync status and current wallet balance summary.
 
 Allows the app to read the current Sage wallet version.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_xch_usd_price`
@@ -188,12 +188,12 @@ Allows the app to read the current Sage wallet version.
 
 Allows the app to read the current estimated XCH price in USD.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.check_address`
@@ -202,12 +202,12 @@ Allows the app to read the current estimated XCH price in USD.
 
 Allows the app to validate whether an address belongs to this wallet.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_derivations`
@@ -216,12 +216,12 @@ Allows the app to validate whether an address belongs to this wallet.
 
 Allows the app to read wallet derivation records and addresses.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_spendable_coin_count`
@@ -230,12 +230,12 @@ Allows the app to read wallet derivation records and addresses.
 
 Allows the app to read the number of spendable coins in the wallet.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_coins_by_ids`
@@ -244,12 +244,12 @@ Allows the app to read the number of spendable coins in the wallet.
 
 Allows the app to read specific wallet coin records by coin ID.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_coins`
@@ -258,12 +258,12 @@ Allows the app to read specific wallet coin records by coin ID.
 
 Allows the app to list wallet coins.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_pending_transactions`
@@ -272,12 +272,12 @@ Allows the app to list wallet coins.
 
 Allows the app to read pending wallet transactions.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_transaction`
@@ -286,12 +286,12 @@ Allows the app to read pending wallet transactions.
 
 Allows the app to read a wallet transaction by height.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `wallet.get_transactions`
@@ -300,12 +300,12 @@ Allows the app to read a wallet transaction by height.
 
 Allows the app to list wallet transactions.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `environment.theme.get_current`
@@ -314,12 +314,12 @@ Allows the app to list wallet transactions.
 
 Allows the app to read Sage's current theme.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `environment.theme.css_vars`
@@ -328,12 +328,12 @@ Allows the app to read Sage's current theme.
 
 Allows Sage to inject current theme CSS variables into the app runtime.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `environment.theme.listen_changed`
@@ -342,12 +342,12 @@ Allows Sage to inject current theme CSS variables into the app runtime.
 
 Allows the app to receive events when Sage's theme changes.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `environment.get_network`
@@ -356,12 +356,12 @@ Allows the app to receive events when Sage's theme changes.
 
 Allows the app to read Sage's currently active network information.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `false` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
 ## `storage.persistent_webview`
@@ -370,11 +370,10 @@ Allows the app to read Sage's currently active network information.
 
 Allows the app to store data on this device between sessions.
 
-| Flag | Value |
-|---|---|
-| Requestable by app | `true` |
-| User grantable | `true` |
-| Shared with app | `true` |
-| Externally observable | `false` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
-
