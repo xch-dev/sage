@@ -51,13 +51,13 @@ Legend: ✅ = protected, 🔄 = redundant double-prompt, ⚠️ = bug, ❌ = not
 | **Offers**                                          |           |                                           |        |                                                                      |
 | Make offer (split-NFT path)                         |    ✅     | Direct `requestPassword`                  |   OK   | `useOfferProcessor.ts:116` — password forwarded                      |
 | Make offer (single/non-split)                       |    ✅     | Direct `requestPassword`                  |   OK   | `useOfferProcessor.ts:160` — fixed: password now forwarded           |
-| Take offer                                          |    ✅     | ConfirmationDialog                        |   OK   | `Offer.tsx` — fixed: removed redundant pre-prompt                    |
-| Cancel offer                                        |    ✅     | ConfirmationDialog                        |   OK   | `OfferRowCard.tsx` — fixed: removed redundant pre-prompt             |
-| Cancel all offers                                   |    ✅     | ConfirmationDialog                        |   OK   | `Offers.tsx` — fixed: removed redundant pre-prompt                   |
+| Take offer                                          |    ✅     | Direct `requestPassword`                  |   OK   | `Offer.tsx:105` — signs unconditionally; page prompts                |
+| Cancel offer                                        |    ✅     | ConfirmationDialog                        |   OK   | `OfferRowCard.tsx` — `cancel_offer` defers to `transact()`           |
+| Cancel all offers                                   |    ✅     | ConfirmationDialog                        |   OK   | `Offers.tsx` — `cancel_offers` defers to `transact()`                |
 | **Secrets / Key Management**                        |           |                                           |        |                                                                      |
 | View mnemonic / secret key                          |    ✅     | Direct `requestPassword`                  |   OK   | `WalletCard.tsx:194`                                                 |
 | Delete wallet key                                   |    ✅     | `requestPassword` + `getSecretKey` verify |   OK   | `WalletCard.tsx:82` — password verified via decryption before delete |
-| Import key (secret/mnemonic)                        |    ✅     | Password set at import time               |   OK   | Encrypt-at-import only                                               |
+| Import key (secret/mnemonic)                        |    ❌     | None                                      |   OK   | UI sends no password; set later in Settings (API field exists)       |
 | Set / Change / Remove password                      |    ✅     | Inline form (not `requestPassword`)       |   OK   | `Settings.tsx:1238`                                                  |
 | **Key Derivation**                                  |           |                                           |        |                                                                      |
 | Increase derivation (hardened)                      |    ✅     | Direct `requestPassword`                  |   OK   | `Settings.tsx:1269`                                                  |

@@ -126,18 +126,13 @@ pub fn change_password(
 
 Decrypts with old password, re-encrypts with new password, replaces the `KeyData::Secret` entry.
 
-**`key_data.rs`** — Add `password_protected: bool` to `KeyData::Secret`:
+**`key_data.rs`** — Unchanged. An earlier draft of this design added `password_protected: bool` to `KeyData::Secret`, but that changes the `keys.bin` serialization format and would require a versioned deserialization fallback for existing files. Instead the flag lives in the wallet config (see below), leaving `keys.bin` format-compatible.
 
-```rust
-Secret {
-    master_pk: [u8; 48],
-    entropy: bool,
-    encrypted: Encrypted,
-    password_protected: bool,  // new
-}
-```
+### `sage-config` crate
 
-Note: this changes the `keys.bin` serialization format. Existing files will fail to deserialize. Handle with a versioned deserialization fallback: try deserializing the new format first, fall back to the old format (defaulting `password_protected` to `false`).
+**`wallet.rs`** — Add `password_protected: bool` to `Wallet` (defaults to `false`, so existing `config.toml` files deserialize unchanged).
+
+Because the config file and `keys.bin` can drift apart (e.g. a restored `keys.bin`), `Sage::switch_wallet` self-heals the flag via `Keychain::is_password_protected`, which trial-decrypts the entry with an empty password.
 
 ### `sage-api` crate (request structs)
 
