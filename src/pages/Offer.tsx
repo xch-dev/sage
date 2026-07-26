@@ -22,6 +22,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useNetwork } from '@/hooks/useNetwork';
 
 export function Offer() {
   const { offer } = useParams();
@@ -36,6 +37,7 @@ export function Offer() {
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
   const [fee, setFee] = useState('');
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
+  const { isTestnet } = useNetwork();
 
   const resolveOffer = useCallback(async () => {
     if (!offer) return;
@@ -44,7 +46,7 @@ export function Offer() {
     setLoadingStatus(t`Fetching offer details...`);
 
     try {
-      const resolvedOffer = await resolveOfferData(offer);
+      const resolvedOffer = await resolveOfferData(offer, isTestnet);
       setResolvedOffer(resolvedOffer);
 
       const data = await commands.viewOffer({ offer: resolvedOffer });
@@ -57,7 +59,7 @@ export function Offer() {
     } finally {
       setIsLoading(false);
     }
-  }, [offer, addError, navigate]);
+  }, [offer, isTestnet, addError, navigate]);
 
   useEffect(() => {
     resolveOffer();

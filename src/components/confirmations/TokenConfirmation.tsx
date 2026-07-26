@@ -5,9 +5,11 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { CoinsIcon, MergeIcon, SplitIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatNumber } from '../../i18n';
+import { formatNumber } from '@/i18n.ts';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
+import { formatMemo, Memo } from '@/types/CoinMemo.ts';
+import { MemoDisplay } from '@/components/MemoDisplay.tsx';
 
 type TokenOperationType =
   | 'split'
@@ -25,7 +27,7 @@ interface TokenConfirmationProps {
   precision?: number;
   name?: string;
   amount?: string;
-  currentMemo?: string;
+  currentMemo?: Memo;
 }
 
 export function TokenConfirmation({
@@ -126,10 +128,10 @@ export function TokenConfirmation({
         <ConfirmationCard>
           <div className='flex items-center justify-between'>
             <div className='break-words whitespace-pre-wrap flex-1'>
-              {currentMemo}
+              <MemoDisplay memo={currentMemo} />
             </div>
             <CopyButton
-              value={currentMemo}
+              value={formatMemo(currentMemo)}
               className='h-4 w-4 shrink-0 ml-2'
               onCopy={() => toast.success(t`Data copied to clipboard`)}
             />

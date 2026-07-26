@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { formatTimestamp, getOfferStatus } from '@/lib/utils';
+import { spacescanCoinUrl } from '@/lib/urls';
+import { useNetwork } from '@/hooks/useNetwork';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -18,8 +20,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 export default function Option() {
   const { option_id: optionId } = useParams();
   const navigate = useNavigate();
+  const { network, isTestnet } = useNetwork();
   const [option, setOption] = useState<OptionRecord | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
   const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
 
   const updateOption = useCallback(() => {
@@ -56,13 +58,6 @@ export default function Option() {
       unlisten.then((u) => u());
     };
   }, [updateOption]);
-
-  useEffect(() => {
-    commands
-      .getNetwork({})
-      .then((data) => setNetwork(data.kind))
-      .catch((error) => console.error('Failed to get network:', error));
-  }, [setNetwork]);
 
   // Check for local offers when option loads
   useEffect(() => {
@@ -291,10 +286,7 @@ export default function Option() {
                 <Button
                   variant='outline'
                   onClick={() => {
-                    const baseUrl = network === 'testnet' ? 'testnet11.' : '';
-                    openUrl(
-                      `https://${baseUrl}spacescan.io/coin/${option.coin_id}`,
-                    );
+                    openUrl(spacescanCoinUrl(option.coin_id, isTestnet));
                   }}
                   disabled={!network || network === 'unknown'}
                 >

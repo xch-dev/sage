@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -63,6 +64,7 @@ export function ClawbackCoinsCard({
   const walletState = useWalletState();
 
   const { addError } = useErrors();
+  const { isTestnet } = useNetwork();
 
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
@@ -298,6 +300,7 @@ export function ClawbackCoinsCard({
         <CoinList
           clawback={true}
           precision={asset.precision}
+          isTestnet={isTestnet}
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}

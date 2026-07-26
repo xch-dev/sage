@@ -11,12 +11,18 @@ use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
+#[derive(Debug)]
+pub struct TakenOffer {
+    pub offer: Offer,
+    pub spend_bundle: SpendBundle,
+}
+
 impl Wallet {
     pub async fn take_offer(
         &self,
         spend_bundle: SpendBundle,
         fee: u64,
-    ) -> Result<SpendBundle, WalletError> {
+    ) -> Result<TakenOffer, WalletError> {
         let mut ctx = SpendContext::new();
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
 
@@ -83,7 +89,19 @@ impl Wallet {
         actions.extend(offer.requested_payments().actions());
 
         // Add requested payments
-        self.select_spends(&mut ctx, &mut spends, &actions).await?;
+        let offer_input_coin_ids = offer
+            .spend_bundle()
+            .coin_spends
+            .iter()
+            .map(|coin_spend| coin_spend.coin.coin_id())
+            .collect_vec();
+        self.select_spends_excluding(
+            &mut ctx,
+            &mut spends,
+            &actions,
+            &offer_input_coin_ids,
+        )
+        .await?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;
@@ -134,6 +152,9 @@ impl Wallet {
 
         self.complete_spends(&mut ctx, &deltas, spends).await?;
 
-        Ok(offer.take(SpendBundle::new(ctx.take(), Signature::default())))
+        Ok(TakenOffer {
+            offer,
+            spend_bundle: SpendBundle::new(ctx.take(), Signature::default()),
+        })
     }
 }

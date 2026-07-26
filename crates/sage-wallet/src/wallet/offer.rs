@@ -6,6 +6,7 @@ mod take_offer;
 
 pub use aggregate_offer::*;
 pub use make_offer::*;
+pub use take_offer::*;
 
 #[cfg(test)]
 mod tests {
@@ -14,9 +15,32 @@ mod tests {
     use sage_database::NftOfferInfo;
     use test_log::test;
 
-    use crate::{Offered, Requested, RequestedCat, TestWallet, WalletNftMint};
+    use crate::{
+        Offered, Requested, RequestedCat, TakenOffer, TestWallet, WalletError, WalletNftMint,
+    };
 
     use super::aggregate_offers;
+
+    async fn sign_taken_offer(
+        wallet: &TestWallet,
+        taken: TakenOffer,
+    ) -> anyhow::Result<SpendBundle> {
+        let TakenOffer {
+            offer,
+            spend_bundle,
+        } = taken;
+        let spend_bundle = wallet
+            .wallet
+            .sign_transaction(
+                spend_bundle,
+                &wallet.agg_sig,
+                wallet.master_sk.clone(),
+                false,
+            )
+            .await?;
+
+        Ok(offer.take(spend_bundle))
+    }
 
     #[test(tokio::test)]
     async fn test_offer_xch_for_cat() -> anyhow::Result<()> {
@@ -51,10 +75,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -128,10 +149,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -194,10 +212,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -272,10 +287,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -362,10 +374,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -447,10 +456,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -552,10 +558,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -633,10 +636,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         bob.wait_for_coins().await;
@@ -713,10 +713,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         bob.wait_for_coins().await;
@@ -785,10 +782,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         bob.wait_for_coins().await;
@@ -825,10 +819,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -836,6 +827,110 @@ mod tests {
 
         // Check balances
         assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_take_offer_excludes_inputs() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+
+        // Simulate taking our own deleted offer.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 100,
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let result = alice.wallet.take_offer(offer, 0).await;
+        assert!(
+            matches!(result, Err(WalletError::CoinSelection(_))),
+            "taking the offer should not reuse the offer input coin"
+        );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_take_offer_skips_injected_spend() -> anyhow::Result<()> {
+        let alice = TestWallet::new(1000).await?;
+        let mut bob = alice.next(1001).await?;
+
+        // Keep the injected spend distinct from the offer.
+        let coins = bob.wallet.db.selectable_xch_coins().await?;
+        let coin_spends = bob
+            .wallet
+            .split(coins.iter().map(Coin::coin_id).collect(), 2, 0)
+            .await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let mut coins = bob.wallet.db.selectable_xch_coins().await?;
+        coins.sort_by_key(|coin| coin.amount);
+        let malicious_coin = coins[1];
+
+        // Attacker-supplied unsigned spend hidden in the offer.
+        let mut ctx = SpendContext::new();
+        bob.wallet
+            .spend(
+                &mut ctx,
+                vec![malicious_coin.coin_id()],
+                &[Action::send(
+                    Id::Xch,
+                    alice.puzzle_hash,
+                    malicious_coin.amount,
+                    Memos::None,
+                )],
+            )
+            .await?;
+        let malicious_spends = ctx.take();
+        assert_eq!(malicious_spends.len(), 1);
+
+        // Bob needs no XCH input to take this offer.
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 100,
+                    ..Default::default()
+                },
+                Requested::default(),
+                None,
+            )
+            .await?;
+        let mut offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        offer.coin_spends.extend(malicious_spends);
+
+        let taken = bob.wallet.take_offer(offer, 0).await?;
+        assert!(
+            !taken
+                .spend_bundle
+                .coin_spends
+                .iter()
+                .any(|coin_spend| coin_spend.coin.coin_id() == malicious_coin.coin_id()),
+            "the injected spend must not be signed"
+        );
+
+        let spend_bundle = sign_taken_offer(&bob, taken).await?;
+        let result = bob.sim.lock().await.new_transaction(spend_bundle);
+        assert!(result.is_err());
 
         Ok(())
     }
@@ -868,10 +963,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
 
         // We need to wait for both wallets to sync in this case
@@ -929,10 +1021,7 @@ mod tests {
 
         // Take offer
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         assert_eq!(spend_bundle.coin_spends.len(), 3);
         bob.push_bundle(spend_bundle).await?;
 
@@ -1076,10 +1165,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
@@ -1185,10 +1271,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
@@ -1284,10 +1367,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
@@ -1386,10 +1466,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
@@ -1513,10 +1590,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
@@ -1629,10 +1703,7 @@ mod tests {
             )
             .await?;
         let offer = bob.wallet.take_offer(offer, 0).await?;
-        let spend_bundle = bob
-            .wallet
-            .sign_transaction(offer, &bob.agg_sig, bob.master_sk.clone(), true)
-            .await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
         bob.push_bundle(spend_bundle).await?;
         bob.wait_for_coins().await;
         alice.wait_for_puzzles().await;
