@@ -845,7 +845,11 @@ export type DeleteKey = {
 /**
  * Wallet fingerprint to delete
  */
-fingerprint: number }
+fingerprint: number; 
+/**
+ * Password for signing (required if wallet is password-protected)
+ */
+password?: string | null }
 /**
  * Response for key deletion
  */

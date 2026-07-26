@@ -142,6 +142,7 @@ Add `password: Option<String>` to **all request structs that trigger signing, se
 
 - `ImportKey`
 - `GetSecretKey`
+- `DeleteKey` — deletion is irreversible, so `delete_key` verifies the password itself rather than trusting the frontend to have checked
 
 **Signing via `transact()` path — all transaction request structs:**
 

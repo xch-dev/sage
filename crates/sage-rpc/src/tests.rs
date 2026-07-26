@@ -20,8 +20,8 @@ use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
-    Amount, ChangePassword, GetKey, GetPeers, GetSecretKey, GetSyncStatus, GetVersion, ImportKey,
-    Login, SendXch,
+    Amount, ChangePassword, DeleteKey, GetKey, GetPeers, GetSecretKey, GetSyncStatus, GetVersion,
+    ImportKey, Login, SendXch,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -455,6 +455,59 @@ async fn test_password_protected_import() -> Result<()> {
         })
         .await?;
     assert!(result.secrets.is_some());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_password_protected_delete() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let fingerprint = app.setup_bls_with_password(0, "mypassword").await?;
+
+    // Deleting without a password should fail
+    let result = app
+        .delete_key(DeleteKey {
+            fingerprint,
+            password: None,
+        })
+        .await;
+    assert!(result.is_err());
+
+    // Deleting with the wrong password should fail
+    let result = app
+        .delete_key(DeleteKey {
+            fingerprint,
+            password: Some("wrongpassword".to_string()),
+        })
+        .await;
+    assert!(result.is_err());
+
+    // The key must still be there
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .is_some()
+    );
+
+    // Deleting with the correct password should succeed
+    app.delete_key(DeleteKey {
+        fingerprint,
+        password: Some("mypassword".to_string()),
+    })
+    .await?;
+
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .is_none()
+    );
 
     Ok(())
 }

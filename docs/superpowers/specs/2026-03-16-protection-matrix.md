@@ -16,58 +16,58 @@ Password and biometric are mutually exclusive. `requestPassword(hasPassword)` ro
 
 Legend: ✅ = protected, 🔄 = redundant double-prompt, ⚠️ = bug, ❌ = not protected
 
-| Operation                                           | Protected | Mechanism                                 | Status | Call site                                                            |
-| --------------------------------------------------- | :-------: | ----------------------------------------- | :----: | -------------------------------------------------------------------- |
-| **Transaction Operations (via ConfirmationDialog)** |           |                                           |        |                                                                      |
-| Send XCH                                            |    ✅     | ConfirmationDialog                        |   OK   | `Send.tsx:188`                                                       |
-| Send CAT                                            |    ✅     | ConfirmationDialog                        |   OK   | `Send.tsx:206`                                                       |
-| Bulk send XCH                                       |    ✅     | ConfirmationDialog                        |   OK   | `Send.tsx:181`                                                       |
-| Bulk send CAT                                       |    ✅     | ConfirmationDialog                        |   OK   | `Send.tsx:198`                                                       |
-| Combine coins                                       |    ✅     | ConfirmationDialog (via Token.tsx)        |   OK   | `OwnedCoinsCard.tsx:261`                                             |
-| Split coins                                         |    ✅     | ConfirmationDialog (via Token.tsx)        |   OK   | `OwnedCoinsCard.tsx:310`                                             |
-| Auto-combine XCH/CAT                                |    ✅     | ConfirmationDialog (via Token.tsx)        |   OK   | `OwnedCoinsCard.tsx:363`                                             |
-| Issue CAT                                           |    ✅     | ConfirmationDialog                        |   OK   | `IssueToken.tsx:48`                                                  |
-| Multi-send                                          |     —     | No frontend binding                       |  N/A   | Rust-only; no TypeScript binding or UI                               |
-| Sign coin spends (Sign button)                      |    ✅     | Direct `requestPassword`                  |   OK   | `ConfirmationDialog.tsx:520`                                         |
-| Sign coin spends (Submit button)                    |    ✅     | Direct `requestPassword`                  |   OK   | `ConfirmationDialog.tsx:627`                                         |
-| **NFTs / DIDs**                                     |           |                                           |        |                                                                      |
-| Bulk mint NFTs                                      |    ✅     | ConfirmationDialog                        |   OK   | `MintNft.tsx:140`                                                    |
-| Transfer NFTs                                       |    ✅     | ConfirmationDialog                        |   OK   | `MultiSelectActions.tsx:135`                                         |
-| Burn NFTs                                           |    ✅     | ConfirmationDialog                        |   OK   | `MultiSelectActions.tsx:168`                                         |
-| Add NFT URI                                         |    ✅     | ConfirmationDialog                        |   OK   | `NftCard.tsx:236`                                                    |
-| Assign NFTs to DID                                  |    ✅     | ConfirmationDialog                        |   OK   | `MultiSelectActions.tsx:152`                                         |
-| Create DID                                          |    ✅     | ConfirmationDialog                        |   OK   | `CreateProfile.tsx:46`                                               |
-| Transfer DIDs                                       |    ✅     | ConfirmationDialog                        |   OK   | `DidList.tsx:166`                                                    |
-| Burn DIDs                                           |    ✅     | ConfirmationDialog                        |   OK   | `DidList.tsx:182`                                                    |
-| Normalize DIDs                                      |    ✅     | ConfirmationDialog                        |   OK   | `DidList.tsx:198`                                                    |
-| **Options**                                         |           |                                           |        |                                                                      |
-| Mint option                                         |    ✅     | ConfirmationDialog                        |   OK   | `MintOption.tsx:91`                                                  |
-| Transfer options                                    |    ✅     | ConfirmationDialog                        |   OK   | `useOptionActions.tsx:63`                                            |
-| Exercise options                                    |    ✅     | ConfirmationDialog                        |   OK   | `useOptionActions.tsx:43`                                            |
-| Burn options                                        |    ✅     | ConfirmationDialog                        |   OK   | `useOptionActions.tsx:83`                                            |
-| **Clawback**                                        |           |                                           |        |                                                                      |
-| Claw back coins                                     |    ✅     | ConfirmationDialog (via Token.tsx)        |   OK   | `ClawbackCoinsCard.tsx:215`                                          |
-| Finalize clawback                                   |    ✅     | ConfirmationDialog (via Token.tsx)        |   OK   | `ClawbackCoinsCard.tsx:260`                                          |
-| **Offers**                                          |           |                                           |        |                                                                      |
-| Make offer (split-NFT path)                         |    ✅     | Direct `requestPassword`                  |   OK   | `useOfferProcessor.ts:116` — password forwarded                      |
-| Make offer (single/non-split)                       |    ✅     | Direct `requestPassword`                  |   OK   | `useOfferProcessor.ts:160` — fixed: password now forwarded           |
-| Take offer                                          |    ✅     | Direct `requestPassword`                  |   OK   | `Offer.tsx:105` — signs unconditionally; page prompts                |
-| Cancel offer                                        |    ✅     | ConfirmationDialog                        |   OK   | `OfferRowCard.tsx` — `cancel_offer` defers to `transact()`           |
-| Cancel all offers                                   |    ✅     | ConfirmationDialog                        |   OK   | `Offers.tsx` — `cancel_offers` defers to `transact()`                |
-| **Secrets / Key Management**                        |           |                                           |        |                                                                      |
-| View mnemonic / secret key                          |    ✅     | Direct `requestPassword`                  |   OK   | `WalletCard.tsx:194`                                                 |
-| Delete wallet key                                   |    ✅     | `requestPassword` + `getSecretKey` verify |   OK   | `WalletCard.tsx:82` — password verified via decryption before delete |
-| Import key (secret/mnemonic)                        |    ❌     | None                                      |   OK   | UI sends no password; set later in Settings (API field exists)       |
-| Set / Change / Remove password                      |    ✅     | Inline form (not `requestPassword`)       |   OK   | `Settings.tsx:1238`                                                  |
-| **Key Derivation**                                  |           |                                           |        |                                                                      |
-| Increase derivation (hardened)                      |    ✅     | Direct `requestPassword`                  |   OK   | `Settings.tsx:1269`                                                  |
-| Increase derivation (unhardened)                    |    ❌     | None                                      |   OK   | No private key needed                                                |
-| **Unprotected (by design)**                         |           |                                           |        |                                                                      |
-| Enable/disable biometric toggle                     |    ❌     | None                                      |   OK   | No-op on password-protected wallets (mutual exclusivity)             |
-| View balances / addresses / NFTs                    |    ❌     | None                                      |   OK   | Read-only                                                            |
-| Submit pre-signed transaction                       |    ❌     | None                                      |   OK   | No key access needed                                                 |
-| Login / logout wallet                               |    ❌     | None                                      |   OK   | No secret access                                                     |
-| Rename / resync / emoji                             |    ❌     | None                                      |   OK   | Metadata only                                                        |
+| Operation                                           | Protected | Mechanism                           | Status | Call site                                                      |
+| --------------------------------------------------- | :-------: | ----------------------------------- | :----: | -------------------------------------------------------------- |
+| **Transaction Operations (via ConfirmationDialog)** |           |                                     |        |                                                                |
+| Send XCH                                            |    ✅     | ConfirmationDialog                  |   OK   | `Send.tsx:188`                                                 |
+| Send CAT                                            |    ✅     | ConfirmationDialog                  |   OK   | `Send.tsx:206`                                                 |
+| Bulk send XCH                                       |    ✅     | ConfirmationDialog                  |   OK   | `Send.tsx:181`                                                 |
+| Bulk send CAT                                       |    ✅     | ConfirmationDialog                  |   OK   | `Send.tsx:198`                                                 |
+| Combine coins                                       |    ✅     | ConfirmationDialog (via Token.tsx)  |   OK   | `OwnedCoinsCard.tsx:261`                                       |
+| Split coins                                         |    ✅     | ConfirmationDialog (via Token.tsx)  |   OK   | `OwnedCoinsCard.tsx:310`                                       |
+| Auto-combine XCH/CAT                                |    ✅     | ConfirmationDialog (via Token.tsx)  |   OK   | `OwnedCoinsCard.tsx:363`                                       |
+| Issue CAT                                           |    ✅     | ConfirmationDialog                  |   OK   | `IssueToken.tsx:48`                                            |
+| Multi-send                                          |     —     | No frontend binding                 |  N/A   | Rust-only; no TypeScript binding or UI                         |
+| Sign coin spends (Sign button)                      |    ✅     | Direct `requestPassword`            |   OK   | `ConfirmationDialog.tsx:520`                                   |
+| Sign coin spends (Submit button)                    |    ✅     | Direct `requestPassword`            |   OK   | `ConfirmationDialog.tsx:627`                                   |
+| **NFTs / DIDs**                                     |           |                                     |        |                                                                |
+| Bulk mint NFTs                                      |    ✅     | ConfirmationDialog                  |   OK   | `MintNft.tsx:140`                                              |
+| Transfer NFTs                                       |    ✅     | ConfirmationDialog                  |   OK   | `MultiSelectActions.tsx:135`                                   |
+| Burn NFTs                                           |    ✅     | ConfirmationDialog                  |   OK   | `MultiSelectActions.tsx:168`                                   |
+| Add NFT URI                                         |    ✅     | ConfirmationDialog                  |   OK   | `NftCard.tsx:236`                                              |
+| Assign NFTs to DID                                  |    ✅     | ConfirmationDialog                  |   OK   | `MultiSelectActions.tsx:152`                                   |
+| Create DID                                          |    ✅     | ConfirmationDialog                  |   OK   | `CreateProfile.tsx:46`                                         |
+| Transfer DIDs                                       |    ✅     | ConfirmationDialog                  |   OK   | `DidList.tsx:166`                                              |
+| Burn DIDs                                           |    ✅     | ConfirmationDialog                  |   OK   | `DidList.tsx:182`                                              |
+| Normalize DIDs                                      |    ✅     | ConfirmationDialog                  |   OK   | `DidList.tsx:198`                                              |
+| **Options**                                         |           |                                     |        |                                                                |
+| Mint option                                         |    ✅     | ConfirmationDialog                  |   OK   | `MintOption.tsx:91`                                            |
+| Transfer options                                    |    ✅     | ConfirmationDialog                  |   OK   | `useOptionActions.tsx:63`                                      |
+| Exercise options                                    |    ✅     | ConfirmationDialog                  |   OK   | `useOptionActions.tsx:43`                                      |
+| Burn options                                        |    ✅     | ConfirmationDialog                  |   OK   | `useOptionActions.tsx:83`                                      |
+| **Clawback**                                        |           |                                     |        |                                                                |
+| Claw back coins                                     |    ✅     | ConfirmationDialog (via Token.tsx)  |   OK   | `ClawbackCoinsCard.tsx:215`                                    |
+| Finalize clawback                                   |    ✅     | ConfirmationDialog (via Token.tsx)  |   OK   | `ClawbackCoinsCard.tsx:260`                                    |
+| **Offers**                                          |           |                                     |        |                                                                |
+| Make offer (split-NFT path)                         |    ✅     | Direct `requestPassword`            |   OK   | `useOfferProcessor.ts:116` — password forwarded                |
+| Make offer (single/non-split)                       |    ✅     | Direct `requestPassword`            |   OK   | `useOfferProcessor.ts:160` — fixed: password now forwarded     |
+| Take offer                                          |    ✅     | Direct `requestPassword`            |   OK   | `Offer.tsx:105` — signs unconditionally; page prompts          |
+| Cancel offer                                        |    ✅     | ConfirmationDialog                  |   OK   | `OfferRowCard.tsx` — `cancel_offer` defers to `transact()`     |
+| Cancel all offers                                   |    ✅     | ConfirmationDialog                  |   OK   | `Offers.tsx` — `cancel_offers` defers to `transact()`          |
+| **Secrets / Key Management**                        |           |                                     |        |                                                                |
+| View mnemonic / secret key                          |    ✅     | Direct `requestPassword`            |   OK   | `WalletCard.tsx:194`                                           |
+| Delete wallet key                                   |    ✅     | Direct `requestPassword`            |   OK   | `WalletCard.tsx:82` — enforced in `delete_key` (Rust)          |
+| Import key (secret/mnemonic)                        |    ❌     | None                                |   OK   | UI sends no password; set later in Settings (API field exists) |
+| Set / Change / Remove password                      |    ✅     | Inline form (not `requestPassword`) |   OK   | `Settings.tsx:1238`                                            |
+| **Key Derivation**                                  |           |                                     |        |                                                                |
+| Increase derivation (hardened)                      |    ✅     | Direct `requestPassword`            |   OK   | `Settings.tsx:1269`                                            |
+| Increase derivation (unhardened)                    |    ❌     | None                                |   OK   | No private key needed                                          |
+| **Unprotected (by design)**                         |           |                                     |        |                                                                |
+| Enable/disable biometric toggle                     |    ❌     | None                                |   OK   | No-op on password-protected wallets (mutual exclusivity)       |
+| View balances / addresses / NFTs                    |    ❌     | None                                |   OK   | Read-only                                                      |
+| Submit pre-signed transaction                       |    ❌     | None                                |   OK   | No key access needed                                           |
+| Login / logout wallet                               |    ❌     | None                                |   OK   | No secret access                                               |
+| Rename / resync / emoji                             |    ❌     | None                                |   OK   | Metadata only                                                  |
 
 ## Matrix — WalletConnect Operations
 

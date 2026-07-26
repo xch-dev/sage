@@ -270,6 +270,13 @@ impl Sage {
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
+        // Deleting a password-protected key is irreversible, so require the password
+        // here rather than relying on the frontend to verify it.
+        if self.keychain.is_password_protected(req.fingerprint) {
+            let password = req.password.unwrap_or_default().into_bytes();
+            self.keychain.extract_secrets(req.fingerprint, &password)?;
+        }
+
         self.keychain.remove(req.fingerprint);
 
         self.wallet_config
