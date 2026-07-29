@@ -191,6 +191,17 @@ impl Wallet {
         spends: &mut Spends,
         actions: &[Action],
     ) -> Result<(), WalletError> {
+        self.select_spends_excluding(ctx, spends, actions, &[])
+            .await
+    }
+
+    pub async fn select_spends_excluding(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        actions: &[Action],
+        excluded_coin_ids: &[Bytes32],
+    ) -> Result<(), WalletError> {
         let mut deltas = Deltas::from_actions(actions);
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
@@ -199,8 +210,9 @@ impl Wallet {
             deltas.update(id).input += cat.selected_amount();
         }
 
-        let selected_coin_ids: HashSet<Bytes32> =
+        let mut selected_coin_ids: HashSet<Bytes32> =
             spends.non_settlement_coin_ids().into_iter().collect();
+        selected_coin_ids.extend(excluded_coin_ids);
 
         for &id in deltas.ids() {
             let delta = deltas.get(&id).copied().unwrap_or_default();
