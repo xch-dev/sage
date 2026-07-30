@@ -20,6 +20,7 @@ import {
   SupportedLanguage,
   useLanguage,
 } from './contexts/LanguageContext';
+import { NftPriceProvider } from './contexts/NftPriceContext';
 import { PeerProvider } from './contexts/PeerContext';
 import { PriceProvider } from './contexts/PriceContext';
 import { SafeAreaProvider } from './contexts/SafeAreaContext';
@@ -193,7 +194,9 @@ function AppInner() {
           <PeerProvider>
             <WalletConnectProvider>
               <PriceProvider>
-                <RouterProvider router={router} />
+                <NftPriceProvider>
+                  <RouterProvider router={router} />
+                </NftPriceProvider>
               </PriceProvider>
             </WalletConnectProvider>
           </PeerProvider>

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible \n        FROM collections\n        WHERE hash = ?",
+  "query": "SELECT id, hash, uuid, minter_hash, name, icon_url, banner_url, description, is_visible,\n        (SELECT COUNT(*) FROM owned_nfts WHERE owned_nfts.collection_id = collections.id AND asset_is_visible = 1) AS \"nft_count!: i64\"\n        FROM collections\n        WHERE hash = ?",
   "describe": {
     "columns": [
       {
@@ -47,6 +47,11 @@
         "name": "is_visible",
         "ordinal": 8,
         "type_info": "Bool"
+      },
+      {
+        "name": "nft_count!: i64",
+        "ordinal": 9,
+        "type_info": "Null"
       }
     ],
     "parameters": {
@@ -61,8 +66,9 @@
       true,
       true,
       true,
-      false
+      false,
+      null
     ]
   },
-  "hash": "cb3a74b912417fef1b29f55002d74edc7c55bb39fc5169c252d92bdc57f5a3af"
+  "hash": "7e240f953af6c94ef19615f73e71290193ff2460812f44cf2f95194ddb2842c3"
 }

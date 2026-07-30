@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
+import { useNftPrices } from '@/hooks/useNftPrices';
+import { usePrices } from '@/hooks/usePrices';
+import { formatNumber } from '@/i18n';
 import {
   dexieOfferUrl,
   mintGardenDidUrl,
@@ -43,6 +46,13 @@ export default function Nft() {
   const [themeExists, setThemeExists] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const royaltyPercentage = (nft?.royalty_ten_thousandths ?? 0) / 100;
+
+  const { collectionValues } = useNftPrices();
+  const { getPriceInUsd } = usePrices();
+
+  const collectionFloorXch = nft?.collection_id
+    ? (collectionValues[nft.collection_id]?.floorXch ?? null)
+    : null;
 
   const [requestedOffers, setRequestedOffers] = useState<DexieOffer[]>([]);
   const [offeredOffers, setOfferedOffers] = useState<DexieOffer[]>([]);
@@ -288,6 +298,13 @@ export default function Nft() {
                     }
                   }}
                 />
+
+                {collectionFloorXch !== null && (
+                  <LabeledItem
+                    label={t`Collection Floor`}
+                    content={`${formatNumber({ value: collectionFloorXch, maximumFractionDigits: 3 })} XCH (~${formatNumber({ value: collectionFloorXch * getPriceInUsd(null), style: 'currency', currency: 'USD', maximumFractionDigits: 2 })})`}
+                  />
+                )}
 
                 {nft?.created_timestamp && (
                   <LabeledItem

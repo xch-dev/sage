@@ -563,6 +563,7 @@ impl Sage {
                     name: row.name,
                     icon: row.icon_url,
                     visible: row.is_visible,
+                    nft_count: row.nft_count,
                 })
             })
             .collect::<Result<Vec<_>>>()?;
@@ -598,6 +599,7 @@ impl Sage {
                 visible: collection.is_visible,
                 name: collection.name,
                 icon: collection.icon_url,
+                nft_count: collection.nft_count,
             }
         } else {
             NftCollectionRecord {
@@ -607,6 +609,7 @@ impl Sage {
                 visible: true,
                 name: Some("Uncategorized".to_string()),
                 icon: None,
+                nft_count: 0,
             }
         };
 
