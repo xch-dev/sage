@@ -142,6 +142,7 @@ pub fn run() {
             commands::get_logs,
             commands::is_asset_owned,
             commands::change_password,
+            commands::reconcile_key_protection,
         ])
         .events(collect_events![SyncEvent]);
 

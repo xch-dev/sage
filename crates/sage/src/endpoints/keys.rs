@@ -17,8 +17,9 @@ use sage_api::{
     ChangePassword, ChangePasswordResponse, DeleteDatabase, DeleteDatabaseResponse, DeleteKey,
     DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys,
     GetKeysResponse, GetSecretKey, GetSecretKeyResponse, ImportKey, ImportKeyResponse, KeyInfo,
-    KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse, Resync,
-    ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
+    KeyKind, Login, LoginResponse, Logout, LogoutResponse, ReconcileKeyProtection,
+    ReconcileKeyProtectionResponse, RenameKey, RenameKeyResponse, Resync, ResyncResponse,
+    SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -122,7 +123,6 @@ impl Sage {
     }
 
     pub async fn import_key(&mut self, req: ImportKey) -> Result<ImportKeyResponse> {
-        let password_bytes = req.password.unwrap_or_default().into_bytes();
         let mut key_hex = req.key.as_str();
 
         if key_hex.starts_with("0x") || key_hex.starts_with("0X") {
@@ -139,7 +139,7 @@ impl Sage {
                 let master_pk = master_sk.public_key();
 
                 let fingerprint = if req.save_secrets {
-                    self.keychain.add_secret_key(&master_sk, &password_bytes)?
+                    self.keychain.add_secret_key(&master_sk, b"")?
                 } else {
                     self.keychain.add_public_key(&master_pk)?
                 };
@@ -176,7 +176,7 @@ impl Sage {
             let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
             let master_pk = master_sk.public_key();
             let fingerprint = if req.save_secrets {
-                self.keychain.add_mnemonic(&mnemonic, &password_bytes)?
+                self.keychain.add_mnemonic(&mnemonic, b"")?
             } else {
                 self.keychain.add_public_key(&master_pk)?
             };
@@ -184,11 +184,12 @@ impl Sage {
             (fingerprint, Some(master_sk), master_pk)
         };
 
+        // Imported keys are never password-protected at creation time; a password
+        // can be set afterward via `change_password`.
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
             emoji: req.emoji,
-            password_protected: !password_bytes.is_empty(),
             ..Default::default()
         });
         self.config.global.fingerprint = Some(fingerprint);
@@ -383,6 +384,21 @@ impl Sage {
         self.save_keychain()?;
         self.set_password_protected(req.fingerprint, !new_password.is_empty())?;
         Ok(ChangePasswordResponse {})
+    }
+
+    /// Re-derives the `password_protected` flag from the actual keychain state and
+    /// persists any correction. This is the recovery path for the rare case where
+    /// the config flag drifts from reality (e.g. a crash between writing `keys.bin`
+    /// and the config in `change_password`). It runs a single decrypt probe, so it
+    /// is only invoked on demand after an unexpected decrypt failure — never on the
+    /// login hot path.
+    pub fn reconcile_key_protection(
+        &mut self,
+        req: ReconcileKeyProtection,
+    ) -> Result<ReconcileKeyProtectionResponse> {
+        let has_password = self.keychain.is_password_protected(req.fingerprint);
+        self.set_password_protected(req.fingerprint, has_password)?;
+        Ok(ReconcileKeyProtectionResponse { has_password })
     }
 
     pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {

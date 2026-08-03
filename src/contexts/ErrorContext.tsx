@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { reconcileActiveKeyProtection } from '@/state';
 import { t } from '@lingui/core/macro';
 import { createContext, ReactNode, useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -35,6 +36,9 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
       if (reason.includes('decrypt')) {
         // Wrong password — AES decryption failed
         toast.error(t`Incorrect password`);
+        // Self-heal if the active wallet's has_password flag drifted false:
+        // this corrects it so the next attempt prompts for the password.
+        void reconcileActiveKeyProtection();
       } else if (reason.includes('not found') || reason.includes('No secret')) {
         // KeyNotFound or NoSecretKey — wallet-level issue, not a transition
         toast.error(error.reason);

@@ -294,12 +294,6 @@ impl Sage {
             return Err(Error::UnknownFingerprint);
         };
 
-        // Correct the password_protected flag if it drifted from actual state
-        if self.keychain.has_secret_key(fingerprint) {
-            let actual = self.keychain.is_password_protected(fingerprint);
-            self.set_password_protected(fingerprint, actual)?;
-        }
-
         let intermediate_pk = master_to_wallet_unhardened_intermediate(&master_pk);
 
         let pool = self.connect_to_database(fingerprint).await?;

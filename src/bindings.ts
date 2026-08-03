@@ -361,6 +361,9 @@ async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
 },
 async changePassword(req: ChangePassword) : Promise<ChangePasswordResponse> {
     return await TAURI_INVOKE("change_password", { req });
+},
+async reconcileKeyProtection(req: ReconcileKeyProtection) : Promise<ReconcileKeyProtectionResponse> {
+    return await TAURI_INVOKE("reconcile_key_protection", { req });
 }
 }
 
@@ -1735,11 +1738,7 @@ login?: boolean;
 /**
  * Optional emoji identifier
  */
-emoji?: string | null; 
-/**
- * Password for signing (required if wallet is password-protected)
- */
-password?: string | null }
+emoji?: string | null }
 /**
  * Response with imported key fingerprint
  */
@@ -2178,6 +2177,22 @@ pages_vacuumed: number;
  * Number of WAL pages checkpointed
  */
 wal_pages_checkpointed: number }
+/**
+ * Re-derive a wallet's password-protection flag from its actual key state
+ */
+export type ReconcileKeyProtection = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number }
+/**
+ * Response with the reconciled password-protection state
+ */
+export type ReconcileKeyProtectionResponse = { 
+/**
+ * Whether the wallet is actually password-protected after reconciliation
+ */
+has_password: boolean }
 /**
  * Re-download an `NFT`'s data and metadata from its URIs
  */

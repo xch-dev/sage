@@ -21,7 +21,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::{
     Amount, ChangePassword, DeleteKey, GetKey, GetPeers, GetSecretKey, GetSyncStatus, GetVersion,
-    ImportKey, Login, SendXch,
+    ImportKey, Login, ReconcileKeyProtection, SendXch,
 };
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
@@ -140,7 +140,6 @@ impl TestApp {
                 save_secrets: true,
                 login: true,
                 emoji: None,
-                password: None,
             })
             .await?
             .fingerprint;
@@ -206,13 +205,20 @@ impl TestApp {
                 save_secrets: true,
                 login: true,
                 emoji: None,
-                password: Some(password.to_string()),
             })
             .await?
             .fingerprint;
 
         self.consume_until(|event| matches!(event, SyncEvent::Subscribed))
             .await;
+
+        // Passwords are set after import via change_password, mirroring the UI flow.
+        self.change_password(ChangePassword {
+            fingerprint,
+            old_password: String::new(),
+            new_password: password.to_string(),
+        })
+        .await?;
 
         Ok(fingerprint)
     }
@@ -507,6 +513,47 @@ async fn test_password_protected_delete() -> Result<()> {
         .await?
         .key
         .is_none()
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_reconcile_key_protection() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    // A password-protected wallet reconciles to has_password = true.
+    let protected = app.setup_bls_with_password(0, "secret").await?;
+    let result = app
+        .reconcile_key_protection(ReconcileKeyProtection {
+            fingerprint: protected,
+        })
+        .await?;
+    assert!(result.has_password);
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(protected),
+        })
+        .await?
+        .key
+        .unwrap()
+        .has_password
+    );
+
+    // A wallet with no password reconciles to has_password = false.
+    let plain = app.setup_bls(0).await?;
+    let result = app
+        .reconcile_key_protection(ReconcileKeyProtection { fingerprint: plain })
+        .await?;
+    assert!(!result.has_password);
+    assert!(
+        !app.get_key(GetKey {
+            fingerprint: Some(plain),
+        })
+        .await?
+        .key
+        .unwrap()
+        .has_password
     );
 
     Ok(())

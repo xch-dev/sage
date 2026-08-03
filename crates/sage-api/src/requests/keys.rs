@@ -177,10 +177,6 @@ pub struct ImportKey {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub emoji: Option<String>,
-    /// Password for signing (required if wallet is password-protected)
-    #[serde(default)]
-    #[cfg_attr(feature = "openapi", schema(nullable = true))]
-    pub password: Option<String>,
 }
 
 fn yes() -> bool {
@@ -439,6 +435,35 @@ pub struct ChangePassword {
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ChangePasswordResponse {}
+
+/// Re-derive a wallet's password-protection flag from its actual key state
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Re-derive the stored password-protection flag from the actual encrypted key, correcting any drift between the config and the keychain."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ReconcileKeyProtection {
+    /// Wallet fingerprint
+    pub fingerprint: u32,
+}
+
+/// Response with the reconciled password-protection state
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ReconcileKeyProtectionResponse {
+    /// Whether the wallet is actually password-protected after reconciliation
+    pub has_password: bool,
+}
 
 /// List all custom theme NFTs
 #[cfg_attr(
