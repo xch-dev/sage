@@ -31,15 +31,17 @@ export function ErrorProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<CustomError[]>([]);
 
   const addError = useCallback((error: CustomError) => {
+    if (error.kind === 'incorrect_password') {
+      // Wrong password — AES decryption failed
+      toast.error(t`Incorrect password`);
+      // Self-heal if the active wallet's has_password flag drifted false:
+      // this corrects it so the next attempt prompts for the password.
+      void reconcileActiveKeyProtection();
+      return;
+    }
     if (error.kind === 'unauthorized') {
       const reason = error.reason ?? '';
-      if (reason.includes('decrypt')) {
-        // Wrong password — AES decryption failed
-        toast.error(t`Incorrect password`);
-        // Self-heal if the active wallet's has_password flag drifted false:
-        // this corrects it so the next attempt prompts for the password.
-        void reconcileActiveKeyProtection();
-      } else if (reason.includes('not found') || reason.includes('No secret')) {
+      if (reason.includes('not found') || reason.includes('No secret')) {
         // KeyNotFound or NoSecretKey — wallet-level issue, not a transition
         toast.error(error.reason);
       }

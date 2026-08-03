@@ -882,7 +882,7 @@ export type DerivationRecord = { index: number; public_key: string; address: str
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
 export type Error = { kind: ErrorKind; reason: string }
-export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
+export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "incorrect_password" | "internal" | "database_migration" | "nfc"
 /**
  * Exercise options
  */

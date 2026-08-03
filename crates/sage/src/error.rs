@@ -240,7 +240,7 @@ impl Error {
             Self::Wallet(..) => ErrorKind::Wallet,
             Self::NotLoggedIn | Self::NoSigningKey => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
-                KeychainError::Decrypt => ErrorKind::Unauthorized,
+                KeychainError::Decrypt => ErrorKind::IncorrectPassword,
                 KeychainError::KeyExists
                 | KeychainError::Bincode(..)
                 | KeychainError::Encrypt

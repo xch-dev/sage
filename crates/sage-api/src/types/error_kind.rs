@@ -8,6 +8,7 @@ pub enum ErrorKind {
     Api,
     NotFound,
     Unauthorized,
+    IncorrectPassword,
     Internal,
     DatabaseMigration,
     Nfc,
