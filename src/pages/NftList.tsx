@@ -13,7 +13,6 @@ import { useNftData } from '@/hooks/useNftData';
 import { NftGroupMode, useNftParams } from '@/hooks/useNftParams';
 import { exportNfts } from '@/lib/exportNfts';
 import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
 import { ImagePlusIcon } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -110,6 +109,18 @@ export function NftList() {
     [params.page, params.pageSize, total, setParams, canLoadMore, isLoading],
   );
 
+  const mintNftButton = (
+    <Button
+      variant='outline'
+      size='icon'
+      onClick={() => navigate('/nfts/mint')}
+      aria-label={t`Create new NFT`}
+      title={t`Create new NFT`}
+    >
+      <ImagePlusIcon className='h-4 w-4' aria-hidden='true' />
+    </Button>
+  );
+
   return (
     <>
       <Header
@@ -126,19 +137,15 @@ export function NftList() {
         paginationControls={
           !isOptionsVisible ? renderPagination(true) : undefined
         }
+        mobileActionItems={mintNftButton}
       >
-        <ReceiveAddress />
+        <div className='flex items-center gap-2'>
+          {mintNftButton}
+          <ReceiveAddress />
+        </div>
       </Header>
 
       <Container>
-        <Button
-          onClick={() => navigate('/nfts/mint')}
-          aria-label={t`Create new NFT`}
-        >
-          <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
-          <Trans>Mint NFT</Trans>
-        </Button>
-
         <div ref={optionsRef}>
           <NftOptions
             params={params}
@@ -148,7 +155,7 @@ export function NftList() {
               setMultiSelect(value);
               setSelected([]);
             }}
-            className='mt-4'
+            className='mb-4'
             renderPagination={() => renderPagination(false)}
             aria-live='polite'
             onExport={() =>
