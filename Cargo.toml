@@ -55,6 +55,7 @@ sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }
 sage-wallet = { path = "./crates/sage-wallet" }
 sage-assets = { path = "./crates/sage-assets" }
+sage-apps = { path = "./crates/sage-apps" }
 sage-rpc = { path = "./crates/sage-rpc" }
 
 # Serialization
@@ -67,7 +68,7 @@ hex = "0.4.3"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.10.2"
+tauri = { version = "2.10.2", features = ["unstable"] } # Unstable reason: Multiwebview support
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-os = "2.3.2"

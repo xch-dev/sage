@@ -11,6 +11,7 @@ import { platform } from '@tauri-apps/plugin-os';
 import {
   ArrowDownUp,
   ArrowLeftRight,
+  Blocks,
   BookUser,
   Cog,
   FilePenLine,
@@ -34,6 +35,7 @@ export function TopNav({ isCollapsed }: NavProps) {
   const className = isCollapsed ? 'h-5 w-5' : 'h-4 w-4';
 
   const isIos = platform() === 'ios';
+  const isMobile = platform() === 'android' || isIos;
 
   return (
     <nav
@@ -103,7 +105,6 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <BookUser className={className} aria-hidden='true' />
       </NavLink>
-
       <NavLink
         url={'/transactions'}
         isCollapsed={isCollapsed}
@@ -111,6 +112,15 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <ArrowDownUp className={className} />
       </NavLink>
+      {!isMobile && (
+        <NavLink
+          url={'/apps'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Apps</Trans>}
+        >
+          <Blocks className={className} aria-hidden='true' />
+        </NavLink>
+      )}
     </nav>
   );
 }

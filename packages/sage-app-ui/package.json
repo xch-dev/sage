@@ -1,0 +1,26 @@
+{
+  "name": "@sage-app/ui",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@sage-system-app/sdk": "workspace:*",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "tsup": "^8.5.0"
+  },
+  "scripts": {
+    "build": "tsup"
+  }
+}

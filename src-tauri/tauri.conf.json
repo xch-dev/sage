@@ -9,6 +9,7 @@
     "beforeBuildCommand": "pnpm run build"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Sage",
@@ -16,7 +17,8 @@
         "height": 750,
         "resizable": true,
         "maximized": false,
-        "visible": true
+        "visible": true,
+        "titleBarStyle": "Transparent"
       }
     ],
     "security": {
@@ -26,6 +28,9 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "resources": {
+      "../builtin-apps/build/dist": "builtin-apps"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

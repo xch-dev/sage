@@ -163,6 +163,12 @@ impl SyncManager {
                         self.state.lock().await.reset();
                         self.abort_wallet_tasks();
                         self.network = network;
+                        let _ = self
+                            .event_sender
+                            .send(SyncEvent::NetworkChanged {
+                                network_id: self.network.network_id(),
+                            })
+                            .await;
                     }
                 }
                 SyncCommand::HandleMessage { ip, message } => {
