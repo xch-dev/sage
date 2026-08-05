@@ -1804,6 +1804,10 @@ ticker: string;
  */
 amount: Amount; 
 /**
+ * Whether the CAT can be revoked by the issuer
+ */
+revocable?: boolean; 
+/**
  * Transaction fee
  */
 fee: Amount; 

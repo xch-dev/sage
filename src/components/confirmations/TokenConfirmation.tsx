@@ -1,15 +1,20 @@
 import { CoinRecord } from '@/bindings';
 import { CopyButton } from '@/components/CopyButton';
+import { MemoDisplay } from '@/components/MemoDisplay.tsx';
+import { formatNumber } from '@/i18n.ts';
 import { fromMojos } from '@/lib/utils';
+import { formatMemo, Memo } from '@/types/CoinMemo.ts';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { CoinsIcon, MergeIcon, SplitIcon } from 'lucide-react';
+import {
+  CoinsIcon,
+  MergeIcon,
+  SplitIcon,
+  TriangleAlertIcon,
+} from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatNumber } from '@/i18n.ts';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
-import { formatMemo, Memo } from '@/types/CoinMemo.ts';
-import { MemoDisplay } from '@/components/MemoDisplay.tsx';
 
 type TokenOperationType =
   | 'split'
@@ -27,6 +32,7 @@ interface TokenConfirmationProps {
   precision?: number;
   name?: string;
   amount?: string;
+  revocable?: boolean;
   currentMemo?: Memo;
 }
 
@@ -38,6 +44,7 @@ export function TokenConfirmation({
   precision,
   name,
   amount,
+  revocable,
   currentMemo,
 }: TokenConfirmationProps) {
   const config = {
@@ -68,10 +75,18 @@ export function TokenConfirmation({
       title: <Trans>Token Issuance</Trans>,
       variant: 'info' as const,
       message: (
-        <Trans>
-          You are issuing a new token. This will create a CAT (Chia Asset Token)
-          that can be sent to other users and traded on exchanges.
-        </Trans>
+        <>
+          <Trans>
+            You are issuing a new token. This will create a CAT (Chia Asset
+            Token) that can be sent to other users and traded on exchanges.
+          </Trans>{' '}
+          {revocable && (
+            <Trans>
+              This wallet&apos;s change address will be used as the revocation
+              address.
+            </Trans>
+          )}
+        </>
       ),
     },
     clawback: {
@@ -124,6 +139,19 @@ export function TokenConfirmation({
         </ConfirmationAlert>
       )}
 
+      {type === 'issue' && revocable && (
+        <ConfirmationAlert
+          icon={TriangleAlertIcon}
+          title={<Trans>Revocable CAT Warning</Trans>}
+          variant='warning'
+        >
+          <Trans>
+            Only issue a revocable CAT if you understand the risks. Sage cannot
+            revoke it; revocation currently requires external tools.
+          </Trans>
+        </ConfirmationAlert>
+      )}
+
       {type === 'send' && currentMemo && (
         <ConfirmationCard>
           <div className='flex items-center justify-between'>
@@ -144,7 +172,7 @@ export function TokenConfirmation({
           icon={<CoinsIcon className='h-8 w-8 text-blue-500' />}
           title={name}
         >
-          <div className='grid grid-cols-2 gap-2'>
+          <div className='grid grid-cols-3 gap-2'>
             <div>
               <div className='text-muted-foreground text-xs mb-1'>
                 <Trans>Ticker</Trans>
@@ -164,6 +192,15 @@ export function TokenConfirmation({
                   maximumFractionDigits: 0,
                 })}{' '}
                 {ticker}
+              </div>
+            </div>
+
+            <div>
+              <div className='text-muted-foreground text-xs mb-1'>
+                <Trans>Revocable</Trans>
+              </div>
+              <div className='font-medium'>
+                {revocable ? <Trans>Yes</Trans> : <Trans>No</Trans>}
               </div>
             </div>
           </div>
