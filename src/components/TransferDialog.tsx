@@ -60,9 +60,11 @@ export function TransferDialog({
     },
   });
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('address', scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('address', scanResValue);
+    },
+  );
 
   const handler = (values: z.infer<typeof schema>) => {
     onSubmit(values.address, values.fee);
@@ -90,6 +92,7 @@ export function TransferDialog({
                       {...field}
                       placeholder={t`Enter address`}
                       onEndIconClick={handleScanOrPaste}
+                      onScanImage={handleScanImage}
                     />
                   </FormControl>
                   <FormMessage />
