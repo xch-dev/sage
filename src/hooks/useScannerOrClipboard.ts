@@ -34,7 +34,8 @@ export function useScannerOrClipboard(onScanResult: (text: string) => void) {
         const content = await scanQrFromImage(file);
         onScanResult(content);
       } catch (error) {
-        const code = error instanceof ScanImageError ? error.code : 'unreadable';
+        const code =
+          error instanceof ScanImageError ? error.code : 'unreadable';
 
         const reason =
           code === 'no-qr-found'

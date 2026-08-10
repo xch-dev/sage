@@ -30,16 +30,18 @@ export async function scanQrFromImage(file: File): Promise<string> {
   }
 
   try {
-    // Must run before any canvas is allocated: a small PNG can declare
-    // enormous dimensions, and the backing ImageData is 4 bytes per pixel.
+    // Bounds the canvas and ImageData we allocate below (4 bytes per pixel
+    // each): a small PNG can declare enormous dimensions. Note this does not
+    // bound the largest allocation on this path — createImageBitmap() above
+    // has already decoded the image at full native resolution, and the
+    // resulting ImageBitmap is itself roughly 4 bytes per pixel. The
+    // practical ceiling there is MAX_FILE_BYTES plus the webview's own
+    // decoder limits.
     if (bitmap.width * bitmap.height > MAX_PIXELS) {
       throw new ScanImageError('file-too-big');
     }
 
-    const scale = Math.min(
-      1,
-      MAX_EDGE / Math.max(bitmap.width, bitmap.height),
-    );
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
     const width = Math.max(1, Math.round(bitmap.width * scale));
     const height = Math.max(1, Math.round(bitmap.height * scale));
 

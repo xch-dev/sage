@@ -70,29 +70,32 @@ export const PasteInput = forwardRef<HTMLInputElement, PasteInputProps>(
                 className='hidden'
                 onChange={handleFileChange}
               />
-              <ImageIcon
+              <button
+                type='button'
                 aria-label={t`Scan QR code from an image`}
-                role='button'
-                className='h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0'
+                className='h-4 w-4 p-0 border-0 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer shrink-0'
                 onClick={() => fileInputRef.current?.click()}
-              />
+              >
+                <ImageIcon aria-hidden='true' className='h-4 w-4' />
+              </button>
             </>
           )}
-          <div onClick={onEndIconClick}>
+          <button
+            type='button'
+            aria-label={
+              isMobile
+                ? t`Scan QR code with the camera`
+                : t`Paste from clipboard`
+            }
+            className='h-4 w-4 p-0 border-0 bg-transparent text-muted-foreground hover:text-foreground cursor-pointer shrink-0'
+            onClick={onEndIconClick}
+          >
             {isMobile ? (
-              <ScanIcon
-                aria-label={t`Scan QR code with the camera`}
-                role='button'
-                className='h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0'
-              />
+              <ScanIcon aria-hidden='true' className='h-4 w-4' />
             ) : (
-              <ClipboardPasteIcon
-                aria-label={t`Paste from clipboard`}
-                role='button'
-                className='h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer shrink-0'
-              />
+              <ClipboardPasteIcon aria-hidden='true' className='h-4 w-4' />
             )}
-          </div>
+          </button>
         </div>
       </div>
     );
