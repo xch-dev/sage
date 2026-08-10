@@ -98,6 +98,8 @@ export function Offers() {
     },
   );
 
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
   const offerImageInputRef = useRef<HTMLInputElement>(null);
 
   const handleOfferImageChange = (
@@ -223,33 +225,44 @@ export function Offers() {
       });
   };
 
+  const scanImageButton = (
+    <Button
+      size='icon'
+      variant='ghost'
+      aria-label={t`Scan an offer QR code from an image`}
+      onClick={() => offerImageInputRef.current?.click()}
+    >
+      <ImageIcon className='h-5 w-5' aria-hidden='true' />
+    </Button>
+  );
+
   return (
     <>
+      <input
+        ref={offerImageInputRef}
+        type='file'
+        accept='image/*'
+        className='hidden'
+        onChange={handleOfferImageChange}
+      />
       <Header
         title={<Trans>Offers</Trans>}
+        alwaysShowChildren
         mobileActionItems={
           <div className='flex items-center gap-2'>
-            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
+            <Button
+              size='icon'
+              variant='ghost'
+              aria-label={t`Scan an offer QR code with the camera`}
+              onClick={handleScanOrPaste}
+            >
               <ScanIcon className='h-5 w-5' aria-hidden='true' />
             </Button>
-            <input
-              ref={offerImageInputRef}
-              type='file'
-              accept='image/*'
-              className='hidden'
-              onChange={handleOfferImageChange}
-            />
+            {scanImageButton}
             <Button
               size='icon'
               variant='ghost'
-              aria-label={t`Scan an offer QR code from an image`}
-              onClick={() => offerImageInputRef.current?.click()}
-            >
-              <ImageIcon className='h-5 w-5' aria-hidden='true' />
-            </Button>
-            <Button
-              size='icon'
-              variant='ghost'
+              aria-label={t`Scan an offer from an NFC tag`}
               disabled={!isNfcAvailable}
               onClick={handleNfcScan}
             >
@@ -257,7 +270,9 @@ export function Offers() {
             </Button>
           </div>
         }
-      />
+      >
+        {!isMobile && scanImageButton}
+      </Header>
       <Container>
         <Card className='p-6'>
           <div className='flex flex-col gap-10'>
