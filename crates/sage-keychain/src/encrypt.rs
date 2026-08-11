@@ -1,8 +1,8 @@
-use aes_gcm::{aead::Aead, AeadCore, Aes256Gcm, Key, KeyInit, Nonce};
+use aes_gcm::{AeadCore, Aes256Gcm, Key, KeyInit, Nonce, aead::Aead};
 use argon2::Argon2;
 use rand::{CryptoRng, Rng};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_with::{serde_as, Bytes};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde_with::{Bytes, serde_as};
 
 use crate::KeychainError;
 
@@ -30,7 +30,7 @@ pub fn encrypt(
     rng: &mut (impl CryptoRng + Rng),
     data: &impl Serialize,
 ) -> Result<Encrypted, KeychainError> {
-    let salt: [u8; 32] = rng.gen();
+    let salt: [u8; 32] = rng.r#gen();
     let key = encryption_key(password, &salt)?;
     let cipher = Aes256Gcm::new(&key);
     let nonce = Aes256Gcm::generate_nonce(rng);

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        INSERT INTO assets (\n            hash, kind, name, ticker, precision, icon_url, description,\n            is_sensitive_content, is_visible, hidden_puzzle_hash\n        )\n        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n        ON CONFLICT(hash) DO UPDATE SET\n            name = COALESCE(excluded.name, name),\n            ticker = COALESCE(excluded.ticker, ticker),\n            icon_url = COALESCE(excluded.icon_url, icon_url),\n            description = COALESCE(excluded.description, description),\n            is_sensitive_content = is_sensitive_content OR excluded.is_sensitive_content\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "a101242ebd776da3f95c49b4167fd139eeeb08ff6cfcbb8a3f795c6bdcdce62c"
+}

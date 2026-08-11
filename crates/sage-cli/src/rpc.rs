@@ -27,7 +27,7 @@ impl_endpoints! {
         pub async fn handle(self, path: PathBuf) -> anyhow::Result<()> {
             match self {
                 Self::Start => {
-                    let mut sage = Sage::new(&path);
+                    let mut sage = Sage::new(&path, false);
                     let mut receiver = sage.initialize().await?;
                     sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });

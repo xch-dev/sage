@@ -1,4 +1,4 @@
-use chia::protocol::Bytes32;
+use chia_wallet_sdk::prelude::*;
 use thiserror::Error;
 
 use crate::ThumbnailError;
@@ -22,4 +22,7 @@ pub enum UriError {
 
     #[error("Failed to create thumbnail: {0}")]
     Thumbnail(#[from] ThumbnailError),
+
+    #[error("Invalid XCH/USD price response")]
+    InvalidPriceResponse,
 }

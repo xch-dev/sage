@@ -26,6 +26,7 @@ import {
   MoreVertical,
   RefreshCcw,
   SendIcon,
+  Tag,
   UserRoundPlus,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -100,6 +101,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const { addError } = useErrors();
 
   const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [activeOfferCount, setActiveOfferCount] = useState<number | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [addUrlOpen, setAddUrlOpen] = useState(false);
@@ -169,6 +171,26 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     };
   }, [nft.launcher_id]);
 
+  useEffect(() => {
+    let cancelled = false;
+    commands
+      .getOffersForAsset({ asset_id: nft.launcher_id })
+      .then((response) => {
+        if (!cancelled) {
+          const count = response.offers.filter(
+            (o) => o.status === 'active' || o.status === 'pending',
+          ).length;
+          setActiveOfferCount(count);
+        }
+      })
+      .catch(() => {
+        // non-blocking — silently ignore errors
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [nft.launcher_id]);
+
   const toggleVisibility = () => {
     commands
       .updateNft({ nft_id: nft.launcher_id, visible: !nft.visible })
@@ -214,7 +236,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
     url: z.string().min(1, t`URL is required`),
     kind: z.string().min(1, t`Kind is required`),
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -317,16 +340,18 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
               <TooltipContent>
                 <p>
                   {nftName}
-                  {nft.edition_total != null && nft.edition_total > 1 && (
-                    <span>
-                      {' '}
-                      (
-                      <Trans>
-                        {nft.edition_number} of {nft.edition_total}
-                      </Trans>
-                      )
-                    </span>
-                  )}
+                  {nft.edition_total != null &&
+                    (nft.edition_total === 0 || nft.edition_total > 1) && (
+                      <span>
+                        {' '}
+                        (
+                        <Trans>
+                          {nft.edition_number} of{' '}
+                          {nft.edition_total === 0 ? '∞' : nft.edition_total}
+                        </Trans>
+                        )
+                      </span>
+                    )}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -338,6 +363,26 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
               className='absolute top-2 right-2 w-5 h-5 data-[state=checked]:!bg-secondary data-[state=unchecked]:!bg-secondary data-[state=checked]:text-secondary-foreground'
               aria-label={selectionState[0] ? t`Deselect NFT` : t`Select NFT`}
             />
+          )}
+
+          {activeOfferCount !== null && activeOfferCount > 0 && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className='absolute top-2 left-2 flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm'>
+                    <Tag className='h-3 w-3' aria-hidden='true' />
+                    {activeOfferCount > 1 && <span>{activeOfferCount}</span>}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side='bottom'>
+                  <p>
+                    {activeOfferCount === 1
+                      ? t`1 active offer`
+                      : t`${activeOfferCount} active offers`}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {nft.special_use_type === 'theme' && (

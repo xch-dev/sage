@@ -86,6 +86,20 @@ export function MakeOffer() {
       });
       return;
     }
+
+    if (
+      !hasOfferedTokens &&
+      !hasOfferedNfts &&
+      !hasOfferedOptions &&
+      parseFloat(state.fee || '0') === 0
+    ) {
+      addError({
+        kind: 'invalid',
+        reason: t`A request-only offer requires a network fee.`,
+      });
+      return;
+    }
+
     setIsConfirmDialogOpen(true);
   };
 
@@ -130,6 +144,7 @@ export function MakeOffer() {
                 setAssets={(assets) => setState({ offered: assets })}
                 splitNftOffers={splitNftOffers}
                 setSplitNftOffers={setSplitNftOffers}
+                fee={state.fee}
               />
             </CardContent>
           </Card>

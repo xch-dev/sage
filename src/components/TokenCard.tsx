@@ -20,6 +20,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fromMojos } from '@/lib/utils';
+import { useNetwork } from '@/hooks/useNetwork';
+import { dexieAssetUrl } from '@/lib/urls';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -42,6 +44,7 @@ import { toast } from 'react-toastify';
 import { TokenRecord } from '../bindings';
 import { AssetIcon } from './AssetIcon';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Separator } from './ui/separator';
 
 interface TokenCardProps {
   asset: TokenRecord;
@@ -59,6 +62,7 @@ export function TokenCard({
   onUpdate,
 }: TokenCardProps) {
   const walletState = useWalletState();
+  const { isTestnet } = useNetwork();
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
@@ -86,8 +90,8 @@ export function TokenCard({
   return (
     <>
       <Card>
-        <CardHeader className='flex flex-col pb-2'>
-          <div className='flex flex-row justify-between items-center space-y-0 space-x-2'>
+        <CardHeader className='flex flex-col pb-2 gap-0.5'>
+          <div className='flex flex-row justify-between items-center space-x-2'>
             <div className='flex text-xl sm:text-4xl font-medium font-mono truncate'>
               <span className='truncate'>
                 <NumberFormat
@@ -103,6 +107,22 @@ export function TokenCard({
               <AssetIcon asset={{ ...asset, kind: 'token' }} size='md' />
             </div>
           </div>
+          <div className='text-base text-muted-foreground'>
+            {asset?.selectable_balance !== undefined && (
+              <>
+                <NumberFormat
+                  value={fromMojos(
+                    asset?.selectable_balance ?? 0,
+                    asset.precision,
+                  )}
+                  minimumFractionDigits={0}
+                  maximumFractionDigits={asset.precision}
+                />
+                &nbsp;{t`spendable`}
+              </>
+            )}
+          </div>
+          <Separator />
           <div className='text-sm text-muted-foreground'>
             <NumberFormat
               value={balanceInUsd}
@@ -160,7 +180,7 @@ export function TokenCard({
                   <DropdownMenuItem
                     onClick={() => {
                       openUrl(
-                        `https://dexie.space/offers/XCH/${asset.asset_id}`,
+                        dexieAssetUrl(asset.asset_id ?? '', isTestnet),
                       ).catch((error) => {
                         toast.error(t`Failed to open dexie.space: ${error}`);
                       });

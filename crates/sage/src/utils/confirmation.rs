@@ -1,19 +1,13 @@
 use std::collections::HashMap;
 
-use chia::{
-    clvm_traits::ToClvm,
-    protocol::{Bytes32, Coin, CoinSpend, SpendBundle},
-    puzzles::nft::NftMetadata,
-};
-use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
-use clvmr::Allocator;
+use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, driver::BURN_PUZZLE_HASH, prelude::*};
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
     TransactionSummary,
 };
-use sage_assets::{base64_data_uri, Data};
+use sage_assets::{Data, base64_data_uri};
 use sage_database::{Asset, AssetKind, Database};
-use sage_wallet::{compute_nft_info, CoinKind, Transaction};
+use sage_wallet::{CoinKind, Transaction, compute_nft_info};
 
 use crate::{Error, Result, Sage};
 
@@ -160,10 +154,10 @@ pub async fn extract_nft_data(
         }) = cache.nft_data.get(&data_hash)
         {
             result.icon_url = Some(base64_data_uri(&thumbnail.icon, "image/png"));
-        } else if let Some(db) = &db {
-            if let Some(icon) = db.icon(data_hash).await? {
-                result.icon_url = Some(base64_data_uri(&icon.data, "image/png"));
-            }
+        } else if let Some(db) = &db
+            && let Some(icon) = db.icon(data_hash).await?
+        {
+            result.icon_url = Some(base64_data_uri(&icon.data, "image/png"));
         }
     }
 
@@ -173,11 +167,11 @@ pub async fn extract_nft_data(
             result.name = info.name;
             result.description = info.description;
             result.is_sensitive_content = info.sensitive_content;
-        } else if let Some(db) = &db {
-            if let Some(metadata) = db.full_file_data(metadata_hash).await? {
-                let info = compute_nft_info(None, &metadata.data);
-                result.name = info.name;
-            }
+        } else if let Some(db) = &db
+            && let Some(metadata) = db.full_file_data(metadata_hash).await?
+        {
+            let info = compute_nft_info(None, &metadata.data);
+            result.name = info.name;
         }
     }
 

@@ -133,7 +133,8 @@ export function Assets({ assets, catPresence = {} }: AssetsProps) {
               <div className='flex gap-1.5 items-center text-sm text-muted-foreground truncate'>
                 <span>
                   <span className='text-muted-foreground'>
-                    {nft_royalty.royalty_basis_points / 100}% {t`royalty to`}{' '}
+                    {nft_royalty.royalty_basis_points / 100}%{' '}
+                    {t`royalty to`}{' '}
                   </span>
                   <span className='font-mono'>
                     {nft_royalty.royalty_address.slice(0, 10) +

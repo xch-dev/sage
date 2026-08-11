@@ -60,6 +60,7 @@
   "exercise_options": true,
   "finalize_clawback": true,
   "claim_clawback": true,
+  "create_transaction": true,
   "sign_coin_spends": true,
   "view_coin_spends": true,
   "submit_transaction": true,
@@ -98,5 +99,6 @@
   "update_nft_collection": true,
   "redownload_nft": true,
   "increase_derivation_index": true,
-  "is_asset_owned": true
+  "is_asset_owned": true,
+  "get_xch_usd_price": true
 }

@@ -154,7 +154,7 @@ export function defaultState(): WalletState {
     sync: {
       receive_address: 'Unknown',
       burn_address: 'Unknown',
-      balance: '0',
+      selectable_balance: '0',
       unit: {
         ticker: 'XCH',
         precision: 12,

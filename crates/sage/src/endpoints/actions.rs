@@ -1,23 +1,24 @@
-use chia::{
-    bls::master_to_wallet_hardened_intermediate,
-    clvm_traits::{FromClvm, ToClvm},
-    puzzles::{nft::NftMetadata, standard::StandardArgs, DeriveSynthetic},
+use chia_wallet_sdk::{
+    chia::{
+        bls::master_to_wallet_hardened_intermediate,
+        puzzle_types::{DeriveSynthetic, nft::NftMetadata, standard::StandardArgs},
+    },
+    prelude::*,
 };
-use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
-use clvmr::Allocator;
 use sage_api::{
-    IncreaseDerivationIndex, IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse,
-    ResyncCat, ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse,
-    UpdateNft, UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
+    GetXchUsdPrice, GetXchUsdPriceResponse, IncreaseDerivationIndex,
+    IncreaseDerivationIndexResponse, RedownloadNft, RedownloadNftResponse, ResyncCat,
+    ResyncCatResponse, UpdateCat, UpdateCatResponse, UpdateDid, UpdateDidResponse, UpdateNft,
+    UpdateNftCollection, UpdateNftCollectionResponse, UpdateNftResponse, UpdateOption,
     UpdateOptionResponse,
 };
-use sage_assets::DexieCat;
+use sage_assets::{DexieCat, XchUsdPrice};
 use sage_database::{Asset, AssetKind, Derivation};
 use sage_wallet::SyncCommand;
 
 use crate::{
-    parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id, parse_option_id, Error,
-    Result, Sage,
+    Error, Result, Sage, parse_asset_id, parse_collection_id, parse_did_id, parse_nft_id,
+    parse_option_id,
 };
 
 impl Sage {
@@ -253,5 +254,11 @@ impl Sage {
             .await?;
 
         Ok(IncreaseDerivationIndexResponse {})
+    }
+
+    pub async fn get_xch_usd_price(&self, _req: GetXchUsdPrice) -> Result<GetXchUsdPriceResponse> {
+        let price = XchUsdPrice::fetch().await?;
+
+        Ok(GetXchUsdPriceResponse { usd: price.usd })
     }
 }

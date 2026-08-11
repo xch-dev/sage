@@ -1,6 +1,6 @@
 use crate::{Convert, Database, DatabaseTx, Result};
-use chia::protocol::Bytes32;
-use sqlx::{query, SqliteExecutor};
+use chia_wallet_sdk::prelude::*;
+use sqlx::{SqliteExecutor, query};
 
 #[derive(Debug, Clone)]
 pub struct CollectionRow {

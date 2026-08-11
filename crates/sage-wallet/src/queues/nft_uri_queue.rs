@@ -10,7 +10,7 @@ use tokio::{
 };
 use tracing::{debug, info, warn};
 
-use crate::{compute_nft_info, SyncEvent, WalletError};
+use crate::{SyncEvent, WalletError, compute_nft_info};
 use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
 use sage_config::Network;
 #[derive(Debug)]

@@ -2,7 +2,7 @@ use convert_case::{Case, Casing};
 use proc_macro::TokenStream as TokenStream1;
 use proc_macro2::{Ident as Ident2, TokenStream};
 use quote::quote;
-use syn::{parse::Parse, parse::ParseStream, LitStr, Token};
+use syn::{LitStr, Token, parse::Parse, parse::ParseStream};
 
 pub struct OpenApiArgs {
     pub tag: String,

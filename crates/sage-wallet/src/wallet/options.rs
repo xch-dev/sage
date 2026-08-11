@@ -1,20 +1,13 @@
-use chia::{
-    clvm_utils::ToTreeHash,
-    protocol::{Bytes32, Coin, CoinSpend},
-    puzzles::{
-        offer::{NotarizedPayment, Payment},
-        Memos,
-    },
-};
-use chia_puzzles::SETTLEMENT_PAYMENT_HASH;
-use chia_wallet_sdk::driver::{
-    Action, Cat, CatSpend, ClawbackV2, Id, OptionContract, OptionType, SingletonInfo, SpendContext,
+use chia_wallet_sdk::{
+    chia::puzzle_types::offer::{NotarizedPayment, Payment},
+    prelude::*,
+    puzzles::SETTLEMENT_PAYMENT_HASH,
 };
 use sage_database::CoinKind;
 
 use crate::{
-    wallet::memos::{calculate_memos, Hint},
     WalletError,
+    wallet::memos::{Hint, calculate_memos},
 };
 
 use super::Wallet;

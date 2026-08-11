@@ -1,8 +1,4 @@
-use chia::{
-    protocol::{Bytes32, CoinSpend},
-    puzzles::Memos,
-};
-use chia_wallet_sdk::driver::{Action, Id, SpendContext};
+use chia_wallet_sdk::prelude::*;
 
 use crate::WalletError;
 
@@ -98,7 +94,8 @@ impl Wallet {
 
 #[cfg(test)]
 mod tests {
-    use chia::protocol::Coin;
+    use super::*;
+
     use test_log::test;
 
     use crate::TestWallet;

@@ -1,11 +1,6 @@
-use chia::{
-    clvm_traits::{FromClvm, ToClvm},
-    protocol::Program,
-    puzzles::nft::NftMetadata,
+use chia_wallet_sdk::{
+    chia::puzzle_types::nft::NftMetadata, prelude::*, puzzles::SINGLETON_LAUNCHER_HASH,
 };
-use chia_puzzles::SINGLETON_LAUNCHER_HASH;
-use chia_wallet_sdk::driver::{CatInfo, DidInfo, NftInfo, OptionInfo, Puzzle};
-use clvmr::Allocator;
 use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
 use tracing::{debug_span, warn};
 

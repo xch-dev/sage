@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 
 use bip39::Mnemonic;
-use chia::bls::{PublicKey, SecretKey};
+use chia_wallet_sdk::prelude::*;
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 
 use crate::{
+    KeychainError,
     encrypt::{decrypt, encrypt},
     key_data::{KeyData, SecretKeyData},
-    KeychainError,
 };
 
 #[derive(Debug)]

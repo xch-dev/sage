@@ -1,8 +1,4 @@
-use chia::protocol::{Bytes, Bytes32};
-use chia_wallet_sdk::{
-    driver::{ClawbackV2, SpendContext},
-    prelude::Memos,
-};
+use chia_wallet_sdk::prelude::*;
 
 use crate::WalletError;
 

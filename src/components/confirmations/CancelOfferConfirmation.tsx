@@ -1,7 +1,8 @@
-import { OfferRecord, OfferSummary } from '@/bindings';
-import { Assets } from '@/components/Assets';
+import { commands, OfferRecord, OfferSummary } from '@/bindings';
+import { Assets, CatPresence } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
 import { ArrowDownIcon, ArrowUpIcon, CircleOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
@@ -15,6 +16,17 @@ export function CancelOfferConfirmation({
   fee,
 }: CancelOfferConfirmationProps) {
   const offerCount = offers.length;
+  const [catPresence, setCatPresence] = useState<CatPresence>({});
+
+  useEffect(() => {
+    commands.getCats({}).then((data) => {
+      const presence: CatPresence = {};
+      data.cats.forEach((cat) => {
+        presence[cat.asset_id ?? ''] = true;
+      });
+      setCatPresence(presence);
+    });
+  }, []);
   const isMultiple = offerCount > 1;
 
   return (
@@ -91,7 +103,7 @@ export function CancelOfferConfirmation({
                   <div className='text-[10px] text-muted-foreground mb-2'>
                     <Trans>The assets you are offering.</Trans>
                   </div>
-                  <Assets assets={summary.maker} />
+                  <Assets assets={summary.maker} catPresence={catPresence} />
                 </ConfirmationCard>
 
                 <ConfirmationCard>
@@ -104,7 +116,7 @@ export function CancelOfferConfirmation({
                   <div className='text-[10px] text-muted-foreground mb-2'>
                     <Trans>The assets being requested.</Trans>
                   </div>
-                  <Assets assets={summary.taker} />
+                  <Assets assets={summary.taker} catPresence={catPresence} />
                 </ConfirmationCard>
               </div>
 

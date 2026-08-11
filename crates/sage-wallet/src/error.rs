@@ -1,13 +1,13 @@
 use std::{num::TryFromIntError, time::SystemTimeError};
 
-use chia::{
-    clvm_traits::{FromClvmError, ToClvmError},
-    protocol::Bytes32,
-};
 use chia_wallet_sdk::{
-    client::ClientError, driver::DriverError, signer::SignerError, utils::CoinSelectionError,
+    client::ClientError,
+    clvm_traits::{FromClvmError, ToClvmError},
+    clvmr::error::EvalErr,
+    prelude::*,
+    signer::SignerError,
+    utils::CoinSelectionError,
 };
-use clvmr::reduction::EvalErr;
 use sage_assets::UriError;
 use sage_database::{CoinKind, DatabaseError};
 use thiserror::Error;
@@ -99,7 +99,9 @@ pub enum WalletError {
     #[error("Missing NFT with id {0}. It may have been spent recently. Please try again later.")]
     MissingNft(Bytes32),
 
-    #[error("Missing option contract with id {0}. It may have been spent recently. Please try again later.")]
+    #[error(
+        "Missing option contract with id {0}. It may have been spent recently. Please try again later."
+    )]
     MissingOption(Bytes32),
 
     #[error("Missing asset with id {0}")]

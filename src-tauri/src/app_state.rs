@@ -2,7 +2,11 @@ use std::sync::Arc;
 
 use sage::{Result, Sage};
 use sage_api::SyncEvent as ApiEvent;
+#[cfg(not(mobile))]
+use sage_apps::{AppsHostState, process_sage_network_change};
 use sage_wallet::SyncEvent;
+#[cfg(not(mobile))]
+use tauri::Manager;
 use tauri::{AppHandle, Emitter};
 use tokio::{sync::Mutex, task::JoinHandle};
 
@@ -17,6 +21,12 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
 
     tokio::spawn(async move {
         while let Some(event) = receiver.recv().await {
+            #[cfg(not(mobile))]
+            if let SyncEvent::NetworkChanged { .. } = &event {
+                let apps_state = app_handle.state::<AppsHostState>();
+
+                process_sage_network_change(&app_handle, &apps_state).await;
+            }
             let event = match event {
                 SyncEvent::Start(ip) => ApiEvent::Start { ip: ip.to_string() },
                 SyncEvent::Stop => ApiEvent::Stop,
@@ -37,6 +47,7 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                 SyncEvent::CatInfo => ApiEvent::CatInfo,
                 SyncEvent::DidInfo => ApiEvent::DidInfo,
                 SyncEvent::NftData => ApiEvent::NftData,
+                SyncEvent::NetworkChanged { .. } => continue,
             };
             if app_handle.emit("sync-event", event).is_err() {
                 break;

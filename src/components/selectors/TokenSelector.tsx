@@ -2,10 +2,9 @@ import { TokenRecord, commands } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AssetIcon } from '../AssetIcon';
-import { Input } from '../ui/input';
-import { DropdownSelector } from './DropdownSelector';
+import { SearchableSelect } from './SearchableSelect';
 
 export interface TokenSelectorProps {
   value: string | null | undefined;
@@ -30,14 +29,6 @@ export function TokenSelector({
 
   const [tokens, setTokens] = useState<Record<string, TokenRecord>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Restore focus after token list updates
-  useEffect(() => {
-    if (searchTerm && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [tokens, searchTerm]);
 
   useEffect(() => {
     const fetchTokens = async () => {
@@ -74,87 +65,88 @@ export function TokenSelector({
     fetchTokens();
   }, [addError, includeXch, showAllCats]);
 
-  // Filter tokens based on search term or show all if it's a valid asset ID
-  const filteredTokenIds = useMemo(
-    () =>
-      Object.values(tokens)
-        .filter((token) => {
-          if (!token.visible) return false;
-          if (hideZeroBalance && token.balance === 0) return false;
-          if (!searchTerm) return true;
+  // Filter tokens based on search term and visibility/balance settings
+  const filteredTokens = useMemo(() => {
+    return Object.values(tokens).filter((token) => {
+      if (!token.visible) return false;
+      if (hideZeroBalance && token.balance === 0) return false;
+      if (!searchTerm) return true;
+      if (isValidAssetId(searchTerm)) {
+        return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
+      }
 
-          if (isValidAssetId(searchTerm)) {
-            return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
-          }
+      return (
+        token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }, [tokens, hideZeroBalance, searchTerm]);
 
-          // Search by name and ticker
-          return (
-            token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
-          );
-        })
-        .map((token) => token.asset_id ?? 'xch'),
-    [tokens, hideZeroBalance, searchTerm],
+  const handleSelect = useCallback(
+    (assetId: string | null) => {
+      // Convert 'xch' sentinel back to null
+      onChange(assetId === 'xch' ? null : assetId);
+    },
+    [onChange],
+  );
+
+  const handleManualInput = useCallback(
+    (assetId: string) => {
+      onChange(assetId);
+    },
+    [onChange],
+  );
+
+  // Convert disabled array to handle null -> 'xch' conversion
+  const disabledIds = useMemo(() => {
+    return disabled.map((id) => (id === null ? 'xch' : id));
+  }, [disabled]);
+
+  const renderToken = useCallback(
+    (token: TokenRecord) => (
+      <div className='flex items-center gap-2 min-w-0'>
+        <AssetIcon
+          asset={{
+            icon_url: token.icon_url ?? null,
+            kind: 'token',
+            revocation_address: token.revocation_address ?? null,
+          }}
+          size='md'
+          className='flex-shrink-0'
+        />
+        <div className='flex flex-col min-w-0'>
+          <span className='truncate' role='text'>
+            {getAssetDisplayName(token.name, token.ticker, 'token')}
+            {token.ticker && ` (${token.ticker})`}
+          </span>
+          <span
+            className='text-xs text-muted-foreground truncate'
+            aria-label={t`Asset ID`}
+          >
+            {token.asset_id === null ? null : token.asset_id}
+          </span>
+        </div>
+      </div>
+    ),
+    [],
   );
 
   return (
-    <DropdownSelector
-      loadedItems={filteredTokenIds}
-      page={0}
+    <SearchableSelect
       value={value === null ? 'xch' : value}
-      setValue={(assetId) => {
-        onChange(assetId === 'xch' ? null : assetId);
-        // Only clear search term if it's not a valid asset ID
-        if (!/^[a-fA-F0-9]{64}$/.test(searchTerm)) {
-          setSearchTerm('');
-        }
-      }}
-      isDisabled={(token) => disabled.includes(token)}
+      onSelect={handleSelect}
+      items={filteredTokens}
+      getItemId={(token) => token.asset_id ?? 'xch'}
+      renderItem={renderToken}
+      onSearchChange={setSearchTerm}
+      shouldFilter={false}
+      validateManualInput={isValidAssetId}
+      onManualInput={handleManualInput}
+      disabled={disabledIds}
       className={className}
-      manualInput={
-        <Input
-          ref={inputRef}
-          placeholder={t`Search or enter asset id`}
-          value={searchTerm}
-          onChange={(e) => {
-            const newValue = e.target.value;
-            setSearchTerm(newValue);
-
-            if (/^[a-fA-F0-9]{64}$/.test(newValue)) {
-              onChange(newValue);
-            }
-          }}
-        />
-      }
-      renderItem={(assetId) => (
-        <div className='flex items-center gap-2 w-full'>
-          <AssetIcon
-            asset={{
-              icon_url: tokens[assetId]?.icon_url ?? null,
-              kind: 'token',
-              revocation_address: tokens[assetId]?.revocation_address ?? null,
-            }}
-            size='md'
-            className='flex-shrink-0'
-          />
-          <div className='flex flex-col truncate'>
-            <span className='flex-grow truncate' role='text'>
-              {getAssetDisplayName(
-                tokens[assetId]?.name,
-                tokens[assetId]?.ticker,
-                'token',
-              )}
-              {tokens[assetId]?.ticker && ` (${tokens[assetId]?.ticker})`}{' '}
-            </span>
-            <span
-              className='text-xs text-muted-foreground truncate'
-              aria-label={t`Asset ID`}
-            >
-              {assetId === 'xch' ? null : assetId}
-            </span>
-          </div>
-        </div>
-      )}
+      placeholder={t`Select asset`}
+      searchPlaceholder={t`Search or enter asset id`}
+      emptyMessage={t`No tokens found.`}
     />
   );
 }

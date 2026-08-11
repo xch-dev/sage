@@ -18,6 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -63,6 +64,7 @@ export function ClawbackCoinsCard({
   const walletState = useWalletState();
 
   const { addError } = useErrors();
+  const { isTestnet } = useNetwork();
 
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
@@ -202,7 +204,8 @@ export function ClawbackCoinsCard({
 
   const clawBackFormSchema = z.object({
     clawBackFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -246,7 +249,8 @@ export function ClawbackCoinsCard({
 
   const finalizeFormSchema = z.object({
     finalizeFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -349,6 +353,7 @@ export function ClawbackCoinsCard({
         <CoinList
           clawback={true}
           precision={asset.precision}
+          isTestnet={isTestnet}
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}

@@ -24,23 +24,26 @@ import {
 } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount, positiveAmount } from '@/lib/formTypes';
-import { fromMojos, toDecimal, toHex, toMojos } from '@/lib/utils';
+import {
+  fromHexStrict,
+  fromMojos,
+  isValidHexBytes,
+  toDecimal,
+  toHex,
+  toMojos,
+  utf8ToBytes,
+} from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { Memo, MemoMode } from '@/types/CoinMemo.ts';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { AlertCircleIcon, ArrowUpToLine } from 'lucide-react';
+import { AlertCircleIcon } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -51,10 +54,6 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
-
-function stringToUint8Array(str: string): Uint8Array {
-  return new TextEncoder().encode(str);
-}
 
 export default function Send() {
   let { asset_id: assetId = null } = useParams();
@@ -68,7 +67,7 @@ export default function Send() {
 
   const [asset, setAsset] = useState<TokenRecord | null>(null);
   const [response, setResponse] = useState<TransactionResponse | null>(null);
-  const [currentMemo, setCurrentMemo] = useState<string | undefined>(undefined);
+  const [currentMemo, setCurrentMemo] = useState<Memo | undefined>(undefined);
 
   const [bulk, setBulk] = useState(false);
 
@@ -114,40 +113,61 @@ export default function Send() {
     }
   };
 
-  const formSchema = z.object({
-    address: z
-      .string()
-      .refine(
-        (address) =>
-          Promise.all(
-            addressList(address).map((address) =>
-              commands.validateAddress(address).catch(addError),
-            ),
-          ).then((values) => values.every(Boolean)),
-        bulk ? t`Invalid addresses` : t`Invalid address`,
+  const formSchema = z
+    .object({
+      address: z
+        .string()
+        .refine(
+          (address) =>
+            Promise.all(
+              addressList(address).map((address) =>
+                commands.validateAddress(address).catch(addError),
+              ),
+            ).then((values) => values.every(Boolean)),
+          bulk ? t`Invalid addresses` : t`Invalid address`,
+        ),
+      amount: positiveAmount(asset?.precision || 12).refine(
+        (amount) =>
+          asset
+            ? BigNumber(amount).lte(
+                toDecimal(asset.selectable_balance, asset.precision),
+              )
+            : true,
+        'Amount exceeds spendable balance',
       ),
-    amount: positiveAmount(asset?.precision || 12).refine(
-      (amount) =>
-        asset
-          ? BigNumber(amount).lte(toDecimal(asset.balance, asset.precision))
-          : true,
-      'Amount exceeds balance',
-    ),
-    fee: amount(walletState.sync.unit.precision).optional(),
-    memo: z.string().optional(),
-    clawbackEnabled: z.boolean().optional(),
-    clawback: z
-      .object({
-        days: z.string(),
-        hours: z.string(),
-        minutes: z.string(),
-      })
-      .optional(),
-  });
+      fee: amount(walletState.sync.unit.precision).optional(),
+      memo: z.string().optional(),
+      memoMode: z.nativeEnum(MemoMode),
+      clawbackEnabled: z.boolean().optional(),
+      clawback: z
+        .object({
+          days: z.string(),
+          hours: z.string(),
+          minutes: z.string(),
+        })
+        .optional(),
+    })
+    .superRefine((values, ctx) => {
+      if (
+        values.memoMode === MemoMode.Hex &&
+        values.memo &&
+        !isValidHexBytes(values.memo)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['memo'],
+          message: t`Memo must be valid hex bytes (even length, 0-9, a-f)`,
+        });
+      }
+    });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      memoMode: MemoMode.Text,
+    },
   });
+  const memoMode = form.watch('memoMode') || MemoMode.Text;
 
   const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
     form.setValue('address', scanResValue);
@@ -155,12 +175,22 @@ export default function Send() {
 
   const onSubmit = () => {
     const values = form.getValues();
-    const memos = values.memo ? [toHex(stringToUint8Array(values.memo))] : [];
 
-    // Store the memo for the confirmation dialog
-    setCurrentMemo(values.memo);
+    let memos: string[] = [];
 
-    // Calculate clawback seconds if enabled
+    if (values.memo) {
+      const memoBytes =
+        values.memoMode === MemoMode.Hex
+          ? fromHexStrict(values.memo)
+          : utf8ToBytes(values.memo);
+
+      memos = [toHex(memoBytes)];
+    }
+
+    setCurrentMemo(
+      values.memo ? { mode: values.memoMode, value: values.memo } : undefined,
+    );
+
     let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
@@ -230,11 +260,11 @@ export default function Send() {
           <Card className='mb-6'>
             <CardContent className='pt-6'>
               <div className='text-sm text-muted-foreground'>
-                Available Balance
+                <Trans>Spendable Balance</Trans>
               </div>
               <div className='text-2xl font-medium mt-1'>
                 <NumberFormat
-                  value={fromMojos(asset.balance, asset.precision)}
+                  value={fromMojos(asset.selectable_balance, asset.precision)}
                   minimumFractionDigits={0}
                   maximumFractionDigits={asset.precision}
                 />{' '}
@@ -296,46 +326,27 @@ export default function Send() {
                       <Trans>Amount</Trans>
                     </FormLabel>
                     <FormControl>
-                      <div className='relative flex'>
-                        <TokenAmountInput
-                          {...field}
-                          ticker={asset?.ticker}
-                          precision={
-                            asset?.precision ?? (assetId === null ? 12 : 3)
-                          }
-                          className='pr-12 !rounded-r-none z-10'
-                        />
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant='outline'
-                                size='icon'
-                                type='button'
-                                className='!border-l-0 !rounded-l-none flex-shrink-0'
-                                onClick={() => {
-                                  if (asset) {
-                                    const maxAmount = fromMojos(
-                                      asset.balance,
-                                      asset.precision,
-                                    );
-                                    form.setValue(
-                                      'amount',
-                                      maxAmount.toString(),
-                                      { shouldValidate: true },
-                                    );
-                                  }
-                                }}
-                              >
-                                <ArrowUpToLine className='h-4 w-4' />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <Trans>Use maximum balance</Trans>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
+                      <TokenAmountInput
+                        {...field}
+                        ticker={asset?.ticker}
+                        precision={
+                          asset?.precision ?? (assetId === null ? 12 : 3)
+                        }
+                        className='pr-12'
+                        maxValue={
+                          asset
+                            ? BigNumber.max(
+                                0,
+                                fromMojos(
+                                  asset.selectable_balance,
+                                  asset.precision,
+                                ).minus(
+                                  assetId === null ? form.watch('fee') || 0 : 0,
+                                ),
+                              ).toString()
+                            : undefined
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -360,27 +371,61 @@ export default function Send() {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name='memo'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Memo (optional)</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        autoCorrect='off'
-                        autoCapitalize='off'
-                        autoComplete='off'
-                        placeholder={t`Enter memo`}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className='col-span-2'>
+                <div className='flex items-center justify-between mb-2'>
+                  <FormLabel>
+                    <Trans>Memo (optional)</Trans>
+                  </FormLabel>
+
+                  <div className='flex items-center gap-2 text-sm'>
+                    <Trans>Hex</Trans>
+
+                    <Switch
+                      checked={memoMode === MemoMode.Hex}
+                      onCheckedChange={(checked) => {
+                        form.setValue(
+                          'memoMode',
+                          checked ? MemoMode.Hex : MemoMode.Text,
+                          {
+                            shouldValidate: true,
+                          },
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name='memo'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          autoCorrect='off'
+                          autoCapitalize='off'
+                          autoComplete='off'
+                          placeholder={
+                            memoMode === MemoMode.Hex
+                              ? t`e.g. ff00ab`
+                              : t`Enter memo`
+                          }
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className='text-sm text-muted-foreground mt-2'>
+                  {memoMode === MemoMode.Hex ? (
+                    <Trans>Hex bytes</Trans>
+                  ) : (
+                    <Trans>UTF-8 string</Trans>
+                  )}
+                </div>
+              </div>
 
               {!bulk && (
                 <div className='col-span-2'>

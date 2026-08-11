@@ -47,7 +47,8 @@ export function TransferDialog({
   const schema = z.object({
     address: z.string().min(1, t`Address is required`),
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });

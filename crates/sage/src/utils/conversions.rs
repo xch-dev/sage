@@ -1,6 +1,8 @@
-use chia::protocol::Bytes32;
-use chia_puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH};
-use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, utils::Address};
+use chia_wallet_sdk::{
+    driver::BURN_PUZZLE_HASH,
+    prelude::*,
+    puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH},
+};
 use sage_api::AddressKind;
 use sage_database::{Asset, AssetKind};
 

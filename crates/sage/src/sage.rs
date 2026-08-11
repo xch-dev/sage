@@ -2,37 +2,38 @@ use std::{
     fs,
     path::{Path, PathBuf},
     str::FromStr,
-    sync::Arc,
+    sync::{Arc, Once},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chia::{bls::master_to_wallet_unhardened_intermediate, protocol::Bytes32};
 use chia_wallet_sdk::{
-    client::{create_rustls_connector, load_ssl_cert, Connector},
-    signer::AggSigConstants,
-    utils::Address,
+    chia::bls::master_to_wallet_unhardened_intermediate,
+    client::{Connector, create_rustls_connector, load_ssl_cert},
+    prelude::*,
 };
 use indexmap::IndexMap;
 use sage_api::{Unit, XCH};
 use sage_config::{
-    migrate_config, migrate_networks, Config, Network, NetworkList, OldConfig, OldNetwork,
-    WalletConfig,
+    Config, Network, NetworkList, OldConfig, OldNetwork, WalletConfig, migrate_config,
+    migrate_networks,
 };
 use sage_database::Database;
 use sage_keychain::Keychain;
 use sage_wallet::{PeerState, SyncCommand, SyncEvent, SyncManager, SyncOptions, Timeouts, Wallet};
 use sqlx::{
-    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     ConnectOptions, SqlitePool,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
-use tokio::sync::{mpsc, Mutex};
-use tracing::{error, info, Level};
+use tokio::sync::{Mutex, mpsc};
+use tracing::{Level, error, info};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
-    filter::filter_fn, fmt, layer::SubscriberExt, EnvFilter, Layer, Registry,
+    EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
 };
 
-use crate::{peers::Peers, Error, Result};
+use crate::{Error, Result, peers::Peers};
+
+static LOGGING_SETUP: Once = Once::new();
 
 #[derive(Debug)]
 pub struct Sage {
@@ -45,10 +46,11 @@ pub struct Sage {
     pub peer_state: Arc<Mutex<PeerState>>,
     pub command_sender: mpsc::Sender<SyncCommand>,
     pub unit: Unit,
+    pub test: bool,
 }
 
 impl Sage {
-    pub fn new(path: &Path) -> Self {
+    pub fn new(path: &Path, test: bool) -> Self {
         Self {
             path: path.to_path_buf(),
             config: Config::default(),
@@ -59,6 +61,7 @@ impl Sage {
             peer_state: Arc::new(Mutex::new(PeerState::default())),
             command_sender: mpsc::channel(1).0,
             unit: XCH.clone(),
+            test,
         }
     }
 
@@ -78,31 +81,37 @@ impl Sage {
     }
 
     fn setup_logging(&mut self) -> Result<()> {
-        let log_dir = self.path.join("log");
-
-        if !log_dir.exists() {
-            std::fs::create_dir_all(&log_dir)?;
-        }
-
         let log_level: Level = self.config.global.log_level.parse()?;
-
-        // Create rotated log file
-        let log_file = Builder::new()
-            .filename_prefix("app.log")
-            .rotation(Rotation::DAILY)
-            .max_log_files(3)
-            .build(log_dir)?;
 
         // Common filter string
         let filter_string = format!("{log_level},rustls=off,tungstenite=off,h2=off,hyper=off");
 
-        // File layer - always without ANSI
-        let file_layer = fmt::layer()
-            .with_target(false)
-            .with_ansi(false)
-            .with_writer(log_file)
-            .compact()
-            .with_filter(EnvFilter::new(&filter_string));
+        let file_layer = if self.test {
+            None
+        } else {
+            let log_dir = self.path.join("log");
+
+            if !log_dir.exists() {
+                std::fs::create_dir_all(&log_dir)?;
+            }
+
+            // Create rotated log file
+            let log_file = Builder::new()
+                .filename_prefix("app.log")
+                .rotation(Rotation::DAILY)
+                .max_log_files(3)
+                .build(log_dir)?;
+
+            // File layer - always without ANSI
+            Some(
+                fmt::layer()
+                    .with_target(false)
+                    .with_ansi(false)
+                    .with_writer(log_file)
+                    .compact()
+                    .with_filter(EnvFilter::new(&filter_string)),
+            )
+        };
 
         // Terminal layer - with ANSI and additional formatting
         let terminal_layer = fmt::layer()
@@ -117,7 +126,11 @@ impl Sage {
             .with(terminal_layer.with_filter(filter_fn(|_| !cfg!(mobile))));
 
         // Initialize the subscriber
-        tracing::subscriber::set_global_default(subscriber)?;
+        LOGGING_SETUP.call_once(|| {
+            if let Err(error) = tracing::subscriber::set_global_default(subscriber) {
+                error!("Failed to set global default logger: {error}");
+            }
+        });
 
         Ok(())
     }
@@ -226,8 +239,20 @@ impl Sage {
                     .unwrap_or_default()
                     .delta_sync(&self.wallet_config.defaults),
                 puzzle_batch_size_per_peer: 5,
-                timeouts: Timeouts::default(),
-                testing: false,
+                timeouts: if self.test {
+                    Timeouts {
+                        sync_delay: Duration::from_millis(100),
+                        nft_uri_delay: Duration::from_millis(100),
+                        cat_delay: Duration::from_millis(100),
+                        puzzle_delay: Duration::from_millis(100),
+                        transaction_delay: Duration::from_millis(100),
+                        offer_delay: Duration::from_millis(100),
+                        ..Default::default()
+                    }
+                } else {
+                    Timeouts::default()
+                },
+                testing: self.test,
             },
             self.peer_state.clone(),
             self.wallet.clone(),
@@ -458,13 +483,13 @@ impl Sage {
     }
 
     pub fn network(&self) -> &Network {
-        if let Some(wallet) = self.wallet_config() {
-            if let Some(network) = &wallet.network {
-                return self
-                    .network_list
-                    .by_name(network)
-                    .expect("network not found");
-            }
+        if let Some(wallet) = self.wallet_config()
+            && let Some(network) = &wallet.network
+        {
+            return self
+                .network_list
+                .by_name(network)
+                .expect("network not found");
         }
 
         self.network_list

@@ -1,11 +1,12 @@
 use std::{collections::HashMap, net::SocketAddr, time::Duration};
 
-use chia::protocol::{
-    Bytes32, CoinSpend, CoinState, CoinStateFilters, Program, RejectStateReason,
-    RequestBlockHeader, RespondBlockHeader, RespondPeers, RespondPuzzleState, SpendBundle,
-    TransactionAck,
+use chia_wallet_sdk::{
+    chia::protocol::{
+        CoinStateFilters, RejectStateReason, RequestBlockHeader, RespondBlockHeader, RespondPeers,
+        RespondPuzzleState, TransactionAck,
+    },
+    prelude::*,
 };
-use chia_wallet_sdk::client::Peer;
 use tokio::time::timeout;
 
 use crate::WalletError;
@@ -187,14 +188,6 @@ impl WalletPeer {
             puzzle_reveal,
             solution,
         )))
-    }
-
-    pub async fn fetch_singleton_child(&self, coin_id: Bytes32) -> Result<CoinState, WalletError> {
-        let Some(child) = self.try_fetch_singleton_child(coin_id).await? else {
-            return Err(WalletError::MissingChild(coin_id));
-        };
-
-        Ok(child)
     }
 
     pub async fn try_fetch_singleton_child(

@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": "../../..",
+    "paths": {
+      "@sage-app/ui": ["packages/sage-app-ui/src/index.ts"]
+    },
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": false,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true
+  }
+}

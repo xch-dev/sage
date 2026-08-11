@@ -39,22 +39,30 @@ Install the frontend dependencies:
 pnpm install
 ```
 
+#### Windows
+
+The build process on Windows requires CMake, Clang and NASM installed.
+
+```powershell
+choco install cmake llvm nasm
+```
+
 ### Starting the app
 
 You can run the app with:
 
 ```bash
 # For development purposes:
-pnpm tauri dev
+pnpm tauri:dev
 
 # If you need optimizations:
-pnpm tauri dev --release
+pnpm tauri:dev --release
 ```
 
 And build the application with:
 
 ```bash
-pnpm tauri build
+pnpm tauri:build
 ```
 
 You can also run the app in the iOS or Android simulator, though it may take some prior setup:

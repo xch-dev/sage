@@ -1,5 +1,5 @@
 use crate::{Asset, Convert, Database, DatabaseTx, Result};
-use chia::protocol::Bytes32;
+use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

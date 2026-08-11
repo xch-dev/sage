@@ -27,8 +27,14 @@ export function PeerProvider({ children }: { children: ReactNode }) {
           setPeers(data.peers);
         }
       } catch (error) {
-        if (isMountedRef.current && !abortController.signal.aborted) {
-          addError(error as CustomError);
+        const customError = error as CustomError;
+        // Don't add unauthorized errors - they're expected during wallet transitions
+        if (
+          isMountedRef.current &&
+          !abortController.signal.aborted &&
+          customError.kind !== 'unauthorized'
+        ) {
+          addError(customError);
         }
       }
     };

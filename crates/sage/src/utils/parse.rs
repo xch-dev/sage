@@ -1,10 +1,6 @@
 #![allow(clippy::needless_pass_by_value)]
 
-use chia::{
-    bls::{PublicKey, Signature},
-    protocol::{Bytes, Bytes32, Program},
-};
-use chia_wallet_sdk::utils::Address;
+use chia_wallet_sdk::prelude::*;
 use sage_api::Amount;
 
 use crate::{Error, Result};
@@ -163,6 +159,19 @@ pub fn parse_memos(input: Vec<String>) -> Result<Vec<Bytes>> {
         memos.push(Bytes::from(hex::decode(memo)?));
     }
     Ok(memos)
+}
+
+pub fn parse_any_asset_id(input: String) -> Result<Bytes32> {
+    Ok(if input.starts_with("nft") {
+        parse_nft_id(input)?
+    } else if input.starts_with("did:chia:") {
+        parse_did_id(input)?
+    } else if input.starts_with("option") {
+        parse_option_id(input)?
+    } else {
+        // Assume it's a CAT token (hex string)
+        parse_asset_id(input)?
+    })
 }
 
 #[cfg(test)]

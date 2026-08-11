@@ -59,7 +59,7 @@ export default function Transaction() {
 
   return (
     <>
-      <Header title={t`Transaction #${height}`} />
+      <Header title={t`Transaction #${height ?? ''}`} />
       <Container>
         <Card className='mb-6'>
           <CardHeader className='pb-2'>

@@ -1,10 +1,9 @@
-use chia::protocol::{Bytes32, Coin};
-use chia_wallet_sdk::driver::{OptionType, OptionUnderlying};
-use sqlx::{query, Row, SqliteExecutor};
+use chia_wallet_sdk::prelude::*;
+use sqlx::{Row, SqliteExecutor, query};
 
 use crate::{
-    is_valid_asset_id, puzzle_hash_from_address, Asset, AssetKind, CoinKind, CoinRow, Convert,
-    Database, DatabaseTx, Result,
+    Asset, AssetKind, CoinKind, CoinRow, Convert, Database, DatabaseTx, Result, is_valid_asset_id,
+    puzzle_hash_from_address,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

@@ -54,7 +54,7 @@ impl Default for Wallet {
 
 #[cfg(test)]
 mod tests {
-    use expect_test::{expect, Expect};
+    use expect_test::{Expect, expect};
 
     use super::*;
 

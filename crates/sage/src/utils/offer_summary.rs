@@ -1,18 +1,15 @@
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
-use chia::protocol::Bytes32;
-use chia::protocol::SpendBundle;
-use chia_wallet_sdk::driver::{DriverError, Offer};
-use chia_wallet_sdk::{driver::SpendContext, utils::Address};
+use chia_wallet_sdk::prelude::*;
 use sage_api::OptionAssets;
 use sage_api::{Amount, NftRoyalty, OfferAsset, OfferSummary};
 use sage_database::OfferStatus;
 use sage_wallet::WalletError;
 
-use crate::utils::offer_status::offer_expiration;
 use crate::ConfirmationInfo;
 use crate::StatusCoinType;
+use crate::utils::offer_status::offer_expiration;
 use crate::{Error, Result, Sage};
 
 impl Sage {
@@ -226,38 +223,37 @@ impl Sage {
 
         let peer_state = self.peer_state.lock().await;
 
-        if let Some(expiration_height) = summary.expiration_height {
-            if let Some((height, _)) = peer_state.peak() {
-                if height >= expiration_height {
-                    offer_status = OfferStatus::Expired;
-                }
-            }
+        if let Some(expiration_height) = summary.expiration_height
+            && let Some((height, _)) = peer_state.peak()
+            && height >= expiration_height
+        {
+            offer_status = OfferStatus::Expired;
         }
 
-        if !status.coins.is_empty() {
-            if let Some(peer) = peer_state.acquire_peer() {
-                let coin_states = peer
-                    .fetch_coins(
-                        status.coins.keys().copied().collect(),
-                        wallet.genesis_challenge,
-                    )
-                    .await?;
+        if !status.coins.is_empty()
+            && let Some(peer) = peer_state.acquire_peer()
+        {
+            let coin_states = peer
+                .fetch_coins(
+                    status.coins.keys().copied().collect(),
+                    wallet.genesis_challenge,
+                )
+                .await?;
 
-                for coin_state in coin_states {
-                    let Some(coin_type) = status.coins.get(&coin_state.coin.coin_id()) else {
-                        continue;
-                    };
+            for coin_state in coin_states {
+                let Some(coin_type) = status.coins.get(&coin_state.coin.coin_id()) else {
+                    continue;
+                };
 
-                    match coin_type {
-                        StatusCoinType::Cancel { fast_forwardable } => {
-                            if coin_state.spent_height.is_some() && !*fast_forwardable {
-                                offer_status = OfferStatus::Cancelled;
-                            }
+                match coin_type {
+                    StatusCoinType::Cancel { fast_forwardable } => {
+                        if coin_state.spent_height.is_some() && !*fast_forwardable {
+                            offer_status = OfferStatus::Cancelled;
                         }
-                        StatusCoinType::Settle => {
-                            offer_status = OfferStatus::Completed;
-                            break;
-                        }
+                    }
+                    StatusCoinType::Settle => {
+                        offer_status = OfferStatus::Completed;
+                        break;
                     }
                 }
             }

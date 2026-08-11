@@ -1,9 +1,11 @@
 use std::ops::Range;
 
-use chia::{
-    bls::DerivableKey,
-    protocol::Bytes32,
-    puzzles::{standard::StandardArgs, DeriveSynthetic},
+use chia_wallet_sdk::{
+    chia::{
+        bls::DerivableKey,
+        puzzle_types::{DeriveSynthetic, standard::StandardArgs},
+    },
+    prelude::*,
 };
 use sage_database::{DatabaseTx, Derivation};
 

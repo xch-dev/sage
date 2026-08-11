@@ -1,5 +1,6 @@
 import { commands } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
+import { dexieApiUrl, chiaOfferApiUrl, offerCoApiUrl } from '@/lib/urls';
 
 const CNI_NFC_PREFIX = 'DT001';
 
@@ -25,12 +26,15 @@ interface DexieOfferResponse {
   offers: DexieOffer[];
 }
 
-export async function resolveOfferData(text: string): Promise<string> {
+export async function resolveOfferData(
+  text: string,
+  isTestnet: boolean,
+): Promise<string> {
   try {
     if (isValidHostname(text, 'dexie.space')) {
       const offerId = extractOfferId(text);
       if (offerId) {
-        const resolvedOffer = await fetchDexieOffer(offerId);
+        const resolvedOffer = await fetchDexieOffer(offerId, isTestnet);
         if (resolvedOffer) {
           return resolvedOffer;
         }
@@ -40,7 +44,7 @@ export async function resolveOfferData(text: string): Promise<string> {
     if (isValidHostname(text, 'offerco.de')) {
       const offerId = extractOfferId(text);
       if (offerId) {
-        const resolvedOffer = await fetchOfferCoOffer(offerId);
+        const resolvedOffer = await fetchOfferCoOffer(offerId, isTestnet);
         if (resolvedOffer) {
           return resolvedOffer;
         }
@@ -50,7 +54,7 @@ export async function resolveOfferData(text: string): Promise<string> {
     if (isValidHostname(text, 'chia-offer.com')) {
       const offerId = extractOfferId(text);
       if (offerId) {
-        const resolvedOffer = await fetchChiaOfferComOffer(offerId);
+        const resolvedOffer = await fetchChiaOfferComOffer(offerId, isTestnet);
         if (resolvedOffer) {
           return resolvedOffer;
         }
@@ -89,10 +93,12 @@ function extractOfferId(url: string) {
   }
 }
 
-async function fetchChiaOfferComOffer(id: string): Promise<string> {
-  const response = await fetch(
-    `https://api.chia-offer.com/get-offer.php?id=${id}`,
-  );
+async function fetchChiaOfferComOffer(
+  id: string,
+  isTestnet: boolean,
+): Promise<string> {
+  const url = chiaOfferApiUrl(id, isTestnet);
+  const response = await fetch(url);
   const data = await response.json();
 
   if (!data) {
@@ -116,25 +122,20 @@ async function fetchChiaOfferComOffer(id: string): Promise<string> {
 
 export async function fetchOfferedDexieOffersFromNftId(
   id: string,
-  network: string | null,
+  isTestnet: boolean,
 ): Promise<DexieOffer[]> {
-  return await fetchDexieOffersFromNftId(
-    id,
-    'offered',
-    'price',
-    network || 'mainnet',
-  ); // lowest price first
+  return await fetchDexieOffersFromNftId(id, 'offered', 'price', isTestnet); // lowest price first
 }
 
 export async function fetchRequestedDexieOffersFromNftId(
   id: string,
-  network: string | null,
+  isTestnet: boolean,
 ): Promise<DexieOffer[]> {
   return await fetchDexieOffersFromNftId(
     id,
     'requested',
     'price_desc',
-    network || 'mainnet',
+    isTestnet,
   ); // highest price first
 }
 
@@ -142,11 +143,11 @@ async function fetchDexieOffersFromNftId(
   id: string,
   type: string,
   sort: string,
-  network: string,
+  isTestnet: boolean,
 ): Promise<DexieOffer[]> {
   // this will only get a single page of offers (20 by default) which is fine
   const response = await fetch(
-    `https://${network !== 'mainnet' ? 'api-testnet' : 'api'}.dexie.space/v1/offers?${type}=${id}&status=0&sort=${sort}`,
+    dexieApiUrl(`v1/offers?${type}=${id}&status=0&sort=${sort}`, isTestnet),
   );
   const data = (await response.json()) as DexieOfferResponse;
   if (!data) {
@@ -162,8 +163,11 @@ async function fetchDexieOffersFromNftId(
 
   return [];
 }
-async function fetchDexieOffer(id: string): Promise<string> {
-  const response = await fetch(`https://api.dexie.space/v1/offers/${id}`);
+async function fetchDexieOffer(
+  id: string,
+  isTestnet: boolean,
+): Promise<string> {
+  const response = await fetch(dexieApiUrl(`v1/offers/${id}`, isTestnet));
   const data = await response.json();
 
   if (!data) {
@@ -184,8 +188,12 @@ async function fetchDexieOffer(id: string): Promise<string> {
   } as CustomError;
 }
 
-async function fetchOfferCoOffer(id: string): Promise<string> {
-  const response = await fetch('https://offerco.de/api/v1/getoffer', {
+async function fetchOfferCoOffer(
+  id: string,
+  isTestnet: boolean,
+): Promise<string> {
+  const url = offerCoApiUrl(isTestnet);
+  const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',

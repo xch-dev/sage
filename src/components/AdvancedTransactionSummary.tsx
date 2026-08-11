@@ -40,7 +40,7 @@ export function AdvancedTransactionSummary({
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-card-foreground bg-card border border-border shadow-card p-2 rounded-lg'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgeMinus className='w-6 h-6' aria-hidden='true' />
           <span>
@@ -53,7 +53,7 @@ export function AdvancedTransactionSummary({
             .map((spent) => (
               <div
                 key={spent.coinId}
-                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
+                className='flex flex-col gap-1 border border-border p-1.5 rounded-md bg-card/50'
               >
                 <div className='flex items-center gap-2'>
                   <Badge className='max-w-[100px]'>
@@ -62,8 +62,11 @@ export function AdvancedTransactionSummary({
                   <span>{spent.label}</span>
                 </div>
                 <div className='flex items-center gap-1'>
-                  <BoxIcon className='w-4 h-4' aria-hidden='true' />
-                  <div className='truncate text-muted-foreground'>
+                  <BoxIcon
+                    className='w-4 h-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
+                  <div className='truncate text-muted-foreground text-sm'>
                     {spent.coinId}
                   </div>
                 </div>
@@ -71,7 +74,7 @@ export function AdvancedTransactionSummary({
             ))}
         </div>
       </div>
-      <div className='flex flex-col gap-2 w-full font-medium text-left text-neutral-900 bg-muted p-2 rounded-md'>
+      <div className='flex flex-col gap-2 w-full font-medium text-left text-card-foreground bg-card border border-border shadow-card p-2 rounded-lg'>
         <div className='flex items-center gap-2 text-lg'>
           <BadgePlus className='w-6 h-6' aria-hidden='true' />
           <span>
@@ -80,7 +83,7 @@ export function AdvancedTransactionSummary({
         </div>
         <div className='flex flex-col gap-2'>
           {!BigNumber(summary.fee || 0).isZero() && (
-            <div className='flex flex-col gap-1 border-2 p-1.5 rounded-md'>
+            <div className='flex flex-col gap-1 border border-border p-1.5 rounded-md bg-card/50'>
               <div className='flex items-center gap-2'>
                 <Badge>
                   <Trans>Fee</Trans>
@@ -97,7 +100,7 @@ export function AdvancedTransactionSummary({
             .map((created) => (
               <div
                 key={created.label}
-                className='flex flex-col gap-1 border-2 p-1.5 rounded-md'
+                className='flex flex-col gap-1 border border-border p-1.5 rounded-md bg-card/50'
               >
                 <div className='flex items-center gap-2'>
                   <Badge className='max-w-[100px]'>
@@ -106,8 +109,11 @@ export function AdvancedTransactionSummary({
                   <span>{created.label}</span>
                 </div>
                 <div className='flex items-center gap-1'>
-                  <ForwardIcon className='w-4 h-4' aria-hidden='true' />
-                  <div className='truncate text-muted-foreground'>
+                  <ForwardIcon
+                    className='w-4 h-4 text-muted-foreground'
+                    aria-hidden='true'
+                  />
+                  <div className='truncate text-muted-foreground text-sm'>
                     {created.address}
                   </div>
                 </div>

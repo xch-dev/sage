@@ -8,28 +8,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toDecimal, toMojos } from '@/lib/utils';
+import { dexieApiUrl } from '@/lib/urls';
 import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
-import { ArrowUpToLine, HandCoins, Handshake } from 'lucide-react';
+import { HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useNetwork } from '@/hooks/useNetwork';
 
 export function Swap() {
   const walletState = useWalletState();
   const navigate = useNavigate();
-
   const { addError } = useErrors();
+  const { isTestnet } = useNetwork();
 
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
 
@@ -63,13 +59,6 @@ export function Swap() {
     return () => clearInterval(interval);
   }, [updateCats]);
 
-  const setMaxTokenAmount = () => {
-    const token = ownedTokens.find((t) => t.asset_id === payAssetId);
-    if (token) {
-      setPayAmount(toDecimal(token.balance, token.precision));
-    }
-  };
-
   const updateReceiveAmount = useCallback(
     async (receiveAssetId: string | null, payAmount: string) => {
       const mojoAmount = toMojos(payAmount, payAssetId === null ? 12 : 3);
@@ -91,6 +80,7 @@ export function Swap() {
         receiveAssetId,
         mojoAmount,
         'pay',
+        isTestnet,
       );
 
       if (!quote) {
@@ -109,7 +99,7 @@ export function Swap() {
         setFee(toDecimal(quote.networkFee, 12));
       }
     },
-    [payAssetId, hasUserInputFee, addError],
+    [payAssetId, hasUserInputFee, addError, isTestnet],
   );
 
   const updatePayAmount = useCallback(
@@ -136,6 +126,7 @@ export function Swap() {
         receiveAssetId,
         mojoAmount,
         'receive',
+        isTestnet,
       );
 
       if (!quote) {
@@ -152,7 +143,7 @@ export function Swap() {
         setFee(toDecimal(quote.networkFee, 12));
       }
     },
-    [receiveAssetId, hasUserInputFee, addError],
+    [receiveAssetId, hasUserInputFee, addError, isTestnet],
   );
 
   const offerState = useMemo<OfferState>(() => {
@@ -220,7 +211,7 @@ export function Swap() {
                 <div className='flex flex-grow-0'>
                   <TokenAmountInput
                     id='underlying-amount'
-                    className='!border-l-0 z-10 !rounded-l-none !rounded-r-none w-[150px] h-12'
+                    className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
                     placeholder={t`Amount`}
                     value={payAmount}
                     onChange={(e) => {
@@ -230,25 +221,27 @@ export function Swap() {
                       }
                     }}
                     precision={payAssetId === null ? 12 : 3}
+                    maxValue={
+                      payAssetId !== undefined
+                        ? (() => {
+                            const token = ownedTokens.find(
+                              (t) => t.asset_id === payAssetId,
+                            );
+                            if (!token) return undefined;
+                            const balance = BigNumber(
+                              toDecimal(
+                                token.selectable_balance,
+                                token.precision,
+                              ),
+                            );
+                            return BigNumber.max(
+                              0,
+                              balance.minus(payAssetId === null ? fee || 0 : 0),
+                            ).toString();
+                          })()
+                        : undefined
+                    }
                   />
-
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant='outline'
-                          className='!border-l-0 !rounded-l-none h-12 px-2 text-xs'
-                          onClick={setMaxTokenAmount}
-                          disabled={payAssetId === undefined}
-                        >
-                          <ArrowUpToLine className='h-3 w-3 mr-1' />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <Trans>Use maximum balance</Trans>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
               </div>
 
@@ -296,6 +289,7 @@ export function Swap() {
                       }
                     }}
                     precision={receiveAssetId === null ? 12 : 3}
+                    hideMaxButton={true}
                   />
                 </div>
               </div>
@@ -363,7 +357,8 @@ export function Swap() {
           splitNftOffers={false}
           clearOfferState={async (offers) => {
             if (offers.length === 1) {
-              if (!(await executeDexieSwap(offers[0], addError))) return;
+              if (!(await executeDexieSwap(offers[0], addError, isTestnet)))
+                return;
             }
             navigate('/offers');
           }}
@@ -379,10 +374,14 @@ async function getDexieQuote(
   receiveAssetId: string | null,
   amount: string,
   amountKind: 'pay' | 'receive',
+  isTestnet: boolean,
 ) {
   try {
     const response = await fetch(
-      `https://api.dexie.space/v1/swap/quote?from=${payAssetId ?? 'XCH'}&to=${receiveAssetId ?? 'XCH'}&${amountKind === 'pay' ? 'from_amount' : 'to_amount'}=${amount || '0'}`,
+      dexieApiUrl(
+        `v1/swap/quote?from=${payAssetId ?? 'XCH'}&to=${receiveAssetId ?? 'XCH'}&${amountKind === 'pay' ? 'from_amount' : 'to_amount'}=${amount || '0'}`,
+        isTestnet,
+      ),
     );
     const data = await response.json();
     return {
@@ -400,9 +399,10 @@ async function getDexieQuote(
 async function executeDexieSwap(
   offer: string,
   addError: (error: CustomError) => void,
+  isTestnet: boolean,
 ) {
   try {
-    const response = await fetch('https://api.dexie.space/v1/swap', {
+    const response = await fetch(dexieApiUrl('v1/swap', isTestnet), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

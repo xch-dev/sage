@@ -1,15 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import { t } from '@lingui/core/macro';
 import QRCodeStyling, { Options } from 'qr-code-styling';
+import React, { useCallback, useEffect, useRef } from 'react';
 
 // Make all properties optional and add React-specific props
 type StyledQRCodeProps = Partial<Options> & {
   className?: string;
-  download?: boolean;
 };
 
 const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   className = '',
-  download = false,
   type = 'svg',
   shape = 'square',
   width = 300,
@@ -38,8 +37,57 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
   },
   ...rest
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLImageElement>(null);
   const qrCode = useRef<QRCodeStyling | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const updateImageSrc = useCallback(async () => {
+    if (!qrCode.current || !ref.current) return;
+
+    // Cancel any pending operations
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
+    try {
+      const rawData = await qrCode.current.getRawData('svg');
+      if (signal.aborted || !ref.current) return;
+
+      if (rawData instanceof Blob) {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          if (signal.aborted) {
+            reject(new Error('Aborted'));
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            if (signal.aborted || !ref.current) {
+              reject(new Error('Component unmounted or aborted'));
+            } else {
+              resolve(reader.result as string);
+            }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(rawData);
+        });
+
+        if (!signal.aborted && ref.current) {
+          ref.current.src = dataUrl;
+        }
+      }
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message !== 'Aborted' &&
+        error.message !== 'Component unmounted or aborted'
+      ) {
+        console.error('Failed to get QR code data:', error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -59,12 +107,11 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     };
 
     qrCode.current = new QRCodeStyling(options);
-    qrCode.current.append(ref.current);
+    updateImageSrc();
 
-    const currentRef = ref.current;
     return () => {
-      if (currentRef) {
-        currentRef.innerHTML = '';
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [
@@ -79,50 +126,14 @@ const StyledQRCode: React.FC<StyledQRCodeProps> = ({
     dotsOptions,
     backgroundOptions,
     rest,
+    updateImageSrc,
+    // Note: rest is intentionally omitted from dependencies to avoid infinite loops
+    // The spread operator in the options object will still include rest properties
   ]);
 
-  useEffect(() => {
-    if (!qrCode.current) return;
-
-    const updateOptions: Partial<Options> = {
-      type,
-      shape,
-      width,
-      height,
-      margin,
-      data,
-      qrOptions,
-      imageOptions,
-      dotsOptions,
-      backgroundOptions,
-      ...rest,
-    };
-
-    qrCode.current.update(updateOptions);
-  }, [
-    type,
-    shape,
-    width,
-    height,
-    margin,
-    data,
-    qrOptions,
-    imageOptions,
-    dotsOptions,
-    backgroundOptions,
-    rest,
-  ]);
-
-  useEffect(() => {
-    if (download && qrCode.current) {
-      qrCode.current.download({
-        extension: type === 'svg' ? 'svg' : 'png',
-        name: 'qr-code',
-      });
-    }
-  }, [download, type]);
-
-  return <div ref={ref} className={`w-full h-full ${className}`} />;
+  return (
+    <img ref={ref} className={`w-full h-full ${className}`} alt={t`QR Code`} />
+  );
 };
 
 export default StyledQRCode;

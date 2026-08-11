@@ -1,11 +1,11 @@
 use crate::{PeerState, SyncEvent, WalletError, WalletPeer};
 
-use futures_util::{stream::FuturesUnordered, StreamExt};
+use futures_util::{StreamExt, stream::FuturesUnordered};
 use sage_database::Database;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::{
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
     time::sleep,
 };
 use tracing::{error, info};
