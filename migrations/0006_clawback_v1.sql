@@ -1,7 +1,16 @@
-ALTER TABLE clawbacks ADD version INTEGER NOT NULL;
+/*
+ * Clawback V1: version column + custody-correct views.
+ *
+ * clawbacks.expiration_seconds is absolute unix for V2 (default) and relative
+ * timelock seconds for V1. V1 never auto-switches custody to the receiver;
+ * locked V1 coins stay out of owned/selectable until explicitly claimed.
+ */
+
+ALTER TABLE clawbacks ADD COLUMN version INTEGER NOT NULL DEFAULT 2;
 
 CREATE INDEX idx_clawbacks_version ON clawbacks(version);
 
+DROP VIEW IF EXISTS claimable_clawback_coins;
 DROP VIEW wallet_coins;
 DROP VIEW selectable_coins;
 DROP VIEW owned_coins;
@@ -36,8 +45,10 @@ SELECT
   clawbacks.receiver_puzzle_hash AS clawback_receiver_puzzle_hash,
   clawbacks.expiration_seconds AS clawback_expiration_seconds,
   clawbacks.version AS clawback_version,
+  p2_options.expiration_seconds AS option_expiration_seconds,
   sender_p2_puzzle.id AS clawback_sender_p2_puzzle_id,
   receiver_p2_puzzle.id AS clawback_receiver_p2_puzzle_id,
+  option_creator_p2_puzzle.id AS option_creator_p2_puzzle_id,
   created_blocks.timestamp AS created_timestamp,
   spent_blocks.timestamp AS spent_timestamp,
   (
@@ -58,12 +69,14 @@ FROM coins
   INNER JOIN assets ON assets.id = coins.asset_id
   INNER JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
   LEFT JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
+  LEFT JOIN p2_options ON p2_options.p2_puzzle_id = p2_puzzles.id
   LEFT JOIN p2_puzzles AS sender_p2_puzzle ON sender_p2_puzzle.hash = clawbacks.sender_puzzle_hash
   LEFT JOIN p2_puzzles AS receiver_p2_puzzle ON receiver_p2_puzzle.hash = clawbacks.receiver_puzzle_hash
+  LEFT JOIN p2_puzzles AS option_creator_p2_puzzle ON option_creator_p2_puzzle.hash = p2_options.creator_puzzle_hash
   LEFT JOIN blocks AS created_blocks ON created_blocks.height = coins.created_height
   LEFT JOIN blocks AS spent_blocks ON spent_blocks.height = coins.spent_height;
 
-  CREATE VIEW selectable_coins AS
+CREATE VIEW selectable_coins AS
 SELECT *
 FROM wallet_coins
 WHERE 1=1
@@ -77,7 +90,15 @@ WHERE 1=1
   )
   AND (
     clawback_expiration_seconds IS NULL
-    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+    OR (
+      clawback_version = 2
+      AND clawback_receiver_p2_puzzle_id IS NOT NULL
+      AND unixepoch() >= clawback_expiration_seconds
+    )
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
   );
 
 CREATE VIEW owned_coins AS
@@ -88,7 +109,15 @@ WHERE 1=1
   AND mempool_item_hash IS NULL
   AND (
     clawback_expiration_seconds IS NULL
-    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+    OR (
+      clawback_version = 2
+      AND clawback_receiver_p2_puzzle_id IS NOT NULL
+      AND unixepoch() >= clawback_expiration_seconds
+    )
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
   );
 
 CREATE VIEW spent_coins AS
@@ -96,26 +125,32 @@ SELECT *
 FROM wallet_coins
 WHERE spent_height IS NOT NULL OR mempool_item_hash IS NOT NULL;
 
+-- Action hub: V2/V1 senders, plus V1 receivers after relative lock.
 CREATE VIEW clawback_coins AS
 SELECT *
 FROM wallet_coins
 WHERE 1=1
   AND spent_height IS NULL
   AND (
+    (clawback_version = 2 AND clawback_sender_p2_puzzle_id IS NOT NULL)
+    OR
+    (clawback_version = 1 AND clawback_sender_p2_puzzle_id IS NOT NULL)
+    OR
     (
-      clawback_version = 2
-      AND unixepoch() < clawback_expiration_seconds
-    )
-    OR (
       clawback_version = 1
-      AND unixepoch() >= clawback_expiration_seconds
+      AND clawback_receiver_p2_puzzle_id IS NOT NULL
+      AND created_timestamp IS NOT NULL
+      AND unixepoch() >= created_timestamp + clawback_expiration_seconds
     )
   );
 
 CREATE VIEW claimable_clawback_coins AS
 SELECT *
 FROM clawback_coins
-WHERE clawback_version = 1;
+WHERE clawback_version = 1
+  AND clawback_receiver_p2_puzzle_id IS NOT NULL
+  AND created_timestamp IS NOT NULL
+  AND unixepoch() >= created_timestamp + clawback_expiration_seconds;
 
 CREATE VIEW spendable_coins AS
 SELECT *
@@ -128,6 +163,19 @@ WHERE 1=1
   )
   AND (
     clawback_expiration_seconds IS NULL
-    OR (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
-    OR (clawback_sender_p2_puzzle_id IS NOT NULL AND unixepoch() < clawback_expiration_seconds)
+    OR (
+      clawback_version = 2
+      AND (
+        (clawback_receiver_p2_puzzle_id IS NOT NULL AND unixepoch() >= clawback_expiration_seconds)
+        OR (clawback_sender_p2_puzzle_id IS NOT NULL AND unixepoch() < clawback_expiration_seconds)
+      )
+    )
+    OR (
+      clawback_version = 1
+      AND clawback_sender_p2_puzzle_id IS NOT NULL
+    )
+  )
+  AND (
+    option_expiration_seconds IS NULL
+    OR (option_creator_p2_puzzle_id IS NOT NULL AND unixepoch() >= option_expiration_seconds)
   );

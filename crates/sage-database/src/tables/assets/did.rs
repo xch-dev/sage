@@ -69,6 +69,8 @@ impl Database {
                     offer_hash: row.offer_hash.convert()?,
                     clawback_timestamp: row.clawback_timestamp.convert()?,
                     clawback_version: row.clawback_version.convert()?,
+                    clawback_is_sender: false,
+                    clawback_is_receiver: false,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,

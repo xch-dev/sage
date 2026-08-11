@@ -27,7 +27,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
 import BigNumber from 'bignumber.js';
-import { CheckIcon, UndoIcon, XIcon } from 'lucide-react';
+import { CheckIcon, HandCoins, UndoIcon, XIcon } from 'lucide-react';
 import {
   Dispatch,
   SetStateAction,
@@ -53,6 +53,37 @@ interface ClawbackCoinsCardProps {
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: Dispatch<SetStateAction<RowSelectionState>>;
+}
+
+function isClawBackEligible(coin: CoinRecord, now: number): boolean {
+  if (!coin.clawback_is_sender) return false;
+  if (coin.clawback_version === 1) return true;
+  if (coin.clawback_version === 2) {
+    return (
+      coin.clawback_timestamp != null && now < coin.clawback_timestamp
+    );
+  }
+  return false;
+}
+
+function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
+  return (
+    coin.clawback_version === 2 &&
+    !!coin.clawback_is_sender &&
+    coin.clawback_timestamp != null &&
+    now >= coin.clawback_timestamp
+  );
+}
+
+function isClaimEligible(coin: CoinRecord, now: number): boolean {
+  // V1: clawback_timestamp is relative seconds, not absolute unix.
+  return (
+    coin.clawback_version === 1 &&
+    !!coin.clawback_is_receiver &&
+    coin.created_timestamp != null &&
+    coin.clawback_timestamp != null &&
+    now >= coin.created_timestamp + coin.clawback_timestamp
+  );
 }
 
 export function ClawbackCoinsCard({
@@ -116,42 +147,62 @@ export function ClawbackCoinsCard({
   useEffect(() => {
     let isMounted = true;
 
-    const checkSpendable = async () => {
-      if (selectedCoinIds.length === 0) {
+    const checkEligibility = async () => {
+      if (
+        selectedCoinIds.length === 0 ||
+        selectedCoinRecords.length !== selectedCoinIds.length
+      ) {
         if (isMounted) {
           setCanClawBack(false);
+          setCanFinalize(false);
+          setCanClaim(false);
         }
         return;
       }
 
-      try {
-        const isSpendable = await commands.getAreCoinsSpendable({
-          coin_ids: selectedCoinIds,
-        });
+      const now = Math.floor(Date.now() / 1000);
 
-        // @TODO implement check for V1 clawback claiming.
-        //const isReceiver = await commands.?
+      const nonePending = selectedCoinRecords.every(
+        (c) => !c.transaction_id && !c.spent_height,
+      );
 
-        if (isMounted) {
-          setCanClawBack(isSpendable.spendable);
-          // @TODO implement check for V1 clawback claiming.
-          //setCanClaim(isReceiver)
-          //const isClaimable = await commands.cla
+      const allClawBack = selectedCoinRecords.every((c) =>
+        isClawBackEligible(c, now),
+      );
+      const allFinalize = selectedCoinRecords.every((c) =>
+        isFinalizeEligible(c, now),
+      );
+      const allClaim = selectedCoinRecords.every((c) =>
+        isClaimEligible(c, now),
+      );
+
+      // spendable_coins covers sender claw-back only; finalize/claim are separate paths.
+      let spendable = false;
+      if (allClawBack) {
+        try {
+          const result = await commands.getAreCoinsSpendable({
+            coin_ids: selectedCoinIds,
+          });
+          spendable = result.spendable;
+        } catch (error) {
+          console.error('Error checking if coins are spendable:', error);
+          spendable = false;
         }
-      } catch (error) {
-        console.error('Error checking if coins are spendable:', error);
-        if (isMounted) {
-          setCanClawBack(false);
-        }
+      }
+
+      if (isMounted) {
+        setCanClawBack(allClawBack && spendable);
+        setCanFinalize(allFinalize && nonePending);
+        setCanClaim(allClaim && nonePending);
       }
     };
 
-    checkSpendable();
+    checkEligibility();
 
     return () => {
       isMounted = false;
     };
-  }, [selectedCoinIds]);
+  }, [selectedCoinIds, selectedCoinRecords]);
 
   const updateCoins = useMemo(
     () =>
@@ -398,7 +449,7 @@ export function ClawbackCoinsCard({
                   if (canClaim) setClaimOpen(true);
                 }}
               >
-                <GrabIcon className='mr-2 h-4 w-4' />
+                <HandCoins className='mr-2 h-4 w-4' />
                 <Trans>Claim</Trans>
               </Button>
             </>

@@ -356,6 +356,7 @@ impl Wallet {
                                 custody.tree_hash() == clawback.sender_puzzle_hash.into();
 
                             if clawback.version == 1 {
+                                // V1 sender can claw anytime; receiver must use claim_clawback.
                                 let v1 = ClawbackV1::new(
                                     clawback.seconds,
                                     clawback.sender_puzzle_hash,
@@ -364,11 +365,7 @@ impl Wallet {
                                 if is_sender {
                                     v1.sender_spend(ctx, spend)?
                                 } else if is_receiver {
-                                    return Err(DriverError::Custom(
-                                        "Clawback V1 receiver spend requires claim_clawback"
-                                            .to_string(),
-                                    )
-                                    .into());
+                                    return Err(WalletError::ClawbackClaimRequired);
                                 } else {
                                     return Err(DriverError::MissingKey.into());
                                 }
@@ -386,10 +383,7 @@ impl Wallet {
                                 } else if is_receiver && timestamp >= clawback.seconds {
                                     v2.receiver_spend(ctx, spend)?
                                 } else if is_sender || is_receiver {
-                                    return Err(DriverError::Custom(
-                                        "Cannot fulfill clawback spend".to_string(),
-                                    )
-                                    .into());
+                                    return Err(WalletError::ClawbackSpendNotAllowed);
                                 } else {
                                     return Err(DriverError::MissingKey.into());
                                 }

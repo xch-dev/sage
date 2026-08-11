@@ -125,6 +125,8 @@ impl Database {
                     offer_hash: row.offer_hash.convert()?,
                     clawback_timestamp: row.clawback_timestamp.convert()?,
                     clawback_version: row.clawback_version.convert()?,
+                    clawback_is_sender: false,
+                    clawback_is_receiver: false,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
@@ -276,6 +278,8 @@ impl Database {
                             .get::<Option<i64>, _>("clawback_timestamp")
                             .convert()?,
                         clawback_version: row.get::<Option<i64>, _>("clawback_version").convert()?,
+                        clawback_is_sender: false,
+                        clawback_is_receiver: false,
                         created_height: row.get::<Option<i64>, _>("created_height").convert()?,
                         spent_height: row.get::<Option<i64>, _>("spent_height").convert()?,
                         created_timestamp: row

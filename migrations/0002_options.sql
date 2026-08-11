@@ -65,7 +65,6 @@ SELECT
   clawbacks.sender_puzzle_hash AS clawback_sender_puzzle_hash,
   clawbacks.receiver_puzzle_hash AS clawback_receiver_puzzle_hash,
   clawbacks.expiration_seconds AS clawback_expiration_seconds,
-  clawbacks.version AS clawback_version,
   p2_options.expiration_seconds AS option_expiration_seconds,
   sender_p2_puzzle.id AS clawback_sender_p2_puzzle_id,
   receiver_p2_puzzle.id AS clawback_receiver_p2_puzzle_id,

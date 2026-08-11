@@ -525,6 +525,7 @@ async fn public_key(
 async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<Clawback> {
     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
 
+    // V2: key follows absolute custody switch. V1: always sender key (claim loads receiver separately).
     let row = query!(
         "
         SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version
@@ -532,8 +533,17 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
         INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
         LEFT JOIN public_keys ON public_keys.p2_puzzle_id IN (
             SELECT id FROM p2_puzzles
-            WHERE (hash = sender_puzzle_hash AND unixepoch() < expiration_seconds)
-            OR (hash = receiver_puzzle_hash AND unixepoch() >= expiration_seconds)
+            WHERE (
+                clawbacks.version = 2
+                AND (
+                    (hash = clawbacks.sender_puzzle_hash AND unixepoch() < clawbacks.expiration_seconds)
+                    OR (hash = clawbacks.receiver_puzzle_hash AND unixepoch() >= clawbacks.expiration_seconds)
+                )
+            )
+            OR (
+                clawbacks.version = 1
+                AND hash = clawbacks.sender_puzzle_hash
+            )
             LIMIT 1
         )
         WHERE p2_puzzles.hash = ?

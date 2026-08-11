@@ -13,6 +13,8 @@ pub struct CoinRecord {
     pub offer_id: Option<String>,
     pub clawback_timestamp: Option<u64>,
     pub clawback_version: Option<u8>,
+    pub clawback_is_sender: Option<bool>,
+    pub clawback_is_receiver: Option<bool>,
     pub created_height: Option<u32>,
     pub spent_height: Option<u32>,
     pub spent_timestamp: Option<u64>,

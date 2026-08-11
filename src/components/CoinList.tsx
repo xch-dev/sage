@@ -495,7 +495,7 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
         size: 120,
         cell: SpentCell,
       },
-  ...(props.clawback && props.clawback_version == 1
+  ...(props.clawback
     ? [{
         accessorKey: 'clawback_version',
         header: () => <ClawbackVersionHeaderWrapper {...props} />,
@@ -525,7 +525,6 @@ export interface CoinListProps {
   onSortDirectionChange: (ascending: boolean) => void;
   onIncludeSpentCoinsChange: (include: boolean) => void;
   clawback: boolean;
-  clawback_version: number;
 }
 
 export default function CoinList(props: CoinListProps) {

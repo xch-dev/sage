@@ -321,10 +321,13 @@ impl ChildKind {
             return Ok(Self::Clawback { info: clawback });
         }
 
-        if let Some(clawback) = parse_clawbackv1_unchecked(allocator, &create_coin, false)
-            .filter(|clawback| clawback.tree_hash() == coin.puzzle_hash.into())
-        {
-            return Ok(Self::ClawbackV1 { info: clawback });
+        // V1 structure lives in parent REMARK conditions (not CREATE_COIN memos).
+        match ClawbackV1::parse_child(allocator, parent_puzzle, parent_solution, coin.puzzle_hash) {
+            Ok(Some(info)) => return Ok(Self::ClawbackV1 { info }),
+            Ok(None) => {}
+            Err(error) => {
+                warn!("Failed to parse clawback v1 from parent: {error}");
+            }
         }
 
         Ok(Self::Unknown)
@@ -413,26 +416,6 @@ fn parse_clawback_unchecked(
     clawback_from_memo_unchecked(allocator, clawback_memo, hint, create_coin.amount, hinted)
 }
 
-fn parse_clawbackv1_unchecked(
-    allocator: &Allocator,
-    create_coin: &CreateCoin<NodePtr>,
-    hinted: bool,
-) -> Option<ClawbackV1> {
-    let Memos::Some(memos) = create_coin.memos else {
-        return None;
-    };
-
-    // Prepare remarks.
-    let clawback_remark  = NodePtr::NIL;
-
-    // @TODO:Rework this to parse the remarks. Do we also need to handle any hinting?
-
-    let (hint, (clawback_memo, _)) =
-        <(Bytes32, (NodePtr, NodePtr))>::from_clvm(allocator, memos).ok()?;
-
-    clawback_from_remark_unchecked(allocator, clawback_remark, hint, create_coin.amount, hinted)
-}
-
 pub fn clawback_from_memo_unchecked(
     allocator: &Allocator,
     memo: NodePtr,
@@ -449,28 +432,6 @@ pub fn clawback_from_memo_unchecked(
         seconds,
         amount,
         hinted,
-    };
-
-    Some(clawback)
-}
-
-// @TODO:Rework this to parse the remarks.
-pub fn clawback_from_remark_unchecked(
-    allocator: &Allocator,
-    remark: NodePtr,
-    receiver_puzzle_hash: Bytes32,
-    amount: u64,
-    hinted: bool,
-) -> Option<ClawbackV1> {
-    let (sender_puzzle_hash, (timelock, ())) =
-        <(Bytes32, (u64, ()))>::from_clvm(allocator, remark).ok()?;
-
-    let clawback = ClawbackV1 {
-        timelock,
-        sender_puzzle_hash,
-        receiver_puzzle_hash,
-        /*amount,
-        hinted,*/
     };
 
     Some(clawback)
