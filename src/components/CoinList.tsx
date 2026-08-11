@@ -292,10 +292,29 @@ const ClawbackVersionHeader = ({
   </Button>
 );
 
-const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
-  row.original.clawback_timestamp
-    ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
-    : t`No expiration`;
+const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
+  const expiration = row.original.clawback_timestamp;
+  if (expiration == null) {
+    return t`No expiration`;
+  }
+
+  // Received V1 coins store a relative timelock; V2 stores absolute unix.
+  if (row.original.clawback_version === 1) {
+    const created = row.original.created_timestamp;
+    if (created != null) {
+      return formatTimestamp(created + expiration, 'short', 'short');
+    }
+    // Create time not synced yet; show the lock length instead of epoch dates.
+    const hours = Math.floor(expiration / 3600);
+    const minutes = Math.floor((expiration % 3600) / 60);
+    const seconds = expiration % 60;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+  }
+
+  return formatTimestamp(expiration, 'short', 'short');
+};
 
 const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
   row.original.clawback_version;
