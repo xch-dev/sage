@@ -482,27 +482,28 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     size: 140,
     cell: ConfirmedCell,
   },
-  props.clawback
-    ? {
-        accessorKey: 'clawback_timestamp',
-        header: () => <ClawbackHeaderWrapper {...props} />,
-        size: 120,
-        cell: ClawbackCell,
-      }
-    : {
-        accessorKey: 'spent_height',
-        header: () => <SpentHeaderWrapper {...props} />,
-        size: 120,
-        cell: SpentCell,
-      },
+  {
+    accessorKey: 'spent_height',
+    header: () => <SpentHeaderWrapper {...props} />,
+    size: 120,
+    cell: SpentCell,
+  },
   ...(props.clawback
-    ? [{
-        accessorKey: 'clawback_version',
-        header: () => <ClawbackVersionHeaderWrapper {...props} />,
-        size: 120,
-        cell: ClawbackVersionCell,
-      }]
-      : []),
+    ? [
+        {
+          accessorKey: 'clawback_timestamp',
+          header: () => <ClawbackHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackCell,
+        },
+        {
+          accessorKey: 'clawback_version',
+          header: () => <ClawbackVersionHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackVersionCell,
+        },
+      ]
+    : []),
 ];
 
 export interface CoinListProps {

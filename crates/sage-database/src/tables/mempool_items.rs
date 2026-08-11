@@ -70,6 +70,14 @@ impl DatabaseTx<'_> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
     }
 
+    pub async fn mark_mempool_inputs_spent(
+        &mut self,
+        mempool_item_id: Bytes32,
+        spent_height: u32,
+    ) -> Result<()> {
+        mark_mempool_inputs_spent(&mut *self.tx, mempool_item_id, spent_height).await
+    }
+
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
         remove_mempool_item(&mut self.tx, mempool_item_id).await
     }
@@ -232,11 +240,12 @@ async fn mempool_items_for_input(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_input = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ?
+          AND mempool_coins.is_input = TRUE
         ",
         coin_id
     )
@@ -255,11 +264,12 @@ async fn mempool_items_for_output(
 
     query!(
         "
-        SELECT mempool_items.hash AS mempool_item_hash 
+        SELECT mempool_items.hash AS mempool_item_hash
         FROM mempool_items
         INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
-        INNER JOIN coins ON coins.hash = ?
-        WHERE mempool_coins.is_output = TRUE
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        WHERE coins.hash = ?
+          AND mempool_coins.is_output = TRUE
         ",
         coin_id
     )
@@ -268,6 +278,36 @@ async fn mempool_items_for_output(
     .into_iter()
     .map(|row| row.mempool_item_hash.convert())
     .collect()
+}
+
+async fn mark_mempool_inputs_spent(
+    conn: impl SqliteExecutor<'_>,
+    mempool_item_id: Bytes32,
+    spent_height: u32,
+) -> Result<()> {
+    let mempool_item_id = mempool_item_id.as_ref();
+    let spent_height = spent_height as i64;
+
+    query!(
+        "
+        UPDATE coins
+        SET spent_height = ?
+        WHERE spent_height IS NULL
+          AND id IN (
+            SELECT mempool_coins.coin_id
+            FROM mempool_coins
+            INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id
+            WHERE mempool_items.hash = ?
+              AND mempool_coins.is_input = TRUE
+          )
+        ",
+        spent_height,
+        mempool_item_id
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
 }
 
 async fn remove_mempool_item(conn: &mut SqliteConnection, mempool_item_id: Bytes32) -> Result<()> {

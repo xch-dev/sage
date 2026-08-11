@@ -20,8 +20,9 @@ import {
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
 import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { fromMojos, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import type { CustomError } from '@/contexts/ErrorContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -57,7 +58,13 @@ interface ClawbackCoinsCardProps {
 
 function isClawBackEligible(coin: CoinRecord, now: number): boolean {
   if (!coin.clawback_is_sender) return false;
-  if (coin.clawback_version === 1) return true;
+  // V1: relative timelock from created; V2: absolute unix.
+  if (coin.clawback_version === 1) {
+    if (coin.created_timestamp == null || coin.clawback_timestamp == null) {
+      return true;
+    }
+    return now < coin.created_timestamp + coin.clawback_timestamp;
+  }
   if (coin.clawback_version === 2) {
     return (
       coin.clawback_timestamp != null && now < coin.clawback_timestamp
@@ -76,7 +83,6 @@ function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
 }
 
 function isClaimEligible(coin: CoinRecord, now: number): boolean {
-  // V1: clawback_timestamp is relative seconds, not absolute unix.
   return (
     coin.clawback_version === 1 &&
     !!coin.clawback_is_receiver &&
@@ -97,12 +103,29 @@ export function ClawbackCoinsCard({
   const { addError } = useErrors();
   const { isTestnet } = useNetwork();
 
+  const reportError = (error: unknown) => {
+    const e = error as {
+      kind?: CustomError['kind'];
+      reason?: string;
+      message?: string;
+    };
+    addError({
+      kind: e?.kind ?? 'internal',
+      reason:
+        e?.reason ||
+        e?.message ||
+        (typeof error === 'string' ? error : null) ||
+        t`Something went wrong. Check the logs for details.`,
+    });
+  };
+
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
   );
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalCoins, setTotalCoins] = useState<number>(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
   const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
@@ -118,6 +141,7 @@ export function ClawbackCoinsCard({
   // Use ref to track current page to avoid dependency issues
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
+  const prevSelectedCountRef = useRef(0);
 
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
@@ -176,7 +200,6 @@ export function ClawbackCoinsCard({
         isClaimEligible(c, now),
       );
 
-      // spendable_coins covers sender claw-back only; finalize/claim are separate paths.
       let spendable = false;
       if (allClawBack) {
         try {
@@ -221,6 +244,7 @@ export function ClawbackCoinsCard({
           .then((res) => {
             setCoins(res.coins);
             setTotalCoins(res.total);
+            setHasLoaded(true);
           })
           .catch(addError);
       },
@@ -228,12 +252,23 @@ export function ClawbackCoinsCard({
   );
 
   useEffect(() => {
+    setHasLoaded(false);
+    setCoins([]);
+    setTotalCoins(0);
+    setCurrentPage(0);
+  }, [asset.asset_id]);
+
+  useEffect(() => {
     updateCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
 
-      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'transaction_failed'
+      ) {
         updateCoins();
       }
     });
@@ -253,6 +288,15 @@ export function ClawbackCoinsCard({
     updateCoins(currentPage);
   }, [currentPage, updateCoins]);
 
+  // Refresh after confirm clears selection (non-empty → empty).
+  useEffect(() => {
+    const prev = prevSelectedCountRef.current;
+    prevSelectedCountRef.current = selectedCoinIds.length;
+    if (prev > 0 && selectedCoinIds.length === 0) {
+      updateCoins();
+    }
+  }, [selectedCoinIds.length, updateCoins]);
+
   const clawBackFormSchema = z.object({
     clawBackFee: amount(walletState.sync.unit.precision).refine(
       (amount) =>
@@ -263,10 +307,14 @@ export function ClawbackCoinsCard({
 
   const clawBackForm = useForm<z.infer<typeof clawBackFormSchema>>({
     resolver: zodResolver(clawBackFormSchema),
+    defaultValues: { clawBackFee: '0' },
   });
 
   const onClawBackSubmit = (values: z.infer<typeof clawBackFormSchema>) => {
-    const fee = toMojos(values.clawBackFee, walletState.sync.unit.precision);
+    const fee = toMojos(
+      values.clawBackFee || '0',
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
@@ -294,7 +342,7 @@ export function ClawbackCoinsCard({
 
         setResponse(resultWithDetails);
       })
-      .catch(addError)
+      .catch(reportError)
       .finally(() => setClawBackOpen(false));
   };
 
@@ -308,10 +356,14 @@ export function ClawbackCoinsCard({
 
   const finalizeForm = useForm<z.infer<typeof finalizeFormSchema>>({
     resolver: zodResolver(finalizeFormSchema),
+    defaultValues: { finalizeFee: '0' },
   });
 
   const onFinalizeSubmit = (values: z.infer<typeof finalizeFormSchema>) => {
-    const fee = toMojos(values.finalizeFee, walletState.sync.unit.precision);
+    const fee = toMojos(
+      values.finalizeFee || '0',
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
@@ -339,23 +391,36 @@ export function ClawbackCoinsCard({
 
         setResponse(resultWithDetails);
       })
-      .catch(addError)
+      .catch(reportError)
       .finally(() => setFinalizeOpen(false));
   };
 
   const claimFormSchema = z.object({
     claimFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (fee) => {
+        const feeDisplay = fee || '0';
+        if (BigNumber(feeDisplay).isLessThanOrEqualTo(0)) return true;
+        return BigNumber(
+          fromMojos(
+            walletState.sync.selectable_balance,
+            walletState.sync.unit.precision,
+          ),
+        ).gte(feeDisplay);
+      },
       t`Not enough funds to cover the fee`,
     ),
   });
 
   const claimForm = useForm<z.infer<typeof claimFormSchema>>({
     resolver: zodResolver(claimFormSchema),
+    defaultValues: { claimFee: '0' },
   });
 
   const onClaimSubmit = (values: z.infer<typeof claimFormSchema>) => {
-    const fee = toMojos(values.claimFee, walletState.sync.unit.precision);
+    const fee = toMojos(
+      values.claimFee || '0',
+      walletState.sync.unit.precision,
+    );
 
     // Get IDs from the selected coin records
     const coinIdsForRequest = selectedCoinRecords.map(
@@ -366,6 +431,7 @@ export function ClawbackCoinsCard({
       .claimClawback({
         coin_ids: coinIdsForRequest,
         fee,
+        auto_submit: false,
       })
       .then((result) => {
         // Add confirmation data to the response
@@ -383,7 +449,7 @@ export function ClawbackCoinsCard({
 
         setResponse(resultWithDetails);
       })
-      .catch(addError)
+      .catch(reportError)
       .finally(() => setClaimOpen(false));
   };
 
@@ -391,7 +457,9 @@ export function ClawbackCoinsCard({
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
 
-  if (!totalCoins) return null;
+  if (!hasLoaded || totalCoins === 0) {
+    return null;
+  }
 
   return (
     <Card className='max-w-full overflow-auto'>

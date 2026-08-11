@@ -35,6 +35,7 @@ commands.allow = [
     "add_nft_uri",
     "assign_nfts_to_did",
     "finalize_clawback",
+    "claim_clawback",
     "create_transaction",
     "sign_coin_spends",
     "view_coin_spends",

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE coins\n        SET spent_height = ?\n        WHERE spent_height IS NULL\n          AND id IN (\n            SELECT mempool_coins.coin_id\n            FROM mempool_coins\n            INNER JOIN mempool_items ON mempool_items.id = mempool_coins.mempool_item_id\n            WHERE mempool_items.hash = ?\n              AND mempool_coins.is_input = TRUE\n          )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "47602c333b3ebf9c723a12fed2fe732d5878891aa8676e28e87de2cbc4d9a4af"
+}

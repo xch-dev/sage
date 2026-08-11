@@ -729,11 +729,11 @@ export type CheckAddressResponse = {
  */
 valid: boolean }
 /**
- * Claim a coin from a early clawback version
+ * Claim Clawback
  */
 export type ClaimClawback = { 
 /**
- * The clawback coins to claim
+ * The coins to claim from the clawback v1 coin.
  */
 coin_ids: string[]; 
 /**
@@ -937,7 +937,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Finalize a clawback
+ * Finalize the clawback for a set of coins
  */
 export type FinalizeClawback = { 
 /**

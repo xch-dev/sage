@@ -1,9 +1,6 @@
 /*
  * Clawback V1: version column + custody-correct views.
- *
- * clawbacks.expiration_seconds is absolute unix for V2 (default) and relative
- * timelock seconds for V1. V1 never auto-switches custody to the receiver;
- * locked V1 coins stay out of owned/selectable until explicitly claimed.
+ * expiration_seconds is absolute unix for V2, relative seconds for V1.
  */
 
 ALTER TABLE clawbacks ADD COLUMN version INTEGER NOT NULL DEFAULT 2;
@@ -125,7 +122,6 @@ SELECT *
 FROM wallet_coins
 WHERE spent_height IS NOT NULL OR mempool_item_hash IS NOT NULL;
 
--- Action hub: V2/V1 senders, plus V1 receivers after relative lock.
 CREATE VIEW clawback_coins AS
 SELECT *
 FROM wallet_coins
@@ -136,12 +132,7 @@ WHERE 1=1
     OR
     (clawback_version = 1 AND clawback_sender_p2_puzzle_id IS NOT NULL)
     OR
-    (
-      clawback_version = 1
-      AND clawback_receiver_p2_puzzle_id IS NOT NULL
-      AND created_timestamp IS NOT NULL
-      AND unixepoch() >= created_timestamp + clawback_expiration_seconds
-    )
+    (clawback_version = 1 AND clawback_receiver_p2_puzzle_id IS NOT NULL)
   );
 
 CREATE VIEW claimable_clawback_coins AS
