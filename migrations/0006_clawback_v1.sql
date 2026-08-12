@@ -1,6 +1,8 @@
 /*
  * Clawback V1: version column + custody-correct views.
  * expiration_seconds is absolute unix for V2, relative seconds for V1.
+ * clawback_coins lists both parties (pending visibility); claim stays gated
+ * in claimable_clawback_coins / UI.
  */
 
 ALTER TABLE clawbacks ADD COLUMN version INTEGER NOT NULL DEFAULT 2;

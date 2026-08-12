@@ -81,10 +81,15 @@ function isClaimEligible(coin: CoinRecord, now: number): boolean {
   if (
     coin.clawback_version !== 1 ||
     !coin.clawback_is_receiver ||
-    coin.created_timestamp == null ||
-    coin.clawback_timestamp == null
+    coin.clawback_timestamp == null ||
+    coin.created_height == null
   ) {
     return false;
+  }
+  // Match backend: if birth time is not synced yet, allow the attempt and
+  // let claim_clawback / the chain enforce the relative lock.
+  if (coin.created_timestamp == null) {
+    return true;
   }
   return (
     now >= Number(coin.created_timestamp) + Number(coin.clawback_timestamp)
@@ -186,7 +191,7 @@ export function ClawbackCoinsCard({
       const now = Math.floor(Date.now() / 1000);
 
       const nonePending = selectedCoinRecords.every(
-        (c) => !c.transaction_id && !c.spent_height,
+        (c) => !c.transaction_id && !c.spent_height && !c.offer_id,
       );
 
       const allClawBack = selectedCoinRecords.every((c) =>

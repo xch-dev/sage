@@ -19,7 +19,10 @@ async fn ensure_clawback_unspent(db: &Database, coin_id: Bytes32) -> Result<(), 
     let Some(row) = rows.first() else {
         return Err(WalletError::MissingCoin(coin_id));
     };
-    if row.spent_height.is_some() || row.mempool_item_hash.is_some() {
+    if row.spent_height.is_some()
+        || row.mempool_item_hash.is_some()
+        || row.offer_hash.is_some()
+    {
         return Err(WalletError::ClawbackAlreadySpentOrPending(coin_id));
     }
     Ok(())
@@ -199,14 +202,30 @@ impl Wallet {
                     let Some(row) = rows.first() else {
                         return Err(WalletError::MissingCoin(coin_id));
                     };
-                    if row.spent_height.is_some() || row.mempool_item_hash.is_some() {
+                    if row.spent_height.is_some()
+                        || row.mempool_item_hash.is_some()
+                        || row.offer_hash.is_some()
+                    {
                         return Err(WalletError::ClawbackAlreadySpentOrPending(coin_id));
+                    }
+                    // Must be confirmed on-chain before claim (relative lock is from birth).
+                    if row.created_height.is_none() {
+                        return Err(WalletError::ClawbackNotYetClaimable(coin_id));
                     }
                     // Preflight relative lock when created_timestamp is known; otherwise defer to chain.
                     if let Some(created_timestamp) = row.created_timestamp {
                         if now < created_timestamp.saturating_add(clawback.seconds) {
                             return Err(WalletError::ClawbackNotYetClaimable(coin_id));
                         }
+                    }
+
+                    // Receiver path only — sender claws via combine / complete_spends.
+                    if !self
+                        .db
+                        .is_custody_p2_puzzle_hash(clawback.receiver_puzzle_hash)
+                        .await?
+                    {
+                        return Err(WalletError::UnknownPublicKey);
                     }
 
                     let Some(receiver_key) = self
