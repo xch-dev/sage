@@ -58,16 +58,11 @@ interface ClawbackCoinsCardProps {
 
 function isClawBackEligible(coin: CoinRecord, now: number): boolean {
   if (!coin.clawback_is_sender) return false;
-  // V1: relative timelock from created; V2: absolute unix.
-  if (coin.clawback_version === 1) {
-    if (coin.created_timestamp == null || coin.clawback_timestamp == null) {
-      return true;
-    }
-    return now < coin.created_timestamp + coin.clawback_timestamp;
-  }
+  // V1 sender can claw until claimed; V2 only before absolute expiry.
+  if (coin.clawback_version === 1) return true;
   if (coin.clawback_version === 2) {
     return (
-      coin.clawback_timestamp != null && now < coin.clawback_timestamp
+      coin.clawback_timestamp != null && now < Number(coin.clawback_timestamp)
     );
   }
   return false;
@@ -78,17 +73,21 @@ function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
     coin.clawback_version === 2 &&
     !!coin.clawback_is_sender &&
     coin.clawback_timestamp != null &&
-    now >= coin.clawback_timestamp
+    now >= Number(coin.clawback_timestamp)
   );
 }
 
 function isClaimEligible(coin: CoinRecord, now: number): boolean {
+  if (
+    coin.clawback_version !== 1 ||
+    !coin.clawback_is_receiver ||
+    coin.created_timestamp == null ||
+    coin.clawback_timestamp == null
+  ) {
+    return false;
+  }
   return (
-    coin.clawback_version === 1 &&
-    !!coin.clawback_is_receiver &&
-    coin.created_timestamp != null &&
-    coin.clawback_timestamp != null &&
-    now >= coin.created_timestamp + coin.clawback_timestamp
+    now >= Number(coin.created_timestamp) + Number(coin.clawback_timestamp)
   );
 }
 
@@ -200,16 +199,19 @@ export function ClawbackCoinsCard({
         isClaimEligible(c, now),
       );
 
-      let spendable = false;
-      if (allClawBack) {
-        try {
-          const result = await commands.getAreCoinsSpendable({
-            coin_ids: selectedCoinIds,
-          });
-          spendable = result.spendable;
-        } catch (error) {
-          console.error('Error checking if coins are spendable:', error);
-          spendable = false;
+      let spendable = nonePending;
+      if (allClawBack && nonePending) {
+        const anyV2 = selectedCoinRecords.some((c) => c.clawback_version === 2);
+        if (anyV2) {
+          try {
+            const result = await commands.getAreCoinsSpendable({
+              coin_ids: selectedCoinIds,
+            });
+            spendable = result.spendable;
+          } catch (error) {
+            console.error('Error checking if coins are spendable:', error);
+            spendable = false;
+          }
         }
       }
 

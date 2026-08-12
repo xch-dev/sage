@@ -130,6 +130,8 @@ WHERE 1=1
   AND (
     (clawback_version = 2 AND clawback_sender_p2_puzzle_id IS NOT NULL)
     OR
+    (clawback_version = 2 AND clawback_receiver_p2_puzzle_id IS NOT NULL)
+    OR
     (clawback_version = 1 AND clawback_sender_p2_puzzle_id IS NOT NULL)
     OR
     (clawback_version = 1 AND clawback_receiver_p2_puzzle_id IS NOT NULL)

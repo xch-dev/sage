@@ -1,6 +1,5 @@
 /*
- * List clawback coins for both parties (pending visibility).
- * Claim eligibility remains gated in UI / claimable_clawback_coins.
+ * Include V2 receivers on the clawback list (pending before expiry).
  */
 
 DROP VIEW IF EXISTS claimable_clawback_coins;

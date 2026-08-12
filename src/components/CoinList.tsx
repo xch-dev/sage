@@ -298,22 +298,29 @@ const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
     return t`No expiration`;
   }
 
-  // Received V1 coins store a relative timelock; V2 stores absolute unix.
+  const lockSeconds = Number(expiration);
+  if (!Number.isFinite(lockSeconds)) {
+    return t`No expiration`;
+  }
+
+  // V1 stores relative seconds; unlock = birth block time + timelock.
   if (row.original.clawback_version === 1) {
     const created = row.original.created_timestamp;
     if (created != null) {
-      return formatTimestamp(created + expiration, 'short', 'short');
+      const createdSeconds = Number(created);
+      if (Number.isFinite(createdSeconds)) {
+        return formatTimestamp(createdSeconds + lockSeconds, 'short', 'short');
+      }
     }
-    // Create time not synced yet; show the lock length instead of epoch dates.
-    const hours = Math.floor(expiration / 3600);
-    const minutes = Math.floor((expiration % 3600) / 60);
-    const seconds = expiration % 60;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    if (minutes > 0) return `${minutes}m ${seconds}s`;
-    return `${seconds}s`;
+    // Mempool / missing block time: estimate from now.
+    return formatTimestamp(
+      Math.floor(Date.now() / 1000) + lockSeconds,
+      'short',
+      'short',
+    );
   }
 
-  return formatTimestamp(expiration, 'short', 'short');
+  return formatTimestamp(lockSeconds, 'short', 'short');
 };
 
 const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
