@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "dev:system-apps": "node scripts/dev-system-apps-watch.mjs",
+    "generate:bindings": "cargo run -p sage-tauri --bin generate-bindings",
     "generate:bridge-types": "node scripts/generate-bridge-types.mjs",
     "generate:app-docs": "cargo run -p sage-apps --bin generate_docs",
     "generate:sdk-types": "pnpm --silent --filter @sage-app/sdk run generate:types && pnpm --silent --filter @sage-system-app/sdk run generate:types",

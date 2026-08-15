@@ -1,3 +1,6 @@
+#[cfg(all(debug_assertions, not(mobile)))]
+use std::path::PathBuf;
+
 use app_state::{AppState, Initialized, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
@@ -150,14 +153,9 @@ macro_rules! sage_commands {
     };
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    default_provider()
-        .install_default()
-        .expect("could not install AWS LC provider");
-
-    #[cfg(not(mobile))]
-    let builder = Builder::<tauri::Wry>::new()
+#[cfg(not(mobile))]
+fn specta_builder() -> Builder<tauri::Wry> {
+    Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![
             apps::apps_enter_workspace,
@@ -183,21 +181,35 @@ pub fn run() {
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
         ])
-        .events(collect_events![SyncEvent]);
+        .events(collect_events![SyncEvent])
+}
+
+#[cfg(all(debug_assertions, not(mobile)))]
+pub fn export_bindings() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../src/bindings.ts");
+
+    specta_builder()
+        .export(
+            Typescript::default().bigint(BigIntExportBehavior::Number),
+            path,
+        )
+        .expect("Failed to export TypeScript bindings");
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    default_provider()
+        .install_default()
+        .expect("could not install AWS LC provider");
+
+    #[cfg(not(mobile))]
+    let builder = specta_builder();
 
     #[cfg(mobile)]
     let builder = Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
-
-    #[cfg(all(debug_assertions, not(mobile)))]
-    builder
-        .export(
-            Typescript::default().bigint(BigIntExportBehavior::Number),
-            "../src/bindings.ts",
-        )
-        .expect("Failed to export TypeScript bindings");
 
     let mut tauri_builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
