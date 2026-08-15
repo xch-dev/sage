@@ -196,8 +196,19 @@ export function OwnedCoinsCard({
             filter_mode: includeSpentCoins ? 'spent' : 'owned',
           })
           .then((res) => {
+            // Ignore a late response for a page the user has already left.
+            if (page !== currentPageRef.current) return;
+
             setCoins(res.coins);
             setTotalCoins(res.total);
+
+            // A combine can remove enough coins to make the current page
+            // invalid. Move to the last page that still exists after the
+            // refreshed total is known; the page effect will load it.
+            const lastPage = Math.max(0, Math.ceil(res.total / pageSize) - 1);
+            if (page > lastPage) {
+              setCurrentPage(lastPage);
+            }
           })
           .catch(addError);
       },
