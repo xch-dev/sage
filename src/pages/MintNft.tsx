@@ -113,28 +113,15 @@ export default function MintNft() {
         .filter(Boolean),
     };
 
-    const mints =
-      values.editionCount > 1
-        ? Array.from({ length: values.editionCount }, (_, i) => ({
-            edition_number: i + values.editionStart,
-            edition_total: values.editionTotal ?? values.editionCount,
-            royalty_address: values.royaltyAddress || null,
-            royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
-            data_uris: mintDetails.data_uris,
-            metadata_uris: mintDetails.metadata_uris,
-            license_uris: mintDetails.license_uris,
-          }))
-        : [
-            {
-              edition_number: null,
-              edition_total: null,
-              royalty_address: values.royaltyAddress || null,
-              royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
-              data_uris: mintDetails.data_uris,
-              metadata_uris: mintDetails.metadata_uris,
-              license_uris: mintDetails.license_uris,
-            },
-          ];
+    const mints = Array.from({ length: values.editionCount }, (_, i) => ({
+      edition_number: i + values.editionStart,
+      edition_total: values.editionTotal ?? values.editionCount,
+      royalty_address: values.royaltyAddress || null,
+      royalty_ten_thousandths: Number(values.royaltyPercent) * 100,
+      data_uris: mintDetails.data_uris,
+      metadata_uris: mintDetails.metadata_uris,
+      license_uris: mintDetails.license_uris,
+    }));
 
     commands
       .bulkMintNfts({
