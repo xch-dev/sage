@@ -308,7 +308,7 @@ pub fn run() {
                 let cleanup_base_path = path.clone();
 
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     tracing::info!("starting pending storage cleanup task");
 
                     if let Err(err) =

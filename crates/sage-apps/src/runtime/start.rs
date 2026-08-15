@@ -191,7 +191,7 @@ async fn create_runtime_for_app(
 
     let runtime_for_nav = shared_runtime.clone();
     let builder = WebviewBuilder::new(
-        webview_label.to_string(),
+        webview_label.clone(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
     .transparent(true)
@@ -420,8 +420,5 @@ async fn mark_origin_may_contain_secrets_if_needed(
 }
 
 fn debug_test_apps_enabled() -> bool {
-    cfg!(debug_assertions)
-        && std::env::var("SAGE_DEBUG_TEST_APPS")
-            .map(|v| v == "1")
-            .unwrap_or(false)
+    cfg!(debug_assertions) && std::env::var("SAGE_DEBUG_TEST_APPS").is_ok_and(|v| v == "1")
 }

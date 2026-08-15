@@ -227,7 +227,7 @@ impl PuzzleQueue {
                     ) {
                         self.state.lock().await.ban(
                             addr.ip(),
-                            Duration::from_secs(300),
+                            Duration::from_mins(5),
                             "failed puzzle lookup",
                         );
                     }
