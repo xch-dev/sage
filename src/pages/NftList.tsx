@@ -6,7 +6,7 @@ import { NftOptions } from '@/components/NftOptions';
 import { NftPageTitle } from '@/components/NftPageTitle';
 import { Pagination } from '@/components/Pagination';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
-import { Button } from '@/components/ui/button';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useNftData } from '@/hooks/useNftData';
@@ -131,13 +131,13 @@ export function NftList() {
       </Header>
 
       <Container>
-        <Button
+        <ReadOnlyButton
           onClick={() => navigate('/nfts/mint')}
           aria-label={t`Create new NFT`}
         >
           <ImagePlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
           <Trans>Mint NFT</Trans>
-        </Button>
+        </ReadOnlyButton>
 
         <div ref={optionsRef}>
           <NftOptions

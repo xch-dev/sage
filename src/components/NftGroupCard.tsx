@@ -4,6 +4,7 @@ import {
   NftRecord,
   commands,
 } from '@/bindings';
+import { useWallet } from '@/contexts/WalletContext';
 import { NftGroupMode } from '@/hooks/useNftParams';
 import { useNetwork } from '@/hooks/useNetwork';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
@@ -72,6 +73,7 @@ export function NftGroupCard({
 }: NftGroupCardProps) {
   const navigate = useNavigate();
   const { isTestnet } = useNetwork();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const isCollection = type === 'collection';
 
@@ -400,6 +402,7 @@ export function NftGroupCard({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isTransactionDisabled}
                     onClick={async (e) => {
                       e.stopPropagation();
                       try {

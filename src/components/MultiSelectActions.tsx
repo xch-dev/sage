@@ -1,5 +1,6 @@
 import { commands, NftRecord, TransactionResponse } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
@@ -46,6 +47,7 @@ export function MultiSelectActions({
   onConfirm,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
 
   const { addError } = useErrors();
@@ -203,6 +205,7 @@ export function MultiSelectActions({
             <DropdownMenuGroup>
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setTransferOpen(true);
@@ -217,6 +220,7 @@ export function MultiSelectActions({
 
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setAssignOpen(true);
@@ -231,6 +235,7 @@ export function MultiSelectActions({
 
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setBurnOpen(true);
@@ -249,6 +254,7 @@ export function MultiSelectActions({
 
                   <DropdownMenuItem
                     className='cursor-pointer'
+                    disabled={isTransactionDisabled}
                     onClick={(e) => {
                       e.stopPropagation();
 

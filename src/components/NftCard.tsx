@@ -12,6 +12,7 @@ import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { useWallet } from '@/contexts/WalletContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -96,6 +97,7 @@ interface NftCardProps {
 
 export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
@@ -448,7 +450,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Transfer ${nftName}`}
                 >
                   <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -463,7 +465,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setAssignOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={
                     nft.owner_did === null ? t`Assign profile` : t`Edit profile`
                   }
@@ -485,7 +487,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     addUrlForm.reset();
                     setAddUrlOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Add URL to ${nftName}`}
                 >
                   <LinkIcon className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -500,7 +502,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Burn ${nftName}`}
                 >
                   <Flame className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -532,6 +534,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                       });
                     }}
                     disabled={
+                      isTransactionDisabled ||
                       !nft.created_height ||
                       offerState.offered.nfts.findIndex(
                         (nftId) => nftId === nft.launcher_id,
