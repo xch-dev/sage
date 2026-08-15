@@ -46,6 +46,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { exportText, ExportType } from '@/lib/exportText';
+import { offersEnabled } from '@/lib/features';
 import {
   clearState,
   fetchState,
@@ -385,41 +386,43 @@ function GlobalSettings() {
             </div>
           )}
         </SettingItem>
-        <SettingItem
-          label={t`Default Offer Expiry`}
-          description={t`Set a default expiration time for new offers`}
-          control={
-            <Switch
-              checked={expiry.enabled}
-              onCheckedChange={(checked) => {
-                setExpiry({
-                  ...expiry,
-                  enabled: checked,
-                });
-              }}
-            />
-          }
-        >
-          {expiry.enabled && (
-            <div className='grid grid-cols-3 gap-4 mt-2'>
-              <TimeInput
-                label={t`Days`}
-                value={expiry.days}
-                onChange={(value) => setExpiry({ ...expiry, days: value })}
+        {offersEnabled && (
+          <SettingItem
+            label={t`Default Offer Expiry`}
+            description={t`Set a default expiration time for new offers`}
+            control={
+              <Switch
+                checked={expiry.enabled}
+                onCheckedChange={(checked) => {
+                  setExpiry({
+                    ...expiry,
+                    enabled: checked,
+                  });
+                }}
               />
-              <TimeInput
-                label={t`Hours`}
-                value={expiry.hours}
-                onChange={(value) => setExpiry({ ...expiry, hours: value })}
-              />
-              <TimeInput
-                label={t`Minutes`}
-                value={expiry.minutes}
-                onChange={(value) => setExpiry({ ...expiry, minutes: value })}
-              />
-            </div>
-          )}
-        </SettingItem>
+            }
+          >
+            {expiry.enabled && (
+              <div className='grid grid-cols-3 gap-4 mt-2'>
+                <TimeInput
+                  label={t`Days`}
+                  value={expiry.days}
+                  onChange={(value) => setExpiry({ ...expiry, days: value })}
+                />
+                <TimeInput
+                  label={t`Hours`}
+                  value={expiry.hours}
+                  onChange={(value) => setExpiry({ ...expiry, hours: value })}
+                />
+                <TimeInput
+                  label={t`Minutes`}
+                  value={expiry.minutes}
+                  onChange={(value) => setExpiry({ ...expiry, minutes: value })}
+                />
+              </div>
+            )}
+          </SettingItem>
+        )}
       </SettingsSection>
 
       <SettingsSection title={t`Syncing Defaults`}>
@@ -469,9 +472,11 @@ function WalletConnectSettings() {
   const { pair, sessions, disconnect, connecting } = useWalletConnect();
   const [uri, setUri] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    setUri(scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      setUri(scanResValue);
+    },
+  );
 
   const handlePair = async () => {
     try {
@@ -524,6 +529,7 @@ function WalletConnectSettings() {
               placeholder={t`WalletConnect URI`}
               onChange={(e) => setUri(e.target.value)}
               onEndIconClick={handleScanOrPaste}
+              onScanImage={handleScanImage}
               disabled={connecting}
             />
 
@@ -1066,11 +1072,13 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     }
   };
 
-  const { handleScanOrPaste: handleScanOrPasteChangeAddress } =
-    useScannerOrClipboard((scanResValue) => {
-      setLocalChangeAddress(scanResValue);
-      saveChangeAddress(scanResValue);
-    });
+  const {
+    handleScanOrPaste: handleScanOrPasteChangeAddress,
+    handleScanImage: handleScanImageChangeAddress,
+  } = useScannerOrClipboard((scanResValue) => {
+    setLocalChangeAddress(scanResValue);
+    saveChangeAddress(scanResValue);
+  });
 
   const fetchDatabaseStats = useCallback(async () => {
     setLoadingStats(true);
@@ -1311,6 +1319,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 saveChangeAddress(localChangeAddress);
               }}
               onEndIconClick={handleScanOrPasteChangeAddress}
+              onScanImage={handleScanImageChangeAddress}
             />
           </div>
         </SettingItem>

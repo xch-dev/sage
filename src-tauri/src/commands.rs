@@ -1,10 +1,16 @@
 use std::{fs, time::Duration};
 
+use crate::{
+    app_state::{self, AppState, Initialized, RpcTask},
+    error::Result,
+};
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
+#[cfg(not(mobile))]
+use sage_apps::ensure_initial_sandbox_run;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
 use serde::{Deserialize, Serialize};
@@ -12,11 +18,6 @@ use specta::{Type, specta};
 use tauri::{AppHandle, State, command};
 use tokio::time::sleep;
 use tracing::error;
-
-use crate::{
-    app_state::{self, AppState, Initialized, RpcTask},
-    error::Result,
-};
 
 #[command]
 #[specta]
@@ -35,7 +36,7 @@ pub async fn initialize(
     *initialized = true;
 
     let mut sage = state.lock().await;
-    app_state::initialize(app_handle, &mut sage).await?;
+    app_state::initialize(app_handle.clone(), &mut sage).await?;
     drop(sage);
 
     let app_state = (*state).clone();
@@ -154,8 +155,23 @@ pub async fn set_rpc_run_on_startup(
 
 #[command]
 #[specta]
-pub async fn switch_wallet(state: State<'_, AppState>) -> Result<()> {
-    state.lock().await.switch_wallet().await?;
+pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) -> Result<()> {
+    {
+        state.lock().await.switch_wallet().await?;
+    }
+
+    #[cfg(not(mobile))]
+    {
+        if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
+            eprintln!("failed to start initial sandbox run: {err}");
+        }
+    }
+
+    #[cfg(mobile)]
+    {
+        let _ = app_handle;
+    }
+
     Ok(())
 }
 

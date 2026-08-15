@@ -15,7 +15,7 @@ use sage_api::{
 use sage_assets::fetch_uris_with_hash;
 use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
 use sage_wallet::{
-    Offered, Requested, RequestedCat, SyncCommand, Transaction, Wallet, WalletError,
+    Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
     aggregate_offers, insert_transaction, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -202,7 +202,7 @@ impl Sage {
         let offer = decode_offer(&req.offer)?;
         let fee = parse_amount(req.fee)?;
 
-        let unsigned = wallet.take_offer(offer, fee).await?;
+        let taken = wallet.take_offer(offer, fee).await?;
 
         let (_mnemonic, Some(master_sk)) =
             self.keychain.extract_secrets(wallet.fingerprint, b"")?
@@ -210,14 +210,19 @@ impl Sage {
             return Err(Error::NoSigningKey);
         };
 
+        let TakenOffer {
+            offer,
+            spend_bundle,
+        } = taken;
         let spend_bundle = wallet
             .sign_transaction(
-                unsigned,
+                spend_bundle,
                 &AggSigConstants::new(self.network().agg_sig_me()),
                 master_sk,
-                true,
+                false,
             )
             .await?;
+        let spend_bundle = offer.take(spend_bundle);
 
         debug!(
             "{}",

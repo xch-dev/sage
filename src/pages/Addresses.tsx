@@ -42,10 +42,12 @@ export default function Addresses() {
     setCurrentPage,
   } = useDerivationState(hardened);
 
-  const { handleScanOrPaste } = useScannerOrClipboard((text: string) => {
-    setAddressToCheck(text);
-    setCheckStatus('idle');
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (text: string) => {
+      setAddressToCheck(text);
+      setCheckStatus('idle');
+    },
+  );
 
   const pageCount = Math.ceil(totalDerivations / pageSize);
 
@@ -106,6 +108,7 @@ export default function Addresses() {
                 setCheckStatus('idle');
               }}
               onEndIconClick={handleScanOrPaste}
+              onScanImage={handleScanImage}
             />
             <Button
               variant='secondary'

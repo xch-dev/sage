@@ -1,0 +1,28 @@
+{
+  "manifestVersion": 0,
+  "sageVersion": {
+    "min": "0.0.0"
+  },
+  "name": "Donation",
+  "version": "0.1.0",
+  "permissions": {
+    "network": {
+      "whitelist": {
+        "required": [],
+        "optional": []
+      }
+    },
+    "capabilities": {
+      "required": [
+        "environment.theme.get_current",
+        "environment.theme.listen_changed",
+        "environment.theme.css_vars",
+        "wallet.get_xch_usd_price",
+        "wallet.send_xch"
+      ],
+      "optional": []
+    }
+  },
+  "files": [],
+  "entry": "index.html"
+}

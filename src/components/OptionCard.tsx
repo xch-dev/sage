@@ -12,8 +12,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { useWallet } from '@/contexts/WalletContext';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { OptionActionHandlers } from '@/hooks/useOptionActions';
+import { offersEnabled } from '@/lib/features';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -41,6 +43,7 @@ interface OptionCardProps {
 }
 
 export function OptionCard({ option, actionHandlers }: OptionCardProps) {
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
@@ -74,7 +77,9 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onExercise(option);
                   }}
-                  disabled={option.created_height === null}
+                  disabled={
+                    isTransactionDisabled || option.created_height === null
+                  }
                 >
                   <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Exercise</Trans>
@@ -86,7 +91,9 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onTransfer(option);
                   }}
-                  disabled={option.created_height === null}
+                  disabled={
+                    isTransactionDisabled || option.created_height === null
+                  }
                 >
                   <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Transfer</Trans>
@@ -98,7 +105,9 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onBurn(option);
                   }}
-                  disabled={option.created_height === null}
+                  disabled={
+                    isTransactionDisabled || option.created_height === null
+                  }
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <Trans>Burn</Trans>
@@ -106,37 +115,40 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
+                {offersEnabled && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
 
-                    const newOptions = [...offerState.offered.options];
-                    newOptions.push(option.launcher_id);
+                      const newOptions = [...offerState.offered.options];
+                      newOptions.push(option.launcher_id);
 
-                    setOfferState({
-                      offered: {
-                        ...offerState.offered,
-                        options: newOptions,
-                      },
-                    });
+                      setOfferState({
+                        offered: {
+                          ...offerState.offered,
+                          options: newOptions,
+                        },
+                      });
 
-                    toast.success(t`Click here to go to offer.`, {
-                      onClick: () => navigate('/offers/make'),
-                    });
-                  }}
-                  disabled={
-                    option.created_height === null ||
-                    option.expiration_seconds * 1000 < Date.now() ||
-                    offerState.offered.options.includes(option.launcher_id)
-                  }
-                  aria-label={t`Add ${option.name || 'Unknown Option'} to offer`}
-                >
-                  <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <span>
-                    <Trans>Add to Offer</Trans>
-                  </span>
-                </DropdownMenuItem>
+                      toast.success(t`Click here to go to offer.`, {
+                        onClick: () => navigate('/offers/make'),
+                      });
+                    }}
+                    disabled={
+                      isTransactionDisabled ||
+                      option.created_height === null ||
+                      option.expiration_seconds * 1000 < Date.now() ||
+                      offerState.offered.options.includes(option.launcher_id)
+                    }
+                    aria-label={t`Add ${option.name || 'Unknown Option'} to offer`}
+                  >
+                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Add to Offer</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem
                   className='cursor-pointer'
