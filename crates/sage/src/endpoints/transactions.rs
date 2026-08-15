@@ -8,7 +8,7 @@ use chia_wallet_sdk::{
 use itertools::Itertools;
 use sage_api::{
     AddNftUri, AssignNftsToDid, AutoCombineCat, AutoCombineCatResponse, AutoCombineXch,
-    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, Combine,
+    AutoCombineXchResponse, BulkMintNfts, BulkMintNftsResponse, BulkSendCat, BulkSendXch, ClaimClawback, Combine,
     CreateDid, ExerciseOptions, FinalizeClawback, IssueCat, MintOption, MintOptionResponse,
     MultiSend, NftUriKind, NormalizeDids, OptionAsset, SendCat, SendXch, SignCoinSpends,
     SignCoinSpendsResponse, Split, SubmitTransaction, SubmitTransactionResponse,
@@ -485,6 +485,15 @@ impl Sage {
         let fee = parse_amount(req.fee)?;
 
         let coin_spends = wallet.finalize_clawback(coin_ids, fee).await?;
+        self.transact(coin_spends, req.auto_submit).await
+    }
+
+    pub async fn claim_clawback(&self, req: ClaimClawback) -> Result<TransactionResponse> {
+        let wallet = self.wallet()?;
+        let coin_ids = parse_coin_ids(req.coin_ids)?;
+        let fee = parse_amount(req.fee)?;
+
+        let coin_spends = wallet.claim_clawback(coin_ids, fee).await?;
         self.transact(coin_spends, req.auto_submit).await
     }
 

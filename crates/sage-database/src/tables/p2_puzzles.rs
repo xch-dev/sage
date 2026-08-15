@@ -1,4 +1,8 @@
-use chia_wallet_sdk::{prelude::*, types::puzzles::P2DelegatedConditionsArgs};
+use chia_wallet_sdk::{
+    driver::{Clawback as ClawbackV1, ClawbackV2, OptionType, OptionUnderlying},
+    prelude::*,
+    types::puzzles::P2DelegatedConditionsArgs,
+};
 use sqlx::{SqliteExecutor, query};
 
 use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
@@ -25,6 +29,7 @@ pub struct Clawback {
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
+    pub version: u8
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -165,6 +170,10 @@ impl DatabaseTx<'_> {
 
     pub async fn insert_clawback_p2_puzzle(&mut self, clawback: ClawbackV2) -> Result<()> {
         insert_clawback_p2_puzzle(&mut *self.tx, clawback).await
+    }
+
+    pub async fn insert_clawbackv1_p2_puzzle(&mut self, clawback: ClawbackV1) -> Result<()> {
+        insert_clawbackv1_p2_puzzle(&mut *self.tx, clawback).await
     }
 
     pub async fn insert_option_p2_puzzle(&mut self, underlying: OptionUnderlying) -> Result<()> {
@@ -364,19 +373,51 @@ async fn insert_clawback_p2_puzzle(
     let sender_puzzle_hash = clawback.sender_puzzle_hash.as_ref();
     let receiver_puzzle_hash = clawback.receiver_puzzle_hash.as_ref();
     let seconds: i64 = clawback.seconds.try_into()?;
+    let version: i64 = 2;
 
     query!(
         "
         INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 1);
 
-        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds)
-        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?);
+        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?);
         ",
         p2_puzzle_hash,
         p2_puzzle_hash,
         sender_puzzle_hash,
         receiver_puzzle_hash,
         seconds,
+        version
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn insert_clawbackv1_p2_puzzle(
+    conn: impl SqliteExecutor<'_>,
+    clawback: ClawbackV1,
+) -> Result<()> {
+    let p2_puzzle_hash = clawback.tree_hash().to_vec();
+    let sender_puzzle_hash = clawback.sender_puzzle_hash.as_ref();
+    let receiver_puzzle_hash = clawback.receiver_puzzle_hash.as_ref();
+    let seconds: i64 = clawback.timelock.try_into()?;
+    let version: i64 = 1;
+
+    query!(
+        "
+        INSERT OR IGNORE INTO p2_puzzles (hash, kind) VALUES (?, 1);
+
+        INSERT OR IGNORE INTO clawbacks (p2_puzzle_id, sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version)
+        VALUES ((SELECT id FROM p2_puzzles WHERE hash = ?), ?, ?, ?, ?);
+        ",
+        p2_puzzle_hash,
+        p2_puzzle_hash,
+        sender_puzzle_hash,
+        receiver_puzzle_hash,
+        seconds,
+        version,
     )
     .execute(conn)
     .await?;
@@ -484,15 +525,25 @@ async fn public_key(
 async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Result<Clawback> {
     let p2_puzzle_hash = p2_puzzle_hash.as_ref();
 
+    // V2: key follows absolute custody switch. V1: always sender key (claim loads receiver separately).
     let row = query!(
         "
-        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds
+        SELECT key AS 'key?', sender_puzzle_hash, receiver_puzzle_hash, expiration_seconds, version
         FROM p2_puzzles
         INNER JOIN clawbacks ON clawbacks.p2_puzzle_id = p2_puzzles.id
         LEFT JOIN public_keys ON public_keys.p2_puzzle_id IN (
             SELECT id FROM p2_puzzles
-            WHERE (hash = sender_puzzle_hash AND unixepoch() < expiration_seconds)
-            OR (hash = receiver_puzzle_hash AND unixepoch() >= expiration_seconds)
+            WHERE (
+                clawbacks.version = 2
+                AND (
+                    (hash = clawbacks.sender_puzzle_hash AND unixepoch() < clawbacks.expiration_seconds)
+                    OR (hash = clawbacks.receiver_puzzle_hash AND unixepoch() >= clawbacks.expiration_seconds)
+                )
+            )
+            OR (
+                clawbacks.version = 1
+                AND hash = clawbacks.sender_puzzle_hash
+            )
             LIMIT 1
         )
         WHERE p2_puzzles.hash = ?
@@ -507,6 +558,7 @@ async fn clawback(conn: impl SqliteExecutor<'_>, p2_puzzle_hash: Bytes32) -> Res
         sender_puzzle_hash: row.sender_puzzle_hash.convert()?,
         receiver_puzzle_hash: row.receiver_puzzle_hash.convert()?,
         seconds: row.expiration_seconds.convert()?,
+        version: row.version.convert()?,
     })
 }
 

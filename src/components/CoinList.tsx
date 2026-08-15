@@ -252,10 +252,79 @@ const ClawbackHeader = ({
   </Button>
 );
 
-const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) =>
-  row.original.clawback_timestamp
-    ? formatTimestamp(row.original.clawback_timestamp, 'short', 'short')
-    : t`No expiration`;
+// @TODO: Consider whether this is needed.
+const ClawbackVersionHeader = ({
+  sortMode,
+  sortDirection,
+  onSortModeChange,
+  onSortDirectionChange,
+  setCurrentPage,
+}: {
+  sortMode: CoinSortMode;
+  sortDirection: boolean;
+  onSortModeChange: (mode: CoinSortMode) => void;
+  onSortDirectionChange: (ascending: boolean) => void;
+  setCurrentPage: (page: number) => void;
+}) => (
+  <Button
+    className='px-0'
+    variant='link'
+    onClick={() => {
+      if (sortMode === 'clawback_version') {
+        onSortDirectionChange(!sortDirection);
+      } else {
+        onSortModeChange('clawback_version');
+        onSortDirectionChange(false);
+      }
+      setCurrentPage(0);
+    }}
+  >
+    <Trans>Clawback Version</Trans>
+    {sortMode === 'clawback_version' ? (
+      sortDirection ? (
+        <ArrowUp className='ml-2 h-4 w-4' aria-hidden='true' />
+      ) : (
+        <ArrowDown className='ml-2 h-4 w-4' aria-hidden='true' />
+      )
+    ) : (
+      <span className='ml-2 w-4 h-4' />
+    )}
+  </Button>
+);
+
+const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
+  const expiration = row.original.clawback_timestamp;
+  if (expiration == null) {
+    return t`No expiration`;
+  }
+
+  const lockSeconds = Number(expiration);
+  if (!Number.isFinite(lockSeconds)) {
+    return t`No expiration`;
+  }
+
+  // V1 stores relative seconds; unlock = birth block time + timelock.
+  if (row.original.clawback_version === 1) {
+    const created = row.original.created_timestamp;
+    if (created != null) {
+      const createdSeconds = Number(created);
+      if (Number.isFinite(createdSeconds)) {
+        return formatTimestamp(createdSeconds + lockSeconds, 'short', 'short');
+      }
+    }
+    // Mempool / missing block time: estimate from now.
+    return formatTimestamp(
+      Math.floor(Date.now() / 1000) + lockSeconds,
+      'short',
+      'short',
+    );
+  }
+
+  return formatTimestamp(lockSeconds, 'short', 'short');
+};
+
+const ClawbackVersionCell = ({ row }: { row: Row<CoinRecord> }) =>
+  row.original.clawback_version;
 
 const SpentHeader = ({
   sortMode,
@@ -390,6 +459,16 @@ const ClawbackHeaderWrapper = (props: CoinListProps) => (
   />
 );
 
+const ClawbackVersionHeaderWrapper = (props: CoinListProps) => (
+  <ClawbackVersionHeader
+    sortMode={props.sortMode}
+    sortDirection={props.sortDirection}
+    onSortModeChange={props.onSortModeChange}
+    onSortDirectionChange={props.onSortDirectionChange}
+    setCurrentPage={props.setCurrentPage}
+  />
+);
+
 const AmountCellWrapper = ({
   row,
   precision,
@@ -429,19 +508,28 @@ const createColumns = (props: CoinListProps): ColumnDef<CoinRecord>[] => [
     size: 140,
     cell: ConfirmedCell,
   },
-  props.clawback
-    ? {
-        accessorKey: 'clawback_timestamp',
-        header: () => <ClawbackHeaderWrapper {...props} />,
-        size: 120,
-        cell: ClawbackCell,
-      }
-    : {
-        accessorKey: 'spent_height',
-        header: () => <SpentHeaderWrapper {...props} />,
-        size: 120,
-        cell: SpentCell,
-      },
+  {
+    accessorKey: 'spent_height',
+    header: () => <SpentHeaderWrapper {...props} />,
+    size: 120,
+    cell: SpentCell,
+  },
+  ...(props.clawback
+    ? [
+        {
+          accessorKey: 'clawback_timestamp',
+          header: () => <ClawbackHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackCell,
+        },
+        {
+          accessorKey: 'clawback_version',
+          header: () => <ClawbackVersionHeaderWrapper {...props} />,
+          size: 120,
+          cell: ClawbackVersionCell,
+        },
+      ]
+    : []),
 ];
 
 export interface CoinListProps {

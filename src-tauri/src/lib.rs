@@ -59,6 +59,7 @@ macro_rules! sage_commands {
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::finalize_clawback,
+            commands::claim_clawback,
             commands::create_transaction,
             commands::sign_coin_spends,
             commands::view_coin_spends,

@@ -81,7 +81,7 @@ impl Database {
                 asset_hidden_puzzle_hash, wallet_coins.created_height, wallet_coins.spent_height,
                 wallet_coins.parent_coin_hash, wallet_coins.puzzle_hash, wallet_coins.amount, wallet_coins.p2_puzzle_hash,
                 offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,
-                clawback_expiration_seconds AS 'clawback_timestamp?',
+                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',
                 p2_options.expiration_seconds AS option_expiration_seconds,
 
                 strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
@@ -164,6 +164,9 @@ impl Database {
                     mempool_item_hash: None,
                     offer_hash: row.offer_hash.convert()?,
                     clawback_timestamp: row.clawback_timestamp.convert()?,
+                    clawback_version: row.clawback_version.convert()?,
+                    clawback_is_sender: false,
+                    clawback_is_receiver: false,
                     created_height: row.created_height.convert()?,
                     spent_height: row.spent_height.convert()?,
                     created_timestamp: row.created_timestamp.convert()?,
@@ -372,7 +375,7 @@ async fn owned_options(
             asset_hidden_puzzle_hash, owned_coins.created_height, owned_coins.spent_height,
             owned_coins.parent_coin_hash, owned_coins.puzzle_hash, owned_coins.amount, owned_coins.p2_puzzle_hash,
             offer_hash, created_timestamp, spent_timestamp,
-            clawback_expiration_seconds AS clawback_timestamp,
+            clawback_expiration_seconds AS clawback_timestamp, clawback_version,
             p2_options.expiration_seconds AS option_expiration_seconds,
 
             strike_asset.hash AS strike_asset_hash, strike_asset.name AS strike_asset_name,
@@ -540,6 +543,9 @@ async fn owned_options(
                     clawback_timestamp: row
                         .get::<Option<i64>, _>("clawback_timestamp")
                         .convert()?,
+                    clawback_version: row.get::<Option<i64>, _>("clawback_version").convert()?,
+                    clawback_is_sender: false,
+                    clawback_is_receiver: false,
                     created_height: row.get::<Option<i64>, _>("created_height").convert()?,
                     spent_height: row.get::<Option<i64>, _>("spent_height").convert()?,
                     created_timestamp: row.get::<Option<i64>, _>("created_timestamp").convert()?,

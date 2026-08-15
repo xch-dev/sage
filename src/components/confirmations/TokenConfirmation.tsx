@@ -17,7 +17,8 @@ type TokenOperationType =
   | 'issue'
   | 'send'
   | 'clawback'
-  | 'finalize_clawback';
+  | 'finalize_clawback'
+  | 'claim_clawback';
 
 interface TokenConfirmationProps {
   type: TokenOperationType;
@@ -103,6 +104,18 @@ export function TokenConfirmation({
         </Trans>
       ),
     },
+    claim_clawback: {
+      icon: CoinsIcon,
+      title: <Trans>Claim Clawback</Trans>,
+      variant: 'info' as const,
+      message: (
+        <Trans>
+          You are about to claim coins from a early type of clawback. This will
+          send the funds to your wallet, and the original sender will no longer
+          be able to claw it back.
+        </Trans>
+      ),
+    },
   };
 
   const { icon: Icon, title, variant, message } = config[type];
@@ -173,7 +186,8 @@ export function TokenConfirmation({
       {(type === 'split' ||
         type === 'combine' ||
         type === 'clawback' ||
-        type === 'finalize_clawback') &&
+        type === 'finalize_clawback'||
+        type === 'claim_clawback') &&
         coins && (
           <>
             <ConfirmationCard
@@ -185,7 +199,9 @@ export function TokenConfirmation({
                       ? 'Combine'
                       : type === 'clawback'
                         ? 'Claw back'
-                        : 'Finalize clawback'}{' '}
+                        : type === 'finalize_clawback'
+                          ? 'Finalize clawback'
+                          : 'Claim clawback'}{' '}
                   {coins.length} coin{coins.length === 1 ? '' : 's'}
                 </Trans>
               }
@@ -242,6 +258,11 @@ export function TokenConfirmation({
                     ) : type === 'finalize_clawback' ? (
                       <Trans>
                         {coins.length} finalized clawback
+                        {coins.length === 1 ? '' : 's'}
+                      </Trans>
+                    ) : type === 'claim_clawback' ? (
+                      <Trans>
+                        {coins.length} claimed coin
                         {coins.length === 1 ? '' : 's'}
                       </Trans>
                     ) : null}

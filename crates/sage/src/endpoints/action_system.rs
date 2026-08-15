@@ -135,9 +135,7 @@ impl Sage {
                     }));
                 }
                 sage_api::Action::Fee(action) => {
-                    actions.push(Action::Fee(FeeAction {
-                        amount: parse_amount(action.amount)?,
-                    }));
+                    actions.push(Action::Fee(FeeAction::new(parse_amount(action.amount)?)));
                 }
             }
         }
