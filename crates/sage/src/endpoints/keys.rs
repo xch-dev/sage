@@ -400,12 +400,12 @@ impl Sage {
             .iter()
             .find(|w| w.fingerprint == req.fingerprint);
 
-        if let Some(cfg) = wallet_cfg {
-            if let Some(change_address) = &cfg.change_address {
-                return Ok(GetWalletAddressResponse {
-                    address: change_address.clone(),
-                });
-            }
+        if let Some(cfg) = wallet_cfg
+            && let Some(change_address) = &cfg.change_address
+        {
+            return Ok(GetWalletAddressResponse {
+                address: change_address.clone(),
+            });
         }
 
         let network = self

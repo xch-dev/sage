@@ -46,7 +46,7 @@ impl BridgeMethod for AppLifecycleSetBeforeStopListener {
             .await;
 
         if params.active() {
-            listeners.insert(ctx.app.id().to_string());
+            listeners.insert(ctx.app.id().clone());
         } else {
             listeners.remove(&ctx.app.id());
         }

@@ -32,7 +32,7 @@ pub(crate) async fn write_pending_approval(
     let now = unix_timestamp_ms() as u64;
     let mut pending = apps_state.bridge.pending_approvals.lock().await;
     pending.insert(
-        approval_id.to_string(),
+        approval_id.clone(),
         PendingBridgeApproval {
             approval_id: approval_id.clone(),
             app_id,

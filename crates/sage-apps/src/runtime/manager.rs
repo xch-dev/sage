@@ -228,7 +228,7 @@ pub(crate) async fn reload_app_runtime(
 
     let webview_label = resolved_running_app
         .runtime()
-        .with_runtime(|runtime| runtime.webview_label().to_string());
+        .with_runtime(SageAppRuntimeRecord::webview_label);
 
     get_webview_in_sage_window(app_handle, &webview_label)?
         .reload()
@@ -242,7 +242,7 @@ async fn reload_all_user_runtimes(
     for runtime in list_runtimes(apps_state).await? {
         let (webview_label, should_reload) = runtime.with_runtime(|runtime| {
             (
-                runtime.webview_label().to_string(),
+                runtime.webview_label(),
                 runtime.app().is_user_app() && !runtime.internal(),
             )
         });
@@ -352,7 +352,7 @@ fn runtime_window_identity(resolved_running_app: &ResolvedRunningApp) -> Runtime
         .runtime()
         .with_runtime(|record| RuntimeWindowIdentity {
             runtime_id: record.runtime_id(),
-            host_window_label: record.host_window_label().to_string(),
+            host_window_label: record.host_window_label(),
         })
 }
 

@@ -1,3 +1,5 @@
+use std::collections::hash_map::Entry;
+
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteConnection, SqliteExecutor, query};
 
@@ -398,22 +400,20 @@ async fn mempool_items_with_coins(
 
         let transaction_coin = create_transaction_coin(row)?;
 
-        if !items.contains_key(&item_hash) {
-            let fee: u64 = row.get::<Vec<u8>, _>("item_fee").convert()?;
-            let submitted_timestamp: Option<i64> = row.get("submitted_timestamp");
-            order.push(item_hash);
-            items.insert(
-                item_hash,
-                (
+        let entry = match items.entry(item_hash) {
+            Entry::Vacant(entry) => {
+                let fee: u64 = row.get::<Vec<u8>, _>("item_fee").convert()?;
+                let submitted_timestamp: Option<i64> = row.get("submitted_timestamp");
+                order.push(item_hash);
+                entry.insert((
                     fee,
                     submitted_timestamp.map(|ts| ts as u64),
                     Vec::new(),
                     Vec::new(),
-                ),
-            );
-        }
-
-        let entry = items.get_mut(&item_hash).unwrap();
+                ))
+            }
+            Entry::Occupied(entry) => entry.into_mut(),
+        };
         if is_input {
             entry.2.push(transaction_coin.clone());
         }

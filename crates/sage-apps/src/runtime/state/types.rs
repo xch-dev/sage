@@ -50,21 +50,6 @@ pub struct AppRuntimeState {
     pub pending_stop_ready: Mutex<BTreeMap<String, oneshot::Sender<()>>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct SageLifecycleBeforeStopDetail {
-    pub request_id: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reason: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub app_id: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub runtime_id: Option<String>,
-}
-
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct SetBeforeStopListenerParams {
@@ -160,7 +145,7 @@ impl SageAppRuntimeRecord {
     }
 
     pub(crate) fn runtime_id(&self) -> String {
-        self.runtime_id.to_string()
+        self.runtime_id.clone()
     }
 
     pub(crate) fn app(&self) -> SharedSageApp {
@@ -172,11 +157,11 @@ impl SageAppRuntimeRecord {
     }
 
     pub(crate) fn webview_label(&self) -> String {
-        self.webview_label.to_string()
+        self.webview_label.clone()
     }
 
     pub(crate) fn host_window_label(&self) -> String {
-        self.host_window_label.to_string()
+        self.host_window_label.clone()
     }
 
     pub(crate) fn presentation(&self) -> AppPresentation {
@@ -259,7 +244,7 @@ impl SharedRuntime {
     }
 
     pub fn runtime_id(&self) -> String {
-        self.with_runtime(|runtime| runtime.runtime_id().to_string())
+        self.with_runtime(SageAppRuntimeRecord::runtime_id)
     }
 
     pub fn app_id(&self) -> String {

@@ -7,8 +7,8 @@ pub(crate) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,
     runtime: SageAppRuntimeRecord,
 ) -> SharedRuntime {
-    let runtime_id = runtime.runtime_id().to_string();
-    let app_id = runtime.app().id().to_string();
+    let runtime_id = runtime.runtime_id();
+    let app_id = runtime.app().id().clone();
 
     let runtime = SharedRuntime::new(runtime);
 

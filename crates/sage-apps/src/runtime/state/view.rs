@@ -23,10 +23,10 @@ pub struct SageAppRuntimeRecordView {
 impl From<&SharedRuntime> for SageAppRuntimeRecordView {
     fn from(value: &SharedRuntime) -> Self {
         value.with_runtime(|runtime| Self {
-            runtime_id: runtime.runtime_id().clone(),
+            runtime_id: runtime.runtime_id(),
             app: runtime.app().into(),
-            host_window_label: runtime.host_window_label().to_string(),
-            webview_label: runtime.webview_label().to_string(),
+            host_window_label: runtime.host_window_label(),
+            webview_label: runtime.webview_label(),
             presentation: runtime.presentation(),
             mode: runtime.mode(),
             visibility: runtime.visibility(),

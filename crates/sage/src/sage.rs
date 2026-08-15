@@ -446,7 +446,7 @@ impl Sage {
                     .journal_mode(SqliteJournalMode::Wal)
                     .log_statements(log::LevelFilter::Trace)
                     .synchronous(SqliteSynchronous::Normal)
-                    .busy_timeout(Duration::from_secs(60)),
+                    .busy_timeout(Duration::from_mins(1)),
             )
             .await?;
 
