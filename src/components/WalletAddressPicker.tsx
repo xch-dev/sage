@@ -1,4 +1,5 @@
 import { commands, KeyInfo } from '@/bindings';
+import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { t } from '@lingui/core/macro';
@@ -15,6 +16,26 @@ import {
 
 interface WalletAddressPickerProps {
   onSelect: (address: string) => void;
+}
+
+// Tauri IPC rejects with a plain string (e.g. a missing-permission error)
+// instead of the usual { kind, reason } shape when the command itself is
+// unreachable, so callers here can't assume `e` is already a CustomError.
+function toCustomError(e: unknown): CustomError {
+  if (
+    typeof e === 'object' &&
+    e !== null &&
+    'kind' in e &&
+    'reason' in e &&
+    typeof (e as CustomError).reason === 'string'
+  ) {
+    return e as CustomError;
+  }
+
+  return {
+    kind: 'internal',
+    reason: e instanceof Error ? e.message : String(e),
+  };
 }
 
 export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
@@ -39,21 +60,23 @@ export function WalletAddressPicker({ onSelect }: WalletAddressPickerProps) {
           ),
         );
       })
-      .catch(addError);
+      .catch((e) => addError(toCustomError(e)));
   }, [wallet, addError]);
 
   if (otherWallets.length === 0) return null;
 
   const handleSelect = async (fingerprint: number) => {
+    if (!wallet) return;
+
     setLoadingFingerprint(fingerprint);
     try {
       const { address } = await commands.getWalletAddress({
         fingerprint,
-        network_id: wallet!.network_id,
+        network_id: wallet.network_id,
       });
       onSelect(address);
     } catch (e) {
-      addError(e as Parameters<typeof addError>[0]);
+      addError(toCustomError(e));
     } finally {
       setLoadingFingerprint(null);
     }
