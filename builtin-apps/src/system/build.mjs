@@ -32,7 +32,7 @@ function run(command, args) {
     const child = spawn(command, args, {
       cwd: packageRoot,
       stdio: 'inherit',
-      shell: false,
+      shell: process.platform === 'win32',
     });
 
     child.on('error', rejectPromise);
