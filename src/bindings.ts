@@ -41,6 +41,9 @@ async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
 async getKey(req: GetKey) : Promise<GetKeyResponse> {
     return await TAURI_INVOKE("get_key", { req });
 },
+async getWalletAddress(req: GetWalletAddress) : Promise<GetWalletAddressResponse> {
+    return await TAURI_INVOKE("get_wallet_address", { req });
+},
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
 },
@@ -1675,6 +1678,26 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+/**
+ * Get the receive address for any wallet without switching sessions
+ */
+export type GetWalletAddress = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Network ID to look up the address on (e.g. "mainnet", "testnet11")
+ */
+network_id: string }
+/**
+ * Response with the wallet's receive address
+ */
+export type GetWalletAddressResponse = { 
+/**
+ * The wallet's current receive address
+ */
+address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
 export type Id = 
