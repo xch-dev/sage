@@ -38,11 +38,12 @@ import {
   CircleOff,
   FilterIcon,
   HandCoins,
+  ImageIcon,
   NfcIcon,
   ScanIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
@@ -91,9 +92,25 @@ export function Offers() {
     [navigate],
   );
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    viewOffer(scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      viewOffer(scanResValue);
+    },
+  );
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const offerImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOfferImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) {
+      handleScanImage(file);
+    }
+  };
 
   const updateOffers = useCallback(
     () =>
@@ -208,18 +225,44 @@ export function Offers() {
       });
   };
 
+  const scanImageButton = (
+    <Button
+      size='icon'
+      variant='ghost'
+      aria-label={t`Scan an offer QR code from an image`}
+      onClick={() => offerImageInputRef.current?.click()}
+    >
+      <ImageIcon className='h-5 w-5' aria-hidden='true' />
+    </Button>
+  );
+
   return (
     <>
+      <input
+        ref={offerImageInputRef}
+        type='file'
+        accept='image/*'
+        className='hidden'
+        onChange={handleOfferImageChange}
+      />
       <Header
         title={<Trans>Offers</Trans>}
+        alwaysShowChildren
         mobileActionItems={
           <div className='flex items-center gap-2'>
-            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-              <ScanIcon className='h-5 w-5' aria-hidden='true' />
-            </Button>
             <Button
               size='icon'
               variant='ghost'
+              aria-label={t`Scan an offer QR code with the camera`}
+              onClick={handleScanOrPaste}
+            >
+              <ScanIcon className='h-5 w-5' aria-hidden='true' />
+            </Button>
+            {scanImageButton}
+            <Button
+              size='icon'
+              variant='ghost'
+              aria-label={t`Scan an offer from an NFC tag`}
               disabled={!isNfcAvailable}
               onClick={handleNfcScan}
             >
@@ -227,7 +270,9 @@ export function Offers() {
             </Button>
           </div>
         }
-      />
+      >
+        {!isMobile && scanImageButton}
+      </Header>
       <Container>
         <Card className='p-6'>
           <div className='flex flex-col gap-10'>

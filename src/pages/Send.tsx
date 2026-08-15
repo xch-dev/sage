@@ -169,9 +169,11 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('address', scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('address', scanResValue);
+    },
+  );
 
   const onSubmit = () => {
     const values = form.getValues();
@@ -307,6 +309,7 @@ export default function Send() {
                         autoComplete='off'
                         placeholder={t`Enter address`}
                         onEndIconClick={handleScanOrPaste}
+                        onScanImage={handleScanImage}
                         {...field}
                       />
                     )}
