@@ -55,6 +55,7 @@ sage-database = { path = "./crates/sage-database" }
 sage-keychain = { path = "./crates/sage-keychain" }
 sage-wallet = { path = "./crates/sage-wallet" }
 sage-assets = { path = "./crates/sage-assets" }
+sage-apps = { path = "./crates/sage-apps" }
 sage-rpc = { path = "./crates/sage-rpc" }
 
 # Serialization
@@ -67,12 +68,12 @@ hex = "0.4.3"
 base64 = "0.22.1"
 
 # Tauri
-tauri = "2.10.2"
+tauri = { version = "2.10.2", features = ["unstable"] } # Unstable reason: Multiwebview support
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-os = "2.3.2"
 tauri-plugin-window-state = "2.4.1"
-tauri-plugin-barcode-scanner = "2.4.4"
+tauri-plugin-barcode-scanner = "2.4.5"
 tauri-plugin-biometric = "2.3.2"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
@@ -143,3 +144,6 @@ clap = "4.5.21"
 # Testing
 tempfile = "3.25.0"
 tower = "0.5.3"
+
+[patch.crates-io]
+wry = { git = "https://github.com/Rigidity/wry.git", branch = "sage/wry-v0.54.1-patched" }

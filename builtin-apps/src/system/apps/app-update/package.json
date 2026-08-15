@@ -1,0 +1,5 @@
+{
+  "name": "app-update-system-app",
+  "private": true,
+  "type": "module"
+}

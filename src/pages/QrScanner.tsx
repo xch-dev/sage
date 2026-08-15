@@ -4,15 +4,30 @@ import { offersEnabled } from '@/lib/features';
 import { useNavigationStore } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { useErrors } from '@/hooks/useErrors';
 import { Format, cancel, scan } from '@tauri-apps/plugin-barcode-scanner';
 import { useCallback, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+
+/**
+ * The barcode scanner plugin rejects with a plain string on the native side,
+ * but it can arrive as an Error or an object depending on the platform.
+ */
+function scanErrorMessage(error: unknown): string {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return JSON.stringify(error);
+}
 
 export default function QRScanner() {
   const navigate = useNavigate();
   const { state } = useLocation();
   const returnPath = state?.returnTo || '/';
   const { setReturnValue } = useNavigationStore();
+  const { addError } = useErrors();
 
   const handleScanSuccess = useCallback(
     (content: string) => {
@@ -64,7 +79,16 @@ export default function QRScanner() {
           handleScanSuccess(result.content);
         }
       } catch (error) {
-        console.error('Scan failed:', error);
+        const message = scanErrorMessage(error);
+
+        // `cancel()` rejects the in-flight scan on iOS (Android nulls the saved
+        // invoke first, so it is a no-op there). That is an expected shutdown,
+        // not a failure worth reporting.
+        if (!message.includes('cancelled')) {
+          console.error('Scan failed:', error);
+          addError({ kind: 'invalid', reason: message });
+        }
+
         navigate(returnPath, { replace: true });
       }
     };
@@ -74,7 +98,7 @@ export default function QRScanner() {
     return () => {
       cancel().catch(console.error);
     };
-  }, [navigate, handleScanSuccess, returnPath]);
+  }, [navigate, handleScanSuccess, returnPath, addError]);
 
   return (
     <Layout transparentBackground={true}>

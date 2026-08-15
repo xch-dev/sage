@@ -118,7 +118,7 @@ msgstr "{pageSize} elementos por página"
 #~ msgid "{peerCount, plural, one {# peer} other {# peers}}"
 #~ msgstr "{peerCount, plural, one {# nodo} other {# nodos}}"
 
-#: src/components/Nav.tsx:162
+#: src/components/Nav.tsx:172
 msgid "{peerCount} peers synced"
 msgstr "{peerCount} nodos sincronizados"
 
@@ -331,7 +331,7 @@ msgstr "Dirección no encontrada en tu billetera"
 msgid "Address to check"
 msgstr "Dirección para verificar"
 
-#: src/components/Nav.tsx:102
+#: src/components/Nav.tsx:104
 msgid "Addresses"
 msgstr "Direcciones"
 
@@ -386,6 +386,10 @@ msgstr ""
 
 #: src/contexts/WalletConnectContext.tsx:793
 msgid "Approving"
+msgstr ""
+
+#: src/components/Nav.tsx:119
+msgid "Apps"
 msgstr ""
 
 #: src/components/ThemeCard.tsx:204
@@ -500,8 +504,7 @@ msgstr "Descubrir y conectarse automáticamente a nodos"
 msgid "Automatically start the RPC server when the app launches"
 msgstr "Iniciar automáticamente el servidor RPC cuando se inicia la aplicación"
 
-#: src/components/Header.tsx:59
-#: src/components/Header.tsx:141
+#: src/components/Header.tsx:50
 msgid "Back"
 msgstr "Atrás"
 
@@ -1006,11 +1009,11 @@ msgstr "Conectar billetera"
 msgid "Connected to {totalPeersCount} peers"
 msgstr "Conectado a {totalPeersCount} nodos"
 
-#: src/components/Nav.tsx:184
+#: src/components/Nav.tsx:194
 msgid "connecting..."
 msgstr "conectando..."
 
-#: src/components/Nav.tsx:164
+#: src/components/Nav.tsx:174
 #: src/pages/Settings.tsx:530
 msgid "Connecting..."
 msgstr "Conectando..."
@@ -1444,7 +1447,7 @@ msgstr "Nombre para mostrar"
 msgid "Done"
 msgstr "Listo"
 
-#: src/components/Nav.tsx:168
+#: src/components/Nav.tsx:178
 msgid "Downloading {checkedFiles} / {totalFiles}"
 msgstr ""
 
@@ -2282,13 +2285,13 @@ msgstr ""
 msgid "Login"
 msgstr "Iniciar sesión"
 
-#: src/components/Nav.tsx:222
-#: src/components/Nav.tsx:228
+#: src/components/Nav.tsx:232
 #: src/components/Nav.tsx:238
+#: src/components/Nav.tsx:248
 msgid "Logout"
 msgstr "Cerrar sesión"
 
-#: src/components/Nav.tsx:42
+#: src/components/Nav.tsx:44
 msgid "Main navigation"
 msgstr "Navegación principal"
 
@@ -2459,7 +2462,7 @@ msgstr ""
 #~ msgid "Navigate to: {content}"
 #~ msgstr ""
 
-#: src/components/Header.tsx:82
+#: src/components/MobileNavSheet.tsx:42
 msgid "Navigation menu"
 msgstr "Menú de navegación"
 
@@ -2580,7 +2583,7 @@ msgid "NFT view options"
 msgstr "Opciones de vista de NFT"
 
 #: src/components/MultiSelectActions.tsx:271
-#: src/components/Nav.tsx:58
+#: src/components/Nav.tsx:60
 #: src/components/NftGroupCard.tsx:466
 #: src/components/NftPageTitle.tsx:44
 msgid "NFTs"
@@ -2803,7 +2806,7 @@ msgstr ""
 msgid "Offering"
 msgstr ""
 
-#: src/components/Nav.tsx:84
+#: src/components/Nav.tsx:86
 #: src/pages/Offers.tsx:214
 msgid "Offers"
 msgstr "Ofertas"
@@ -2925,7 +2928,7 @@ msgstr ""
 msgid "options"
 msgstr ""
 
-#: src/components/Nav.tsx:75
+#: src/components/Nav.tsx:77
 msgid "Options"
 msgstr "Opcioens"
 
@@ -3043,7 +3046,7 @@ msgstr ""
 #~ msgid "Peak Height"
 #~ msgstr "Altura Máxima"
 
-#: src/components/Nav.tsx:179
+#: src/components/Nav.tsx:189
 msgid "peer"
 msgstr "nodo"
 
@@ -3051,7 +3054,7 @@ msgstr "nodo"
 msgid "Peer List"
 msgstr "Lista de nodos"
 
-#: src/components/Nav.tsx:179
+#: src/components/Nav.tsx:189
 msgid "peers"
 msgstr "nodos"
 
@@ -3198,7 +3201,7 @@ msgstr "Nombre de perfil"
 #~ msgid "Profile NFTs"
 #~ msgstr "Perfil de NFTs"
 
-#: src/components/Nav.tsx:66
+#: src/components/Nav.tsx:68
 #: src/pages/DidList.tsx:66
 msgid "Profiles"
 msgstr "Perfiles"
@@ -3513,7 +3516,7 @@ msgstr ""
 msgid "Secondary"
 msgstr ""
 
-#: src/components/Nav.tsx:153
+#: src/components/Nav.tsx:163
 msgid "Secondary navigation"
 msgstr "Navegación secundaria"
 
@@ -3679,7 +3682,7 @@ msgstr "Establecer un tiempo de expiración predeterminado para las nuevas ofert
 msgid "Set a specific address to send change to"
 msgstr ""
 
-#: src/components/Nav.tsx:210
+#: src/components/Nav.tsx:220
 #: src/pages/Settings.tsx:108
 msgid "Settings"
 msgstr "Configuración"
@@ -3957,7 +3960,7 @@ msgstr "Resumen"
 msgid "Support for Clawback v2 is limited at this time. Please make sure the recipient supports it before submitting this transaction."
 msgstr ""
 
-#: src/components/Nav.tsx:93
+#: src/components/Nav.tsx:95
 #: src/pages/Swap.tsx:335
 msgid "Swap"
 msgstr ""
@@ -4011,7 +4014,7 @@ msgstr "Símbolo"
 msgid "Sync Status"
 msgstr ""
 
-#: src/components/Nav.tsx:182
+#: src/components/Nav.tsx:192
 msgid "synced to peak {peerMaxHeight}"
 msgstr "sincronizado con el pico {peerMaxHeight}"
 
@@ -4019,7 +4022,7 @@ msgstr "sincronizado con el pico {peerMaxHeight}"
 msgid "Syncing"
 msgstr "Sincronizando"
 
-#: src/components/Nav.tsx:172
+#: src/components/Nav.tsx:182
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "Sincronizando {syncedCoins} / {totalCoins}"
 
@@ -4440,7 +4443,7 @@ msgstr "Para:"
 msgid "Toggle multi-select"
 msgstr "Alternar selección múltiple"
 
-#: src/components/Header.tsx:69
+#: src/components/MobileNavSheet.tsx:27
 msgid "Toggle navigation menu"
 msgstr "Alternar menú de navegación"
 
@@ -4591,7 +4594,7 @@ msgstr "Transacción enviada con éxito"
 #~ msgid "Transaction Time"
 #~ msgstr "Tiempo de transacción"
 
-#: src/components/Nav.tsx:110
+#: src/components/Nav.tsx:111
 #: src/pages/Transactions.tsx:149
 msgid "Transactions"
 msgstr "Transacciones"
@@ -4995,7 +4998,7 @@ msgstr ""
 msgid "WAL Pages Checkpointed"
 msgstr ""
 
-#: src/components/Nav.tsx:49
+#: src/components/Nav.tsx:51
 #: src/components/WalletSwitcher.tsx:217
 #: src/components/WalletSwitcher.tsx:261
 #: src/components/WalletSwitcher.tsx:331
@@ -5067,7 +5070,7 @@ msgstr ""
 msgid "While 12 word mnemonics are sufficiently hard to crack, you can choose to use 24 instead to increase security."
 msgstr "Si bien los mnemotécnicos de 12 palabras son lo suficientemente difíciles de crackear, puedes optar por usar 24 para aumentar la seguridad."
 
-#: src/components/Nav.tsx:187
+#: src/components/Nav.tsx:197
 msgid "with {syncedCoins} / {totalCoins} coins synced"
 msgstr "con {syncedCoins} / {totalCoins} monedas sincronizadas"
 
