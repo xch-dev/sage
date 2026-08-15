@@ -44,7 +44,11 @@ function finalizeManifest(source, dist) {
       '--dist',
       dist,
     ],
-    { stdio: 'inherit', cwd: repoRoot },
+    {
+      stdio: 'inherit',
+      cwd: repoRoot,
+      shell: process.platform === 'win32',
+    },
   );
 }
 
