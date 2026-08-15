@@ -4,6 +4,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { usePeers } from '@/hooks/usePeers';
+import { offersEnabled, optionsEnabled, swapEnabled } from '@/lib/features';
 import { logoutAndUpdateState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -70,7 +71,7 @@ export function TopNav({ isCollapsed }: NavProps) {
         <SquareUserRound className={className} aria-hidden='true' />
       </NavLink>
 
-      {!isIos && (
+      {optionsEnabled && (
         <NavLink
           url={'/options'}
           isCollapsed={isCollapsed}
@@ -80,15 +81,17 @@ export function TopNav({ isCollapsed }: NavProps) {
         </NavLink>
       )}
 
-      <NavLink
-        url={'/offers'}
-        isCollapsed={isCollapsed}
-        message={<Trans>Offers</Trans>}
-      >
-        <Handshake className={className} aria-hidden='true' />
-      </NavLink>
+      {offersEnabled && (
+        <NavLink
+          url={'/offers'}
+          isCollapsed={isCollapsed}
+          message={<Trans>Offers</Trans>}
+        >
+          <Handshake className={className} aria-hidden='true' />
+        </NavLink>
+      )}
 
-      {!isIos && (
+      {swapEnabled && (
         <NavLink
           url={'/swap'}
           isCollapsed={isCollapsed}
