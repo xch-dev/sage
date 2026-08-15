@@ -21,6 +21,7 @@ pub struct Offered {
     pub options: Vec<Bytes32>,
     pub fee: u64,
     pub p2_puzzle_hash: Option<Bytes32>,
+    pub selected_coin_ids: Vec<Bytes32>,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -131,7 +132,9 @@ impl Wallet {
         let hint = ctx.hint(p2_puzzle_hash)?;
 
         // Add requested payments
-        let mut spends = Spends::new(change_puzzle_hash);
+        let mut spends = self
+            .prepare_spends_for_selection(&mut ctx, &offered.selected_coin_ids)
+            .await?;
         self.select_spends(&mut ctx, &mut spends, &actions).await?;
 
         let nonce = Offer::nonce(spends.non_settlement_coin_ids());

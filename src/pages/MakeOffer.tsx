@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, IntegerInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
+import { useWallet } from '@/contexts/WalletContext';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
@@ -20,6 +21,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
   const [state, setState] = useOfferStateWithDefault();
+  const { isTransactionDisabled } = useWallet();
   const location = useLocation();
   const { expiry } = useDefaultOfferExpiry();
   const walletState = useWalletState();
@@ -307,7 +309,10 @@ export function MakeOffer() {
           >
             <Trans>Cancel Offer</Trans>
           </Button>
-          <Button disabled={invalid} onClick={makeAction}>
+          <Button
+            disabled={invalid || isTransactionDisabled}
+            onClick={makeAction}
+          >
             <Trans>Create Offer</Trans>
           </Button>
         </div>

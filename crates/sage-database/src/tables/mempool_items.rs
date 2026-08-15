@@ -1,7 +1,8 @@
 use chia_wallet_sdk::prelude::*;
-use sqlx::{SqliteConnection, SqliteExecutor, query};
+use sqlx::{Row, SqliteConnection, SqliteExecutor, query};
 
-use crate::{Convert, Database, DatabaseTx, Result};
+use crate::tables::transactions::create_transaction_coin;
+use crate::{Convert, Database, DatabaseTx, Result, TransactionCoin};
 
 #[derive(Debug, Clone)]
 pub struct MempoolItem {
@@ -9,6 +10,15 @@ pub struct MempoolItem {
     pub aggregated_signature: Signature,
     pub fee: u64,
     pub submitted_timestamp: Option<u64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MempoolItemWithCoins {
+    pub hash: Bytes32,
+    pub fee: u64,
+    pub submitted_timestamp: Option<u64>,
+    pub spent: Vec<TransactionCoin>,
+    pub created: Vec<TransactionCoin>,
 }
 
 impl Database {
@@ -30,6 +40,10 @@ impl Database {
 
     pub async fn mempool_items(&self) -> Result<Vec<MempoolItem>> {
         mempool_items(&self.pool).await
+    }
+
+    pub async fn mempool_items_with_coins(&self) -> Result<Vec<MempoolItemWithCoins>> {
+        mempool_items_with_coins(&self.pool).await
     }
 }
 
@@ -329,4 +343,96 @@ async fn mempool_items(conn: impl SqliteExecutor<'_>) -> Result<Vec<MempoolItem>
         })
     })
     .collect()
+}
+
+async fn mempool_items_with_coins(
+    conn: impl SqliteExecutor<'_>,
+) -> Result<Vec<MempoolItemWithCoins>> {
+    use std::collections::HashMap;
+
+    let rows = sqlx::query(
+        "
+        SELECT
+            mempool_items.hash AS item_hash,
+            mempool_items.fee AS item_fee,
+            mempool_items.submitted_timestamp,
+            coins.puzzle_hash,
+            coins.parent_coin_hash,
+            coins.amount,
+            mempool_coins.is_input,
+            mempool_coins.is_output,
+            p2_puzzles.hash AS p2_puzzle_hash,
+            assets.hash AS asset_hash,
+            assets.name AS asset_name,
+            assets.ticker AS asset_ticker,
+            assets.precision AS asset_precision,
+            assets.icon_url AS asset_icon_url,
+            assets.kind AS asset_kind,
+            assets.description AS asset_description,
+            assets.is_visible AS asset_is_visible,
+            assets.is_sensitive_content AS asset_is_sensitive_content,
+            assets.hidden_puzzle_hash AS asset_hidden_puzzle_hash
+        FROM mempool_items
+        INNER JOIN mempool_coins ON mempool_coins.mempool_item_id = mempool_items.id
+        INNER JOIN coins ON coins.id = mempool_coins.coin_id
+        INNER JOIN assets ON assets.id = coins.asset_id
+        LEFT JOIN p2_puzzles ON p2_puzzles.id = coins.p2_puzzle_id
+        ORDER BY mempool_items.submitted_timestamp DESC, mempool_items.hash ASC
+        ",
+    )
+    .fetch_all(conn)
+    .await?;
+
+    // Group rows by mempool item hash, preserving order
+    let mut order: Vec<Bytes32> = Vec::new();
+    #[allow(clippy::type_complexity)]
+    let mut items: HashMap<
+        Bytes32,
+        (u64, Option<u64>, Vec<TransactionCoin>, Vec<TransactionCoin>),
+    > = HashMap::new();
+
+    for row in &rows {
+        let item_hash: Bytes32 = row.get::<Vec<u8>, _>("item_hash").convert()?;
+        let is_input: bool = row.get("is_input");
+        let is_output: bool = row.get("is_output");
+
+        let transaction_coin = create_transaction_coin(row)?;
+
+        if !items.contains_key(&item_hash) {
+            let fee: u64 = row.get::<Vec<u8>, _>("item_fee").convert()?;
+            let submitted_timestamp: Option<i64> = row.get("submitted_timestamp");
+            order.push(item_hash);
+            items.insert(
+                item_hash,
+                (
+                    fee,
+                    submitted_timestamp.map(|ts| ts as u64),
+                    Vec::new(),
+                    Vec::new(),
+                ),
+            );
+        }
+
+        let entry = items.get_mut(&item_hash).unwrap();
+        if is_input {
+            entry.2.push(transaction_coin.clone());
+        }
+        if is_output {
+            entry.3.push(transaction_coin);
+        }
+    }
+
+    Ok(order
+        .into_iter()
+        .map(|hash| {
+            let (fee, submitted_timestamp, spent, created) = items.remove(&hash).unwrap();
+            MempoolItemWithCoins {
+                hash,
+                fee,
+                submitted_timestamp,
+                spent,
+                created,
+            }
+        })
+        .collect())
 }

@@ -1,0 +1,33 @@
+{
+  "name": "@sage-system-app/sdk",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./runtime-bridge.js": {
+      "import": "./dist/runtime-bridge.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "generate:types": "node ./scripts/export-types.mjs",
+    "build": "pnpm run clean && pnpm run generate:types && tsup && tsc -p tsconfig.build.json",
+    "dev": "pnpm run generate:types && tsup --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@sage-app/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.6.3"
+  }
+}

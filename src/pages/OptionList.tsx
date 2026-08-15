@@ -6,6 +6,7 @@ import { OptionListView } from '@/components/OptionListView';
 import { OptionOptions } from '@/components/OptionOptions';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
@@ -84,14 +85,14 @@ export function OptionList() {
         </div>
       </Header>
       <Container>
-        <Button
+        <ReadOnlyButton
           aria-label={t`Mint new option`}
           className='mb-4'
           onClick={() => navigate('/options/mint')}
         >
           <FilePenLine className='h-4 w-4 mr-2' />
           <Trans>Mint Option</Trans>
-        </Button>
+        </ReadOnlyButton>
 
         <OptionOptions
           query={search}

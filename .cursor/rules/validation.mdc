@@ -1,0 +1,19 @@
+---
+description: Required validation after code changes
+alwaysApply: true
+---
+
+# Validation
+
+Before completing substantive code changes, run the applicable checks for every language changed:
+
+1. TypeScript formatting: `pnpm prettier:check`
+2. TypeScript linting: `pnpm lint`
+3. Rust formatting: `cargo fmt --all -- --files-with-diff --check`
+4. Rust linting: `cargo clippy --workspace --all-features --all-targets`
+5. Relevant targeted tests, expanded to broader test suites when warranted by the change's risk
+
+- Run both TypeScript checks for TypeScript/TSX changes and both Rust checks for Rust changes.
+- Builds, type checks, and IDE diagnostics do not replace formatting or linting.
+- Do not claim validation passed unless the corresponding commands ran successfully.
+- Report any skipped, blocked, or failing checks, including failures unrelated to the current changes.

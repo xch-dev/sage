@@ -1,17 +1,21 @@
 import { commands, NftRecord, TransactionResponse } from '@/bindings';
 import { CustomError } from '@/contexts/ErrorContext';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { offersEnabled } from '@/lib/features';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
+  CheckCheck,
   ChevronDown,
   Flame,
   HandCoins,
   SendIcon,
   UserRoundPlus,
+  X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -36,6 +40,8 @@ export interface MultiSelectActionsProps {
   nfts?: NftRecord[];
   thumbnails?: Record<string, string | null>;
   onConfirm: () => void;
+  onSelectAll?: () => void;
+  onClearSelection?: () => void;
 }
 
 export function MultiSelectActions({
@@ -43,8 +49,11 @@ export function MultiSelectActions({
   nfts: propNfts,
   thumbnails: propThumbnails,
   onConfirm,
+  onSelectAll,
+  onClearSelection,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
 
   const { addError } = useErrors();
@@ -181,17 +190,70 @@ export function MultiSelectActions({
   return (
     <>
       <div
-        className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
+        className='absolute flex justify-between items-center gap-2 bottom-6 w-fit max-w-[calc(100vw-2rem)] px-4 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
         role='region'
         aria-label={t`Selected NFTs actions`}
       >
-        <span className='flex-shrink-0 text-card-foreground' aria-live='polite'>
+        <span
+          className='flex-shrink-0 whitespace-nowrap text-card-foreground'
+          aria-live='polite'
+        >
           <Trans>{selectedCount} selected</Trans>
         </span>
+        {(onSelectAll || onClearSelection) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                size='sm'
+                className='flex items-center gap-1 flex-shrink-0'
+                aria-label={t`Selection options`}
+              >
+                <Trans>Select</Trans>
+                <ChevronDown className='h-4 w-4' aria-hidden='true' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='center'>
+              <DropdownMenuGroup>
+                {onSelectAll && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectAll();
+                    }}
+                    aria-label={t`Select all NFTs on this page`}
+                  >
+                    <CheckCheck className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Select All</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+                {onClearSelection && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearSelection();
+                    }}
+                    aria-label={t`Clear selection`}
+                  >
+                    <X className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Clear Selection</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className='flex items-center gap-1'
+              size='sm'
+              className='flex items-center gap-1 flex-shrink-0'
               aria-label={t`Actions for ${selectedCount} selected NFTs`}
             >
               <Trans>Actions</Trans>
@@ -202,6 +264,7 @@ export function MultiSelectActions({
             <DropdownMenuGroup>
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setTransferOpen(true);
@@ -216,6 +279,7 @@ export function MultiSelectActions({
 
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setAssignOpen(true);
@@ -230,6 +294,7 @@ export function MultiSelectActions({
 
               <DropdownMenuItem
                 className='cursor-pointer'
+                disabled={isTransactionDisabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   setBurnOpen(true);
@@ -242,50 +307,55 @@ export function MultiSelectActions({
                 </span>
               </DropdownMenuItem>
 
-              <DropdownMenuSeparator />
+              {offersEnabled && (
+                <>
+                  <DropdownMenuSeparator />
 
-              <DropdownMenuItem
-                className='cursor-pointer'
-                onClick={(e) => {
-                  e.stopPropagation();
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    disabled={isTransactionDisabled}
+                    onClick={(e) => {
+                      e.stopPropagation();
 
-                  const newNfts = [...offerState.offered.nfts];
-                  let addedCount = 0;
+                      const newNfts = [...offerState.offered.nfts];
+                      let addedCount = 0;
 
-                  for (const item of selected) {
-                    if (newNfts.includes(item)) {
-                      continue;
-                    }
+                      for (const item of selected) {
+                        if (newNfts.includes(item)) {
+                          continue;
+                        }
 
-                    newNfts.push(item);
-                    addedCount++;
-                  }
+                        newNfts.push(item);
+                        addedCount++;
+                      }
 
-                  setOfferState({
-                    offered: {
-                      ...offerState.offered,
-                      nfts: newNfts,
-                    },
-                  });
+                      setOfferState({
+                        offered: {
+                          ...offerState.offered,
+                          nfts: newNfts,
+                        },
+                      });
 
-                  const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
-                  const message =
-                    addedCount > 0
-                      ? t`Added ${addedCount} ${nfts} to offer`
-                      : t`Selected NFTs are already in the offer`;
-                  toast.success(message, {
-                    onClick: () => navigate('/offers/make'),
-                  });
+                      const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
+                      const message =
+                        addedCount > 0
+                          ? t`Added ${addedCount} ${nfts} to offer`
+                          : t`Selected NFTs are already in the offer`;
+                      toast.success(message, {
+                        onClick: () => navigate('/offers/make'),
+                      });
 
-                  onConfirm();
-                }}
-                aria-label={t`Add ${selectedCount} selected NFTs to offer`}
-              >
-                <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                <span>
-                  <Trans>Add to Offer</Trans>
-                </span>
-              </DropdownMenuItem>
+                      onConfirm();
+                    }}
+                    aria-label={t`Add ${selectedCount} selected NFTs to offer`}
+                  >
+                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Add to Offer</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -8,11 +8,14 @@ use chia_wallet_sdk::{
     driver::P2DelegatedConditionsLayer,
     prelude::*,
 };
-use sage_api::wallet_connect::{
-    self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
-    GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
-    SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
-    SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
+use sage_api::{
+    Amount,
+    wallet_connect::{
+        self, AssetCoinType, FilterUnlockedCoins, FilterUnlockedCoinsResponse, GetAssetCoins,
+        GetAssetCoinsResponse, LineageProof, SendTransactionImmediately,
+        SendTransactionImmediatelyResponse, SignMessageByAddress, SignMessageByAddressResponse,
+        SignMessageWithPublicKey, SignMessageWithPublicKeyResponse, SpendableCoin,
+    },
 };
 use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, DeserializePrimitive, P2Puzzle};
 use sage_wallet::{Status, SyncCommand, Transaction, insert_transaction, submit_to_peers};
@@ -141,7 +144,7 @@ impl Sage {
                 coin: wallet_connect::Coin {
                     parent_coin_info: hex::encode(row.coin.parent_coin_info),
                     puzzle_hash: hex::encode(row.coin.puzzle_hash),
-                    amount: row.coin.amount,
+                    amount: Amount::u64(row.coin.amount),
                 },
                 coin_name: hex::encode(row.coin.coin_id()),
                 puzzle: hex::encode(ctx.serialize(&puzzle)?),
@@ -152,12 +155,12 @@ impl Sage {
                     Some(Proof::Eve(proof)) => Some(LineageProof {
                         parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
                         inner_puzzle_hash: None,
-                        amount: Some(proof.parent_amount),
+                        amount: Some(Amount::u64(proof.parent_amount)),
                     }),
                     Some(Proof::Lineage(proof)) => Some(LineageProof {
                         parent_name: Some(hex::encode(proof.parent_parent_coin_info)),
                         inner_puzzle_hash: Some(hex::encode(proof.parent_inner_puzzle_hash)),
-                        amount: Some(proof.parent_amount),
+                        amount: Some(Amount::u64(proof.parent_amount)),
                     }),
                 },
             });
@@ -329,6 +332,9 @@ fn rust_coin(coin: wallet_connect::Coin) -> Result<Coin> {
     Ok(Coin {
         parent_coin_info: parse_coin_id(coin.parent_coin_info)?,
         puzzle_hash: parse_hash(coin.puzzle_hash)?,
-        amount: coin.amount,
+        amount: coin
+            .amount
+            .to_u64()
+            .ok_or(Error::InvalidCoinAmount(coin.amount.to_string()))?,
     })
 }
