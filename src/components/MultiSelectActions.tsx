@@ -9,11 +9,13 @@ import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import {
+  CheckCheck,
   ChevronDown,
   Flame,
   HandCoins,
   SendIcon,
   UserRoundPlus,
+  X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +40,8 @@ export interface MultiSelectActionsProps {
   nfts?: NftRecord[];
   thumbnails?: Record<string, string | null>;
   onConfirm: () => void;
+  onSelectAll?: () => void;
+  onClearSelection?: () => void;
 }
 
 export function MultiSelectActions({
@@ -45,6 +49,8 @@ export function MultiSelectActions({
   nfts: propNfts,
   thumbnails: propThumbnails,
   onConfirm,
+  onSelectAll,
+  onClearSelection,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
   const { isTransactionDisabled } = useWallet();
@@ -184,17 +190,70 @@ export function MultiSelectActions({
   return (
     <>
       <div
-        className='absolute flex justify-between items-center gap-3 bottom-6 w-60 px-5 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
+        className='absolute flex justify-between items-center gap-2 bottom-6 w-fit max-w-[calc(100vw-2rem)] px-4 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
         role='region'
         aria-label={t`Selected NFTs actions`}
       >
-        <span className='flex-shrink-0 text-card-foreground' aria-live='polite'>
+        <span
+          className='flex-shrink-0 whitespace-nowrap text-card-foreground'
+          aria-live='polite'
+        >
           <Trans>{selectedCount} selected</Trans>
         </span>
+        {(onSelectAll || onClearSelection) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='outline'
+                size='sm'
+                className='flex items-center gap-1 flex-shrink-0'
+                aria-label={t`Selection options`}
+              >
+                <Trans>Select</Trans>
+                <ChevronDown className='h-4 w-4' aria-hidden='true' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align='center'>
+              <DropdownMenuGroup>
+                {onSelectAll && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectAll();
+                    }}
+                    aria-label={t`Select all NFTs on this page`}
+                  >
+                    <CheckCheck className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Select All</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+                {onClearSelection && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onClearSelection();
+                    }}
+                    aria-label={t`Clear selection`}
+                  >
+                    <X className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Clear Selection</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
-              className='flex items-center gap-1'
+              size='sm'
+              className='flex items-center gap-1 flex-shrink-0'
               aria-label={t`Actions for ${selectedCount} selected NFTs`}
             >
               <Trans>Actions</Trans>

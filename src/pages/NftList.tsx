@@ -193,6 +193,8 @@ export function NftList() {
             setSelected([]);
             setMultiSelect(false);
           }}
+          onSelectAll={() => setSelected(nfts.map((nft) => nft.launcher_id))}
+          onClearSelection={() => setSelected([])}
           aria-label={t`Actions for selected NFTs`}
         />
       )}
