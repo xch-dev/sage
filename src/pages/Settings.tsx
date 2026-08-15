@@ -467,9 +467,11 @@ function WalletConnectSettings() {
   const { pair, sessions, disconnect, connecting } = useWalletConnect();
   const [uri, setUri] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    setUri(scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      setUri(scanResValue);
+    },
+  );
 
   const handlePair = async () => {
     try {
@@ -522,6 +524,7 @@ function WalletConnectSettings() {
               placeholder={t`WalletConnect URI`}
               onChange={(e) => setUri(e.target.value)}
               onEndIconClick={handleScanOrPaste}
+              onScanImage={handleScanImage}
               disabled={connecting}
             />
 
@@ -1048,11 +1051,13 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
     }
   };
 
-  const { handleScanOrPaste: handleScanOrPasteChangeAddress } =
-    useScannerOrClipboard((scanResValue) => {
-      setLocalChangeAddress(scanResValue);
-      saveChangeAddress(scanResValue);
-    });
+  const {
+    handleScanOrPaste: handleScanOrPasteChangeAddress,
+    handleScanImage: handleScanImageChangeAddress,
+  } = useScannerOrClipboard((scanResValue) => {
+    setLocalChangeAddress(scanResValue);
+    saveChangeAddress(scanResValue);
+  });
 
   const fetchDatabaseStats = useCallback(async () => {
     setLoadingStats(true);
@@ -1293,6 +1298,7 @@ function WalletSettings({ fingerprint }: { fingerprint: number }) {
                 saveChangeAddress(localChangeAddress);
               }}
               onEndIconClick={handleScanOrPasteChangeAddress}
+              onScanImage={handleScanImageChangeAddress}
             />
           </div>
         </SettingItem>

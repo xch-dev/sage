@@ -68,29 +68,33 @@ export default function MintNft() {
     },
   });
 
-  const { handleScanOrPaste: handleRoyaltyPaste } = useScannerOrClipboard(
-    (scanResValue) => {
-      form.setValue('royaltyAddress', scanResValue);
-    },
-  );
+  const {
+    handleScanOrPaste: handleRoyaltyPaste,
+    handleScanImage: handleRoyaltyScanImage,
+  } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('royaltyAddress', scanResValue);
+  });
 
-  const { handleScanOrPaste: handleDataUrisPaste } = useScannerOrClipboard(
-    (scanResValue) => {
-      form.setValue('dataUris', scanResValue);
-    },
-  );
+  const {
+    handleScanOrPaste: handleDataUrisPaste,
+    handleScanImage: handleDataUrisScanImage,
+  } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('dataUris', scanResValue);
+  });
 
-  const { handleScanOrPaste: handleMetadataUrisPaste } = useScannerOrClipboard(
-    (scanResValue) => {
-      form.setValue('metadataUris', scanResValue);
-    },
-  );
+  const {
+    handleScanOrPaste: handleMetadataUrisPaste,
+    handleScanImage: handleMetadataUrisScanImage,
+  } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('metadataUris', scanResValue);
+  });
 
-  const { handleScanOrPaste: handleLicenseUrisPaste } = useScannerOrClipboard(
-    (scanResValue) => {
-      form.setValue('licenseUris', scanResValue);
-    },
-  );
+  const {
+    handleScanOrPaste: handleLicenseUrisPaste,
+    handleScanImage: handleLicenseUrisScanImage,
+  } = useScannerOrClipboard((scanResValue) => {
+    form.setValue('licenseUris', scanResValue);
+  });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
     setPending(true);
@@ -194,6 +198,7 @@ export default function MintNft() {
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
                       onEndIconClick={handleDataUrisPaste}
+                      onScanImage={handleDataUrisScanImage}
                     />
                   </FormControl>
                   <FormMessage />
@@ -215,6 +220,7 @@ export default function MintNft() {
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
                       onEndIconClick={handleMetadataUrisPaste}
+                      onScanImage={handleMetadataUrisScanImage}
                     />
                   </FormControl>
                   <FormMessage />
@@ -236,6 +242,7 @@ export default function MintNft() {
                       placeholder={t`Enter comma separated URLs`}
                       {...field}
                       onEndIconClick={handleLicenseUrisPaste}
+                      onScanImage={handleLicenseUrisScanImage}
                     />
                   </FormControl>
                   <FormMessage />
@@ -257,6 +264,7 @@ export default function MintNft() {
                       placeholder={t`Enter address`}
                       {...field}
                       onEndIconClick={handleRoyaltyPaste}
+                      onScanImage={handleRoyaltyScanImage}
                     />
                   </FormControl>
                   <FormMessage />
