@@ -8,6 +8,7 @@ import { useCallback, useRef, useState } from 'react';
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
+  copies?: number; // NEW — default 1
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
   onProgress?: (index: number) => void; // Callback for progress updates
 }
@@ -23,6 +24,7 @@ interface UseOfferProcessorReturn {
 export function useOfferProcessor({
   offerState,
   splitNftOffers,
+  copies = 1, // NEW
   onProcessingEnd,
   onProgress,
 }: UseOfferProcessorProps): UseOfferProcessorReturn {
@@ -127,43 +129,54 @@ export function useOfferProcessor({
           setCreatedOffers(newOffers);
         }
       } else {
-        onProgress?.(0);
+        const newOffers: string[] = [];
 
-        const offeredAssets: OfferAmount[] = [
-          ...offeredTokens,
-          ...offerState.offered.nfts.map((nft) => ({
-            asset_id: nft,
-            amount: 1,
-          })),
-          ...offerState.offered.options.map((option) => ({
-            asset_id: option,
-            amount: 1,
-          })),
-        ];
+        for (let copyIndex = 0; copyIndex < copies; copyIndex++) {
+          if (isCancelled.current) break;
 
-        const requestedAssets: OfferAmount[] = [
-          ...requestedTokens,
-          ...offerState.requested.nfts.map((nft) => ({
-            asset_id: nft,
-            amount: 1,
-          })),
-          ...offerState.requested.options.map((option) => ({
-            asset_id: option,
-            amount: 1,
-          })),
-        ];
+          onProgress?.(copyIndex);
 
-        const data = await commands.makeOffer({
-          offered_assets: offeredAssets,
-          requested_assets: requestedAssets,
-          fee: toMojos(
-            (offerState.fee || '0').toString(),
-            walletState.sync.unit.precision,
-          ),
-          expires_at_second: expiresAtSecond,
-        });
+          const offeredAssets: OfferAmount[] = [
+            ...offeredTokens,
+            ...offerState.offered.nfts.map((nft) => ({
+              asset_id: nft,
+              amount: 1,
+            })),
+            ...offerState.offered.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
+          const requestedAssets: OfferAmount[] = [
+            ...requestedTokens,
+            ...offerState.requested.nfts.map((nft) => ({
+              asset_id: nft,
+              amount: 1,
+            })),
+            ...offerState.requested.options.map((option) => ({
+              asset_id: option,
+              amount: 1,
+            })),
+          ];
+
+          const data = await commands.makeOffer({
+            offered_assets: offeredAssets,
+            requested_assets: requestedAssets,
+            fee: toMojos(
+              (offerState.fee || '0').toString(),
+              walletState.sync.unit.precision,
+            ),
+            expires_at_second: expiresAtSecond,
+          });
+
+          if (!isCancelled.current) {
+            newOffers.push(data.offer);
+          }
+        }
+
         if (!isCancelled.current) {
-          setCreatedOffers([data.offer]);
+          setCreatedOffers(newOffers);
         }
       }
     } catch (err) {
@@ -179,6 +192,7 @@ export function useOfferProcessor({
   }, [
     offerState,
     splitNftOffers,
+    copies,
     walletState.sync.unit.precision,
     promptIfEnabled,
     onProcessingEnd,

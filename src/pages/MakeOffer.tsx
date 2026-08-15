@@ -16,7 +16,7 @@ import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { HandCoins, Handshake } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export function MakeOffer() {
@@ -35,6 +35,8 @@ export function MakeOffer() {
   const [enabledMarketplaces, setEnabledMarketplaces] = useState<
     Record<string, boolean>
   >({});
+  const [copies, setCopies] = useState(1);
+  const confirmedRef = useRef(false);
 
   const makeAction = () => {
     if (state.expiration !== null) {
@@ -106,6 +108,7 @@ export function MakeOffer() {
   };
 
   const handleConfirm = () => {
+    confirmedRef.current = true;
     setIsProgressDialogOpen(true);
   };
 
@@ -319,13 +322,19 @@ export function MakeOffer() {
 
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
-          onOpenChange={setIsConfirmDialogOpen}
+          onOpenChange={(open) => {
+            setIsConfirmDialogOpen(open);
+            if (!open && !confirmedRef.current) setCopies(1);
+            confirmedRef.current = false;
+          }}
           onConfirm={handleConfirm}
           offerState={state}
           splitNftOffers={splitNftOffers}
           fee={state.fee || '0'}
           enabledMarketplaces={enabledMarketplaces}
           setEnabledMarketplaces={setEnabledMarketplaces}
+          copies={copies}
+          onCopiesChange={setCopies}
         />
 
         <OfferCreationProgressDialog
@@ -334,6 +343,7 @@ export function MakeOffer() {
           offerState={state}
           splitNftOffers={splitNftOffers}
           enabledMarketplaces={enabledMarketplaces}
+          copies={copies}
           clearOfferState={() => {
             setState(null);
             navigate('/offers', { replace: true });

@@ -2,6 +2,7 @@ import { commands, OfferRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
+import { DuplicateOfferDialog } from '@/components/dialogs/DuplicateOfferDialog';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import BigNumber from 'bignumber.js';
 import {
   CircleOff,
   CopyIcon,
+  CopyPlus,
   MoreVertical,
   Tags,
   TrashIcon,
@@ -44,6 +46,11 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false);
+
+  const isTokenOnlyOffer = record.summary.maker.every(
+    (a) => a.asset.kind === 'token',
+  );
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.precision).refine(
@@ -144,6 +151,22 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                       <Trans>Copy ID</Trans>
                     </span>
                   </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsDuplicateOpen(true);
+                    }}
+                    disabled={!isTokenOnlyOffer}
+                  >
+                    <CopyPlus className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Duplicate</Trans>
+                    </span>
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -180,6 +203,13 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
           title: t`Cancel Offer`,
           content: response && <CancelOfferConfirmation offers={[record]} />,
         }}
+      />
+
+      <DuplicateOfferDialog
+        open={isDuplicateOpen}
+        onOpenChange={setIsDuplicateOpen}
+        record={record}
+        onDone={refresh}
       />
     </>
   );
