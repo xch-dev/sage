@@ -60,13 +60,14 @@ export function CancelOfferConfirmation({
         {offers.map((offer, index) => {
           const summary = 'summary' in offer ? offer.summary : offer;
           const hasOfferId = 'offer_id' in offer;
+          const offerNumber = index + 1;
 
           return (
             // eslint-disable-next-line react/no-array-index-key
             <div key={index} className='space-y-2'>
               {isMultiple && (
                 <div className='text-xs font-medium text-muted-foreground sticky top-0 bg-background py-1'>
-                  <Trans>Offer {index + 1}</Trans>
+                  <Trans>Offer {offerNumber}</Trans>
                 </div>
               )}
 

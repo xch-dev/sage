@@ -80,15 +80,18 @@ export const Pagination = ({
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <SelectItem
-                  key={i}
-                  value={(i + 1).toString()}
-                  aria-label={t`Go to page ${i + 1}`}
-                >
-                  {i + 1}
-                </SelectItem>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <SelectItem
+                    key={i}
+                    value={page.toString()}
+                    aria-label={t`Go to page ${page}`}
+                  >
+                    {page}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         ) : (

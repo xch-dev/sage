@@ -214,50 +214,51 @@ export default function Option() {
               </CardHeader>
               <CardContent>
                 <div className='grid gap-2'>
-                  {offersForAsset.map((localOffer) => (
-                    <div
-                      key={localOffer.offer_id}
-                      className='border rounded-lg p-3'
-                    >
-                      <div className='grid grid-cols-2 gap-4'>
-                        <div>
-                          <div className='text-sm font-medium mb-2'>
-                            <Trans>Local Offer</Trans>
-                          </div>
-                          <div className='text-sm text-muted-foreground'>
-                            <Trans>
-                              Status: {getOfferStatus(localOffer.status)}
-                            </Trans>
-                          </div>
-                          {localOffer.creation_timestamp && (
-                            <div className='text-sm text-muted-foreground'>
-                              <Trans>
-                                Created:{' '}
-                                {formatTimestamp(
-                                  localOffer.creation_timestamp,
-                                  'short',
-                                  'short',
-                                )}
-                              </Trans>
+                  {offersForAsset.map((localOffer) => {
+                    const offerStatus = getOfferStatus(localOffer.status);
+                    const createdAt = localOffer.creation_timestamp
+                      ? formatTimestamp(
+                          localOffer.creation_timestamp,
+                          'short',
+                          'short',
+                        )
+                      : '';
+                    return (
+                      <div
+                        key={localOffer.offer_id}
+                        className='border rounded-lg p-3'
+                      >
+                        <div className='grid grid-cols-2 gap-4'>
+                          <div>
+                            <div className='text-sm font-medium mb-2'>
+                              <Trans>Local Offer</Trans>
                             </div>
-                          )}
-                        </div>
-                        <div className='flex flex-col gap-1 justify-start'>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => {
-                              navigate(
-                                `/offers/view_saved/${localOffer.offer_id}`,
-                              );
-                            }}
-                          >
-                            <Trans>View Local Offer</Trans>
-                          </Button>
+                            <div className='text-sm text-muted-foreground'>
+                              <Trans>Status: {offerStatus}</Trans>
+                            </div>
+                            {localOffer.creation_timestamp && (
+                              <div className='text-sm text-muted-foreground'>
+                                <Trans>Created: {createdAt}</Trans>
+                              </div>
+                            )}
+                          </div>
+                          <div className='flex flex-col gap-1 justify-start'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                navigate(
+                                  `/offers/view_saved/${localOffer.offer_id}`,
+                                );
+                              }}
+                            >
+                              <Trans>View Local Offer</Trans>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

@@ -288,6 +288,7 @@ export function ClawbackCoinsCard({
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
+  const ticker = asset.ticker;
 
   if (!totalCoins) return null;
 
@@ -366,7 +367,7 @@ export function ClawbackCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Claw Back {asset.ticker}</Trans>
+              <Trans>Claw Back {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will claw back all of the selected coins.</Trans>
@@ -413,7 +414,7 @@ export function ClawbackCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Finalize {asset.ticker} Clawback</Trans>
+              <Trans>Finalize {ticker} Clawback</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>

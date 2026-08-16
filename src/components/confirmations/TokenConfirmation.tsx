@@ -128,6 +128,8 @@ export function TokenConfirmation({
 
   const { icon: Icon, title, variant, message } = config[type];
 
+  const coinCount = coins?.length ?? 0;
+
   const totalAmount =
     coins?.reduce((acc, coin) => acc + BigInt(coin.amount), BigInt(0)) ??
     BigInt(0);
@@ -229,7 +231,7 @@ export function TokenConfirmation({
                       : type === 'clawback'
                         ? 'Claw back'
                         : 'Finalize clawback'}{' '}
-                  {coins.length} coin{coins.length === 1 ? '' : 's'}
+                  {coinCount} coin{coins.length === 1 ? '' : 's'}
                 </Trans>
               }
             >
@@ -279,12 +281,12 @@ export function TokenConfirmation({
                       <Trans>1 combined coin</Trans>
                     ) : type === 'clawback' ? (
                       <Trans>
-                        {coins.length} clawed back coin
+                        {coinCount} clawed back coin
                         {coins.length === 1 ? '' : 's'}
                       </Trans>
                     ) : type === 'finalize_clawback' ? (
                       <Trans>
-                        {coins.length} finalized clawback
+                        {coinCount} finalized clawback
                         {coins.length === 1 ? '' : 's'}
                       </Trans>
                     ) : null}

@@ -77,6 +77,8 @@ export function OptionList() {
   // Shared action handlers and dialogs
   const { actionHandlers, dialogs } = useOptionActions(updateOptions);
 
+  const pageCount = Math.ceil(total / limit);
+
   return (
     <>
       <Header title={t`Option Contracts`}>
@@ -163,12 +165,12 @@ export function OptionList() {
                 <Trans>Previous</Trans>
               </Button>
               <span className='text-sm text-muted-foreground'>
-                {t`Page ${page} of ${Math.ceil(total / limit)}`}
+                {t`Page ${page} of ${pageCount}`}
               </span>
               <Button
                 variant='outline'
                 size='sm'
-                disabled={page >= Math.ceil(total / limit)}
+                disabled={page >= pageCount}
                 onClick={() => setParams({ page: page + 1 })}
               >
                 <Trans>Next</Trans>

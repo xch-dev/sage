@@ -110,9 +110,12 @@ export function OfferCreationProgressDialog({
               }
             } catch (error) {
               if (isMounted) {
+                const offerNumber = offerIndex + 1;
+                const marketplaceName = marketplace.name;
+                const message = error as string;
                 addError({
                   kind: 'upload',
-                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}. Stopping.: ${error as string}`,
+                  reason: t`Failed to auto-upload offer ${offerNumber} to ${marketplaceName}. Stopping.: ${message}`,
                 });
                 // typically if one fails the rest will fail too
                 break;
@@ -210,12 +213,15 @@ export function OfferCreationProgressDialog({
     clearOfferState(createdOffers);
   };
 
+  const createdOfferCount = createdOffers.length;
+
   const getProgressMessage = () => {
     if (isProcessing || isUploading) {
+      const offerNumber = currentOfferIndex + 1;
       if (currentStep === 'creating') {
         return (
           <Trans>
-            Creating offer {currentOfferIndex + 1} of {totalOffers}...
+            Creating offer {offerNumber} of {totalOffers}...
           </Trans>
         );
       } else if (currentStep === 'uploading') {
@@ -224,10 +230,11 @@ export function OfferCreationProgressDialog({
         );
         const currentMarketplace =
           enabledMarketplaceConfigs[currentMarketplaceIndex];
+        const marketplaceName = currentMarketplace.name;
         return (
           <Trans>
-            Uploading offer {currentOfferIndex + 1} of {totalOffers} to{' '}
-            {currentMarketplace.name}...
+            Uploading offer {offerNumber} of {totalOffers} to {marketplaceName}
+            ...
           </Trans>
         );
       }
@@ -285,7 +292,7 @@ export function OfferCreationProgressDialog({
               </div>
             ) : createdOffers.length > 1 ? (
               <Trans>
-                {createdOffers.length} offers have been created and imported
+                {createdOfferCount} offers have been created and imported
                 successfully
                 {Object.values(enabledMarketplaces ?? {}).some(Boolean)
                   ? ' and uploaded to the selected marketplaces'

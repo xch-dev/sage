@@ -414,6 +414,7 @@ export function OwnedCoinsCard({
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
+  const ticker = asset.ticker;
 
   // Calculate total value of selected coins
   const selectedCoinsTotal = useMemo(() => {
@@ -494,7 +495,7 @@ export function OwnedCoinsCard({
             <span className='text-muted-foreground text-sm flex items-center'>
               <Trans>
                 {selectedCoinCount} {selectedCoinLabel} selected (
-                {selectedCoinsTotal} {asset.ticker})
+                {selectedCoinsTotal} {ticker})
               </Trans>
             </span>
           </div>
@@ -505,7 +506,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {asset.ticker}</Trans>
+              <Trans>Combine {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -554,7 +555,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Split {asset.ticker}</Trans>
+              <Trans>Split {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will split all of the selected coins.</Trans>
@@ -622,7 +623,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Auto Combine {asset.ticker}</Trans>
+              <Trans>Auto Combine {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
