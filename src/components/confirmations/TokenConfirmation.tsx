@@ -6,7 +6,7 @@ import { offersEnabled } from '@/lib/features';
 import { fromMojos } from '@/lib/utils';
 import { formatMemo, Memo } from '@/types/CoinMemo.ts';
 import { t } from '@lingui/core/macro';
-import { Trans } from '@lingui/react/macro';
+import { Plural, Trans } from '@lingui/react/macro';
 import {
   CoinsIcon,
   MergeIcon,
@@ -223,16 +223,31 @@ export function TokenConfirmation({
           <>
             <ConfirmationCard
               title={
-                <Trans>
-                  {type === 'split'
-                    ? 'Split'
-                    : type === 'combine'
-                      ? 'Combine'
-                      : type === 'clawback'
-                        ? 'Claw back'
-                        : 'Finalize clawback'}{' '}
-                  {coinCount} coin{coins.length === 1 ? '' : 's'}
-                </Trans>
+                type === 'split' ? (
+                  <Plural
+                    value={coinCount}
+                    one='Split # coin'
+                    other='Split # coins'
+                  />
+                ) : type === 'combine' ? (
+                  <Plural
+                    value={coinCount}
+                    one='Combine # coin'
+                    other='Combine # coins'
+                  />
+                ) : type === 'clawback' ? (
+                  <Plural
+                    value={coinCount}
+                    one='Claw back # coin'
+                    other='Claw back # coins'
+                  />
+                ) : (
+                  <Plural
+                    value={coinCount}
+                    one='Finalize clawback # coin'
+                    other='Finalize clawback # coins'
+                  />
+                )
               }
             >
               <div className='space-y-2 max-h-40 overflow-y-auto'>
@@ -280,15 +295,17 @@ export function TokenConfirmation({
                     ) : type === 'combine' ? (
                       <Trans>1 combined coin</Trans>
                     ) : type === 'clawback' ? (
-                      <Trans>
-                        {coinCount} clawed back coin
-                        {coins.length === 1 ? '' : 's'}
-                      </Trans>
+                      <Plural
+                        value={coinCount}
+                        one='# clawed back coin'
+                        other='# clawed back coins'
+                      />
                     ) : type === 'finalize_clawback' ? (
-                      <Trans>
-                        {coinCount} finalized clawback
-                        {coins.length === 1 ? '' : 's'}
-                      </Trans>
+                      <Plural
+                        value={coinCount}
+                        one='# finalized clawback'
+                        other='# finalized clawbacks'
+                      />
                     ) : null}
                   </div>
                 </div>

@@ -37,17 +37,22 @@ export function CancelOfferConfirmation({
         variant='warning'
       >
         {isMultiple ? (
-          <Trans>
-            You are canceling {offerCount} offers on-chain. This will prevent
-            them from being taken even if someone has the original offer files.
+          <>
+            <Trans>
+              You are canceling {offerCount} offers on-chain. This will prevent
+              them from being taken even if someone has the original offer
+              files.
+            </Trans>
             {fee && (
               <>
                 {' '}
-                The transaction fee of {fee} applies to each offer being
-                canceled.
+                <Trans>
+                  The transaction fee of {fee} applies to each offer being
+                  canceled.
+                </Trans>
               </>
             )}
-          </Trans>
+          </>
         ) : (
           <Trans>
             You are canceling this offer on-chain. This will prevent it from

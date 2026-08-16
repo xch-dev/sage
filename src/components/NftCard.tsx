@@ -292,6 +292,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   const nftName = nft.name ?? t`Unnamed NFT`;
   const editionNumber = nft.edition_number;
+  // 0 means an open/unlimited edition
+  const editionTotal = nft.edition_total === 0 ? '∞' : nft.edition_total;
 
   return (
     <>
@@ -352,8 +354,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                         {' '}
                         (
                         <Trans>
-                          {editionNumber} of{' '}
-                          {nft.edition_total === 0 ? '∞' : nft.edition_total}
+                          {editionNumber} of {editionTotal}
                         </Trans>
                         )
                       </span>

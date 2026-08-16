@@ -215,6 +215,38 @@ export function OfferCreationProgressDialog({
 
   const createdOfferCount = createdOffers.length;
 
+  const uploadedToMarketplaces = Object.values(enabledMarketplaces ?? {}).some(
+    Boolean,
+  );
+
+  // Each combination is spelled out as a whole sentence so translators get
+  // complete phrases rather than English fragments stitched together.
+  const getWaitMessage = () => {
+    if (currentStep === 'creating') {
+      if (uploadedToMarketplaces) {
+        return splitNftOffers ? (
+          <Trans>
+            Please wait while your offers are being created and uploaded...
+          </Trans>
+        ) : (
+          <Trans>
+            Please wait while your offer is being created and uploaded...
+          </Trans>
+        );
+      }
+      return splitNftOffers ? (
+        <Trans>Please wait while your offers are being created...</Trans>
+      ) : (
+        <Trans>Please wait while your offer is being created...</Trans>
+      );
+    }
+    return splitNftOffers ? (
+      <Trans>Please wait while your offers are being uploaded...</Trans>
+    ) : (
+      <Trans>Please wait while your offer is being uploaded...</Trans>
+    );
+  };
+
   const getProgressMessage = () => {
     if (isProcessing || isUploading) {
       const offerNumber = currentOfferIndex + 1;
@@ -274,45 +306,42 @@ export function OfferCreationProgressDialog({
           <DialogDescription>
             {isProcessing || isUploading ? (
               <div className='space-y-2'>
-                <p>
-                  <Trans>
-                    Please wait while{' '}
-                    {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                    {currentStep === 'creating' ? ' created' : ' uploaded'}
-                    {currentStep === 'creating' &&
-                    Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                      ? ' and uploaded'
-                      : ''}
-                    ...
-                  </Trans>
-                </p>
+                <p>{getWaitMessage()}</p>
                 <p className='text-sm text-muted-foreground'>
                   {getProgressMessage()}
                 </p>
               </div>
             ) : createdOffers.length > 1 ? (
-              <Trans>
-                {createdOfferCount} offers have been created and imported
-                successfully
-                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                  ? ' and uploaded to the selected marketplaces'
-                  : ''}
-                . You will now be redirected to the offers page where you can
-                view the details of each offer.
-              </Trans>
+              uploadedToMarketplaces ? (
+                <Trans>
+                  {createdOfferCount} offers have been created and imported
+                  successfully and uploaded to the selected marketplaces. You
+                  will now be redirected to the offers page where you can view
+                  the details of each offer.
+                </Trans>
+              ) : (
+                <Trans>
+                  {createdOfferCount} offers have been created and imported
+                  successfully. You will now be redirected to the offers page
+                  where you can view the details of each offer.
+                </Trans>
+              )
             ) : isSwap ? (
               <Trans>
                 The offer to fulfill the swap has been created successfully. It
                 will now be executed on Dexie and imported on the offers page.
               </Trans>
+            ) : uploadedToMarketplaces ? (
+              <Trans>
+                Your offer has been created and imported successfully and
+                uploaded to the selected marketplaces. You will now be
+                redirected to the offers page where you can view its details.
+              </Trans>
             ) : (
               <Trans>
-                Your offer has been created and imported successfully
-                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                  ? ' and uploaded to the selected marketplaces'
-                  : ''}
-                . You will now be redirected to the offers page where you can
-                view its details.
+                Your offer has been created and imported successfully. You will
+                now be redirected to the offers page where you can view its
+                details.
               </Trans>
             )}
           </DialogDescription>
