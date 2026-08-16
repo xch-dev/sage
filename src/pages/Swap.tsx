@@ -3,13 +3,12 @@ import Container from '@/components/Container';
 import { MakeOfferConfirmationDialog } from '@/components/dialogs/MakeOfferConfirmationDialog';
 import { OfferCreationProgressDialog } from '@/components/dialogs/OfferCreationProgressDialog';
 import Header from '@/components/Header';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
-import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { dexieApiUrl } from '@/lib/urls';
@@ -25,7 +24,6 @@ import { useNetwork } from '@/hooks/useNetwork';
 export function Swap() {
   const walletState = useWalletState();
   const navigate = useNavigate();
-  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
   const { isTestnet } = useNetwork();
@@ -326,9 +324,9 @@ export function Swap() {
           </div>
         </div>
         <div className='mt-4'>
-          <Button
+          <ReadOnlyButton
+            requiresSigning
             disabled={
-              isTransactionDisabled ||
               payAssetId === undefined ||
               receiveAssetId === undefined ||
               !receiveAmount ||
@@ -337,7 +335,7 @@ export function Swap() {
             onClick={() => setIsConfirmDialogOpen(true)}
           >
             <Trans>Swap</Trans>
-          </Button>
+          </ReadOnlyButton>
         </div>
         <MakeOfferConfirmationDialog
           open={isConfirmDialogOpen}
