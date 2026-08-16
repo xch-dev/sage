@@ -74,9 +74,11 @@ export function DataTable<TData, TValue>({
   });
 
   const length = data.length;
-  const showingLabel = state?.maxRows
-    ? t`Showing ${length} of ${state.maxRows} ${rowLabelPlural}`
-    : t`Showing ${length} ${length !== 1 ? rowLabelPlural : rowLabel}`;
+  const maxRows = state?.maxRows;
+  const rowLabelText = length !== 1 ? rowLabelPlural : rowLabel;
+  const showingLabel = maxRows
+    ? t`Showing ${length} of ${maxRows} ${rowLabelPlural}`
+    : t`Showing ${length} ${rowLabelText}`;
 
   return (
     <div>

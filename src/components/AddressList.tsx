@@ -84,6 +84,8 @@ export default function AddressList(props: AddressListProps) {
     [],
   );
 
+  const shownDerivations = derivations.length;
+
   return (
     <div className='flex flex-col'>
       <div className='flex-shrink overflow-auto h-[350px]'>
@@ -97,7 +99,7 @@ export default function AddressList(props: AddressListProps) {
       <div className='flex-shrink-0 py-4'>
         <div className='flex items-center justify-between'>
           <div className='text-sm text-muted-foreground'>
-            {t`Showing ${derivations.length} of ${totalDerivations} addresses`}
+            {t`Showing ${shownDerivations} of ${totalDerivations} addresses`}
           </div>
           <SimplePagination
             currentPage={currentPage}

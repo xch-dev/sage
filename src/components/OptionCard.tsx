@@ -46,6 +46,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
   const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
+  const optionName = option.name || 'Unknown Option';
 
   return (
     <>
@@ -141,7 +142,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                       option.expiration_seconds * 1000 < Date.now() ||
                       offerState.offered.options.includes(option.launcher_id)
                     }
-                    aria-label={t`Add ${option.name || 'Unknown Option'} to offer`}
+                    aria-label={t`Add ${optionName} to offer`}
                   >
                     <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
                     <span>
@@ -170,8 +171,8 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                   }}
                   aria-label={
                     option.visible
-                      ? t`Hide ${option.name || 'Unknown Option'}`
-                      : t`Show ${option.name || 'Unknown Option'}`
+                      ? t`Hide ${optionName}`
+                      : t`Show ${optionName}`
                   }
                 >
                   {option.visible ? (

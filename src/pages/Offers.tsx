@@ -190,6 +190,10 @@ export function Offers() {
     statusFilter === 'all' ? true : offer.status === statusFilter,
   );
 
+  const activeOfferCount = filteredOffers.filter(
+    (offer) => offer.status === 'active',
+  ).length;
+
   const handleDeleteAll = async () => {
     try {
       for (const offer of filteredOffers) {
@@ -457,10 +461,9 @@ export function Offers() {
         title={<Trans>Cancel all active offers?</Trans>}
         description={
           <Trans>
-            This will cancel all{' '}
-            {filteredOffers.filter((offer) => offer.status === 'active').length}{' '}
-            active offers on-chain with transactions, preventing them from being
-            taken even if someone has the original offer files.
+            This will cancel all {activeOfferCount} active offers on-chain with
+            transactions, preventing them from being taken even if someone has
+            the original offer files.
           </Trans>
         }
         feeLabel={<Trans>Network Fee (per offer)</Trans>}
