@@ -1,6 +1,6 @@
 import chokidar from 'chokidar';
 import { WebSocketServer } from 'ws';
-import { spawn } from 'node:child_process';
+import { runCommand } from './run-command.mjs';
 
 const PORT = 1421;
 
@@ -28,21 +28,6 @@ let queuedPackages = false;
 let queuedSystemApps = false;
 let scheduledNeedsPackages = false;
 let scheduledApps = new Set();
-
-function run(command, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-    });
-
-    child.on('exit', (code) => {
-      if (code === 0) resolve();
-      else
-        reject(new Error(`${command} ${args.join(' ')} failed with ${code}`));
-    });
-  });
-}
 
 function broadcast(payload) {
   const text = JSON.stringify(payload);
@@ -76,7 +61,9 @@ async function rebuild({ packages = false, apps = [] } = {}) {
   try {
     if (packages) {
       console.log('\n[system-apps-dev] rebuilding shared packages...');
-      await run('pnpm', ['run', 'build:packages']);
+      await runCommand('pnpm', ['run', 'build:packages'], {
+        stdio: 'inherit',
+      });
     }
 
     const buildArgs =
@@ -90,7 +77,7 @@ async function rebuild({ packages = false, apps = [] } = {}) {
         : '\n[system-apps-dev] rebuilding all system apps...',
     );
 
-    await run('pnpm', buildArgs);
+    await runCommand('pnpm', buildArgs, { stdio: 'inherit' });
 
     broadcast({
       type: 'system-apps-built',
