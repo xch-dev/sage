@@ -4,6 +4,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
+import { getFloatingSurfaceStyle } from '@/lib/themeSurface';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -20,6 +21,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { useTheme } from 'theme-o-rama';
 import { AssignNftDialog } from './AssignNftDialog';
 import ConfirmationDialog from './ConfirmationDialog';
 import { NftConfirmation } from './confirmations/NftConfirmation';
@@ -53,6 +55,7 @@ export function MultiSelectActions({
   onClearSelection,
 }: MultiSelectActionsProps) {
   const walletState = useWalletState();
+  const { currentTheme } = useTheme();
   const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
 
@@ -191,6 +194,7 @@ export function MultiSelectActions({
     <>
       <div
         className='absolute flex justify-between items-center gap-2 bottom-6 w-fit max-w-[calc(100vw-2rem)] px-4 p-3 rounded-lg shadow-md shadow-black/20 left-1/2 -translate-x-1/2 bg-card border border-border'
+        style={getFloatingSurfaceStyle(currentTheme)}
         role='region'
         aria-label={t`Selected NFTs actions`}
       >
