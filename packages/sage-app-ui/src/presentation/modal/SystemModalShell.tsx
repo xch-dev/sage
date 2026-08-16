@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { platform } from '@tauri-apps/plugin-os';
 import { resolveBackgroundTintWithAlpha } from '../utils';
 
 interface SystemModalShellProps {
@@ -12,6 +13,10 @@ export function SystemModalShell({
   className = '',
   contentClassName = '',
 }: SystemModalShellProps) {
+  // WebView2 cannot backdrop-filter content behind this separate webview, so
+  // use an opaque theme surface on Windows rather than a see-through modal.
+  const isWindows = platform() === 'windows';
+
   return (
     <div
       className={[
@@ -29,7 +34,7 @@ export function SystemModalShell({
         style={{
           backdropFilter: 'blur(80px) saturate(0.55)',
           WebkitBackdropFilter: 'blur(80px) saturate(0.55)',
-          backgroundColor: resolveBackgroundTintWithAlpha(),
+          backgroundColor: resolveBackgroundTintWithAlpha(isWindows ? 1 : 0.85),
         }}
       >
         {children}

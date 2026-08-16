@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@sage-system-app/sdk": "workspace:*",
+    "@tauri-apps/plugin-os": "^2.3.2",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1"
   },
