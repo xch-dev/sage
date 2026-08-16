@@ -250,13 +250,11 @@ export default function Nft() {
                       }
                     }}
                   >
-                    <Trans>
-                      {themeExists
-                        ? t`Theme Saved`
-                        : isSaving
-                          ? t`Saving...`
-                          : t`Save Theme`}
-                    </Trans>
+                    {themeExists
+                      ? t`Theme Saved`
+                      : isSaving
+                        ? t`Saving...`
+                        : t`Save Theme`}
                   </Button>
                 )}
               </div>
