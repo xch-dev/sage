@@ -357,7 +357,7 @@ fn build_persistent_storage_target(
     match storage {
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder.data_directory(data_directory_for(directory_name))
+            builder.data_directory(data_directory_for(&directory_name))
         }
 
         #[cfg(not(target_os = "windows"))]
