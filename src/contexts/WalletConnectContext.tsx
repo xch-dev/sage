@@ -64,7 +64,7 @@ export const WalletConnectContext = createContext<
 type SessionRequest = SignClientTypes.EventArguments['session_request'];
 
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
-  const { wallet } = useWallet();
+  const { wallet, isReadOnly } = useWallet();
   const { addError } = useErrors();
   const { promptIfEnabled } = useBiometric();
 
@@ -105,7 +105,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         const result = await handleCommand(
           method,
           request.params.request.params,
-          { promptIfEnabled },
+          { promptIfEnabled, isReadOnly },
         );
 
         await signClient.respond({
@@ -139,7 +139,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [signClient, addError, promptIfEnabled],
+    [signClient, addError, promptIfEnabled, isReadOnly],
   );
 
   useEffect(() => {

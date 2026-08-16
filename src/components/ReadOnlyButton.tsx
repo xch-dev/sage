@@ -9,19 +9,31 @@ import { Trans } from '@lingui/react/macro';
 import { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
-type ButtonProps = ComponentProps<typeof Button>;
+type ButtonProps = ComponentProps<typeof Button> & {
+  /** Set for actions that must be signed inline and cannot be exported as an
+   *  unsigned transaction (making, taking, or swapping via an offer). These
+   *  stay disabled on cold wallets even when the user has opted in to unsigned
+   *  transactions. */
+  requiresSigning?: boolean;
+};
 
-export function ReadOnlyButton({ children, onClick, ...props }: ButtonProps) {
-  const { isTransactionDisabled } = useWallet();
+export function ReadOnlyButton({
+  children,
+  onClick,
+  requiresSigning = false,
+  ...props
+}: ButtonProps) {
+  const { isReadOnly, isTransactionDisabled } = useWallet();
+  const disabled = requiresSigning ? isReadOnly : isTransactionDisabled;
 
-  if (isTransactionDisabled) {
+  if (disabled) {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
           <span className='inline-flex cursor-not-allowed'>
             <Button
-              disabled
               {...props}
+              disabled
               className={cn(props.className, 'pointer-events-none')}
             >
               {children}
@@ -29,7 +41,11 @@ export function ReadOnlyButton({ children, onClick, ...props }: ButtonProps) {
           </span>
         </TooltipTrigger>
         <TooltipContent>
-          <Trans>Not available for read-only wallets</Trans>
+          {requiresSigning ? (
+            <Trans>Cold wallets cannot sign offers</Trans>
+          ) : (
+            <Trans>Not available for read-only wallets</Trans>
+          )}
         </TooltipContent>
       </Tooltip>
     );

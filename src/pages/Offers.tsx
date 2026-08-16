@@ -25,10 +25,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { cn, toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -57,6 +58,7 @@ export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -319,6 +321,7 @@ export function Offers() {
                   />
                 </Dialog>
                 <ReadOnlyButton
+                  requiresSigning
                   onClick={() => navigate('/offers/make', { replace: true })}
                 >
                   <Trans>Create Offer</Trans>
@@ -357,23 +360,39 @@ export function Offers() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              variant='outline'
-                              size='sm'
-                              className='flex items-center gap-1'
-                              onClick={() => setIsCancelAllOpen(true)}
+                            <span
+                              className={cn(
+                                'inline-flex',
+                                isTransactionDisabled && 'cursor-not-allowed',
+                              )}
                             >
-                              <CircleOff
-                                className='h-4 w-4'
-                                aria-hidden='true'
-                              />
-                              <span className='hidden sm:inline'>
-                                <Trans>Cancel All Active</Trans>
-                              </span>
-                            </Button>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className={cn(
+                                  'flex items-center gap-1',
+                                  isTransactionDisabled &&
+                                    'pointer-events-none',
+                                )}
+                                disabled={isTransactionDisabled}
+                                onClick={() => setIsCancelAllOpen(true)}
+                              >
+                                <CircleOff
+                                  className='h-4 w-4'
+                                  aria-hidden='true'
+                                />
+                                <span className='hidden sm:inline'>
+                                  <Trans>Cancel All Active</Trans>
+                                </span>
+                              </Button>
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <Trans>Cancel All Active Offers</Trans>
+                            {isTransactionDisabled ? (
+                              <Trans>Not available for read-only wallets</Trans>
+                            ) : (
+                              <Trans>Cancel All Active Offers</Trans>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
