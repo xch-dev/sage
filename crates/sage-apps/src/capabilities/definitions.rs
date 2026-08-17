@@ -105,6 +105,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to validate whether an address belongs to this wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(
+            capability,
+            "Filter unlocked wallet coins",
+            "Allows the app to check which supplied coin IDs are currently spendable.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
             capability,
             "Read wallet public keys",

@@ -210,6 +210,20 @@ Allows the app to validate whether an address belongs to this wallet.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.filter_unlocked_coins`
+
+**Filter unlocked wallet coins**
+
+Allows the app to check which supplied coin IDs are currently spendable.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**

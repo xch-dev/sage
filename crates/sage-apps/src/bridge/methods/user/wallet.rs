@@ -1,9 +1,11 @@
+mod filter_unlocked_coins;
 mod get_key;
 mod get_public_keys;
 mod get_secret_key;
 mod read_methods;
 mod send_xch;
 
+pub(crate) use filter_unlocked_coins::*;
 pub(crate) use get_key::*;
 pub(crate) use get_public_keys::*;
 pub(crate) use get_secret_key::*;

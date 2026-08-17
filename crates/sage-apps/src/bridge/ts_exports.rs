@@ -26,7 +26,8 @@ use crate::{
     RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
     SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
     SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
-    SystemKillRuntimeResult, SystemWalletView, WalletGetPublicKeysParams,
+    SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
+    WalletFilterUnlockedCoinsResult, WalletGetPublicKeysParams,
     WalletGetPublicKeysResult, WalletListWalletsResult, WalletSendXchParams,
 };
 
@@ -58,6 +59,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetSecretKeyResponse>();
     types.register::<WalletGetPublicKeysParams>();
     types.register::<WalletGetPublicKeysResult>();
+    types.register::<WalletFilterUnlockedCoinsParams>();
+    types.register::<WalletFilterUnlockedCoinsResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();

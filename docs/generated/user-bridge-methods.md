@@ -66,6 +66,12 @@
 | ---------- | ---------------------- |
 | Capability | `wallet.check_address` |
 
+## `wallet.filterUnlockedCoins`
+
+| Field      | Value                          |
+| ---------- | ------------------------------ |
+| Capability | `wallet.filter_unlocked_coins` |
+
 ## `wallet.getCoins`
 
 | Field      | Value              |
