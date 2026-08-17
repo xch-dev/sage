@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  getAssetCoins(
+    input: Generated.WalletGetAssetCoinsParams,
+  ): Promise<Generated.WalletGetAssetCoinsResult>;
   filterUnlockedCoins(
     input: Generated.WalletFilterUnlockedCoinsParams,
   ): Promise<Generated.WalletFilterUnlockedCoinsResult>;

@@ -224,6 +224,20 @@ Allows the app to check which supplied coin IDs are currently spendable.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.get_asset_coins`
+
+**Read wallet asset coins**
+
+Allows the app to list spendable XCH, CAT, DID, or NFT coins.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**

@@ -72,6 +72,12 @@
 | ---------- | ------------------------------ |
 | Capability | `wallet.filter_unlocked_coins` |
 
+## `wallet.getAssetCoins`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_asset_coins` |
+
 ## `wallet.getCoins`
 
 | Field      | Value              |

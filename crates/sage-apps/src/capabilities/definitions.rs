@@ -111,6 +111,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to check which supplied coin IDs are currently spendable.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletGetAssetCoins => CapabilityDefinition::new(
+            capability,
+            "Read wallet asset coins",
+            "Allows the app to list spendable XCH, CAT, DID, or NFT coins.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
             capability,
             "Read wallet public keys",
