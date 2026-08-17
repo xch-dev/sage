@@ -28,10 +28,10 @@ use crate::{
     SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
     SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
     WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
-    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
-    WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
-    WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
-    WalletSignMessageParams, WalletSignMessageResult,
+    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult, WalletGetPublicKeysParams,
+    WalletGetPublicKeysResult, WalletListWalletsResult, WalletSendTransactionParams,
+    WalletSendTransactionResult, WalletSendXchParams, WalletSignCoinSpendsParams,
+    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -72,6 +72,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<WalletSignCoinSpendsResult>();
     types.register::<WalletSignMessageParams>();
     types.register::<WalletSignMessageResult>();
+    types.register::<WalletSendTransactionParams>();
+    types.register::<WalletSendTransactionResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();

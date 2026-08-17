@@ -59,6 +59,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, WalletGetAssetBalance);
     insert_method(&mut methods, WalletSignCoinSpends);
     insert_method(&mut methods, WalletSignMessage);
+    insert_method(&mut methods, WalletSendTransaction);
 
     // Wallet XCH
     insert_method(&mut methods, WalletSendXch);

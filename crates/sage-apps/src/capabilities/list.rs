@@ -87,6 +87,7 @@ define_bridge_capabilities! {
         WalletGetAssetBalance => "wallet.get_asset_balance",
         WalletSignCoinSpends => "wallet.sign_coin_spends",
         WalletSignMessage => "wallet.sign_message",
+        WalletSendTransaction => "wallet.send_transaction",
         WalletGetPublicKeys => "wallet.get_public_keys",
         WalletGetDerivations => "wallet.get_derivations",
         WalletGetSpendableCoinCount => "wallet.get_spendable_coin_count",

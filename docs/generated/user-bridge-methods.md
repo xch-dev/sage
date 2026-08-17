@@ -162,6 +162,12 @@
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
 
+## `wallet.sendTransaction`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.send_transaction` |
+
 ## `wallet.sendXch`
 
 | Field      | Value             |

@@ -135,6 +135,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request a message signature after per-request approval.",
             CapabilityFlags::new(true, true, true, true, true),
         ),
+        UserBridgeCapability::WalletSendTransaction => CapabilityDefinition::new(
+            capability,
+            "Broadcast wallet transactions",
+            "Allows the app to submit an already signed spend bundle to the Chia network.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
         UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
             capability,
             "Read wallet public keys",

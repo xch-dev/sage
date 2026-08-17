@@ -280,6 +280,20 @@ Allows the app to request a message signature after per-request approval.
 | Externally observable     | `true` |
 | Accesses sensitive secret | `true` |
 
+## `wallet.send_transaction`
+
+**Broadcast wallet transactions**
+
+Allows the app to submit an already signed spend bundle to the Chia network.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**
