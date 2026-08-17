@@ -11,7 +11,9 @@ function assetLabel(
   asset: Props['approval']['summary']['inputs'][number]['asset'],
 ) {
   if (!asset) return 'XCH';
-  return asset.ticker ?? asset.name ?? asset.assetId ?? asset.kind.toUpperCase();
+  return (
+    asset.ticker ?? asset.name ?? asset.assetId ?? asset.kind.toUpperCase()
+  );
 }
 
 export function SignCoinSpendsApprovalCard({ approval, appName }: Props) {
