@@ -146,6 +146,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
+      async signMessage(input: Generated.WalletSignMessageParams) {
+        return await callHost<Generated.WalletSignMessageResult>(
+          'wallet.signMessage',
+          input,
+        );
+      },
+
       async signCoinSpends(input: Generated.WalletSignCoinSpendsParams) {
         return await callHost<Generated.WalletSignCoinSpendsResult>(
           'wallet.signCoinSpends',

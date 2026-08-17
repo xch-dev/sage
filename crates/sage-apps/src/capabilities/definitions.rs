@@ -129,6 +129,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request signatures for custom coin spends after per-request approval.",
             CapabilityFlags::new(true, true, true, true, true),
         ),
+        UserBridgeCapability::WalletSignMessage => CapabilityDefinition::new(
+            capability,
+            "Sign wallet messages",
+            "Allows the app to request a message signature after per-request approval.",
+            CapabilityFlags::new(true, true, true, true, true),
+        ),
         UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
             capability,
             "Read wallet public keys",

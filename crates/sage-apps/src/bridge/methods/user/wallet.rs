@@ -7,6 +7,7 @@ mod get_secret_key;
 mod read_methods;
 mod send_xch;
 mod sign_coin_spends;
+mod sign_message;
 
 pub(crate) use filter_unlocked_coins::*;
 pub(crate) use get_asset_balance::*;
@@ -17,6 +18,7 @@ pub(crate) use get_secret_key::*;
 pub(crate) use read_methods::*;
 pub(crate) use send_xch::*;
 pub(crate) use sign_coin_spends::*;
+pub(crate) use sign_message::*;
 
 use crate::{BridgeContext, BridgeMethodHandleError};
 

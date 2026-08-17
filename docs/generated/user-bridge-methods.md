@@ -173,3 +173,9 @@
 | Field      | Value                     |
 | ---------- | ------------------------- |
 | Capability | `wallet.sign_coin_spends` |
+
+## `wallet.signMessage`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.sign_message` |

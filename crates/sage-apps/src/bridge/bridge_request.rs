@@ -270,7 +270,9 @@ async fn wallet_binding_violated(
 ) -> bool {
     let requires_wallet_binding = matches!(
         pending.approval.body,
-        RustBridgeApprovalBody::SendXch { .. } | RustBridgeApprovalBody::SignCoinSpends { .. }
+        RustBridgeApprovalBody::SendXch { .. }
+            | RustBridgeApprovalBody::SignCoinSpends { .. }
+            | RustBridgeApprovalBody::SignMessage { .. }
     );
 
     if !requires_wallet_binding {

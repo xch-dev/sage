@@ -85,6 +85,11 @@ pub enum RustBridgeApprovalBody {
         #[serde(rename = "partialSign")]
         partial_sign: bool,
     },
+    SignMessage {
+        message: String,
+        #[serde(rename = "publicKey")]
+        public_key: String,
+    },
     CapabilityGrant {
         capability: UserBridgeCapability,
         definition: SageAppCapabilityDefinitionView,

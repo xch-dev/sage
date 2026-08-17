@@ -266,6 +266,20 @@ Allows the app to request signatures for custom coin spends after per-request ap
 | Externally observable     | `true` |
 | Accesses sensitive secret | `true` |
 
+## `wallet.sign_message`
+
+**Sign wallet messages**
+
+Allows the app to request a message signature after per-request approval.
+
+| Flag                      | Value  |
+| ------------------------- | ------ |
+| Requestable by app        | `true` |
+| User grantable            | `true` |
+| Shared with app           | `true` |
+| Externally observable     | `true` |
+| Accesses sensitive secret | `true` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**

@@ -31,6 +31,7 @@ use crate::{
     WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
     WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
     WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
+    WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -69,6 +70,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<WalletGetAssetBalanceResult>();
     types.register::<WalletSignCoinSpendsParams>();
     types.register::<WalletSignCoinSpendsResult>();
+    types.register::<WalletSignMessageParams>();
+    types.register::<WalletSignMessageResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();
