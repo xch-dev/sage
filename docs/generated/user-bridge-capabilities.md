@@ -258,13 +258,13 @@ Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NF
 
 Allows the app to request signatures for custom coin spends after per-request approval.
 
-| Flag                      | Value  |
-| ------------------------- | ------ |
-| Requestable by app        | `true` |
-| User grantable            | `true` |
-| Shared with app           | `true` |
-| Externally observable     | `true` |
-| Accesses sensitive secret | `true` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
 
 ## `wallet.sign_message`
 
@@ -272,13 +272,13 @@ Allows the app to request signatures for custom coin spends after per-request ap
 
 Allows the app to request a message signature after per-request approval.
 
-| Flag                      | Value  |
-| ------------------------- | ------ |
-| Requestable by app        | `true` |
-| User grantable            | `true` |
-| Shared with app           | `true` |
-| Externally observable     | `true` |
-| Accesses sensitive secret | `true` |
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
 
 ## `wallet.send_transaction`
 

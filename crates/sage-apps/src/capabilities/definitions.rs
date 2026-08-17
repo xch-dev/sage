@@ -127,13 +127,13 @@ pub(crate) fn get_user_capability_definition(
             capability,
             "Sign wallet coin spends",
             "Allows the app to request signatures for custom coin spends after per-request approval.",
-            CapabilityFlags::new(true, true, true, true, true),
+            CapabilityFlags::new(true, false, true, true, true),
         ),
         UserBridgeCapability::WalletSignMessage => CapabilityDefinition::new(
             capability,
             "Sign wallet messages",
             "Allows the app to request a message signature after per-request approval.",
-            CapabilityFlags::new(true, true, true, true, true),
+            CapabilityFlags::new(true, false, true, true, true),
         ),
         UserBridgeCapability::WalletSendTransaction => CapabilityDefinition::new(
             capability,
@@ -391,4 +391,25 @@ pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDe
 
 fn system_app_flags() -> CapabilityFlags {
     CapabilityFlags::new(false, false, true, false, true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approval_gated_signing_does_not_claim_secret_exposure() {
+        for capability in [
+            UserBridgeCapability::WalletSignCoinSpends,
+            UserBridgeCapability::WalletSignMessage,
+        ] {
+            let flags = get_user_capability_definition(capability).flags();
+
+            assert!(flags.externally_observable());
+            assert!(!flags.accesses_sensitive_secret());
+            assert!(flags.requestable_by_app());
+            assert!(flags.user_grantable());
+            assert!(flags.shared_with_app());
+        }
+    }
 }
