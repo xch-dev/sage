@@ -33,6 +33,8 @@ function titleForApproval(approval: PendingBridgeApprovalView) {
       return 'Approve XCH transaction';
     case 'getSecretKey':
       return 'Approve secret key access';
+    case 'signCoinSpends':
+      return 'Approve coin-spend signatures';
     case 'capabilityGrant':
       return 'Approve permission grant';
     case 'networkWhitelistGrant':

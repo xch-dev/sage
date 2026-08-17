@@ -167,3 +167,9 @@
 | Field      | Value             |
 | ---------- | ----------------- |
 | Capability | `wallet.send_xch` |
+
+## `wallet.signCoinSpends`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.sign_coin_spends` |

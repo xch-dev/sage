@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  signCoinSpends(
+    input: Generated.WalletSignCoinSpendsParams,
+  ): Promise<Generated.WalletSignCoinSpendsResult>;
   getAssetBalance(
     input: Generated.WalletGetAssetBalanceParams,
   ): Promise<Generated.WalletGetAssetBalanceResult>;

@@ -252,6 +252,20 @@ Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NF
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.sign_coin_spends`
+
+**Sign wallet coin spends**
+
+Allows the app to request signatures for custom coin spends after per-request approval.
+
+| Flag                      | Value  |
+| ------------------------- | ------ |
+| Requestable by app        | `true` |
+| User grantable            | `true` |
+| Shared with app           | `true` |
+| Externally observable     | `true` |
+| Accesses sensitive secret | `true` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**

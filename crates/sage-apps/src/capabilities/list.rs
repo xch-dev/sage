@@ -85,6 +85,7 @@ define_bridge_capabilities! {
         WalletFilterUnlockedCoins => "wallet.filter_unlocked_coins",
         WalletGetAssetCoins => "wallet.get_asset_coins",
         WalletGetAssetBalance => "wallet.get_asset_balance",
+        WalletSignCoinSpends => "wallet.sign_coin_spends",
         WalletGetPublicKeys => "wallet.get_public_keys",
         WalletGetDerivations => "wallet.get_derivations",
         WalletGetSpendableCoinCount => "wallet.get_spendable_coin_count",

@@ -123,6 +123,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletSignCoinSpends => CapabilityDefinition::new(
+            capability,
+            "Sign wallet coin spends",
+            "Allows the app to request signatures for custom coin spends after per-request approval.",
+            CapabilityFlags::new(true, true, true, true, true),
+        ),
         UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
             capability,
             "Read wallet public keys",

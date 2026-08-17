@@ -15,7 +15,19 @@ pub(crate) trait BridgeMethod: Send + Sync {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> BridgeApprovalRequestResult;
+    ) -> BridgeApprovalRequestResult {
+        let _ = (ctx, request);
+        Ok(None)
+    }
+
+    async fn prepare_approval(
+        &self,
+        ctx: BridgeContext<'_>,
+        _tools: BridgeTools<'_>,
+        request: &RustBridgeRequest,
+    ) -> BridgeApprovalRequestResult {
+        self.approval_request(ctx, request)
+    }
 
     async fn handle(
         &self,

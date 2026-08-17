@@ -3,6 +3,7 @@ import { CapabilityGrantApprovalCard } from './CapabilityGrantApprovalCard';
 import { GetSecretKeyApprovalCard } from './GetSecretKeyApprovalCard';
 import { NetworkWhitelistGrantApprovalCard } from './NetworkWhitelistGrantApprovalCard';
 import { SendXchApprovalCard } from './SendXchApprovalCard';
+import { SignCoinSpendsApprovalCard } from './SignCoinSpendsApprovalCard';
 
 interface Props {
   approval: RustBridgeApprovalRequest;
@@ -28,6 +29,11 @@ export function AppApprovalBody({ approval, appName, expanded }: Props) {
           appName={appName}
           expanded={expanded}
         />
+      );
+
+    case 'signCoinSpends':
+      return (
+        <SignCoinSpendsApprovalCard approval={approval} appName={appName} />
       );
 
     case 'capabilityGrant':
