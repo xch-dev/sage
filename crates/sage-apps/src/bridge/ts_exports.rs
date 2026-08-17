@@ -27,7 +27,8 @@ use crate::{
     SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
     SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
     SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
-    WalletFilterUnlockedCoinsResult, WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
+    WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
+    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
     WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
     WalletSendXchParams,
 };
@@ -64,6 +65,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<WalletFilterUnlockedCoinsResult>();
     types.register::<WalletGetAssetCoinsParams>();
     types.register::<WalletGetAssetCoinsResult>();
+    types.register::<WalletGetAssetBalanceParams>();
+    types.register::<WalletGetAssetBalanceResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();

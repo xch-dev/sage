@@ -238,6 +238,20 @@ Allows the app to list spendable XCH, CAT, DID, or NFT coins.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.get_asset_balance`
+
+**Read wallet asset balance**
+
+Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_public_keys`
 
 **Read wallet public keys**

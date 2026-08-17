@@ -1,4 +1,5 @@
 mod filter_unlocked_coins;
+mod get_asset_balance;
 mod get_asset_coins;
 mod get_key;
 mod get_public_keys;
@@ -7,6 +8,7 @@ mod read_methods;
 mod send_xch;
 
 pub(crate) use filter_unlocked_coins::*;
+pub(crate) use get_asset_balance::*;
 pub(crate) use get_asset_coins::*;
 pub(crate) use get_key::*;
 pub(crate) use get_public_keys::*;
