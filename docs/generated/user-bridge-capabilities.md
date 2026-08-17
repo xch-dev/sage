@@ -210,6 +210,20 @@ Allows the app to validate whether an address belongs to this wallet.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.get_public_keys`
+
+**Read wallet public keys**
+
+Allows the app to read public keys derived by the active wallet.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_derivations`
 
 **Read derivations**

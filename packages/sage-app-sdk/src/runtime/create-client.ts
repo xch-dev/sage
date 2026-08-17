@@ -146,6 +146,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
+      async getPublicKeys(input?: Generated.WalletGetPublicKeysParams) {
+        return await callHost<Generated.WalletGetPublicKeysResult>(
+          'wallet.getPublicKeys',
+          input,
+        );
+      },
+
       async getKey(input: Generated.GetKey) {
         return await callHost<Generated.GetKeyResponse>('wallet.getKey', input);
       },

@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  getPublicKeys(
+    input?: Generated.WalletGetPublicKeysParams,
+  ): Promise<Generated.WalletGetPublicKeysResult>;
   getKey(input: Generated.GetKey): Promise<Generated.GetKeyResponse>;
   getSecretKey(
     input: Generated.GetSecretKey,

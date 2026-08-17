@@ -107,3 +107,22 @@ where
         )
     })
 }
+
+pub(crate) fn parse_optional_params<T>(
+    method: &impl BridgeMethod,
+    request: &RustBridgeRequest,
+) -> Result<T, BridgeMethodHandleError>
+where
+    T: DeserializeOwned + Default,
+{
+    let Some(params_json) = request.params_json.as_deref() else {
+        return Ok(T::default());
+    };
+
+    serde_json::from_str(params_json).map_err(|err| {
+        BridgeMethodHandleError::new(
+            "invalid_request",
+            format!("Failed to decode {} params: {err}", method.name()),
+        )
+    })
+}

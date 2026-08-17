@@ -82,6 +82,7 @@ define_bridge_capabilities! {
         WalletGetVersion => "wallet.get_version",
         WalletGetXchUsdPrice => "wallet.get_xch_usd_price",
         WalletCheckAddress => "wallet.check_address",
+        WalletGetPublicKeys => "wallet.get_public_keys",
         WalletGetDerivations => "wallet.get_derivations",
         WalletGetSpendableCoinCount => "wallet.get_spendable_coin_count",
         WalletGetCoinsByIds => "wallet.get_coins_by_ids",

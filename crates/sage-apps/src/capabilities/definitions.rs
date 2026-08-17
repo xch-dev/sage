@@ -105,6 +105,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to validate whether an address belongs to this wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
+            capability,
+            "Read wallet public keys",
+            "Allows the app to read public keys derived by the active wallet.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::WalletGetDerivations => CapabilityDefinition::new(
             capability,
             "Read derivations",

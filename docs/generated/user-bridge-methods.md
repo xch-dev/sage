@@ -96,6 +96,12 @@
 | ---------- | --------------------------------- |
 | Capability | `wallet.get_pending_transactions` |
 
+## `wallet.getPublicKeys`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_public_keys` |
+
 ## `wallet.getSecretKey`
 
 | Field      | Value                   |
