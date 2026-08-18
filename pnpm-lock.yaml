@@ -252,6 +252,9 @@ importers:
       concurrently:
         specifier: ^9.0.1
         version: 9.2.1
+      cross-spawn:
+        specifier: ^7.0.6
+        version: 7.0.6
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
