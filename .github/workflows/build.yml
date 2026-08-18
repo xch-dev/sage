@@ -25,6 +25,12 @@ jobs:
       - name: Install PNPM
         uses: pnpm/action-setup@v4
 
+      - name: Cache PNPM dependencies
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - name: Install dependencies
         run: pnpm install
 
@@ -34,7 +40,13 @@ jobs:
           pnpm prettier:check
 
       - name: Install GTK
-        run: sudo apt-get update && sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
@@ -61,22 +73,28 @@ jobs:
         include:
           - platform: 'macos-15'
             platform_name: MacOS
+            cache_key: macos
             build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'ubuntu-22.04'
             platform_name: Linux (x64)
+            cache_key: linux-x64
             build: 'pnpm tauri build'
           - platform: 'linux-arm64'
             platform_name: Linux (ARM)
+            cache_key: linux-arm64
             build: 'pnpm tauri build --target aarch64-unknown-linux-gnu'
           - platform: 'windows-2022'
             platform_name: Windows (x64)
+            cache_key: windows-x64
             build: 'pnpm tauri build'
           - platform: 'windows-2022'
             platform_name: Windows (ARM)
+            cache_key: windows-arm64
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
           - platform: 'macos-26'
             platform_name: iOS (TestFlight)
             platform_type: iOS
+            cache_key: ios-testflight
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 1'
             disable_offers: 'false'
             disable_options: 'false'
@@ -85,13 +103,15 @@ jobs:
           - platform: 'macos-26'
             platform_name: iOS (App Store)
             platform_type: iOS
+            cache_key: ios-app-store
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 2'
             disable_offers: 'true'
             disable_options: 'true'
             disable_swap: 'true'
             ipa_name: Sage_AppStore
-          - platform: 'macos-15'
+          - platform: 'blacksmith-8vcpu-ubuntu-2404'
             platform_name: Android
+            cache_key: android
             build: 'pnpm tauri android build'
     steps:
       - name: Checkout
@@ -117,16 +137,24 @@ jobs:
         if: matrix.platform_name == 'Android'
         run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.cache_key }}
+
       - name: Ubuntu dependencies
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
-        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+        if: startsWith(matrix.platform_name, 'Linux') || matrix.platform_name == 'Android'
+        timeout-minutes: 10
+        run: |
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
       - name: Ubuntu ARM dependencies
-        if: matrix.platform == 'linux-arm64'
-        run: sudo apt-get install --reinstall xdg-utils
+        if: matrix.platform_name == 'Linux (ARM)'
+        run: sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 install -y --reinstall xdg-utils
 
       - name: Windows dependencies
-        if: startsWith(matrix.platform, 'windows-')
+        if: startsWith(matrix.platform_name, 'Windows')
         run: |
           choco install nasm
           echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
@@ -142,7 +170,7 @@ jobs:
 
       - name: Add NDK toolchain to path
         if: matrix.platform_name == 'Android'
-        run: echo "$ANDROID_NDK/toolchains/llvm/prebuilt/darwin-x86_64/bin" >> $GITHUB_PATH
+        run: echo "$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_PATH
         env:
           ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
 
@@ -157,6 +185,12 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+
+      - name: Cache PNPM dependencies
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Frontend dependencies
         run: pnpm install
