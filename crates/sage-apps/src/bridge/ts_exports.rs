@@ -26,7 +26,12 @@ use crate::{
     RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
     SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
     SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
-    SystemKillRuntimeResult, SystemWalletView, WalletListWalletsResult, WalletSendXchParams,
+    SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
+    WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
+    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult, WalletGetPublicKeysParams,
+    WalletGetPublicKeysResult, WalletListWalletsResult, WalletSendTransactionParams,
+    WalletSendTransactionResult, WalletSendXchParams, WalletSignCoinSpendsParams,
+    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -55,6 +60,20 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetXchUsdPriceResponse>();
     types.register::<GetSecretKey>();
     types.register::<GetSecretKeyResponse>();
+    types.register::<WalletGetPublicKeysParams>();
+    types.register::<WalletGetPublicKeysResult>();
+    types.register::<WalletFilterUnlockedCoinsParams>();
+    types.register::<WalletFilterUnlockedCoinsResult>();
+    types.register::<WalletGetAssetCoinsParams>();
+    types.register::<WalletGetAssetCoinsResult>();
+    types.register::<WalletGetAssetBalanceParams>();
+    types.register::<WalletGetAssetBalanceResult>();
+    types.register::<WalletSignCoinSpendsParams>();
+    types.register::<WalletSignCoinSpendsResult>();
+    types.register::<WalletSignMessageParams>();
+    types.register::<WalletSignMessageResult>();
+    types.register::<WalletSendTransactionParams>();
+    types.register::<WalletSendTransactionResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();

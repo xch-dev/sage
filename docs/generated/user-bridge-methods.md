@@ -66,6 +66,24 @@
 | ---------- | ---------------------- |
 | Capability | `wallet.check_address` |
 
+## `wallet.filterUnlockedCoins`
+
+| Field      | Value                          |
+| ---------- | ------------------------------ |
+| Capability | `wallet.filter_unlocked_coins` |
+
+## `wallet.getAssetBalance`
+
+| Field      | Value                      |
+| ---------- | -------------------------- |
+| Capability | `wallet.get_asset_balance` |
+
+## `wallet.getAssetCoins`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_asset_coins` |
+
 ## `wallet.getCoins`
 
 | Field      | Value              |
@@ -95,6 +113,12 @@
 | Field      | Value                             |
 | ---------- | --------------------------------- |
 | Capability | `wallet.get_pending_transactions` |
+
+## `wallet.getPublicKeys`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_public_keys` |
 
 ## `wallet.getSecretKey`
 
@@ -138,8 +162,26 @@
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
 
+## `wallet.sendTransaction`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.send_transaction` |
+
 ## `wallet.sendXch`
 
 | Field      | Value             |
 | ---------- | ----------------- |
 | Capability | `wallet.send_xch` |
+
+## `wallet.signCoinSpends`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.sign_coin_spends` |
+
+## `wallet.signMessage`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.sign_message` |

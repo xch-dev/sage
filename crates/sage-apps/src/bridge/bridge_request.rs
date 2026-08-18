@@ -180,7 +180,18 @@ async fn process_shared(
         return Ok(response.into());
     }
 
-    match method.approval_request(BridgeContext { app }, request) {
+    match method
+        .prepare_approval(
+            BridgeContext { app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
+            },
+            request,
+        )
+        .await
+    {
         Ok(Some(approval)) => {
             request_approval(
                 app_handle,
@@ -260,6 +271,8 @@ async fn wallet_binding_violated(
     let requires_wallet_binding = matches!(
         pending.approval.body,
         RustBridgeApprovalBody::SendXch { .. }
+            | RustBridgeApprovalBody::SignCoinSpends { .. }
+            | RustBridgeApprovalBody::SignMessage { .. }
     );
 
     if !requires_wallet_binding {

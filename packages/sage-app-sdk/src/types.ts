@@ -27,6 +27,27 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  sendTransaction(
+    input: Generated.WalletSendTransactionParams,
+  ): Promise<Generated.WalletSendTransactionResult>;
+  signMessage(
+    input: Generated.WalletSignMessageParams,
+  ): Promise<Generated.WalletSignMessageResult>;
+  signCoinSpends(
+    input: Generated.WalletSignCoinSpendsParams,
+  ): Promise<Generated.WalletSignCoinSpendsResult>;
+  getAssetBalance(
+    input: Generated.WalletGetAssetBalanceParams,
+  ): Promise<Generated.WalletGetAssetBalanceResult>;
+  getAssetCoins(
+    input: Generated.WalletGetAssetCoinsParams,
+  ): Promise<Generated.WalletGetAssetCoinsResult>;
+  filterUnlockedCoins(
+    input: Generated.WalletFilterUnlockedCoinsParams,
+  ): Promise<Generated.WalletFilterUnlockedCoinsResult>;
+  getPublicKeys(
+    input?: Generated.WalletGetPublicKeysParams,
+  ): Promise<Generated.WalletGetPublicKeysResult>;
   getKey(input: Generated.GetKey): Promise<Generated.GetKeyResponse>;
   getSecretKey(
     input: Generated.GetSecretKey,

@@ -15,7 +15,19 @@ pub(crate) trait BridgeMethod: Send + Sync {
         &self,
         ctx: BridgeContext<'_>,
         request: &RustBridgeRequest,
-    ) -> BridgeApprovalRequestResult;
+    ) -> BridgeApprovalRequestResult {
+        let _ = (ctx, request);
+        Ok(None)
+    }
+
+    async fn prepare_approval(
+        &self,
+        ctx: BridgeContext<'_>,
+        _tools: BridgeTools<'_>,
+        request: &RustBridgeRequest,
+    ) -> BridgeApprovalRequestResult {
+        self.approval_request(ctx, request)
+    }
 
     async fn handle(
         &self,
@@ -98,6 +110,25 @@ where
             "invalid_request",
             format!("{} requires params", method.name()),
         ));
+    };
+
+    serde_json::from_str(params_json).map_err(|err| {
+        BridgeMethodHandleError::new(
+            "invalid_request",
+            format!("Failed to decode {} params: {err}", method.name()),
+        )
+    })
+}
+
+pub(crate) fn parse_optional_params<T>(
+    method: &impl BridgeMethod,
+    request: &RustBridgeRequest,
+) -> Result<T, BridgeMethodHandleError>
+where
+    T: DeserializeOwned + Default,
+{
+    let Some(params_json) = request.params_json.as_deref() else {
+        return Ok(T::default());
     };
 
     serde_json::from_str(params_json).map_err(|err| {
