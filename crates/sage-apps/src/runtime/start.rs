@@ -175,6 +175,7 @@ async fn create_runtime_for_app(
 
     let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
+    let is_modal = matches!(args.presentation, AppPresentation::Modal(_));
 
     let runtime = SageAppRuntimeRecord::new(
         &app,
@@ -194,7 +195,7 @@ async fn create_runtime_for_app(
         webview_label.clone(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
-    .transparent(true)
+    .transparent(!cfg!(target_os = "linux") || !is_modal)
     .on_navigation(move |url| {
         runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
     })
