@@ -101,6 +101,10 @@ jobs:
         with:
           cache-targets: false
 
+      - name: Install GTK
+        timeout-minutes: 20
+        run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+
       - name: Build desktop assets
         run: pnpm build
         env:
