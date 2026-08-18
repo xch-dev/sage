@@ -25,6 +25,12 @@ jobs:
       - name: Install PNPM
         uses: pnpm/action-setup@v4
 
+      - name: Cache PNPM dependencies
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
       - name: Install dependencies
         run: pnpm install
 
@@ -35,6 +41,9 @@ jobs:
 
       - name: Install GTK
         run: sudo apt-get update && sudo apt-get install libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
 
       - name: Clippy
         run: cargo clippy --workspace --all-features --all-targets
@@ -61,22 +70,28 @@ jobs:
         include:
           - platform: 'blacksmith-12vcpu-macos-15'
             platform_name: MacOS
+            cache_key: macos
             build: 'pnpm tauri build --target universal-apple-darwin'
           - platform: 'blacksmith-16vcpu-ubuntu-2204'
             platform_name: Linux (x64)
+            cache_key: linux-x64
             build: 'pnpm tauri build'
           - platform: 'blacksmith-16vcpu-ubuntu-2204-arm'
             platform_name: Linux (ARM)
+            cache_key: linux-arm64
             build: 'pnpm tauri build --target aarch64-unknown-linux-gnu'
           - platform: 'blacksmith-16vcpu-windows-2025'
             platform_name: Windows (x64)
+            cache_key: windows-x64
             build: 'pnpm tauri build'
           - platform: 'blacksmith-16vcpu-windows-2025'
             platform_name: Windows (ARM)
+            cache_key: windows-arm64
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
           - platform: 'blacksmith-12vcpu-macos-26'
             platform_name: iOS (TestFlight)
             platform_type: iOS
+            cache_key: ios-testflight
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 1'
             disable_offers: 'false'
             disable_options: 'false'
@@ -85,6 +100,7 @@ jobs:
           - platform: 'blacksmith-12vcpu-macos-26'
             platform_name: iOS (App Store)
             platform_type: iOS
+            cache_key: ios-app-store
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 2'
             disable_offers: 'true'
             disable_options: 'true'
@@ -92,6 +108,7 @@ jobs:
             ipa_name: Sage_AppStore
           - platform: 'blacksmith-12vcpu-macos-15'
             platform_name: Android
+            cache_key: android
             build: 'pnpm tauri android build'
     steps:
       - name: Checkout
@@ -116,6 +133,11 @@ jobs:
       - name: Add Android targets
         if: matrix.platform_name == 'Android'
         run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.cache_key }}
 
       - name: Ubuntu dependencies
         if: startsWith(matrix.platform_name, 'Linux')
@@ -157,6 +179,12 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+
+      - name: Cache PNPM dependencies
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Frontend dependencies
         run: pnpm install
