@@ -17,7 +17,7 @@ concurrency:
 jobs:
   tests:
     name: Tests
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-8vcpu-ubuntu-2404
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,22 +59,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-15'
+          - platform: 'blacksmith-12vcpu-macos-15'
             platform_name: MacOS
             build: 'pnpm tauri build --target universal-apple-darwin'
-          - platform: 'ubuntu-22.04'
+          - platform: 'blacksmith-16vcpu-ubuntu-2204'
             platform_name: Linux (x64)
             build: 'pnpm tauri build'
-          - platform: 'linux-arm64'
+          - platform: 'blacksmith-16vcpu-ubuntu-2204-arm'
             platform_name: Linux (ARM)
             build: 'pnpm tauri build --target aarch64-unknown-linux-gnu'
-          - platform: 'windows-2022'
+          - platform: 'blacksmith-16vcpu-windows-2025'
             platform_name: Windows (x64)
             build: 'pnpm tauri build'
-          - platform: 'windows-2022'
+          - platform: 'blacksmith-16vcpu-windows-2025'
             platform_name: Windows (ARM)
             build: 'pnpm tauri build --target aarch64-pc-windows-msvc'
-          - platform: 'macos-26'
+          - platform: 'blacksmith-12vcpu-macos-26'
             platform_name: iOS (TestFlight)
             platform_type: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 1'
@@ -82,7 +82,7 @@ jobs:
             disable_options: 'false'
             disable_swap: 'false'
             ipa_name: Sage_TestFlight
-          - platform: 'macos-26'
+          - platform: 'blacksmith-12vcpu-macos-26'
             platform_name: iOS (App Store)
             platform_type: iOS
             build: 'pnpm tauri ios build --export-method app-store-connect --build-number 2'
@@ -90,7 +90,7 @@ jobs:
             disable_options: 'true'
             disable_swap: 'true'
             ipa_name: Sage_AppStore
-          - platform: 'macos-15'
+          - platform: 'blacksmith-12vcpu-macos-15'
             platform_name: Android
             build: 'pnpm tauri android build'
     steps:
@@ -118,15 +118,15 @@ jobs:
         run: rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
 
       - name: Ubuntu dependencies
-        if: matrix.platform == 'ubuntu-22.04' || matrix.platform == 'linux-arm64'
+        if: startsWith(matrix.platform_name, 'Linux')
         run: sudo apt-get update && sudo apt-get install -y libgtk-3-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev
 
       - name: Ubuntu ARM dependencies
-        if: matrix.platform == 'linux-arm64'
+        if: matrix.platform_name == 'Linux (ARM)'
         run: sudo apt-get install --reinstall xdg-utils
 
       - name: Windows dependencies
-        if: startsWith(matrix.platform, 'windows-')
+        if: startsWith(matrix.platform_name, 'Windows')
         run: |
           choco install nasm
           echo "C:\Program Files\NASM" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
