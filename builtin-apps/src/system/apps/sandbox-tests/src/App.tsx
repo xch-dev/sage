@@ -1,5 +1,5 @@
-import { AppIcon, AppModalShell } from '@sage-app/ui';
-import { formatSageError } from '@sage-system-app/sdk';
+import { AppIcon, AppModalShell } from 'sage-app-ui';
+import { formatSageError } from 'sage-system-app-sdk';
 import { useEffect, useMemo, useState } from 'react';
 import {
   closeSelf,

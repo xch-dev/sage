@@ -3,14 +3,14 @@ import {
   AppModalShell,
   AppPermissionEditor,
   WalletScopeEditor,
-} from '@sage-app/ui';
+} from 'sage-app-ui';
 import {
   formatSageError,
   type SageAppCapabilityDefinitionView,
   type SageAppWalletScope,
   type SageGrantedPermissionsInput,
   type SystemWalletView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { closeSelf, installSource, listWallets } from '../api';
 import type { InstallSource } from '../types';
 import { resolveInstallIcon } from '../utils/icons';

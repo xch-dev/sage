@@ -3,7 +3,7 @@ import {
   type SageGrantedPermissionsInput,
   type SageAppWalletScope,
   type WalletListWalletsResult,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type { InstallSource } from './types';
 
 export async function closeSelf() {

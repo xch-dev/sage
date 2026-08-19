@@ -3,7 +3,7 @@ import {
   listSandboxCapabilities,
   type SandboxGateState,
 } from '../sandboxState';
-import { resolveBackgroundTintWithAlpha } from '@sage-app/ui';
+import { resolveBackgroundTintWithAlpha } from 'sage-app-ui';
 
 function statusClass(status: string) {
   switch (status) {

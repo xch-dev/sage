@@ -2,7 +2,7 @@ import type {
   SageAppCapabilityDefinitionView,
   SageNetworkWhitelistEntry,
   UserBridgeCapability,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type {
   NetworkPermissionScheme,
   NetworkPermissionSchemeState,

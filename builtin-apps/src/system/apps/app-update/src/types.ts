@@ -4,7 +4,7 @@ import type {
   SageAppCapabilityDefinitionView,
   SystemWalletView,
   UserSageAppView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 export type Mode = 'review-update' | 'review-permissions';
 

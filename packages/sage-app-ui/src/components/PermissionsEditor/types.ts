@@ -1,4 +1,4 @@
-import type { UserBridgeCapability } from '@sage-system-app/sdk';
+import type { UserBridgeCapability } from 'sage-system-app-sdk';
 
 export type NetworkPermissionScheme = 'https' | 'wss';
 

@@ -10,5 +10,5 @@ export default defineConfig({
   splitting: false,
   outDir: 'dist',
   clean: true,
-  noExternal: ['@sage-app/sdk'],
+  noExternal: ['sage-app-sdk'],
 });

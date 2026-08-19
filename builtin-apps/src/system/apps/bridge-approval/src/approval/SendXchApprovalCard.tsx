@@ -1,5 +1,5 @@
 import { Wallet } from 'lucide-react';
-import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
+import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 import { ApprovalDetailRow, ApprovalMetaPill } from './shared';
 
 interface Props {

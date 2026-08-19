@@ -1,5 +1,5 @@
 {
-  "name": "@sage-system-app/sdk",
+  "name": "sage-system-app-sdk",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -24,7 +24,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@sage-app/sdk": "workspace:*"
+    "sage-app-sdk": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

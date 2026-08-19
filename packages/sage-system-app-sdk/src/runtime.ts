@@ -5,7 +5,7 @@ import {
   debugComms,
   getSageClient,
   parseJsonOrNull,
-} from '@sage-app/sdk';
+} from 'sage-app-sdk';
 
 export const SAGE_SYSTEM_BRIDGE_VERSION: SageSystemBridgeVersion = 'v1';
 

@@ -1,4 +1,4 @@
-import type { SageAppPackageManifest } from '@sage-system-app/sdk';
+import type { SageAppPackageManifest } from 'sage-system-app-sdk';
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return 'Unknown';

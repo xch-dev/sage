@@ -1,4 +1,4 @@
-import { AppModalShell } from '@sage-app/ui';
+import { AppModalShell } from 'sage-app-ui';
 import { closeSelf } from '../api';
 import type { InstallSource } from '../types';
 

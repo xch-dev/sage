@@ -2,7 +2,7 @@ import type {
   SageGrantedPermissionsView,
   SageNetworkWhitelistEntry,
   UserBridgeCapability,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { isUserGrantable } from './definitions';
 
 type RequestedWhitelistByNetwork = Record<

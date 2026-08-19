@@ -5,13 +5,13 @@ import {
   AppPermissionEditor,
   inputToGrantedPermissionsView,
   WalletScopeEditor,
-} from '@sage-app/ui';
+} from 'sage-app-ui';
 import {
   formatSageError,
   getSageSystemClient,
   type SageAppWalletScope,
   type SageGrantedPermissionsInput,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type { LoadState } from '../types';
 
 type PermissionsReadyState = Extract<LoadState, { kind: 'ready' }>;

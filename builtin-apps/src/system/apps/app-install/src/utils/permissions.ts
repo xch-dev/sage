@@ -2,13 +2,13 @@ import {
   emptyGrantedPermissionsInput,
   initialGrantedPermissionsInput,
   inputToGrantedPermissionsView,
-} from '@sage-app/ui';
+} from 'sage-app-ui';
 import type {
   SageAppCapabilityDefinitionView,
   SageAppPackageManifest,
   SageGrantedPermissionsInput,
   UserSageAppView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type { InstallSource } from '../types';
 
 export const emptyGrantedPermissions = emptyGrantedPermissionsInput;
