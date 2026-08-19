@@ -7489,7 +7489,7 @@ checksum = "df7f62577c25e07834649fc3b39fafdc597c0a3527dc1c60129201ccfcbaa50c"
 [[package]]
 name = "tauri"
 version = "2.10.2"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "anyhow",
  "bytes",
@@ -7522,7 +7522,7 @@ dependencies = [
  "serialize-to-javascript",
  "specta",
  "swift-rs",
- "tauri-build 2.5.5 (git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e)",
+ "tauri-build 2.5.5 (git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd)",
  "tauri-macros",
  "tauri-runtime",
  "tauri-runtime-wry",
@@ -7562,7 +7562,7 @@ dependencies = [
 [[package]]
 name = "tauri-build"
 version = "2.5.5"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "anyhow",
  "cargo_toml",
@@ -7583,7 +7583,7 @@ dependencies = [
 [[package]]
 name = "tauri-codegen"
 version = "2.5.4"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "base64 0.22.1",
  "brotli",
@@ -7609,7 +7609,7 @@ dependencies = [
 [[package]]
 name = "tauri-macros"
 version = "2.5.4"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -7818,7 +7818,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime"
 version = "2.10.0"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "cookie",
  "dpi",
@@ -7842,7 +7842,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime-wry"
 version = "2.10.0"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "gtk",
  "http",
@@ -7896,7 +7896,7 @@ dependencies = [
 [[package]]
 name = "tauri-utils"
 version = "2.8.2"
-source = "git+https://github.com/Hadamcik/tauri.git?rev=8d5b5fcd74b2bb64c3953089ec4dd882b98e107e#8d5b5fcd74b2bb64c3953089ec4dd882b98e107e"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "anyhow",
  "brotli",

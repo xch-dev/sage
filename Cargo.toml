@@ -146,8 +146,8 @@ tempfile = "3.25.0"
 tower = "0.5.3"
 
 [patch.crates-io]
-tauri = { git = "https://github.com/Hadamcik/tauri.git", rev = "8d5b5fcd74b2bb64c3953089ec4dd882b98e107e" }
-tauri-runtime = { git = "https://github.com/Hadamcik/tauri.git", rev = "8d5b5fcd74b2bb64c3953089ec4dd882b98e107e" }
-tauri-runtime-wry = { git = "https://github.com/Hadamcik/tauri.git", rev = "8d5b5fcd74b2bb64c3953089ec4dd882b98e107e" }
-tauri-utils = { git = "https://github.com/Hadamcik/tauri.git", rev = "8d5b5fcd74b2bb64c3953089ec4dd882b98e107e" }
+tauri = { git = "https://github.com/Hadamcik/tauri.git", rev = "202cd184f878b144dd37aaa50886281d14abebfd" }
+tauri-runtime = { git = "https://github.com/Hadamcik/tauri.git", rev = "202cd184f878b144dd37aaa50886281d14abebfd" }
+tauri-runtime-wry = { git = "https://github.com/Hadamcik/tauri.git", rev = "202cd184f878b144dd37aaa50886281d14abebfd" }
+tauri-utils = { git = "https://github.com/Hadamcik/tauri.git", rev = "202cd184f878b144dd37aaa50886281d14abebfd" }
 wry = { git = "https://github.com/Rigidity/wry.git", branch = "sage/wry-v0.54.1-patched" }
