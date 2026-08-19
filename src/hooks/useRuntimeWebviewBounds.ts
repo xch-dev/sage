@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect } from 'react';
 import { LogicalPosition, LogicalSize } from '@tauri-apps/api/dpi';
 import { Webview } from '@tauri-apps/api/webview';
+import { platform } from '@tauri-apps/plugin-os';
+import { setWebviewBounds } from 'tauri-plugin-sage';
 
 function formatError(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -34,12 +36,23 @@ export function useRuntimeWebviewBounds({
       return;
     }
 
+    const rect = container.getBoundingClientRect();
+
+    if (platform() === 'ios') {
+      await setWebviewBounds({
+        label: webviewLabel,
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.max(1, Math.round(rect.width)),
+        height: Math.max(1, Math.round(rect.height)),
+      });
+      return;
+    }
+
     const webview = await Webview.getByLabel(webviewLabel).catch(() => null);
     if (!webview) {
       return;
     }
-
-    const rect = container.getBoundingClientRect();
 
     await webview.setPosition(
       new LogicalPosition(Math.round(rect.left), Math.round(rect.top)),

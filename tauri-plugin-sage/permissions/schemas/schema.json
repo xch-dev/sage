@@ -319,6 +319,30 @@
           "markdownDescription": "Denies the is_ndef_available command without any pre-configured scope."
         },
         {
+          "description": "Enables the set_webview_bounds command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-set-webview-bounds",
+          "markdownDescription": "Enables the set_webview_bounds command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the set_webview_bounds command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-set-webview-bounds",
+          "markdownDescription": "Denies the set_webview_bounds command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the snapshot_webview command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-snapshot-webview",
+          "markdownDescription": "Enables the snapshot_webview command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the snapshot_webview command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-snapshot-webview",
+          "markdownDescription": "Denies the snapshot_webview command without any pre-configured scope."
+        },
+        {
           "description": "Default permissions for the plugin\n#### This default permission set includes:\n\n- `allow-is-ndef-available`\n- `allow-get-ndef-payloads`",
           "type": "string",
           "const": "default",

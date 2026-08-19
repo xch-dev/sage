@@ -25,6 +25,7 @@ dist-ssr
 
 # Rust
 target
+.cargo-ok
 .env
 /test.sqlite*
 

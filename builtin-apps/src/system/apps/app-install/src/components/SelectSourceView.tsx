@@ -68,7 +68,7 @@ export function SelectSourceView({
               />
 
               <button
-                className='rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
+                className='shrink-0 rounded-md bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-60'
                 disabled={working || !urlInput.trim()}
                 onClick={handlePreviewUrl}
               >

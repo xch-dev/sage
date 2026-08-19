@@ -6,6 +6,7 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "vite",
+    "dev:ios": "pnpm run build:builtin-apps && node scripts/sync-ios-assets.mjs && pnpm run dev",
     "dev:system-apps": "node scripts/dev-system-apps-watch.mjs",
     "generate:bindings": "cargo run -p sage-tauri --features dev-tools --bin generate-bindings",
     "generate:bridge-types": "node scripts/generate-bridge-types.mjs",
@@ -18,6 +19,7 @@
     "build:builtin-apps": "pnpm run generate:app-docs && pnpm run build:packages && pnpm run build:system-apps && pnpm run build:builtin-static",
     "build:frontend": "tsc -b && vite build",
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
+    "build:ios": "pnpm run build && node scripts/sync-ios-assets.mjs",
     "tauri:dev": "pnpm run build && concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
     "tauri:build": "pnpm build && tauri build",
     "lint": "eslint .",

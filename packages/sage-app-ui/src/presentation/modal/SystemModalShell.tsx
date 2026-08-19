@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { platform } from '@tauri-apps/plugin-os';
 import { resolveBackgroundTintWithAlpha } from '../utils';
 
@@ -6,6 +6,46 @@ interface SystemModalShellProps {
   children: ReactNode;
   className?: string;
   contentClassName?: string;
+}
+
+interface VisualViewportBounds {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+function useVisualViewportBounds(enabled: boolean) {
+  const [bounds, setBounds] = useState<VisualViewportBounds | null>(null);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+
+    if (!enabled || !viewport) {
+      setBounds(null);
+      return;
+    }
+
+    const update = () => {
+      setBounds({
+        left: viewport.pageLeft,
+        top: viewport.pageTop,
+        width: viewport.width,
+        height: viewport.height,
+      });
+    };
+
+    update();
+    viewport.addEventListener('resize', update);
+    viewport.addEventListener('scroll', update);
+
+    return () => {
+      viewport.removeEventListener('resize', update);
+      viewport.removeEventListener('scroll', update);
+    };
+  }, [enabled]);
+
+  return bounds;
 }
 
 export function SystemModalShell({
@@ -20,16 +60,38 @@ export function SystemModalShell({
   // child surfaces do not compose reliably. Bound Linux modal webviews to an
   // opaque surface and render the frosted backdrop in the host webview.
   const isLinux = platform() === 'linux';
+  const isIos = platform() === 'ios';
+  const visualViewport = useVisualViewportBounds(isIos);
+
+  const viewportStyle: CSSProperties | undefined = visualViewport
+    ? {
+        position: 'absolute',
+        left: visualViewport.left,
+        top: visualViewport.top,
+        width: visualViewport.width,
+        height: visualViewport.height,
+      }
+    : undefined;
+
+  const contentViewportStyle: CSSProperties | undefined =
+    visualViewport && !isLinux
+      ? {
+          width: Math.min(420, Math.max(1, visualViewport.width - 64)),
+          maxHeight: Math.min(620, visualViewport.height * 0.72),
+        }
+      : undefined;
 
   return (
     <div
       className={[
-        'h-screen w-screen overflow-hidden text-foreground',
+        visualViewport ? '' : 'h-screen w-screen',
+        'overflow-hidden text-foreground',
         isLinux
           ? ''
           : 'flex items-center justify-center bg-black/20 backdrop-blur-sm',
         className,
       ].join(' ')}
+      style={viewportStyle}
     >
       <div
         className={[
@@ -39,6 +101,7 @@ export function SystemModalShell({
           contentClassName,
         ].join(' ')}
         style={{
+          ...contentViewportStyle,
           backdropFilter: isLinux ? undefined : 'blur(80px) saturate(0.55)',
           WebkitBackdropFilter: isLinux
             ? undefined

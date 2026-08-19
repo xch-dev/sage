@@ -9,6 +9,12 @@ pub enum Error {
     #[cfg(mobile)]
     #[error(transparent)]
     PluginInvoke(#[from] tauri::plugin::mobile::PluginInvokeError),
+    #[error("{0}")]
+    Unsupported(String),
+    #[error("permission denied: {0}")]
+    PermissionDenied(String),
+    #[error("invalid request: {0}")]
+    InvalidRequest(String),
 }
 
 impl Serialize for Error {

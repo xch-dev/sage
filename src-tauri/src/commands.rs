@@ -9,7 +9,7 @@ use reqwest::StatusCode;
 use sage::Error;
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
-#[cfg(not(mobile))]
+#[cfg(any(not(mobile), target_os = "ios"))]
 use sage_apps::ensure_initial_sandbox_run;
 use sage_config::{NetworkConfig, Wallet, WalletDefaults};
 use sage_rpc::start_rpc;
@@ -160,14 +160,14 @@ pub async fn switch_wallet(app_handle: AppHandle, state: State<'_, AppState>) ->
         state.lock().await.switch_wallet().await?;
     }
 
-    #[cfg(not(mobile))]
+    #[cfg(any(not(mobile), target_os = "ios"))]
     {
         if let Err(err) = ensure_initial_sandbox_run(app_handle).await {
             eprintln!("failed to start initial sandbox run: {err}");
         }
     }
 
-    #[cfg(mobile)]
+    #[cfg(all(mobile, not(target_os = "ios")))]
     {
         let _ = app_handle;
     }

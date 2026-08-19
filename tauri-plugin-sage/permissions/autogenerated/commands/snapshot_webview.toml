@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-snapshot-webview"
+description = "Enables the snapshot_webview command without any pre-configured scope."
+commands.allow = ["snapshot_webview"]
+
+[[permission]]
+identifier = "deny-snapshot-webview"
+description = "Denies the snapshot_webview command without any pre-configured scope."
+commands.deny = ["snapshot_webview"]

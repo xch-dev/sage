@@ -54,10 +54,12 @@ tauri-plugin-sharesheet = "0.0.1"
 [dev-dependencies]
 tempfile = "3"
 
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+[target.'cfg(not(target_os = "android"))'.dependencies]
 sage-apps = { workspace = true }
-tauri-plugin-window-state = { workspace = true }
 tauri-plugin-dialog = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = { workspace = true }
 tauri-plugin-fs = "2"
 
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
