@@ -25,7 +25,7 @@ export function MobileAppTray({
   onOpenDonation,
 }: Props) {
   return (
-    <div className='z-30 flex h-11 shrink-0 items-center justify-around gap-1 border-t bg-background/95 px-2 backdrop-blur'>
+    <div className='z-30 flex h-9 shrink-0 items-center justify-around gap-1 border-t bg-background/95 px-2 backdrop-blur'>
       <MobileNavSheet
         beforeOpen={onPrepareNavigation}
         afterClose={onFinishNavigation}
@@ -36,7 +36,7 @@ export function MobileAppTray({
         type='button'
         variant='ghost'
         size='icon'
-        className='h-9 w-10 shrink-0'
+        className='h-8 w-10 shrink-0'
         onClick={onOpenApps}
         aria-label='Show apps'
       >
@@ -47,7 +47,7 @@ export function MobileAppTray({
         type='button'
         variant={overviewOpen ? 'secondary' : 'ghost'}
         size='icon'
-        className='relative h-9 w-10 shrink-0'
+        className='relative h-8 w-10 shrink-0'
         onClick={onOpenOverview}
         aria-label={`Show ${openAppCount} open app${openAppCount === 1 ? '' : 's'}`}
       >
@@ -64,7 +64,7 @@ export function MobileAppTray({
           type='button'
           variant='ghost'
           size='icon'
-          className='h-9 w-10 shrink-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
+          className='h-8 w-10 shrink-0 text-amber-500 hover:bg-amber-500/10 hover:text-amber-600'
           onClick={onOpenDonation}
           aria-label='Support developer'
         >

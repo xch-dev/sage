@@ -79,7 +79,7 @@ export function MobileNavSheet({
           variant={compact ? 'ghost' : 'outline'}
           size='icon'
           className={
-            compact ? 'h-9 w-10 shrink-0 md:hidden' : 'shrink-0 md:hidden'
+            compact ? 'h-8 w-10 shrink-0 md:hidden' : 'shrink-0 md:hidden'
           }
           aria-label={t`Toggle navigation menu`}
           aria-expanded={open}
