@@ -90,6 +90,10 @@ pub(crate) async fn is_apps_workspace_active(apps_state: &State<'_, AppsHostStat
     *apps_state.runtime.apps_workspace_active.read().await
 }
 
+pub(crate) async fn are_modal_runtimes_suspended(apps_state: &State<'_, AppsHostState>) -> bool {
+    *apps_state.runtime.modal_runtimes_suspended.read().await
+}
+
 async fn get_taskbar_runtimes(
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,

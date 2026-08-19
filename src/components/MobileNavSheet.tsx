@@ -3,7 +3,7 @@ import { useWallet } from '@/contexts/WalletContext';
 import { t } from '@lingui/core/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { Menu } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'theme-o-rama';
 import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
@@ -13,17 +13,29 @@ import { WalletSwitcher } from './WalletSwitcher';
 
 interface MobileNavSheetProps {
   beforeOpen?: () => void | Promise<void>;
+  afterClose?: () => void | Promise<void>;
   compact?: boolean;
 }
 
 export function MobileNavSheet({
   beforeOpen,
+  afterClose,
   compact = false,
 }: MobileNavSheetProps = {}) {
   const insets = useInsets();
   const { wallet } = useWallet();
   const { currentTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const afterCloseTimerRef = useRef<number | null>(null);
+
+  useEffect(
+    () => () => {
+      if (afterCloseTimerRef.current !== null) {
+        window.clearTimeout(afterCloseTimerRef.current);
+      }
+    },
+    [],
+  );
 
   const isMobile = platform() === 'ios' || platform() === 'android';
 
@@ -32,8 +44,24 @@ export function MobileNavSheet({
       open={open}
       onOpenChange={(nextOpen) => {
         if (!nextOpen) {
+          const shouldNotifyClosed = open;
           setOpen(false);
+
+          if (shouldNotifyClosed && afterClose) {
+            afterCloseTimerRef.current = window.setTimeout(() => {
+              afterCloseTimerRef.current = null;
+              void Promise.resolve(afterClose()).catch((err) => {
+                console.error('Failed to finish closing navigation:', err);
+              });
+            }, 300);
+          }
+
           return;
+        }
+
+        if (afterCloseTimerRef.current !== null) {
+          window.clearTimeout(afterCloseTimerRef.current);
+          afterCloseTimerRef.current = null;
         }
 
         void (async () => {

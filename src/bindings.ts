@@ -419,6 +419,9 @@ async appsFocusTaskbarRuntime(params: RuntimeTargetParams) : Promise<SageAppRunt
 async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_active_taskbar_runtime", { params });
 },
+async appsSetModalRuntimesSuspended(args: SetModalRuntimesSuspendedArgs) : Promise<null> {
+    return await TAURI_INVOKE("apps_set_modal_runtimes_suspended", { args });
+},
 async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
     return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
 },
@@ -2456,6 +2459,7 @@ export type SetDiscoverPeers = {
  * Whether to enable peer discovery
  */
 discover_peers: boolean }
+export type SetModalRuntimesSuspendedArgs = { suspended: boolean }
 /**
  * Set the active network
  */

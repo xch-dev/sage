@@ -177,6 +177,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_list_runtimes,
             apps::apps_focus_taskbar_runtime,
             apps::apps_clear_active_taskbar_runtime,
+            apps::apps_set_modal_runtimes_suspended,
             apps::apps_kill_taskbar_runtime,
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,

@@ -8,6 +8,7 @@ interface Props {
   overviewOpen: boolean;
   activeAppHasDonation: boolean;
   onPrepareNavigation: () => void | Promise<void>;
+  onFinishNavigation: () => void | Promise<void>;
   onOpenApps: () => void;
   onOpenOverview: () => void;
   onOpenDonation: () => void;
@@ -18,13 +19,18 @@ export function MobileAppTray({
   overviewOpen,
   activeAppHasDonation,
   onPrepareNavigation,
+  onFinishNavigation,
   onOpenApps,
   onOpenOverview,
   onOpenDonation,
 }: Props) {
   return (
     <div className='z-30 flex h-11 shrink-0 items-center justify-around gap-1 border-t bg-background/95 px-2 backdrop-blur'>
-      <MobileNavSheet beforeOpen={onPrepareNavigation} compact />
+      <MobileNavSheet
+        beforeOpen={onPrepareNavigation}
+        afterClose={onFinishNavigation}
+        compact
+      />
 
       <Button
         type='button'

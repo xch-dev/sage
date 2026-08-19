@@ -42,6 +42,7 @@ pub struct SharedRuntime {
 #[derive(Default)]
 pub struct AppRuntimeState {
     pub apps_workspace_active: tokio::sync::RwLock<bool>,
+    pub modal_runtimes_suspended: tokio::sync::RwLock<bool>,
 
     pub runtime_by_runtime_id: Mutex<BTreeMap<String, SharedRuntime>>,
     pub runtime_id_by_app_id: Mutex<BTreeMap<String, String>>,

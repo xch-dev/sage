@@ -261,10 +261,23 @@ export function Apps() {
 
   function prepareNavigation() {
     return enqueueMobileTransition(async () => {
-      await commands.appsClearActiveTaskbarRuntime({
-        windowLabel: getCurrentWindow().label,
-      });
-      setTabOverviewOpen(false);
+      await commands.appsSetModalRuntimesSuspended({ suspended: true });
+
+      try {
+        await commands.appsClearActiveTaskbarRuntime({
+          windowLabel: getCurrentWindow().label,
+        });
+        setTabOverviewOpen(false);
+      } catch (err) {
+        await commands.appsSetModalRuntimesSuspended({ suspended: false });
+        throw err;
+      }
+    });
+  }
+
+  function finishNavigation() {
+    return enqueueMobileTransition(async () => {
+      await commands.appsSetModalRuntimesSuspended({ suspended: false });
     });
   }
 
@@ -412,6 +425,7 @@ export function Apps() {
           overviewOpen={tabOverviewOpen}
           activeAppHasDonation={hasDonation}
           onPrepareNavigation={prepareNavigation}
+          onFinishNavigation={finishNavigation}
           onOpenApps={() => {
             void showLaunchpad().catch((err) => {
               console.error('Failed to show apps launchpad:', err);
