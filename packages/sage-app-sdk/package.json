@@ -1,6 +1,6 @@
 {
   "name": "sage-app-sdk",
-  "version": "0.1.0",
+  "version": "0.13.0",
   "description": "SDK for building apps that run inside Sage Wallet",
   "license": "Apache-2.0",
   "homepage": "https://github.com/xch-dev/sage#readme",
