@@ -7,7 +7,7 @@ import {
   onRuntimesChanged,
   type RuntimeRecord,
 } from './taskManagerApi';
-import type { SageAppRuntimeRecordView } from '@sage-system-app/sdk';
+import type { SageAppRuntimeRecordView } from 'sage-system-app-sdk';
 
 function formatDuration(ms: number) {
   const s = Math.floor(Math.max(0, ms) / 1000);

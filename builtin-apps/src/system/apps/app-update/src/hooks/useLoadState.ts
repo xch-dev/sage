@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { formatSageError, useSageSystemClient } from '@sage-system-app/sdk';
+import { formatSageError, useSageSystemClient } from 'sage-system-app-sdk';
 import type { LoadState, Mode } from '../types';
 
 export function useLoadState() {

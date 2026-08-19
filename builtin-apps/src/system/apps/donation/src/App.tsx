@@ -1,9 +1,9 @@
-import { AppModalShell } from '@sage-app/ui';
+import { AppModalShell } from 'sage-app-ui';
 import {
   formatSageError,
   useSageSystemClient,
   type DonationDetails,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AmountPicker } from './components/AmountPicker';
 import { DeveloperCard } from './components/DeveloperCard';

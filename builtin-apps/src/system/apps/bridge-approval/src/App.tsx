@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AppIcon, appIconFromCommonView, AppModalShell } from '@sage-app/ui';
+import { AppIcon, appIconFromCommonView, AppModalShell } from 'sage-app-ui';
 import {
   useSageSystemClient,
   type PendingBridgeApprovalView,
   type SageAppRuntimeRecordView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { Clock } from 'lucide-react';
 import { AppApprovalBody } from './approval/AppApprovalBody';
 

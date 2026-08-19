@@ -13,7 +13,7 @@ Right now the SDK is local:
 ```json
 {
   "dependencies": {
-    "@sage-app/sdk": "file:../sage/packages/sage-app-sdk"
+    "sage-app-sdk": "file:../sage/packages/sage-app-sdk"
   }
 }
 ```

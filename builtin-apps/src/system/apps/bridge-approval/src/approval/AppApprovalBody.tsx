@@ -1,4 +1,4 @@
-import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
+import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 import { CapabilityGrantApprovalCard } from './CapabilityGrantApprovalCard';
 import { GetSecretKeyApprovalCard } from './GetSecretKeyApprovalCard';
 import { NetworkWhitelistGrantApprovalCard } from './NetworkWhitelistGrantApprovalCard';

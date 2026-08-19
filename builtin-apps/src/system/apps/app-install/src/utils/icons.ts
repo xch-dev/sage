@@ -1,4 +1,4 @@
-import type { AppIcon } from '@sage-app/ui';
+import type { AppIcon } from 'sage-app-ui';
 import type { InstallSource } from '../types';
 
 export function resolveInstallIcon(source: InstallSource): AppIcon | null {

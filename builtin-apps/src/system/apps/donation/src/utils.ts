@@ -1,5 +1,5 @@
-import type { AppIcon } from '@sage-app/ui';
-import type { SageAppIconView } from '@sage-system-app/sdk';
+import type { AppIcon } from 'sage-app-ui';
+import type { SageAppIconView } from 'sage-system-app-sdk';
 
 export type DonationMode = 'usd' | 'xch';
 

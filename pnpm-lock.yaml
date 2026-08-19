@@ -80,12 +80,6 @@ importers:
       '@react-spring/web':
         specifier: ^9.7.5
         version: 9.7.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@sage-app/sdk':
-        specifier: workspace:*
-        version: link:packages/sage-app-sdk
-      '@sage-app/ui':
-        specifier: workspace:*
-        version: link:packages/sage-app-ui
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -179,6 +173,12 @@ importers:
       react-toastify:
         specifier: ^11.0.5
         version: 11.0.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      sage-app-sdk:
+        specifier: workspace:*
+        version: link:packages/sage-app-sdk
+      sage-app-ui:
+        specifier: workspace:*
+        version: link:packages/sage-app-ui
       spoiled:
         specifier: ^0.4.0
         version: 0.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -297,12 +297,6 @@ importers:
 
   builtin-apps/src/system:
     dependencies:
-      '@sage-app/ui':
-        specifier: workspace:*
-        version: link:../../../packages/sage-app-ui
-      '@sage-system-app/sdk':
-        specifier: workspace:*
-        version: link:../../../packages/sage-system-app-sdk
       '@tauri-apps/api':
         specifier: ^2.10.1
         version: 2.10.1
@@ -312,6 +306,12 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      sage-app-ui:
+        specifier: workspace:*
+        version: link:../../../packages/sage-app-ui
+      sage-system-app-sdk:
+        specifier: workspace:*
+        version: link:../../../packages/sage-system-app-sdk
     devDependencies:
       '@types/react':
         specifier: ^18.3.28
@@ -349,9 +349,6 @@ importers:
 
   packages/sage-app-ui:
     dependencies:
-      '@sage-system-app/sdk':
-        specifier: workspace:*
-        version: link:../sage-system-app-sdk
       '@tauri-apps/plugin-os':
         specifier: ^2.3.2
         version: 2.3.2
@@ -361,6 +358,9 @@ importers:
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      sage-system-app-sdk:
+        specifier: workspace:*
+        version: link:../sage-system-app-sdk
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -371,7 +371,7 @@ importers:
 
   packages/sage-system-app-sdk:
     dependencies:
-      '@sage-app/sdk':
+      sage-app-sdk:
         specifier: workspace:*
         version: link:../sage-app-sdk
     devDependencies:

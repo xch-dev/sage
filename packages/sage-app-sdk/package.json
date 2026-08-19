@@ -1,12 +1,29 @@
 {
-  "name": "@sage-app/sdk",
+  "name": "sage-app-sdk",
   "version": "0.1.0",
+  "description": "SDK for building apps that run inside Sage Wallet",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/xch-dev/sage#readme",
+  "bugs": {
+    "url": "https://github.com/xch-dev/sage/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xch-dev/sage.git",
+    "directory": "packages/sage-app-sdk"
+  },
+  "keywords": [
+    "sage",
+    "chia",
+    "wallet",
+    "sdk"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "sage-app": "./cli/finalize-manifest.mjs"
+    "sage-app": "cli/finalize-manifest.mjs"
   },
   "exports": {
     ".": {
@@ -30,11 +47,15 @@
     "dist",
     "cli"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "generate:types": "node ./scripts/export-types.mjs",
     "build": "pnpm run generate:types && tsup && cp src/theme/theme.css dist/theme.css && cp src/theme/theme-css.d.ts dist/theme-css.d.ts",
     "dev": "pnpm run generate:types && tsup --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepack": "pnpm run build"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

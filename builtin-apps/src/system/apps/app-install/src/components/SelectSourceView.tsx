@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { SystemModalShell } from '@sage-app/ui';
-import { formatSageError } from '@sage-system-app/sdk';
+import { SystemModalShell } from 'sage-app-ui';
+import { formatSageError } from 'sage-system-app-sdk';
 import { closeSelf, previewUrl, selectAndPreviewZip } from '../api';
 import type { InstallSource } from '../types';
 

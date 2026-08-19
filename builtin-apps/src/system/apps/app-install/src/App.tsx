@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { formatSageError, getSageSystemClient } from '@sage-system-app/sdk';
+import { formatSageError, getSageSystemClient } from 'sage-system-app-sdk';
 import { previewUrl } from './api';
 import { ErrorState } from './components/ErrorState';
 import { LoadingState } from './components/LoadingState';

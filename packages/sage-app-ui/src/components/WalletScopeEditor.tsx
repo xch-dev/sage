@@ -1,4 +1,4 @@
-import type { SageAppWalletScope } from '@sage-system-app/sdk';
+import type { SageAppWalletScope } from 'sage-system-app-sdk';
 
 export type WalletScopeEditorWallet = {
   fingerprint: number;

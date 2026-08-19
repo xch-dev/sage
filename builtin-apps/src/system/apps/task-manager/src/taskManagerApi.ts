@@ -4,7 +4,7 @@ import {
   type RuntimeTargetParams,
   type SageAppRuntimeRecordView,
   type SystemKillRuntimeResult,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 const client = await getSageSystemClient();
 

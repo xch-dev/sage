@@ -7,7 +7,7 @@ import type {
   SystemSageAppView,
   UserBridgeCapability,
   UserSageAppView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type { NetworkPermissionScheme, PermissionEntry } from './types';
 import {
   buildCapabilityEntries,
