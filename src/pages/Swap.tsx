@@ -17,9 +17,26 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { HandCoins, Handshake } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { z } from 'zod';
 import { useNetwork } from '@/hooks/useNetwork';
+
+const dexieErrorResponseSchema = z.object({
+  error_message: z.string().optional(),
+});
+
+const dexieQuoteResponseSchema = z.object({
+  quote: z.object({
+    from_amount: z.union([z.number(), z.string()]),
+    to_amount: z.union([z.number(), z.string()]),
+    suggested_tx_fee: z.union([z.number(), z.string()]),
+  }),
+});
+
+const dexieSwapTokensResponseSchema = z.object({
+  tokens: z.array(z.object({ id: z.string() })),
+});
 
 export function Swap() {
   const walletState = useWalletState();
@@ -29,6 +46,10 @@ export function Swap() {
   const { isTestnet } = useNetwork();
 
   const [ownedTokens, setOwnedTokens] = useState<TokenRecord[]>([]);
+  const [dexieAssetIds, setDexieAssetIds] = useState<ReadonlySet<string>>(
+    new Set(),
+  );
+  const [isLoadingDexieAssets, setIsLoadingDexieAssets] = useState(true);
 
   const [payAssetId, setPayAssetId] = useState<string | null | undefined>();
   const [payAmount, setPayAmount] = useState('');
@@ -40,6 +61,7 @@ export function Swap() {
 
   const [fee, setFee] = useState('');
   const [hasUserInputFee, setHasUserInputFee] = useState(false);
+  const quoteRequestId = useRef(0);
 
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isProgressDialogOpen, setIsProgressDialogOpen] = useState(false);
@@ -60,8 +82,36 @@ export function Swap() {
     return () => clearInterval(interval);
   }, [updateCats]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setDexieAssetIds(new Set());
+    setIsLoadingDexieAssets(true);
+
+    getDexieSwapAssetIds(isTestnet, controller.signal)
+      .then(setDexieAssetIds)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError')
+          return;
+        addError({
+          kind: 'dexie',
+          reason: `Failed to load supported Dexie assets: ${getErrorMessage(error)}`,
+        });
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoadingDexieAssets(false);
+      });
+
+    return () => controller.abort();
+  }, [addError, isTestnet]);
+
   const updateReceiveAmount = useCallback(
-    async (receiveAssetId: string | null, payAmount: string) => {
+    async (
+      payAssetId: string | null | undefined,
+      receiveAssetId: string | null | undefined,
+      payAmount: string,
+    ) => {
+      const requestId = ++quoteRequestId.current;
       const mojoAmount = toMojos(payAmount, payAssetId === null ? 12 : 3);
 
       if (
@@ -84,10 +134,12 @@ export function Swap() {
         isTestnet,
       );
 
-      if (!quote) {
+      if (requestId !== quoteRequestId.current) return;
+
+      if ('error' in quote) {
         addError({
           kind: 'dexie',
-          reason: 'Failed to get quote from Dexie. Please try again later.',
+          reason: `Failed to get quote from Dexie: ${quote.error}`,
         });
         return;
       }
@@ -100,11 +152,16 @@ export function Swap() {
         setFee(toDecimal(quote.networkFee, 12));
       }
     },
-    [payAssetId, hasUserInputFee, addError, isTestnet],
+    [hasUserInputFee, addError, isTestnet],
   );
 
   const updatePayAmount = useCallback(
-    async (payAssetId: string | null, receiveAmount: string) => {
+    async (
+      payAssetId: string | null | undefined,
+      receiveAssetId: string | null | undefined,
+      receiveAmount: string,
+    ) => {
+      const requestId = ++quoteRequestId.current;
       const mojoAmount = toMojos(
         receiveAmount,
         receiveAssetId === null ? 12 : 3,
@@ -130,10 +187,12 @@ export function Swap() {
         isTestnet,
       );
 
-      if (!quote) {
+      if (requestId !== quoteRequestId.current) return;
+
+      if ('error' in quote) {
         addError({
           kind: 'dexie',
-          reason: 'Failed to get quote from Dexie. Please try again later.',
+          reason: `Failed to get quote from Dexie: ${quote.error}`,
         });
         return;
       }
@@ -144,7 +203,7 @@ export function Swap() {
         setFee(toDecimal(quote.networkFee, 12));
       }
     },
-    [receiveAssetId, hasUserInputFee, addError, isTestnet],
+    [hasUserInputFee, addError, isTestnet],
   );
 
   const offerState = useMemo<OfferState>(() => {
@@ -198,13 +257,18 @@ export function Swap() {
                 <TokenSelector
                   value={payAssetId}
                   onChange={(value) => {
+                    const nextReceiveAssetId =
+                      value === null ? receiveAssetId : null;
                     setPayAssetId(value);
-                    updatePayAmount(value, receiveAmount);
+                    if (value !== null) setReceiveAssetId(null);
+                    updatePayAmount(value, nextReceiveAssetId, receiveAmount);
                   }}
                   className='!rounded-r-none'
                   hideZeroBalance={true}
                   showAllCats={false}
                   includeXch={true}
+                  allowedAssetIds={dexieAssetIds}
+                  isLoading={isLoadingDexieAssets}
                   disabled={
                     receiveAssetId === undefined ? undefined : [receiveAssetId]
                   }
@@ -217,8 +281,12 @@ export function Swap() {
                     value={payAmount}
                     onChange={(e) => {
                       setPayAmount(e.target.value);
-                      if (receiveAssetId) {
-                        updateReceiveAmount(receiveAssetId, e.target.value);
+                      if (receiveAssetId !== undefined) {
+                        updateReceiveAmount(
+                          payAssetId,
+                          receiveAssetId,
+                          e.target.value,
+                        );
                       }
                     }}
                     precision={payAssetId === null ? 12 : 3}
@@ -268,13 +336,17 @@ export function Swap() {
                 <TokenSelector
                   value={receiveAssetId}
                   onChange={(value) => {
+                    const nextPayAssetId = value === null ? payAssetId : null;
                     setReceiveAssetId(value);
-                    updateReceiveAmount(value, payAmount);
+                    if (value !== null) setPayAssetId(null);
+                    updateReceiveAmount(nextPayAssetId, value, payAmount);
                   }}
                   className='!rounded-r-none'
                   hideZeroBalance={false}
                   showAllCats={true}
                   includeXch={true}
+                  allowedAssetIds={dexieAssetIds}
+                  isLoading={isLoadingDexieAssets}
                   disabled={payAssetId === undefined ? undefined : [payAssetId]}
                 />
                 <div className='flex flex-grow-0'>
@@ -285,8 +357,12 @@ export function Swap() {
                     value={receiveAmount}
                     onChange={(e) => {
                       setReceiveAmount(e.target.value);
-                      if (payAssetId) {
-                        updatePayAmount(payAssetId, e.target.value);
+                      if (payAssetId !== undefined) {
+                        updatePayAmount(
+                          payAssetId,
+                          receiveAssetId,
+                          e.target.value,
+                        );
                       }
                     }}
                     precision={receiveAssetId === null ? 12 : 3}
@@ -385,17 +461,66 @@ async function getDexieQuote(
         isTestnet,
       ),
     );
-    const data = await response.json();
+    const data: unknown = await response.json();
+
+    if (!response.ok) {
+      return {
+        error:
+          getDexieErrorMessage(data) ??
+          `Dexie returned HTTP ${response.status}.`,
+      };
+    }
+
+    const parsed = dexieQuoteResponseSchema.safeParse(data);
+    if (!parsed.success) {
+      return { error: 'Dexie returned an invalid quote response.' };
+    }
+
+    const quotedAmount =
+      amountKind === 'pay'
+        ? parsed.data.quote.to_amount
+        : parsed.data.quote.from_amount;
+
     return {
-      amount: (amountKind === 'pay'
-        ? data.quote.to_amount
-        : data.quote.from_amount) as number,
-      networkFee: data.quote.suggested_tx_fee as number,
+      amount: quotedAmount,
+      networkFee: parsed.data.quote.suggested_tx_fee,
     };
   } catch (error: unknown) {
     console.error(error);
-    return null;
+    return { error: getErrorMessage(error) };
   }
+}
+
+async function getDexieSwapAssetIds(
+  isTestnet: boolean,
+  signal: AbortSignal,
+): Promise<ReadonlySet<string>> {
+  const response = await fetch(dexieApiUrl('v1/swap/tokens', isTestnet), {
+    signal,
+  });
+  const data: unknown = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      getDexieErrorMessage(data) ?? `Dexie returned HTTP ${response.status}.`,
+    );
+  }
+
+  const parsed = dexieSwapTokensResponseSchema.safeParse(data);
+  if (!parsed.success) {
+    throw new Error('Dexie returned an invalid token list.');
+  }
+
+  return new Set(parsed.data.tokens.map((token) => token.id.toLowerCase()));
+}
+
+function getDexieErrorMessage(data: unknown): string | null {
+  const parsed = dexieErrorResponseSchema.safeParse(data);
+  return parsed.success ? (parsed.data.error_message ?? null) : null;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function executeDexieSwap(
