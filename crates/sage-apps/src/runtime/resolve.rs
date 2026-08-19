@@ -65,7 +65,33 @@ pub fn protocol_scheme_for_app(app: &SharedSageApp) -> &'static str {
 }
 
 pub fn is_allowed_app_url(url: &Url, app: &SharedSageApp) -> bool {
-    url.scheme() == protocol_scheme_for_app(app) && url.host_str() == Some(&app.origin_id())
+    let protocol_scheme = protocol_scheme_for_app(app);
+    let origin_id = app.origin_id();
+
+    is_allowed_app_origin_url(url, protocol_scheme, &origin_id)
+}
+
+fn is_allowed_app_origin_url(url: &Url, protocol_scheme: &str, origin_id: &str) -> bool {
+    if url.scheme() == protocol_scheme && url.host_str() == Some(origin_id) {
+        return true;
+    }
+
+    #[cfg(target_os = "windows")]
+    if is_webview2_mapped_app_origin(url, protocol_scheme, origin_id) {
+        return true;
+    }
+
+    false
+}
+
+#[cfg(any(target_os = "windows", test))]
+fn is_webview2_mapped_app_origin(url: &Url, protocol_scheme: &str, origin_id: &str) -> bool {
+    // WebView2 cannot navigate directly to custom protocols, so Wry maps
+    // `{scheme}://{host}` to `http://{scheme}.{host}` on Windows. Navigation
+    // callbacks and the current URL expose that mapped URL even though custom
+    // protocol requests are converted back before they reach Sage.
+    let webview2_host = format!("{protocol_scheme}.{origin_id}");
+    url.scheme() == "http" && url.port().is_none() && url.host_str() == Some(&webview2_host)
 }
 
 pub fn build_entry_src_for(
@@ -208,4 +234,56 @@ pub(crate) async fn resolve_app_with_extra(
     Err(ResolveError::NotFound(format!(
         "failed to resolve app {app_id}"
     )))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn url(value: &str) -> Url {
+        Url::parse(value).expect("test URL should be valid")
+    }
+
+    #[test]
+    fn allows_the_native_custom_protocol_origin() {
+        assert!(is_allowed_app_origin_url(
+            &url("sage-system-app://task-manager/index.html"),
+            "sage-system-app",
+            "task-manager",
+        ));
+    }
+
+    #[test]
+    fn allows_the_webview2_mapped_origin_only_on_windows() {
+        assert_eq!(
+            is_allowed_app_origin_url(
+                &url("http://sage-system-app.task-manager/index.html"),
+                "sage-system-app",
+                "task-manager",
+            ),
+            cfg!(target_os = "windows")
+        );
+    }
+
+    #[test]
+    fn webview2_mapping_matches_only_the_exact_origin() {
+        assert!(is_webview2_mapped_app_origin(
+            &url("http://sage-system-app.task-manager/index.html"),
+            "sage-system-app",
+            "task-manager"
+        ));
+
+        for candidate in [
+            "https://sage-system-app.task-manager/index.html",
+            "http://sage-system-app.task-manager.invalid/index.html",
+            "http://sage-system-app.other/index.html",
+            "http://other.task-manager/index.html",
+            "http://sage-system-app.task-manager:444/index.html",
+        ] {
+            assert!(
+                !is_webview2_mapped_app_origin(&url(candidate), "sage-system-app", "task-manager"),
+                "unexpectedly allowed {candidate}"
+            );
+        }
+    }
 }
