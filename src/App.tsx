@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
+  Navigate,
   Route,
   RouterProvider,
 } from 'react-router-dom';
@@ -58,6 +59,10 @@ import { TokenList } from './pages/TokenList';
 import Transaction from './pages/Transaction';
 import { Transactions } from './pages/Transactions';
 import Wallet from './pages/Wallet';
+import { AppsProvider } from '@/contexts/AppsContext.tsx';
+import { RustThemeSync } from '@/components/RustThemeSync.tsx';
+import { Apps } from '@/pages/Apps.tsx';
+import { platform } from '@tauri-apps/plugin-os';
 
 // Theme-aware toast container component
 function ThemeAwareToastContainer() {
@@ -87,6 +92,10 @@ function ThemeAwareToastContainer() {
     />
   );
 }
+
+const currentPlatform = platform();
+const supportsSageApps =
+  currentPlatform !== 'android' && currentPlatform !== 'ios';
 
 const router = createHashRouter(
   createRoutesFromElements(
@@ -137,6 +146,14 @@ const router = createHashRouter(
       <Route path='/swap' element={<Wallet />}>
         <Route path='' element={<Swap />} />
       </Route>
+      <Route path='/apps' element={<Wallet />}>
+        <Route
+          index
+          element={
+            supportsSageApps ? <Apps /> : <Navigate to='/wallet' replace />
+          }
+        />
+      </Route>
       <Route path='/settings' element={<Settings />} />
       <Route path='/scan' element={<QRScanner />} />
       <Route path='/peers' element={<PeerList />} />
@@ -175,7 +192,6 @@ function AppInner() {
   const { locale } = useLanguage();
   const [isLocaleInitialized, setIsLocaleInitialized] = useState(false);
 
-  // Enable global transaction failure handling
   useTransactionFailures();
 
   useEffect(() => {
@@ -183,7 +199,7 @@ function AppInner() {
       await loadCatalog(locale);
       setIsLocaleInitialized(true);
     };
-    initLocale();
+    void initLocale();
   }, [locale]);
 
   return (
@@ -191,13 +207,16 @@ function AppInner() {
     isLocaleInitialized && (
       <I18nProvider i18n={i18n}>
         <WalletProvider>
+          <RustThemeSync />
           <PasswordProvider>
             <PeerProvider>
-              <WalletConnectProvider>
-                <PriceProvider>
-                  <RouterProvider router={router} />
-                </PriceProvider>
-              </WalletConnectProvider>
+              <AppsProvider>
+                <WalletConnectProvider>
+                  <PriceProvider>
+                    <RouterProvider router={router} />
+                  </PriceProvider>
+                </WalletConnectProvider>
+              </AppsProvider>
             </PeerProvider>
           </PasswordProvider>
         </WalletProvider>

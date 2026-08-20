@@ -18,6 +18,7 @@ interface AssetCoinProps {
 export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
   const { isTestnet } = useNetwork();
   const url = coinId ? spacescanCoinUrl(coinId, isTestnet) : null;
+  const coinIdLabel = coinId ?? '';
 
   return (
     <div className='rounded-xl border border-border bg-card text-card-foreground shadow p-4'>
@@ -26,7 +27,7 @@ export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
         onClick={() => {
           if (url) openUrl(url);
         }}
-        aria-label={t`View coin ${coinId ?? ''} on Spacescan.io`}
+        aria-label={t`View coin ${coinIdLabel} on Spacescan.io`}
         role='button'
         tabIndex={0}
         onKeyDown={(e) => {

@@ -39,9 +39,11 @@ import { formatNumber } from '../i18n';
 import { calculateTransaction } from './AdvancedTransactionSummary';
 import { CopyButton } from './CopyButton';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { ReadOnlyButton } from './ReadOnlyButton';
 import { Badge } from './ui/badge';
 import { Separator } from './ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 export interface ConfirmationDialogProps {
   response: TransactionResponse | TakeOfferResponse | null;
@@ -67,6 +69,9 @@ export default function ConfirmationDialog({
   const { addError } = useErrors();
   const { requestPassword } = usePassword();
   const { wallet } = useWallet();
+  const { isReadOnly, allowUnsigned } = useWallet();
+
+  const isColdWalletUnsignedMode = isReadOnly && allowUnsigned;
 
   const [pending, setPending] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
@@ -78,6 +83,12 @@ export default function ConfirmationDialog({
       setSignature(response.spend_bundle.aggregated_signature);
     }
   }, [response]);
+
+  useEffect(() => {
+    if (response !== null && isColdWalletUnsignedMode) {
+      setActiveTab('json');
+    }
+  }, [response, isColdWalletUnsignedMode]);
 
   const reset = () => {
     setPending(false);
@@ -281,83 +292,86 @@ export default function ConfirmationDialog({
                       <Trans>Sending</Trans>
                     </h3>
                     <div className='space-y-4'>
-                      {Object.entries(groupedAssets).map(([key, group]) => (
-                        <div
-                          key={key}
-                          className='flex flex-col gap-1.5 rounded-md border p-3'
-                        >
-                          <div className='flex items-center justify-between'>
-                            <Badge className='max-w-[100px]'>
-                              <span className='truncate'>{group.badge}</span>
-                            </Badge>
-                            <div className='flex items-center'>
-                              <ArrowUpRightIcon
-                                className='h-4 w-4 mr-1 text-blue-500'
-                                aria-hidden='true'
-                              />
-                              <Trans>Total:</Trans>{' '}
-                              <span className='font-medium text-foreground ml-1'>
-                                {group.totalAmount} {group.ticker}
-                              </span>
-                            </div>
-                          </div>
-
-                          <Separator className='my-2' />
-
-                          <div className='flex flex-col gap-2'>
-                            <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                      {Object.entries(groupedAssets).map(([key, group]) => {
+                        const groupLabel = group.label;
+                        const recipientCount = group.recipients.length;
+                        return (
+                          <div
+                            key={key}
+                            className='flex flex-col gap-1.5 rounded-md border p-3'
+                          >
+                            <div className='flex items-center justify-between'>
+                              <Badge className='max-w-[100px]'>
+                                <span className='truncate'>{group.badge}</span>
+                              </Badge>
                               <div className='flex items-center'>
-                                <Trans>To:</Trans>{' '}
-                                {group.recipients.length > 1 && (
-                                  <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
-                                    <Trans id='sending_to_recipients'>
-                                      Sending <span>{group.label}</span> to{' '}
-                                      <span>{group.recipients.length}</span>{' '}
-                                      recipients
-                                    </Trans>
-                                  </span>
-                                )}
+                                <ArrowUpRightIcon
+                                  className='h-4 w-4 mr-1 text-blue-500'
+                                  aria-hidden='true'
+                                />
+                                <Trans>Total:</Trans>{' '}
+                                <span className='font-medium text-foreground ml-1'>
+                                  {group.totalAmount} {group.ticker}
+                                </span>
                               </div>
                             </div>
 
-                            <div
-                              className={
-                                group.recipients.length > 3
-                                  ? 'max-h-[150px] overflow-y-auto pr-1'
-                                  : ''
-                              }
-                            >
-                              {group.recipients.map((address) => (
-                                <div
-                                  key={address}
-                                  className='flex items-center gap-1.5 min-w-0 w-full pl-2'
-                                >
-                                  <ForwardIcon
-                                    className='w-4 h-4 text-blue-500 shrink-0'
-                                    aria-hidden='true'
-                                  />
-                                  <div className='text-sm truncate flex-1'>
-                                    {address}
-                                  </div>
-                                  {address !== t`Permanently Burned` &&
-                                    address !== t`You` &&
-                                    address !== t`Change` && (
-                                      <CopyButton
-                                        value={address}
-                                        className='h-4 w-4 shrink-0'
-                                        onCopy={() =>
-                                          toast.success(
-                                            t`Address copied to clipboard`,
-                                          )
-                                        }
-                                      />
-                                    )}
+                            <Separator className='my-2' />
+
+                            <div className='flex flex-col gap-2'>
+                              <div className='text-sm font-medium text-muted-foreground flex items-center justify-between'>
+                                <div className='flex items-center'>
+                                  <Trans>To:</Trans>{' '}
+                                  {group.recipients.length > 1 && (
+                                    <span className='ml-1 text-xs px-1.5 py-0.5 rounded-full'>
+                                      <Trans id='sending_to_recipients'>
+                                        Sending <span>{groupLabel}</span> to{' '}
+                                        <span>{recipientCount}</span> recipients
+                                      </Trans>
+                                    </span>
+                                  )}
                                 </div>
-                              ))}
+                              </div>
+
+                              <div
+                                className={
+                                  group.recipients.length > 3
+                                    ? 'max-h-[150px] overflow-y-auto pr-1'
+                                    : ''
+                                }
+                              >
+                                {group.recipients.map((address) => (
+                                  <div
+                                    key={address}
+                                    className='flex items-center gap-1.5 min-w-0 w-full pl-2'
+                                  >
+                                    <ForwardIcon
+                                      className='w-4 h-4 text-blue-500 shrink-0'
+                                      aria-hidden='true'
+                                    />
+                                    <div className='text-sm truncate flex-1'>
+                                      {address}
+                                    </div>
+                                    {address !== t`Permanently Burned` &&
+                                      address !== t`You` &&
+                                      address !== t`Change` && (
+                                        <CopyButton
+                                          value={address}
+                                          className='h-4 w-4 shrink-0'
+                                          onCopy={() =>
+                                            toast.success(
+                                              t`Address copied to clipboard`,
+                                            )
+                                          }
+                                        />
+                                      )}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {created.filter(
                         (item) =>
@@ -514,7 +528,7 @@ export default function ConfirmationDialog({
                 </Alert>
 
                 <div className='flex items-center gap-2 mt-4'>
-                  <Button
+                  <ReadOnlyButton
                     size='sm'
                     onClick={async () => {
                       const password = await requestPassword(
@@ -538,7 +552,7 @@ export default function ConfirmationDialog({
                         })
                         .catch(addError);
                     }}
-                    disabled={!!signature}
+                    disabled={!!signature || isReadOnly}
                   >
                     {signature ? (
                       <>
@@ -551,7 +565,7 @@ export default function ConfirmationDialog({
                     ) : (
                       <Trans>Sign Transaction</Trans>
                     )}
-                  </Button>
+                  </ReadOnlyButton>
 
                   <Button
                     variant='outline'
@@ -610,61 +624,84 @@ export default function ConfirmationDialog({
           <Button variant='ghost' onClick={reset}>
             <Trans>Cancel</Trans>
           </Button>
-          <LoadingButton
-            loading={pending}
-            loadingText={t`Submitting`}
-            onClick={() => {
-              setPending(true);
+          {isColdWalletUnsignedMode ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className='inline-flex cursor-not-allowed'>
+                  <LoadingButton
+                    disabled
+                    loading={false}
+                    loadingText=''
+                    className='pointer-events-none'
+                  >
+                    <Trans>Submit</Trans>
+                  </LoadingButton>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                <Trans>
+                  Cold wallets cannot sign transactions. Copy the JSON and sign
+                  externally.
+                </Trans>
+              </TooltipContent>
+            </Tooltip>
+          ) : (
+            <LoadingButton
+              loading={pending}
+              loadingText={t`Submitting`}
+              onClick={() => {
+                setPending(true);
 
-              (async () => {
-                let finalSignature: string | null = signature;
+                (async () => {
+                  let finalSignature: string | null = signature;
 
-                if (
-                  !finalSignature &&
-                  response !== null &&
-                  'coin_spends' in response
-                ) {
-                  const password = await requestPassword(
-                    wallet?.has_password ?? false,
-                  );
-                  if (password === undefined) return;
+                  if (
+                    !finalSignature &&
+                    response !== null &&
+                    'coin_spends' in response
+                  ) {
+                    const password = await requestPassword(
+                      wallet?.has_password ?? false,
+                    );
+                    if (password === undefined) return;
+
+                    const data = await commands
+                      .signCoinSpends({
+                        coin_spends: response.coin_spends,
+                        password,
+                      })
+                      .catch(addError);
+
+                    if (!data) return reset();
+
+                    finalSignature = data.spend_bundle.aggregated_signature;
+                  }
 
                   const data = await commands
-                    .signCoinSpends({
-                      coin_spends: response.coin_spends,
-                      password,
+                    .submitTransaction({
+                      spend_bundle: {
+                        coin_spends:
+                          response === null
+                            ? []
+                            : 'coin_spends' in response
+                              ? response.coin_spends
+                              : response.spend_bundle.coin_spends,
+                        aggregated_signature: finalSignature ?? '',
+                      },
                     })
                     .catch(addError);
 
                   if (!data) return reset();
 
-                  finalSignature = data.spend_bundle.aggregated_signature;
-                }
-
-                const data = await commands
-                  .submitTransaction({
-                    spend_bundle: {
-                      coin_spends:
-                        response === null
-                          ? []
-                          : 'coin_spends' in response
-                            ? response.coin_spends
-                            : response.spend_bundle.coin_spends,
-                      aggregated_signature: finalSignature ?? '',
-                    },
-                  })
-                  .catch(addError);
-
-                if (!data) return reset();
-
-                toast.success(t`Transaction submitted successfully`);
-                onConfirm?.();
-                reset();
-              })().finally(() => setPending(false));
-            }}
-          >
-            <Trans>Submit</Trans>
-          </LoadingButton>
+                  toast.success(t`Transaction submitted successfully`);
+                  onConfirm?.();
+                  reset();
+                })().finally(() => setPending(false));
+              }}
+            >
+              <Trans>Submit</Trans>
+            </LoadingButton>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

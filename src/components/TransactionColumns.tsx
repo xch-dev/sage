@@ -19,15 +19,18 @@ import { AssetIcon } from './AssetIcon';
 import { AssetLink } from './AssetLink';
 
 export interface FlattenedTransaction {
-  transactionHeight: number;
   type: AssetKind;
   iconUrl?: string | null;
   amount: string;
   address: string | null;
   itemId: string;
   displayName: string;
+  transactionHeight: number;
   timestamp: number | null;
   precision: number;
+  groupKey: string; // unique group identifier: String(height) for confirmed, transactionId for pending
+  isPending?: boolean;
+  transactionId?: string;
 }
 
 export const columns: ColumnDef<FlattenedTransaction>[] = [
@@ -39,17 +42,27 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
     enableSorting: false,
     size: 140,
     cell: ({ row, table }) => {
-      // Get all rows data
       const rows = table.options.data as FlattenedTransaction[];
 
-      // Check if this is the first row for this transaction height
+      // Show only once per group (first row in the group)
       const isFirstInGroup =
-        rows.findIndex(
-          (tx) => tx.transactionHeight === row.original.transactionHeight,
-        ) === rows.indexOf(row.original);
+        rows.findIndex((tx) => tx.groupKey === row.original.groupKey) ===
+        rows.indexOf(row.original);
 
-      // Only show block number for first row in group
-      return isFirstInGroup ? (
+      if (!isFirstInGroup) return null;
+
+      if (row.original.isPending) {
+        return (
+          <div className='flex items-center gap-1.5 animate-pulse'>
+            <div className='h-2 w-2 rounded-full bg-amber-500' />
+            <span className='text-amber-600 text-sm font-medium'>
+              <Trans>Pending</Trans>
+            </span>
+          </div>
+        );
+      }
+
+      return (
         <Link
           to={`/transactions/${row.getValue('transactionHeight')}`}
           className='hover:underline'
@@ -61,7 +74,7 @@ export const columns: ColumnDef<FlattenedTransaction>[] = [
           {formatTimestamp(row.original?.timestamp, 'short', 'short') ||
             row.getValue('transactionHeight')}
         </Link>
-      ) : null;
+      );
     },
   },
   {

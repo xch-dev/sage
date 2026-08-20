@@ -494,14 +494,26 @@ impl Sage {
 
         let transactions = wallet
             .db
-            .mempool_items()
+            .mempool_items_with_coins()
             .await?
             .into_iter()
-            .map(|tx| {
+            .map(|item| {
+                let spent = item
+                    .spent
+                    .into_iter()
+                    .map(|c| self.transaction_coin(c))
+                    .collect::<Result<Vec<_>>>()?;
+                let created = item
+                    .created
+                    .into_iter()
+                    .map(|c| self.transaction_coin(c))
+                    .collect::<Result<Vec<_>>>()?;
                 Result::Ok(PendingTransactionRecord {
-                    transaction_id: hex::encode(tx.hash),
-                    fee: Amount::u64(tx.fee),
-                    submitted_at: tx.submitted_timestamp,
+                    transaction_id: hex::encode(item.hash),
+                    fee: Amount::u64(item.fee),
+                    submitted_at: item.submitted_timestamp,
+                    spent,
+                    created,
                 })
             })
             .collect::<Result<Vec<_>>>()?;

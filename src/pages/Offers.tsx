@@ -8,6 +8,7 @@ import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { OfferRowCard } from '@/components/OfferRowCard';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -24,10 +25,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
+import { cn, toMojos } from '@/lib/utils';
 import { useOfferState, useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -38,13 +40,14 @@ import {
   CircleOff,
   FilterIcon,
   HandCoins,
+  ImageIcon,
   NfcIcon,
   ScanIcon,
   TrashIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { useLocalStorage } from 'usehooks-ts';
 import { z } from 'zod';
@@ -55,6 +58,7 @@ export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -91,9 +95,25 @@ export function Offers() {
     [navigate],
   );
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    viewOffer(scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      viewOffer(scanResValue);
+    },
+  );
+
+  const isMobile = platform() === 'ios' || platform() === 'android';
+
+  const offerImageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOfferImageChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (file) {
+      handleScanImage(file);
+    }
+  };
 
   const updateOffers = useCallback(
     () =>
@@ -170,6 +190,10 @@ export function Offers() {
     statusFilter === 'all' ? true : offer.status === statusFilter,
   );
 
+  const activeOfferCount = filteredOffers.filter(
+    (offer) => offer.status === 'active',
+  ).length;
+
   const handleDeleteAll = async () => {
     try {
       for (const offer of filteredOffers) {
@@ -208,18 +232,44 @@ export function Offers() {
       });
   };
 
+  const scanImageButton = (
+    <Button
+      size='icon'
+      variant='ghost'
+      aria-label={t`Scan an offer QR code from an image`}
+      onClick={() => offerImageInputRef.current?.click()}
+    >
+      <ImageIcon className='h-5 w-5' aria-hidden='true' />
+    </Button>
+  );
+
   return (
     <>
+      <input
+        ref={offerImageInputRef}
+        type='file'
+        accept='image/*'
+        className='hidden'
+        onChange={handleOfferImageChange}
+      />
       <Header
         title={<Trans>Offers</Trans>}
+        alwaysShowChildren
         mobileActionItems={
           <div className='flex items-center gap-2'>
-            <Button size='icon' variant='ghost' onClick={handleScanOrPaste}>
-              <ScanIcon className='h-5 w-5' aria-hidden='true' />
-            </Button>
             <Button
               size='icon'
               variant='ghost'
+              aria-label={t`Scan an offer QR code with the camera`}
+              onClick={handleScanOrPaste}
+            >
+              <ScanIcon className='h-5 w-5' aria-hidden='true' />
+            </Button>
+            {scanImageButton}
+            <Button
+              size='icon'
+              variant='ghost'
+              aria-label={t`Scan an offer from an NFC tag`}
               disabled={!isNfcAvailable}
               onClick={handleNfcScan}
             >
@@ -227,7 +277,9 @@ export function Offers() {
             </Button>
           </div>
         }
-      />
+      >
+        {!isMobile && scanImageButton}
+      </Header>
       <Container>
         <Card className='p-6'>
           <div className='flex flex-col gap-10'>
@@ -272,11 +324,12 @@ export function Offers() {
                     onSubmit={handleViewOffer}
                   />
                 </Dialog>
-                <Link to='/offers/make' replace={true}>
-                  <Button>
-                    <Trans>Create Offer</Trans>
-                  </Button>
-                </Link>
+                <ReadOnlyButton
+                  requiresSigning
+                  onClick={() => navigate('/offers/make', { replace: true })}
+                >
+                  <Trans>Create Offer</Trans>
+                </ReadOnlyButton>
               </div>
             </div>
 
@@ -311,23 +364,39 @@ export function Offers() {
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              variant='outline'
-                              size='sm'
-                              className='flex items-center gap-1'
-                              onClick={() => setIsCancelAllOpen(true)}
+                            <span
+                              className={cn(
+                                'inline-flex',
+                                isTransactionDisabled && 'cursor-not-allowed',
+                              )}
                             >
-                              <CircleOff
-                                className='h-4 w-4'
-                                aria-hidden='true'
-                              />
-                              <span className='hidden sm:inline'>
-                                <Trans>Cancel All Active</Trans>
-                              </span>
-                            </Button>
+                              <Button
+                                variant='outline'
+                                size='sm'
+                                className={cn(
+                                  'flex items-center gap-1',
+                                  isTransactionDisabled &&
+                                    'pointer-events-none',
+                                )}
+                                disabled={isTransactionDisabled}
+                                onClick={() => setIsCancelAllOpen(true)}
+                              >
+                                <CircleOff
+                                  className='h-4 w-4'
+                                  aria-hidden='true'
+                                />
+                                <span className='hidden sm:inline'>
+                                  <Trans>Cancel All Active</Trans>
+                                </span>
+                              </Button>
+                            </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <Trans>Cancel All Active Offers</Trans>
+                            {isTransactionDisabled ? (
+                              <Trans>Not available for read-only wallets</Trans>
+                            ) : (
+                              <Trans>Cancel All Active Offers</Trans>
+                            )}
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -392,10 +461,9 @@ export function Offers() {
         title={<Trans>Cancel all active offers?</Trans>}
         description={
           <Trans>
-            This will cancel all{' '}
-            {filteredOffers.filter((offer) => offer.status === 'active').length}{' '}
-            active offers on-chain with transactions, preventing them from being
-            taken even if someone has the original offer files.
+            This will cancel all {activeOfferCount} active offers on-chain with
+            transactions, preventing them from being taken even if someone has
+            the original offer files.
           </Trans>
         }
         feeLabel={<Trans>Network Fee (per offer)</Trans>}

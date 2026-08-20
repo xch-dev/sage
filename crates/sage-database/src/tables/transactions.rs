@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::{Row, SqliteExecutor};
 
-use crate::{Asset, Convert, Database, Result};
+use crate::{Asset, AssetKind, Convert, Database, Result};
 
 #[derive(Debug, Clone)]
 pub struct Transaction {
@@ -35,7 +35,7 @@ impl Database {
 }
 
 // Helper function to create a TransactionCoin from a database row
-fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionCoin> {
+pub(crate) fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionCoin> {
     let coin = Coin::new(
         row.get::<Vec<u8>, _>("parent_coin_hash").convert()?,
         row.get::<Vec<u8>, _>("puzzle_hash").convert()?,
@@ -55,7 +55,7 @@ fn create_transaction_coin(row: &sqlx::sqlite::SqliteRow) -> Result<TransactionC
             .get::<Option<i64>, _>("asset_kind")
             .map(Convert::convert)
             .transpose()?
-            .unwrap_or(crate::AssetKind::Token),
+            .unwrap_or(AssetKind::Token),
         hidden_puzzle_hash: row
             .get::<Option<Vec<u8>>, _>("asset_hidden_puzzle_hash")
             .convert()?,

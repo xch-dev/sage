@@ -29,6 +29,23 @@ pub struct ResyncCat {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct ResyncCatResponse {}
 
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Price", description = "Get XCH-USD price")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetXchUsdPrice {}
+
+#[cfg_attr(feature = "openapi", crate::openapi_attr(tag = "Price"))]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetXchUsdPriceResponse {
+    pub usd: f64,
+}
+
 /// Update a `CAT` token's metadata and visibility
 #[cfg_attr(
     feature = "openapi",

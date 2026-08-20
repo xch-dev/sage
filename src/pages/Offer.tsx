@@ -10,6 +10,7 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { OfferCard } from '@/components/OfferCard';
+import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput } from '@/components/ui/masked-input';
@@ -29,6 +30,7 @@ import { useNetwork } from '@/hooks/useNetwork';
 export function Offer() {
   const { offer } = useParams();
   const { addError } = useErrors();
+  const { isReadOnly } = useWallet();
   const walletState = useWalletState();
   const navigate = useNavigate();
   const { wallet } = useWallet();
@@ -82,6 +84,11 @@ export function Offer() {
 
   const take = async () => {
     if (!resolvedOffer || !summary) return;
+
+    // Taking an offer signs inline, so there is no unsigned bundle to export.
+    // Guarded here as well as on the button, since Enter in the fee input
+    // also triggers this.
+    if (isReadOnly) return;
 
     // Check for expired options in the offered side (maker)
     const currentTime = Math.floor(Date.now() / 1000);
@@ -154,7 +161,8 @@ export function Offer() {
                   <Trans>Import Offer</Trans>
                 </Button>
 
-                <Button
+                <ReadOnlyButton
+                  requiresSigning
                   onClick={take}
                   disabled={
                     status === 'completed' ||
@@ -163,7 +171,7 @@ export function Offer() {
                   }
                 >
                   <Trans>Take Offer</Trans>
-                </Button>
+                </ReadOnlyButton>
               </div>
             </>
           )

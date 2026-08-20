@@ -54,9 +54,7 @@ where
             let status = match error.kind() {
                 ErrorKind::Api => StatusCode::BAD_REQUEST,
                 ErrorKind::NotFound => StatusCode::NOT_FOUND,
-                ErrorKind::Unauthorized | ErrorKind::IncorrectPassword => {
-                    StatusCode::UNAUTHORIZED
-                }
+                ErrorKind::Unauthorized | ErrorKind::IncorrectPassword => StatusCode::UNAUTHORIZED,
                 ErrorKind::DatabaseMigration
                 | ErrorKind::Wallet
                 | ErrorKind::Internal

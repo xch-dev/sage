@@ -2,7 +2,7 @@ use chia_wallet_sdk::{
     chia::puzzle_types::{LineageProof, Proof},
     prelude::*,
 };
-use sqlx::{Row, SqliteExecutor, query};
+use sqlx::{QueryBuilder, Row, Sqlite, SqliteExecutor, SqlitePool, query};
 
 use crate::{
     AssetKind, Convert, Database, DatabaseError, DatabaseTx, Result, SerializedDid,
@@ -619,7 +619,7 @@ async fn coins_by_ids(conn: impl SqliteExecutor<'_>, coin_ids: &[String]) -> Res
 }
 
 async fn coin_records(
-    conn: impl SqliteExecutor<'_>,
+    conn: &SqlitePool,
     asset_filter: AssetFilter,
     limit: u32,
     offset: u32,
@@ -635,7 +635,7 @@ async fn coin_records(
         CoinFilterMode::Clawback => "clawback_coins",
     };
 
-    let mut query = sqlx::QueryBuilder::new(format!(
+    let mut query = QueryBuilder::new(format!(
         "
         SELECT
             parent_coin_hash, puzzle_hash, amount,
@@ -647,18 +647,7 @@ async fn coin_records(
         ",
     ));
 
-    match asset_filter {
-        AssetFilter::Id(asset_id) => {
-            query.push(" WHERE asset_hash = ");
-            query.push_bind(asset_id.to_vec());
-        }
-        AssetFilter::Nfts => {
-            query.push(" WHERE asset_kind = 1");
-        }
-        AssetFilter::Dids => {
-            query.push(" WHERE asset_kind = 2");
-        }
-    }
+    push_asset_filter(&mut query, asset_filter);
 
     query.push(" ORDER BY ");
     match sort_mode {
@@ -680,9 +669,24 @@ async fn coin_records(
     query.push_bind(offset as i64);
 
     let rows = query.build().fetch_all(conn).await?;
-    let total_count = rows
-        .first()
-        .map_or(Ok(0), |row| row.get::<i64, _>("total_count").try_into())?;
+    let total_count = if let Some(row) = rows.first() {
+        row.get::<i64, _>("total_count").try_into()?
+    } else {
+        // COUNT(*) OVER() has no row from which to read the total when the
+        // requested offset is beyond the end of the filtered result set.
+        // Run the equivalent count query so callers can recover to the last
+        // available page.
+        let mut count_query =
+            QueryBuilder::new(format!("SELECT COUNT(*) AS total_count FROM {table}"));
+        push_asset_filter(&mut count_query, asset_filter);
+
+        count_query
+            .build()
+            .fetch_one(conn)
+            .await?
+            .get::<i64, _>("total_count")
+            .try_into()?
+    };
     let coins = rows
         .into_iter()
         .map(|row| {
@@ -718,6 +722,21 @@ async fn coin_records(
         .collect::<Result<Vec<_>>>()?;
 
     Ok((coins, total_count))
+}
+
+fn push_asset_filter(query: &mut QueryBuilder<'_, Sqlite>, asset_filter: AssetFilter) {
+    match asset_filter {
+        AssetFilter::Id(asset_id) => {
+            query.push(" WHERE asset_hash = ");
+            query.push_bind(asset_id.to_vec());
+        }
+        AssetFilter::Nfts => {
+            query.push(" WHERE asset_kind = 1");
+        }
+        AssetFilter::Dids => {
+            query.push(" WHERE asset_kind = 2");
+        }
+    }
 }
 
 async fn selectable_xch_coins(conn: impl SqliteExecutor<'_>) -> Result<Vec<Coin>> {

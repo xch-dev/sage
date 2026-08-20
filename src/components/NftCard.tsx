@@ -7,10 +7,12 @@ import {
 } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { offersEnabled } from '@/lib/features';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
+import { useWallet } from '@/contexts/WalletContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -95,6 +97,7 @@ interface NftCardProps {
 
 export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
 
@@ -172,6 +175,8 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   }, [nft.launcher_id]);
 
   useEffect(() => {
+    if (!offersEnabled) return;
+
     let cancelled = false;
     commands
       .getOffersForAsset({ asset_id: nft.launcher_id })
@@ -286,6 +291,9 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
   };
 
   const nftName = nft.name ?? t`Unnamed NFT`;
+  const editionNumber = nft.edition_number;
+  // 0 means an open/unlimited edition
+  const editionTotal = nft.edition_total === 0 ? '∞' : nft.edition_total;
 
   return (
     <>
@@ -344,8 +352,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                         {' '}
                         (
                         <Trans>
-                          {nft.edition_number} of{' '}
-                          {nft.edition_total === 0 ? '∞' : nft.edition_total}
+                          {editionNumber} of {editionTotal}
                         </Trans>
                         )
                       </span>
@@ -363,25 +370,27 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
             />
           )}
 
-          {activeOfferCount !== null && activeOfferCount > 0 && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className='absolute top-2 left-2 flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm'>
-                    <Tag className='h-3 w-3' aria-hidden='true' />
-                    {activeOfferCount > 1 && <span>{activeOfferCount}</span>}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side='bottom'>
-                  <p>
-                    {activeOfferCount === 1
-                      ? t`1 active offer`
-                      : t`${activeOfferCount} active offers`}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
+          {offersEnabled &&
+            activeOfferCount !== null &&
+            activeOfferCount > 0 && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className='absolute top-2 left-2 flex items-center gap-1 rounded-full bg-amber-500/90 px-1.5 py-0.5 text-xs font-medium text-white shadow-sm'>
+                      <Tag className='h-3 w-3' aria-hidden='true' />
+                      {activeOfferCount > 1 && <span>{activeOfferCount}</span>}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side='bottom'>
+                    <p>
+                      {activeOfferCount === 1
+                        ? t`1 active offer`
+                        : t`${activeOfferCount} active offers`}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
 
           {nft.special_use_type === 'theme' && (
             <div className='absolute bottom-0 left-0 right-0 bg-primary/70 text-primary-foreground text-xs font-medium py-1 px-2 text-center border-t border-border'>
@@ -441,7 +450,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setTransferOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Transfer ${nftName}`}
                 >
                   <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -456,7 +465,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setAssignOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={
                     nft.owner_did === null ? t`Assign profile` : t`Edit profile`
                   }
@@ -478,7 +487,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     addUrlForm.reset();
                     setAddUrlOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Add URL to ${nftName}`}
                 >
                   <LinkIcon className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -493,7 +502,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
                     e.stopPropagation();
                     setBurnOpen(true);
                   }}
-                  disabled={!nft.created_height}
+                  disabled={isTransactionDisabled || !nft.created_height}
                   aria-label={t`Burn ${nftName}`}
                 >
                   <Flame className='mr-2 h-4 w-4' aria-hidden='true' />
@@ -504,38 +513,41 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuItem
-                  className='cursor-pointer'
-                  onClick={(e) => {
-                    e.stopPropagation();
+                {offersEnabled && (
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    onClick={(e) => {
+                      e.stopPropagation();
 
-                    const newNfts = [...offerState.offered.nfts];
-                    newNfts.push(nft.launcher_id);
+                      const newNfts = [...offerState.offered.nfts];
+                      newNfts.push(nft.launcher_id);
 
-                    setOfferState({
-                      offered: {
-                        ...offerState.offered,
-                        nfts: newNfts,
-                      },
-                    });
+                      setOfferState({
+                        offered: {
+                          ...offerState.offered,
+                          nfts: newNfts,
+                        },
+                      });
 
-                    toast.success(t`Click here to go to offer.`, {
-                      onClick: () => navigate('/offers/make'),
-                    });
-                  }}
-                  disabled={
-                    !nft.created_height ||
-                    offerState.offered.nfts.findIndex(
-                      (nftId) => nftId === nft.launcher_id,
-                    ) !== -1
-                  }
-                  aria-label={t`Add ${nftName} to offer`}
-                >
-                  <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                  <span>
-                    <Trans>Add to Offer</Trans>
-                  </span>
-                </DropdownMenuItem>
+                      toast.success(t`Click here to go to offer.`, {
+                        onClick: () => navigate('/offers/make'),
+                      });
+                    }}
+                    disabled={
+                      isTransactionDisabled ||
+                      !nft.created_height ||
+                      offerState.offered.nfts.findIndex(
+                        (nftId) => nftId === nft.launcher_id,
+                      ) !== -1
+                    }
+                    aria-label={t`Add ${nftName} to offer`}
+                  >
+                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span>
+                      <Trans>Add to Offer</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                )}
 
                 <DropdownMenuItem
                   className='cursor-pointer'

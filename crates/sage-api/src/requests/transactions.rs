@@ -234,6 +234,10 @@ pub struct IssueCat {
     pub ticker: String,
     /// Initial supply amount
     pub amount: Amount,
+    /// Whether the CAT can be revoked by the issuer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub revocable: bool,
     /// Transaction fee
     pub fee: Amount,
     /// Whether to automatically submit the transaction

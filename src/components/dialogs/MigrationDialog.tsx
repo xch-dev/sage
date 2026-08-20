@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { offersEnabled } from '@/lib/features';
 import { Trans } from '@lingui/react/macro';
 
 interface MigrationDialogProps {
@@ -30,12 +31,20 @@ export function MigrationDialog({
             <Trans>Database Migration Required</Trans>
           </DialogTitle>
           <DialogDescription>
-            <Trans>
-              In order to proceed with the update, the wallet will be fully
-              resynced. This means any imported offer files or custom asset
-              names will be removed, but you can manually add them again after
-              if needed.
-            </Trans>
+            {offersEnabled ? (
+              <Trans>
+                In order to proceed with the update, the wallet will be fully
+                resynced. This means any imported offer files or custom asset
+                names will be removed, but you can manually add them again after
+                if needed.
+              </Trans>
+            ) : (
+              <Trans>
+                In order to proceed with the update, the wallet will be fully
+                resynced. This means custom asset names will be removed, but you
+                can manually add them again after if needed.
+              </Trans>
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

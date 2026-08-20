@@ -1,4 +1,5 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
+import { WalletAddressPicker } from '@/components/WalletAddressPicker';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -169,9 +170,11 @@ export default function Send() {
   });
   const memoMode = form.watch('memoMode') || MemoMode.Text;
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('address', scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('address', scanResValue);
+    },
+  );
 
   const onSubmit = () => {
     const values = form.getValues();
@@ -288,9 +291,18 @@ export default function Send() {
               name='address'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    <Trans>Address</Trans>
-                  </FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>
+                      <Trans>Address</Trans>
+                    </FormLabel>
+                    {!bulk && (
+                      <WalletAddressPicker
+                        onSelect={(address) =>
+                          form.setValue('address', address)
+                        }
+                      />
+                    )}
+                  </div>
                   <FormControl>
                     {bulk ? (
                       <Textarea
@@ -307,6 +319,7 @@ export default function Send() {
                         autoComplete='off'
                         placeholder={t`Enter address`}
                         onEndIconClick={handleScanOrPaste}
+                        onScanImage={handleScanImage}
                         {...field}
                       />
                     )}

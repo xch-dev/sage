@@ -1,3 +1,4 @@
+import { offersEnabled } from '@/lib/features';
 import { spacescanCoinUrl } from '@/lib/urls';
 import { formatTimestamp, fromMojos } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -334,7 +335,9 @@ const SpentCell = ({ row }: { row: Row<CoinRecord> }) =>
       : row.original.transaction_id
         ? t`Pending...`
         : row.original.offer_id
-          ? t`Locked in offer`
+          ? offersEnabled
+            ? t`Locked in offer`
+            : t`Locked`
           : '';
 
 // Wrapper components to eliminate remaining inline arrow functions
