@@ -8,6 +8,11 @@ fn csp_source_list(items: &[String]) -> String {
 
 pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
     let mut connect_sources = BTreeSet::from(["'self'".to_string()]);
+    let mut image_sources = BTreeSet::from([
+        "'self'".to_string(),
+        "blob:".to_string(),
+        "data:".to_string(),
+    ]);
 
     app.with(|app| {
         for entry in app
@@ -15,7 +20,12 @@ pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
             .network()
             .effective_whitelist_for_network(network_id)
         {
-            connect_sources.insert(entry.as_permission_string());
+            let source = entry.as_permission_string();
+            connect_sources.insert(source.clone());
+
+            if entry.scheme() == "https" {
+                image_sources.insert(source);
+            }
         }
     });
 
@@ -24,11 +34,7 @@ pub fn build_app_csp(app: &SharedSageApp, network_id: &str) -> String {
     let default_src = csp_source_list(&["'self'".to_string()]);
     let font_src = csp_source_list(&["'self'".to_string(), "data:".to_string()]);
     let frame_src = csp_source_list(&["'none'".to_string()]);
-    let img_src = csp_source_list(&[
-        "'self'".to_string(),
-        "data:".to_string(),
-        "blob:".to_string(),
-    ]);
+    let img_src = csp_source_list(&image_sources.into_iter().collect::<Vec<_>>());
     let manifest_src = csp_source_list(&["'none'".to_string()]);
     let media_src = csp_source_list(&[
         "'self'".to_string(),
@@ -105,13 +111,14 @@ mod tests {
 
     fn app_with_network_grants() -> (SharedSageApp, TempDir) {
         let shared = entry("https", "shared.example.com");
+        let shared_websocket = entry("wss", "events.example.com");
         let mainnet = entry("https", "mainnet.example.com");
         let testnet = entry("https", "testnet.example.com");
 
         let requested = SageRequestedPermissions::new(
             SageRequestedNetworkPermissions::new(
                 [],
-                [shared.clone()],
+                [shared.clone(), shared_websocket.clone()],
                 [
                     (
                         "mainnet".to_string(),
@@ -131,7 +138,7 @@ mod tests {
         let granted = SageGrantedPermissions::new(
             &requested,
             [],
-            [shared],
+            [shared, shared_websocket],
             BTreeMap::from([
                 ("mainnet".to_string(), BTreeSet::from([mainnet])),
                 ("testnet11".to_string(), BTreeSet::from([testnet])),
@@ -175,5 +182,26 @@ mod tests {
         assert!(testnet_csp.contains("https://shared.example.com"));
         assert!(testnet_csp.contains("https://testnet.example.com"));
         assert!(!testnet_csp.contains("https://mainnet.example.com"));
+    }
+
+    #[test]
+    fn csp_img_src_allows_https_sources_for_the_active_network() {
+        let (app, _dir) = app_with_network_grants();
+
+        let mainnet_csp = build_app_csp(&app, "mainnet");
+        let img_src = mainnet_csp
+            .split(';')
+            .map(str::trim)
+            .find_map(|directive| directive.strip_prefix("img-src "))
+            .expect("CSP should contain img-src");
+        let sources = img_src.split_ascii_whitespace().collect::<BTreeSet<_>>();
+
+        assert!(sources.contains("'self'"));
+        assert!(sources.contains("blob:"));
+        assert!(sources.contains("data:"));
+        assert!(sources.contains("https://shared.example.com"));
+        assert!(sources.contains("https://mainnet.example.com"));
+        assert!(!sources.contains("https://testnet.example.com"));
+        assert!(!sources.contains("wss://events.example.com"));
     }
 }
