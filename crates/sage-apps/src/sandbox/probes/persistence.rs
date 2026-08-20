@@ -178,7 +178,13 @@ pub(in crate::sandbox) async fn run_persistence_test(
                     .data
                     .error
                     .clone()
-                    .unwrap_or_else(|| "Incognito read probe mismatch.".into())
+                    .unwrap_or_else(|| {
+                        format!(
+                            "Incognito read probe mismatch: localStorage present={}, IndexedDB present={}.",
+                            incognito_read.data.local_storage_present,
+                            incognito_read.data.indexed_db_present,
+                        )
+                    })
             }),
         ),
     ))

@@ -324,10 +324,14 @@ fn build_storage(
 
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
-    if !app.with(|app| app.common().has_persistent_webview_storage()) {
-        return builder.incognito(true);
-    }
+    let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    };
 
+    // Incognito webviews still need their app-specific storage target. On Windows this scopes the
+    // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
     build_persistent_storage_target(builder, app)
 }
 
