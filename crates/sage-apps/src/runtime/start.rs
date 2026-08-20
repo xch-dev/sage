@@ -195,6 +195,7 @@ async fn create_runtime_for_app(
         webview_label.clone(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
+    .use_https_scheme(cfg!(target_os = "windows"))
     .transparent(!cfg!(target_os = "linux") || !is_modal)
     .on_navigation(move |url| {
         runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
