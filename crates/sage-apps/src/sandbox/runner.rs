@@ -212,12 +212,7 @@ pub async fn sandbox_runner(app: AppHandle) {
         build_effective_state(&baseline, Some(&temp_run))
     };
 
-    current_state.overall_critical_status =
-        if effective.storage_isolation_from_sage.status == SandboxCapabilityStatus::Failed {
-            SandboxCapabilityStatus::Failed
-        } else {
-            SandboxCapabilityStatus::Passed
-        };
+    current_state.overall_critical_status = overall_status(&effective);
     current_state.finished_at = Some(unix_timestamp_ms());
 
     *apps_state.sandbox.baseline.lock().await = current_state.clone();
@@ -227,9 +222,64 @@ pub async fn sandbox_runner(app: AppHandle) {
     emit_sandbox_state_changed(&app, &apps_state).await;
 }
 
+fn overall_status(state: &SandboxState) -> SandboxCapabilityStatus {
+    let statuses = [
+        state.storage_isolation_from_sage.status,
+        state.storage_persistence_normal.status,
+        state.storage_non_persistence_incognito.status,
+        state.network_allowlist_enforced.status,
+    ];
+
+    if statuses.contains(&SandboxCapabilityStatus::Failed) {
+        SandboxCapabilityStatus::Failed
+    } else if statuses.contains(&SandboxCapabilityStatus::Running) {
+        SandboxCapabilityStatus::Running
+    } else if statuses.contains(&SandboxCapabilityStatus::Pending) {
+        SandboxCapabilityStatus::Pending
+    } else {
+        SandboxCapabilityStatus::Passed
+    }
+}
+
 fn sandbox_state_is_all_pending(state: &SandboxState) -> bool {
     state.storage_isolation_from_sage.status == SandboxCapabilityStatus::Pending
         && state.storage_persistence_normal.status == SandboxCapabilityStatus::Pending
         && state.storage_non_persistence_incognito.status == SandboxCapabilityStatus::Pending
         && state.network_allowlist_enforced.status == SandboxCapabilityStatus::Pending
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::sandbox::types::{build_initial_sandbox_state, mark_cap};
+
+    #[test]
+    fn overall_status_fails_when_any_capability_fails() {
+        let mut state = build_initial_sandbox_state();
+
+        for capability in [
+            SandboxCapability::StorageIsolationFromSage,
+            SandboxCapability::StoragePersistenceNormal,
+            SandboxCapability::StorageNonPersistenceIncognito,
+            SandboxCapability::NetworkAllowlistEnforced,
+        ] {
+            mark_cap(
+                &mut state,
+                capability,
+                SandboxCapabilityStatus::Passed,
+                None,
+                1,
+            );
+        }
+
+        mark_cap(
+            &mut state,
+            SandboxCapability::StorageNonPersistenceIncognito,
+            SandboxCapabilityStatus::Failed,
+            None,
+            2,
+        );
+
+        assert_eq!(overall_status(&state), SandboxCapabilityStatus::Failed);
+    }
 }
