@@ -90,118 +90,45 @@ pub async fn sandbox_runner(app: AppHandle) {
         )
     };
 
-    let isolation_fut = run_isolation_test(&app, &apps_state);
-    let persistence_fut = run_persistence_test(&app, &apps_state);
-    let network_fut = run_network_test(&app, &apps_state);
+    mark_running(
+        &mut current_state,
+        &[SandboxCapability::NetworkAllowlistEnforced],
+    );
+    update_current_run_state(&app, &apps_state, current_state.clone()).await;
 
-    tokio::pin!(isolation_fut);
-    tokio::pin!(persistence_fut);
-    tokio::pin!(network_fut);
+    // Storage probes share WebView lifecycle concerns and must not overlap each
+    // other. The network probe is independent, so keep it in a parallel lane.
+    let ((), network_result) = tokio::join!(
+        async {
+            record_single_probe_result(
+                &mut current_state,
+                SandboxCapability::StorageIsolationFromSage,
+                run_isolation_test(&app, &apps_state).await,
+            );
+            mark_running(
+                &mut current_state,
+                &[
+                    SandboxCapability::StoragePersistenceNormal,
+                    SandboxCapability::StorageNonPersistenceIncognito,
+                ],
+            );
+            update_current_run_state(&app, &apps_state, current_state.clone()).await;
 
-    let mut isolation_done = false;
-    let mut persistence_done = false;
-    let mut network_done = false;
+            record_persistence_probe_result(
+                &mut current_state,
+                run_persistence_test(&app, &apps_state).await,
+            );
+            update_current_run_state(&app, &apps_state, current_state.clone()).await;
+        },
+        run_network_test(&app, &apps_state),
+    );
 
-    while !(isolation_done && persistence_done && network_done) {
-        tokio::select! {
-            res = &mut isolation_fut, if !isolation_done => {
-                isolation_done = true;
-
-                match res {
-                    Ok((passed, details)) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageIsolationFromSage,
-                            if passed { SandboxCapabilityStatus::Passed } else { SandboxCapabilityStatus::Failed },
-                            details,
-                            unix_timestamp_ms(),
-                        );
-                    }
-                    Err(err) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageIsolationFromSage,
-                            SandboxCapabilityStatus::Failed,
-                            Some(err),
-                            unix_timestamp_ms(),
-                        );
-                    }
-                }
-
-                update_current_run_state(&app, &apps_state, current_state.clone()).await;
-            }
-
-            res = &mut persistence_fut, if !persistence_done => {
-                persistence_done = true;
-
-                match res {
-                    Ok((normal, incog)) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StoragePersistenceNormal,
-                            if normal.0 { SandboxCapabilityStatus::Passed } else { SandboxCapabilityStatus::Failed },
-                            normal.1,
-                            unix_timestamp_ms(),
-                        );
-
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageNonPersistenceIncognito,
-                            if incog.0 { SandboxCapabilityStatus::Passed } else { SandboxCapabilityStatus::Failed },
-                            incog.1,
-                            unix_timestamp_ms(),
-                        );
-                    }
-                    Err(err) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StoragePersistenceNormal,
-                            SandboxCapabilityStatus::Failed,
-                            Some(err.clone()),
-                            unix_timestamp_ms(),
-                        );
-
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::StorageNonPersistenceIncognito,
-                            SandboxCapabilityStatus::Failed,
-                            Some(err),
-                            unix_timestamp_ms(),
-                        );
-                    }
-                }
-
-                update_current_run_state(&app, &apps_state, current_state.clone()).await;
-            }
-
-            res = &mut network_fut, if !network_done => {
-                network_done = true;
-
-                match res {
-                    Ok((passed, details)) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::NetworkAllowlistEnforced,
-                            if passed { SandboxCapabilityStatus::Passed } else { SandboxCapabilityStatus::Failed },
-                            details,
-                            unix_timestamp_ms(),
-                        );
-                    }
-                    Err(err) => {
-                        mark_cap(
-                            &mut current_state,
-                            SandboxCapability::NetworkAllowlistEnforced,
-                            SandboxCapabilityStatus::Failed,
-                            Some(err),
-                            unix_timestamp_ms(),
-                        );
-                    }
-                }
-
-                update_current_run_state(&app, &apps_state, current_state.clone()).await;
-            }
-        }
-    }
+    record_single_probe_result(
+        &mut current_state,
+        SandboxCapability::NetworkAllowlistEnforced,
+        network_result,
+    );
+    update_current_run_state(&app, &apps_state, current_state.clone()).await;
 
     let effective = {
         let baseline = apps_state.sandbox.baseline.lock().await.clone();
@@ -220,6 +147,69 @@ pub async fn sandbox_runner(app: AppHandle) {
     *apps_state.sandbox.running.lock().await = false;
 
     emit_sandbox_state_changed(&app, &apps_state).await;
+}
+
+fn mark_running(state: &mut SandboxState, capabilities: &[SandboxCapability]) {
+    for capability in capabilities {
+        mark_cap(
+            state,
+            *capability,
+            SandboxCapabilityStatus::Running,
+            None,
+            unix_timestamp_ms(),
+        );
+    }
+}
+
+fn record_single_probe_result(
+    state: &mut SandboxState,
+    capability: SandboxCapability,
+    result: Result<(bool, Option<String>), String>,
+) {
+    let (status, details) = match result {
+        Ok((passed, details)) => (
+            if passed {
+                SandboxCapabilityStatus::Passed
+            } else {
+                SandboxCapabilityStatus::Failed
+            },
+            details,
+        ),
+        Err(err) => (SandboxCapabilityStatus::Failed, Some(err)),
+    };
+
+    mark_cap(state, capability, status, details, unix_timestamp_ms());
+}
+
+type PersistenceProbeResult = Result<((bool, Option<String>), (bool, Option<String>)), String>;
+
+fn record_persistence_probe_result(state: &mut SandboxState, result: PersistenceProbeResult) {
+    match result {
+        Ok((normal, incognito)) => {
+            record_single_probe_result(
+                state,
+                SandboxCapability::StoragePersistenceNormal,
+                Ok(normal),
+            );
+            record_single_probe_result(
+                state,
+                SandboxCapability::StorageNonPersistenceIncognito,
+                Ok(incognito),
+            );
+        }
+        Err(err) => {
+            record_single_probe_result(
+                state,
+                SandboxCapability::StoragePersistenceNormal,
+                Err(err.clone()),
+            );
+            record_single_probe_result(
+                state,
+                SandboxCapability::StorageNonPersistenceIncognito,
+                Err(err),
+            );
+        }
+    }
 }
 
 fn overall_status(state: &SandboxState) -> SandboxCapabilityStatus {
