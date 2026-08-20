@@ -41,6 +41,8 @@ function titleForApproval(approval: PendingBridgeApprovalView) {
       return 'Approve permission grant';
     case 'networkWhitelistGrant':
       return 'Approve network access';
+    case 'permissionGrants':
+      return 'Approve permissions';
   }
 }
 

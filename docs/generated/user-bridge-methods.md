@@ -26,15 +26,25 @@
 
 ## `app.requestCapabilityGrant`
 
+> **Deprecated:** Use `app.requestPermissionGrants` instead. It supports both single and batched capability and network permission requests.
+
 | Field      | Value                          |
 | ---------- | ------------------------------ |
 | Capability | `app.request_capability_grant` |
 
 ## `app.requestNetworkWhitelistGrant`
 
+> **Deprecated:** Use `app.requestPermissionGrants` instead. It supports both single and batched capability and network permission requests.
+
 | Field      | Value                                 |
 | ---------- | ------------------------------------- |
 | Capability | `app.request_network_whitelist_grant` |
+
+## `app.requestPermissionGrants`
+
+| Field      | Value                           |
+| ---------- | ------------------------------- |
+| Capability | `app.request_permission_grants` |
 
 ## `bridge.ping`
 

@@ -47,6 +47,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     insert_method(&mut methods, AppGetCapabilities);
     insert_method(&mut methods, AppRequestCapabilityGrant);
     insert_method(&mut methods, AppRequestNetworkWhitelistGrant);
+    insert_method(&mut methods, AppRequestPermissionGrants);
     insert_method(&mut methods, AppLifecycleSetBeforeStopListener);
     insert_method(&mut methods, AppLifecycleReadyToStop);
 
