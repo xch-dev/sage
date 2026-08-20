@@ -322,7 +322,7 @@ fn build_storage(
     build_persistent_storage_target(builder, app)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[cfg(target_os = "windows")]
 fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
     let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
@@ -332,7 +332,16 @@ fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBu
 
     // Incognito webviews still need their app-specific storage target. On Windows this scopes the
     // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
-    build_persistent_storage_target(builder, app)
+    build_windows_storage_target(builder, app)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+    if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -352,21 +361,17 @@ fn build_persistent_storage_target(
     }
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
-fn build_persistent_storage_target(
+#[cfg(target_os = "windows")]
+fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
 ) -> WebviewBuilder<Wry> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
-        #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
             builder.data_directory(data_directory_for(&directory_name))
         }
-
-        #[cfg(not(target_os = "windows"))]
-        SageAppStorage::WindowsProfile { .. } => builder,
 
         SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
     }
