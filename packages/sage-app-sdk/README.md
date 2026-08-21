@@ -38,7 +38,8 @@ Build the app, then run:
 npm run sage:finalize
 ```
 
-This writes the finalized `sage-manifest.json` into the app's distribution directory.
+This validates the source manifest, including any donation address, and writes the
+finalized `sage-manifest.json` into the app's distribution directory.
 
 ### Exclude deployment-only files
 
