@@ -401,6 +401,9 @@ async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
 async appsApplyAppUpdate(appId: string, expectedManifestHash: string) : Promise<SageAppView> {
     return await TAURI_INVOKE("apps_apply_app_update", { appId, expectedManifestHash });
 },
+async appsRecoverAppUpdate(appId: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_recover_app_update", { appId });
+},
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
 },
@@ -800,7 +803,7 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
-export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestHeaderV0 | null; source?: UserSageAppSource | null }
+export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestRecoveryHeaderV0 | null; source?: UserSageAppSource | null; compatibility?: SageAppCompatibility | null }
 /**
  * Create a new DID
  */
@@ -2272,11 +2275,19 @@ export type RustBridgeRequest = { bridgeVersion: string | null; id: string; meth
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
+export type SageAppCompatibility = { currentVersion: string; status: SageAppCompatibilityStatus }
+export type SageAppCompatibilityStatus = { kind: "compatible" } | { kind: "requiresNewerSage"; minimumVersion: string } | { kind: "untestedNewerSage"; testedMaxVersion: string } | { kind: "invalid"; reason: string }
 export type SageAppDonation = { address: string }
 export type SageAppIconView = { mime: string; bytes: number[] }
 export type SageAppIdentityView = { id: string; originId: string }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
 export type SageAppManifestHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion: SageAppManifestSageVersion }
+/**
+ * Minimal header used to identify and recover an installed app even when its
+ * full manifest no longer matches the current manifest schema. Compatibility
+ * metadata is optional here so legacy manifests still retain their identity.
+ */
+export type SageAppManifestRecoveryHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion?: SageAppManifestSageVersion | null }
 export type SageAppManifestSageVersion = { min: string; testedMax?: string | null }
 export type SageAppManifestVersion = number
 export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
@@ -2871,7 +2882,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }

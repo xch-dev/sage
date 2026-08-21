@@ -6552,6 +6552,7 @@ dependencies = [
  "reqwest 0.12.24",
  "sage",
  "sage-api",
+ "semver",
  "serde",
  "serde_json",
  "serde_path_to_error",
