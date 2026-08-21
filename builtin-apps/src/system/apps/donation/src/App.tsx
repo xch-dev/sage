@@ -3,6 +3,7 @@ import {
   formatSageError,
   useSageSystemClient,
   type DonationDetails,
+  type EnvironmentGetNetworkResult,
 } from 'sage-system-app-sdk';
 import { CheckCircle2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -10,6 +11,7 @@ import { AmountPicker } from './components/AmountPicker';
 import { DeveloperBadge } from './components/DeveloperBadge';
 import { DeveloperCard } from './components/DeveloperCard';
 import { FeeInput } from './components/FeeInput';
+import { MainnetRequired } from './components/MainnetRequired';
 import {
   appIconFromInline,
   createDonationReview,
@@ -29,6 +31,9 @@ export function App() {
   const sage = useSageSystemClient();
 
   const [details, setDetails] = useState<DonationDetails | null>(null);
+  const [network, setNetwork] = useState<EnvironmentGetNetworkResult | null>(
+    null,
+  );
   const [mode, setMode] = useState<DonationMode>('usd');
   const [usdInput, setUsdInput] = useState(DEFAULT_USD);
   const [xchInput, setXchInput] = useState(DEFAULT_XCH);
@@ -66,10 +71,14 @@ export function App() {
           throw new Error('Missing donation target app id.');
         }
 
-        const next = await sage.donations.getDetails({ appId: targetAppId });
+        const [nextDetails, nextNetwork] = await Promise.all([
+          sage.donations.getDetails({ appId: targetAppId }),
+          sage.environment.getNetwork(),
+        ]);
 
         if (!disposed) {
-          setDetails(next);
+          setDetails(nextDetails);
+          setNetwork(nextNetwork);
         }
       } catch (err) {
         if (!disposed) {
@@ -90,6 +99,10 @@ export function App() {
   }, [sage, targetAppId]);
 
   useEffect(() => {
+    if (network?.kind !== 'mainnet') {
+      return;
+    }
+
     let disposed = false;
 
     async function load() {
@@ -117,7 +130,7 @@ export function App() {
     return () => {
       disposed = true;
     };
-  }, [sage]);
+  }, [sage, network?.kind]);
 
   const derived = useMemo(() => {
     if (mode === 'usd') {
@@ -169,7 +182,10 @@ export function App() {
   }, [feeInput]);
 
   const canReview =
-    !!details?.donationAddress && !!derived.mojos && feeMojos !== null;
+    network?.kind === 'mainnet' &&
+    !!details?.donationAddress &&
+    !!derived.mojos &&
+    feeMojos !== null;
 
   function reviewDonation() {
     if (
@@ -210,6 +226,15 @@ export function App() {
     setError(null);
 
     try {
+      const currentNetwork = await sage.environment.getNetwork();
+      setNetwork(currentNetwork);
+
+      if (currentNetwork.kind !== 'mainnet') {
+        setReview(null);
+        setStep('edit');
+        return;
+      }
+
       await sage.wallet.sendXch({
         address: review.donationAddress,
         amount: review.amountMojos,
@@ -263,6 +288,16 @@ export function App() {
   }
 
   const appIcon = appIconFromInline(details.appIcon);
+
+  if (network?.kind !== 'mainnet') {
+    return (
+      <MainnetRequired
+        details={details}
+        network={network}
+        onClose={() => void sage.runtimeManager.closeSelf()}
+      />
+    );
+  }
 
   if (step === 'confirm' && review) {
     return (
