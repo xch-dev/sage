@@ -87,11 +87,11 @@ fn is_allowed_app_origin_url(url: &Url, protocol_scheme: &str, origin_id: &str) 
 #[cfg(any(target_os = "windows", test))]
 fn is_webview2_mapped_app_origin(url: &Url, protocol_scheme: &str, origin_id: &str) -> bool {
     // WebView2 cannot navigate directly to custom protocols, so Wry maps
-    // `{scheme}://{host}` to `http://{scheme}.{host}` on Windows. Navigation
+    // `{scheme}://{host}` to `https://{scheme}.{host}` on Windows. Navigation
     // callbacks and the current URL expose that mapped URL even though custom
     // protocol requests are converted back before they reach Sage.
     let webview2_host = format!("{protocol_scheme}.{origin_id}");
-    url.scheme() == "http" && url.port().is_none() && url.host_str() == Some(&webview2_host)
+    url.scheme() == "https" && url.port().is_none() && url.host_str() == Some(&webview2_host)
 }
 
 pub fn build_entry_src_for(
@@ -257,7 +257,7 @@ mod tests {
     fn allows_the_webview2_mapped_origin_only_on_windows() {
         assert_eq!(
             is_allowed_app_origin_url(
-                &url("http://sage-system-app.task-manager/index.html"),
+                &url("https://sage-system-app.task-manager/index.html"),
                 "sage-system-app",
                 "task-manager",
             ),
@@ -268,17 +268,17 @@ mod tests {
     #[test]
     fn webview2_mapping_matches_only_the_exact_origin() {
         assert!(is_webview2_mapped_app_origin(
-            &url("http://sage-system-app.task-manager/index.html"),
+            &url("https://sage-system-app.task-manager/index.html"),
             "sage-system-app",
             "task-manager"
         ));
 
         for candidate in [
-            "https://sage-system-app.task-manager/index.html",
+            "http://sage-system-app.task-manager/index.html",
             "http://sage-system-app.task-manager.invalid/index.html",
-            "http://sage-system-app.other/index.html",
-            "http://other.task-manager/index.html",
-            "http://sage-system-app.task-manager:444/index.html",
+            "https://sage-system-app.other/index.html",
+            "https://other.task-manager/index.html",
+            "https://sage-system-app.task-manager:444/index.html",
         ] {
             assert!(
                 !is_webview2_mapped_app_origin(&url(candidate), "sage-system-app", "task-manager"),
