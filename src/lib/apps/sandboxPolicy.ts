@@ -3,6 +3,7 @@ import { formatCapabilityLabel } from '@/lib/apps/sandbox';
 
 export interface SandboxLaunchDecision {
   allowed: boolean;
+  warning: boolean;
   title: string;
   description: string;
 }
@@ -13,6 +14,7 @@ export function formatSandboxLaunchDecision(
   if (!gate) {
     return {
       allowed: false,
+      warning: false,
       title: 'Sandbox tests are still running',
       description:
         'Apps are allowed to launch only when all required sandbox capabilities have passed.',
@@ -20,8 +22,20 @@ export function formatSandboxLaunchDecision(
   }
 
   if (gate.allowed) {
+    if (gate.kind === 'sageUntested') {
+      return {
+        allowed: true,
+        warning: true,
+        title: 'Compatibility not verified',
+        description:
+          gate.message ??
+          'This app has not been tested with this version of Sage.',
+      };
+    }
+
     return {
       allowed: true,
+      warning: false,
       title: 'Sandbox checks passed',
       description: 'This app is allowed to launch.',
     };
@@ -30,6 +44,7 @@ export function formatSandboxLaunchDecision(
   if (gate.kind === 'sandboxPending') {
     return {
       allowed: false,
+      warning: false,
       title: 'Sandbox tests are still running',
       description:
         gate.message ??
@@ -45,9 +60,15 @@ export function formatSandboxLaunchDecision(
 
   return {
     allowed: false,
-    title: capabilityLabel
-      ? `${capabilityLabel} failed`
-      : 'Sandbox test failed',
+    warning: false,
+    title:
+      gate.kind === 'requiresNewerSage'
+        ? 'Requires newer Sage'
+        : gate.kind === 'invalidSageVersion'
+          ? 'Invalid version requirement'
+          : capabilityLabel
+            ? `${capabilityLabel} failed`
+            : 'Sandbox test failed',
     description:
       gate.message ??
       (capabilityLabel

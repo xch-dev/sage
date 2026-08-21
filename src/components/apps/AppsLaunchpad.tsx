@@ -171,6 +171,19 @@ export function AppsLaunchpad() {
     ? (clearDataErrorByAppId[contextMenuAppId] ?? null)
     : null;
 
+  const contextMenuLaunchDecision = contextMenu
+    ? contextMenu.app.kind === 'system'
+      ? {
+          allowed: true,
+          warning: false,
+          title: 'System app',
+          description: 'System apps are managed by Sage.',
+        }
+      : formatSandboxLaunchDecision(
+          getLaunchGate(contextMenu.app.common.identity.id),
+        )
+    : null;
+
   const contextMenuHasUpdate = contextMenuPendingUpdate.kind !== 'none';
   const contextMenuUpdateIsInstallable =
     contextMenuPendingUpdate.kind === 'readyToApply';
@@ -468,6 +481,7 @@ export function AppsLaunchpad() {
                   app.kind === 'system'
                     ? {
                         allowed: true,
+                        warning: false,
                         title: 'System app',
                         description: 'System apps are managed by Sage.',
                       }
@@ -518,10 +532,11 @@ export function AppsLaunchpad() {
           <div className='mt-8 space-y-4'>
             <div>
               <h2 className='text-lg font-semibold tracking-tight'>
-                Corrupted apps
+                Apps needing attention
               </h2>
               <p className='text-sm text-muted-foreground'>
-                These app installations could not be loaded correctly.
+                These apps could not be loaded, but may be recoverable with an
+                update.
               </p>
             </div>
 
@@ -546,6 +561,7 @@ export function AppsLaunchpad() {
         hasUpdate={contextMenuHasUpdate}
         updateIsInstallable={contextMenuUpdateIsInstallable}
         isRunning={contextMenuAppIsRunning}
+        canOpen={contextMenuLaunchDecision?.allowed ?? false}
         updateCheckState={contextMenuCheckState}
         clearDataBusy={contextMenuClearDataBusy}
         clearDataError={contextMenuClearDataError}

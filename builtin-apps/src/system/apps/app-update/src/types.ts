@@ -13,10 +13,18 @@ export type LoadState =
   | { kind: 'error'; error: string }
   | {
       kind: 'ready';
-      mode: Mode;
+      mode: 'review-permissions';
       app: UserSageAppView;
-      updateContext: AppUpdateReviewContext | null;
-      permissionsContext: AppPermissionsReviewContext | null;
+      updateContext: null;
+      permissionsContext: AppPermissionsReviewContext;
+      definitions: SageAppCapabilityDefinitionView[];
+      wallets: SystemWalletView[];
+    }
+  | {
+      kind: 'ready';
+      mode: 'review-update';
+      updateContext: AppUpdateReviewContext;
+      permissionsContext: null;
       definitions: SageAppCapabilityDefinitionView[];
       wallets: SystemWalletView[];
     };

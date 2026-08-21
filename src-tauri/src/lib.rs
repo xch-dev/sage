@@ -171,6 +171,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_uninstall_app,
             apps::apps_check_app_update,
             apps::apps_apply_app_update,
+            apps::apps_recover_app_update,
             apps::apps_clear_runtime_browsing_data,
             apps::apps_start_system_app,
             apps::apps_start_user_app,

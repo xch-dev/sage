@@ -19,10 +19,35 @@ export function UpdateReviewBody({ state, onReload }: any) {
   const [permissionsViewed, setPermissionsViewed] = useState(false);
 
   const preview = state.updateContext?.preview ?? null;
+  const compatibility = state.updateContext?.compatibility ?? null;
+  const target = state.updateContext.target;
+  const installedApp = target.kind === 'installed' ? target.app : null;
+  const recoverableApp = target.kind === 'recoverable' ? target.app : null;
+  const pendingUpdate =
+    target.kind === 'installed'
+      ? target.app.pendingUpdate
+      : target.pendingUpdate;
+  const appId = installedApp?.common.identity.id ?? recoverableApp?.id ?? '';
+  const appName =
+    installedApp?.common.activeSnapshot.manifest.name ??
+    recoverableApp?.manifestHeader?.name ??
+    recoverableApp?.id ??
+    'App';
+  const appIcon = installedApp
+    ? appIconFromCommonView(installedApp.common)
+    : recoverableApp?.icon
+      ? {
+          kind: 'bytes' as const,
+          icon: {
+            bytes: recoverableApp.icon.bytes,
+            mime: recoverableApp.icon.mime,
+          },
+        }
+      : null;
 
   const additionalGrantedPermissions =
     useMemo<SageGrantedPermissionsInput>(() => {
-      const decision = state.app.pendingUpdate?.decision;
+      const decision = pendingUpdate?.decision;
 
       if (decision?.kind !== 'review') {
         return {
@@ -41,7 +66,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
           whitelistByNetwork: decision.requiredNetworkWhitelistByNetwork ?? {},
         },
       };
-    }, [state.app.pendingUpdate?.decision]);
+    }, [pendingUpdate?.decision]);
 
   async function close() {
     const client = await getSageSystemClient();
@@ -53,7 +78,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
     setError(null);
 
     try {
-      const reviewedManifestHash = state.app.pendingUpdate?.manifestHash;
+      const reviewedManifestHash = pendingUpdate?.manifestHash;
 
       if (!reviewedManifestHash) {
         throw new Error(
@@ -64,7 +89,7 @@ export function UpdateReviewBody({ state, onReload }: any) {
       const client = await getSageSystemClient();
 
       await client.appUpdate.applyUpdate({
-        appId: state.app.common.identity.id,
+        appId,
         additionalGrantedPermissions,
         reviewedManifestHash,
       });
@@ -82,14 +107,44 @@ export function UpdateReviewBody({ state, onReload }: any) {
     return (
       <AppModalShell
         title='Review app update'
-        appIcon={appIconFromCommonView(state.app.common)}
-        appName={state.app.common.activeSnapshot.manifest.name}
+        appIcon={appIcon}
+        appName={appName}
         footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
       >
-        <NoUpdateBody
-          name={state.app.common.activeSnapshot.manifest.name}
-          onClose={close}
-        />
+        <NoUpdateBody name={appName} onClose={close} />
+      </AppModalShell>
+    );
+  }
+
+  if (
+    compatibility?.status.kind === 'requiresNewerSage' ||
+    compatibility?.status.kind === 'invalid'
+  ) {
+    return (
+      <AppModalShell
+        title='Update cannot be installed'
+        appIcon={appIcon}
+        appName={appName}
+        footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
+      >
+        <div className='space-y-3'>
+          <h1 className='text-lg font-semibold'>
+            {compatibility.status.kind === 'requiresNewerSage'
+              ? 'Requires a newer Sage'
+              : 'Invalid Sage version requirement'}
+          </h1>
+          {compatibility.status.kind === 'requiresNewerSage' ? (
+            <p className='text-sm text-muted-foreground'>
+              This update requires Sage {compatibility.status.minimumVersion} or
+              newer. You are running Sage {compatibility.currentVersion}. The
+              currently installed version of the app has not been changed.
+            </p>
+          ) : (
+            <p className='text-sm text-destructive'>
+              {compatibility.status.reason}
+            </p>
+          )}
+        </div>
       </AppModalShell>
     );
   }
@@ -98,8 +153,8 @@ export function UpdateReviewBody({ state, onReload }: any) {
     return (
       <AppModalShell
         title='Update cannot be installed'
-        appIcon={appIconFromCommonView(state.app.common)}
-        appName={state.app.common.activeSnapshot.manifest.name}
+        appIcon={appIcon}
+        appName={appName}
         footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
       >
         <PartialUpdateBody
@@ -111,12 +166,12 @@ export function UpdateReviewBody({ state, onReload }: any) {
     );
   }
 
-  if (!state.app.pendingUpdate) {
+  if (!pendingUpdate) {
     return (
       <AppModalShell
         title='Review app update'
-        appIcon={appIconFromCommonView(state.app.common)}
-        appName={state.app.common.activeSnapshot.manifest.name}
+        appIcon={appIcon}
+        appName={appName}
         footer={<UpdateIssueFooter onReload={onReload} onClose={close} />}
       >
         <div className='space-y-2'>
@@ -133,8 +188,8 @@ export function UpdateReviewBody({ state, onReload }: any) {
   return (
     <AppModalShell
       title='Review app update'
-      appIcon={appIconFromCommonView(state.app.common)}
-      appName={state.app.common.activeSnapshot.manifest.name}
+      appIcon={appIcon}
+      appName={appName}
       requireScrollEnd
       onScrollEndChange={setPermissionsViewed}
       footer={
@@ -158,8 +213,16 @@ export function UpdateReviewBody({ state, onReload }: any) {
       }
     >
       <div className='space-y-4'>
+        {compatibility?.status.kind === 'untestedNewerSage' ? (
+          <div className='rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300'>
+            This update has only been tested through Sage{' '}
+            {compatibility.status.testedMaxVersion}. You are running Sage{' '}
+            {compatibility.currentVersion}.
+          </div>
+        ) : null}
+
         <UpdateDecisionPermissionEditor
-          app={state.app}
+          pendingUpdate={pendingUpdate}
           capabilityDefinitions={state.definitions}
         />
 

@@ -4,9 +4,9 @@ use specta::Type;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageAppView,
-    SageGrantedPermissionsInput, SystemBridgeCapability, apply_app_update_inner,
-    parse_required_params,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RecoverableAppUpdateOutcome,
+    RustBridgeRequest, SageAppView, SageGrantedPermissionsInput, SystemBridgeCapability,
+    apply_app_update_inner, apply_recoverable_app_update_inner, parse_required_params,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -54,14 +54,40 @@ impl BridgeMethod for AppUpdateApplyUpdate {
     ) -> BridgeHandleResult {
         let params: AppUpdateApplyUpdateParams = parse_required_params(self, request)?;
 
-        let app = apply_app_update_inner(
-            tools.app_handle,
-            tools.host_state,
-            &params.app_id,
-            Some(params.additional_granted_permissions),
-            Some(&params.reviewed_manifest_hash),
-        )
-        .await
+        let app = match tools.host_state.db.get_user_app(&params.app_id).await {
+            Ok(Some(_)) => {
+                apply_app_update_inner(
+                    tools.app_handle,
+                    tools.host_state,
+                    &params.app_id,
+                    Some(params.additional_granted_permissions),
+                    Some(&params.reviewed_manifest_hash),
+                )
+                .await
+            }
+            Err(_) => match apply_recoverable_app_update_inner(
+                tools.app_handle,
+                tools.host_state,
+                &params.app_id,
+                Some(params.additional_granted_permissions),
+                Some(&params.reviewed_manifest_hash),
+                false,
+            )
+            .await
+            {
+                Ok(RecoverableAppUpdateOutcome::Applied(app)) => Ok(*app),
+                Ok(RecoverableAppUpdateOutcome::ReviewOpened) => {
+                    Err(std::io::Error::other("recovery update review is already open").into())
+                }
+                Ok(RecoverableAppUpdateOutcome::NotReady) => {
+                    Err(std::io::Error::other("recovery update is no longer available").into())
+                }
+                Err(err) => Err(err),
+            },
+            Ok(None) => {
+                Err(std::io::Error::other(format!("app {} is not installed", params.app_id)).into())
+            }
+        }
         .map_err(|err| {
             BridgeMethodHandleError::internal_error(format!(
                 "failed to apply update for {}: {err}",
