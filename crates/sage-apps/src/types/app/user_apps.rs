@@ -32,10 +32,6 @@ impl ResolvedStoppedApp {
         f(&self.app)
     }
 
-    pub fn into_app(self) -> SharedSageApp {
-        self.app
-    }
-
     /// Returns the app without releasing its per-app operation lock.
     pub fn into_app_and_guard(self) -> (SharedSageApp, OwnedMutexGuard<()>) {
         (self.app, self._guard)

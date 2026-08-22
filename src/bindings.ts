@@ -398,8 +398,8 @@ async appsUninstallApp(appId: string) : Promise<null> {
 async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
     return await TAURI_INVOKE("apps_check_app_update", { appId });
 },
-async appsApplyAppUpdate(appId: string) : Promise<SageAppView> {
-    return await TAURI_INVOKE("apps_apply_app_update", { appId });
+async appsApplyAppUpdate(appId: string, expectedManifestHash: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apps_apply_app_update", { appId, expectedManifestHash });
 },
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
