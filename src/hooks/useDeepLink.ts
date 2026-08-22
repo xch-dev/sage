@@ -145,11 +145,7 @@ export function useDeepLink() {
 
     const waitForWalletInit = async () => {
       const deadline = Date.now() + WALLET_INIT_TIMEOUT_MS;
-      while (
-        isMounted &&
-        !isInitializedRef.current &&
-        Date.now() < deadline
-      ) {
+      while (isMounted && !isInitializedRef.current && Date.now() < deadline) {
         await new Promise((resolve) =>
           setTimeout(resolve, WALLET_INIT_POLL_MS),
         );

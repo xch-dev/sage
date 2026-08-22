@@ -25,25 +25,31 @@ sage:offer1qqr83wcuu2rykcmqvpsxvgqq...
 sage:offer1qqr83wcuu2rykcmqvpsxvgqq...?fee=1000000
 ```
 
-### Address Links (Send XCH)
+### Address Links (Send XCH or a CAT)
 
 ```bash
-sage:<address>?amount=<amount_in_mojos>[&fee=<fee_in_mojos>][&memos=<memo_text>]
+sage:<address>?amount=<amount_in_mojos>[&fee=<fee_in_mojos>][&memos=<memo_text>][&asset_id=<cat_asset_id>]
 ```
 
 Opens the send screen with pre-filled values.
 
-| Parameter | Required | Description                                               |
-| --------- | -------- | --------------------------------------------------------- |
-| `address` | Yes      | The destination address (xch1... or txch1...)             |
-| `amount`  | No       | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos) |
-| `fee`     | No       | Transaction fee in mojos                                  |
-| `memos`   | No       | Memo text to attach to the transaction                    |
+| Parameter  | Required | Description                                                          |
+| ---------- | -------- | -------------------------------------------------------------------- |
+| `address`  | Yes      | The destination address (xch1... or txch1...)                        |
+| `amount`   | No       | Amount to send in mojos (1 XCH = 1,000,000,000,000 mojos)            |
+| `fee`      | No       | Transaction fee in mojos                                             |
+| `memos`    | No       | Memo text to attach to the transaction                               |
+| `asset_id` | No       | 64-char hex CAT asset id. Omit to send XCH/TXCH (network-dependent). |
+
+If `asset_id` is present but the asset isn't held by the current wallet, the app shows an error toast (including the asset id) instead of navigating to the send screen.
 
 **Example:**
 
 ```bash
 sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20services
+
+# Send a CAT instead of XCH
+sage:xch1abc123...?amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e1
 ```
 
 ## Android URL Encoding Requirement
@@ -99,6 +105,36 @@ The `sage:` URL scheme is automatically registered in the app's `Info.plist` dur
    ```bash
    open "sage:offer1qqr83wcuu..."
    ```
+
+#### Local build + test workflow (this directory)
+
+This directory has a helper script and a static test page for exercising the scheme handler end to end on macOS without a full release build:
+
+- **[`build-test-deeplinks.sh`](build-test-deeplinks.sh)** — builds the app (frontend + builtin apps + debug Tauri bundle). Self-locates the repo root from the script's own path, so it can be run from anywhere.
+  - `./deep-links/build-test-deeplinks.sh` — build only (default). Use this to typecheck/compile after code changes without touching your installed `/Applications/Sage.app` or re-registering the URL scheme.
+  - `./deep-links/build-test-deeplinks.sh --full` — also installs the freshly built app to `/Applications` (replacing any existing copy) and launches it once so macOS (re-)registers the `sage:` scheme.
+- **[`sage-scheme-handler-test.html`](sage-scheme-handler-test.html)** — a plain HTML page with buttons/links for the offer and address flows (including the optional `asset_id` CAT param) plus a few deliberately invalid links to exercise the error-toast paths. Open it directly in a browser (`open deep-links/sage-scheme-handler-test.html`) — no server needed.
+
+Typical loop while iterating on deep-link code:
+
+```bash
+# 1. Make changes under src/hooks/useDeepLink.ts, src/contexts/WalletContext.tsx, etc.
+
+# 2. Rebuild and reinstall the app, registering the sage: scheme
+./deep-links/build-test-deeplinks.sh --full
+
+# 3. Quit Sage completely (Cmd+Q) if you want to test a cold launch via deep link,
+#    or leave it running to test the already-running path.
+
+# 4. Open the test page and click a link
+open deep-links/sage-scheme-handler-test.html
+```
+
+Notes:
+
+- `export SDKROOT="$(xcrun --show-sdk-path)"` is required for `cargo`/Tauri builds on macOS and is set automatically by the script.
+- macOS only honors `sage:` links from the bundled `/Applications` build, never from `pnpm tauri dev` — see [Development Limitations](#development-limitations) below.
+- On a cold launch (app not already running), the initial deep link URL can arrive before the wallet has finished loading. The app waits briefly (up to 5s) for the wallet lookup to settle before deciding whether to show "Please log into a wallet first" — if you still see that error with a wallet configured, it likely means the wallet lookup itself failed or took longer than that window.
 
 #### Development Limitations
 

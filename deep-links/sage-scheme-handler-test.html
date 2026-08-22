@@ -1,128 +1,204 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Sage sage: scheme handler test</title>
-<style>
-  body { font-family: -apple-system, system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; line-height: 1.5; }
-  h1 { font-size: 1.4rem; }
-  section { margin-bottom: 2rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
-  code { background: #f2f2f2; padding: 2px 5px; border-radius: 4px; word-break: break-all; }
-  label { display: block; margin-top: 0.5rem; font-size: 0.85rem; color: #555; }
-  input { width: 100%; padding: 4px 6px; box-sizing: border-box; }
-  button, a.btn { display: inline-block; margin-top: 0.75rem; padding: 8px 14px; background: #333; color: #fff; text-decoration: none; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; }
-  .note { font-size: 0.8rem; color: #777; }
-</style>
-</head>
-<body>
-<h1>sage: scheme handler test page</h1>
-<p class="note">
-  Clicking a link below asks the OS to hand the URL to whatever app is registered for the
-  <code>sage:</code> scheme (Sage in dev mode, or the installed build). See
-  <code>src/hooks/useDeepLink.ts</code> for the parser this exercises. macOS only honors this from
-  the bundled <code>/Applications</code> build — dev mode (<code>pnpm tauri dev</code>) will not
-  receive it there. Replace the placeholder address/offer strings with real ones before testing.
-</p>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sage sage: scheme handler test</title>
+    <style>
+      body {
+        font-family: -apple-system, system-ui, sans-serif;
+        max-width: 720px;
+        margin: 40px auto;
+        padding: 0 16px;
+        line-height: 1.5;
+      }
+      h1 {
+        font-size: 1.4rem;
+      }
+      section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 2px 5px;
+        border-radius: 4px;
+        word-break: break-all;
+      }
+      label {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #555;
+      }
+      input {
+        width: 100%;
+        padding: 4px 6px;
+        box-sizing: border-box;
+      }
+      button,
+      a.btn {
+        display: inline-block;
+        margin-top: 0.75rem;
+        padding: 8px 14px;
+        background: #333;
+        color: #fff;
+        text-decoration: none;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+      .note {
+        font-size: 0.8rem;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>sage: scheme handler test page</h1>
+    <p class="note">
+      Clicking a link below asks the OS to hand the URL to whatever app is
+      registered for the
+      <code>sage:</code> scheme (Sage in dev mode, or the installed build). See
+      <code>src/hooks/useDeepLink.ts</code> for the parser this exercises. macOS
+      only honors this from the bundled <code>/Applications</code> build — dev
+      mode (<code>pnpm tauri dev</code>) will not receive it there. Replace the
+      placeholder address/offer strings with real ones before testing.
+    </p>
 
-<section>
-  <h2>Address deep link → /wallet/send/xch</h2>
-  <p class="note">Query params recognized: <code>amount</code>, <code>fee</code> (mojos, digits only), <code>memos</code> (note: NOT <code>memo</code>), <code>asset_id</code> (optional, 64 hex chars — a CAT asset id). Omit <code>asset_id</code> to send XCH; a wallet that doesn't hold the given asset shows an error toast instead of navigating.</p>
+    <section>
+      <h2>Address deep link → /wallet/send/xch</h2>
+      <p class="note">
+        Query params recognized: <code>amount</code>, <code>fee</code> (mojos,
+        digits only), <code>memos</code> (note: NOT <code>memo</code>),
+        <code>asset_id</code> (optional, 64 hex chars — a CAT asset id). Omit
+        <code>asset_id</code> to send XCH; a wallet that doesn't hold the given
+        asset shows an error toast instead of navigating.
+      </p>
 
-  <div id="address-links"></div>
+      <div id="address-links"></div>
 
-  <h3>Build your own</h3>
-  <label>Address</label>
-  <input id="addr-value" value="xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz" />
-  <label>Amount (mojos)</label>
-  <input id="addr-amount" value="1000000000000" />
-  <label>Fee (mojos)</label>
-  <input id="addr-fee" value="100000000" />
-  <label>Memo (sent as ?memos=)</label>
-  <input id="addr-memo" value="test memo" />
-  <label>Asset ID (optional — 64 hex chars, leave blank for XCH)</label>
-  <input id="addr-asset-id" value="" placeholder="e.g. a CAT asset id from your wallet's Assets tab" />
-  <button onclick="goAddress()">Open sage: address link</button>
-  <div><code id="addr-preview"></code></div>
-</section>
+      <h3>Build your own</h3>
+      <label>Address</label>
+      <input
+        id="addr-value"
+        value="xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz"
+      />
+      <label>Amount (mojos)</label>
+      <input id="addr-amount" value="1000000000000" />
+      <label>Fee (mojos)</label>
+      <input id="addr-fee" value="100000000" />
+      <label>Memo (sent as ?memos=)</label>
+      <input id="addr-memo" value="test memo" />
+      <label>Asset ID (optional — 64 hex chars, leave blank for XCH)</label>
+      <input
+        id="addr-asset-id"
+        value=""
+        placeholder="e.g. a CAT asset id from your wallet's Assets tab"
+      />
+      <button onclick="goAddress()">Open sage: address link</button>
+      <div><code id="addr-preview"></code></div>
+    </section>
 
-<section>
-  <h2>Offer deep link → /offers/view/&lt;offer&gt;</h2>
-  <p class="note">Payload must match <code>offer1[a-z0-9]+</code> and &le; 15000 chars. Query param recognized: <code>fee</code>.</p>
+    <section>
+      <h2>Offer deep link → /offers/view/&lt;offer&gt;</h2>
+      <p class="note">
+        Payload must match <code>offer1[a-z0-9]+</code> and &le; 15000 chars.
+        Query param recognized: <code>fee</code>.
+      </p>
 
-  <label>Offer string</label>
-  <input id="offer-value" value="offer1qqzhthfamqu2eyjeuedycmzaqaqqxpea5vagelamekxa6" />
-  <label>Fee (mojos)</label>
-  <input id="offer-fee" value="100000000" />
-  <button onclick="goOffer()">Open sage: offer link</button>
-  <div><code id="offer-preview"></code></div>
-</section>
+      <label>Offer string</label>
+      <input
+        id="offer-value"
+        value="offer1qqzhthfamqu2eyjeuedycmzaqaqqxpea5vagelamekxa6"
+      />
+      <label>Fee (mojos)</label>
+      <input id="offer-fee" value="100000000" />
+      <button onclick="goOffer()">Open sage: offer link</button>
+      <div><code id="offer-preview"></code></div>
+    </section>
 
-<section>
-  <h2>Error cases</h2>
-  <p class="note">These should each surface a toast in Sage rather than navigating anywhere.</p>
-  <a class="btn" href="sage:not-a-real-payload">Unrecognized payload</a>
-  <a class="btn" href="notsage:xch1foo">Wrong scheme (browser will likely just no-op)</a>
-  <a class="btn" href="sage:xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz?asset_id=0000000000000000000000000000000000000000000000000000000000000000">Well-formed asset_id, not in wallet</a>
-</section>
+    <section>
+      <h2>Error cases</h2>
+      <p class="note">
+        These should each surface a toast in Sage rather than navigating
+        anywhere.
+      </p>
+      <a class="btn" href="sage:not-a-real-payload">Unrecognized payload</a>
+      <a class="btn" href="notsage:xch1foo"
+        >Wrong scheme (browser will likely just no-op)</a
+      >
+      <a
+        class="btn"
+        href="sage:xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz?asset_id=00000ca547a83020e537e87f8c83e9332d2c3adb729c052e6f04971317000000"
+        >Well-formed asset_id, not in wallet</a
+      >
+    </section>
 
-<script>
-  const addrExamples = [
-    { label: 'Bare address, no params', address: 'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz' },
-  ];
+    <script>
+      const addrExamples = [
+        {
+          label: 'Bare address, no params',
+          address:
+            'xch1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq2u30kz',
+        },
+      ];
 
-  const container = document.getElementById('address-links');
-  addrExamples.forEach(({ label, address }) => {
-    const url = `sage:${address}`;
-    const a = document.createElement('a');
-    a.className = 'btn';
-    a.href = url;
-    a.textContent = label;
-    container.appendChild(a);
-    const code = document.createElement('div');
-    code.innerHTML = `<code>${url}</code>`;
-    container.appendChild(code);
-  });
+      const container = document.getElementById('address-links');
+      addrExamples.forEach(({ label, address }) => {
+        const url = `sage:${address}`;
+        const a = document.createElement('a');
+        a.className = 'btn';
+        a.href = url;
+        a.textContent = label;
+        container.appendChild(a);
+        const code = document.createElement('div');
+        code.innerHTML = `<code>${url}</code>`;
+        container.appendChild(code);
+      });
 
-  function buildAddressUrl() {
-    const address = document.getElementById('addr-value').value.trim();
-    const amount = document.getElementById('addr-amount').value.trim();
-    const fee = document.getElementById('addr-fee').value.trim();
-    const memo = document.getElementById('addr-memo').value.trim();
-    const assetId = document.getElementById('addr-asset-id').value.trim();
+      function buildAddressUrl() {
+        const address = document.getElementById('addr-value').value.trim();
+        const amount = document.getElementById('addr-amount').value.trim();
+        const fee = document.getElementById('addr-fee').value.trim();
+        const memo = document.getElementById('addr-memo').value.trim();
+        const assetId = document.getElementById('addr-asset-id').value.trim();
 
-    const params = new URLSearchParams();
-    if (amount) params.set('amount', amount);
-    if (fee) params.set('fee', fee);
-    if (memo) params.set('memos', memo);
-    if (assetId) params.set('asset_id', assetId);
+        const params = new URLSearchParams();
+        if (amount) params.set('amount', amount);
+        if (fee) params.set('fee', fee);
+        if (memo) params.set('memos', memo);
+        if (assetId) params.set('asset_id', assetId);
 
-    const qs = params.toString();
-    return `sage:${address}${qs ? '?' + qs : ''}`;
-  }
+        const qs = params.toString();
+        return `sage:${address}${qs ? '?' + qs : ''}`;
+      }
 
-  function goAddress() {
-    const url = buildAddressUrl();
-    document.getElementById('addr-preview').textContent = url;
-    window.location.href = url;
-  }
+      function goAddress() {
+        const url = buildAddressUrl();
+        document.getElementById('addr-preview').textContent = url;
+        window.location.href = url;
+      }
 
-  function buildOfferUrl() {
-    const offer = document.getElementById('offer-value').value.trim();
-    const fee = document.getElementById('offer-fee').value.trim();
-    const params = new URLSearchParams();
-    if (fee) params.set('fee', fee);
-    const qs = params.toString();
-    return `sage:${offer}${qs ? '?' + qs : ''}`;
-  }
+      function buildOfferUrl() {
+        const offer = document.getElementById('offer-value').value.trim();
+        const fee = document.getElementById('offer-fee').value.trim();
+        const params = new URLSearchParams();
+        if (fee) params.set('fee', fee);
+        const qs = params.toString();
+        return `sage:${offer}${qs ? '?' + qs : ''}`;
+      }
 
-  function goOffer() {
-    const url = buildOfferUrl();
-    document.getElementById('offer-preview').textContent = url;
-    window.location.href = url;
-  }
+      function goOffer() {
+        const url = buildOfferUrl();
+        document.getElementById('offer-preview').textContent = url;
+        window.location.href = url;
+      }
 
-  document.getElementById('addr-preview').textContent = buildAddressUrl();
-  document.getElementById('offer-preview').textContent = buildOfferUrl();
-</script>
-</body>
+      document.getElementById('addr-preview').textContent = buildAddressUrl();
+      document.getElementById('offer-preview').textContent = buildOfferUrl();
+    </script>
+  </body>
 </html>
