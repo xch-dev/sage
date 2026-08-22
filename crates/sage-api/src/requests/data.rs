@@ -160,8 +160,8 @@ pub struct GetSyncStatus {}
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetSyncStatusResponse {
-    /// Current wallet balance
-    pub balance: Amount,
+    /// Current wallet selectable balance
+    pub selectable_balance: Amount,
     /// Unit for balance display
     pub unit: Unit,
     /// Number of coins synced
@@ -204,7 +204,7 @@ pub struct GetVersion {}
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetVersionResponse {
     /// Semantic version string
-    #[cfg_attr(feature = "openapi", schema(example = "0.12.8"))]
+    #[cfg_attr(feature = "openapi", schema(example = "0.13.0"))]
     pub version: String,
 }
 

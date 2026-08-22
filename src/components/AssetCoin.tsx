@@ -2,6 +2,8 @@ import { Amount, Asset, AssetKind } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { CopyButton } from '@/components/CopyButton';
 import { NumberFormat } from '@/components/NumberFormat';
+import { useNetwork } from '@/hooks/useNetwork';
+import { spacescanCoinUrl } from '@/lib/urls';
 import { formatAddress, fromMojos, getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -14,17 +16,23 @@ interface AssetCoinProps {
 }
 
 export function AssetCoin({ asset, amount, coinId }: AssetCoinProps) {
+  const { isTestnet } = useNetwork();
+  const url = coinId ? spacescanCoinUrl(coinId, isTestnet) : null;
+  const coinIdLabel = coinId ?? '';
+
   return (
     <div className='rounded-xl border border-border bg-card text-card-foreground shadow p-4'>
       <div
         className='cursor-pointer'
-        onClick={() => openUrl(`https://spacescan.io/coin/0x${coinId}`)}
-        aria-label={t`View coin ${coinId ?? ''} on Spacescan.io`}
+        onClick={() => {
+          if (url) openUrl(url);
+        }}
+        aria-label={t`View coin ${coinIdLabel} on Spacescan.io`}
         role='button'
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            openUrl(`https://spacescan.io/coin/0x${coinId}`);
+          if ((e.key === 'Enter' || e.key === ' ') && url) {
+            openUrl(url);
           }
         }}
       >

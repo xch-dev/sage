@@ -41,6 +41,9 @@ async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
 async getKey(req: GetKey) : Promise<GetKeyResponse> {
     return await TAURI_INVOKE("get_key", { req });
 },
+async getWalletAddress(req: GetWalletAddress) : Promise<GetWalletAddressResponse> {
+    return await TAURI_INVOKE("get_wallet_address", { req });
+},
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
 },
@@ -358,6 +361,75 @@ async getLogs() : Promise<LogFile[]> {
 },
 async isAssetOwned(req: IsAssetOwned) : Promise<IsAssetOwnedResponse> {
     return await TAURI_INVOKE("is_asset_owned", { req });
+},
+async getXchUsdPrice(req: GetXchUsdPrice) : Promise<GetXchUsdPriceResponse> {
+    return await TAURI_INVOKE("get_xch_usd_price", { req });
+},
+async appsEnterWorkspace() : Promise<null> {
+    return await TAURI_INVOKE("apps_enter_workspace");
+},
+async appsLeaveWorkspace() : Promise<null> {
+    return await TAURI_INVOKE("apps_leave_workspace");
+},
+async appsInvokeBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
+    return await TAURI_INVOKE("apps_invoke_bridge", { request });
+},
+async appsInvokeSystemBridge(request: RustBridgeRequest) : Promise<RustBridgeInvokeResult> {
+    return await TAURI_INVOKE("apps_invoke_system_bridge", { request });
+},
+async appsSetEnvironmentTheme(theme: EnvironmentThemeView) : Promise<null> {
+    return await TAURI_INVOKE("apps_set_environment_theme", { theme });
+},
+async appsGetSandboxState() : Promise<SandboxStateView> {
+    return await TAURI_INVOKE("apps_get_sandbox_state");
+},
+async appsGetAppLaunchGate(appId: string) : Promise<AppLaunchGateResult> {
+    return await TAURI_INVOKE("apps_get_app_launch_gate", { appId });
+},
+async appsRerunSandboxTests() : Promise<SandboxStateView> {
+    return await TAURI_INVOKE("apps_rerun_sandbox_tests");
+},
+async appsListInstalledApps() : Promise<ListedSageAppView[]> {
+    return await TAURI_INVOKE("apps_list_installed_apps");
+},
+async appsUninstallApp(appId: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_uninstall_app", { appId });
+},
+async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
+    return await TAURI_INVOKE("apps_check_app_update", { appId });
+},
+async appsApplyAppUpdate(appId: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apps_apply_app_update", { appId });
+},
+async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
+},
+async appsStartSystemApp(args: StartSystemAppArgs) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_start_system_app", { args });
+},
+async appsStartUserApp(args: CreateInstalledRuntimeArgs) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_start_user_app", { args });
+},
+async appsListRuntimes() : Promise<SageAppRuntimeRecordView[]> {
+    return await TAURI_INVOKE("apps_list_runtimes");
+},
+async appsFocusTaskbarRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_focus_taskbar_runtime", { params });
+},
+async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> {
+    return await TAURI_INVOKE("apps_clear_active_taskbar_runtime", { params });
+},
+async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
+    return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
+},
+async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
+    return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
+},
+async appsGetAutoUpdateEnabled() : Promise<boolean> {
+    return await TAURI_INVOKE("apps_get_auto_update_enabled");
+},
+async appsSetAutoUpdateEnabled(enabled: boolean) : Promise<boolean> {
+    return await TAURI_INVOKE("apps_set_auto_update_enabled", { enabled });
 }
 }
 
@@ -411,6 +483,9 @@ export type AddPeer = {
 ip: string }
 export type AddressKind = "own" | "burn" | "launcher" | "offer" | "external" | "unknown"
 export type Amount = string | number
+export type AppLaunchGateResult = { allowed: boolean; kind: string; capability: SandboxCapability | null; message: string | null }
+export type AppModalPresentation = { visibleOverAppIds: string[]; visibleOverLaunchpad: boolean; priority: number }
+export type AppPresentation = { kind: "Taskbar" } | ({ kind: "Modal" } & AppModalPresentation)
 export type Asset = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; icon_url: string | null; description: string | null; is_sensitive_content: boolean; is_visible: boolean; revocation_address: string | null; kind: AssetKind }
 /**
  * Type of asset coin
@@ -668,7 +743,7 @@ puzzle_hash: string;
 /**
  * Amount in mojos
  */
-amount: number }
+amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
 export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
@@ -722,6 +797,7 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
+export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestHeaderV0 | null; source?: UserSageAppSource | null }
 /**
  * Create a new DID
  */
@@ -738,6 +814,7 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type CreateInstalledRuntimeArgs = { appId: string; focus?: boolean | null }
 export type CreateTransaction = { 
 /**
  * Pre-selected coins to use in the transaction prior to coin selection
@@ -803,6 +880,7 @@ export type DeleteUserThemeResponse = Record<string, never>
 export type DerivationRecord = { index: number; public_key: string; address: string }
 export type DidRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; recovery_hash: string | null; created_height: number | null }
 export type EmptyResponse = Record<string, never>
+export type EnvironmentThemeView = { name: string; displayName: string; mostLike?: string | null; inherits?: string | null; cssVars: Partial<{ [key in string]: string }> }
 export type Error = { kind: ErrorKind; reason: string }
 export type ErrorKind = "wallet" | "api" | "not_found" | "unauthorized" | "internal" | "database_migration" | "nfc"
 /**
@@ -1459,9 +1537,9 @@ export type GetSyncStatus = Record<string, never>
  */
 export type GetSyncStatusResponse = { 
 /**
- * Current wallet balance
+ * Current wallet selectable balance
  */
-balance: Amount; 
+selectable_balance: Amount; 
 /**
  * Unit for balance display
  */
@@ -1600,6 +1678,28 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+/**
+ * Get the receive address for any wallet without switching sessions
+ */
+export type GetWalletAddress = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Network ID to look up the address on (e.g. "mainnet", "testnet11")
+ */
+network_id: string }
+/**
+ * Response with the wallet's receive address
+ */
+export type GetWalletAddressResponse = { 
+/**
+ * The wallet's current receive address
+ */
+address: string }
+export type GetXchUsdPrice = Record<string, never>
+export type GetXchUsdPriceResponse = { usd: number }
 export type Id = 
 /**
  * The XCH asset
@@ -1727,6 +1827,10 @@ ticker: string;
  */
 amount: Amount; 
 /**
+ * Whether the CAT can be revoked by the issuer
+ */
+revocable?: boolean; 
+/**
  * Transaction fee
  */
 fee: Amount; 
@@ -1751,7 +1855,8 @@ innerPuzzleHash: string | null;
 /**
  * Amount
  */
-amount: number | null }
+amount: Amount | null }
+export type ListedSageAppView = ({ kind: "user" } & UserSageAppView) | ({ kind: "system" } & SystemSageAppView) | ({ kind: "corrupted" } & CorruptedInstalledSageApp)
 export type LogFile = { name: string; text: string }
 /**
  * Login to a wallet using a fingerprint
@@ -1800,7 +1905,11 @@ expires_at_second?: number | null;
 /**
  * Whether to automatically import the offer
  */
-auto_import?: boolean }
+auto_import?: boolean; 
+/**
+ * Optional specific coin IDs to use for the offer instead of auto-selecting
+ */
+coin_ids?: string[] | null }
 /**
  * Response with created offer
  */
@@ -2026,7 +2135,7 @@ export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount;
 export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
-export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null }
+export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
 /**
  * Perform database maintenance operations
  */
@@ -2151,6 +2260,47 @@ export type ResyncCatResponse = Record<string, never>
  * Response from resynchronizing the wallet
  */
 export type ResyncResponse = Record<string, never>
+export type RuntimeTargetParams = { appId: string }
+export type RustBridgeErrorPayload = { code: string; message: string }
+export type RustBridgeErrorResponse = { bridgeVersion: string; id: string; ok: boolean; error: RustBridgeErrorPayload }
+export type RustBridgeInvokeResult = ({ kind: "success" } & RustBridgeSuccessResponse) | ({ kind: "error" } & RustBridgeErrorResponse) | { kind: "pending" }
+export type RustBridgeRequest = { bridgeVersion: string | null; id: string; method: string; paramsJson: string | null }
+export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
+export type SageAppAuthor = { name: string; avatar: string | null }
+export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
+export type SageAppDonation = { address: string }
+export type SageAppIconView = { mime: string; bytes: number[] }
+export type SageAppIdentityView = { id: string; originId: string }
+export type SageAppManifestFile = { path: string; sha256: string; size: number }
+export type SageAppManifestHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion: SageAppManifestSageVersion }
+export type SageAppManifestSageVersion = { min: string; testedMax?: string | null }
+export type SageAppManifestVersion = number
+export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
+export type SageAppPackageManifestPreview = { kind: "full"; manifest: SageAppPackageManifest } | { kind: "partial"; manifest_header: SageAppManifestHeaderV0; parse_error: string }
+export type SageAppRuntimeMode = "Inline" | "Windowed"
+export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
+export type SageAppRuntimeVisibility = "Visible" | "Hidden"
+export type SageAppSnapshotView = { manifest: SageAppPackageManifest }
+export type SageAppUrl = string
+export type SageAppUrlPreview = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifestPreview; icon: SageAppIconView | null }
+export type SageAppView = ({ kind: "system" } & SystemSageAppView) | ({ kind: "user" } & UserSageAppView)
+export type SageAppWalletScope = { kind: "allWallets" } | { kind: "selectedWallets"; fingerprints: number[] }
+export type SageAppsError = { kind: ErrorKind; reason: string }
+export type SageGrantedNetworkPermissionsView = { whitelist: SageNetworkWhitelistEntryView[]; whitelistByNetwork?: Partial<{ [key in string]: SageNetworkWhitelistEntryView[] }> }
+export type SageGrantedPermissionsView = { capabilities: UserBridgeCapability[]; network: SageGrantedNetworkPermissionsView }
+export type SageGrantedSystemPermissionsView = { capabilities: SystemBridgeCapability[] }
+export type SageNetworkWhitelistEntry = { scheme: string; host: string }
+export type SageNetworkWhitelistEntryView = { scheme: string; host: string }
+export type SageRequestedCapabilities = { required: UserBridgeCapability[]; optional: UserBridgeCapability[] }
+export type SageRequestedNetworkPermissions = { whitelist: SageRequestedNetworkWhitelist; whitelistByNetwork: Partial<{ [key in string]: SageRequestedNetworkWhitelist }> }
+export type SageRequestedNetworkWhitelist = { required: SageNetworkWhitelistEntry[]; optional: SageNetworkWhitelistEntry[] }
+export type SageRequestedPermissions = { network: SageRequestedNetworkPermissions; capabilities: SageRequestedCapabilities }
+export type SandboxCapability = "storage_isolation_from_sage" | "storage_persistence_normal" | "storage_non_persistence_incognito" | "network_allowlist_enforced"
+export type SandboxCapabilityResult = { status: SandboxCapabilityStatus; checkedAt: number | null; details: string | null }
+export type SandboxCapabilityStatus = "pending" | "running" | "passed" | "failed"
+export type SandboxRunState = { runId: string; state: SandboxState }
+export type SandboxState = { overallCriticalStatus: SandboxCapabilityStatus; storageIsolationFromSage: SandboxCapabilityResult; storagePersistenceNormal: SandboxCapabilityResult; storageNonPersistenceIncognito: SandboxCapabilityResult; networkAllowlistEnforced: SandboxCapabilityResult; startedAt: number | null; finishedAt: number | null }
+export type SandboxStateView = { baseline: SandboxState; currentRun: SandboxRunState | null; effective: SandboxState }
 /**
  * Save a theme NFT to the wallet
  */
@@ -2479,6 +2629,12 @@ fee: Amount;
  * Whether to automatically submit the transaction
  */
 auto_submit?: boolean }
+export type StartAppInstallArgs = { source: StartAppInstallSource }
+export type StartAppInstallSource = { kind: "selectSource" } | { kind: "url"; app_url: string }
+export type StartAppUpdateArgs = { mode: StartAppUpdateMode; appId: string }
+export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
+export type StartDonationArgs = { appId: string }
+export type StartSystemAppArgs = ({ kind: "appInstall" } & StartAppInstallArgs) | ({ kind: "appUpdate" } & StartAppUpdateArgs) | ({ kind: "donation" } & StartDonationArgs) | { kind: "sandboxTests" }
 /**
  * Submit a transaction to the network
  */
@@ -2492,6 +2648,9 @@ spend_bundle: SpendBundleJson }
  */
 export type SubmitTransactionResponse = Record<string, never>
 export type SyncEvent = { type: "start"; ip: string } | { type: "stop" } | { type: "subscribed" } | { type: "derivation" } | { type: "coin_state" } | { type: "transaction_failed"; transaction_id: string; error: string | null } | { type: "puzzle_batch_synced" } | { type: "cat_info" } | { type: "did_info" } | { type: "nft_data" }
+export type SystemBridgeCapability = "runtime_manager.list_runtimes" | "runtime_manager.focus_taskbar_runtime" | "runtime_manager.hide_runtime" | "runtime_manager.kill_runtime" | "runtime_manager.get_active_taskbar_runtime" | "runtime_manager.listen_runtimes_changed" | "runtime_manager.listen_active_runtime_changed" | "runtime_manager.hide_self" | "runtime_manager.close_self" | "capability_definitions.read" | "app_permissions.read" | "app_permissions.apply" | "app_install.preview" | "app_install.apply" | "app_update.read" | "app_update.apply" | "app_registry.listen_listed_apps_changed" | "file_system.select_file" | "bridge_approval.list" | "bridge_approval.resolve" | "bridge_approval.listen_changed" | "donation.get_details" | "sandbox.get_state" | "sandbox.rerun_tests" | "sandbox.listen_state_changed" | "wallet.list_wallets"
+export type SystemKillRuntimeResult = { ok: boolean; appId: string }
+export type SystemSageAppView = { common: SageAppCommonView; systemGrantedPermissions: SageGrantedSystemPermissionsView }
 /**
  * Accept an offer
  */
@@ -2524,7 +2683,7 @@ spend_bundle: SpendBundleJson;
  * Transaction ID
  */
 transaction_id: string }
-export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; revocation_address: string | null }
+export type TokenRecord = { asset_id: string | null; name: string | null; ticker: string | null; precision: number; description: string | null; icon_url: string | null; visible: boolean; balance: Amount; selectable_balance: Amount; revocation_address: string | null }
 export type TransactionCoinRecord = { coin_id: string; amount: Amount; address: string | null; address_kind: AddressKind; asset: Asset }
 export type TransactionInput = { coin_id: string; amount: Amount; address: string; asset: Asset | null; outputs: TransactionOutput[] }
 export type TransactionOutput = { coin_id: string; amount: Amount; address: string; receiving: boolean; burning: boolean }
@@ -2708,6 +2867,12 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "storage.persistent_webview"
+export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
+export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
+export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }
+export type UserSageAppSource = { kind: "zip" } | { kind: "url"; app_url: SageAppUrl }
+export type UserSageAppView = { common: SageAppCommonView; source: UserSageAppSource; pendingUpdate?: UserSageAppPendingUpdateView | null }
 /**
  * View coin spends without signing
  */
@@ -2746,6 +2911,7 @@ offer: OfferSummary;
 status: OfferRecordStatus }
 export type Wallet = { name: string; fingerprint: number; network?: string | null; delta_sync: boolean | null; emoji?: string | null; change_address?: string | null }
 export type WalletDefaults = { delta_sync: boolean }
+export type WindowTargetParams = { windowLabel: string }
 
 /** tauri-specta globals **/
 

@@ -14,13 +14,14 @@ import {
 } from '@/components/ui/tooltip';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
+import { useDebounce } from '@/hooks/useDebounce';
 import { useErrors } from '@/hooks/useErrors';
 import { clearState, loginAndUpdateState, logoutAndUpdateState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { ChevronDown, WalletIcon } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'theme-o-rama';
 import iconDark from '@/icon-dark.png';
@@ -40,9 +41,9 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const debouncedIsHovering = useDebounce(isHovering, 300);
   const [isMigrationDialogOpen, setIsMigrationDialogOpen] = useState(false);
   const [migrationWallet, setMigrationWallet] = useState<KeyInfo | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = platform() === 'ios' || platform() === 'android';
 
   useEffect(() => {
@@ -61,12 +62,8 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
   }, [addError]);
 
   useEffect(() => {
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
+    setIsOpen(debouncedIsHovering);
+  }, [debouncedIsHovering]);
 
   const handleSwitchWallet = async (fingerprint: number) => {
     if (isSwitching) {
@@ -122,20 +119,12 @@ export function WalletSwitcher({ isCollapsed, wallet }: WalletSwitcherProps) {
 
   const handleMouseEnter = () => {
     if (isMobile) return;
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
     setIsHovering(true);
-    setIsOpen(true);
   };
 
   const handleMouseLeave = () => {
     if (isMobile) return;
     setIsHovering(false);
-    timeoutRef.current = setTimeout(() => {
-      setIsOpen(false);
-    }, 150);
   };
 
   // Filter out current wallet from the list

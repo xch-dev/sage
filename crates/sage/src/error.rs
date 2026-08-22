@@ -237,8 +237,8 @@ pub enum Error {
 impl Error {
     pub fn kind(&self) -> ErrorKind {
         match self {
-            Self::Wallet(..) => ErrorKind::Wallet,
-            Self::NotLoggedIn | Self::NoSigningKey => ErrorKind::Unauthorized,
+            Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
+            Self::NotLoggedIn => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
                 KeychainError::Decrypt => ErrorKind::Unauthorized,
                 KeychainError::KeyExists

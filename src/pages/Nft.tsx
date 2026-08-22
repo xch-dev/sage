@@ -5,7 +5,9 @@ import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
+import { offersEnabled } from '@/lib/features';
 import { getMintGardenProfile } from '@/lib/marketplaces';
 import { isAudio, isImage, isJson, isText, nftUri } from '@/lib/nftUri';
 import {
@@ -14,6 +16,12 @@ import {
   fetchOfferedDexieOffersFromNftId,
   fetchRequestedDexieOffersFromNftId,
 } from '@/lib/offerData';
+import {
+  dexieOfferUrl,
+  mintGardenDidUrl,
+  mintGardenNftUrl,
+  spacescanNftUrl,
+} from '@/lib/urls';
 import { formatTimestamp, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -22,20 +30,14 @@ import { FileImage, FileText, HandCoins, Hash, Tag, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from 'theme-o-rama';
-import {
-  commands,
-  events,
-  NetworkKind,
-  NftData,
-  NftRecord,
-  OfferRecord,
-} from '../bindings';
+import { commands, events, NftData, NftRecord, OfferRecord } from '../bindings';
 
 export default function Nft() {
   const navigate = useNavigate();
   const { launcher_id: launcherId } = useParams();
   const { addError } = useErrors();
   const { reloadThemes } = useTheme();
+  const { isTestnet } = useNetwork();
   const [nft, setNft] = useState<NftRecord | null>(null);
   const [nftIsOwned, setNftIsOwned] = useState<boolean>(false);
   const [data, setData] = useState<NftData | null>(null);
@@ -46,15 +48,16 @@ export default function Nft() {
   const [requestedOffers, setRequestedOffers] = useState<DexieOffer[]>([]);
   const [offeredOffers, setOfferedOffers] = useState<DexieOffer[]>([]);
   const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
 
   // Check for open offers when NFT loads
   useEffect(() => {
+    if (!offersEnabled) return;
+
     if (nft?.launcher_id) {
       // Fetch both requested and offered offers
       Promise.all([
-        fetchRequestedDexieOffersFromNftId(nft.launcher_id, network),
-        fetchOfferedDexieOffersFromNftId(nft.launcher_id, network),
+        fetchRequestedDexieOffersFromNftId(nft.launcher_id, isTestnet),
+        fetchOfferedDexieOffersFromNftId(nft.launcher_id, isTestnet),
       ])
         .then(([requested, offered]) => {
           setRequestedOffers(requested);
@@ -71,7 +74,7 @@ export default function Nft() {
           setOffersForAsset(response.offers);
         });
     }
-  }, [nft?.launcher_id, network]);
+  }, [nft?.launcher_id, isTestnet]);
 
   const checkThemeExists = useCallback(async () => {
     if (launcherId && nft?.special_use_type === 'theme') {
@@ -139,13 +142,6 @@ export default function Nft() {
     }
   }, [data?.metadata_json, nft]);
 
-  useEffect(() => {
-    commands
-      .getNetwork({})
-      .then((data) => setNetwork(data.kind))
-      .catch(addError);
-  }, [addError]);
-
   const [minterProfile, setMinterProfile] = useState<{
     encoded_id: string;
     name: string;
@@ -163,9 +159,8 @@ export default function Nft() {
       setMinterProfile(null);
       return;
     }
-
-    getMintGardenProfile(nft.minter_did).then(setMinterProfile);
-  }, [nft?.minter_did]);
+    getMintGardenProfile(nft.minter_did, isTestnet).then(setMinterProfile);
+  }, [nft?.minter_did, isTestnet]);
 
   useEffect(() => {
     if (!nft?.owner_did) {
@@ -173,8 +168,8 @@ export default function Nft() {
       return;
     }
 
-    getMintGardenProfile(nft.owner_did).then(setOwnerProfile);
-  }, [nft?.owner_did]);
+    getMintGardenProfile(nft.owner_did, isTestnet).then(setOwnerProfile);
+  }, [nft?.owner_did, isTestnet]);
 
   return (
     <>
@@ -255,13 +250,11 @@ export default function Nft() {
                       }
                     }}
                   >
-                    <Trans>
-                      {themeExists
-                        ? t`Theme Saved`
-                        : isSaving
-                          ? t`Saving...`
-                          : t`Save Theme`}
-                    </Trans>
+                    {themeExists
+                      ? t`Theme Saved`
+                      : isSaving
+                        ? t`Saving...`
+                        : t`Save Theme`}
                   </Button>
                 )}
               </div>
@@ -314,10 +307,9 @@ export default function Nft() {
                     className='w-full'
                     onClick={() => {
                       openUrl(
-                        `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/nfts/${nft?.launcher_id}`,
+                        mintGardenNftUrl(nft?.launcher_id ?? '', isTestnet),
                       );
                     }}
-                    disabled={network === 'unknown'}
                   >
                     <img
                       src='https://mintgarden.io/mint-logo.svg'
@@ -333,10 +325,9 @@ export default function Nft() {
                     className='w-full mt-1'
                     onClick={() => {
                       openUrl(
-                        `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/nft/${nft?.launcher_id}`,
+                        spacescanNftUrl(nft?.launcher_id ?? '', isTestnet),
                       );
                     }}
-                    disabled={network === 'unknown'}
                   >
                     <img
                       src={spacescanLogo}
@@ -399,7 +390,9 @@ export default function Nft() {
                   <div
                     className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                     onClick={() =>
-                      openUrl(`https://mintgarden.io/${nft?.minter_did}`)
+                      openUrl(
+                        mintGardenDidUrl(nft?.minter_did ?? '', isTestnet),
+                      )
                     }
                   >
                     {minterProfile.avatar_uri && (
@@ -424,7 +417,7 @@ export default function Nft() {
                   <div
                     className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                     onClick={() =>
-                      openUrl(`https://mintgarden.io/${nft?.owner_did}`)
+                      openUrl(mintGardenDidUrl(nft?.owner_did ?? '', isTestnet))
                     }
                   >
                     {ownerProfile.avatar_uri && (
@@ -444,178 +437,177 @@ export default function Nft() {
                 label={t`Royalties ${royaltyPercentage}%`}
                 address={nft?.royalty_address ?? ''}
               />
-              <div className='flex flex-col gap-4'>
-                {/* Requested Offers Section */}
-                <div className='flex flex-col gap-1'>
-                  <h6 className='text-md font-bold'>
-                    <Trans>Offers Requesting This NFT</Trans>
-                  </h6>
-
-                  {requestedOffers.length === 0 ? (
-                    <div className='text-sm text-muted-foreground'>
-                      <Trans>No Dexie offers requesting this NFT</Trans>
-                    </div>
-                  ) : (
-                    <div className='grid gap-2'>
-                      {requestedOffers.map((offer: DexieOffer) => (
-                        <div key={offer.id} className='border rounded-lg p-3'>
-                          <div className='grid grid-cols-2 gap-4'>
-                            <div>
-                              <div className='text-sm font-medium mb-2'>
-                                <Trans>Offered in exchange:</Trans>
-                              </div>
-                              <div className='space-y-1'>
-                                {offer.offered?.map((item: DexieAsset) => (
-                                  <div key={item.id} className='text-sm'>
-                                    {item.amount} {item.name} ({item.code})
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className='flex flex-col gap-1 justify-start'>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                onClick={() => {
-                                  navigate(
-                                    `/offers/view/${encodeURIComponent(offer.offer.trim())}`,
-                                  );
-                                }}
-                              >
-                                <HandCoins className='h-4 w-4 mr-2' />
-                                <Trans>View Offer</Trans>
-                              </Button>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                onClick={() => {
-                                  openUrl(
-                                    `https://${network === 'testnet' ? 'testnet.' : ''}dexie.space/offers/${offer.id}`,
-                                  );
-                                }}
-                              >
-                                <img
-                                  src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                                  className='h-4 w-4 mr-2'
-                                  alt='Dexie.space logo'
-                                />
-                                <Trans>Dexie</Trans>
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Offered For Sale Section */}
-                <div className='flex flex-col gap-1'>
-                  <h6 className='text-md font-bold'>
-                    <Trans>This NFT Offered For Sale</Trans>
-                  </h6>
-
-                  {offeredOffers.length === 0 ? (
-                    <div className='text-sm text-muted-foreground'>
-                      <Trans>
-                        This NFT is not currently offered for sale on Dexie
-                      </Trans>
-                    </div>
-                  ) : (
-                    <div className='grid gap-2'>
-                      {offeredOffers.map((offer: DexieOffer) => (
-                        <div key={offer.id} className='border rounded-lg p-3'>
-                          <div className='grid grid-cols-2 gap-4'>
-                            <div>
-                              <div className='text-sm font-medium mb-2'>
-                                <Trans>Requesting in exchange:</Trans>
-                              </div>
-                              <div className='space-y-1'>
-                                {offer.requested?.map((item: DexieAsset) => (
-                                  <div key={item.id} className='text-sm'>
-                                    {item.amount} {item.name} ({item.code})
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                            <div className='flex flex-col gap-1 justify-start'>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                onClick={() => {
-                                  openUrl(
-                                    `https://${network === 'testnet' ? 'testnet.' : ''}dexie.space/offers/${offer.id}`,
-                                  );
-                                }}
-                              >
-                                <img
-                                  src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
-                                  className='h-4 w-4 mr-2'
-                                  alt='Dexie.space logo'
-                                />
-                                <Trans>Dexie</Trans>
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Local Offers Section */}
-                {offersForAsset.length > 0 && (
+              {offersEnabled && (
+                <div className='flex flex-col gap-4'>
+                  {/* Requested Offers Section */}
                   <div className='flex flex-col gap-1'>
-                    <div className='grid gap-2'>
-                      {offersForAsset.map((localOffer) => (
-                        <div
-                          key={localOffer.offer_id}
-                          className='border rounded-lg p-3'
-                        >
-                          <div className='grid grid-cols-2 gap-4'>
-                            <div>
-                              <div className='text-sm font-medium mb-2'>
-                                <Trans>Local Offer</Trans>
-                              </div>
-                              <div className='text-sm text-muted-foreground'>
-                                <Trans>
-                                  Status: {getOfferStatus(localOffer.status)}
-                                </Trans>
-                              </div>
-                              {localOffer.creation_timestamp && (
-                                <div className='text-sm text-muted-foreground'>
-                                  <Trans>
-                                    Created:{' '}
-                                    {formatTimestamp(
-                                      localOffer.creation_timestamp,
-                                      'short',
-                                      'short',
-                                    )}
-                                  </Trans>
+                    <h6 className='text-md font-bold'>
+                      <Trans>Offers Requesting This NFT</Trans>
+                    </h6>
+
+                    {requestedOffers.length === 0 ? (
+                      <div className='text-sm text-muted-foreground'>
+                        <Trans>No Dexie offers requesting this NFT</Trans>
+                      </div>
+                    ) : (
+                      <div className='grid gap-2'>
+                        {requestedOffers.map((offer: DexieOffer) => (
+                          <div key={offer.id} className='border rounded-lg p-3'>
+                            <div className='grid grid-cols-2 gap-4'>
+                              <div>
+                                <div className='text-sm font-medium mb-2'>
+                                  <Trans>Offered in exchange:</Trans>
                                 </div>
-                              )}
-                            </div>
-                            <div className='flex flex-col gap-1 justify-start'>
-                              <Button
-                                variant='outline'
-                                size='sm'
-                                onClick={() => {
-                                  navigate(
-                                    `/offers/view_saved/${localOffer.offer_id}`,
-                                  );
-                                }}
-                              >
-                                <HandCoins className='h-4 w-4 mr-2' />
-                                <Trans>View Offer</Trans>{' '}
-                              </Button>
+                                <div className='space-y-1'>
+                                  {offer.offered?.map((item: DexieAsset) => (
+                                    <div key={item.id} className='text-sm'>
+                                      {item.amount} {item.name} ({item.code})
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className='flex flex-col gap-1 justify-start'>
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => {
+                                    navigate(
+                                      `/offers/view/${encodeURIComponent(offer.offer.trim())}`,
+                                    );
+                                  }}
+                                >
+                                  <HandCoins className='h-4 w-4 mr-2' />
+                                  <Trans>View Offer</Trans>
+                                </Button>
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => {
+                                    openUrl(dexieOfferUrl(offer.id, isTestnet));
+                                  }}
+                                >
+                                  <img
+                                    src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                                    className='h-4 w-4 mr-2'
+                                    alt='Dexie.space logo'
+                                  />
+                                  <Trans>Dexie</Trans>
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Offered For Sale Section */}
+                  <div className='flex flex-col gap-1'>
+                    <h6 className='text-md font-bold'>
+                      <Trans>This NFT Offered For Sale</Trans>
+                    </h6>
+
+                    {offeredOffers.length === 0 ? (
+                      <div className='text-sm text-muted-foreground'>
+                        <Trans>
+                          This NFT is not currently offered for sale on Dexie
+                        </Trans>
+                      </div>
+                    ) : (
+                      <div className='grid gap-2'>
+                        {offeredOffers.map((offer: DexieOffer) => (
+                          <div key={offer.id} className='border rounded-lg p-3'>
+                            <div className='grid grid-cols-2 gap-4'>
+                              <div>
+                                <div className='text-sm font-medium mb-2'>
+                                  <Trans>Requesting in exchange:</Trans>
+                                </div>
+                                <div className='space-y-1'>
+                                  {offer.requested?.map((item: DexieAsset) => (
+                                    <div key={item.id} className='text-sm'>
+                                      {item.amount} {item.name} ({item.code})
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className='flex flex-col gap-1 justify-start'>
+                                <Button
+                                  variant='outline'
+                                  size='sm'
+                                  onClick={() => {
+                                    openUrl(dexieOfferUrl(offer.id, isTestnet));
+                                  }}
+                                >
+                                  <img
+                                    src='https://raw.githubusercontent.com/dexie-space/dexie-kit/refs/heads/main/svg/duck.svg'
+                                    className='h-4 w-4 mr-2'
+                                    alt='Dexie.space logo'
+                                  />
+                                  <Trans>Dexie</Trans>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Local Offers Section */}
+                  {offersForAsset.length > 0 && (
+                    <div className='flex flex-col gap-1'>
+                      <div className='grid gap-2'>
+                        {offersForAsset.map((localOffer) => {
+                          const offerStatus = getOfferStatus(localOffer.status);
+                          const createdAt = localOffer.creation_timestamp
+                            ? formatTimestamp(
+                                localOffer.creation_timestamp,
+                                'short',
+                                'short',
+                              )
+                            : '';
+                          return (
+                            <div
+                              key={localOffer.offer_id}
+                              className='border rounded-lg p-3'
+                            >
+                              <div className='grid grid-cols-2 gap-4'>
+                                <div>
+                                  <div className='text-sm font-medium mb-2'>
+                                    <Trans>Local Offer</Trans>
+                                  </div>
+                                  <div className='text-sm text-muted-foreground'>
+                                    <Trans>Status: {offerStatus}</Trans>
+                                  </div>
+                                  {localOffer.creation_timestamp && (
+                                    <div className='text-sm text-muted-foreground'>
+                                      <Trans>Created: {createdAt}</Trans>
+                                    </div>
+                                  )}
+                                </div>
+                                <div className='flex flex-col gap-1 justify-start'>
+                                  <Button
+                                    variant='outline'
+                                    size='sm'
+                                    onClick={() => {
+                                      navigate(
+                                        `/offers/view_saved/${localOffer.offer_id}`,
+                                      );
+                                    }}
+                                  >
+                                    <HandCoins className='h-4 w-4 mr-2' />
+                                    <Trans>View Offer</Trans>{' '}
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

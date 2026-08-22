@@ -217,7 +217,7 @@ async fn test_initial_state() -> Result<()> {
 
     assert_eq!(status.synced_coins, 0);
     assert_eq!(status.total_coins, 0);
-    assert_eq!(status.balance.to_u64(), Some(0));
+    assert_eq!(status.selectable_balance.to_u64(), Some(0));
     assert_eq!(status.unhardened_derivation_index, 1000);
     assert_eq!(status.hardened_derivation_index, 0);
     assert_eq!(
@@ -242,7 +242,7 @@ async fn test_send_xch() -> Result<()> {
     let balance = app
         .get_sync_status(GetSyncStatus {})
         .await?
-        .balance
+        .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(1000));
 
@@ -263,7 +263,7 @@ async fn test_send_xch() -> Result<()> {
     let balance = app
         .get_sync_status(GetSyncStatus {})
         .await?
-        .balance
+        .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(0));
 
@@ -274,7 +274,7 @@ async fn test_send_xch() -> Result<()> {
     let balance = app
         .get_sync_status(GetSyncStatus {})
         .await?
-        .balance
+        .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
 

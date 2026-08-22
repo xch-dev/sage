@@ -1,4 +1,4 @@
-import { commands, NetworkKind, NftCollectionRecord } from '@/bindings';
+import { commands, NftCollectionRecord } from '@/bindings';
 import { AddressItem } from '@/components/AddressItem';
 import Container from '@/components/Container';
 import Header from '@/components/Header';
@@ -7,9 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import missing from '@/images/missing.png';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
 import { getMintGardenProfile } from '@/lib/marketplaces';
+import {
+  mintGardenCollectionUrl,
+  mintGardenDidUrl,
+  spacescanCollectionUrl,
+} from '@/lib/urls';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -37,12 +43,12 @@ export default function CollectionMetaData() {
   const [metadataContent, setMetadataContent] =
     useState<MetadataContent | null>(null);
   const [loading, setLoading] = useState(true);
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
   const [minterProfile, setMinterProfile] = useState<{
     encoded_id: string;
     name: string;
     avatar_uri: string | null;
   } | null>(null);
+  const { isTestnet } = useNetwork();
 
   useEffect(() => {
     async function fetchData() {
@@ -100,15 +106,8 @@ export default function CollectionMetaData() {
       return;
     }
 
-    getMintGardenProfile(collection.did_id).then(setMinterProfile);
-  }, [collection?.did_id]);
-
-  useEffect(() => {
-    commands
-      .getNetwork({})
-      .then((data) => setNetwork(data.kind))
-      .catch(addError);
-  }, [addError]);
+    getMintGardenProfile(collection.did_id, isTestnet).then(setMinterProfile);
+  }, [collection?.did_id, isTestnet]);
 
   // Find banner URL from attributes if it exists
   const getBannerUrl = () => {
@@ -215,7 +214,7 @@ export default function CollectionMetaData() {
                     <div
                       className='flex items-center gap-2 mt-1 cursor-pointer text-blue-600 hover:text-blue-800 hover:underline'
                       onClick={() =>
-                        openUrl(`https://mintgarden.io/${collection.did_id}`)
+                        openUrl(mintGardenDidUrl(collection.did_id, isTestnet))
                       }
                     >
                       {minterProfile.avatar_uri && (
@@ -287,10 +286,12 @@ export default function CollectionMetaData() {
                     className='w-full'
                     onClick={() =>
                       openUrl(
-                        `https://${network === 'testnet' ? 'testnet.' : ''}mintgarden.io/collections/${collection.collection_id}`,
+                        mintGardenCollectionUrl(
+                          collection.collection_id,
+                          isTestnet,
+                        ),
                       )
                     }
-                    disabled={network === 'unknown'}
                   >
                     <img
                       src='https://mintgarden.io/mint-logo.svg'
@@ -306,10 +307,12 @@ export default function CollectionMetaData() {
                     className='w-full mt-1'
                     onClick={() =>
                       openUrl(
-                        `https://${network === 'testnet' ? 'testnet11.' : ''}spacescan.io/collection/${collection.collection_id}`,
+                        spacescanCollectionUrl(
+                          collection.collection_id,
+                          isTestnet,
+                        ),
                       )
                     }
-                    disabled={network === 'unknown'}
                   >
                     <img
                       src={spacescanLogo}

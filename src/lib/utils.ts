@@ -78,6 +78,7 @@ export function getAssetDisplayName(
   ticker: string | null,
   kind: AssetKind,
 ) {
+  const upperKind = kind.toUpperCase();
   return (
     name ??
     ticker ??
@@ -85,7 +86,7 @@ export function getAssetDisplayName(
       ? t`Unknown CAT`
       : kind === 'option'
         ? 'Untitled Option'
-        : t`Untitled ${kind.toUpperCase()}`)
+        : t`Untitled ${upperKind}`)
   );
 }
 
@@ -151,7 +152,7 @@ export interface AddressInfo {
 export function toAddress(puzzleHash: string, prefix: string): string {
   return bech32m.encode(
     prefix,
-    bech32m.toWords(fromHex(sanitizeHex(puzzleHash))),
+    bech32m.toWords(fromHex(normalizeHex(puzzleHash))),
   );
 }
 
@@ -199,8 +200,13 @@ export function isValidAssetId(assetId: string): boolean {
   return /^[a-fA-F0-9]{64}$/.test(assetId);
 }
 
-function sanitizeHex(hex: string): string {
-  return hex.replace(/0x/i, '');
+function normalizeHex(hex: string): string {
+  return hex.replace(/\s+/g, '').replace(/^0x/i, '');
+}
+
+export function withHexPrefix(hex: string): string {
+  const normalized = normalizeHex(hex);
+  return '0x' + normalized;
 }
 
 const HEX_STRINGS = '0123456789abcdef';
@@ -250,9 +256,30 @@ function fromHex(hex: string): Uint8Array {
 }
 
 export function decodeHexMessage(hexMessage: string): string {
-  return new TextDecoder().decode(fromHex(sanitizeHex(hexMessage)));
+  return new TextDecoder().decode(fromHex(normalizeHex(hexMessage)));
 }
 
 export function isHex(str: string): boolean {
   return /^(0x)?[0-9a-fA-F]+$/.test(str);
+}
+
+export function utf8ToBytes(value: string): Uint8Array {
+  return new TextEncoder().encode(value);
+}
+
+export function isValidHexBytes(hex: string): boolean {
+  const normalized = normalizeHex(hex);
+  return (
+    normalized.length % 2 === 0 && /^(?:[0-9a-fA-F]{2})*$/.test(normalized)
+  );
+}
+
+export function fromHexStrict(hex: string): Uint8Array {
+  const normalized = normalizeHex(hex);
+
+  if (!isValidHexBytes(normalized)) {
+    throw new Error('Invalid hex bytes');
+  }
+
+  return fromHex(normalized);
 }

@@ -4,8 +4,12 @@ import {
   NftRecord,
   commands,
 } from '@/bindings';
+import { useWallet } from '@/contexts/WalletContext';
 import { NftGroupMode } from '@/hooks/useNftParams';
+import { useNetwork } from '@/hooks/useNetwork';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
+import { offersEnabled } from '@/lib/features';
+import { mintGardenCollectionUrl, mintGardenDidUrl } from '@/lib/urls';
 //import { getMintGardenProfile } from '@/lib/marketplaces';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -68,6 +72,8 @@ export function NftGroupCard({
   setSplitNftOffers,
 }: NftGroupCardProps) {
   const navigate = useNavigate();
+  const { isTestnet } = useNetwork();
+  const { isTransactionDisabled } = useWallet();
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const isCollection = type === 'collection';
 
@@ -315,7 +321,7 @@ export function NftGroupCard({
                     disabled={isPlaceHolder}
                     onClick={(e) => {
                       e.stopPropagation();
-                      openUrl(`https://mintgarden.io/collections/${cardId}`);
+                      openUrl(mintGardenCollectionUrl(cardId, isTestnet));
                     }}
                     aria-label={t`View ${cardName} on Mintgarden`}
                   >
@@ -360,7 +366,7 @@ export function NftGroupCard({
                   className='cursor-pointer'
                   onClick={(e) => {
                     e.stopPropagation();
-                    openUrl(`https://mintgarden.io/${cardId}`);
+                    openUrl(mintGardenDidUrl(cardId, isTestnet));
                   }}
                   aria-label={t`View ${cardName} on Mintgarden`}
                 >
@@ -391,101 +397,106 @@ export function NftGroupCard({
                   <Trans>Copy ID</Trans>
                 </span>
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className='cursor-pointer'
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  try {
-                    let nftIds: string[] = [];
+              {offersEnabled && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className='cursor-pointer'
+                    disabled={isTransactionDisabled}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      try {
+                        let nftIds: string[] = [];
 
-                    if (isCollectionRecord(item)) {
-                      // Fetch all NFTs in the collection
-                      const response = await commands.getNfts({
-                        collection_id: item.collection_id,
-                        minter_did_id: null,
-                        owner_did_id: null,
-                        name: null,
-                        offset: 0,
-                        limit: 1000, // Use a large limit to get all NFTs
-                        sort_mode: 'name',
-                        include_hidden: true,
-                      });
-                      nftIds = response.nfts.map(
-                        (nft: NftRecord) => nft.launcher_id,
-                      );
-                    } else if (isDidRecord(item)) {
-                      // Fetch all NFTs for the DID
-                      const response = await commands.getNfts({
-                        collection_id: null,
-                        minter_did_id:
-                          groupMode === NftGroupMode.MinterDid
-                            ? item.launcher_id
-                            : null,
-                        owner_did_id:
-                          groupMode === NftGroupMode.OwnerDid
-                            ? item.launcher_id
-                            : null,
-                        name: null,
-                        offset: 0,
-                        limit: 1000, // Use a large limit to get all NFTs
-                        sort_mode: 'name',
-                        include_hidden: true,
-                      });
-                      nftIds = response.nfts.map(
-                        (nft: NftRecord) => nft.launcher_id,
-                      );
-                    }
+                        if (isCollectionRecord(item)) {
+                          // Fetch all NFTs in the collection
+                          const response = await commands.getNfts({
+                            collection_id: item.collection_id,
+                            minter_did_id: null,
+                            owner_did_id: null,
+                            name: null,
+                            offset: 0,
+                            limit: 1000, // Use a large limit to get all NFTs
+                            sort_mode: 'name',
+                            include_hidden: true,
+                          });
+                          nftIds = response.nfts.map(
+                            (nft: NftRecord) => nft.launcher_id,
+                          );
+                        } else if (isDidRecord(item)) {
+                          // Fetch all NFTs for the DID
+                          const response = await commands.getNfts({
+                            collection_id: null,
+                            minter_did_id:
+                              groupMode === NftGroupMode.MinterDid
+                                ? item.launcher_id
+                                : null,
+                            owner_did_id:
+                              groupMode === NftGroupMode.OwnerDid
+                                ? item.launcher_id
+                                : null,
+                            name: null,
+                            offset: 0,
+                            limit: 1000, // Use a large limit to get all NFTs
+                            sort_mode: 'name',
+                            include_hidden: true,
+                          });
+                          nftIds = response.nfts.map(
+                            (nft: NftRecord) => nft.launcher_id,
+                          );
+                        }
 
-                    const newNfts = [...offerState.offered.nfts];
-                    let addedCount = 0;
+                        const newNfts = [...offerState.offered.nfts];
+                        let addedCount = 0;
 
-                    for (const nftId of nftIds) {
-                      if (newNfts.includes(nftId)) {
-                        continue;
+                        for (const nftId of nftIds) {
+                          if (newNfts.includes(nftId)) {
+                            continue;
+                          }
+
+                          newNfts.push(nftId);
+                          addedCount++;
+                        }
+
+                        setOfferState({
+                          offered: {
+                            ...offerState.offered,
+                            nfts: newNfts,
+                          },
+                        });
+
+                        if (setSplitNftOffers) {
+                          setSplitNftOffers(true);
+                        }
+
+                        const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
+                        const message =
+                          addedCount > 0
+                            ? t`Added ${addedCount} ${nfts} to offer`
+                            : t`Selected NFTs are already in the offer`;
+                        toast.success(message, {
+                          onClick: () =>
+                            navigate('/offers/make', {
+                              state: { splitNftOffers: true },
+                            }),
+                        });
+                      } catch (error: unknown) {
+                        toast.error(
+                          error instanceof Error
+                            ? error.message
+                            : t`Failed to add NFTs to offer`,
+                        );
                       }
-
-                      newNfts.push(nftId);
-                      addedCount++;
-                    }
-
-                    setOfferState({
-                      offered: {
-                        ...offerState.offered,
-                        nfts: newNfts,
-                      },
-                    });
-
-                    if (setSplitNftOffers) {
-                      setSplitNftOffers(true);
-                    }
-
-                    const nfts = addedCount === 1 ? t`NFT` : t`NFTs`;
-                    const message =
-                      addedCount > 0
-                        ? t`Added ${addedCount} ${nfts} to offer`
-                        : t`Selected NFTs are already in the offer`;
-                    toast.success(message, {
-                      onClick: () =>
-                        navigate('/offers/make', {
-                          state: { splitNftOffers: true },
-                        }),
-                    });
-                  } catch (error: unknown) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : t`Failed to add NFTs to offer`,
-                    );
-                  }
-                }}
-                aria-label={t`Add all NFTs in ${cardName} to an offer`}
-              >
-                <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
-                <span title={t`Add all NFTs in ${cardName} to an offer`}>
-                  <Trans>Add All to Offer</Trans>
-                </span>
-              </DropdownMenuItem>
+                    }}
+                    aria-label={t`Add all NFTs in ${cardName} to an offer`}
+                  >
+                    <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
+                    <span title={t`Add all NFTs in ${cardName} to an offer`}>
+                      <Trans>Add All to Offer</Trans>
+                    </span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

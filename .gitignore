@@ -28,3 +28,15 @@ target
 .env
 /test.sqlite*
 
+/builtin-apps/build/*
+!/builtin-apps/build/dist/
+/builtin-apps/build/dist/*
+!/builtin-apps/build/dist/.gitkeep
+tauri-plugin-sage/android/.gradle/9.2.0/gc.properties
+tauri-plugin-sage/android/.gradle/9.2.0/checksums/checksums.lock
+tauri-plugin-sage/android/.gradle/9.2.0/fileChanges/last-build.bin
+tauri-plugin-sage/android/.gradle/9.2.0/fileHashes/fileHashes.bin
+tauri-plugin-sage/android/.gradle/9.2.0/fileHashes/fileHashes.lock
+tauri-plugin-sage/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+tauri-plugin-sage/android/.gradle/buildOutputCleanup/cache.properties
+tauri-plugin-sage/android/.gradle/vcs-1/gc.properties

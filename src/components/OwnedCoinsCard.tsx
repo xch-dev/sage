@@ -19,8 +19,10 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import { amount } from '@/lib/formTypes';
 import { fromMojos, toMojos } from '@/lib/utils';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
@@ -62,8 +64,10 @@ export function OwnedCoinsCard({
   setSelectedCoins,
 }: OwnedCoinsCardProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
+  const { isTestnet } = useNetwork();
 
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
@@ -192,8 +196,19 @@ export function OwnedCoinsCard({
             filter_mode: includeSpentCoins ? 'spent' : 'owned',
           })
           .then((res) => {
+            // Ignore a late response for a page the user has already left.
+            if (page !== currentPageRef.current) return;
+
             setCoins(res.coins);
             setTotalCoins(res.total);
+
+            // A combine can remove enough coins to make the current page
+            // invalid. Move to the last page that still exists after the
+            // refreshed total is known; the page effect will load it.
+            const lastPage = Math.max(0, Math.ceil(res.total / pageSize) - 1);
+            if (page > lastPage) {
+              setCurrentPage(lastPage);
+            }
           })
           .catch(addError);
       },
@@ -239,7 +254,8 @@ export function OwnedCoinsCard({
 
   const combineFormSchema = z.object({
     combineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -284,7 +300,8 @@ export function OwnedCoinsCard({
   const splitFormSchema = z.object({
     outputCount: z.number().int().min(2).max(4294967295),
     splitFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -333,7 +350,8 @@ export function OwnedCoinsCard({
 
   const autoCombineFormSchema = z.object({
     autoCombineFee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
     maxCoins: amount(0),
@@ -396,6 +414,7 @@ export function OwnedCoinsCard({
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
+  const ticker = asset.ticker;
 
   // Calculate total value of selected coins
   const selectedCoinsTotal = useMemo(() => {
@@ -419,6 +438,7 @@ export function OwnedCoinsCard({
         <CoinList
           clawback={false}
           precision={asset.precision}
+          isTestnet={isTestnet}
           coins={coins}
           selectedCoins={selectedCoins}
           setSelectedCoins={setSelectedCoins}
@@ -436,7 +456,7 @@ export function OwnedCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={!canSplit}
+                disabled={isTransactionDisabled || !canSplit}
                 onClick={() => setSplitOpen(true)}
               >
                 <SplitIcon className='mr-2 h-4 w-4' aria-hidden='true' />{' '}
@@ -444,7 +464,9 @@ export function OwnedCoinsCard({
               </Button>
               <Button
                 variant='outline'
-                disabled={!(canCombine || canAutoCombine)}
+                disabled={
+                  isTransactionDisabled || !(canCombine || canAutoCombine)
+                }
                 onClick={() => {
                   if (canCombine) {
                     setCombineOpen(true);
@@ -473,7 +495,7 @@ export function OwnedCoinsCard({
             <span className='text-muted-foreground text-sm flex items-center'>
               <Trans>
                 {selectedCoinCount} {selectedCoinLabel} selected (
-                {selectedCoinsTotal} {asset.ticker})
+                {selectedCoinsTotal} {ticker})
               </Trans>
             </span>
           </div>
@@ -484,7 +506,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Combine {asset.ticker}</Trans>
+              <Trans>Combine {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>
@@ -533,7 +555,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Split {asset.ticker}</Trans>
+              <Trans>Split {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will split all of the selected coins.</Trans>
@@ -601,7 +623,7 @@ export function OwnedCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Auto Combine {asset.ticker}</Trans>
+              <Trans>Auto Combine {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>

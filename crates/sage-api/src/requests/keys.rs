@@ -398,6 +398,39 @@ pub struct GetSecretKeyResponse {
     pub secrets: Option<SecretKeyInfo>,
 }
 
+/// Get the receive address for any wallet without switching sessions
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Get the current receive address for any wallet by fingerprint without switching the active session."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWalletAddress {
+    /// Wallet fingerprint
+    #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
+    pub fingerprint: u32,
+    /// Network ID to look up the address on (e.g. "mainnet", "testnet11")
+    #[cfg_attr(feature = "openapi", schema(example = "mainnet"))]
+    pub network_id: String,
+}
+
+/// Response with the wallet's receive address
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct GetWalletAddressResponse {
+    /// The wallet's current receive address
+    pub address: String,
+}
+
 /// List all custom theme NFTs
 #[cfg_attr(
     feature = "openapi",

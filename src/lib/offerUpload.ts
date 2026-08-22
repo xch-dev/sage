@@ -1,26 +1,26 @@
 import { OfferSummary } from '@/bindings';
+import {
+  dexieApiUrl,
+  dexieOfferUrl,
+  mintGardenApiUrl,
+  mintGardenOfferUrl,
+} from '@/lib/urls';
 import { OfferState } from '@/state';
 import bs58 from 'bs58';
 
 export async function getOfferHash(offer: string): Promise<string> {
-  // Create SHA-256 hash of the UTF-8 encoded offer
   const encoder = new TextEncoder();
   const data = encoder.encode(offer);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashBytes = new Uint8Array(hashArray);
-
-  // Encode the hash in base58
   return bs58.encode(hashBytes);
 }
 
 export function isOneSideOffer(summary: OfferSummary | OfferState) {
-  // Check if it's an OfferSummary
   if ('taker' in summary) {
     return !summary.taker.length;
   }
-
-  // Handle OfferState
   return (
     summary.requested.tokens.filter(
       (t) => !!t.amount && (t.asset_id === null || !!t.asset_id),
@@ -65,18 +65,13 @@ export function isDexieSupportedForSummary(summary: OfferSummary) {
 
 export async function uploadToDexie(
   offer: string,
-  testnet: boolean,
+  isTestnet: boolean,
 ): Promise<string> {
-  const response = await fetch(
-    `https://${testnet ? 'api-testnet' : 'api'}.dexie.space/v1/offers`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ offer, drop_only: true }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
+  const response = await fetch(dexieApiUrl('v1/offers', isTestnet), {
+    method: 'POST',
+    body: JSON.stringify({ offer, drop_only: true }),
+    headers: { 'Content-Type': 'application/json' },
+  });
 
   const data = await response.json();
   if (!data?.success) {
@@ -84,23 +79,18 @@ export async function uploadToDexie(
     throw new Error(`Failed to upload offer to Dexie: ${data?.error_message}`);
   }
 
-  return dexieLink(data.id, testnet);
+  return dexieOfferUrl(data.id, isTestnet);
 }
 
 export async function uploadToMintGarden(
   offer: string,
-  testnet: boolean,
+  isTestnet: boolean,
 ): Promise<string> {
-  const response = await fetch(
-    `https://${testnet ? 'api.testnet' : 'api'}.mintgarden.io/offer`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ offer }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
+  const response = await fetch(mintGardenApiUrl('offer', isTestnet), {
+    method: 'POST',
+    body: JSON.stringify({ offer }),
+    headers: { 'Content-Type': 'application/json' },
+  });
 
   const data = await response.json();
   if (!data?.offer?.id) {
@@ -108,15 +98,7 @@ export async function uploadToMintGarden(
     throw new Error(`Failed to upload offer to MintGarden: ${data?.detail}`);
   }
 
-  return mintGardenLink(data.offer.id, testnet);
-}
-
-export function dexieLink(offerId: string, testnet: boolean) {
-  return `https://${testnet ? 'testnet.' : ''}dexie.space/offers/${offerId}`;
-}
-
-export function mintGardenLink(offerHash: string, testnet: boolean) {
-  return `https://${testnet ? 'testnet.' : ''}mintgarden.io/offers/${offerHash}`;
+  return mintGardenOfferUrl(data.offer.id, isTestnet);
 }
 
 export async function offerIsOnDexie(
@@ -126,7 +108,7 @@ export async function offerIsOnDexie(
   try {
     if (!offerId || offerId === '') return false;
     const response = await fetch(
-      `https://${isTestnet ? 'api-testnet' : 'api'}.dexie.space/v1/offers/${offerId}`,
+      dexieApiUrl(`v1/offers/${offerId}`, isTestnet),
     );
     const data = await response.json();
     return data.success === true;
@@ -142,9 +124,7 @@ export async function offerIsOnMintGarden(
   try {
     if (!offer || offer === '') return false;
     const hash = await getOfferHash(offer);
-    const response = await fetch(
-      `https://api.${isTestnet ? 'testnet.' : ''}mintgarden.io/offers/${hash}`,
-    );
+    const response = await fetch(mintGardenApiUrl(`offers/${hash}`, isTestnet));
     const data = await response.json();
     return data.id === hash;
   } catch {

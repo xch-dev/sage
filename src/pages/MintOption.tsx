@@ -14,10 +14,11 @@ import {
   TokenAmountInput,
 } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
-import { toMojos } from '@/lib/utils';
+import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -165,24 +166,38 @@ export function MintOption() {
               <div className='flex mt-4'>
                 <TokenSelector
                   value={underlyingAssetId}
-                  onChange={setUnderlyingAssetId}
+                  onChange={(value) => {
+                    setUnderlyingAssetId(value);
+                    setUnderlyingAmount('');
+                  }}
                   className='!rounded-r-none'
                   hideZeroBalance={true}
                   showAllCats={false}
                   includeXch={true}
                 />
-                <div className='flex flex-grow-0'>
-                  <TokenAmountInput
-                    id='underlying-amount'
-                    className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
-                    placeholder={t`Amount`}
-                    value={underlyingAmount}
-                    onValueChange={(values) => {
-                      setUnderlyingAmount(values.value);
-                    }}
-                    precision={underlyingAssetId === null ? 12 : 3}
-                  />
-                </div>
+                <TokenAmountInput
+                  id='underlying-amount'
+                  className='!border-l-0 z-10 !rounded-l-none w-[150px] h-12'
+                  placeholder={t`Amount`}
+                  value={underlyingAmount}
+                  onValueChange={(values) => {
+                    setUnderlyingAmount(values.value);
+                  }}
+                  precision={underlyingAssetId === null ? 12 : 3}
+                  maxValue={
+                    underlyingAsset
+                      ? BigNumber.max(
+                          0,
+                          BigNumber(
+                            toDecimal(
+                              underlyingAsset.selectable_balance,
+                              underlyingAsset.precision,
+                            ),
+                          ).minus(underlyingAssetId === null ? fee || 0 : 0),
+                        ).toString()
+                      : undefined
+                  }
+                />
               </div>
             </CardContent>
           </Card>
@@ -202,7 +217,10 @@ export function MintOption() {
               <div className='flex mt-4'>
                 <TokenSelector
                   value={strikeAssetId}
-                  onChange={setStrikeAssetId}
+                  onChange={(value) => {
+                    setStrikeAssetId(value);
+                    setStrikeAmount('');
+                  }}
                   className='!rounded-r-none'
                   hideZeroBalance={false}
                   showAllCats={true}
@@ -218,6 +236,7 @@ export function MintOption() {
                       setStrikeAmount(values.value);
                     }}
                     precision={strikeAssetId === null ? 12 : 3}
+                    hideMaxButton={true}
                   />
                 </div>
               </div>

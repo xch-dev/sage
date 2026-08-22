@@ -1,7 +1,8 @@
-import { OfferRecord, OfferSummary } from '@/bindings';
-import { Assets } from '@/components/Assets';
+import { commands, OfferRecord, OfferSummary } from '@/bindings';
+import { Assets, CatPresence } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
 import { ArrowUpIcon, ArrowDownIcon, HandshakeIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
@@ -11,6 +12,17 @@ interface TakeOfferConfirmationProps {
 
 export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
   const summary = 'summary' in offer ? offer.summary : offer;
+  const [catPresence, setCatPresence] = useState<CatPresence>({});
+
+  useEffect(() => {
+    commands.getCats({}).then((data) => {
+      const presence: CatPresence = {};
+      data.cats.forEach((cat) => {
+        presence[cat.asset_id ?? ''] = true;
+      });
+      setCatPresence(presence);
+    });
+  }, []);
 
   return (
     <div className='space-y-3 text-xs'>
@@ -36,7 +48,7 @@ export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
           <div className='text-[10px] text-muted-foreground mb-2'>
             <Trans>The assets you are paying.</Trans>
           </div>
-          <Assets assets={summary.taker} />
+          <Assets assets={summary.taker} catPresence={catPresence} />
         </ConfirmationCard>
 
         <ConfirmationCard>
@@ -49,7 +61,7 @@ export function TakeOfferConfirmation({ offer }: TakeOfferConfirmationProps) {
           <div className='text-[10px] text-muted-foreground mb-2'>
             <Trans>The assets you will receive.</Trans>
           </div>
-          <Assets assets={summary.maker} />
+          <Assets assets={summary.maker} catPresence={catPresence} />
         </ConfirmationCard>
       </div>
     </div>

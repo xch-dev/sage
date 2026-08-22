@@ -1,4 +1,3 @@
-import { commands, NetworkKind } from '@/bindings';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -10,6 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useErrors } from '@/hooks/useErrors';
+import { useNetwork } from '@/hooks/useNetwork';
 import { useOfferProcessor } from '@/hooks/useOfferProcessor';
 import { marketplaces } from '@/lib/marketplaces';
 import { OfferState } from '@/state';
@@ -40,7 +40,7 @@ export function OfferCreationProgressDialog({
   isSwap,
 }: OfferCreationProgressDialogProps) {
   const { addError } = useErrors();
-  const [network, setNetwork] = useState<NetworkKind | null>(null);
+  const { isTestnet, isUnknown } = useNetwork();
   const [isUploading, setIsUploading] = useState(false);
   const [hasStartedProcessing, setHasStartedProcessing] = useState(false);
   const [isCanceling, setIsCanceling] = useState(false);
@@ -70,13 +70,14 @@ export function OfferCreationProgressDialog({
     },
   });
 
-  useEffect(() => {
-    commands.getNetwork({}).then((data) => setNetwork(data.kind));
-  }, []);
-
   // Handle uploads when offers are created
   useEffect(() => {
-    if (createdOffers.length > 0 && network && !isProcessing && !isCanceling) {
+    if (
+      createdOffers.length > 0 &&
+      !isUnknown &&
+      !isProcessing &&
+      !isCanceling
+    ) {
       let isMounted = true;
 
       const uploadToMarketplaces = async () => {
@@ -102,19 +103,19 @@ export function OfferCreationProgressDialog({
             if (!isMounted || isCanceling) break;
             setCurrentOfferIndex(offerIndex);
             try {
-              await marketplace.uploadToMarketplace(
-                individualOffer,
-                network === 'testnet',
-              );
+              await marketplace.uploadToMarketplace(individualOffer, isTestnet);
               if (offerIndex < createdOffers.length - 1) {
                 // rate limit
                 await delay(500);
               }
             } catch (error) {
               if (isMounted) {
+                const offerNumber = offerIndex + 1;
+                const marketplaceName = marketplace.name;
+                const message = error as string;
                 addError({
                   kind: 'upload',
-                  reason: t`Failed to auto-upload offer ${offerIndex + 1} to ${marketplace.name}. Stopping.: ${error as string}`,
+                  reason: t`Failed to auto-upload offer ${offerNumber} to ${marketplaceName}. Stopping.: ${message}`,
                 });
                 // typically if one fails the rest will fail too
                 break;
@@ -136,7 +137,8 @@ export function OfferCreationProgressDialog({
     }
   }, [
     createdOffers,
-    network,
+    isTestnet,
+    isUnknown,
     addError,
     enabledMarketplaces,
     isProcessing,
@@ -211,12 +213,47 @@ export function OfferCreationProgressDialog({
     clearOfferState(createdOffers);
   };
 
+  const createdOfferCount = createdOffers.length;
+
+  const uploadedToMarketplaces = Object.values(enabledMarketplaces ?? {}).some(
+    Boolean,
+  );
+
+  // Each combination is spelled out as a whole sentence so translators get
+  // complete phrases rather than English fragments stitched together.
+  const getWaitMessage = () => {
+    if (currentStep === 'creating') {
+      if (uploadedToMarketplaces) {
+        return splitNftOffers ? (
+          <Trans>
+            Please wait while your offers are being created and uploaded...
+          </Trans>
+        ) : (
+          <Trans>
+            Please wait while your offer is being created and uploaded...
+          </Trans>
+        );
+      }
+      return splitNftOffers ? (
+        <Trans>Please wait while your offers are being created...</Trans>
+      ) : (
+        <Trans>Please wait while your offer is being created...</Trans>
+      );
+    }
+    return splitNftOffers ? (
+      <Trans>Please wait while your offers are being uploaded...</Trans>
+    ) : (
+      <Trans>Please wait while your offer is being uploaded...</Trans>
+    );
+  };
+
   const getProgressMessage = () => {
     if (isProcessing || isUploading) {
+      const offerNumber = currentOfferIndex + 1;
       if (currentStep === 'creating') {
         return (
           <Trans>
-            Creating offer {currentOfferIndex + 1} of {totalOffers}...
+            Creating offer {offerNumber} of {totalOffers}...
           </Trans>
         );
       } else if (currentStep === 'uploading') {
@@ -225,10 +262,11 @@ export function OfferCreationProgressDialog({
         );
         const currentMarketplace =
           enabledMarketplaceConfigs[currentMarketplaceIndex];
+        const marketplaceName = currentMarketplace.name;
         return (
           <Trans>
-            Uploading offer {currentOfferIndex + 1} of {totalOffers} to{' '}
-            {currentMarketplace.name}...
+            Uploading offer {offerNumber} of {totalOffers} to {marketplaceName}
+            ...
           </Trans>
         );
       }
@@ -268,45 +306,42 @@ export function OfferCreationProgressDialog({
           <DialogDescription>
             {isProcessing || isUploading ? (
               <div className='space-y-2'>
-                <p>
-                  <Trans>
-                    Please wait while{' '}
-                    {splitNftOffers ? 'your offers are' : 'your offer is'} being
-                    {currentStep === 'creating' ? ' created' : ' uploaded'}
-                    {currentStep === 'creating' &&
-                    Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                      ? ' and uploaded'
-                      : ''}
-                    ...
-                  </Trans>
-                </p>
+                <p>{getWaitMessage()}</p>
                 <p className='text-sm text-muted-foreground'>
                   {getProgressMessage()}
                 </p>
               </div>
             ) : createdOffers.length > 1 ? (
-              <Trans>
-                {createdOffers.length} offers have been created and imported
-                successfully
-                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                  ? ' and uploaded to the selected marketplaces'
-                  : ''}
-                . You will now be redirected to the offers page where you can
-                view the details of each offer.
-              </Trans>
+              uploadedToMarketplaces ? (
+                <Trans>
+                  {createdOfferCount} offers have been created and imported
+                  successfully and uploaded to the selected marketplaces. You
+                  will now be redirected to the offers page where you can view
+                  the details of each offer.
+                </Trans>
+              ) : (
+                <Trans>
+                  {createdOfferCount} offers have been created and imported
+                  successfully. You will now be redirected to the offers page
+                  where you can view the details of each offer.
+                </Trans>
+              )
             ) : isSwap ? (
               <Trans>
                 The offer to fulfill the swap has been created successfully. It
                 will now be executed on Dexie and imported on the offers page.
               </Trans>
+            ) : uploadedToMarketplaces ? (
+              <Trans>
+                Your offer has been created and imported successfully and
+                uploaded to the selected marketplaces. You will now be
+                redirected to the offers page where you can view its details.
+              </Trans>
             ) : (
               <Trans>
-                Your offer has been created and imported successfully
-                {Object.values(enabledMarketplaces ?? {}).some(Boolean)
-                  ? ' and uploaded to the selected marketplaces'
-                  : ''}
-                . You will now be redirected to the offers page where you can
-                view its details.
+                Your offer has been created and imported successfully. You will
+                now be redirected to the offers page where you can view its
+                details.
               </Trans>
             )}
           </DialogDescription>

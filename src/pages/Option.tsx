@@ -6,8 +6,11 @@ import Header from '@/components/Header';
 import { LabeledItem } from '@/components/LabeledItem';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useNetwork } from '@/hooks/useNetwork';
 import spacescanLogo from '@/images/spacescan-logo-192.png';
+import { offersEnabled } from '@/lib/features';
 import { formatTimestamp, getOfferStatus } from '@/lib/utils';
+import { spacescanCoinUrl } from '@/lib/urls';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -18,8 +21,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 export default function Option() {
   const { option_id: optionId } = useParams();
   const navigate = useNavigate();
+  const { network, isTestnet } = useNetwork();
   const [option, setOption] = useState<OptionRecord | null>(null);
-  const [network, setNetwork] = useState<string | null>(null);
   const [offersForAsset, setOffersForAsset] = useState<OfferRecord[]>([]);
 
   const updateOption = useCallback(() => {
@@ -57,15 +60,10 @@ export default function Option() {
     };
   }, [updateOption]);
 
-  useEffect(() => {
-    commands
-      .getNetwork({})
-      .then((data) => setNetwork(data.kind))
-      .catch((error) => console.error('Failed to get network:', error));
-  }, [setNetwork]);
-
   // Check for local offers when option loads
   useEffect(() => {
+    if (!offersEnabled) return;
+
     if (option?.launcher_id) {
       commands
         .getOffersForAsset({ asset_id: option.launcher_id })
@@ -207,7 +205,7 @@ export default function Option() {
             </Card>
           </div>
           {/* Local Offers Section */}
-          {offersForAsset.length > 0 && (
+          {offersEnabled && offersForAsset.length > 0 && (
             <Card className='mb-6'>
               <CardHeader className='pb-2'>
                 <CardTitle className='flex items-center gap-2'>
@@ -216,50 +214,51 @@ export default function Option() {
               </CardHeader>
               <CardContent>
                 <div className='grid gap-2'>
-                  {offersForAsset.map((localOffer) => (
-                    <div
-                      key={localOffer.offer_id}
-                      className='border rounded-lg p-3'
-                    >
-                      <div className='grid grid-cols-2 gap-4'>
-                        <div>
-                          <div className='text-sm font-medium mb-2'>
-                            <Trans>Local Offer</Trans>
-                          </div>
-                          <div className='text-sm text-muted-foreground'>
-                            <Trans>
-                              Status: {getOfferStatus(localOffer.status)}
-                            </Trans>
-                          </div>
-                          {localOffer.creation_timestamp && (
-                            <div className='text-sm text-muted-foreground'>
-                              <Trans>
-                                Created:{' '}
-                                {formatTimestamp(
-                                  localOffer.creation_timestamp,
-                                  'short',
-                                  'short',
-                                )}
-                              </Trans>
+                  {offersForAsset.map((localOffer) => {
+                    const offerStatus = getOfferStatus(localOffer.status);
+                    const createdAt = localOffer.creation_timestamp
+                      ? formatTimestamp(
+                          localOffer.creation_timestamp,
+                          'short',
+                          'short',
+                        )
+                      : '';
+                    return (
+                      <div
+                        key={localOffer.offer_id}
+                        className='border rounded-lg p-3'
+                      >
+                        <div className='grid grid-cols-2 gap-4'>
+                          <div>
+                            <div className='text-sm font-medium mb-2'>
+                              <Trans>Local Offer</Trans>
                             </div>
-                          )}
-                        </div>
-                        <div className='flex flex-col gap-1 justify-start'>
-                          <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => {
-                              navigate(
-                                `/offers/view_saved/${localOffer.offer_id}`,
-                              );
-                            }}
-                          >
-                            <Trans>View Local Offer</Trans>
-                          </Button>
+                            <div className='text-sm text-muted-foreground'>
+                              <Trans>Status: {offerStatus}</Trans>
+                            </div>
+                            {localOffer.creation_timestamp && (
+                              <div className='text-sm text-muted-foreground'>
+                                <Trans>Created: {createdAt}</Trans>
+                              </div>
+                            )}
+                          </div>
+                          <div className='flex flex-col gap-1 justify-start'>
+                            <Button
+                              variant='outline'
+                              size='sm'
+                              onClick={() => {
+                                navigate(
+                                  `/offers/view_saved/${localOffer.offer_id}`,
+                                );
+                              }}
+                            >
+                              <Trans>View Local Offer</Trans>
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -291,10 +290,7 @@ export default function Option() {
                 <Button
                   variant='outline'
                   onClick={() => {
-                    const baseUrl = network === 'testnet' ? 'testnet11.' : '';
-                    openUrl(
-                      `https://${baseUrl}spacescan.io/coin/${option.coin_id}`,
-                    );
+                    openUrl(spacescanCoinUrl(option.coin_id, isTestnet));
                   }}
                   disabled={!network || network === 'unknown'}
                 >

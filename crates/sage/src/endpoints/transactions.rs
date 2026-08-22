@@ -157,8 +157,15 @@ impl Sage {
         let wallet = self.wallet()?;
         let amount = parse_amount(req.amount)?;
         let fee = parse_amount(req.fee)?;
+        let hidden_puzzle_hash = if req.revocable {
+            Some(wallet.change_p2_puzzle_hash().await?)
+        } else {
+            None
+        };
 
-        let (coin_spends, asset_id) = wallet.issue_cat(amount, fee, None).await?;
+        let (coin_spends, asset_id) = wallet
+            .issue_cat_with_hidden_puzzle_hash(amount, fee, None, hidden_puzzle_hash)
+            .await?;
         let mut tx = wallet.db.tx().await?;
 
         tx.insert_asset(Asset {
@@ -170,7 +177,7 @@ impl Sage {
             description: None,
             is_sensitive_content: false,
             is_visible: true,
-            hidden_puzzle_hash: None,
+            hidden_puzzle_hash,
             kind: AssetKind::Token,
         })
         .await?;

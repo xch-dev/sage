@@ -71,9 +71,10 @@ export function SearchableSelect<T>({
       // Only clear search if it's not a valid manual input
       if (!validateManualInput || !validateManualInput(search)) {
         setSearch('');
+        onSearchChange?.('');
       }
     },
-    [onSelect, search, validateManualInput],
+    [onSelect, onSearchChange, search, validateManualInput],
   );
 
   const handleSearchChange = useCallback(
@@ -100,10 +101,11 @@ export function SearchableSelect<T>({
         // Clear search when closing, unless it's a valid manual input
         if (!validateManualInput || !validateManualInput(search)) {
           setSearch('');
+          onSearchChange?.('');
         }
       }
     },
-    [search, validateManualInput],
+    [onSearchChange, search, validateManualInput],
   );
 
   const defaultPlaceholder = t`Select item`;

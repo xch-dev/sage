@@ -9,6 +9,7 @@ import { PropsWithChildren } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { PasteInput } from './PasteInput';
+import { WalletAddressPicker } from './WalletAddressPicker';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -47,7 +48,8 @@ export function TransferDialog({
   const schema = z.object({
     address: z.string().min(1, t`Address is required`),
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -59,9 +61,11 @@ export function TransferDialog({
     },
   });
 
-  const { handleScanOrPaste } = useScannerOrClipboard((scanResValue) => {
-    form.setValue('address', scanResValue);
-  });
+  const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
+    (scanResValue) => {
+      form.setValue('address', scanResValue);
+    },
+  );
 
   const handler = (values: z.infer<typeof schema>) => {
     onSubmit(values.address, values.fee);
@@ -81,14 +85,20 @@ export function TransferDialog({
               name='address'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>
-                    <Trans>Address</Trans>
-                  </FormLabel>
+                  <div className='flex items-center justify-between'>
+                    <FormLabel>
+                      <Trans>Address</Trans>
+                    </FormLabel>
+                    <WalletAddressPicker
+                      onSelect={(address) => form.setValue('address', address)}
+                    />
+                  </div>
                   <FormControl>
                     <PasteInput
                       {...field}
                       placeholder={t`Enter address`}
                       onEndIconClick={handleScanOrPaste}
+                      onScanImage={handleScanImage}
                     />
                   </FormControl>
                   <FormMessage />

@@ -169,9 +169,8 @@ export function useDeepLink() {
 
     const initDeepLink = async () => {
       try {
-        const { getCurrent, onOpenUrl } = await import(
-          '@tauri-apps/plugin-deep-link'
-        );
+        const { getCurrent, onOpenUrl } =
+          await import('@tauri-apps/plugin-deep-link');
 
         if (!isMounted) return;
 

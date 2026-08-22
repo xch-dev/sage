@@ -1,18 +1,11 @@
-import { useInsets } from '@/contexts/SafeAreaContext';
-import { useWallet } from '@/contexts/WalletContext';
-import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ChevronLeft, Menu } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { PropsWithChildren, ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useTheme } from 'theme-o-rama';
-import { BottomNav, TopNav } from './Nav';
 import { Button } from './ui/button';
-import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { TooltipProvider } from './ui/tooltip';
-import { WalletSwitcher } from './WalletSwitcher';
+import { MobileNavSheet } from '@/components/MobileNavSheet.tsx';
 
 const headerPaginationVariants = {
   enter: { opacity: 1, x: 0 },
@@ -32,14 +25,9 @@ export default function Header(
 ) {
   const navigate = useNavigate();
   const location = useLocation();
-  const insets = useInsets();
-
-  const { wallet } = useWallet();
 
   const hasBackButton = props.back || location.pathname.split('/').length > 2;
   const isMobile = platform() === 'ios' || platform() === 'android';
-
-  const { currentTheme } = useTheme();
 
   return (
     <header
@@ -49,86 +37,7 @@ export default function Header(
       role='banner'
       style={props.style}
     >
-      <Sheet>
-        {hasBackButton ? (
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => (props.back ? props.back() : navigate(-1))}
-            className='md:hidden text-muted-foreground flex-shrink-0'
-            aria-label={t`Back`}
-          >
-            <ChevronLeft className='h-5 w-5 pb' aria-hidden='true' />
-          </Button>
-        ) : (
-          <SheetTrigger asChild>
-            <Button
-              variant='outline'
-              size='icon'
-              className='shrink-0 md:hidden'
-              aria-label={t`Toggle navigation menu`}
-              aria-expanded='false'
-              aria-haspopup='dialog'
-            >
-              <Menu className='h-5 w-5' aria-hidden='true' />
-            </Button>
-          </SheetTrigger>
-        )}
-        <SheetContent
-          side='left'
-          isMobile={isMobile}
-          className={`flex flex-col p-0 border-0 ${currentTheme?.backgroundImage ? 'bg-transparent' : ''}`}
-          role='dialog'
-          aria-label={t`Navigation menu`}
-          style={{
-            marginLeft: '-8px',
-            paddingTop:
-              insets.top !== 0
-                ? `${insets.top + 8}px`
-                : 'env(safe-area-inset-top)',
-            paddingBottom: insets.bottom
-              ? `${insets.bottom + 16}px`
-              : 'env(safe-area-inset-bottom)',
-            ...(currentTheme?.backgroundImage && {
-              backgroundImage: `url(${currentTheme.backgroundImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundAttachment: 'scroll',
-              backgroundColor: 'transparent',
-              transform: 'translateZ(0)',
-              willChange: 'transform',
-            }),
-          }}
-        >
-          <div
-            className={`flex flex-col h-full p-6 ${currentTheme?.sidebar ? '' : 'bg-muted/40'}`}
-            style={
-              currentTheme?.sidebar
-                ? {
-                    borderRight: '1px solid var(--sidebar-border)',
-                    background: 'var(--sidebar-background)',
-                    backdropFilter: 'var(--sidebar-backdrop-filter)',
-                    WebkitBackdropFilter:
-                      'var(--sidebar-backdrop-filter-webkit)',
-                  }
-                : {}
-            }
-          >
-            <div className='mt-4 mb-2'>
-              <TooltipProvider>
-                <WalletSwitcher wallet={wallet ?? undefined} />
-              </TooltipProvider>
-            </div>
-            <TopNav />
-            <div
-              className={`mt-auto grid gap-1 text-md font-medium font-body ${!isMobile ? 'pb-4' : ''}`}
-            >
-              <BottomNav />
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      <MobileNavSheet />
       <div className='flex-1 md:mt-1 flex items-center md:block'>
         <div className={`${!hasBackButton ? 'invisible' : ''}`}>
           <Button

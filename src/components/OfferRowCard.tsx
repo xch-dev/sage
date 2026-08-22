@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
@@ -41,13 +42,15 @@ interface OfferRowCardProps {
 
 export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
   const cancelSchema = z.object({
     fee: amount(walletState.sync.unit.precision).refine(
-      (amount) => BigNumber(walletState.sync.balance).gte(amount || 0),
+      (amount) =>
+        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
       t`Not enough funds to cover the fee`,
     ),
   });
@@ -123,7 +126,9 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                       e.stopPropagation();
                       setIsCancelOpen(true);
                     }}
-                    disabled={record.status !== 'active'}
+                    disabled={
+                      record.status !== 'active' || isTransactionDisabled
+                    }
                   >
                     <CircleOff className='mr-2 h-4 w-4' aria-hidden='true' />
                     <Trans>Cancel</Trans>

@@ -72,7 +72,7 @@ export default function ImportWallet() {
   function cleanKey(key: string) {
     return key
       .trim()
-      .replace(/[^a-z]/gi, ' ')
+      .replace(/[^a-z0-9]/gi, ' ')
       .split(/\s+/)
       .filter((item) => item.length > 0)
       .join(' ')

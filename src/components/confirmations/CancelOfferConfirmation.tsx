@@ -1,7 +1,8 @@
-import { OfferRecord, OfferSummary } from '@/bindings';
-import { Assets } from '@/components/Assets';
+import { commands, OfferRecord, OfferSummary } from '@/bindings';
+import { Assets, CatPresence } from '@/components/Assets';
 import { Trans } from '@lingui/react/macro';
 import { ArrowDownIcon, ArrowUpIcon, CircleOff } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { ConfirmationAlert } from './ConfirmationAlert';
 import { ConfirmationCard } from './ConfirmationCard';
 
@@ -15,6 +16,17 @@ export function CancelOfferConfirmation({
   fee,
 }: CancelOfferConfirmationProps) {
   const offerCount = offers.length;
+  const [catPresence, setCatPresence] = useState<CatPresence>({});
+
+  useEffect(() => {
+    commands.getCats({}).then((data) => {
+      const presence: CatPresence = {};
+      data.cats.forEach((cat) => {
+        presence[cat.asset_id ?? ''] = true;
+      });
+      setCatPresence(presence);
+    });
+  }, []);
   const isMultiple = offerCount > 1;
 
   return (
@@ -25,17 +37,22 @@ export function CancelOfferConfirmation({
         variant='warning'
       >
         {isMultiple ? (
-          <Trans>
-            You are canceling {offerCount} offers on-chain. This will prevent
-            them from being taken even if someone has the original offer files.
+          <>
+            <Trans>
+              You are canceling {offerCount} offers on-chain. This will prevent
+              them from being taken even if someone has the original offer
+              files.
+            </Trans>
             {fee && (
               <>
                 {' '}
-                The transaction fee of {fee} applies to each offer being
-                canceled.
+                <Trans>
+                  The transaction fee of {fee} applies to each offer being
+                  canceled.
+                </Trans>
               </>
             )}
-          </Trans>
+          </>
         ) : (
           <Trans>
             You are canceling this offer on-chain. This will prevent it from
@@ -48,13 +65,14 @@ export function CancelOfferConfirmation({
         {offers.map((offer, index) => {
           const summary = 'summary' in offer ? offer.summary : offer;
           const hasOfferId = 'offer_id' in offer;
+          const offerNumber = index + 1;
 
           return (
             // eslint-disable-next-line react/no-array-index-key
             <div key={index} className='space-y-2'>
               {isMultiple && (
                 <div className='text-xs font-medium text-muted-foreground sticky top-0 bg-background py-1'>
-                  <Trans>Offer {index + 1}</Trans>
+                  <Trans>Offer {offerNumber}</Trans>
                 </div>
               )}
 
@@ -91,7 +109,7 @@ export function CancelOfferConfirmation({
                   <div className='text-[10px] text-muted-foreground mb-2'>
                     <Trans>The assets you are offering.</Trans>
                   </div>
-                  <Assets assets={summary.maker} />
+                  <Assets assets={summary.maker} catPresence={catPresence} />
                 </ConfirmationCard>
 
                 <ConfirmationCard>
@@ -104,7 +122,7 @@ export function CancelOfferConfirmation({
                   <div className='text-[10px] text-muted-foreground mb-2'>
                     <Trans>The assets being requested.</Trans>
                   </div>
-                  <Assets assets={summary.taker} />
+                  <Assets assets={summary.taker} catPresence={catPresence} />
                 </ConfirmationCard>
               </div>
 

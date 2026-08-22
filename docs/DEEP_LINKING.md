@@ -10,10 +10,10 @@ Sage supports custom URL scheme deep linking via the `sage:` protocol. When a `s
 sage:<offer_string>[?fee=<fee_in_mojos>]
 ```
 
-| Parameter | Required | Description                                       |
-| --------- | -------- | ------------------------------------------------- |
-| `offer_string`     | Yes       | A valid Chia offer string starting with `offer1`|
-| `fee`     | No       | Network fee in mojos to prepopulate when taking the offer |
+| Parameter      | Required | Description                                               |
+| -------------- | -------- | --------------------------------------------------------- |
+| `offer_string` | Yes      | A valid Chia offer string starting with `offer1`          |
+| `fee`          | No       | Network fee in mojos to prepopulate when taking the offer |
 
 **Examples:**
 
@@ -91,7 +91,6 @@ The `sage:` URL scheme is automatically registered in the app's `Info.plist` dur
    ```
 
 2. **Install the app:**
-
    - Copy `src-tauri/target/release/bundle/macos/Sage.app` to `/Applications`
    - Or open the `.dmg` installer and drag to Applications
 
@@ -127,7 +126,6 @@ Registry entries are created at:
    ```
 
 2. **Install the app:**
-
    - Run the generated installer from `src-tauri/target/release/bundle/msi/` or `src-tauri/target/release/bundle/nsis/`
 
 3. **Test the deep link:**
@@ -162,7 +160,6 @@ On Linux, the URL scheme is registered via a `.desktop` file that includes `Mime
    ```
 
 2. **Install the app:**
-
    - For `.deb`: `sudo dpkg -i src-tauri/target/release/bundle/deb/sage_*.deb`
    - For AppImage: Use an AppImage launcher like [AppImageLauncher](https://github.com/TheAssassin/AppImageLauncher)
 
@@ -207,12 +204,10 @@ The URL scheme is automatically configured in the app's `Info.plist` during the 
    ```
 
 2. **Install on device/simulator:**
-
    - Use Xcode to install on a physical device or simulator
    - Or use TestFlight for distribution
 
 3. **Test the deep link:**
-
    - Open Safari and navigate to `sage:offer1qqr83wcuu...`
    - Or use the command line on a simulator:
 

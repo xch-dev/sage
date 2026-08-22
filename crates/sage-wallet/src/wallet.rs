@@ -67,10 +67,10 @@ impl Wallet {
         amount: u64,
         selected_coin_ids: &HashSet<Bytes32>,
     ) -> Result<Vec<Coin>, WalletError> {
-        let mut spendable_coins = self.db.selectable_xch_coins().await?;
-        spendable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
+        let mut selectable_coins = self.db.selectable_xch_coins().await?;
+        selectable_coins.retain(|coin| !selected_coin_ids.contains(&coin.coin_id()));
 
-        Ok(select_coins(spendable_coins, amount)?)
+        Ok(select_coins(selectable_coins, amount)?)
     }
 
     async fn select_cat_coins(
@@ -83,14 +83,14 @@ impl Wallet {
         cat_coins.retain(|cat| !selected_coin_ids.contains(&cat.coin.coin_id()));
 
         let mut cats = HashMap::new();
-        let mut spendable_coins = Vec::new();
+        let mut selectable_coins = Vec::new();
 
         for cat in cat_coins {
             cats.insert(cat.coin, cat);
-            spendable_coins.push(cat.coin);
+            selectable_coins.push(cat.coin);
         }
 
-        Ok(select_coins(spendable_coins, amount)?
+        Ok(select_coins(selectable_coins, amount)?
             .into_iter()
             .map(|coin| cats[&coin])
             .collect())
@@ -191,6 +191,17 @@ impl Wallet {
         spends: &mut Spends,
         actions: &[Action],
     ) -> Result<(), WalletError> {
+        self.select_spends_excluding(ctx, spends, actions, &[])
+            .await
+    }
+
+    pub async fn select_spends_excluding(
+        &self,
+        ctx: &mut SpendContext,
+        spends: &mut Spends,
+        actions: &[Action],
+        excluded_coin_ids: &[Bytes32],
+    ) -> Result<(), WalletError> {
         let mut deltas = Deltas::from_actions(actions);
 
         deltas.update(Id::Xch).input += spends.xch.selected_amount();
@@ -199,8 +210,9 @@ impl Wallet {
             deltas.update(id).input += cat.selected_amount();
         }
 
-        let selected_coin_ids: HashSet<Bytes32> =
+        let mut selected_coin_ids: HashSet<Bytes32> =
             spends.non_settlement_coin_ids().into_iter().collect();
+        selected_coin_ids.extend(excluded_coin_ids);
 
         for &id in deltas.ids() {
             let delta = deltas.get(&id).copied().unwrap_or_default();
@@ -209,7 +221,9 @@ impl Wallet {
             match id {
                 Id::New(_) => {}
                 Id::Xch => {
-                    if required_amount == 0 && !deltas.is_needed(&id) {
+                    if required_amount == 0
+                        && (!deltas.is_needed(&id) || spends.xch.selected_amount() > 0)
+                    {
                         continue;
                     }
 
@@ -223,7 +237,13 @@ impl Wallet {
                 }
                 Id::Existing(asset_id) => match self.db.asset_kind(asset_id).await? {
                     Some(AssetKind::Token) => {
-                        if required_amount == 0 && !deltas.is_needed(&id) {
+                        if required_amount == 0
+                            && (!deltas.is_needed(&id)
+                                || spends
+                                    .cats
+                                    .get(&id)
+                                    .is_some_and(|c| c.selected_amount() > 0))
+                        {
                             continue;
                         }
 
