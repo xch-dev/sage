@@ -212,7 +212,21 @@ pub fn run() {
         .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
 
-    let mut tauri_builder = tauri::Builder::default()
+    #[allow(unused_mut)]
+    let mut tauri_builder = tauri::Builder::default();
+
+    // The single instance plugin has to be registered before every other plugin
+    #[cfg(not(mobile))]
+    {
+        tauri_builder =
+            tauri_builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_focus();
+                }
+            }));
+    }
+
+    let mut tauri_builder = tauri_builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
@@ -223,14 +237,7 @@ pub fn run() {
         tauri_builder = tauri_builder
             .plugin(tauri_plugin_window_state::Builder::new().build())
             .plugin(tauri_plugin_fs::init())
-            .plugin(tauri_plugin_dialog::init())
-            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-                // Focus the main window when another instance is launched
-                // Deep link URLs are automatically forwarded by the plugin's "deep-link" feature
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.set_focus();
-                }
-            }));
+            .plugin(tauri_plugin_dialog::init());
     }
 
     #[cfg(mobile)]

@@ -176,24 +176,24 @@ export default function Send() {
     const address = searchParams.get('address');
     const amountMojos = searchParams.get('amount');
     const feeMojos = searchParams.get('fee');
-    const memo = searchParams.get('memo');
+    const memos = searchParams.get('memos');
 
     if (address) {
       form.setValue('address', address);
     }
-    if (amountMojos) {
-      const precision = asset?.precision ?? 12;
-      const amountDecimal = fromMojos(amountMojos, precision);
+
+    if (amountMojos && asset) {
+      const amountDecimal = fromMojos(amountMojos, asset.precision);
       form.setValue('amount', amountDecimal.toString());
     }
     if (feeMojos) {
       const feeDecimal = fromMojos(feeMojos, walletState.sync.unit.precision);
       form.setValue('fee', feeDecimal.toString());
     }
-    if (memo) {
-      form.setValue('memo', memo);
+    if (memos) {
+      form.setValue('memo', memos);
     }
-  }, [searchParams, asset?.precision, walletState.sync.unit.precision, form]);
+  }, [searchParams, asset, walletState.sync.unit.precision, form]);
 
   const { handleScanOrPaste, handleScanImage } = useScannerOrClipboard(
     (scanResValue) => {

@@ -19,7 +19,8 @@ interface AddressDeepLink {
   address: string;
   amount?: string;
   fee?: string;
-  memo?: string;
+  /** Named `memos` to match the `?memos=` query parameter the scheme accepts. */
+  memos?: string;
   assetId?: string;
 }
 
@@ -31,15 +32,16 @@ interface ParseResult {
 }
 
 function decodeQueryString(queryString: string): URLSearchParams {
-  let decoded = queryString;
-  if (queryString.includes('%')) {
-    try {
-      decoded = decodeURIComponent(queryString);
-    } catch {
-      // If decoding fails, use the original string
-    }
+  // Android's Intent system truncates a URL at the first literal `&`, so senders
+  // targeting Android encode the parameter separators as `%26` instead. Unescape
+  // those separators only when the string actually has that shape - blanket
+  // decoding a well-formed query string first would promote an encoded `&`, `+`
+  // or `%` *inside* a value (a memo, typically) into a structural character and
+  // silently corrupt it.
+  if (!queryString.includes('&') && queryString.includes('%26')) {
+    return new URLSearchParams(queryString.replace(/%26/g, '&'));
   }
-  return new URLSearchParams(decoded);
+  return new URLSearchParams(queryString);
 }
 
 function parseDeepLinkUrl(url: string): ParseResult {
@@ -58,12 +60,18 @@ function parseDeepLinkUrl(url: string): ParseResult {
   // Validate offer string: must start with offer1, be alphanumeric, and reasonable length
   // Chia offers are bech32m encoded, max ~10KB when compressed
   const MAX_OFFER_LENGTH = 15000;
+  const offerCandidate = /^[A-Z0-9]+$/.test(mainPart)
+    ? mainPart.toLowerCase()
+    : mainPart;
   if (
-    mainPart.startsWith('offer1') &&
-    mainPart.length <= MAX_OFFER_LENGTH &&
-    /^[a-z0-9]+$/.test(mainPart)
+    offerCandidate.startsWith('offer1') &&
+    offerCandidate.length <= MAX_OFFER_LENGTH &&
+    /^[a-z0-9]+$/.test(offerCandidate)
   ) {
-    const result: OfferDeepLink = { type: 'offer', offerString: mainPart };
+    const result: OfferDeepLink = {
+      type: 'offer',
+      offerString: offerCandidate,
+    };
 
     if (queryString) {
       const params = decodeQueryString(queryString);
@@ -85,14 +93,14 @@ function parseDeepLinkUrl(url: string): ParseResult {
       const params = decodeQueryString(queryString);
       const amount = params.get('amount');
       const fee = params.get('fee');
-      const memo = params.get('memos');
+      const memos = params.get('memos');
       const assetId = params.get('asset_id');
 
       // Validate amount and fee are positive integers (mojos)
       if (amount && /^\d+$/.test(amount)) result.amount = amount;
       if (fee && /^\d+$/.test(fee)) result.fee = fee;
       // Memo is freeform text but limit length to prevent abuse
-      if (memo && memo.length <= 1000) result.memo = memo;
+      if (memos && memos.length <= 1000) result.memos = memos;
       // CAT asset IDs are 32-byte hex strings
       if (assetId && /^[0-9a-fA-F]{64}$/.test(assetId)) {
         result.assetId = assetId.toLowerCase();
@@ -152,6 +160,59 @@ export function useDeepLink() {
       }
     };
 
+    const handleDeepLink = async (
+      deepLinkData: OfferDeepLink | AddressDeepLink,
+    ) => {
+      if (!isInitializedRef.current) {
+        await waitForWalletInit();
+      }
+
+      if (!isMounted) return;
+
+      // Only check wallet for valid deep links
+      if (!walletRef.current) {
+        toast.error(t`Please log into a wallet first`);
+        return;
+      }
+
+      if (deepLinkData.type === 'offer') {
+        let offerUrl = `/offers/view/${encodeURIComponent(deepLinkData.offerString)}`;
+        if (deepLinkData.fee) {
+          offerUrl += `?fee=${encodeURIComponent(deepLinkData.fee)}`;
+        }
+        navigateRef.current(offerUrl);
+        return;
+      }
+
+      let assetPathSegment = 'xch';
+
+      if (deepLinkData.assetId) {
+        const assetId = deepLinkData.assetId;
+        const { token } = await commands
+          .getToken({ asset_id: assetId })
+          .catch(() => ({ token: null }));
+
+        if (!isMounted) return;
+
+        if (!token) {
+          toast.error(t`Unknown asset ${assetId}: it isn't in your wallet`);
+          return;
+        }
+
+        assetPathSegment = assetId;
+      }
+
+      const params = new URLSearchParams();
+      params.set('address', deepLinkData.address);
+      if (deepLinkData.amount) params.set('amount', deepLinkData.amount);
+      if (deepLinkData.fee) params.set('fee', deepLinkData.fee);
+      if (deepLinkData.memos) params.set('memos', deepLinkData.memos);
+
+      navigateRef.current(
+        `/wallet/send/${assetPathSegment}?${params.toString()}`,
+      );
+    };
+
     const handleDeepLinkUrls = async (urls: string[]) => {
       for (const url of urls) {
         // Parse and validate URL first before checking wallet
@@ -160,63 +221,13 @@ export function useDeepLink() {
           if (error) {
             toast.error(t`Invalid deep link`);
           }
+          // Skip past unusable links to see if a later one is actionable
           continue;
         }
 
-        // The initial (cold-launch) URL can arrive before the wallet lookup
-        // has settled - wait for it so we don't report "not logged in"
-        // for a wallet that's simply still loading.
-        if (!isInitializedRef.current) {
-          await waitForWalletInit();
-        }
-
-        if (!isMounted) return;
-
-        // Only check wallet for valid deep links
-        if (!walletRef.current) {
-          toast.error(t`Please log into a wallet first`);
-          return;
-        }
-
-        if (deepLinkData.type === 'offer') {
-          let offerUrl = `/offers/view/${encodeURIComponent(deepLinkData.offerString)}`;
-          if (deepLinkData.fee) {
-            offerUrl += `?fee=${encodeURIComponent(deepLinkData.fee)}`;
-          }
-          navigateRef.current(offerUrl);
-          break;
-        }
-
-        if (deepLinkData.type === 'address') {
-          let assetPathSegment = 'xch';
-
-          if (deepLinkData.assetId) {
-            const assetId = deepLinkData.assetId;
-            const { token } = await commands
-              .getToken({ asset_id: assetId })
-              .catch(() => ({ token: null }));
-
-            if (!isMounted) return;
-
-            if (!token) {
-              toast.error(t`Unknown asset ${assetId}: it isn't in your wallet`);
-              return;
-            }
-
-            assetPathSegment = assetId;
-          }
-
-          const params = new URLSearchParams();
-          params.set('address', deepLinkData.address);
-          if (deepLinkData.amount) params.set('amount', deepLinkData.amount);
-          if (deepLinkData.fee) params.set('fee', deepLinkData.fee);
-          if (deepLinkData.memo) params.set('memo', deepLinkData.memo);
-
-          navigateRef.current(
-            `/wallet/send/${assetPathSegment}?${params.toString()}`,
-          );
-          break;
-        }
+        // The first actionable link wins - stop regardless of how it turned out
+        await handleDeepLink(deepLinkData);
+        return;
       }
     };
 

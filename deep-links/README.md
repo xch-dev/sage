@@ -49,7 +49,7 @@ If `asset_id` is present but the asset isn't held by the current wallet, the app
 sage:xch1abc123...?amount=1000000000000&fee=1000000&memos=Payment%20for%20services
 
 # Send a CAT instead of XCH
-sage:xch1abc123...?amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e1
+sage:xch1abc123...?amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e14
 ```
 
 ## Android URL Encoding Requirement
@@ -79,6 +79,12 @@ sage:xch1abc...?amount=1000000000000&fee=1000000&memos=hello
 ```
 
 The app handles both formats, but Android will truncate URLs with literal `&` before they reach the app.
+
+### How the app disambiguates the two formats
+
+The parser treats a query string as `%26`-separated **only** when it contains no literal `&`. A query string with any literal `&` is parsed as a normal URL, so an encoded `&`, `+`, or `%` inside a value (a memo, typically) survives intact.
+
+The consequence is that the `%26` form cannot carry a literal `&` inside a memo — every `%26` in that form is read as a separator. If a memo needs an `&`, use the literal-`&` separator form and accept that it won't work on Android.
 
 ## Platform-Specific Information
 
