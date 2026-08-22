@@ -4,6 +4,7 @@ import { t } from '@lingui/core/macro';
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { commands } from '../bindings';
 
 const SCHEME_PREFIX = 'sage:';
 
@@ -19,6 +20,7 @@ interface AddressDeepLink {
   amount?: string;
   fee?: string;
   memo?: string;
+  assetId?: string;
 }
 
 type DeepLinkData = OfferDeepLink | AddressDeepLink | null;
@@ -84,12 +86,17 @@ function parseDeepLinkUrl(url: string): ParseResult {
       const amount = params.get('amount');
       const fee = params.get('fee');
       const memo = params.get('memos');
+      const assetId = params.get('asset_id');
 
       // Validate amount and fee are positive integers (mojos)
       if (amount && /^\d+$/.test(amount)) result.amount = amount;
       if (fee && /^\d+$/.test(fee)) result.fee = fee;
       // Memo is freeform text but limit length to prevent abuse
       if (memo && memo.length <= 1000) result.memo = memo;
+      // CAT asset IDs are 32-byte hex strings
+      if (assetId && /^[0-9a-fA-F]{64}$/.test(assetId)) {
+        result.assetId = assetId.toLowerCase();
+      }
     }
 
     return { data: result };
@@ -110,25 +117,46 @@ function parseDeepLinkUrl(url: string): ParseResult {
  * - iOS/Android: Deep links are configured via the mobile section in tauri.conf.json
  *                and work after the app is installed.
  */
+// Cold-launch deep links are handled before WalletContext's async lookup
+// (commands.getKey) has necessarily resolved, so wait briefly for it to
+// settle rather than assuming "not logged in" the instant we see a null wallet.
+const WALLET_INIT_POLL_MS = 50;
+const WALLET_INIT_TIMEOUT_MS = 5000;
+
 export function useDeepLink() {
   const navigate = useNavigate();
-  const { wallet } = useWallet();
+  const { wallet, isInitialized } = useWallet();
 
   // Use refs so the effect doesn't re-run when these change
   const walletRef = useRef(wallet);
+  const isInitializedRef = useRef(isInitialized);
   const navigateRef = useRef(navigate);
 
   // Keep refs up to date
   useEffect(() => {
     walletRef.current = wallet;
+    isInitializedRef.current = isInitialized;
     navigateRef.current = navigate;
-  }, [wallet, navigate]);
+  }, [wallet, isInitialized, navigate]);
 
   useEffect(() => {
     let cleanup: (() => void) | null = null;
     let isMounted = true;
 
-    const handleDeepLinkUrls = (urls: string[]) => {
+    const waitForWalletInit = async () => {
+      const deadline = Date.now() + WALLET_INIT_TIMEOUT_MS;
+      while (
+        isMounted &&
+        !isInitializedRef.current &&
+        Date.now() < deadline
+      ) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, WALLET_INIT_POLL_MS),
+        );
+      }
+    };
+
+    const handleDeepLinkUrls = async (urls: string[]) => {
       for (const url of urls) {
         // Parse and validate URL first before checking wallet
         const { data: deepLinkData, error } = parseDeepLinkUrl(url);
@@ -138,6 +166,15 @@ export function useDeepLink() {
           }
           continue;
         }
+
+        // The initial (cold-launch) URL can arrive before the wallet lookup
+        // has settled - wait for it so we don't report "not logged in"
+        // for a wallet that's simply still loading.
+        if (!isInitializedRef.current) {
+          await waitForWalletInit();
+        }
+
+        if (!isMounted) return;
 
         // Only check wallet for valid deep links
         if (!walletRef.current) {
@@ -155,13 +192,33 @@ export function useDeepLink() {
         }
 
         if (deepLinkData.type === 'address') {
+          let assetPathSegment = 'xch';
+
+          if (deepLinkData.assetId) {
+            const assetId = deepLinkData.assetId;
+            const { token } = await commands
+              .getToken({ asset_id: assetId })
+              .catch(() => ({ token: null }));
+
+            if (!isMounted) return;
+
+            if (!token) {
+              toast.error(t`Unknown asset ${assetId}: it isn't in your wallet`);
+              return;
+            }
+
+            assetPathSegment = assetId;
+          }
+
           const params = new URLSearchParams();
           params.set('address', deepLinkData.address);
           if (deepLinkData.amount) params.set('amount', deepLinkData.amount);
           if (deepLinkData.fee) params.set('fee', deepLinkData.fee);
           if (deepLinkData.memo) params.set('memo', deepLinkData.memo);
 
-          navigateRef.current(`/wallet/send/xch?${params.toString()}`);
+          navigateRef.current(
+            `/wallet/send/${assetPathSegment}?${params.toString()}`,
+          );
           break;
         }
       }
