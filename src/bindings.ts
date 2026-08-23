@@ -422,6 +422,9 @@ async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> 
 async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
     return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
 },
+async appsReorderTaskbarRuntimes(params: ReorderTaskbarRuntimesParams) : Promise<null> {
+    return await TAURI_INVOKE("apps_reorder_taskbar_runtimes", { params });
+},
 async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
 },
@@ -2212,6 +2215,7 @@ name: string }
  * Response for key rename
  */
 export type RenameKeyResponse = Record<string, never>
+export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2278,7 +2282,7 @@ export type SageAppManifestVersion = number
 export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppPackageManifestPreview = { kind: "full"; manifest: SageAppPackageManifest } | { kind: "partial"; manifest_header: SageAppManifestHeaderV0; parse_error: string }
 export type SageAppRuntimeMode = "Inline" | "Windowed"
-export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
+export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; taskbarOrder: number; startedAt: number; lastActiveAt: number; internal: boolean }
 export type SageAppRuntimeVisibility = "Visible" | "Hidden"
 export type SageAppSnapshotView = { manifest: SageAppPackageManifest }
 export type SageAppUrl = string
