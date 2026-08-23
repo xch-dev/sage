@@ -6,9 +6,10 @@ use tauri::{AppHandle, Manager, State};
 use crate::{
     AppMutationManager, AppsHostState, CreateInstalledRuntimeArgs, ResolvedApp, Result, SageApp,
     SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate,
-    download_url_snapshot, emit_pending_update_changed, find_active_taskbar_runtime,
-    find_runtime_by_app_id_optional, fresh_snapshot_dir, get_sage_window, resolve_app,
-    resolve_stopped_app, start_app_update_runtime, start_user_app, write_snapshot_manifest,
+    download_url_snapshot, emit_listed_apps_changed, emit_pending_update_changed,
+    find_active_taskbar_runtime, find_runtime_by_app_id_optional, fresh_snapshot_dir,
+    get_sage_window, resolve_app, resolve_stopped_app, start_app_update_runtime, start_user_app,
+    write_snapshot_manifest,
 };
 
 pub(crate) async fn apply_app_update_inner(
@@ -58,6 +59,7 @@ pub(crate) async fn apply_app_update_inner(
     .await?;
 
     emit_pending_update_changed(app_handle, apps_state, &app).await;
+    emit_listed_apps_changed(app_handle, apps_state).await;
 
     if reopen_after_update.should_reopen
         && let Err(err) = start_user_app(
