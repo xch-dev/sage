@@ -1,7 +1,7 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKeyResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
     GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
     GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
     GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
@@ -55,10 +55,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKey>();
     types.register::<GetKeyResponse>();
     types.register::<GetXchUsdPriceResponse>();
-    types.register::<GetSecretKey>();
     types.register::<GetSecretKeyResponse>();
     types.register::<WalletGetPublicKeysParams>();
     types.register::<WalletGetPublicKeysResult>();

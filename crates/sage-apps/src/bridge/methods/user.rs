@@ -28,6 +28,8 @@ mod tests {
 
     #[test]
     fn chip0002_action_inputs_reject_unknown_top_level_fields() {
+        assert_unknown_field_rejected::<WalletGetKeyParams>(json!({ "fingerprint": 1 }));
+        assert_unknown_field_rejected::<WalletGetSecretKeyParams>(json!({ "fingerprint": 1 }));
         assert_unknown_field_rejected::<WalletGetPublicKeysParams>(json!({ "future": true }));
         assert_unknown_field_rejected::<WalletFilterUnlockedCoinsParams>(json!({
             "coinNames": ["coin-id"],
