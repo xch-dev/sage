@@ -58,6 +58,29 @@ pub(crate) async fn emit_user_runtime_event_to_listeners<T>(
 ) where
     T: UserRuntimeEvent,
 {
+    emit_user_runtime_event_to_listeners_inner(app_handle, apps_state, None, event).await;
+}
+
+pub(crate) async fn emit_user_runtime_event_to_wallet_listeners<T>(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    fingerprint: u32,
+    event: T,
+) where
+    T: UserRuntimeEvent,
+{
+    emit_user_runtime_event_to_listeners_inner(app_handle, apps_state, Some(fingerprint), event)
+        .await;
+}
+
+async fn emit_user_runtime_event_to_listeners_inner<T>(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    wallet_fingerprint: Option<u32>,
+    event: T,
+) where
+    T: UserRuntimeEvent,
+{
     let Ok(runtimes) = list_runtimes(apps_state).await else {
         return;
     };
@@ -74,7 +97,8 @@ pub(crate) async fn emit_user_runtime_event_to_listeners<T>(
                 return None;
             }
 
-            let can_receive = app.is_capability_granted(T::REQUIRED_CAPABILITY.into());
+            let can_receive = app.is_capability_granted(T::REQUIRED_CAPABILITY.into())
+                && wallet_fingerprint.is_none_or(|fingerprint| app.is_wallet_in_scope(fingerprint));
 
             Some((app.id(), can_receive))
         }) else {

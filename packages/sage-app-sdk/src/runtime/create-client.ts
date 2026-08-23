@@ -155,6 +155,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
+      onSelectedWalletChanged(handler) {
+        return onRuntimeEventType<Generated.SelectedWalletChangedEvent>(
+          'wallet.selectedWallet.changed',
+          handler,
+        );
+      },
+
       async sendTransaction(input: Generated.WalletSendTransactionParams) {
         return await callHost<Generated.WalletSendTransactionResult>(
           'wallet.sendTransaction',
