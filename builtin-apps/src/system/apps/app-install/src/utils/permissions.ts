@@ -22,6 +22,21 @@ export function installManifest(
   return source.preview.manifest.manifest;
 }
 
+export function hasRequiredPermissions(
+  manifest: SageAppPackageManifest,
+  definitions: SageAppCapabilityDefinitionView[],
+): boolean {
+  const permissions = initialGrantedPermissions(manifest, definitions);
+
+  return (
+    permissions.capabilities.length > 0 ||
+    (permissions.network?.whitelist?.length ?? 0) > 0 ||
+    Object.values(permissions.network?.whitelistByNetwork ?? {}).some(
+      (whitelist) => (whitelist?.length ?? 0) > 0,
+    )
+  );
+}
+
 export function buildPreviewApp(
   manifest: SageAppPackageManifest,
   grantedPermissions: SageGrantedPermissionsInput,
