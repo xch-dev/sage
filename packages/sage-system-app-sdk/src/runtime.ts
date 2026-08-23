@@ -337,6 +337,15 @@ export function initSageSystemRuntimeBridge(): boolean {
               input,
             );
           },
+
+          onDownloadProgress(
+            handler: (event: Generated.AppInstallDownloadProgressEvent) => void,
+          ) {
+            return onSystemRuntimeEventType<Generated.AppInstallDownloadProgressEvent>(
+              'appInstall.downloadProgress',
+              handler,
+            );
+          },
         },
 
         appUpdate: {

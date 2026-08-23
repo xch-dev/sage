@@ -57,6 +57,9 @@ export type SageSystemAppInstallClient = {
   installZip(
     input: Generated.AppInstallInstallZipParams,
   ): Promise<Generated.AppInstallInstallResult>;
+  onDownloadProgress(
+    handler: (event: Generated.AppInstallDownloadProgressEvent) => void,
+  ): () => void;
 };
 
 export type SageSystemAppUpdateClient = {

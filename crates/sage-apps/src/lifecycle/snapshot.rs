@@ -1,6 +1,7 @@
 use std::{
     fs,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use anyhow::{Context, Result as AnyResult, anyhow};
@@ -19,13 +20,14 @@ pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyR
         .error_for_status()
         .with_context(|| format!("request failed for {url}"))?;
 
-    read_response_bytes_with_limit(url, response, max_bytes).await
+    read_response_bytes_with_limit(url, response, max_bytes, |_| {}).await
 }
 
-async fn download_exact_bytes_with_client(
+async fn download_exact_bytes_with_client_and_progress(
     client: &SsrfGuardedClient,
     url: &str,
     expected_size: u64,
+    on_progress: &mut impl FnMut(u64),
 ) -> AnyResult<Vec<u8>> {
     let response = client
         .get(url)
@@ -33,7 +35,7 @@ async fn download_exact_bytes_with_client(
         .error_for_status()
         .with_context(|| format!("request failed for {url}"))?;
 
-    let bytes = read_response_bytes_with_limit(url, response, expected_size).await?;
+    let bytes = read_response_bytes_with_limit(url, response, expected_size, on_progress).await?;
 
     ensure_expected_size(url, &bytes, expected_size)?;
 
@@ -44,6 +46,7 @@ async fn read_response_bytes_with_limit(
     url: &str,
     response: reqwest::Response,
     max_bytes: u64,
+    mut on_progress: impl FnMut(u64),
 ) -> AnyResult<Vec<u8>> {
     if let Some(content_length) = response.content_length() {
         ensure_within_max_response_size(url, content_length, max_bytes)?;
@@ -68,6 +71,7 @@ async fn read_response_bytes_with_limit(
         ensure_within_max_response_size(url, received, max_bytes)?;
 
         bytes.extend_from_slice(&chunk);
+        on_progress(received);
     }
 
     Ok(bytes)
@@ -117,6 +121,23 @@ pub async fn download_url_snapshot(
     manifest: &SageAppPackageManifest,
     manifest_hash: &str,
 ) -> AnyResult<SageAppSnapshot> {
+    download_url_snapshot_with_progress(snapshot_dir, app_url, manifest, manifest_hash, |_| {})
+        .await
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SnapshotDownloadProgress {
+    pub downloaded_bytes: u64,
+    pub total_bytes: u64,
+}
+
+pub async fn download_url_snapshot_with_progress(
+    snapshot_dir: &Path,
+    app_url: &SageAppUrl,
+    manifest: &SageAppPackageManifest,
+    manifest_hash: &str,
+    on_progress: impl Fn(SnapshotDownloadProgress) + Send + Sync,
+) -> AnyResult<SageAppSnapshot> {
     if snapshot_dir.exists() {
         fs::remove_dir_all(snapshot_dir).with_context(|| {
             format!(
@@ -129,14 +150,40 @@ pub async fn download_url_snapshot(
     fs::create_dir_all(snapshot_dir)
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
+    let total_bytes = manifest.total_bytes();
+    let downloaded_bytes = AtomicU64::new(0);
+    on_progress(SnapshotDownloadProgress {
+        downloaded_bytes: 0,
+        total_bytes,
+    });
+
     let client = SsrfGuardedClient::default();
 
     stream::iter(manifest.files().to_vec())
         .map(|file| {
             let client = &client;
+            let downloaded_bytes = &downloaded_bytes;
+            let on_progress = &on_progress;
             async move {
                 let url = app_url.join(file.path())?;
-                let bytes = download_exact_bytes_with_client(client, &url, file.size()).await?;
+                let mut file_downloaded_bytes = 0u64;
+                let mut report_file_progress = |received: u64| {
+                    let delta = received.saturating_sub(file_downloaded_bytes);
+                    file_downloaded_bytes = received;
+                    let total_downloaded =
+                        downloaded_bytes.fetch_add(delta, Ordering::Relaxed) + delta;
+                    on_progress(SnapshotDownloadProgress {
+                        downloaded_bytes: total_downloaded.min(total_bytes),
+                        total_bytes,
+                    });
+                };
+                let bytes = download_exact_bytes_with_client_and_progress(
+                    client,
+                    &url,
+                    file.size(),
+                    &mut report_file_progress,
+                )
+                .await?;
 
                 ensure_expected_hash(file.path(), &bytes, file.sha256())?;
 

@@ -222,6 +222,36 @@ where
     .await
 }
 
+pub(crate) fn emit_system_runtime_event_to_app<T>(
+    app_handle: &AppHandle,
+    app: &SharedSageApp,
+    event: T,
+) -> Result<(), String>
+where
+    T: SystemRuntimeEvent,
+{
+    if !app.is_system_app() {
+        return Err(format!("app {} is not a system app", app.id()));
+    }
+
+    if !app.is_capability_granted(T::REQUIRED_CAPABILITY.into()) {
+        return Err(format!(
+            "app {} is missing required capability {}",
+            app.id(),
+            T::REQUIRED_CAPABILITY.key(),
+        ));
+    }
+
+    let webview_label = app.webview_label();
+    get_webview_in_sage_window(app_handle, &webview_label)?
+        .emit_to(
+            webview_label.as_str(),
+            AppRuntimeEventRail::System.event_name(),
+            runtime_event(T::TYPE, event),
+        )
+        .map_err(|err| format!("failed to emit runtime event: {err}"))
+}
+
 pub(crate) fn emit_user_runtime_event_to_sage_webview<T>(
     app_handle: &AppHandle,
     event: T,
