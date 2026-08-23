@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "ios-app-webview-controls",
+  "webviews": ["main"],
+  "platforms": ["iOS"],
+  "permissions": [
+    "sage:allow-set-webview-bounds",
+    "sage:allow-snapshot-webview"
+  ]
+}

@@ -93,8 +93,7 @@ function ThemeAwareToastContainer() {
 }
 
 const currentPlatform = platform();
-const supportsSageApps =
-  currentPlatform !== 'android' && currentPlatform !== 'ios';
+const supportsSageApps = currentPlatform !== 'android';
 
 const router = createHashRouter(
   createRoutesFromElements(

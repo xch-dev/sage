@@ -40,7 +40,10 @@ export function AppModalShell({
 }: AppModalShellProps) {
   const bodyRef = useRef<HTMLElement | null>(null);
   const [scrolledToEnd, setScrolledToEnd] = useState(!requireScrollEnd);
-  const isLinux = platform() === 'linux';
+  const currentPlatform = platform();
+  const isLinux = currentPlatform === 'linux';
+  const isIos = currentPlatform === 'ios';
+  const hasFooter = Boolean(footer);
 
   const updateScrolledToEnd = useCallback(() => {
     if (!requireScrollEnd) {
@@ -72,11 +75,14 @@ export function AppModalShell({
   return (
     <SystemModalShell
       contentClassName={['p-0 overflow-hidden', contentClassName].join(' ')}
+      fixedContentHeight={isIos && hasFooter}
     >
       <div
         className={[
           'flex min-h-0 flex-col',
-          isLinux ? 'h-full' : 'max-h-[min(620px,72vh)]',
+          isLinux || (isIos && hasFooter)
+            ? 'h-full'
+            : 'max-h-[min(620px,72vh)]',
           className,
         ].join(' ')}
       >
@@ -107,8 +113,7 @@ export function AppModalShell({
           ref={bodyRef}
           onScroll={updateScrolledToEnd}
           className={[
-            'min-h-0 overflow-auto',
-            isLinux ? 'flex-1' : '',
+            'min-h-0 flex-1 overflow-auto overscroll-contain',
             bodyPadded ? 'px-6 py-5' : '',
             requireScrollEnd ? 'pb-10' : '',
             bodyClassName,

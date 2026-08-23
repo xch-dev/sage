@@ -13,7 +13,7 @@ import { useApps } from '@/contexts/AppsContext.tsx';
 import { Plus } from 'lucide-react';
 import { AppsPageActionsMenu } from '@/components/apps/AppsPageActionsMenu';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppTile } from '@/components/apps/AppTile';
+import { AppTile, type AppTilePressPoint } from '@/components/apps/AppTile';
 import { formatAppError } from '@/lib/apps/formatAppError.ts';
 import { openAppPermissionsReview } from '@/lib/apps/openAppUpdate.ts';
 
@@ -175,6 +175,35 @@ export function AppsLaunchpad() {
       return null;
     });
   }, []);
+
+  const openContextMenu = useCallback(
+    (app: InstalledEntry, point: AppTilePressPoint) => {
+      const pageEl = pageRef.current;
+      if (!pageEl) {
+        return;
+      }
+
+      const pageRect = pageEl.getBoundingClientRect();
+      const position = clampContextMenuPosition({
+        x: point.clientX - pageRect.left,
+        y: point.clientY - pageRect.top,
+        containerWidth: pageRect.width,
+        containerHeight: pageRect.height,
+      });
+
+      setClearDataErrorByAppId((prev) => ({
+        ...prev,
+        [app.common.identity.id]: null,
+      }));
+
+      setContextMenu({
+        app,
+        x: position.x,
+        y: position.y,
+      });
+    },
+    [],
+  );
 
   async function handleCheckForUpdate(appId: string) {
     setUpdateCheckStateByAppId((prev) => ({
@@ -410,35 +439,9 @@ export function AppsLaunchpad() {
                 }}
                 onContextMenu={(event) => {
                   event.preventDefault();
-
-                  const pageEl = pageRef.current;
-                  if (!pageEl) {
-                    return;
-                  }
-
-                  const pageRect = pageEl.getBoundingClientRect();
-
-                  const localX = event.clientX - pageRect.left;
-                  const localY = event.clientY - pageRect.top;
-
-                  const position = clampContextMenuPosition({
-                    x: localX,
-                    y: localY,
-                    containerWidth: pageRect.width,
-                    containerHeight: pageRect.height,
-                  });
-
-                  setClearDataErrorByAppId((prev) => ({
-                    ...prev,
-                    [app.common.identity.id]: null,
-                  }));
-
-                  setContextMenu({
-                    app,
-                    x: position.x,
-                    y: position.y,
-                  });
+                  openContextMenu(app, event);
                 }}
+                onLongPress={(point) => openContextMenu(app, point)}
               />
             ))}
           </div>

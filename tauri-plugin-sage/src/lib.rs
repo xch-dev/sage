@@ -34,11 +34,27 @@ impl<R: Runtime, T: Manager<R>> crate::SageExt<R> for T {
 
 /// Initializes the plugin.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("sage")
-        .invoke_handler(tauri::generate_handler![
-            commands::is_ndef_available,
-            commands::get_ndef_payloads
-        ])
+    let builder = Builder::new("sage").invoke_handler(tauri::generate_handler![
+        commands::is_ndef_available,
+        commands::get_ndef_payloads,
+        commands::set_webview_bounds,
+        commands::snapshot_webview,
+    ]);
+
+    #[cfg(target_os = "ios")]
+    let builder = builder.on_webview_ready(|webview| {
+        let label = webview.label().to_string();
+
+        if !models::is_sage_app_webview_label(&label) {
+            return;
+        }
+
+        let _ = webview.with_webview(move |native| {
+            mobile::register_webview(native.inner().cast_const(), &label);
+        });
+    });
+
+    builder
         .setup(|app, api| {
             #[cfg(mobile)]
             let sage = mobile::init(app, api)?;

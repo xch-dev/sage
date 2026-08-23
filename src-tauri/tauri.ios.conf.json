@@ -1,8 +1,11 @@
 {
   "build": {
-    "beforeBuildCommand": "pnpm run build:frontend"
+    "beforeDevCommand": "pnpm run dev:ios",
+    "beforeBuildCommand": "pnpm run build:ios"
   },
   "bundle": {
-    "resources": []
+    "resources": {
+      "../builtin-apps/build/dist": "builtin-apps"
+    }
   }
 }

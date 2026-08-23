@@ -6,5 +6,13 @@ async function isNdefAvailable() {
 async function getNdefPayloads() {
     return await invoke('plugin:sage|get_ndef_payloads').then((r) => r.payloads);
 }
+async function setWebviewBounds(bounds) {
+    await invoke('plugin:sage|set_webview_bounds', { request: bounds });
+}
+async function snapshotWebview(label, width = 360) {
+    return await invoke('plugin:sage|snapshot_webview', {
+        request: { label, width },
+    }).then((response) => response.dataUrl);
+}
 
-export { getNdefPayloads, isNdefAvailable };
+export { getNdefPayloads, isNdefAvailable, setWebviewBounds, snapshotWebview };

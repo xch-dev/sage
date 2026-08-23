@@ -8,8 +8,8 @@ use crate::{
     AppsHostState, RuntimeTargetParams, SageAppRuntimeRecord, SageAppRuntimeRecordView,
     SystemKillRuntimeResult, clear_active_taskbar_runtime, enter_apps_workspace,
     focus_taskbar_runtime, get_runtime_by_app_id, get_webview_in_sage_window, kill_taskbar_runtime,
-    leave_apps_workspace, list_runtimes, start_app_install_runtime, start_app_update_runtime,
-    start_donation_runtime, start_sandbox_tests_runtime, start_user_app,
+    leave_apps_workspace, list_runtimes, set_modal_runtimes_suspended, start_app_install_runtime,
+    start_app_update_runtime, start_donation_runtime, start_sandbox_tests_runtime, start_user_app,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -66,6 +66,12 @@ pub struct CreateInstalledRuntimeArgs {
 #[serde(rename_all = "camelCase")]
 pub struct WindowTargetParams {
     pub window_label: String,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct SetModalRuntimesSuspendedArgs {
+    pub suspended: bool,
 }
 
 impl StartAppUpdateMode {
@@ -183,6 +189,16 @@ pub async fn apps_clear_active_taskbar_runtime(
     params: WindowTargetParams,
 ) -> Result<(), String> {
     clear_active_taskbar_runtime(&app, &apps_state, &params.window_label).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_set_modal_runtimes_suspended(
+    app: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+    args: SetModalRuntimesSuspendedArgs,
+) -> Result<(), String> {
+    set_modal_runtimes_suspended(&app, &apps_state, args.suspended).await
 }
 
 #[tauri::command]

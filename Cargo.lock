@@ -6713,7 +6713,7 @@ dependencies = [
  "specta",
  "specta-typescript",
  "tauri",
- "tauri-build",
+ "tauri-build 2.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "tauri-plugin-barcode-scanner",
  "tauri-plugin-biometric",
  "tauri-plugin-clipboard-manager",
@@ -7713,8 +7713,7 @@ checksum = "df7f62577c25e07834649fc3b39fafdc597c0a3527dc1c60129201ccfcbaa50c"
 [[package]]
 name = "tauri"
 version = "2.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "463ae8677aa6d0f063a900b9c41ecd4ac2b7ca82f0b058cc4491540e55b20129"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "anyhow",
  "bytes",
@@ -7747,7 +7746,7 @@ dependencies = [
  "serialize-to-javascript",
  "specta",
  "swift-rs",
- "tauri-build",
+ "tauri-build 2.5.5 (git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd)",
  "tauri-macros",
  "tauri-runtime",
  "tauri-runtime-wry",
@@ -7785,10 +7784,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "tauri-build"
+version = "2.5.5"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
+dependencies = [
+ "anyhow",
+ "cargo_toml",
+ "dirs 6.0.0",
+ "glob",
+ "heck 0.5.0",
+ "json-patch",
+ "schemars 0.8.22",
+ "semver",
+ "serde",
+ "serde_json",
+ "tauri-utils",
+ "tauri-winres",
+ "toml 0.9.8",
+ "walkdir",
+]
+
+[[package]]
 name = "tauri-codegen"
 version = "2.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aac423e5859d9f9ccdd32e3cf6a5866a15bedbf25aa6630bcb2acde9468f6ae3"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "base64 0.22.1",
  "brotli",
@@ -7814,8 +7833,7 @@ dependencies = [
 [[package]]
 name = "tauri-macros"
 version = "2.5.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b6a1bd2861ff0c8766b1d38b32a6a410f6dc6532d4ef534c47cfb2236092f59"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -7985,6 +8003,7 @@ name = "tauri-plugin-sage"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "swift-rs",
  "tauri",
  "tauri-plugin",
  "thiserror 1.0.69",
@@ -8023,7 +8042,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime"
 version = "2.10.0"
-source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "cookie",
  "dpi",
@@ -8047,7 +8066,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime-wry"
 version = "2.10.0"
-source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "gtk",
  "http",
@@ -8101,7 +8120,7 @@ dependencies = [
 [[package]]
 name = "tauri-utils"
 version = "2.8.2"
-source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
+source = "git+https://github.com/Hadamcik/tauri.git?rev=202cd184f878b144dd37aaa50886281d14abebfd#202cd184f878b144dd37aaa50886281d14abebfd"
 dependencies = [
  "anyhow",
  "brotli",

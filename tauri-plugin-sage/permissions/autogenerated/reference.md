@@ -67,4 +67,56 @@ Denies the is_ndef_available command without any pre-configured scope.
 
 </td>
 </tr>
+
+<tr>
+<td>
+
+`sage:allow-set-webview-bounds`
+
+</td>
+<td>
+
+Enables the set_webview_bounds command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:deny-set-webview-bounds`
+
+</td>
+<td>
+
+Denies the set_webview_bounds command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:allow-snapshot-webview`
+
+</td>
+<td>
+
+Enables the snapshot_webview command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`sage:deny-snapshot-webview`
+
+</td>
+<td>
+
+Denies the snapshot_webview command without any pre-configured scope.
+
+</td>
+</tr>
 </table>

@@ -4,10 +4,11 @@ use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
 
 use crate::{
     AppPresentation, AppsHostState, ResolvedRunningApp, SageAppRuntimeRecord,
-    SageAppRuntimeVisibility, SharedRuntime, emit_active_taskbar_runtime_changed,
-    emit_runtime_manager_runtimes_changed, ensure_apps_workspace_active,
-    find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, get_sage_window,
-    get_webview_in_sage_window, kill_runtime_inner, list_runtimes, resolve_running_app,
+    SageAppRuntimeVisibility, SharedRuntime, are_modal_runtimes_suspended,
+    emit_active_taskbar_runtime_changed, emit_runtime_manager_runtimes_changed,
+    ensure_apps_workspace_active, find_active_taskbar_runtime, find_runtime_by_runtime_id_optional,
+    get_sage_window, get_webview_in_sage_window, is_apps_workspace_active, kill_runtime_inner,
+    list_runtimes, resolve_running_app, write_modal_runtimes_suspended,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -200,6 +201,28 @@ pub(crate) async fn clear_active_taskbar_runtime(
     Ok(())
 }
 
+pub(crate) async fn set_modal_runtimes_suspended(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    suspended: bool,
+) -> Result<(), String> {
+    write_modal_runtimes_suspended(apps_state, suspended).await;
+
+    if !is_apps_workspace_active(apps_state).await {
+        return Ok(());
+    }
+
+    let sage_window = get_sage_window(app_handle)?;
+    let mut changes = RuntimeChangeSet::default();
+
+    sync_modal_runtime_visibility(app_handle, apps_state, sage_window.label(), &mut changes)
+        .await?;
+
+    changes.emit(app_handle, apps_state).await;
+
+    Ok(())
+}
+
 pub(crate) async fn kill_taskbar_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
@@ -328,11 +351,15 @@ pub(crate) async fn sync_modal_runtime_visibility(
         });
     }
 
-    let winner_runtime_id = candidates
-        .iter()
-        .filter(|candidate| candidate.eligible)
-        .max_by_key(|candidate| candidate.priority)
-        .map(|candidate| candidate.runtime_id.clone());
+    let winner_runtime_id = if are_modal_runtimes_suspended(apps_state).await {
+        None
+    } else {
+        candidates
+            .iter()
+            .filter(|candidate| candidate.eligible)
+            .max_by_key(|candidate| candidate.priority)
+            .map(|candidate| candidate.runtime_id.clone())
+    };
 
     for candidate in candidates {
         let should_show = Some(candidate.runtime_id.clone()) == winner_runtime_id;

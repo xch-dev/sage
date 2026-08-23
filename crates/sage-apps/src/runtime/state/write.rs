@@ -35,11 +35,29 @@ pub(crate) async fn write_pending_stop_ready(
 }
 
 pub(crate) async fn activate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
-    let mut active = apps_state.runtime.apps_workspace_active.write().await;
-    *active = true;
+    {
+        let mut active = apps_state.runtime.apps_workspace_active.write().await;
+        *active = true;
+    }
+
+    let mut suspended = apps_state.runtime.modal_runtimes_suspended.write().await;
+    *suspended = false;
 }
 
 pub(crate) async fn deactivate_apps_workspace(apps_state: &State<'_, AppsHostState>) {
-    let mut active = apps_state.runtime.apps_workspace_active.write().await;
-    *active = false;
+    {
+        let mut active = apps_state.runtime.apps_workspace_active.write().await;
+        *active = false;
+    }
+
+    let mut suspended = apps_state.runtime.modal_runtimes_suspended.write().await;
+    *suspended = false;
+}
+
+pub(crate) async fn write_modal_runtimes_suspended(
+    apps_state: &State<'_, AppsHostState>,
+    value: bool,
+) {
+    let mut suspended = apps_state.runtime.modal_runtimes_suspended.write().await;
+    *suspended = value;
 }

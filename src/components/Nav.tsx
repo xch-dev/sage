@@ -115,7 +115,7 @@ export function TopNav({ isCollapsed }: NavProps) {
       >
         <ArrowDownUp className={className} />
       </NavLink>
-      {!isMobile && (
+      {(!isMobile || isIos) && (
         <NavLink
           url={'/apps'}
           isCollapsed={isCollapsed}

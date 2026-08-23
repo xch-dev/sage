@@ -6,7 +6,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
-#[cfg(not(mobile))]
+#[cfg(any(not(mobile), target_os = "ios"))]
 use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
@@ -15,10 +15,10 @@ mod app_state;
 mod commands;
 mod error;
 
-#[cfg(not(mobile))]
+#[cfg(any(not(mobile), target_os = "ios"))]
 use sage_apps as apps;
 
-#[cfg(not(mobile))]
+#[cfg(any(not(mobile), target_os = "ios"))]
 use sage_apps::{
     AppsHostState, handle_system_app_protocol_request, handle_user_app_protocol_request,
 };
@@ -154,7 +154,7 @@ macro_rules! sage_commands {
     };
 }
 
-#[cfg(not(mobile))]
+#[cfg(any(not(mobile), target_os = "ios"))]
 fn specta_builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
@@ -177,6 +177,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_list_runtimes,
             apps::apps_focus_taskbar_runtime,
             apps::apps_clear_active_taskbar_runtime,
+            apps::apps_set_modal_runtimes_suspended,
             apps::apps_kill_taskbar_runtime,
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
@@ -203,10 +204,10 @@ pub fn run() {
         .install_default()
         .expect("could not install AWS LC provider");
 
-    #[cfg(not(mobile))]
+    #[cfg(any(not(mobile), target_os = "ios"))]
     let builder = specta_builder();
 
-    #[cfg(mobile)]
+    #[cfg(target_os = "android")]
     let builder = Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![])
@@ -221,8 +222,12 @@ pub fn run() {
     {
         tauri_builder = tauri_builder
             .plugin(tauri_plugin_window_state::Builder::new().build())
-            .plugin(tauri_plugin_fs::init())
-            .plugin(tauri_plugin_dialog::init());
+            .plugin(tauri_plugin_fs::init());
+    }
+
+    #[cfg(any(not(mobile), target_os = "ios"))]
+    {
+        tauri_builder = tauri_builder.plugin(tauri_plugin_dialog::init());
     }
 
     #[cfg(mobile)]
@@ -235,7 +240,7 @@ pub fn run() {
             .plugin(tauri_plugin_sage::init());
     }
 
-    #[cfg(not(mobile))]
+    #[cfg(any(not(mobile), target_os = "ios"))]
     {
         tauri_builder = tauri_builder
             .register_asynchronous_uri_scheme_protocol(
@@ -282,7 +287,7 @@ pub fn run() {
             app.manage(RpcTask(Mutex::new(None)));
             app.manage(app_state);
 
-            #[cfg(not(mobile))]
+            #[cfg(any(not(mobile), target_os = "ios"))]
             {
                 let bundled_builtin_apps = app
                     .path()

@@ -11,5 +11,8 @@ tauri = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 
+[target.'cfg(target_os = "ios")'.dependencies]
+swift-rs = "1.0.7"
+
 [build-dependencies]
 tauri-plugin = { workspace = true, features = ["build"] }
