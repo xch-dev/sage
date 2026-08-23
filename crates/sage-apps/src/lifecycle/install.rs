@@ -4,6 +4,7 @@ mod zip;
 
 pub use commands::*;
 
+pub(crate) use url::*;
 pub(crate) use zip::*;
 
 use std::{
