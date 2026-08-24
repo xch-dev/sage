@@ -11,6 +11,10 @@ pub(crate) trait BridgeMethod: Send + Sync {
     fn name(&self) -> &'static str;
     fn capability(&self) -> BridgeMethodCapability;
 
+    fn deprecated_in_favor_of(&self) -> Option<&'static str> {
+        None
+    }
+
     fn approval_request(
         &self,
         ctx: BridgeContext<'_>,

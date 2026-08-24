@@ -57,6 +57,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request access to an additional network target after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
+        UserBridgeCapability::AppRequestPermissionGrants => CapabilityDefinition::new(
+            capability,
+            "Request additional permissions",
+            "Allows the app to request additional capabilities and network targets in one approval after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
         UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
             capability,
             "Read wallet key",

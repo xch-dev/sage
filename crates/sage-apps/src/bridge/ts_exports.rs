@@ -22,7 +22,8 @@ use crate::{
     ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
     ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult,
     RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
-    ResolveBridgeApprovalArgs, RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    RequestPermissionGrantsParams, RequestPermissionGrantsResult, ResolveBridgeApprovalArgs,
+    RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
     RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
     SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
     SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
@@ -49,6 +50,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<RequestCapabilityGrantResult>();
     types.register::<RequestNetworkWhitelistGrantParams>();
     types.register::<RequestNetworkWhitelistGrantResult>();
+    types.register::<RequestPermissionGrantsParams>();
+    types.register::<RequestPermissionGrantsResult>();
     types.register::<GrantedCapabilitiesChangeEvent>();
     types.register::<GrantedNetworkWhitelistChangeEvent>();
     types.register::<BeforeStopEvent>();

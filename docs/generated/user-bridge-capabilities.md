@@ -98,6 +98,20 @@ Allows the app to request access to an additional network target after installat
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `app.request_permission_grants`
+
+**Request additional permissions**
+
+Allows the app to request additional capabilities and network targets in one approval after installation.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_key`
 
 **Read wallet key**

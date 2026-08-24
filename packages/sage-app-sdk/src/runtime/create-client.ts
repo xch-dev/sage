@@ -118,6 +118,15 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async requestPermissionGrants(
+        input: Generated.RequestPermissionGrantsParams,
+      ) {
+        return await callHost<Generated.RequestPermissionGrantsResult>(
+          'app.requestPermissionGrants',
+          input,
+        );
+      },
+
       onGrantedCapabilitiesChange(handler) {
         return onRuntimeEventType<Generated.GrantedCapabilitiesChangeEvent>(
           'grantedCapabilitiesChange',

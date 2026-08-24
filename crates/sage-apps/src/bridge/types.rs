@@ -100,6 +100,28 @@ pub enum RustBridgeApprovalBody {
         #[serde(skip_serializing_if = "Option::is_none")]
         network_id: Option<String>,
     },
+    PermissionGrants {
+        capabilities: Vec<PermissionGrantCapabilityApproval>,
+
+        #[serde(rename = "networkWhitelist")]
+        network_whitelist: Vec<PermissionGrantNetworkTarget>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionGrantCapabilityApproval {
+    pub capability: UserBridgeCapability,
+    pub definition: SageAppCapabilityDefinitionView,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PermissionGrantNetworkTarget {
+    pub entry: SageNetworkWhitelistEntry,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub network_id: Option<String>,
 }
 
 pub(crate) struct BridgeOrigin {

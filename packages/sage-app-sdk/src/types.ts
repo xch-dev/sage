@@ -94,12 +94,17 @@ export type SageAppClient = {
   bridgeSend(input: SageBridgeSendPayload): Promise<Generated.BridgeSendResult>;
   getInfo(): Promise<Generated.AppGetInfoResult>;
   getCapabilities(): Promise<string[]>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestCapabilityGrant(
     input: Generated.RequestCapabilityGrantParams,
   ): Promise<Generated.RequestCapabilityGrantResult>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestNetworkWhitelistGrant(
     input: Generated.RequestNetworkWhitelistGrantParams,
   ): Promise<Generated.RequestNetworkWhitelistGrantResult>;
+  requestPermissionGrants(
+    input: Generated.RequestPermissionGrantsParams,
+  ): Promise<Generated.RequestPermissionGrantsResult>;
   onGrantedCapabilitiesChange(
     handler: (event: Generated.GrantedCapabilitiesChangeEvent) => void,
   ): () => void;
