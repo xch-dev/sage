@@ -189,27 +189,33 @@ pub(in crate::sandbox) async fn run_isolation_test(
         BUILTIN_STORAGE_ISOLATION_INCOGNITO_ID,
     ];
 
-    stop_test_apps(app, apps_state, &app_ids).await;
+    stop_test_apps(app, apps_state, &app_ids).await?;
 
     seed_host_isolation_probe(app, &run_id).await?;
 
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_STORAGE_ISOLATION_PERSISTENT_ID,
-        &[("runId", run_id.clone())],
-    )
-    .await?;
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_STORAGE_ISOLATION_INCOGNITO_ID,
-        &[("runId", run_id.clone())],
-    )
-    .await?;
+    let probe_result = async {
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_STORAGE_ISOLATION_PERSISTENT_ID,
+            &[("runId", run_id.clone())],
+        )
+        .await?;
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_STORAGE_ISOLATION_INCOGNITO_ID,
+            &[("runId", run_id.clone())],
+        )
+        .await?;
 
-    let results = poll_isolation(apps_state, &run_id, 2, 2_000).await?;
-    stop_test_apps(app, apps_state, &app_ids).await;
+        poll_isolation(apps_state, &run_id, 2, 2_000).await
+    }
+    .await;
+
+    let stop_result = stop_test_apps(app, apps_state, &app_ids).await;
+    let results = probe_result?;
+    stop_result?;
 
     let persistent = results
         .iter()
