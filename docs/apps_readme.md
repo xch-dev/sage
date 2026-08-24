@@ -79,6 +79,21 @@ Run:
 npm run sage:finalize
 ```
 
+To omit files that are not individually downloadable from the deployed app URL, add
+repeatable `--exclude <glob>` options to the finalize command. For example, a
+Cloudflare Pages deployment can omit its control files along with source maps:
+
+```json
+{
+  "scripts": {
+    "sage:finalize": "sage-app finalize-manifest --source ./sage-manifest.json --dist ./dist --exclude _headers --exclude _redirects --exclude \"**/*.map\""
+  }
+}
+```
+
+There are no default exclusions, and the CLI options are not copied to the finalized
+manifest.
+
 ---
 
 ## 5. Load into Sage

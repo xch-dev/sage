@@ -55,7 +55,11 @@
     "build": "pnpm run generate:types && tsup && cp src/theme/theme.css dist/theme.css && cp src/theme/theme-css.d.ts dist/theme-css.d.ts",
     "dev": "pnpm run generate:types && tsup --watch",
     "clean": "rm -rf dist",
+    "test": "node --test ./test/finalize-manifest.test.mjs",
     "prepack": "pnpm run build"
+  },
+  "dependencies": {
+    "picomatch": "^4.0.4"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

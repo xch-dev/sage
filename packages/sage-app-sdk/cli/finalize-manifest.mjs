@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import picomatch from 'picomatch';
 
 const MAX_MANIFEST_SIZE_BYTES = 1024 * 1024;
 const MAX_FILE_COUNT = 2000;
@@ -17,10 +18,13 @@ function printHelp() {
   console.log(
     `
 Usage:
-  sage-app finalize-manifest --source ./sage-manifest.json --dist ./dist [--out ./dist/sage-manifest.json]
+  sage-app finalize-manifest --source ./sage-manifest.json --dist ./dist [--out ./dist/sage-manifest.json] [--exclude <glob>]...
 
 Commands:
   finalize-manifest   Generate final sage-manifest.json from source manifest and built dist files
+
+Options:
+  --exclude <glob>    Exclude matching dist files; repeat for multiple globs
 `.trim(),
   );
 }
@@ -42,6 +46,7 @@ function parseArgs(argv) {
     source: null,
     dist: null,
     out: null,
+    exclude: [],
   };
 
   for (let i = 0; i < rest.length; i += 1) {
@@ -53,6 +58,12 @@ function parseArgs(argv) {
       args.dist = rest[++i] ?? null;
     } else if (arg === '--out') {
       args.out = rest[++i] ?? null;
+    } else if (arg === '--exclude') {
+      const pattern = rest[++i] ?? null;
+      if (!pattern) {
+        fail('Missing value for --exclude');
+      }
+      args.exclude.push(pattern);
     } else if (arg === '--help' || arg === '-h') {
       printHelp();
       process.exit(0);
@@ -83,7 +94,7 @@ function sha256File(filePath) {
   return hash.digest('hex');
 }
 
-function walkFiles(rootDir, currentDir = rootDir) {
+function walkFiles(rootDir, isExcluded, currentDir = rootDir) {
   const out = [];
   const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
@@ -91,7 +102,7 @@ function walkFiles(rootDir, currentDir = rootDir) {
     const abs = path.join(currentDir, entry.name);
 
     if (entry.isDirectory()) {
-      out.push(...walkFiles(rootDir, abs));
+      out.push(...walkFiles(rootDir, isExcluded, abs));
       continue;
     }
 
@@ -101,7 +112,11 @@ function walkFiles(rootDir, currentDir = rootDir) {
 
     const rel = path.relative(rootDir, abs).split(path.sep).join('/');
 
-    if (rel === 'manifest.json' || rel === 'sage-manifest.json') {
+    if (
+      rel === 'manifest.json' ||
+      rel === 'sage-manifest.json' ||
+      isExcluded(rel)
+    ) {
       continue;
     }
 
@@ -134,6 +149,10 @@ function validateSourceManifest(manifest) {
   ) {
     fail('Source manifest permissions must be an object if provided');
   }
+
+  if ('exclude' in manifest) {
+    fail('Source manifest exclude is not supported; use --exclude <glob>');
+  }
 }
 
 function main() {
@@ -159,7 +178,10 @@ function main() {
   const sourceManifest = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
   validateSourceManifest(sourceManifest);
 
-  const walked = walkFiles(distDir).sort((a, b) => a.rel.localeCompare(b.rel));
+  const isExcluded = picomatch(args.exclude, { dot: true });
+  const walked = walkFiles(distDir, isExcluded).sort((a, b) =>
+    a.rel.localeCompare(b.rel),
+  );
 
   if (walked.length === 0) {
     fail(`No files found in dist directory: ${distDir}`);
