@@ -11,7 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::Result as AnyResult;
+use anyhow::{Context, Result as AnyResult};
 use async_trait::async_trait;
 use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
@@ -53,6 +53,40 @@ struct ResolvedInstallTarget {
     app_dir: PathBuf,
     origin_id: String,
     storage: SageAppStorage,
+}
+
+struct InstallAppDirGuard {
+    app_dir: PathBuf,
+    keep: bool,
+}
+
+impl InstallAppDirGuard {
+    fn new(app_dir: PathBuf) -> Self {
+        Self {
+            app_dir,
+            keep: false,
+        }
+    }
+
+    fn keep(&mut self) {
+        self.keep = true;
+    }
+}
+
+impl Drop for InstallAppDirGuard {
+    fn drop(&mut self) {
+        if self.keep {
+            return;
+        }
+
+        if let Err(err) = remove_app_path_if_present(&self.app_dir) {
+            tracing::error!(
+                app_dir = %self.app_dir.display(),
+                error = %err,
+                "failed to clean up app directory after unsuccessful install"
+            );
+        }
+    }
 }
 
 pub async fn install_app_from_source<S>(
@@ -101,6 +135,9 @@ where
     let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
     ensure_installable_app_id(&app_id)?;
 
+    let operation_lock = host_state.inner().operation_lock_for_app(&app_id);
+    let _operation_guard = operation_lock.lock_owned().await;
+
     if host_state.db.app_exists(&app_id).await? {
         anyhow::bail!("App is already installed");
     }
@@ -114,6 +151,8 @@ where
         origin_id: origin_id.clone(),
         storage: registered_storage.storage.clone(),
     };
+
+    let mut app_dir_guard = prepare_install_app_dir(&target.app_dir)?;
 
     let installed = materialize_installed_app(
         source,
@@ -144,6 +183,7 @@ where
     }
 
     tx.commit().await?;
+    app_dir_guard.keep();
 
     Ok(installed)
 }
@@ -159,8 +199,6 @@ where
     S: AppInstallSource + Send + Sync,
 {
     let manifest = source.manifest(&prepared_artifact);
-
-    create_app_dir(&target.app_dir)?;
 
     let snapshot_dir = fresh_snapshot_dir(&target.app_dir);
     fs::create_dir_all(&snapshot_dir)?;
@@ -207,7 +245,9 @@ where
 
     let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
 
-    materialize_installed_app(
+    let mut app_dir_guard = prepare_install_app_dir(&app_dir)?;
+
+    let installed = materialize_installed_app(
         source,
         prepared_artifact,
         ResolvedInstallTarget {
@@ -219,7 +259,10 @@ where
         granted_permissions_input,
         SageAppWalletScope::AllWallets,
     )
-    .await
+    .await?;
+    app_dir_guard.keep();
+
+    Ok(installed)
 }
 
 pub fn fresh_origin_id(app_id: &str) -> String {
@@ -240,13 +283,41 @@ fn ensure_installable_app_id(app_id: &str) -> AnyResult<()> {
 }
 
 pub fn create_app_dir(app_dir: &Path) -> AnyResult<()> {
-    if app_dir.exists() {
-        anyhow::bail!("app directory already exists, cannot create");
+    if fs::symlink_metadata(app_dir).is_ok() {
+        tracing::warn!(
+            app_dir = %app_dir.display(),
+            "removing abandoned app directory before install"
+        );
+        remove_app_path_if_present(app_dir)?;
     }
 
-    fs::create_dir_all(app_dir)?;
+    fs::create_dir(app_dir)
+        .with_context(|| format!("failed to create app directory {}", app_dir.display()))?;
 
     Ok(())
+}
+
+fn prepare_install_app_dir(app_dir: &Path) -> AnyResult<InstallAppDirGuard> {
+    create_app_dir(app_dir)?;
+    Ok(InstallAppDirGuard::new(app_dir.to_path_buf()))
+}
+
+fn remove_app_path_if_present(app_dir: &Path) -> AnyResult<()> {
+    let metadata = match fs::symlink_metadata(app_dir) {
+        Ok(metadata) => metadata,
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+        Err(err) => {
+            return Err(err)
+                .with_context(|| format!("failed to inspect app directory {}", app_dir.display()));
+        }
+    };
+
+    if metadata.is_dir() {
+        fs::remove_dir_all(app_dir)
+    } else {
+        fs::remove_file(app_dir)
+    }
+    .with_context(|| format!("failed to remove app path {}", app_dir.display()))
 }
 
 #[cfg(test)]
@@ -399,6 +470,7 @@ mod tests {
         let app_id = "fake-app".to_string();
         let app_dir = apps_root(dir.path()).join(&app_id);
         let origin_id = fresh_origin_id(&app_id);
+        fs::create_dir_all(apps_root(dir.path())).unwrap();
 
         let granted = SageGrantedPermissionsInput::new(
             [UserBridgeCapability::StoragePersistentWebview],
@@ -416,6 +488,7 @@ mod tests {
         };
 
         let prepared_artifact = source.prepare().await.unwrap();
+        create_app_dir(&app_dir).unwrap();
 
         let installed = materialize_installed_app(
             source,
@@ -443,15 +516,85 @@ mod tests {
         assert_eq!(installed.source(), &UserSageAppSource::Zip);
     }
 
+    #[tokio::test]
+    async fn failed_materialization_removes_created_app_directory() {
+        let dir = tempdir().unwrap();
+        let app_id = "fake-app".to_string();
+        let app_dir = apps_root(dir.path()).join(&app_id);
+        fs::create_dir_all(apps_root(dir.path())).unwrap();
+
+        let invalid_grants = SageGrantedPermissionsInput::new(
+            [],
+            [SageNetworkWhitelistEntry::new_unchecked(
+                "https",
+                "not-requested.example.com",
+            )],
+            BTreeMap::new(),
+        );
+
+        install_app_from_source_for_test(
+            dir.path(),
+            invalid_grants,
+            FakeInstallSource {
+                manifest: sample_manifest(),
+                app_id,
+                source: UserSageAppSource::Zip,
+            },
+        )
+        .await
+        .expect_err("invalid grants should fail materialization");
+
+        assert!(!app_dir.exists());
+    }
+
+    #[tokio::test]
+    async fn install_retry_replaces_abandoned_app_directory() {
+        let dir = tempdir().unwrap();
+        let app_id = "fake-app".to_string();
+        let app_dir = apps_root(dir.path()).join(&app_id);
+        fs::create_dir_all(app_dir.join("snapshots/partial")).unwrap();
+        fs::write(app_dir.join("stale-marker"), "partial install").unwrap();
+
+        let granted = SageGrantedPermissionsInput::new(
+            [UserBridgeCapability::StoragePersistentWebview],
+            [SageNetworkWhitelistEntry::new_unchecked(
+                "https",
+                "api.example.com",
+            )],
+            BTreeMap::new(),
+        );
+
+        let installed = install_app_from_source_for_test(
+            dir.path(),
+            granted,
+            FakeInstallSource {
+                manifest: sample_manifest(),
+                app_id,
+                source: UserSageAppSource::Zip,
+            },
+        )
+        .await
+        .unwrap();
+
+        assert!(!app_dir.join("stale-marker").exists());
+        assert!(
+            Path::new(installed.common().active_snapshot().snapshot_dir())
+                .join("index.html")
+                .is_file()
+        );
+    }
+
     #[test]
-    fn create_app_dir_rejects_existing_directory() {
+    fn create_app_dir_replaces_existing_directory() {
         let dir = tempdir().unwrap();
         let app_dir = dir.path().join("fake-app");
 
         fs::create_dir_all(&app_dir).unwrap();
+        fs::write(app_dir.join("stale-marker"), "partial install").unwrap();
 
-        let err = create_app_dir(&app_dir).unwrap_err();
+        create_app_dir(&app_dir).unwrap();
 
-        assert!(err.to_string().contains("app directory already exists"));
+        assert!(app_dir.is_dir());
+        assert!(fs::read_dir(app_dir).unwrap().next().is_none());
     }
 }
