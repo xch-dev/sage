@@ -3,6 +3,15 @@ import type { SageAppIconView } from 'sage-system-app-sdk';
 
 export type DonationMode = 'usd' | 'xch';
 
+export interface DonationReview {
+  donationAddress: string;
+  amountMojos: string;
+  feeMojos: string;
+  amountXch: string;
+  feeXch: string;
+  approximateUsd: number | null;
+}
+
 export const DEFAULT_USD = '10';
 export const DEFAULT_XCH = '0.05';
 export const DEFAULT_FEE_XCH = '0.0001';
@@ -14,6 +23,33 @@ export function getTargetAppId() {
 
 export function xchToMojos(xch: number): string {
   return String(Math.floor(xch * 1_000_000_000_000));
+}
+
+export function mojosToXch(mojos: string): string {
+  const value = BigInt(mojos);
+  const whole = value / 1_000_000_000_000n;
+  const fraction = (value % 1_000_000_000_000n)
+    .toString()
+    .padStart(12, '0')
+    .replace(/0+$/, '');
+
+  return fraction ? `${whole}.${fraction}` : whole.toString();
+}
+
+export function createDonationReview(
+  donationAddress: string,
+  amountMojos: string,
+  feeMojos: string,
+  approximateUsd: number | null,
+): DonationReview {
+  return {
+    donationAddress,
+    amountMojos,
+    feeMojos,
+    amountXch: mojosToXch(amountMojos),
+    feeXch: mojosToXch(feeMojos),
+    approximateUsd,
+  };
 }
 
 export function parsePositiveNumber(value: string): number | null {

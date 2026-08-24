@@ -3,26 +3,37 @@ import {
   formatSageError,
   useSageSystemClient,
   type DonationDetails,
+  type EnvironmentGetNetworkResult,
 } from 'sage-system-app-sdk';
+import { CheckCircle2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AmountPicker } from './components/AmountPicker';
+import { DeveloperBadge } from './components/DeveloperBadge';
 import { DeveloperCard } from './components/DeveloperCard';
 import { FeeInput } from './components/FeeInput';
+import { MainnetRequired } from './components/MainnetRequired';
 import {
   appIconFromInline,
+  createDonationReview,
   DEFAULT_FEE_XCH,
   DEFAULT_USD,
   DEFAULT_XCH,
   getTargetAppId,
   parsePositiveNumber,
   type DonationMode,
+  type DonationReview,
   xchToMojos,
 } from './utils';
+
+type DonationStep = 'edit' | 'confirm' | 'complete';
 
 export function App() {
   const sage = useSageSystemClient();
 
   const [details, setDetails] = useState<DonationDetails | null>(null);
+  const [network, setNetwork] = useState<EnvironmentGetNetworkResult | null>(
+    null,
+  );
   const [mode, setMode] = useState<DonationMode>('usd');
   const [usdInput, setUsdInput] = useState(DEFAULT_USD);
   const [xchInput, setXchInput] = useState(DEFAULT_XCH);
@@ -32,6 +43,8 @@ export function App() {
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<DonationStep>('edit');
+  const [review, setReview] = useState<DonationReview | null>(null);
 
   const targetAppId = getTargetAppId();
 
@@ -58,10 +71,14 @@ export function App() {
           throw new Error('Missing donation target app id.');
         }
 
-        const next = await sage.donations.getDetails({ appId: targetAppId });
+        const [nextDetails, nextNetwork] = await Promise.all([
+          sage.donations.getDetails({ appId: targetAppId }),
+          sage.environment.getNetwork(),
+        ]);
 
         if (!disposed) {
-          setDetails(next);
+          setDetails(nextDetails);
+          setNetwork(nextNetwork);
         }
       } catch (err) {
         if (!disposed) {
@@ -82,6 +99,10 @@ export function App() {
   }, [sage, targetAppId]);
 
   useEffect(() => {
+    if (network?.kind !== 'mainnet') {
+      return;
+    }
+
     let disposed = false;
 
     async function load() {
@@ -109,7 +130,7 @@ export function App() {
     return () => {
       disposed = true;
     };
-  }, [sage]);
+  }, [sage, network?.kind]);
 
   const derived = useMemo(() => {
     if (mode === 'usd') {
@@ -160,15 +181,15 @@ export function App() {
     return feeXch ? xchToMojos(feeXch) : null;
   }, [feeInput]);
 
-  const canSend =
+  const canReview =
+    network?.kind === 'mainnet' &&
     !!details?.donationAddress &&
     !!derived.mojos &&
-    feeMojos !== null &&
-    !sending;
+    feeMojos !== null;
 
-  async function sendDonation() {
+  function reviewDonation() {
     if (
-      !canSend ||
+      !canReview ||
       !details?.donationAddress ||
       !derived.mojos ||
       feeMojos === null
@@ -176,18 +197,52 @@ export function App() {
       return;
     }
 
+    setError(null);
+    setReview(
+      createDonationReview(
+        details.donationAddress,
+        derived.mojos,
+        feeMojos,
+        derived.usd,
+      ),
+    );
+    setStep('confirm');
+  }
+
+  function editDonation() {
+    if (sending) return;
+
+    setError(null);
+    setReview(null);
+    setStep('edit');
+  }
+
+  async function sendDonation() {
+    if (sending || !review) {
+      return;
+    }
+
     setSending(true);
     setError(null);
 
     try {
+      const currentNetwork = await sage.environment.getNetwork();
+      setNetwork(currentNetwork);
+
+      if (currentNetwork.kind !== 'mainnet') {
+        setReview(null);
+        setStep('edit');
+        return;
+      }
+
       await sage.wallet.sendXch({
-        address: details.donationAddress,
-        amount: derived.mojos,
-        fee: feeMojos,
+        address: review.donationAddress,
+        amount: review.amountMojos,
+        fee: review.feeMojos,
         memos: [],
       });
 
-      await sage.runtimeManager.closeSelf();
+      setStep('complete');
     } catch (err) {
       setError(formatSageError(err));
     } finally {
@@ -232,29 +287,139 @@ export function App() {
     );
   }
 
+  const appIcon = appIconFromInline(details.appIcon);
+
+  if (network?.kind !== 'mainnet') {
+    return (
+      <MainnetRequired
+        details={details}
+        network={network}
+        onClose={() => void sage.runtimeManager.closeSelf()}
+      />
+    );
+  }
+
+  if (step === 'confirm' && review) {
+    return (
+      <AppModalShell
+        title='Confirm support'
+        appName={details.appName}
+        appIcon={appIcon}
+        footer={
+          <div className='flex justify-end gap-2'>
+            <button
+              type='button'
+              disabled={sending}
+              onClick={editDonation}
+              className='rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50'
+            >
+              Back
+            </button>
+
+            <button
+              type='button'
+              disabled={sending}
+              onClick={() => void sendDonation()}
+              className='rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50'
+            >
+              {sending ? 'Sending…' : 'Confirm'}
+            </button>
+          </div>
+        }
+      >
+        <div className='space-y-5 py-5 text-center'>
+          <div className='flex flex-col items-center'>
+            <p className='text-sm text-muted-foreground'>
+              You are about to send
+            </p>
+
+            <div className='mt-2 text-2xl font-semibold'>
+              {review.amountXch} XCH
+              {review.approximateUsd !== null ? (
+                <span className='ml-2 text-sm font-normal text-muted-foreground'>
+                  (~${review.approximateUsd.toFixed(2)})
+                </span>
+              ) : null}
+            </div>
+
+            <div className='mt-4 flex items-center gap-2'>
+              <span className='text-sm text-muted-foreground'>to</span>
+              <DeveloperBadge details={details} />
+            </div>
+
+            <p className='mt-4 text-sm text-muted-foreground'>
+              with network fee {review.feeXch} XCH
+            </p>
+          </div>
+
+          {error ? (
+            <div className='rounded-lg border border-destructive/40 bg-destructive/10 p-2 text-sm text-destructive'>
+              {error}
+            </div>
+          ) : null}
+        </div>
+      </AppModalShell>
+    );
+  }
+
+  if (step === 'complete' && review) {
+    const developerName = details.authorName ?? details.appName;
+
+    return (
+      <AppModalShell
+        title='Thank you'
+        appName={details.appName}
+        appIcon={appIcon}
+        footer={
+          <div className='flex justify-end'>
+            <button
+              type='button'
+              onClick={() => void sage.runtimeManager.closeSelf()}
+              className='rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90'
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className='flex flex-col items-center py-5 text-center'>
+          <div className='flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary'>
+            <CheckCircle2 className='h-8 w-8' aria-hidden='true' />
+          </div>
+          <h2 className='mt-4 text-lg font-semibold'>
+            {developerName} thanks you!
+          </h2>
+          <p className='mt-2 max-w-sm text-sm text-muted-foreground'>
+            Your support of {review.amountXch} XCH was sent successfully and
+            helps the developer continue improving {details.appName}.
+          </p>
+        </div>
+      </AppModalShell>
+    );
+  }
+
   return (
     <AppModalShell
       title='Support developer'
       appName={details.appName}
-      appIcon={appIconFromInline(details.appIcon)}
+      appIcon={appIcon}
       footer={
         <div className='flex justify-end gap-2'>
           <button
             type='button'
-            disabled={sending}
             onClick={() => void sage.runtimeManager.closeSelf()}
-            className='rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted disabled:opacity-50'
+            className='rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted'
           >
             Cancel
           </button>
 
           <button
             type='button'
-            disabled={!canSend}
-            onClick={() => void sendDonation()}
+            disabled={!canReview}
+            onClick={reviewDonation}
             className='rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50'
           >
-            {sending ? 'Sending…' : 'Send support'}
+            Send support
           </button>
         </div>
       }
