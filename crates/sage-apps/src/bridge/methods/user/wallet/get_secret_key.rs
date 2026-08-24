@@ -1,15 +1,20 @@
 use async_trait::async_trait;
 use sage_api::GetSecretKey;
+use serde::Deserialize;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeApprovalBody,
-    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, parse_required_params,
-    require_scoped_fingerprint,
+    RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability, current_scoped_key,
+    parse_optional_params,
 };
 
 #[derive(Debug, Clone, Copy)]
 pub struct WalletGetSecretKey;
+
+#[derive(Debug, Clone, Copy, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WalletGetSecretKeyParams {}
 
 #[async_trait]
 impl BridgeMethod for WalletGetSecretKey {
@@ -21,18 +26,18 @@ impl BridgeMethod for WalletGetSecretKey {
         BridgeMethodCapability::user(UserBridgeCapability::WalletGetSecretKey)
     }
 
-    fn approval_request(
+    async fn prepare_approval(
         &self,
         ctx: BridgeContext<'_>,
+        tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
-        let params: GetSecretKey = parse_required_params(self, request)?;
-        require_scoped_fingerprint(&ctx, Some(params.fingerprint))?;
+        let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
+        let sage = tools.app_state.lock().await;
+        let (_, fingerprint) = current_scoped_key(&ctx, &sage)?;
 
         Ok(Some(RustBridgeApprovalRequest {
-            body: RustBridgeApprovalBody::GetSecretKey {
-                fingerprint: params.fingerprint,
-            },
+            body: RustBridgeApprovalBody::GetSecretKey { fingerprint },
         }))
     }
 
@@ -42,14 +47,16 @@ impl BridgeMethod for WalletGetSecretKey {
         tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
-        let params: GetSecretKey = parse_required_params(self, request)?;
-        require_scoped_fingerprint(&ctx, Some(params.fingerprint))?;
+        let _params: WalletGetSecretKeyParams = parse_optional_params(self, request)?;
 
         let sage = tools.app_state.lock().await;
+        let (_, fingerprint) = current_scoped_key(&ctx, &sage)?;
 
-        let response = sage.get_secret_key(params).map_err(|err| {
-            BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
-        })?;
+        let response = sage
+            .get_secret_key(GetSecretKey { fingerprint })
+            .map_err(|err| {
+                BridgeMethodHandleError::internal_error(format!("{} failed: {err}", self.name()))
+            })?;
 
         Ok(Box::new(response))
     }
