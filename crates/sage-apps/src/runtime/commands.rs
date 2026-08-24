@@ -5,11 +5,12 @@ use specta::Type;
 use tauri::{AppHandle, State};
 
 use crate::{
-    AppsHostState, RuntimeTargetParams, SageAppRuntimeRecord, SageAppRuntimeRecordView,
-    SystemKillRuntimeResult, clear_active_taskbar_runtime, enter_apps_workspace,
-    focus_taskbar_runtime, get_runtime_by_app_id, get_webview_in_sage_window, kill_taskbar_runtime,
-    leave_apps_workspace, list_runtimes, start_app_install_runtime, start_app_update_runtime,
-    start_donation_runtime, start_sandbox_tests_runtime, start_user_app,
+    AppsHostState, ReorderTaskbarRuntimesParams, RuntimeTargetParams, SageAppRuntimeRecord,
+    SageAppRuntimeRecordView, SystemKillRuntimeResult, clear_active_taskbar_runtime,
+    enter_apps_workspace, focus_taskbar_runtime, get_runtime_by_app_id, get_webview_in_sage_window,
+    kill_taskbar_runtime, leave_apps_workspace, list_runtimes, reorder_taskbar_runtimes,
+    start_app_install_runtime, start_app_update_runtime, start_donation_runtime,
+    start_sandbox_tests_runtime, start_user_app,
 };
 
 #[derive(Debug, Deserialize, Type)]
@@ -161,6 +162,16 @@ pub async fn apps_list_runtimes(
     list_runtimes(&apps_state)
         .await
         .map(|runtimes| runtimes.into_iter().map(Into::into).collect())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn apps_reorder_taskbar_runtimes(
+    app: AppHandle,
+    apps_state: State<'_, AppsHostState>,
+    params: ReorderTaskbarRuntimesParams,
+) -> Result<(), String> {
+    reorder_taskbar_runtimes(&app, &apps_state, params).await
 }
 
 #[tauri::command]

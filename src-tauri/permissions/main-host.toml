@@ -139,6 +139,7 @@ commands.allow = [
     "apps_focus_taskbar_runtime",
     "apps_clear_active_taskbar_runtime",
     "apps_kill_taskbar_runtime",
+    "apps_reorder_taskbar_runtimes",
     "apps_dev_reload_runtime",
     "apps_get_auto_update_enabled",
     "apps_set_auto_update_enabled",

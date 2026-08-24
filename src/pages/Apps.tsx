@@ -77,38 +77,6 @@ export function Apps() {
     };
   }, []);
 
-  const [tabOrder, setTabOrder] = useState<string[]>([]);
-
-  useEffect(() => {
-    setTabOrder((prev) => {
-      const runtimeIds = runtimes
-        .filter((runtime) => {
-          const installedApp = getListedApp(runtime.app.common.identity.id);
-
-          if (!installedApp) {
-            return false;
-          }
-
-          if (installedApp.kind === 'user') {
-            return true;
-          }
-
-          return runtime.presentation.kind === 'Taskbar';
-        })
-        .map((runtime) => runtime.app.common.identity.id);
-
-      const kept = prev.filter((runtimeAppId) =>
-        runtimeIds.includes(runtimeAppId),
-      );
-
-      const added = runtimeIds.filter(
-        (runtimeAppId) => !kept.includes(runtimeAppId),
-      );
-
-      return [...kept, ...added];
-    });
-  }, [runtimes, getListedApp]);
-
   const activeRuntimeAppId = activeTaskbarRuntime?.appId ?? null;
 
   const activeRuntimeExists = activeRuntimeAppId
@@ -135,21 +103,13 @@ export function Apps() {
   const hasDonation = !!activeManifest?.donation?.address;
 
   const tabs = useMemo<AppTaskBarTab[]>(() => {
-    const runtimeByAppId = new Map(
-      runtimes.map(
-        (runtime) => [runtime.app.common.identity.id, runtime] as const,
-      ),
-    );
-
     const out: AppTaskBarTab[] = [];
 
-    for (const runtimeAppId of tabOrder) {
-      const runtime = runtimeByAppId.get(runtimeAppId);
+    const orderedRuntimes = [...runtimes].sort(
+      (a, b) => a.taskbarOrder - b.taskbarOrder,
+    );
 
-      if (!runtime) {
-        continue;
-      }
-
+    for (const runtime of orderedRuntimes) {
       const installedApp = getListedApp(runtime.app.common.identity.id);
 
       if (!installedApp) {
@@ -171,7 +131,7 @@ export function Apps() {
     }
 
     return out;
-  }, [runtimes, tabOrder, getListedApp, activeTaskbarRuntime?.appId]);
+  }, [runtimes, getListedApp, activeTaskbarRuntime?.appId]);
 
   async function handleApplyActiveUpdate() {
     if (!activeAppId) {
@@ -209,7 +169,16 @@ export function Apps() {
             appId: tab.app.common.identity.id,
           });
         }}
-        onReorderTabs={setTabOrder}
+        onReorderTabs={(appIds) => {
+          void commands
+            .appsReorderTaskbarRuntimes({
+              windowLabel: getCurrentWindow().label,
+              appIds,
+            })
+            .catch((err) => {
+              console.error('Failed to reorder taskbar runtimes', err);
+            });
+        }}
         activeAppHasDonation={hasDonation}
         onOpenDonation={() => {
           if (!activeApp) {
