@@ -2,6 +2,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -59,6 +60,14 @@ export function AppModalShell({
     setScrolledToEnd(next);
     onScrollEndChange?.(next);
   }, [requireScrollEnd, onScrollEndChange]);
+
+  useLayoutEffect(() => {
+    // Wizard steps reuse this scroll container. Reset it before paint so a
+    // shorter next step is not left above WebKit's preserved scroll offset.
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = 0;
+    }
+  }, [requireScrollEnd]);
 
   useEffect(() => {
     setScrolledToEnd(!requireScrollEnd);
