@@ -12,7 +12,7 @@ use crate::{
     emit_timeout_for_pending_approval, sync_bridge_approval_runtime, unix_timestamp_ms,
 };
 
-const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 30_000;
+const BRIDGE_APPROVAL_TIMEOUT_MS: u64 = 3 * 60 * 1_000;
 
 #[derive(Debug, Default)]
 pub struct BridgeState {
