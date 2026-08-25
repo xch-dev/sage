@@ -258,4 +258,15 @@ impl SageRequestedNetworkPermissions {
     pub fn whitelist_by_network(&self) -> &BTreeMap<String, SageRequestedNetworkWhitelist> {
         &self.whitelist_by_network
     }
+
+    pub fn all_whitelist_entries(&self) -> impl Iterator<Item = &SageNetworkWhitelistEntry> {
+        self.whitelist
+            .required()
+            .chain(self.whitelist.optional())
+            .chain(
+                self.whitelist_by_network
+                    .values()
+                    .flat_map(|whitelist| whitelist.required().chain(whitelist.optional())),
+            )
+    }
 }

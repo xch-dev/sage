@@ -370,8 +370,17 @@ export function PermissionEditor({
       nextKeys.add(networkKey(requiredEntry));
     }
 
+    const httpKey = `http://${entry.host}`;
     const httpsKey = `https://${entry.host}`;
     const wssKey = `wss://${entry.host}`;
+
+    if (scheme === 'http') {
+      if (nextGranted) {
+        nextKeys.add(httpKey);
+      } else {
+        nextKeys.delete(httpKey);
+      }
+    }
 
     if (scheme === 'https') {
       if (nextGranted) {
