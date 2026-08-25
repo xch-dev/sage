@@ -90,6 +90,9 @@ pub enum RustBridgeApprovalBody {
         #[serde(rename = "publicKey")]
         public_key: String,
     },
+    OpenExternalUrl {
+        url: String,
+    },
     CapabilityGrant {
         capability: UserBridgeCapability,
         definition: SageAppCapabilityDefinitionView,

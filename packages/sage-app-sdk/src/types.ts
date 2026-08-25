@@ -125,6 +125,9 @@ export type SageEnvironmentThemeClient = {
 export type SageEnvironmentClient = {
   theme: SageEnvironmentThemeClient;
   getNetwork(): Promise<Generated.EnvironmentGetNetworkResult>;
+  openExternalUrl(
+    input: Generated.EnvironmentOpenExternalUrlParams,
+  ): Promise<Generated.EnvironmentOpenExternalUrlResult>;
 };
 
 export type SageClient = {

@@ -338,6 +338,12 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
           'environment.getNetwork',
         );
       },
+      openExternalUrl(input: Generated.EnvironmentOpenExternalUrlParams) {
+        return callHost<Generated.EnvironmentOpenExternalUrlResult>(
+          'environment.openExternalUrl',
+          input,
+        );
+      },
     },
   };
 }
