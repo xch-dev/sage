@@ -21,6 +21,16 @@ pub async fn apps_apply_app_update(
     app_handle: AppHandle,
     apps_state: State<'_, AppsHostState>,
     app_id: String,
+    expected_manifest_hash: String,
 ) -> Result<SageAppView> {
-    apply_app_update_inner(&app_handle, &apps_state, &app_id, None, None).await
+    let expected_manifest_hash = Some(expected_manifest_hash.as_str());
+
+    apply_app_update_inner(
+        &app_handle,
+        &apps_state,
+        &app_id,
+        None,
+        expected_manifest_hash,
+    )
+    .await
 }

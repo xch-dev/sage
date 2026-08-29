@@ -6561,6 +6561,7 @@ dependencies = [
  "sqlx",
  "tauri",
  "tauri-plugin-dialog",
+ "tauri-plugin-opener",
  "tempfile",
  "tokio",
  "tracing",

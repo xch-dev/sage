@@ -17,6 +17,7 @@ use crate::{
     AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
     BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
     DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
+    EnvironmentOpenExternalUrlParams, EnvironmentOpenExternalUrlResult,
     EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
     FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
     ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
@@ -26,13 +27,14 @@ use crate::{
     RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
     RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
     SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
-    SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
-    SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
-    WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
-    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult, WalletGetPublicKeysParams,
-    WalletGetPublicKeysResult, WalletListWalletsResult, WalletSendTransactionParams,
-    WalletSendTransactionResult, WalletSendXchParams, WalletSignCoinSpendsParams,
-    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
+    SandboxStateChangedEvent, SandboxStateView, SelectedWalletChangedEvent,
+    SetBeforeStopListenerParams, SystemKillRuntimeResult, SystemWalletView,
+    WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams,
+    WalletGetAssetBalanceResult, WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
+    WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
+    WalletSendTransactionParams, WalletSendTransactionResult, WalletSendXchParams,
+    WalletSignCoinSpendsParams, WalletSignCoinSpendsResult, WalletSignMessageParams,
+    WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -95,9 +97,12 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetTransactionResponse>();
     types.register::<GetTransactions>();
     types.register::<GetTransactionsResponse>();
+    types.register::<SelectedWalletChangedEvent>();
     types.register::<EnvironmentThemeGetCurrentResult>();
     types.register::<EnvironmentThemeChangedEvent>();
     types.register::<EnvironmentGetNetworkResult>();
+    types.register::<EnvironmentOpenExternalUrlParams>();
+    types.register::<EnvironmentOpenExternalUrlResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)

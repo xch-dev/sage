@@ -195,6 +195,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to list wallet transactions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletListenSelectedWalletChanged => CapabilityDefinition::new(
+            capability,
+            "Observe selected wallet changes",
+            "Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::EnvironmentThemeGetCurrent => CapabilityDefinition::new(
             capability,
             "Read current theme",
@@ -218,6 +224,12 @@ pub(crate) fn get_user_capability_definition(
             "Read current network",
             "Allows the app to read Sage's currently active network information.",
             CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentOpenExternalUrl => CapabilityDefinition::new(
+            capability,
+            "Open external links",
+            "Allows the app to request opening an HTTP or HTTPS link in your default browser. Every link requires approval, and the destination can observe the request.",
+            CapabilityFlags::new(true, false, true, false, true),
         ),
     }
 }
@@ -417,5 +429,18 @@ mod tests {
             assert!(flags.user_grantable());
             assert!(flags.shared_with_app());
         }
+    }
+
+    #[test]
+    fn opening_external_urls_is_external_but_not_user_grantable() {
+        let flags =
+            get_user_capability_definition(UserBridgeCapability::EnvironmentOpenExternalUrl)
+                .flags();
+
+        assert!(flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(!flags.user_grantable());
+        assert!(flags.shared_with_app());
     }
 }

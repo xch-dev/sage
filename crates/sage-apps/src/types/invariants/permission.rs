@@ -1,9 +1,32 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    CapabilityFlags, SageNetworkWhitelistEntry, SageRequestedCapabilities, UserBridgeCapability,
+    CapabilityFlags, SageNetworkWhitelistEntry, SageRequestedCapabilities,
+    SageRequestedPermissions, UserBridgeCapability, UserSageAppSource,
     get_user_capability_definition,
 };
+
+pub fn validate_network_permissions_for_source(
+    permissions: &SageRequestedPermissions,
+    source: &UserSageAppSource,
+) -> anyhow::Result<()> {
+    if source.allows_http_network_permissions() {
+        return Ok(());
+    }
+
+    if let Some(entry) = permissions
+        .network()
+        .all_whitelist_entries()
+        .find(|entry| entry.scheme() == "http")
+    {
+        anyhow::bail!(
+            "HTTP network permission {} is only allowed for apps installed from localhost",
+            entry.as_permission_string()
+        );
+    }
+
+    Ok(())
+}
 
 pub fn validate_permissions_policy(
     capabilities: impl IntoIterator<Item = UserBridgeCapability>,
@@ -129,4 +152,45 @@ pub fn split_required_optional_set<T: Ord>(
         .collect::<BTreeSet<_>>();
 
     (required, optional)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{SageAppUrl, SageRequestedCapabilities, SageRequestedNetworkPermissions};
+
+    fn http_permissions() -> SageRequestedPermissions {
+        SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::new(
+                [SageNetworkWhitelistEntry::new("http", "localhost:3000").unwrap()],
+                [],
+                [],
+            )
+            .unwrap(),
+            SageRequestedCapabilities::empty(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn http_network_permissions_require_loopback_installed_source() {
+        let permissions = http_permissions();
+        let local_source = UserSageAppSource::Url {
+            app_url: SageAppUrl::parse("http://localhost:4173").unwrap(),
+        };
+        let public_source = UserSageAppSource::Url {
+            app_url: SageAppUrl::parse("https://example.com/app").unwrap(),
+        };
+
+        validate_network_permissions_for_source(&permissions, &local_source).unwrap();
+
+        for source in [public_source, UserSageAppSource::Zip] {
+            let err = validate_network_permissions_for_source(&permissions, &source).unwrap_err();
+            assert!(
+                err.to_string()
+                    .contains("only allowed for apps installed from localhost"),
+                "unexpected error: {err}"
+            );
+        }
+    }
 }

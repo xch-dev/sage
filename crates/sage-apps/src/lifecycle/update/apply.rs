@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::{fs, io};
 
 use tauri::{AppHandle, Manager, State};
@@ -6,10 +7,10 @@ use tauri::{AppHandle, Manager, State};
 use crate::{
     AppMutationManager, AppsHostState, CreateInstalledRuntimeArgs, ResolvedApp, Result, SageApp,
     SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate,
-    download_url_snapshot, emit_listed_apps_changed, emit_pending_update_changed,
-    find_active_taskbar_runtime, find_runtime_by_app_id_optional, fresh_snapshot_dir,
-    get_sage_window, resolve_app, resolve_stopped_app, start_app_update_runtime, start_user_app,
-    write_snapshot_manifest,
+    check_app_update_inner, download_url_snapshot, emit_listed_apps_changed,
+    emit_pending_update_changed, find_active_taskbar_runtime, find_runtime_by_app_id_optional,
+    fresh_snapshot_dir, get_sage_window, resolve_app, resolve_stopped_app,
+    start_app_update_runtime, start_user_app, write_snapshot_manifest,
 };
 
 pub(crate) async fn apply_app_update_inner(
@@ -48,21 +49,19 @@ pub(crate) async fn apply_app_update_inner(
         expected_manifest_hash,
     )?;
 
-    let reopen_after_update = ReopenAfterUpdate::capture(app_handle, apps_state, app_id).await?;
+    let mut reopen_after_update = ReopenAfterUpdate::default();
 
-    let app = execute_app_update(
+    let update_result = execute_app_update(
         app_handle,
         app_id,
         preflight.pending,
         additional_granted_permissions_input,
+        &mut reopen_after_update,
     )
-    .await?;
-
-    emit_pending_update_changed(app_handle, apps_state, &app).await;
-    emit_listed_apps_changed(app_handle, apps_state).await;
+    .await;
 
     if reopen_after_update.should_reopen
-        && let Err(err) = start_user_app(
+        && let Err(reopen_err) = start_user_app(
             app_handle,
             apps_state,
             CreateInstalledRuntimeArgs {
@@ -73,12 +72,16 @@ pub(crate) async fn apply_app_update_inner(
         .await
     {
         tracing::error!(
-            error = %err,
+            error = %reopen_err,
             app_id = %app_id,
             focus = reopen_after_update.should_focus,
             "failed to reopen app runtime after update"
         );
     }
+
+    let app = update_result?;
+    emit_pending_update_changed(app_handle, apps_state, &app).await;
+    emit_listed_apps_changed(app_handle, apps_state).await;
 
     Ok(app.into())
 }
@@ -146,30 +149,30 @@ async fn execute_app_update(
     app_id: &str,
     pending: UserSageAppPendingUpdate,
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
+    reopen_after_update: &mut ReopenAfterUpdate,
 ) -> Result<SharedSageApp> {
     let apps_state: State<'_, AppsHostState> = app_handle.state();
 
-    let resolved = resolve_stopped_app(app_handle, app_id)
+    let resolved = resolve_app(app_handle, app_id)
         .await
-        .map_err(|err| {
-            io::Error::other(format!(
-                "failed to resolve stopped app {app_id} for update: {err}"
-            ))
-        })?;
+        .map_err(|err| io::Error::other(format!("failed to resolve app {app_id}: {err}")))?;
+    let app = resolved.clone_app_for_operation();
+    drop(resolved);
 
-    let app = resolved.into_app();
-
-    let granted_permissions_input = app
+    let (granted_permissions_input, expected_granted_permissions) = app
         .try_with(|sage_app| {
+            let current_granted_permissions = sage_app.common().granted_permissions();
             let base = SageGrantedPermissionsInput::from((
-                sage_app.common().granted_permissions(),
+                current_granted_permissions,
                 pending.manifest().permissions(),
             ));
 
-            Ok::<_, anyhow::Error>(match additional_granted_permissions_input {
+            let input = match additional_granted_permissions_input {
                 Some(additional) => base.with_additional(additional),
                 None => base,
-            })
+            };
+
+            Ok::<_, anyhow::Error>((input, current_granted_permissions.clone()))
         })
         .map_err(io::Error::other)?;
 
@@ -179,13 +182,7 @@ async fn execute_app_update(
         app.with(|app| app.common().active_snapshot().snapshot_dir().to_string());
 
     let snapshot_dir = fresh_snapshot_dir(&app_dir);
-
-    fs::create_dir_all(&snapshot_dir).map_err(|err| {
-        io::Error::other(format!(
-            "failed to create update snapshot directory {}: {err}",
-            snapshot_dir.display()
-        ))
-    })?;
+    let mut snapshot_dir_cleanup = SnapshotDirCleanup(Some(snapshot_dir.clone()));
 
     let snapshot = download_url_snapshot(
         &snapshot_dir,
@@ -193,8 +190,19 @@ async fn execute_app_update(
         pending.manifest(),
         pending.manifest_hash(),
     )
-    .await
-    .map_err(|err| io::Error::other(format!("failed to download update snapshot: {err}")))?;
+    .await;
+
+    if snapshot.is_err()
+        && let Err(err) = check_app_update_inner(app_handle, &apps_state, app_id).await
+    {
+        tracing::warn!(error = %err, app_id = %app_id, "failed to refresh app update");
+    }
+
+    let snapshot = snapshot.map_err(|err| {
+        io::Error::other(format!(
+            "The update files could not be downloaded. Sage left the installed app unchanged: {err}"
+        ))
+    })?;
 
     write_snapshot_manifest(&snapshot).map_err(|err| {
         io::Error::other(format!("failed to write update snapshot manifest: {err}"))
@@ -202,15 +210,47 @@ async fn execute_app_update(
 
     let new_snapshot_dir = snapshot.snapshot_dir().to_string();
 
+    *reopen_after_update = ReopenAfterUpdate::capture(app_handle, &apps_state, app_id).await?;
+
+    let resolved = resolve_stopped_app(app_handle, app_id)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!(
+                "failed to stop app {app_id} after preparing its update: {err}"
+            ))
+        })?;
+
+    let (app, operation_guard) = resolved.into_app_and_guard();
+
     let granted_permissions = granted_permissions_input
         .resolve(pending.manifest().permissions())
         .map_err(|err| io::Error::other(format!("invalid update permissions: {err}")))?;
 
+    let pending_manifest_hash = pending.manifest_hash().to_string();
     let manager = AppMutationManager::new(app_handle, &apps_state);
 
     manager
         .mutate_shared_app(&app, move |ctx| {
             Box::pin(async move {
+                let current_manifest_hash = ctx
+                    .draft()
+                    .app()
+                    .as_user()
+                    .and_then(|app| app.pending_update())
+                    .map(UserSageAppPendingUpdate::manifest_hash);
+
+                if current_manifest_hash != Some(pending_manifest_hash.as_str()) {
+                    anyhow::bail!("a newer update became available; try updating again");
+                }
+
+                if ctx.draft().app().common().granted_permissions()
+                    != &expected_granted_permissions
+                {
+                    anyhow::bail!(
+                        "app permissions changed while the update was being prepared; try updating again"
+                    );
+                }
+
                 ctx.draft_mut()
                     .app_mut()
                     .apply_update(&pending, granted_permissions, snapshot)?;
@@ -223,11 +263,31 @@ async fn execute_app_update(
         .await
         .map_err(io::Error::other)?;
 
+    snapshot_dir_cleanup.preserve();
+
     if old_snapshot_dir != new_snapshot_dir {
         let _ = fs::remove_dir_all(old_snapshot_dir);
     }
 
+    drop(operation_guard);
+
     Ok(app)
+}
+
+struct SnapshotDirCleanup(Option<PathBuf>);
+
+impl SnapshotDirCleanup {
+    fn preserve(&mut self) {
+        self.0 = None;
+    }
+}
+
+impl Drop for SnapshotDirCleanup {
+    fn drop(&mut self) {
+        if let Some(path) = self.0.take() {
+            let _ = fs::remove_dir_all(path);
+        }
+    }
 }
 
 async fn open_update_runtime(
@@ -301,7 +361,7 @@ async fn preflight_apply_app_update(
     })
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 struct ReopenAfterUpdate {
     should_reopen: bool,
     should_focus: bool,
@@ -338,7 +398,9 @@ impl ReopenAfterUpdate {
 
 #[cfg(test)]
 mod tests {
-    use super::ensure_pending_update_matches_review;
+    use tempfile::tempdir;
+
+    use super::{SnapshotDirCleanup, ensure_pending_update_matches_review};
 
     #[test]
     fn reviewed_manifest_hash_must_match_pending_update() {
@@ -352,5 +414,23 @@ mod tests {
             err.to_string().contains("changed since it was reviewed"),
             "unexpected error: {err}"
         );
+    }
+
+    #[test]
+    fn snapshot_directory_is_removed_unless_preserved() {
+        let root = tempdir().unwrap();
+
+        for (name, preserve) in [("removed", false), ("preserved", true)] {
+            let path = root.path().join(name);
+            std::fs::create_dir_all(&path).unwrap();
+
+            let mut cleanup = SnapshotDirCleanup(Some(path.clone()));
+            if preserve {
+                cleanup.preserve();
+            }
+            drop(cleanup);
+
+            assert_eq!(path.exists(), preserve);
+        }
     }
 }

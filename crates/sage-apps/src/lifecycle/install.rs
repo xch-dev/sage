@@ -199,6 +199,8 @@ where
     S: AppInstallSource + Send + Sync,
 {
     let manifest = source.manifest(&prepared_artifact);
+    let app_source = source.source(&prepared_artifact);
+    crate::validate_network_permissions_for_source(manifest.permissions(), &app_source)?;
 
     let snapshot_dir = fresh_snapshot_dir(&target.app_dir);
     fs::create_dir_all(&snapshot_dir)?;
@@ -223,10 +225,7 @@ where
         wallet_scope,
     )?;
 
-    Ok(UserSageApp::new_installed(
-        common,
-        source.source(&prepared_artifact),
-    ))
+    Ok(UserSageApp::new_installed(common, app_source))
 }
 
 #[cfg(test)]

@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  onSelectedWalletChanged(
+    handler: (event: Generated.SelectedWalletChangedEvent) => void,
+  ): () => void;
   sendTransaction(
     input: Generated.WalletSendTransactionParams,
   ): Promise<Generated.WalletSendTransactionResult>;
@@ -125,6 +128,9 @@ export type SageEnvironmentThemeClient = {
 export type SageEnvironmentClient = {
   theme: SageEnvironmentThemeClient;
   getNetwork(): Promise<Generated.EnvironmentGetNetworkResult>;
+  openExternalUrl(
+    input: Generated.EnvironmentOpenExternalUrlParams,
+  ): Promise<Generated.EnvironmentOpenExternalUrlResult>;
 };
 
 export type SageClient = {

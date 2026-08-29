@@ -3,7 +3,7 @@ use std::{collections::HashSet, future, sync::Arc, time::Duration};
 use sage::{Result, Sage};
 use sage_api::SyncEvent as ApiEvent;
 #[cfg(not(mobile))]
-use sage_apps::{AppsHostState, process_sage_network_change};
+use sage_apps::{AppsHostState, emit_selected_wallet_changed, process_sage_network_change};
 use sage_wallet::SyncEvent;
 #[cfg(not(mobile))]
 use tauri::Manager;
@@ -92,6 +92,15 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
 
                         process_sage_network_change(&app_handle, &apps_state).await;
                     }
+                    #[cfg(not(mobile))]
+                    if let SyncEvent::WalletChanged {
+                        fingerprint: Some(fingerprint),
+                    } = &event
+                    {
+                        let apps_state = app_handle.state::<AppsHostState>();
+
+                        emit_selected_wallet_changed(&app_handle, &apps_state, *fingerprint).await;
+                    }
                     let event = match event {
                         SyncEvent::Start(ip) => ApiEvent::Start { ip: ip.to_string() },
                         SyncEvent::Stop => ApiEvent::Stop,
@@ -112,7 +121,9 @@ pub async fn initialize(app_handle: AppHandle, sage: &mut Sage) -> Result<()> {
                         SyncEvent::CatInfo => ApiEvent::CatInfo,
                         SyncEvent::DidInfo => ApiEvent::DidInfo,
                         SyncEvent::NftData => ApiEvent::NftData,
-                        SyncEvent::NetworkChanged { .. } => continue,
+                        SyncEvent::WalletChanged { .. } | SyncEvent::NetworkChanged { .. } => {
+                            continue;
+                        }
                     };
 
                     if let Some(refresh) = RefreshEvent::from_api_event(&event) {

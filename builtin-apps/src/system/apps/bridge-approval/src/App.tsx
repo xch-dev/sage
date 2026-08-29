@@ -37,6 +37,8 @@ function titleForApproval(approval: PendingBridgeApprovalView) {
       return 'Approve coin-spend signatures';
     case 'signMessage':
       return 'Approve message signature';
+    case 'openExternalUrl':
+      return 'Approve external link';
     case 'capabilityGrant':
       return 'Approve permission grant';
     case 'networkWhitelistGrant':

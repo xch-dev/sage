@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { toast } from 'react-toastify';
 
 import { commands, type UserSageAppView } from '@/bindings';
 import { useApps } from '@/contexts/AppsContext.tsx';
@@ -15,6 +16,7 @@ import {
 import { AppHost } from '@/components/apps/AppHost';
 import { AppsLaunchpad } from '@/components/apps/AppsLaunchpad';
 import { SystemAppModalLayer } from '@/components/apps/SystemAppModalLayer';
+import { formatAppError } from '@/lib/apps/formatAppError.ts';
 
 export function Apps() {
   const [workspaceActive, setWorkspaceActive] = useState(false);
@@ -50,6 +52,7 @@ export function Apps() {
     getListedApp,
     pendingUpdates,
     busyAppIds,
+    setBusy,
     activeTaskbarRuntime,
   } = useApps();
 
@@ -133,15 +136,20 @@ export function Apps() {
     return out;
   }, [runtimes, getListedApp, activeTaskbarRuntime?.appId]);
 
-  async function handleApplyActiveUpdate() {
+  async function handleApplyActiveUpdate(manifestHash: string) {
     if (!activeAppId) {
       return;
     }
 
+    setBusy(activeAppId, true);
+
     try {
-      await commands.appsApplyAppUpdate(activeAppId);
+      await commands.appsApplyAppUpdate(activeAppId, manifestHash);
     } catch (err) {
       console.error('Failed to apply app update:', err);
+      toast.error(`Update failed: ${formatAppError(err)}`);
+    } finally {
+      setBusy(activeAppId, false);
     }
   }
 
@@ -215,7 +223,7 @@ export function Apps() {
                 if (!activeAppId) {
                   return;
                 }
-                void handleApplyActiveUpdate();
+                void handleApplyActiveUpdate(activePendingUpdate.manifestHash);
               }}
             >
               {activePendingUpdate.kind === 'requiresReview'

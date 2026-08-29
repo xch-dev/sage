@@ -59,6 +59,7 @@
     "prepack": "pnpm run build"
   },
   "dependencies": {
+    "bech32": "^2.0.0",
     "picomatch": "^4.0.4"
   },
   "devDependencies": {

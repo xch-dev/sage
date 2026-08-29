@@ -97,11 +97,13 @@ define_bridge_capabilities! {
         WalletGetPendingTransactions => "wallet.get_pending_transactions",
         WalletGetTransaction => "wallet.get_transaction",
         WalletGetTransactions => "wallet.get_transactions",
+        WalletListenSelectedWalletChanged => "wallet.listen_selected_wallet_changed",
 
         EnvironmentThemeGetCurrent => "environment.theme.get_current",
         EnvironmentThemeCssVars => "environment.theme.css_vars",
         EnvironmentThemeListenChanged => "environment.theme.listen_changed",
         EnvironmentGetNetwork => "environment.get_network",
+        EnvironmentOpenExternalUrl => "environment.open_external_url",
 
         StoragePersistentWebview => "storage.persistent_webview",
     }

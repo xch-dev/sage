@@ -6,6 +6,7 @@ import path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { bech32m } from 'bech32';
 
 const cliPath = fileURLToPath(
   new URL('../cli/finalize-manifest.mjs', import.meta.url),
@@ -42,6 +43,27 @@ function finalize(fixture, extraArgs = []) {
   ]);
 
   return JSON.parse(fs.readFileSync(fixture.out, 'utf8'));
+}
+
+function createDonationFixture(address) {
+  const fixture = createFixture({ donation: { address } });
+  fs.writeFileSync(path.join(fixture.dist, 'index.html'), '<!doctype html>');
+  return fixture;
+}
+
+function finalizeResult(fixture) {
+  return spawnSync(
+    process.execPath,
+    [
+      cliPath,
+      'finalize-manifest',
+      '--source',
+      fixture.source,
+      '--dist',
+      fixture.dist,
+    ],
+    { encoding: 'utf8' },
+  );
 }
 
 test('does not exclude files by default', (t) => {
@@ -151,4 +173,63 @@ test('rejects --exclude without a glob', (t) => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Missing value for --exclude/);
+});
+
+test('accepts a valid XCH donation address', (t) => {
+  const address =
+    'xch10hwpheqwv4m4dzuqc5hp8se3p0chkrkvmtf8m6d830wfagg9p22sxd82v7';
+  const fixture = createDonationFixture(address);
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }));
+
+  const manifest = finalize(fixture);
+
+  assert.equal(manifest.donation.address, address);
+});
+
+test('rejects a valid TXCH donation address', (t) => {
+  const fixture = createDonationFixture(
+    'txch19hutewzq3z4l6y3fsw5laatre79tuz5p43jlvag0yz466xx9l7vs4vnpem',
+  );
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }));
+
+  const result = finalizeResult(fixture);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /donation\.address must be a valid xch address/);
+  assert.equal(fs.existsSync(fixture.out), false);
+});
+
+test('rejects a donation address with an invalid checksum', (t) => {
+  const fixture = createDonationFixture(
+    'xch10hwpheqwv4m4dzuqc5hp8se3p0chkrkvmtf8m6d830wfagg9p22sxd82v8',
+  );
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }));
+
+  const result = finalizeResult(fixture);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /donation\.address must be a valid xch address/);
+  assert.equal(fs.existsSync(fixture.out), false);
+});
+
+test('rejects a valid Bech32m address with a non-wallet prefix', (t) => {
+  const address = bech32m.encode('nft', bech32m.toWords(Buffer.alloc(32, 1)));
+  const fixture = createDonationFixture(address);
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }));
+
+  const result = finalizeResult(fixture);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /donation\.address must be a valid xch address/);
+});
+
+test('rejects a valid XCH address with the wrong payload length', (t) => {
+  const address = bech32m.encode('xch', bech32m.toWords(Buffer.alloc(31, 1)));
+  const fixture = createDonationFixture(address);
+  t.after(() => fs.rmSync(fixture.root, { recursive: true, force: true }));
+
+  const result = finalizeResult(fixture);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /donation\.address must be a valid xch address/);
 });
