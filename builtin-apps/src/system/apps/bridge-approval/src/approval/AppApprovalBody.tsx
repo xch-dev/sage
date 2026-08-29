@@ -2,6 +2,7 @@ import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 import { CapabilityGrantApprovalCard } from './CapabilityGrantApprovalCard';
 import { GetSecretKeyApprovalCard } from './GetSecretKeyApprovalCard';
 import { NetworkWhitelistGrantApprovalCard } from './NetworkWhitelistGrantApprovalCard';
+import { OpenExternalUrlApprovalCard } from './OpenExternalUrlApprovalCard';
 import { PermissionGrantsApprovalCard } from './PermissionGrantsApprovalCard';
 import { SendXchApprovalCard } from './SendXchApprovalCard';
 import { SignCoinSpendsApprovalCard } from './SignCoinSpendsApprovalCard';
@@ -40,6 +41,11 @@ export function AppApprovalBody({ approval, appName, expanded }: Props) {
 
     case 'signMessage':
       return <SignMessageApprovalCard approval={approval} appName={appName} />;
+
+    case 'openExternalUrl':
+      return (
+        <OpenExternalUrlApprovalCard approval={approval} appName={appName} />
+      );
 
     case 'capabilityGrant':
       return (

@@ -64,6 +64,12 @@
 | ---------- | ------------------------- |
 | Capability | `environment.get_network` |
 
+## `environment.openExternalUrl`
+
+| Field      | Value                           |
+| ---------- | ------------------------------- |
+| Capability | `environment.open_external_url` |
+
 ## `environment.theme.getCurrent`
 
 | Field      | Value                           |

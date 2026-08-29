@@ -81,6 +81,7 @@ fn build_user_methods() -> HashMap<&'static str, Box<dyn BridgeMethod>> {
     // Environment
     insert_method(&mut methods, EnvironmentThemeGetCurrent);
     insert_method(&mut methods, EnvironmentGetNetwork);
+    insert_method(&mut methods, EnvironmentOpenExternalUrl);
 
     methods
 }

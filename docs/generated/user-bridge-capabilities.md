@@ -490,6 +490,20 @@ Allows the app to read Sage's currently active network information.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `environment.open_external_url`
+
+**Open external links**
+
+Allows the app to request opening an HTTP or HTTPS link in your default browser. Every link requires approval, and the destination can observe the request.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
 ## `storage.persistent_webview`
 
 **Persistent storage**

@@ -17,6 +17,7 @@ use crate::{
     AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
     BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
     DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
+    EnvironmentOpenExternalUrlParams, EnvironmentOpenExternalUrlResult,
     EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
     FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
     ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
@@ -100,6 +101,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<EnvironmentThemeGetCurrentResult>();
     types.register::<EnvironmentThemeChangedEvent>();
     types.register::<EnvironmentGetNetworkResult>();
+    types.register::<EnvironmentOpenExternalUrlParams>();
+    types.register::<EnvironmentOpenExternalUrlResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)
