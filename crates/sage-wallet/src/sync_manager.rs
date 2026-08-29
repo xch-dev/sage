@@ -150,10 +150,21 @@ impl SyncManager {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
                 SyncCommand::SwitchWallet { wallet, delta_sync } => {
+                    let previous_fingerprint =
+                        self.wallet.as_ref().map(|wallet| wallet.fingerprint);
+                    let fingerprint = wallet.as_ref().map(|wallet| wallet.fingerprint);
+
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
+
+                    if previous_fingerprint != fingerprint {
+                        let _ = self
+                            .event_sender
+                            .send(SyncEvent::WalletChanged { fingerprint })
+                            .await;
+                    }
                 }
                 SyncCommand::SwitchNetwork(network) => {
                     if self.network.network_id() != network.network_id()

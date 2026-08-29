@@ -195,6 +195,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to list wallet transactions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletListenSelectedWalletChanged => CapabilityDefinition::new(
+            capability,
+            "Observe selected wallet changes",
+            "Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::EnvironmentThemeGetCurrent => CapabilityDefinition::new(
             capability,
             "Read current theme",

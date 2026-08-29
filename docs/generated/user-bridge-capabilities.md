@@ -420,6 +420,20 @@ Allows the app to list wallet transactions.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.listen_selected_wallet_changed`
+
+**Observe selected wallet changes**
+
+Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `environment.theme.get_current`
 
 **Read current theme**

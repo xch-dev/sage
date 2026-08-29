@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  onSelectedWalletChanged(
+    handler: (event: Generated.SelectedWalletChangedEvent) => void,
+  ): () => void;
   sendTransaction(
     input: Generated.WalletSendTransactionParams,
   ): Promise<Generated.WalletSendTransactionResult>;
