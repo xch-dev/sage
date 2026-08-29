@@ -25,7 +25,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 use tokio::sync::{Mutex, mpsc};
-use tracing::{Level, error, info};
+use tracing::{Level, error, info, warn};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
@@ -454,6 +454,8 @@ impl Sage {
             return Err(Error::DatabaseVersionTooOld);
         }
 
+        update_query_planner_stats(&pool).await;
+
         Ok(pool)
     }
 
@@ -536,4 +538,24 @@ impl Sage {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
     }
+}
+
+/// Refreshes the query planner's table statistics.
+async fn update_query_planner_stats(pool: &SqlitePool) {
+    let mut conn = match pool.acquire().await {
+        Ok(conn) => conn,
+        Err(error) => {
+            warn!("Could not acquire a connection to update query planner stats: {error}");
+            return;
+        }
+    };
+
+    for statement in ["PRAGMA analysis_limit = 400", "PRAGMA optimize"] {
+        if let Err(error) = sqlx::query(statement).execute(&mut *conn).await {
+            warn!("Failed to update query planner stats via `{statement}`: {error}");
+            return;
+        }
+    }
+
+    info!("Updated database query planner statistics");
 }
