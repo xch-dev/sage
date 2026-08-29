@@ -276,8 +276,19 @@ impl UserSageApp {
         }
     }
 
-    pub(crate) fn set_pending_update(&mut self, pending_update: Option<UserSageAppPendingUpdate>) {
+    pub(crate) fn set_pending_update(
+        &mut self,
+        pending_update: Option<UserSageAppPendingUpdate>,
+    ) -> anyhow::Result<()> {
+        if let Some(pending_update) = &pending_update {
+            crate::validate_network_permissions_for_source(
+                pending_update.manifest().permissions(),
+                &self.source,
+            )?;
+        }
+
         self.pending_update = pending_update;
+        Ok(())
     }
 
     pub(crate) fn common(&self) -> &SageAppCommon {
@@ -343,7 +354,7 @@ impl SageApp {
             .apply_update(pending, granted_permissions, snapshot)
             .map_err(|err| anyhow::anyhow!("failed to apply app update: {err}"))?;
 
-        app.set_pending_update(None);
+        app.set_pending_update(None)?;
 
         Ok(())
     }
@@ -400,10 +411,7 @@ impl SageApp {
         pending_update: Option<UserSageAppPendingUpdate>,
     ) -> anyhow::Result<()> {
         match self {
-            Self::User(app) => {
-                app.set_pending_update(pending_update);
-                Ok(())
-            }
+            Self::User(app) => app.set_pending_update(pending_update),
             Self::System(_) => anyhow::bail!("system app cannot have pending user update"),
         }
     }
@@ -477,13 +485,30 @@ impl<'de> Deserialize<'de> for UserSageApp {
     {
         let raw = UserSageAppRaw::deserialize(deserializer)?;
 
-        let common = raw.common.try_into().map_err(serde::de::Error::custom)?;
+        let common: SageAppCommon = raw.common.try_into().map_err(serde::de::Error::custom)?;
+
+        crate::validate_network_permissions_for_source(common.requested_permissions(), &raw.source)
+            .map_err(serde::de::Error::custom)?;
+
+        if let Some(pending_update) = &raw.pending_update {
+            crate::validate_network_permissions_for_source(
+                pending_update.manifest().permissions(),
+                &raw.source,
+            )
+            .map_err(serde::de::Error::custom)?;
+        }
 
         Ok(UserSageApp::load_persisted(
             common,
             raw.source,
             raw.pending_update,
         ))
+    }
+}
+
+impl UserSageAppSource {
+    pub(crate) fn allows_http_network_permissions(&self) -> bool {
+        matches!(self, Self::Url { app_url } if app_url.is_loopback())
     }
 }
 

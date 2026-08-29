@@ -107,16 +107,23 @@ export function buildNetworkEntries(
   const entries: PermissionEntry[] = [];
 
   for (const host of hosts) {
+    const httpKey = schemeKey('http', host);
     const httpsKey = schemeKey('https', host);
     const wssKey = schemeKey('wss', host);
+    const httpRequested =
+      requiredKeys.has(httpKey) || optionalKeys.has(httpKey);
     const httpsRequested =
       requiredKeys.has(httpsKey) || optionalKeys.has(httpsKey);
     const wssRequested = requiredKeys.has(wssKey) || optionalKeys.has(wssKey);
     const hostHasRequired =
-      requiredKeys.has(httpsKey) || requiredKeys.has(wssKey);
+      requiredKeys.has(httpKey) ||
+      requiredKeys.has(httpsKey) ||
+      requiredKeys.has(wssKey);
 
     if (section === 'required' && !hostHasRequired) continue;
     if (section === 'optional' && hostHasRequired) continue;
+    const httpRequired = requiredKeys.has(httpKey);
+    const httpGranted = httpRequired || grantedKeys.has(httpKey);
     const wssRequired = requiredKeys.has(wssKey);
     const wssGranted = wssRequired || grantedKeys.has(wssKey);
     const httpsRequired = requiredKeys.has(httpsKey);
@@ -128,6 +135,14 @@ export function buildNetworkEntries(
       NetworkPermissionScheme,
       NetworkPermissionSchemeState
     > = {
+      http: {
+        scheme: 'http',
+        key: httpKey,
+        required: httpRequired,
+        granted: httpGranted,
+        disabled: httpRequired,
+        visible: httpRequested,
+      },
       https: {
         scheme: 'https',
         key: httpsKey,
@@ -156,7 +171,7 @@ export function buildNetworkEntries(
       label: host,
       description: null,
       required: hostHasRequired,
-      granted: httpsGranted || wssGranted,
+      granted: httpGranted || httpsGranted || wssGranted,
       sensitivityRank: 1,
       schemes,
     });
@@ -184,7 +199,7 @@ export function sortPermissionEntries(
 function isSupportedNetworkScheme(
   scheme: string,
 ): scheme is NetworkPermissionScheme {
-  return scheme === 'https' || scheme === 'wss';
+  return scheme === 'http' || scheme === 'https' || scheme === 'wss';
 }
 
 function makeNetworkEntry(

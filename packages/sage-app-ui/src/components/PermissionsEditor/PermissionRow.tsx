@@ -47,11 +47,15 @@ export function PermissionRow({
   ) => void;
 }) {
   if (entry.kind === 'network') {
-    const visibleSchemes = (['https', 'wss'] as const).filter(
+    const visibleSchemes = (['http', 'https', 'wss'] as const).filter(
       (scheme) => entry.schemes[scheme].visible,
     );
 
-    const primaryScheme = visibleSchemes.includes('wss') ? 'wss' : 'https';
+    const primaryScheme = visibleSchemes.includes('wss')
+      ? 'wss'
+      : visibleSchemes.includes('https')
+        ? 'https'
+        : 'http';
     const primaryState = entry.schemes[primaryScheme];
     const checkboxDisabled = !editable || primaryState.disabled;
 

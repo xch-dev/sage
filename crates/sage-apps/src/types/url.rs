@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use specta::Type;
 use url::Url;
 
-use crate::{normalize_app_url, slugify_app_name};
+use crate::{is_loopback_url, normalize_app_url, slugify_app_name};
 
 pub const MANIFEST_FILE_NAME: &str = "sage-manifest.json";
 
@@ -42,6 +42,10 @@ impl SageAppUrl {
 
     pub fn as_bytes(&self) -> &[u8] {
         self.as_str().as_bytes()
+    }
+
+    pub fn is_loopback(&self) -> bool {
+        is_loopback_url(&self.0)
     }
 
     pub fn into_string(self) -> String {
@@ -124,6 +128,19 @@ mod tests {
     fn app_url_allows_loopback_http() {
         let out = SageAppUrl::parse("http://127.0.0.1:4173").unwrap();
         assert_eq!(out.as_str(), "http://127.0.0.1:4173/");
+        assert!(out.is_loopback());
+    }
+
+    #[test]
+    fn app_url_identifies_localhost_over_https_as_loopback() {
+        let out = SageAppUrl::parse("https://localhost:4173").unwrap();
+        assert!(out.is_loopback());
+    }
+
+    #[test]
+    fn app_url_identifies_public_https_as_non_loopback() {
+        let out = SageAppUrl::parse("https://example.com/app").unwrap();
+        assert!(!out.is_loopback());
     }
 
     #[test]
@@ -133,6 +150,7 @@ mod tests {
             .to_string();
 
         assert!(err.contains("requires HTTPS") || err.contains("only https"));
+        assert!(SageAppUrl::parse("http://127.0.0.2/app").is_err());
     }
 
     #[test]
