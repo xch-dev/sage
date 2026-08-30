@@ -10,31 +10,31 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
 use crate::{
-    AppGetInfoResult, AppInstallInstallResult, AppInstallInstallUrlParams,
-    AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams,
-    AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
-    AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams,
-    AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
-    BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
-    DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
-    EnvironmentOpenExternalUrlParams, EnvironmentOpenExternalUrlResult,
-    EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
-    FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
-    ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
-    ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult,
-    RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
-    RequestPermissionGrantsParams, RequestPermissionGrantsResult, ResolveBridgeApprovalArgs,
-    RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
-    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
-    SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
-    SandboxStateChangedEvent, SandboxStateView, SelectedWalletChangedEvent,
-    SetBeforeStopListenerParams, SystemKillRuntimeResult, SystemWalletView,
-    WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams,
-    WalletGetAssetBalanceResult, WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
-    WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
-    WalletSendTransactionParams, WalletSendTransactionResult, WalletSendXchParams,
-    WalletSignCoinSpendsParams, WalletSignCoinSpendsResult, WalletSignMessageParams,
-    WalletSignMessageResult,
+    AppGetInfoResult, AppInstallDownloadProgressEvent, AppInstallInstallResult,
+    AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams,
+    AppInstallPreviewZipParams, AppPermissionsApplyPermissionsParams,
+    AppPermissionsApplyPermissionsResult, AppPermissionsGetReviewContextParams,
+    AppPermissionsReviewContext, AppUpdateApplyUpdateParams, AppUpdateApplyUpdateResult,
+    AppUpdateGetReviewContextParams, AppUpdateReviewContext, BeforeStopEvent,
+    BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult, DonationDetails,
+    DonationGetDetailsParams, EnvironmentGetNetworkResult, EnvironmentOpenExternalUrlParams,
+    EnvironmentOpenExternalUrlResult, EnvironmentThemeChangedEvent,
+    EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams, FileSystemSelectFileResult,
+    GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent, ListedAppsChangedEvent,
+    PendingBridgeApprovalView, PendingUpdateChangedEvent, ReadyToStopParams,
+    RequestCapabilityGrantParams, RequestCapabilityGrantResult, RequestNetworkWhitelistGrantParams,
+    RequestNetworkWhitelistGrantResult, RequestPermissionGrantsParams,
+    RequestPermissionGrantsResult, ResolveBridgeApprovalArgs, RuntimeAckResult,
+    RuntimeManagerActiveTaskbarRuntimeChangedEvent, RuntimeManagerRuntimesChangedEvent,
+    RuntimeTargetParams, RustBridgeInvokeResult, SageAppCapabilityDefinitionView,
+    SageAppWalletScope, SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
+    SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
+    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
+    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
+    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
+    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
+    WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
+    WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -123,6 +123,7 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<AppInstallInstallUrlParams>();
     types.register::<AppInstallInstallZipParams>();
     types.register::<AppInstallInstallResult>();
+    types.register::<AppInstallDownloadProgressEvent>();
 
     types.register::<AppUpdateGetReviewContextParams>();
     types.register::<AppUpdateReviewContext>();

@@ -3,6 +3,7 @@ import {
   type SageGrantedPermissionsInput,
   type SageAppWalletScope,
   type WalletListWalletsResult,
+  type AppInstallDownloadProgressEvent,
 } from 'sage-system-app-sdk';
 import type { InstallSource } from './types';
 
@@ -54,20 +55,28 @@ export async function installSource(
   source: InstallSource,
   grantedPermissions: SageGrantedPermissionsInput,
   walletScope: SageAppWalletScope,
+  onDownloadProgress?: (event: AppInstallDownloadProgressEvent) => void,
 ) {
   const client = await getSageSystemClient();
+  const unsubscribe = onDownloadProgress
+    ? client.appInstall.onDownloadProgress(onDownloadProgress)
+    : undefined;
 
-  if (source.kind === 'zip') {
-    await client.appInstall.installZip({
-      zipPath: source.zipPath,
-      grantedPermissions,
-      walletScope,
-    });
-  } else {
-    await client.appInstall.installUrl({
-      appUrl: source.appUrl,
-      grantedPermissions,
-      walletScope,
-    });
+  try {
+    if (source.kind === 'zip') {
+      await client.appInstall.installZip({
+        zipPath: source.zipPath,
+        grantedPermissions,
+        walletScope,
+      });
+    } else {
+      await client.appInstall.installUrl({
+        appUrl: source.appUrl,
+        grantedPermissions,
+        walletScope,
+      });
+    }
+  } finally {
+    unsubscribe?.();
   }
 }
