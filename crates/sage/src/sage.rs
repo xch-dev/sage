@@ -542,20 +542,9 @@ impl Sage {
 
 /// Refreshes the query planner's table statistics.
 async fn update_query_planner_stats(pool: &SqlitePool) {
-    let mut conn = match pool.acquire().await {
-        Ok(conn) => conn,
-        Err(error) => {
-            warn!("Could not acquire a connection to update query planner stats: {error}");
-            return;
-        }
-    };
-
-    for statement in ["PRAGMA analysis_limit = 400", "PRAGMA optimize"] {
-        if let Err(error) = sqlx::query(statement).execute(&mut *conn).await {
-            warn!("Failed to update query planner stats via `{statement}`: {error}");
-            return;
-        }
+    if let Err(error) = Database::new(pool.clone()).analyze().await {
+        warn!("Failed to update query planner stats: {error}");
+    } else {
+        info!("Updated database query planner statistics");
     }
-
-    info!("Updated database query planner statistics");
 }

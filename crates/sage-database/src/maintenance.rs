@@ -65,6 +65,20 @@ impl Database {
         })
     }
 
+    /// Recomputes query planner statistics for every table.
+    pub async fn analyze(&self) -> Result<()> {
+        // `analysis_limit` is per-connection, so it has to be set on the same
+        // connection as the `ANALYZE` it bounds.
+        let mut conn = self.pool.acquire().await?;
+
+        sqlx::query("PRAGMA analysis_limit = 400")
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("ANALYZE").execute(&mut *conn).await?;
+
+        Ok(())
+    }
+
     pub async fn perform_sqlite_maintenance(&self, force_vacuum: bool) -> Result<MaintenanceStats> {
         let vacuum = if force_vacuum {
             Vacuum::Always

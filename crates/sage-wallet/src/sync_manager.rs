@@ -506,6 +506,10 @@ impl SyncManager {
     }
 
     async fn poll_tasks(&mut self) {
+        // Set when initial sync just finished, so the analyze below happens after
+        // the borrow of `initial_wallet_sync` has been released.
+        let mut initial_sync_completed = false;
+
         if let InitialWalletSync::Syncing { ip, task } = &mut self.initial_wallet_sync
             && let Ok(Some(result)) = timeout(Duration::from_secs(1), poll_once(task)).await
         {
@@ -513,6 +517,7 @@ impl SyncManager {
                 Ok(Ok(())) => {
                     self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
                     self.event_sender.send(SyncEvent::Subscribed).await.ok();
+                    initial_sync_completed = true;
                 }
                 Ok(Err(error)) => {
                     warn!("Initial wallet sync failed: {error}");
@@ -635,6 +640,16 @@ impl SyncManager {
                     self.blocktime_queue_task = None;
                 }
                 None => {}
+            }
+        }
+
+        // The startup analyze writes nothing for a wallet whose tables were still
+        // empty, so a first sync would otherwise run with no statistics at all.
+        if initial_sync_completed && let Some(wallet) = self.wallet.clone() {
+            if let Err(error) = wallet.db.analyze().await {
+                warn!("Failed to refresh query planner statistics: {error}");
+            } else {
+                info!("Refreshed query planner statistics after initial sync");
             }
         }
     }
