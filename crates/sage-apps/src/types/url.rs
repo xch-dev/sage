@@ -18,7 +18,17 @@ pub struct SageAppManifestUrl(Url);
 impl SageAppUrl {
     pub fn parse(value: impl AsRef<str>) -> AnyResult<Self> {
         let value = value.as_ref();
-        let url = Url::parse(value).with_context(|| format!("invalid app url: {value}"))?;
+        let url = match Url::parse(value) {
+            Ok(url) => url,
+            Err(url::ParseError::RelativeUrlWithoutBase)
+                if !matches!(value.as_bytes().first(), Some(b'/' | b'?' | b'#')) =>
+            {
+                Url::parse(&format!("https://{value}"))
+                    .with_context(|| format!("invalid app url: {value}"))?
+            }
+            Err(err) => return Err(err).with_context(|| format!("invalid app url: {value}")),
+        };
+
         Ok(Self(normalize_app_url(url)?))
     }
 
@@ -113,6 +123,12 @@ mod tests {
     }
 
     #[test]
+    fn app_url_defaults_missing_scheme_to_https() {
+        let out = SageAppUrl::parse("vanity.fancybudgie.com/app").unwrap();
+        assert_eq!(out.as_str(), "https://vanity.fancybudgie.com/app/");
+    }
+
+    #[test]
     fn app_url_strips_query_and_fragment() {
         let out = SageAppUrl::parse("https://example.com/app?x=1#frag").unwrap();
         assert_eq!(out.as_str(), "https://example.com/app/");
@@ -160,5 +176,12 @@ mod tests {
             .to_string();
 
         assert!(err.contains("unsupported app URL scheme") || err.contains("only https"));
+    }
+
+    #[test]
+    fn app_url_rejects_relative_paths() {
+        let err = SageAppUrl::parse("/relative/path").unwrap_err().to_string();
+
+        assert!(err.contains("invalid app url"));
     }
 }
