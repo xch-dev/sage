@@ -55,7 +55,6 @@ export function useLoadState() {
       setState({
         kind: 'ready',
         mode: 'review-update',
-        app: updateContext.app,
         updateContext,
         permissionsContext: null,
         definitions,

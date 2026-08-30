@@ -7,6 +7,7 @@ import type {
   SystemSageAppView,
   UserBridgeCapability,
   UserSageAppView,
+  UserSageAppPendingUpdateView,
 } from 'sage-system-app-sdk';
 import type { NetworkPermissionScheme, PermissionEntry } from './types';
 import {
@@ -30,7 +31,7 @@ interface AppPermissionEditorProps {
 }
 
 interface UpdateDecisionPermissionEditorProps {
-  app: UserSageAppView;
+  pendingUpdate?: UserSageAppPendingUpdateView | null;
   capabilityDefinitions: SageAppCapabilityDefinitionView[];
   emptyText?: string;
 }
@@ -94,11 +95,11 @@ export function AppPermissionEditor({
 }
 
 export function UpdateDecisionPermissionEditor({
-  app,
+  pendingUpdate,
   capabilityDefinitions,
   emptyText = 'This update does not require any new permissions.',
 }: UpdateDecisionPermissionEditorProps) {
-  const decision = app.pendingUpdate?.decision;
+  const decision = pendingUpdate?.decision;
 
   const grantedPermissions = useMemo<SageGrantedPermissionsView>(() => {
     if (decision?.kind !== 'review') {

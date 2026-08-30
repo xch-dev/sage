@@ -6,10 +6,11 @@ use specta::Type;
 use tokio::sync::OwnedMutexGuard;
 
 use crate::{
-    BridgeCapability, SageAppCommon, SageAppCommonRaw, SageAppIconView, SageAppManifestHeaderV0,
-    SageAppSnapshot, SageAppStorage, SageAppUrl, SageGrantedPermissions,
-    SageGrantedSystemPermissions, SageRequestedPermissions, SharedRuntime, SystemSageApp,
-    UserSageAppPendingUpdate, UserSageAppPendingUpdateView,
+    BridgeCapability, SageAppCommon, SageAppCommonRaw, SageAppCompatibility, SageAppIconView,
+    SageAppIdentity, SageAppManifestRecoveryHeaderV0, SageAppSnapshot, SageAppStorage, SageAppUrl,
+    SageAppWalletScope, SageGrantedPermissions, SageGrantedSystemPermissions,
+    SageRequestedPermissions, SharedRuntime, SystemSageApp, UserSageAppPendingUpdate,
+    UserSageAppPendingUpdateView,
 };
 
 #[derive(Debug)]
@@ -229,10 +230,28 @@ pub struct CorruptedInstalledSageApp {
     error: String,
 
     #[serde(skip_serializing_if = "Option::is_none")]
-    manifest_header: Option<SageAppManifestHeaderV0>,
+    manifest_header: Option<SageAppManifestRecoveryHeaderV0>,
 
     #[serde(skip_serializing_if = "Option::is_none")]
     source: Option<UserSageAppSource>,
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    compatibility: Option<SageAppCompatibility>,
+}
+
+/// Durable state that remains usable when the active snapshot manifest cannot
+/// be deserialized. It is intentionally separate from `UserSageApp`: callers
+/// must not launch it, but can use it to safely discover and apply a repair
+/// update without replacing storage, wallet scope, grants, or origin state.
+#[derive(Debug)]
+pub(crate) struct RecoverableUserSageApp {
+    identity: SageAppIdentity,
+    source: UserSageAppSource,
+    granted_permissions: SageGrantedPermissions,
+    storage: SageAppStorage,
+    origin_webview_storage_may_contain_secrets: bool,
+    wallet_scope: SageAppWalletScope,
+    active_snapshot_dir: String,
 }
 
 #[derive(Debug)]
@@ -433,6 +452,7 @@ impl CorruptedInstalledSageApp {
             error: error.into(),
             manifest_header: None,
             source: None,
+            compatibility: None,
         }
     }
 
@@ -443,7 +463,7 @@ impl CorruptedInstalledSageApp {
 
     pub(crate) fn with_manifest_header(
         mut self,
-        manifest_header: Option<SageAppManifestHeaderV0>,
+        manifest_header: Option<SageAppManifestRecoveryHeaderV0>,
     ) -> Self {
         self.manifest_header = manifest_header;
         self
@@ -454,8 +474,102 @@ impl CorruptedInstalledSageApp {
         self
     }
 
+    pub(crate) fn with_evaluated_compatibility(
+        mut self,
+        current_version: &semver::Version,
+    ) -> Self {
+        self.compatibility = self
+            .manifest_header
+            .as_ref()
+            .and_then(|header| header.sage_version.as_ref())
+            .map(|sage_version| SageAppCompatibility::evaluate(current_version, sage_version));
+        self
+    }
+
     pub(crate) fn id(&self) -> &str {
         &self.id
+    }
+
+    pub(crate) fn source(&self) -> Option<&UserSageAppSource> {
+        self.source.as_ref()
+    }
+}
+
+impl RecoverableUserSageApp {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        identity: SageAppIdentity,
+        source: UserSageAppSource,
+        granted_permissions: SageGrantedPermissions,
+        storage: SageAppStorage,
+        origin_webview_storage_may_contain_secrets: bool,
+        wallet_scope: SageAppWalletScope,
+        active_snapshot_dir: impl Into<String>,
+    ) -> Self {
+        Self {
+            identity,
+            source,
+            granted_permissions,
+            storage,
+            origin_webview_storage_may_contain_secrets,
+            wallet_scope,
+            active_snapshot_dir: active_snapshot_dir.into(),
+        }
+    }
+
+    pub(crate) fn app_dir(&self) -> &str {
+        self.identity.app_dir()
+    }
+
+    pub(crate) fn source(&self) -> &UserSageAppSource {
+        &self.source
+    }
+
+    pub(crate) fn granted_permissions(&self) -> &SageGrantedPermissions {
+        &self.granted_permissions
+    }
+
+    pub(crate) fn active_snapshot_dir(&self) -> &str {
+        &self.active_snapshot_dir
+    }
+
+    pub(crate) fn repair(
+        self,
+        granted_permissions: SageGrantedPermissions,
+        snapshot: SageAppSnapshot,
+    ) -> anyhow::Result<UserSageApp> {
+        self.into_user_app(granted_permissions, snapshot, None)
+    }
+
+    pub(crate) fn restore(
+        self,
+        snapshot: SageAppSnapshot,
+        pending_update: Option<UserSageAppPendingUpdate>,
+    ) -> anyhow::Result<UserSageApp> {
+        let granted_permissions = self.granted_permissions.clone();
+        self.into_user_app(granted_permissions, snapshot, pending_update)
+    }
+
+    fn into_user_app(
+        self,
+        granted_permissions: SageGrantedPermissions,
+        snapshot: SageAppSnapshot,
+        pending_update: Option<UserSageAppPendingUpdate>,
+    ) -> anyhow::Result<UserSageApp> {
+        let common = SageAppCommon::from_persisted_parts(
+            self.identity,
+            granted_permissions,
+            self.storage,
+            self.origin_webview_storage_may_contain_secrets,
+            snapshot,
+            self.wallet_scope,
+        )?;
+
+        Ok(UserSageApp::load_persisted(
+            common,
+            self.source,
+            pending_update,
+        ))
     }
 }
 
@@ -529,7 +643,34 @@ mod tests {
     use crate::{
         SageAppIdentity, SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifest, SageAppPackageManifestParts, SageAppWalletScope,
+        SageGrantedPermissions, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        UserBridgeCapability,
     };
+
+    fn test_manifest(
+        snapshot_dir: &std::path::Path,
+        permissions: SageRequestedPermissions,
+    ) -> SageAppPackageManifest {
+        fs::create_dir_all(snapshot_dir).unwrap();
+        fs::write(snapshot_dir.join("index.html"), "x").unwrap();
+
+        SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version: SageAppManifestVersion(0),
+            name: "test app".to_string(),
+            icon: None,
+            sage_version: SageAppManifestSageVersion {
+                min: "0.0.0".to_string(),
+                tested_max: None,
+            },
+            version: "1.0.0".to_string(),
+            permissions,
+            files: vec![SageAppManifestFile::new("index.html", "a".repeat(64), 1).unwrap()],
+            entry: Some("index.html".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap()
+    }
 
     fn test_app() -> (SharedSageApp, TempDir) {
         let dir = tempdir().unwrap();
@@ -581,5 +722,55 @@ mod tests {
         assert!(lock.clone().try_lock_owned().is_err());
         drop(guard);
         assert!(lock.try_lock_owned().is_ok());
+    }
+
+    #[test]
+    fn recovery_repair_preserves_durable_authority_and_clears_pending_update() {
+        let dir = tempdir().unwrap();
+        let snapshot_dir = dir.path().join("new-snapshot");
+        let permissions = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::empty(),
+            SageRequestedCapabilities::new([], [UserBridgeCapability::StoragePersistentWebview]),
+        )
+        .unwrap();
+        let manifest = test_manifest(&snapshot_dir, permissions.clone());
+        let grants = SageGrantedPermissions::new(
+            &permissions,
+            [UserBridgeCapability::StoragePersistentWebview],
+            [],
+            BTreeMap::new(),
+        )
+        .unwrap();
+        let source = UserSageAppSource::url("https://example.com/app/").unwrap();
+        let storage = SageAppStorage::WindowsProfile {
+            directory_name: "profile-recovery-test".to_string(),
+        };
+        let wallet_scope = SageAppWalletScope::SelectedWallets {
+            fingerprints: vec![123, 456],
+        };
+        let recoverable = RecoverableUserSageApp::new(
+            SageAppIdentity::new("app-id", "origin-id", dir.path().to_string_lossy()).unwrap(),
+            source.clone(),
+            grants.clone(),
+            storage.clone(),
+            true,
+            wallet_scope.clone(),
+            dir.path().join("old-snapshot").to_string_lossy(),
+        );
+        let snapshot =
+            SageAppSnapshot::new("new-hash", snapshot_dir.to_string_lossy(), manifest).unwrap();
+
+        let repaired = recoverable.repair(grants.clone(), snapshot).unwrap();
+        let common = repaired.common();
+
+        assert_eq!(common.id(), "app-id");
+        assert_eq!(common.origin_id(), "origin-id");
+        assert_eq!(common.app_dir(), dir.path().to_string_lossy());
+        assert_eq!(common.storage(), &storage);
+        assert_eq!(common.wallet_scope(), &wallet_scope);
+        assert_eq!(common.granted_permissions(), &grants);
+        assert!(common.origin_webview_storage_may_contain_secrets());
+        assert_eq!(repaired.source(), &source);
+        assert!(repaired.pending_update().is_none());
     }
 }

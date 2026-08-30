@@ -78,3 +78,18 @@ impl From<&ListedSageApp> for ListedSageAppView {
         }
     }
 }
+
+impl ListedSageAppView {
+    pub(crate) fn from_listed_with_current_version(
+        value: &ListedSageApp,
+        current_version: &semver::Version,
+    ) -> Self {
+        match value {
+            ListedSageApp::User(app) => Self::User(app.into()),
+            ListedSageApp::System(app) => Self::System(app.into()),
+            ListedSageApp::Corrupted(app) => {
+                Self::Corrupted(app.clone().with_evaluated_compatibility(current_version))
+            }
+        }
+    }
+}

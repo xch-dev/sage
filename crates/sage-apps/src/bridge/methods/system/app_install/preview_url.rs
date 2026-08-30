@@ -1,17 +1,25 @@
 use async_trait::async_trait;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use specta::Type;
 
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
-    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest, SageAppUrl,
-    SageAppUrlPreview, SystemBridgeCapability, fetch_url_manifest_preview, parse_required_params,
+    BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
+    SageAppCompatibility, SageAppUrl, SageAppUrlPreview, SystemBridgeCapability,
+    fetch_url_manifest_preview, parse_required_params,
 };
 
 #[derive(Debug, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct AppInstallPreviewUrlParams {
     app_url: String,
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AppInstallPreviewUrlResult {
+    preview: SageAppUrlPreview,
+    compatibility: SageAppCompatibility,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,12 +46,12 @@ impl BridgeMethod for AppInstallPreviewUrl {
     async fn handle(
         &self,
         _ctx: BridgeContext<'_>,
-        _tools: BridgeTools<'_>,
+        tools: BridgeTools<'_>,
         request: &RustBridgeRequest,
     ) -> BridgeHandleResult {
         let params: AppInstallPreviewUrlParams = parse_required_params(self, request)?;
 
-        let preview = fetch_preview(params.app_url)
+        let preview = fetch_preview(tools.app_handle, params.app_url)
             .await
             .map_err(BridgeMethodHandleError::internal_error)?;
 
@@ -51,7 +59,10 @@ impl BridgeMethod for AppInstallPreviewUrl {
     }
 }
 
-async fn fetch_preview(app_url: String) -> Result<SageAppUrlPreview, String> {
+async fn fetch_preview(
+    app_handle: &tauri::AppHandle,
+    app_url: String,
+) -> Result<AppInstallPreviewUrlResult, String> {
     let app_url =
         SageAppUrl::parse(&app_url).map_err(|err| format!("invalid app URL {app_url}: {err}"))?;
 
@@ -59,7 +70,15 @@ async fn fetch_preview(app_url: String) -> Result<SageAppUrlPreview, String> {
         .await
         .map_err(|err| format!("failed to fetch app manifest: {err}"))?;
 
-    SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
+    let compatibility =
+        SageAppCompatibility::for_app(app_handle, &manifest.manifest_header().sage_version);
+
+    let preview = SageAppUrlPreview::new(&app_url, manifest, manifest_hash)
         .await
-        .map_err(|err| format!("failed to preview app URL: {err}"))
+        .map_err(|err| format!("failed to preview app URL: {err}"))?;
+
+    Ok(AppInstallPreviewUrlResult {
+        preview,
+        compatibility,
+    })
 }

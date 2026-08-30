@@ -17,8 +17,8 @@ use tauri::{AppHandle, Manager, State};
 use uuid::Uuid;
 
 use crate::{
-    AppsHostState, RUNTIME_ID_PREFIX, SANDBOX_TEST_ID_PREFIX, SageAppCommon, SageAppIdentity,
-    SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppWalletScope,
+    AppsHostState, RUNTIME_ID_PREFIX, SANDBOX_TEST_ID_PREFIX, SageAppCommon, SageAppCompatibility,
+    SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage, SageAppWalletScope,
     SageGrantedPermissionsInput, UserSageApp, UserSageAppSource, allocate_new_storage, apps_root,
     builtin_system_app_spec, emit_listed_apps_changed, fresh_snapshot_dir, write_snapshot_manifest,
 };
@@ -131,6 +131,9 @@ where
     fs::create_dir_all(&root)?;
 
     let prepared_artifact = source.prepare().await?;
+
+    SageAppCompatibility::for_app(app, source.manifest(&prepared_artifact).sage_version())
+        .ensure_installable()?;
 
     let (app_id, app_dir) = source.resolve_target(&root, base_path, &prepared_artifact)?;
     ensure_installable_app_id(&app_id)?;

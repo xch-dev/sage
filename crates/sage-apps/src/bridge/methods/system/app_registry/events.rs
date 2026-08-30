@@ -29,7 +29,12 @@ pub(crate) async fn emit_listed_apps_changed(
 
     let apps = apps
         .iter()
-        .map(Into::into)
+        .map(|app| {
+            ListedSageAppView::from_listed_with_current_version(
+                app,
+                &app_handle.package_info().version,
+            )
+        })
         .collect::<Vec<ListedSageAppView>>();
 
     emit_system_runtime_event_to_listeners(app_handle, apps_state, ListedAppsChangedEvent { apps })

@@ -1,4 +1,5 @@
 mod app;
+mod compatibility;
 mod invariants;
 mod manifest;
 mod network;
@@ -8,6 +9,7 @@ mod storage;
 mod url;
 
 pub(crate) use app::*;
+pub(crate) use compatibility::*;
 pub(crate) use invariants::*;
 pub(crate) use manifest::*;
 pub(crate) use network::*;

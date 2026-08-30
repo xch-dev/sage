@@ -91,3 +91,55 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
 
     Ok(manifest)
 }
+
+pub fn read_manifest_preview(
+    package_root: &std::path::Path,
+) -> AnyResult<SageAppPackageManifestPreview> {
+    let manifest_path = package_root.join(MANIFEST_FILE_NAME);
+    let manifest_text = std::fs::read_to_string(&manifest_path)
+        .with_context(|| format!("failed to read {}", manifest_path.display()))?;
+
+    let preview = parse_manifest_preview(&manifest_text, &manifest_path.to_string_lossy())?;
+
+    if let Some(manifest) = preview.full_manifest() {
+        manifest.validate_package_files(package_root)?;
+    }
+
+    Ok(preview)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn partial_preview_preserves_compatibility_header() {
+        let manifest = r#"{
+            "manifestVersion": 0,
+            "name": "Future App",
+            "sageVersion": { "min": "1.0.0", "testedMax": "1.2.0" },
+            "version": "1.0.0",
+            "files": []
+        }"#;
+
+        let preview = parse_manifest_preview(manifest, "test manifest").unwrap();
+
+        match preview {
+            SageAppPackageManifestPreview::Partial {
+                manifest_header,
+                parse_error,
+            } => {
+                assert_eq!(manifest_header.name, "Future App");
+                assert_eq!(manifest_header.sage_version.min, "1.0.0");
+                assert_eq!(
+                    manifest_header.sage_version.tested_max.as_deref(),
+                    Some("1.2.0")
+                );
+                assert!(!parse_error.is_empty());
+            }
+            SageAppPackageManifestPreview::Full { .. } => {
+                panic!("invalid full manifest should use its valid compatibility header")
+            }
+        }
+    }
+}
