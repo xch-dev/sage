@@ -19,7 +19,10 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
-use sage_api::{Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, SendXch};
+use sage_api::{
+    Amount, ChangePassword, DeleteKey, GetKey, GetPeers, GetSecretKey, GetSyncStatus, GetVersion,
+    ImportKey, Login, ReconcileKeyProtection, SendXch,
+};
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
@@ -172,6 +175,53 @@ impl TestApp {
         self.consume_until(|event| matches!(event, SyncEvent::PuzzleBatchSynced))
             .await;
     }
+
+    async fn setup_bls_with_password(&mut self, balance: u64, password: &str) -> Result<u32> {
+        let mnemonic = Mnemonic::from_entropy(&self.rng.r#gen::<[u8; 16]>())?;
+
+        if balance > 0 {
+            let master_sk = SecretKey::from_seed(&mnemonic.to_seed(""));
+            let p2_puzzle_hash = StandardArgs::curry_tree_hash(
+                master_to_wallet_unhardened(&master_sk, 0)
+                    .public_key()
+                    .derive_synthetic(),
+            );
+
+            self.sim.lock().await.create_block();
+
+            self.sim
+                .lock()
+                .await
+                .new_coin(p2_puzzle_hash.into(), balance);
+        }
+
+        let fingerprint = self
+            .import_key(ImportKey {
+                name: "Alice".to_string(),
+                key: mnemonic.to_string(),
+                derivation_index: 0,
+                hardened: None,
+                unhardened: None,
+                save_secrets: true,
+                login: true,
+                emoji: None,
+            })
+            .await?
+            .fingerprint;
+
+        self.consume_until(|event| matches!(event, SyncEvent::Subscribed))
+            .await;
+
+        // Passwords are set after import via change_password, mirroring the UI flow.
+        self.change_password(ChangePassword {
+            fingerprint,
+            old_password: String::new(),
+            new_password: password.to_string(),
+        })
+        .await?;
+
+        Ok(fingerprint)
+    }
 }
 
 impl_endpoints! {
@@ -255,6 +305,7 @@ async fn test_send_xch() -> Result<()> {
         memos: vec![],
         clawback: None,
         auto_submit: true,
+        password: None,
     })
     .await?;
 
@@ -277,6 +328,233 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_change_password() -> Result<()> {
+    let mut app = TestApp::new().await?;
+    let fingerprint = app.setup_bls(0).await?;
+
+    // Initially no password
+    let key = app
+        .get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .unwrap();
+    assert!(!key.has_password);
+
+    // Set password
+    app.change_password(ChangePassword {
+        fingerprint,
+        old_password: "".to_string(),
+        new_password: "secret".to_string(),
+    })
+    .await?;
+
+    // Now has_password should be true
+    let key = app
+        .get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .unwrap();
+    assert!(key.has_password);
+
+    // Getting secret without password should fail
+    let result = app
+        .get_secret_key(GetSecretKey {
+            fingerprint,
+            password: None,
+        })
+        .await;
+    assert!(result.is_err());
+
+    // Getting secret with correct password should work
+    let result = app
+        .get_secret_key(GetSecretKey {
+            fingerprint,
+            password: Some("secret".to_string()),
+        })
+        .await?;
+    assert!(result.secrets.is_some());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_password_protected_send() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls_with_password(1000, "secret").await?;
+
+    let _bob = app.setup_bls(1000).await?;
+    let bob_address = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    // Send without password should fail (auto_submit requires signing)
+    let result = app
+        .send_xch(SendXch {
+            address: bob_address.clone(),
+            amount: Amount::u64(100),
+            fee: Amount::u64(0),
+            memos: vec![],
+            clawback: None,
+            auto_submit: true,
+            password: None,
+        })
+        .await;
+    assert!(result.is_err());
+
+    // Send with correct password should succeed
+    app.send_xch(SendXch {
+        address: bob_address,
+        amount: Amount::u64(100),
+        fee: Amount::u64(0),
+        memos: vec![],
+        clawback: None,
+        auto_submit: true,
+        password: Some("secret".to_string()),
+    })
+    .await?;
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_password_protected_import() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let fingerprint = app.setup_bls_with_password(0, "mypassword").await?;
+
+    // Verify has_password is true
+    let key = app
+        .get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .unwrap();
+    assert!(key.has_password);
+    assert!(key.has_secrets);
+
+    // Getting secret with wrong password should fail
+    let result = app
+        .get_secret_key(GetSecretKey {
+            fingerprint,
+            password: Some("wrongpassword".to_string()),
+        })
+        .await;
+    assert!(result.is_err());
+
+    // Getting secret with correct password should work
+    let result = app
+        .get_secret_key(GetSecretKey {
+            fingerprint,
+            password: Some("mypassword".to_string()),
+        })
+        .await?;
+    assert!(result.secrets.is_some());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_password_protected_delete() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let fingerprint = app.setup_bls_with_password(0, "mypassword").await?;
+
+    // Deleting without a password should fail
+    let result = app
+        .delete_key(DeleteKey {
+            fingerprint,
+            password: None,
+        })
+        .await;
+    assert!(result.is_err());
+
+    // Deleting with the wrong password should fail
+    let result = app
+        .delete_key(DeleteKey {
+            fingerprint,
+            password: Some("wrongpassword".to_string()),
+        })
+        .await;
+    assert!(result.is_err());
+
+    // The key must still be there
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .is_some()
+    );
+
+    // Deleting with the correct password should succeed
+    app.delete_key(DeleteKey {
+        fingerprint,
+        password: Some("mypassword".to_string()),
+    })
+    .await?;
+
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(fingerprint),
+        })
+        .await?
+        .key
+        .is_none()
+    );
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_reconcile_key_protection() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    // A password-protected wallet reconciles to has_password = true.
+    let protected = app.setup_bls_with_password(0, "secret").await?;
+    let result = app
+        .reconcile_key_protection(ReconcileKeyProtection {
+            fingerprint: protected,
+        })
+        .await?;
+    assert!(result.has_password);
+    assert!(
+        app.get_key(GetKey {
+            fingerprint: Some(protected),
+        })
+        .await?
+        .key
+        .unwrap()
+        .has_password
+    );
+
+    // A wallet with no password reconciles to has_password = false.
+    let plain = app.setup_bls(0).await?;
+    let result = app
+        .reconcile_key_protection(ReconcileKeyProtection { fingerprint: plain })
+        .await?;
+    assert!(!result.has_password);
+    assert!(
+        !app.get_key(GetKey {
+            fingerprint: Some(plain),
+        })
+        .await?
+        .key
+        .unwrap()
+        .has_password
+    );
 
     Ok(())
 }

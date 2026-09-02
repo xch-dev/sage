@@ -149,6 +149,10 @@ pub struct SignMessageWithPublicKey {
     pub message: String,
     /// Public key to use for signing
     pub public_key: String,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with message signature
@@ -236,6 +240,10 @@ pub struct SignMessageByAddress {
     pub message: String,
     /// Address whose key to use
     pub address: String,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with signed message

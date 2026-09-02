@@ -25,7 +25,8 @@ import {
 import { t } from '@lingui/core/macro';
 
 export interface HandlerContext {
-  promptIfEnabled: () => Promise<boolean>;
+  requestPassword: (hasPassword: boolean) => Promise<string | null | undefined>;
+  hasPassword: boolean;
   /** True when the active wallet has no signing keys (cold/watch-only). */
   isReadOnly: boolean;
 }

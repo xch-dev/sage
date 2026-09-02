@@ -23,6 +23,10 @@ pub struct CreateTransaction {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

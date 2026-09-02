@@ -141,6 +141,30 @@ export function initializeWalletState(
   setWalletState = setter;
 }
 
+// Recovery path for the rare case where the active wallet's stored
+// `has_password` flag drifts from the actual encrypted key (e.g. a crash
+// mid-`change_password`). We only reconcile when the flag says "no password"
+// yet a decrypt just failed — that mismatch is the drift signal. A genuine
+// wrong password (flag already true) needs no reconcile, so we skip the
+// backend probe entirely to avoid its cost.
+export async function reconcileActiveKeyProtection(): Promise<void> {
+  try {
+    const current = await commands.getKey({});
+    if (!current.key || current.key.has_password) {
+      return;
+    }
+
+    await commands.reconcileKeyProtection({
+      fingerprint: current.key.fingerprint,
+    });
+
+    const updated = await commands.getKey({});
+    setWalletState?.(updated.key);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 export async function logoutAndUpdateState(): Promise<void> {
   clearState();
   if (setWalletState) {

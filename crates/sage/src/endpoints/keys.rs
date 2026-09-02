@@ -14,11 +14,13 @@ use chia_wallet_sdk::{
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
 use sage_api::{
-    DeleteDatabase, DeleteDatabaseResponse, DeleteKey, DeleteKeyResponse, GenerateMnemonic,
-    GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys, GetKeysResponse, GetSecretKey,
-    GetSecretKeyResponse, GetWalletAddress, GetWalletAddressResponse, ImportKey, ImportKeyResponse,
-    KeyInfo, KeyKind, Login, LoginResponse, Logout, LogoutResponse, RenameKey, RenameKeyResponse,
-    Resync, ResyncResponse, SecretKeyInfo, SetWalletEmoji, SetWalletEmojiResponse,
+    ChangePassword, ChangePasswordResponse, DeleteDatabase, DeleteDatabaseResponse, DeleteKey,
+    DeleteKeyResponse, GenerateMnemonic, GenerateMnemonicResponse, GetKey, GetKeyResponse, GetKeys,
+    GetKeysResponse, GetSecretKey, GetSecretKeyResponse, GetWalletAddress,
+    GetWalletAddressResponse, ImportKey, ImportKeyResponse, KeyInfo, KeyKind, Login, LoginResponse,
+    Logout, LogoutResponse, ReconcileKeyProtection, ReconcileKeyProtectionResponse, RenameKey,
+    RenameKeyResponse, Resync, ResyncResponse, SecretKeyInfo, SetWalletEmoji,
+    SetWalletEmojiResponse,
 };
 use sage_config::Wallet;
 use sage_database::{Database, Derivation};
@@ -183,6 +185,8 @@ impl Sage {
             (fingerprint, Some(master_sk), master_pk)
         };
 
+        // Imported keys are never password-protected at creation time; a password
+        // can be set afterward via `change_password`.
         self.wallet_config.wallets.push(Wallet {
             name: req.name,
             fingerprint,
@@ -268,6 +272,13 @@ impl Sage {
     }
 
     pub fn delete_key(&mut self, req: DeleteKey) -> Result<DeleteKeyResponse> {
+        // Deleting a password-protected key is irreversible, so require the password
+        // here rather than relying on the frontend to verify it.
+        if self.keychain.is_password_protected(req.fingerprint) {
+            let password = req.password.unwrap_or_default().into_bytes();
+            self.keychain.extract_secrets(req.fingerprint, &password)?;
+        }
+
         self.keychain.remove(req.fingerprint);
 
         self.wallet_config
@@ -343,6 +354,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(fingerprint),
+                has_password: wallet_config.password_protected,
                 network_id,
                 emoji: wallet_config.emoji,
             }),
@@ -350,7 +362,9 @@ impl Sage {
     }
 
     pub fn get_secret_key(&self, req: GetSecretKey) -> Result<GetSecretKeyResponse> {
-        let (mnemonic, Some(secret_key)) = self.keychain.extract_secrets(req.fingerprint, b"")?
+        let password = req.password.unwrap_or_default().into_bytes();
+        let (mnemonic, Some(secret_key)) =
+            self.keychain.extract_secrets(req.fingerprint, &password)?
         else {
             return Ok(GetSecretKeyResponse { secrets: None });
         };
@@ -361,6 +375,31 @@ impl Sage {
                 secret_key: hex::encode(secret_key.to_bytes()),
             }),
         })
+    }
+
+    pub fn change_password(&mut self, req: ChangePassword) -> Result<ChangePasswordResponse> {
+        let old_password = req.old_password.into_bytes();
+        let new_password = req.new_password.into_bytes();
+        self.keychain
+            .change_password(req.fingerprint, &old_password, &new_password)?;
+        self.save_keychain()?;
+        self.set_password_protected(req.fingerprint, !new_password.is_empty())?;
+        Ok(ChangePasswordResponse {})
+    }
+
+    /// Re-derives the `password_protected` flag from the actual keychain state and
+    /// persists any correction. This is the recovery path for the rare case where
+    /// the config flag drifts from reality (e.g. a crash between writing `keys.bin`
+    /// and the config in `change_password`). It runs a single decrypt probe, so it
+    /// is only invoked on demand after an unexpected decrypt failure — never on the
+    /// login hot path.
+    pub fn reconcile_key_protection(
+        &mut self,
+        req: ReconcileKeyProtection,
+    ) -> Result<ReconcileKeyProtectionResponse> {
+        let has_password = self.keychain.is_password_protected(req.fingerprint);
+        self.set_password_protected(req.fingerprint, has_password)?;
+        Ok(ReconcileKeyProtectionResponse { has_password })
     }
 
     pub fn get_keys(&self, _req: GetKeys) -> Result<GetKeysResponse> {
@@ -377,6 +416,7 @@ impl Sage {
                 public_key: hex::encode(master_pk.to_bytes()),
                 kind: KeyKind::Bls,
                 has_secrets: self.keychain.has_secret_key(wallet.fingerprint),
+                has_password: wallet.password_protected,
                 network_id: wallet.network.clone().unwrap_or_else(|| self.network_id()),
                 emoji: wallet.emoji.clone(),
             });

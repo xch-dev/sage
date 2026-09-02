@@ -15,6 +15,7 @@ import { ThemeProvider, useTheme } from 'theme-o-rama';
 import { useLocalStorage } from 'usehooks-ts';
 import { BiometricProvider } from './contexts/BiometricContext';
 import { ErrorProvider } from './contexts/ErrorContext';
+import { PasswordProvider } from './contexts/PasswordContext';
 import {
   getBrowserLanguage,
   LanguageProvider,
@@ -207,15 +208,17 @@ function AppInner() {
       <I18nProvider i18n={i18n}>
         <WalletProvider>
           <RustThemeSync />
-          <PeerProvider>
-            <AppsProvider>
-              <WalletConnectProvider>
-                <PriceProvider>
-                  <RouterProvider router={router} />
-                </PriceProvider>
-              </WalletConnectProvider>
-            </AppsProvider>
-          </PeerProvider>
+          <PasswordProvider>
+            <PeerProvider>
+              <AppsProvider>
+                <WalletConnectProvider>
+                  <PriceProvider>
+                    <RouterProvider router={router} />
+                  </PriceProvider>
+                </WalletConnectProvider>
+              </AppsProvider>
+            </PeerProvider>
+          </PasswordProvider>
         </WalletProvider>
       </I18nProvider>
     )

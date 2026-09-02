@@ -40,6 +40,10 @@ pub struct MakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(nullable = true))]
     pub coin_ids: Option<Vec<String>>,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Asset amount in an offer
@@ -92,6 +96,10 @@ pub struct TakeOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with accepted offer details
@@ -307,6 +315,10 @@ pub struct CancelOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 pub type CancelOfferResponse = TransactionResponse;
@@ -332,6 +344,10 @@ pub struct CancelOffers {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 pub type CancelOffersResponse = TransactionResponse;

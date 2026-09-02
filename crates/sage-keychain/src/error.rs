@@ -22,4 +22,10 @@ pub enum KeychainError {
 
     #[error("Key already exists")]
     KeyExists,
+
+    #[error("Key not found")]
+    KeyNotFound,
+
+    #[error("No secret key")]
+    NoSecretKey,
 }

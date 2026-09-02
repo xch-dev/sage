@@ -47,9 +47,8 @@ export async function handleSend(
   params: Params<'chia_send'>,
   context: HandlerContext,
 ): Promise<Return<'chia_send'>> {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   if (params.assetId) {
     await commands.sendCat({
@@ -59,6 +58,7 @@ export async function handleSend(
       fee: params.fee ?? 0,
       memos: params.memos ?? [],
       auto_submit: true,
+      password,
     });
   } else {
     await commands.sendXch({
@@ -67,6 +67,7 @@ export async function handleSend(
       fee: params.fee ?? 0,
       memos: params.memos ?? [],
       auto_submit: true,
+      password,
     });
   }
 
@@ -83,25 +84,24 @@ export async function handleSignMessageByAddress(
   params: Params<'chia_signMessageByAddress'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
-  return await commands.signMessageByAddress(params);
+  return await commands.signMessageByAddress({ ...params, password });
 }
 
 export async function handleBulkMintNfts(
   params: Params<'chia_bulkMintNfts'>,
   context: HandlerContext,
 ): Promise<Return<'chia_bulkMintNfts'>> {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   const response = await commands.bulkMintNfts({
     did_id: params.did,
     fee: params.fee ?? 0,
     auto_submit: true,
+    password,
     mints: params.nfts.map((nft) => {
       if (nft.dataUris?.length && !nft.dataHash) {
         throw new Error('Data hash is required if data uris are provided');

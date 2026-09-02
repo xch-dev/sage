@@ -6,9 +6,8 @@ export async function handleCreateOffer(
   params: Params<'chia_createOffer'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.makeOffer({
     fee: params.fee ?? 0,
@@ -23,6 +22,7 @@ export async function handleCreateOffer(
       amount: asset.amount,
     })),
     expires_at_second: null,
+    password,
   });
 
   return {
@@ -35,14 +35,14 @@ export async function handleTakeOffer(
   params: Params<'chia_takeOffer'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   const data = await commands.takeOffer({
     offer: params.offer,
     fee: params.fee ?? 0,
     auto_submit: true,
+    password,
   });
 
   return { id: data.transaction_id };
@@ -52,14 +52,14 @@ export async function handleCancelOffer(
   params: Params<'chia_cancelOffer'>,
   context: HandlerContext,
 ) {
-  if (!(await context.promptIfEnabled())) {
-    throw new Error('Authentication failed');
-  }
+  const password = await context.requestPassword(context.hasPassword);
+  if (password === undefined) throw new Error('Authentication failed');
 
   await commands.cancelOffer({
     offer_id: params.id,
     fee: params.fee ?? 0,
     auto_submit: true,
+    password,
   });
 
   return {};

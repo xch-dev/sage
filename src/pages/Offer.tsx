@@ -17,6 +17,7 @@ import { FeeAmountInput } from '@/components/ui/masked-input';
 import { CustomError } from '@/contexts/ErrorContext';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { resolveOfferData } from '@/lib/offerData';
 import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
@@ -32,6 +33,8 @@ export function Offer() {
   const { isReadOnly } = useWallet();
   const walletState = useWalletState();
   const navigate = useNavigate();
+  const { wallet } = useWallet();
+  const { requestPassword } = usePassword();
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(t`Initializing...`);
@@ -105,10 +108,14 @@ export function Offer() {
       return;
     }
 
+    const password = await requestPassword(wallet?.has_password ?? false);
+    if (password === undefined) return;
+
     try {
       const result = await commands.takeOffer({
         offer: resolvedOffer,
         fee: toMojos(fee || '0', walletState.sync.unit.precision),
+        password,
       });
       setResponse(result);
     } catch (error) {

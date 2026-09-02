@@ -8,11 +8,13 @@ impl Sage {
         &self,
         coin_spends: Vec<CoinSpend>,
         partial: bool,
+        password: &[u8],
     ) -> Result<SpendBundle> {
         let wallet = self.wallet()?;
 
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        let (_mnemonic, Some(master_sk)) = self
+            .keychain
+            .extract_secrets(wallet.fingerprint, password)?
         else {
             return Err(Error::NoSigningKey);
         };

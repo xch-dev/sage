@@ -231,13 +231,17 @@ pub struct DeleteDatabaseResponse {}
         description = "Permanently delete a wallet key from the system. This action cannot be undone."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct DeleteKey {
     /// Wallet fingerprint to delete
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response for key deletion
@@ -375,13 +379,17 @@ pub struct GetKeyResponse {
         description = "Retrieve the secret key (mnemonic) for a wallet. Requires authentication."
     )
 )]
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetSecretKey {
     /// Wallet fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
     pub fingerprint: u32,
+    /// Password for signing (required if wallet is password-protected)
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub password: Option<String>,
 }
 
 /// Response with secret key information
@@ -409,6 +417,35 @@ pub struct GetSecretKeyResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ChangePassword {
+    /// Wallet fingerprint
+    pub fingerprint: u32,
+    /// Current password (empty string if no password is set)
+    pub old_password: String,
+    /// New password (empty string to remove password protection)
+    pub new_password: String,
+}
+
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(tag = "Authentication & Keys")
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ChangePasswordResponse {}
+
+/// Get the receive address for any wallet without switching sessions
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Get the current receive address for any wallet by fingerprint without switching the active session."
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetWalletAddress {
     /// Wallet fingerprint
     #[cfg_attr(feature = "openapi", schema(example = 1_234_567_890))]
@@ -419,10 +456,35 @@ pub struct GetWalletAddress {
 }
 
 /// Response with the wallet's receive address
+/// Re-derive a wallet's password-protection flag from its actual key state
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "Authentication & Keys",
+        description = "Re-derive the stored password-protection flag from the actual encrypted key, correcting any drift between the config and the keychain."
+    )
+)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ReconcileKeyProtection {
+    /// Wallet fingerprint
+    pub fingerprint: u32,
+}
+
+/// Response with the reconciled password-protection state
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(tag = "Authentication & Keys")
 )]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ReconcileKeyProtectionResponse {
+    /// Whether the wallet is actually password-protected after reconciliation
+    pub has_password: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

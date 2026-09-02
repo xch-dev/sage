@@ -21,9 +21,9 @@ import { LoadingButton } from '@/components/ui/loading-button';
 import { FeeAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { useWallet } from '@/contexts/WalletContext';
-import { useBiometric } from '@/hooks/useBiometric';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useErrors } from '@/hooks/useErrors';
+import { usePassword } from '@/hooks/usePassword';
 import { decodeHexMessage, fromMojos, toMojos, isHex } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import {
@@ -66,7 +66,7 @@ type SessionRequest = SignClientTypes.EventArguments['session_request'];
 export function WalletConnectProvider({ children }: { children: ReactNode }) {
   const { wallet, isReadOnly } = useWallet();
   const { addError } = useErrors();
-  const { promptIfEnabled } = useBiometric();
+  const { requestPassword } = usePassword();
 
   const [signClient, setSignClient] = useState<Awaited<
     ReturnType<typeof SignClient.init>
@@ -105,7 +105,11 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         const result = await handleCommand(
           method,
           request.params.request.params,
-          { promptIfEnabled, isReadOnly },
+          {
+            requestPassword,
+            hasPassword: wallet?.has_password ?? false,
+            isReadOnly,
+          },
         );
 
         await signClient.respond({
@@ -139,7 +143,7 @@ export function WalletConnectProvider({ children }: { children: ReactNode }) {
         });
       }
     },
-    [signClient, addError, promptIfEnabled, isReadOnly],
+    [signClient, addError, requestPassword, wallet?.has_password, isReadOnly],
   );
 
   useEffect(() => {

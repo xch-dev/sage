@@ -31,6 +31,9 @@ pub struct Wallet {
     pub emoji: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub change_address: Option<String>,
+    #[serde(default)]
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub password_protected: bool,
 }
 
 impl Wallet {
@@ -48,6 +51,7 @@ impl Default for Wallet {
             delta_sync: None,
             emoji: None,
             change_address: None,
+            password_protected: false,
         }
     }
 }
@@ -68,6 +72,7 @@ mod tests {
             change_address: Some(
                 "xch1dtfukqqka3ftqtdlhmc5spc5vd44h7ejrtnjcewxlueam5yrnnqqyczg8t".to_string(),
             ),
+            password_protected: false,
         }
     }
 

@@ -532,6 +532,27 @@ impl Sage {
         Ok(())
     }
 
+    /// Updates the wallet config's `password_protected` flag if it doesn't
+    /// match the actual state, and persists the change.
+    pub fn set_password_protected(
+        &mut self,
+        fingerprint: u32,
+        password_protected: bool,
+    ) -> Result<()> {
+        let wallet = self
+            .wallet_config
+            .wallets
+            .iter_mut()
+            .find(|w| w.fingerprint == fingerprint)
+            .ok_or(Error::UnknownFingerprint)?;
+
+        if wallet.password_protected != password_protected {
+            wallet.password_protected = password_protected;
+            self.save_config()?;
+        }
+        Ok(())
+    }
+
     pub fn save_keychain(&self) -> Result<()> {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())

@@ -40,6 +40,7 @@ impl From<WalletSendXchParams> for SendXch {
             memos: v.memos.unwrap_or_default(),
             clawback: v.clawback,
             auto_submit: true,
+            password: None,
         }
     }
 }

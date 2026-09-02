@@ -148,6 +148,8 @@ macro_rules! sage_commands {
             commands::download_cni_offercode,
             commands::get_logs,
             commands::is_asset_owned,
+            commands::change_password,
+            commands::reconcile_key_protection,
             commands::get_xch_usd_price,
             $($extra_command)*
         ]

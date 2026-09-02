@@ -155,6 +155,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
             delta_sync: None,
             emoji: None,
             change_address: None,
+            password_protected: false,
         });
     }
 

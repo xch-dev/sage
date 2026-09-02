@@ -25,6 +25,7 @@ impl From<WalletSignMessageParams> for SignMessageWithPublicKey {
         Self {
             message: params.message,
             public_key: params.public_key,
+            password: None,
         }
     }
 }

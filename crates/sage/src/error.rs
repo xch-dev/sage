@@ -240,13 +240,14 @@ impl Error {
             Self::Wallet(..) | Self::NoSigningKey => ErrorKind::Wallet,
             Self::NotLoggedIn => ErrorKind::Unauthorized,
             Self::Keychain(error) => match error {
-                KeychainError::Decrypt => ErrorKind::Unauthorized,
+                KeychainError::Decrypt => ErrorKind::IncorrectPassword,
                 KeychainError::KeyExists
                 | KeychainError::Bincode(..)
                 | KeychainError::Encrypt
                 | KeychainError::Bls(..)
                 | KeychainError::Bip39(..)
                 | KeychainError::Argon2(..) => ErrorKind::Internal,
+                KeychainError::KeyNotFound | KeychainError::NoSecretKey => ErrorKind::Unauthorized,
             },
             Self::SqlxMigration(..) | Self::DatabaseVersionTooOld => ErrorKind::DatabaseMigration,
             Self::Send(..)

@@ -91,6 +91,7 @@ impl WalletSignCoinSpendsParams {
             coin_spends: self.coin_spends.into_iter().map(Into::into).collect(),
             auto_submit: false,
             partial: self.partial_sign.unwrap_or(false),
+            password: None,
         }
     }
 
