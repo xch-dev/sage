@@ -17,6 +17,8 @@ interface WalletContextType {
   /** True when transaction-initiating UI should be disabled.
    *  Equivalent to `isReadOnly && !allowUnsigned`. */
   isTransactionDisabled: boolean;
+  /** True once the initial wallet lookup on app start has settled (found or not). */
+  isInitialized: boolean;
 }
 
 export const WalletContext = createContext<WalletContextType | undefined>(
@@ -26,6 +28,7 @@ export const WalletContext = createContext<WalletContextType | undefined>(
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [wallet, setWallet] = useState<KeyInfo | null>(null);
   const [isSwitching, setIsSwitching] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { addError } = useErrors();
   const { allowUnsigned } = useColdWalletUnsigned();
 
@@ -45,6 +48,8 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         if (customError.kind !== 'unauthorized') {
           addError(customError);
         }
+      } finally {
+        setIsInitialized(true);
       }
     };
 
@@ -61,6 +66,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         isReadOnly,
         allowUnsigned,
         isTransactionDisabled,
+        isInitialized,
       }}
     >
       {children}
