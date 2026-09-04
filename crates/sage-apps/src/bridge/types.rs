@@ -17,7 +17,7 @@ pub struct RustBridgeRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum RustBridgeInvokeResult {
     Success(RustBridgeSuccessResponse),
     Error(RustBridgeErrorResponse),
@@ -62,6 +62,20 @@ pub struct ResolveBridgeApprovalArgs {
     pub approval_id: String,
     pub approved: bool,
     pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_response: Option<RustBridgeApprovalResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(tag = "kind", content = "response", rename_all = "camelCase")]
+pub enum RustBridgeApprovalResponse {
+    SendXch(WalletSendXchApprovalResponse),
+}
+
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WalletSendXchApprovalResponse {
+    pub selected_fee: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
