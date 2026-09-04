@@ -12,9 +12,19 @@ interface Props {
   approval: RustBridgeApprovalRequest;
   appName: string;
   expanded: boolean;
+  working: boolean;
+  feeInput: string;
+  onFeeInputChange: (value: string) => void;
 }
 
-export function AppApprovalBody({ approval, appName, expanded }: Props) {
+export function AppApprovalBody({
+  approval,
+  appName,
+  expanded,
+  working,
+  feeInput,
+  onFeeInputChange,
+}: Props) {
   switch (approval.kind) {
     case 'getSecretKey':
       return (
@@ -31,6 +41,9 @@ export function AppApprovalBody({ approval, appName, expanded }: Props) {
           approval={approval}
           appName={appName}
           expanded={expanded}
+          working={working}
+          feeInput={feeInput}
+          onFeeInputChange={onFeeInputChange}
         />
       );
 
