@@ -59,6 +59,18 @@ pnpm tauri:dev
 pnpm tauri:dev --release
 ```
 
+Set `SAGE_ROOT` to keep an instance's configuration, certificates, wallets, and
+installed apps in a custom directory:
+
+```bash
+SAGE_ROOT=/tmp/sage-profile-a pnpm tauri:dev
+SAGE_ROOT=/tmp/sage-profile-b pnpm tauri:dev
+```
+
+The installed desktop binary and the `sage rpc` commands use the same variable.
+When running multiple RPC servers, configure a different RPC port in each
+root's `config.toml`.
+
 And build the application with:
 
 ```bash

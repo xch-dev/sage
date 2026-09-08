@@ -1,6 +1,9 @@
-use std::collections::{HashMap, HashSet};
-use std::fmt;
-use std::sync::Arc;
+use std::{
+    collections::{HashMap, HashSet},
+    fmt,
+    path::PathBuf,
+    sync::Arc,
+};
 
 use parking_lot::RwLock;
 use sage::Sage;
@@ -15,6 +18,7 @@ pub type AppState = Arc<Mutex<Sage>>;
 
 #[derive(Debug)]
 pub struct AppsHostState {
+    pub(crate) root: PathBuf,
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub app_update_locks: RwLock<HashSet<String>>,
     pub runtime: AppRuntimeState,
@@ -25,8 +29,9 @@ pub struct AppsHostState {
 }
 
 impl AppsHostState {
-    pub fn new(db: AppsDb) -> Self {
+    pub fn new(root: PathBuf, db: AppsDb) -> Self {
         Self {
+            root,
             app_operation_locks: RwLock::default(),
             app_update_locks: RwLock::default(),
             runtime: AppRuntimeState::default(),

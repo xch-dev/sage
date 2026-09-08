@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
 use specta::Type;
 use tauri::webview::NewWindowResponse;
@@ -205,10 +205,10 @@ async fn create_runtime_for_app(
     let builder = build_initialization_script(builder);
 
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    let builder = build_storage(builder, &app)?;
+    let builder = build_storage(builder, &app, &apps_state.root)?;
 
     #[cfg(not(any(target_os = "macos", target_os = "ios")))]
-    let builder = build_storage(builder, &app);
+    let builder = build_storage(builder, &app, &apps_state.root);
 
     let (x, y, width, height) = if args.debug_layout {
         debug_layout_for_app(&app.id())
@@ -315,6 +315,7 @@ async fn rotate_incognito_app_storage_and_origin_if_needed(
 fn build_storage(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
+    _root: &Path,
 ) -> Result<WebviewBuilder<Wry>, String> {
     if !app.with(|app| app.common().has_persistent_webview_storage()) {
         return Ok(builder.incognito(true));
@@ -324,7 +325,11 @@ fn build_storage(
 }
 
 #[cfg(target_os = "windows")]
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+    root: &Path,
+) -> WebviewBuilder<Wry> {
     let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
     } else {
@@ -333,11 +338,15 @@ fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBu
 
     // Incognito webviews still need their app-specific storage target. On Windows this scopes the
     // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
-    build_windows_storage_target(builder, app)
+    build_windows_storage_target(builder, app, root)
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+fn build_storage(
+    builder: WebviewBuilder<Wry>,
+    app: &SharedSageApp,
+    _root: &Path,
+) -> WebviewBuilder<Wry> {
     if app.with(|app| app.common().has_persistent_webview_storage()) {
         builder
     } else {
@@ -366,12 +375,13 @@ fn build_persistent_storage_target(
 fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
+    root: &Path,
 ) -> WebviewBuilder<Wry> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder.data_directory(data_directory_for(&directory_name))
+            builder.data_directory(root.join(data_directory_for(&directory_name)))
         }
 
         SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
