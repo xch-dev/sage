@@ -91,7 +91,7 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
     ) -> BridgeHandleResult {
         let params: RequestNetworkWhitelistGrantParams = parse_required_params(self, request)?;
 
-        let base_path = resolve_app_base_path(&tools)?;
+        let base_path = resolve_app_base_path(&tools);
 
         let grant_result = grant_network_whitelist_entry(
             tools.app_handle,

@@ -90,7 +90,7 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         ensure_capability_requestable_by_app(params.capability)?;
 
-        let base_path = resolve_app_base_path(&tools)?;
+        let base_path = resolve_app_base_path(&tools);
 
         let result = match grant_capability(
             tools.app_handle,

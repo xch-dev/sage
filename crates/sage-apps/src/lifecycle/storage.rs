@@ -165,7 +165,8 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
                     .map_err(anyhow::Error::msg)?;
 
                 #[cfg(target_os = "windows")]
-                clear_app_storage_by_target(app, &target.storage).map_err(anyhow::Error::msg)?;
+                clear_app_storage_by_target(app, _base_path, &target.storage)
+                    .map_err(anyhow::Error::msg)?;
 
                 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
                 clear_app_storage_by_target(app, &target.storage);
@@ -216,17 +217,13 @@ pub async fn clear_app_storage_by_target(
 #[cfg(target_os = "windows")]
 pub fn clear_app_storage_by_target(
     _app: &AppHandle,
+    base_path: &Path,
     target: &SageAppStorage,
 ) -> Result<(), String> {
     match target {
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            let app_data_dir = _app
-                .path()
-                .app_data_dir()
-                .map_err(|e| format!("failed to resolve app data dir: {e}"))?;
-
-            let profile_dir = app_data_dir.join(data_directory_for(directory_name));
+            let profile_dir = base_path.join(data_directory_for(directory_name));
 
             match fs::remove_dir_all(&profile_dir) {
                 Ok(()) => {}
@@ -266,12 +263,7 @@ pub(crate) async fn rotate_app_storage_and_origin(
 ) -> Result<(), String> {
     let app_id = app.id();
 
-    let base_path = app_handle
-        .path()
-        .app_data_dir()
-        .map_err(|err| format!("failed to resolve app data dir: {err}"))?;
-
-    let next_storage = allocate_new_storage(app_handle, apps_state, &base_path)
+    let next_storage = allocate_new_storage(app_handle, apps_state, &apps_state.root)
         .await
         .map_err(|err| format!("failed to allocate rotated storage: {err}"))?;
 

@@ -277,7 +277,11 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
 
-            let path = app.path().app_data_dir()?;
+            let path = if let Some(path) = sage_config::sage_root_override() {
+                path
+            } else {
+                app.path().app_data_dir()?
+            };
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
             app.manage(Initialized(Mutex::new(false)));
@@ -305,7 +309,7 @@ pub fn run() {
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
 
-                app.manage(AppsHostState::new(apps_db));
+                app.manage(AppsHostState::new(path.clone(), apps_db));
 
                 apps::start_background_app_update_checker(app.handle().clone());
 
