@@ -20,6 +20,8 @@
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
     "tauri:dev": "pnpm run build && concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
     "tauri:build": "pnpm build && tauri build",
+    "package:flatpak": "node scripts/package-flatpak.mjs",
+    "check:flatpak-package": "node scripts/check-flatpak-package.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prettier": "prettier --write .",

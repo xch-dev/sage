@@ -8,6 +8,10 @@ Sage is built upon the reliable foundation of [chia_rs](https://github.com/Chia-
 
 You can download binaries for any platform (including desktop and Android) on the releases page. For iOS, you can participate in the [public TestFlight](https://testflight.apple.com/join/BmUdFXpP).
 
+On Linux (x64), install a downloaded Flatpak with
+`flatpak install --user ./Sage_VERSION_x64.flatpak`, replacing `VERSION` with the release version. See the
+[Flatpak packaging guide](src-tauri/flatpak/README.md) for building and updating.
+
 If you want to build from source, see the [Development](#development) section for instructions.
 
 ## Contributing
