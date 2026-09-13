@@ -35,85 +35,6 @@ struct AssetToOffer {
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
-        let MakeOffersResponse { mut offers } =
-            self.make_offers(MakeOffers { offers: vec![req] }).await?;
-
-        Ok(offers.remove(0))
-    }
-
-    pub async fn make_offers(&self, req: MakeOffers) -> Result<MakeOffersResponse> {
-        self.make_offers_with_progress(req, |_| {}, || false).await
-    }
-
-    pub async fn make_offers_with_progress(
-        &self,
-        req: MakeOffers,
-        mut on_progress: impl FnMut(MakeOffersProgress),
-        is_cancelled: impl Fn() -> bool,
-    ) -> Result<MakeOffersResponse> {
-        let wallet = self.wallet()?;
-
-        let (_mnemonic, Some(master_sk)) =
-            self.keychain.extract_secrets(wallet.fingerprint, b"")?
-        else {
-            return Err(Error::NoSigningKey);
-        };
-
-        let mut built = Vec::with_capacity(req.offers.len());
-
-        for (index, item) in req.offers.into_iter().enumerate() {
-            if is_cancelled() {
-                return Err(Error::Cancelled);
-            }
-
-            on_progress(MakeOffersProgress::Building {
-                index: index as u32,
-            });
-
-            let auto_import = item.auto_import;
-            built.push((
-                self.build_offer_with_key(item, &master_sk).await?,
-                auto_import,
-            ));
-        }
-
-        // One shared transaction, not one per offer: N separate transactions serialize behind
-        // SQLite's single-writer lock alongside unrelated background database activity, which
-        // is measurably slow for large batches.
-        if built.iter().any(|(_, auto_import)| *auto_import) {
-            on_progress(MakeOffersProgress::Importing);
-
-            let mut tx = wallet.db.tx().await?;
-
-            for (response, auto_import) in &built {
-                if is_cancelled() {
-                    return Err(Error::Cancelled);
-                }
-
-                if *auto_import {
-                    self.import_offer_into(
-                        &mut tx,
-                        ImportOffer {
-                            offer: response.offer.clone(),
-                        },
-                    )
-                    .await?;
-                }
-            }
-
-            tx.commit().await?;
-        }
-
-        Ok(MakeOffersResponse {
-            offers: built.into_iter().map(|(response, _)| response).collect(),
-        })
-    }
-
-    async fn build_offer_with_key(
-        &self,
-        req: MakeOffer,
-        master_sk: &SecretKey,
-    ) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
@@ -241,11 +162,17 @@ impl Sage {
             .make_offer(offered, requested, req.expires_at_second)
             .await?;
 
+        let (_mnemonic, Some(master_sk)) =
+            self.keychain.extract_secrets(wallet.fingerprint, b"")?
+        else {
+            return Err(Error::NoSigningKey);
+        };
+
         let offer = wallet
             .sign_transaction(
                 unsigned,
                 &AggSigConstants::new(self.network().agg_sig_me()),
-                master_sk.clone(),
+                master_sk,
                 false,
             )
             .await?;
@@ -255,6 +182,65 @@ impl Sage {
         Ok(MakeOfferResponse {
             offer: encoded_offer,
             offer_id: hex::encode(sort_offer(offer).name()),
+        })
+    }
+
+    pub async fn make_offers(&self, req: MakeOffers) -> Result<MakeOffersResponse> {
+        self.make_offers_with_progress(req, |_| {}, || false).await
+    }
+
+    pub async fn make_offers_with_progress(
+        &self,
+        req: MakeOffers,
+        mut on_progress: impl FnMut(MakeOffersProgress),
+        is_cancelled: impl Fn() -> bool,
+    ) -> Result<MakeOffersResponse> {
+        let wallet = self.wallet()?;
+
+        let mut built = Vec::with_capacity(req.offers.len());
+
+        for (index, item) in req.offers.into_iter().enumerate() {
+            if is_cancelled() {
+                return Err(Error::Cancelled);
+            }
+
+            on_progress(MakeOffersProgress::Building {
+                index: index as u32,
+            });
+
+            let auto_import = item.auto_import;
+            built.push((self.make_offer(item).await?, auto_import));
+        }
+
+        // One shared transaction, not one per offer: N separate transactions serialize behind
+        // SQLite's single-writer lock alongside unrelated background database activity, which
+        // is measurably slow for large batches.
+        if built.iter().any(|(_, auto_import)| *auto_import) {
+            on_progress(MakeOffersProgress::Importing);
+
+            let mut tx = wallet.db.tx().await?;
+
+            for (response, auto_import) in &built {
+                if is_cancelled() {
+                    return Err(Error::Cancelled);
+                }
+
+                if *auto_import {
+                    self.import_offer_into(
+                        &mut tx,
+                        ImportOffer {
+                            offer: response.offer.clone(),
+                        },
+                    )
+                    .await?;
+                }
+            }
+
+            tx.commit().await?;
+        }
+
+        Ok(MakeOffersResponse {
+            offers: built.into_iter().map(|(response, _)| response).collect(),
         })
     }
 
