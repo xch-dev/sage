@@ -1,8 +1,8 @@
-import { commands, OfferRecord, TransactionResponse } from '@/bindings';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
+import { OfferRecord } from '@/bindings';
+import { CancelOffersFlow } from '@/components/dialogs/CancelOffersFlow';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { OfferSummaryCard } from '@/components/OfferSummaryCard';
+import { SelectableCard, SelectionState } from '@/components/SelectableCard';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -14,14 +14,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
-import { amount } from '@/lib/formTypes';
-import { toMojos } from '@/lib/utils';
-import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { t } from '@lingui/core/macro';
+import { deleteOffers } from '@/lib/offers';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
-import BigNumber from 'bignumber.js';
 import {
   CircleOff,
   CopyIcon,
@@ -30,57 +25,34 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { z } from 'zod';
-import { CancelOfferConfirmation } from './confirmations/CancelOfferConfirmation';
+import { useNavigate } from 'react-router-dom';
 
 interface OfferRowCardProps {
   record: OfferRecord;
   refresh: () => void;
+  selectionState?: SelectionState;
 }
 
-export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
-  const walletState = useWalletState();
+export function OfferRowCard({
+  record,
+  refresh,
+  selectionState = null,
+}: OfferRowCardProps) {
+  const navigate = useNavigate();
   const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
 
-  const cancelSchema = z.object({
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
-
-  const cancelForm = useForm<z.infer<typeof cancelSchema>>({
-    resolver: zodResolver(cancelSchema),
-  });
-
-  const [response, setResponse] = useState<TransactionResponse | null>(null);
-
-  const cancelHandler = (values: z.infer<typeof cancelSchema>) => {
-    const fee = toMojos(values.fee, walletState.sync.unit.precision);
-
-    commands
-      .cancelOffer({
-        offer_id: record.offer_id,
-        fee,
-      })
-      .then((result) => {
-        setResponse(result);
-      })
-      .catch(addError)
-      .finally(() => setIsCancelOpen(false));
-  };
-
   return (
     <>
-      <Link to={`/offers/view_saved/${record.offer_id.trim()}`}>
+      <SelectableCard
+        selectionState={selectionState}
+        onOpen={() => navigate(`/offers/view_saved/${record.offer_id.trim()}`)}
+      >
         <OfferSummaryCard
           record={record}
+          selectionState={selectionState}
           content={
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -88,6 +60,7 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
                   variant='ghost'
                   size='icon'
                   className='-mr-1.5 flex-shrink-0'
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className='h-5 w-5' aria-hidden='true' />
                 </Button>
@@ -153,37 +126,25 @@ export function OfferRowCard({ record, refresh }: OfferRowCardProps) {
             </DropdownMenu>
           }
         />
-      </Link>
+      </SelectableCard>
 
       <DeleteOfferDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
         offerCount={1}
         onDelete={() => {
-          commands
-            .deleteOffer({ offer_id: record.offer_id })
-            .then(() => refresh())
+          deleteOffers([record.offer_id])
+            .then(refresh)
             .catch(addError)
             .finally(() => setIsDeleteOpen(false));
         }}
       />
 
-      <CancelOfferDialog
+      <CancelOffersFlow
         open={isCancelOpen}
         onOpenChange={setIsCancelOpen}
-        form={cancelForm}
-        onSubmit={cancelHandler}
-      />
-
-      <ConfirmationDialog
-        response={response}
-        showRecipientDetails={false}
-        close={() => setResponse(null)}
+        offers={[record]}
         onConfirm={refresh}
-        additionalData={{
-          title: t`Cancel Offer`,
-          content: response && <CancelOfferConfirmation offers={[record]} />,
-        }}
       />
     </>
   );
