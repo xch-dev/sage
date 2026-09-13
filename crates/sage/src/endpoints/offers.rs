@@ -35,6 +35,20 @@ struct AssetToOffer {
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
+        let auto_import = req.auto_import;
+        let response = self.build_offer(req).await?;
+
+        if auto_import {
+            self.import_offer(ImportOffer {
+                offer: response.offer.clone(),
+            })
+            .await?;
+        }
+
+        Ok(response)
+    }
+
+    async fn build_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
@@ -209,7 +223,7 @@ impl Sage {
             });
 
             let auto_import = item.auto_import;
-            built.push((self.make_offer(item).await?, auto_import));
+            built.push((self.build_offer(item).await?, auto_import));
         }
 
         // One shared transaction, not one per offer: N separate transactions serialize behind
