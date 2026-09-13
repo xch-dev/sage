@@ -362,11 +362,10 @@ impl Sage {
         tx: &mut DatabaseTx<'_>,
         req: ImportOffer,
     ) -> Result<Bytes32> {
-        let wallet = self.wallet()?;
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
 
-        if wallet.db.offer(offer_id).await?.is_some() {
+        if tx.offer(offer_id).await?.is_some() {
             return Ok(offer_id);
         }
 

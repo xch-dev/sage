@@ -96,7 +96,7 @@ pub async fn make_offers_with_progress(
         )
         .await;
 
-    cancellation.end().await;
+    cancellation.end(&cancelled).await;
 
     Ok(result?)
 }

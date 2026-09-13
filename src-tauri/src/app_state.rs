@@ -27,21 +27,21 @@ impl CancellationFlag {
 }
 
 #[derive(Default)]
-pub struct OfferCreationCancellation(Mutex<Option<Arc<AtomicBool>>>);
+pub struct OfferCreationCancellation(Mutex<Vec<Arc<AtomicBool>>>);
 
 impl OfferCreationCancellation {
     pub async fn begin(&self) -> CancellationFlag {
         let flag = Arc::new(AtomicBool::new(false));
-        *self.0.lock().await = Some(flag.clone());
+        self.0.lock().await.push(flag.clone());
         CancellationFlag(flag)
     }
 
-    pub async fn end(&self) {
-        *self.0.lock().await = None;
+    pub async fn end(&self, flag: &CancellationFlag) {
+        self.0.lock().await.retain(|f| !Arc::ptr_eq(f, &flag.0));
     }
 
     pub async fn cancel(&self) {
-        if let Some(flag) = self.0.lock().await.as_ref() {
+        for flag in self.0.lock().await.iter() {
             flag.store(true, Ordering::Relaxed);
         }
     }

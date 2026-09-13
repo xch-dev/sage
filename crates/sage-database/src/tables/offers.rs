@@ -63,6 +63,10 @@ impl Database {
 }
 
 impl DatabaseTx<'_> {
+    pub async fn offer(&mut self, offer_id: Bytes32) -> Result<Option<OfferRow>> {
+        offer(&mut *self.tx, offer_id).await
+    }
+
     pub async fn insert_offer(&mut self, offer: OfferRow) -> Result<()> {
         insert_offer(&mut *self.tx, offer).await
     }
