@@ -1,15 +1,21 @@
-import { commands, OfferAmount } from '@/bindings';
+import {
+  commands,
+  MakeOffer,
+  MakeOffersProgress,
+  OfferAmount,
+} from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
+import { Channel } from '@tauri-apps/api/core';
 import { useCallback, useRef, useState } from 'react';
 
 interface UseOfferProcessorProps {
   offerState: OfferState;
   splitNftOffers: boolean;
   onProcessingEnd?: () => void; // Callback for when offer processing (success or fail) is done
-  onProgress?: (index: number) => void; // Callback for progress updates
+  onProgress?: (progress: MakeOffersProgress) => void;
 }
 
 interface UseOfferProcessorReturn {
@@ -39,6 +45,7 @@ export function useOfferProcessor({
   const cancelProcessing = useCallback(() => {
     isCancelled.current = true;
     setIsProcessing(false);
+    commands.cancelMakeOffers().catch(console.error);
     onProcessingEnd?.();
   }, [onProcessingEnd]);
 
@@ -79,55 +86,48 @@ export function useOfferProcessor({
         splitNftOffers &&
         offerState.offered.nfts.filter((n) => n).length > 1
       ) {
-        const newOffers: string[] = [];
         const nfts = offerState.offered.nfts.filter((n) => n);
 
-        for (const [index, nft] of nfts.entries()) {
-          if (isCancelled.current) {
-            break;
-          }
+        const requestedAssets: OfferAmount[] = [
+          ...requestedTokens,
+          ...offerState.requested.nfts.map((nft) => ({
+            asset_id: nft,
+            amount: 1,
+          })),
+          ...offerState.requested.options.map((option) => ({
+            asset_id: option,
+            amount: 1,
+          })),
+        ];
 
-          onProgress?.(index);
-
-          const offeredAssets: OfferAmount[] = [
-            ...offeredTokens,
-            { asset_id: nft, amount: 1 },
-            ...offerState.offered.options.map((option) => ({
-              asset_id: option,
-              amount: 1,
-            })),
-          ];
-
-          const requestedAssets: OfferAmount[] = [
-            ...requestedTokens,
-            ...offerState.requested.nfts.map((nft) => ({
-              asset_id: nft,
-              amount: 1,
-            })),
-            ...offerState.requested.options.map((option) => ({
-              asset_id: option,
-              amount: 1,
-            })),
-          ];
-
-          const data = await commands.makeOffer({
-            offered_assets: offeredAssets,
+        const offers = nfts.map(
+          (nft): MakeOffer => ({
+            offered_assets: [
+              ...offeredTokens,
+              { asset_id: nft, amount: 1 },
+              ...offerState.offered.options.map((option) => ({
+                asset_id: option,
+                amount: 1,
+              })),
+            ],
             requested_assets: requestedAssets,
             fee: toMojos(
               (offerState.fee || '0').toString(),
               walletState.sync.unit.precision,
             ),
             expires_at_second: expiresAtSecond,
-          });
-          if (!isCancelled.current) {
-            newOffers.push(data.offer);
-          }
-        }
+          }),
+        );
+
+        const channel = new Channel<MakeOffersProgress>();
+        channel.onmessage = (progress) => onProgress?.(progress);
+
+        const data = await commands.makeOffersWithProgress({ offers }, channel);
         if (!isCancelled.current) {
-          setCreatedOffers(newOffers);
+          setCreatedOffers(data.offers.map((offer) => offer.offer));
         }
       } else {
-        onProgress?.(0);
+        onProgress?.({ phase: 'building', index: 0 });
 
         const offeredAssets: OfferAmount[] = [
           ...offeredTokens,

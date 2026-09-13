@@ -232,6 +232,9 @@ pub enum Error {
 
     #[error("Timeout")]
     Timeout(#[from] Elapsed),
+
+    #[error("Cancelled")]
+    Cancelled,
 }
 
 impl Error {
@@ -279,7 +282,8 @@ impl Error {
             | Self::MissingNft(..)
             | Self::MissingOption(..)
             | Self::MissingOffer(..) => ErrorKind::NotFound,
-            Self::Bls(..)
+            Self::Cancelled
+            | Self::Bls(..)
             | Self::Hex(..)
             | Self::InvalidKey
             | Self::InvalidMnemonic(..)
