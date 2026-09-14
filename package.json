@@ -20,6 +20,7 @@
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
     "tauri:dev": "pnpm run build && concurrently -k -n SYSTEM,TAURI -c yellow,cyan \"pnpm dev:system-apps\" \"tauri dev\"",
     "tauri:build": "pnpm build && tauri build",
+    "package:arch": "node scripts/package-arch.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "prettier": "prettier --write .",

@@ -276,6 +276,33 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
 
+            #[cfg(target_os = "linux")]
+            {
+                use gtk::prelude::*;
+
+                if gtk::gdk::Display::default()
+                    .is_some_and(|display| display.backend().is_wayland())
+                {
+                    // Wayland resize events include the title bar. Keep the main
+                    // webview within GTK's content area so bottom controls stay visible.
+                    let webview = app.get_webview("main").ok_or("missing main webview")?;
+                    let content = webview.window().default_vbox()?;
+                    webview.set_auto_resize(false)?;
+                    webview.set_size(tauri::LogicalSize::new(
+                        content.allocated_width(),
+                        content.allocated_height(),
+                    ))?;
+                    content.connect_size_allocate(move |_, allocation| {
+                        if let Err(err) = webview.set_size(tauri::LogicalSize::new(
+                            allocation.width(),
+                            allocation.height(),
+                        )) {
+                            tracing::error!("failed to resize main webview: {err}");
+                        }
+                    });
+                }
+            }
+
             let path = app.path().app_data_dir()?;
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 

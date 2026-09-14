@@ -1,0 +1,8 @@
+#!/bin/sh
+# WebKitGTK can exit with Wayland Error 71 on NVIDIA with explicit sync.
+# https://v2.tauri.app/develop/debug/linux-graphics/
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  export __NV_DISABLE_EXPLICIT_SYNC="${__NV_DISABLE_EXPLICIT_SYNC:-1}"
+fi
+
+exec /usr/lib/sage-wallet/sage-tauri "$@"

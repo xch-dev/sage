@@ -6700,6 +6700,7 @@ dependencies = [
  "aws-lc-rs",
  "chia-wallet-sdk",
  "glob",
+ "gtk",
  "reqwest 0.12.24",
  "rustls",
  "sage",

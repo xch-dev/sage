@@ -7,3 +7,5 @@ tauri-plugin-sage/permissions
 tauri-plugin-sage/dist-js
 tauri-plugin-sage/ios
 tauri-plugin-sage/android
+src-tauri/arch/src/
+src-tauri/arch/pkg/
