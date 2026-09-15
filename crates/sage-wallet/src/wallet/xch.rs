@@ -138,7 +138,8 @@ impl Wallet {
 mod tests {
     use std::time::Duration;
 
-    use sage_database::P2Puzzle;
+    use chia_wallet_sdk::prelude::Bytes32;
+    use sage_database::{AssetFilter, CoinFilterMode, CoinSortMode, P2Puzzle};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -319,6 +320,112 @@ mod tests {
 
         assert_eq!(bob.wallet.db.selectable_xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.selectable_xch_coins().await?.len(), 0);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_double_wrapped_clawback_is_not_spendable_after_expiration() -> anyhow::Result<()>
+    {
+        let mut test = TestWallet::new(3000).await?;
+        let timestamp = test.new_block_with_current_time().await?;
+
+        let coin_spends = test
+            .wallet
+            .send_xch(
+                vec![(test.puzzle_hash, 2000)],
+                0,
+                vec![],
+                Some(timestamp + 1),
+            )
+            .await?;
+
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let (clawback_coins, _) = test
+            .wallet
+            .db
+            .coin_records(
+                AssetFilter::Id(Bytes32::default()),
+                100,
+                0,
+                CoinSortMode::CreatedHeight,
+                true,
+                CoinFilterMode::Clawback,
+            )
+            .await?;
+        let first_clawback = clawback_coins
+            .into_iter()
+            .find(|row| row.coin.amount == 2000)
+            .expect("missing first clawback coin");
+
+        sleep(Duration::from_secs(2)).await;
+        let timestamp = test.new_block_with_current_time().await?;
+
+        let coin_spends = test
+            .wallet
+            .finalize_clawback(vec![first_clawback.coin.coin_id()], 0)
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let coin_spends = test
+            .wallet
+            .send_xch(
+                vec![(first_clawback.coin.puzzle_hash, 1000)],
+                0,
+                vec![],
+                Some(timestamp + 5),
+            )
+            .await?;
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        let (clawback_coins, _) = test
+            .wallet
+            .db
+            .coin_records(
+                AssetFilter::Id(Bytes32::default()),
+                100,
+                0,
+                CoinSortMode::CreatedHeight,
+                true,
+                CoinFilterMode::Clawback,
+            )
+            .await?;
+        let double_wrapped_clawback = clawback_coins
+            .into_iter()
+            .find(|row| row.coin.amount == 1000)
+            .expect("missing double-wrapped clawback coin");
+        let coin_id = double_wrapped_clawback.coin.coin_id();
+        let coin_id_hex = hex::encode(coin_id);
+
+        assert!(
+            test.wallet
+                .db
+                .are_coins_spendable(std::slice::from_ref(&coin_id_hex))
+                .await?
+        );
+
+        sleep(Duration::from_secs(6)).await;
+        test.new_block_with_current_time().await?;
+
+        assert!(
+            !test
+                .wallet
+                .db
+                .are_coins_spendable(std::slice::from_ref(&coin_id_hex))
+                .await?
+        );
+        assert!(
+            test.wallet
+                .db
+                .selectable_xch_coins()
+                .await?
+                .iter()
+                .all(|coin| coin.coin_id() != coin_id)
+        );
 
         Ok(())
     }
