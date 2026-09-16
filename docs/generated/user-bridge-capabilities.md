@@ -98,6 +98,20 @@ Allows the app to request access to an additional network target after installat
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `app.request_permission_grants`
+
+**Request additional permissions**
+
+Allows the app to request additional capabilities and network targets in one approval after installation.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_key`
 
 **Read wallet key**
@@ -210,6 +224,104 @@ Allows the app to validate whether an address belongs to this wallet.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.filter_unlocked_coins`
+
+**Filter unlocked wallet coins**
+
+Allows the app to check which supplied coin IDs are currently spendable.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
+## `wallet.get_asset_coins`
+
+**Read wallet asset coins**
+
+Allows the app to list spendable XCH, CAT, DID, or NFT coins.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
+## `wallet.get_asset_balance`
+
+**Read wallet asset balance**
+
+Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
+## `wallet.sign_coin_spends`
+
+**Sign wallet coin spends**
+
+Allows the app to request signatures for custom coin spends after per-request approval.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.sign_message`
+
+**Sign wallet messages**
+
+Allows the app to request a message signature after per-request approval.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.send_transaction`
+
+**Broadcast wallet transactions**
+
+Allows the app to submit an already signed spend bundle to the Chia network.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
+| Accesses sensitive secret | `false` |
+
+## `wallet.get_public_keys`
+
+**Read wallet public keys**
+
+Allows the app to read public keys derived by the active wallet.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `wallet.get_derivations`
 
 **Read derivations**
@@ -308,6 +420,20 @@ Allows the app to list wallet transactions.
 | Externally observable     | `false` |
 | Accesses sensitive secret | `false` |
 
+## `wallet.listen_selected_wallet_changed`
+
+**Observe selected wallet changes**
+
+Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `true`  |
+| Shared with app           | `true`  |
+| Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
 ## `environment.theme.get_current`
 
 **Read current theme**
@@ -362,6 +488,20 @@ Allows the app to read Sage's currently active network information.
 | User grantable            | `false` |
 | Shared with app           | `true`  |
 | Externally observable     | `false` |
+| Accesses sensitive secret | `false` |
+
+## `environment.open_external_url`
+
+**Open external links**
+
+Allows the app to request opening an HTTP or HTTPS link in your default browser. Every link requires approval, and the destination can observe the request.
+
+| Flag                      | Value   |
+| ------------------------- | ------- |
+| Requestable by app        | `true`  |
+| User grantable            | `false` |
+| Shared with app           | `true`  |
+| Externally observable     | `true`  |
 | Accesses sensitive secret | `false` |
 
 ## `storage.persistent_webview`

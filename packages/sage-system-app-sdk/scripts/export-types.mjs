@@ -125,7 +125,7 @@ function prependUserSdkTypeImports(source, names) {
 
   return `import type {\n${names
     .map((name) => `  ${name},`)
-    .join('\n')}\n} from '@sage-app/sdk';\n\n${source}`;
+    .join('\n')}\n} from 'sage-app-sdk';\n\n${source}`;
 }
 
 const userNames = collectExportedNames(userSource, userTypesPath);

@@ -64,7 +64,7 @@ impl AppInstallSource for SageAppUrl {
 }
 
 pub fn generate_url_app_id(app_url: &SageAppUrl) -> String {
-    let hash = bytes_sha256_hex(app_url.manifest_url().as_bytes());
+    let hash = bytes_sha256_hex(app_url.as_bytes());
     format!("url-{}-{}", app_url.slug(), &hash[..16])
 }
 
@@ -87,11 +87,11 @@ mod tests {
         let b = generate_url_app_id(&SageAppUrl::parse("https://example.com/app").unwrap());
 
         assert_eq!(a, b);
-        assert!(a.starts_with("url-example-com-"));
+        assert_eq!(a, "url-example-com-73fd4b26af322f88");
     }
 
     #[test]
-    fn generate_url_app_id_differs_for_different_manifest_urls() {
+    fn generate_url_app_id_differs_for_different_app_urls() {
         let a = generate_url_app_id(&SageAppUrl::parse("https://example.com/app-a").unwrap());
         let b = generate_url_app_id(&SageAppUrl::parse("https://example.com/app-b").unwrap());
 

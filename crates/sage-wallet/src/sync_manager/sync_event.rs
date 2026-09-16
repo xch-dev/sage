@@ -26,6 +26,9 @@ pub enum SyncEvent {
     CatInfo,
     DidInfo,
     NftData,
+    WalletChanged {
+        fingerprint: Option<u32>,
+    },
     NetworkChanged {
         network_id: String,
     },

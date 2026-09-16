@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { SageAppCommonView } from '@sage-system-app/sdk';
+import { SageAppCommonView } from 'sage-system-app-sdk';
 
 export type AppIcon =
   | { kind: 'url'; iconUrl: string }

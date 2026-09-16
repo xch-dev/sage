@@ -46,7 +46,7 @@ impl SageNetworkWhitelistEntry {
         let host = host.into().trim().to_ascii_lowercase();
 
         if !Self::is_allowed_scheme(&scheme) {
-            anyhow::bail!("invalid scheme '{scheme}', only https and wss allowed");
+            anyhow::bail!("invalid scheme '{scheme}', only http, https, and wss allowed");
         }
 
         if !Self::is_csp_safe_host(&host) {
@@ -69,7 +69,7 @@ impl SageNetworkWhitelistEntry {
     }
 
     fn is_allowed_scheme(s: &str) -> bool {
-        matches!(s, "https" | "wss")
+        matches!(s, "http" | "https" | "wss")
     }
 
     fn is_csp_safe_host(host: &str) -> bool {
@@ -168,6 +168,16 @@ mod tests {
         ] {
             SageNetworkWhitelistEntry::new("https", host)
                 .unwrap_or_else(|err| panic!("expected {host} to be accepted: {err}"));
+        }
+
+        SageNetworkWhitelistEntry::new("http", "localhost:3000")
+            .expect("HTTP entries are validated against the app source later");
+    }
+
+    #[test]
+    fn network_entry_rejects_unsupported_schemes() {
+        for scheme in ["ftp", "file", "ws"] {
+            assert!(SageNetworkWhitelistEntry::new(scheme, "localhost:3000").is_err());
         }
     }
 

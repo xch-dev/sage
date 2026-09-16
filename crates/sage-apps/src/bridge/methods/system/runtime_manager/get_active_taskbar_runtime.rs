@@ -3,8 +3,8 @@ use async_trait::async_trait;
 use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, RustBridgeRequest,
-    SageAppRuntimeRecordView, SystemBridgeCapability, find_active_taskbar_runtime,
-    find_runtime_by_runtime_id_optional, resolve_running_app,
+    SageAppRuntimeRecord, SageAppRuntimeRecordView, SystemBridgeCapability,
+    find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, resolve_running_app,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +45,7 @@ impl BridgeMethod for RuntimeManagerGetActiveTaskbarRuntime {
             })?;
         let host_window_label = app
             .runtime()
-            .with_runtime(|runtime| runtime.host_window_label().to_string());
+            .with_runtime(SageAppRuntimeRecord::host_window_label);
 
         let active_taskbar_runtime =
             find_active_taskbar_runtime(tools.host_state, &host_window_label).await;

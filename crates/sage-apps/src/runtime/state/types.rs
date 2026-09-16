@@ -29,6 +29,7 @@ pub struct SageAppRuntimeRecord {
     presentation: AppPresentation,
     mode: SageAppRuntimeMode,
     visibility: SageAppRuntimeVisibility,
+    taskbar_order: u32,
     started_at: i64,
     last_active_at: i64,
     internal: bool,
@@ -48,21 +49,6 @@ pub struct AppRuntimeState {
 
     pub before_stop_listeners_by_app_id: Mutex<BTreeSet<String>>,
     pub pending_stop_ready: Mutex<BTreeMap<String, oneshot::Sender<()>>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
-#[serde(rename_all = "camelCase")]
-pub(crate) struct SageLifecycleBeforeStopDetail {
-    pub request_id: String,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub reason: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub app_id: Option<String>,
-
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub runtime_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, Type)]
@@ -143,6 +129,7 @@ impl SageAppRuntimeRecord {
             presentation,
             mode,
             visibility,
+            taskbar_order: 0,
             started_at: now,
             last_active_at: now,
             internal,
@@ -160,7 +147,7 @@ impl SageAppRuntimeRecord {
     }
 
     pub(crate) fn runtime_id(&self) -> String {
-        self.runtime_id.to_string()
+        self.runtime_id.clone()
     }
 
     pub(crate) fn app(&self) -> SharedSageApp {
@@ -172,11 +159,11 @@ impl SageAppRuntimeRecord {
     }
 
     pub(crate) fn webview_label(&self) -> String {
-        self.webview_label.to_string()
+        self.webview_label.clone()
     }
 
     pub(crate) fn host_window_label(&self) -> String {
-        self.host_window_label.to_string()
+        self.host_window_label.clone()
     }
 
     pub(crate) fn presentation(&self) -> AppPresentation {
@@ -199,6 +186,14 @@ impl SageAppRuntimeRecord {
 
     pub(crate) fn visibility(&self) -> SageAppRuntimeVisibility {
         self.visibility
+    }
+
+    pub(crate) fn taskbar_order(&self) -> u32 {
+        self.taskbar_order
+    }
+
+    pub(crate) fn set_taskbar_order(&mut self, taskbar_order: u32) {
+        self.taskbar_order = taskbar_order;
     }
 
     pub(crate) fn started_at(&self) -> i64 {
@@ -259,7 +254,7 @@ impl SharedRuntime {
     }
 
     pub fn runtime_id(&self) -> String {
-        self.with_runtime(|runtime| runtime.runtime_id().to_string())
+        self.with_runtime(SageAppRuntimeRecord::runtime_id)
     }
 
     pub fn app_id(&self) -> String {

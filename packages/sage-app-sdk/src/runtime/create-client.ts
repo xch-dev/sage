@@ -118,6 +118,15 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async requestPermissionGrants(
+        input: Generated.RequestPermissionGrantsParams,
+      ) {
+        return await callHost<Generated.RequestPermissionGrantsResult>(
+          'app.requestPermissionGrants',
+          input,
+        );
+      },
+
       onGrantedCapabilitiesChange(handler) {
         return onRuntimeEventType<Generated.GrantedCapabilitiesChangeEvent>(
           'grantedCapabilitiesChange',
@@ -146,14 +155,71 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
-      async getKey(input: Generated.GetKey) {
-        return await callHost<Generated.GetKeyResponse>('wallet.getKey', input);
+      onSelectedWalletChanged(handler) {
+        return onRuntimeEventType<Generated.SelectedWalletChangedEvent>(
+          'wallet.selectedWallet.changed',
+          handler,
+        );
       },
 
-      async getSecretKey(input: Generated.GetSecretKey) {
+      async sendTransaction(input: Generated.WalletSendTransactionParams) {
+        return await callHost<Generated.WalletSendTransactionResult>(
+          'wallet.sendTransaction',
+          input,
+        );
+      },
+
+      async signMessage(input: Generated.WalletSignMessageParams) {
+        return await callHost<Generated.WalletSignMessageResult>(
+          'wallet.signMessage',
+          input,
+        );
+      },
+
+      async signCoinSpends(input: Generated.WalletSignCoinSpendsParams) {
+        return await callHost<Generated.WalletSignCoinSpendsResult>(
+          'wallet.signCoinSpends',
+          input,
+        );
+      },
+
+      async getAssetBalance(input: Generated.WalletGetAssetBalanceParams) {
+        return await callHost<Generated.WalletGetAssetBalanceResult>(
+          'wallet.getAssetBalance',
+          input,
+        );
+      },
+
+      async getAssetCoins(input: Generated.WalletGetAssetCoinsParams) {
+        return await callHost<Generated.WalletGetAssetCoinsResult>(
+          'wallet.getAssetCoins',
+          input,
+        );
+      },
+
+      async filterUnlockedCoins(
+        input: Generated.WalletFilterUnlockedCoinsParams,
+      ) {
+        return await callHost<Generated.WalletFilterUnlockedCoinsResult>(
+          'wallet.filterUnlockedCoins',
+          input,
+        );
+      },
+
+      async getPublicKeys(input?: Generated.WalletGetPublicKeysParams) {
+        return await callHost<Generated.WalletGetPublicKeysResult>(
+          'wallet.getPublicKeys',
+          input,
+        );
+      },
+
+      async getKey() {
+        return await callHost<Generated.GetKeyResponse>('wallet.getKey');
+      },
+
+      async getSecretKey() {
         return await callHost<Generated.GetSecretKeyResponse>(
           'wallet.getSecretKey',
-          input,
         );
       },
 
@@ -277,6 +343,12 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
       getNetwork() {
         return callHost<Generated.EnvironmentGetNetworkResult>(
           'environment.getNetwork',
+        );
+      },
+      openExternalUrl(input: Generated.EnvironmentOpenExternalUrlParams) {
+        return callHost<Generated.EnvironmentOpenExternalUrlResult>(
+          'environment.openExternalUrl',
+          input,
         );
       },
     },

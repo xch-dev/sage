@@ -1,9 +1,12 @@
+#[cfg(all(debug_assertions, not(mobile)))]
+use std::path::PathBuf;
+
 use app_state::{AppState, Initialized, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
-#[cfg(not(mobile))]
+#[cfg(all(not(mobile), not(debug_assertions)))]
 use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
@@ -38,6 +41,7 @@ macro_rules! sage_commands {
             commands::get_keys,
             commands::set_wallet_emoji,
             commands::get_key,
+            commands::get_wallet_address,
             commands::get_secret_key,
             commands::send_xch,
             commands::bulk_send_xch,
@@ -151,14 +155,9 @@ macro_rules! sage_commands {
     };
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    default_provider()
-        .install_default()
-        .expect("could not install AWS LC provider");
-
-    #[cfg(not(mobile))]
-    let builder = Builder::<tauri::Wry>::new()
+#[cfg(not(mobile))]
+fn specta_builder() -> Builder<tauri::Wry> {
+    Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![
             apps::apps_enter_workspace,
@@ -180,25 +179,40 @@ pub fn run() {
             apps::apps_focus_taskbar_runtime,
             apps::apps_clear_active_taskbar_runtime,
             apps::apps_kill_taskbar_runtime,
+            apps::apps_reorder_taskbar_runtimes,
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
         ])
-        .events(collect_events![SyncEvent]);
+        .events(collect_events![SyncEvent])
+}
+
+#[cfg(all(debug_assertions, not(mobile)))]
+pub fn export_bindings() {
+    let path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../src/bindings.ts");
+
+    specta_builder()
+        .export(
+            Typescript::default().bigint(BigIntExportBehavior::Number),
+            path,
+        )
+        .expect("Failed to export TypeScript bindings");
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    default_provider()
+        .install_default()
+        .expect("could not install AWS LC provider");
+
+    #[cfg(not(mobile))]
+    let builder = specta_builder();
 
     #[cfg(mobile)]
     let builder = Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
         .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
-
-    #[cfg(all(debug_assertions, not(mobile)))]
-    builder
-        .export(
-            Typescript::default().bigint(BigIntExportBehavior::Number),
-            "../src/bindings.ts",
-        )
-        .expect("Failed to export TypeScript bindings");
 
     let mut tauri_builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -272,17 +286,20 @@ pub fn run() {
 
             #[cfg(not(mobile))]
             {
-                let bundled_builtin_apps = app
-                    .path()
-                    .resolve("builtin-apps", BaseDirectory::Resource)?;
+                #[cfg(not(debug_assertions))]
+                {
+                    let bundled_builtin_apps = app
+                        .path()
+                        .resolve("builtin-apps", BaseDirectory::Resource)?;
 
-                if bundled_builtin_apps.is_dir() {
-                    apps::set_builtin_apps_root(bundled_builtin_apps);
-                } else {
-                    tracing::warn!(
-                        "bundled builtin apps directory not found at {}; using development path",
-                        bundled_builtin_apps.display()
-                    );
+                    if bundled_builtin_apps.is_dir() {
+                        apps::set_builtin_apps_root(bundled_builtin_apps);
+                    } else {
+                        tracing::warn!(
+                            "bundled builtin apps directory not found at {}; using development path",
+                            bundled_builtin_apps.display()
+                        );
+                    }
                 }
 
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
@@ -296,7 +313,7 @@ pub fn run() {
                 let cleanup_base_path = path.clone();
 
                 tauri::async_runtime::spawn(async move {
-                    tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     tracing::info!("starting pending storage cleanup task");
 
                     if let Err(err) =

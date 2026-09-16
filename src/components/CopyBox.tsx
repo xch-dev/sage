@@ -97,6 +97,8 @@ export function CopyBox(props: CopyBoxProps) {
     return () => window.removeEventListener('resize', handleResize);
   }, [truncateMiddle, props.displayValue, props.value]);
 
+  const copyValue = props.value;
+
   return (
     <div className={cn('flex rounded-md shadow-sm', props.className)}>
       <Input
@@ -118,7 +120,7 @@ export function CopyBox(props: CopyBoxProps) {
         value={props.value}
         onCopy={props.onCopy}
         className='relative !rounded-l-none !border-l-0 -ml-px inline-flex items-center justify-center h-9 w-9 rounded-r-md border border-input bg-background text-foreground shadow-button hover:bg-accent hover:text-accent-foreground '
-        aria-label={t`Copy ${props.value}`}
+        aria-label={t`Copy ${copyValue}`}
       />
     </div>
   );

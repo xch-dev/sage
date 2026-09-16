@@ -175,6 +175,7 @@ async fn create_runtime_for_app(
 
     let sage_window = get_sage_window(app_handle)?;
     let webview_label = app.webview_label();
+    let is_modal = matches!(args.presentation, AppPresentation::Modal(_));
 
     let runtime = SageAppRuntimeRecord::new(
         &app,
@@ -191,10 +192,11 @@ async fn create_runtime_for_app(
 
     let runtime_for_nav = shared_runtime.clone();
     let builder = WebviewBuilder::new(
-        webview_label.to_string(),
+        webview_label.clone(),
         WebviewUrl::CustomProtocol(build_entry_src(&app, args.query.clone())),
     )
-    .transparent(true)
+    .use_https_scheme(cfg!(target_os = "windows"))
+    .transparent(!cfg!(target_os = "linux") || !is_modal)
     .on_navigation(move |url| {
         runtime_for_nav.with_runtime(|runtime| is_allowed_app_url(url, &runtime.app()))
     })
@@ -321,13 +323,26 @@ fn build_storage(
     build_persistent_storage_target(builder, app)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[cfg(target_os = "windows")]
 fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
-    if !app.with(|app| app.common().has_persistent_webview_storage()) {
-        return builder.incognito(true);
-    }
+    let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    };
 
-    build_persistent_storage_target(builder, app)
+    // Incognito webviews still need their app-specific storage target. On Windows this scopes the
+    // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
+    build_windows_storage_target(builder, app)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+    if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -347,21 +362,17 @@ fn build_persistent_storage_target(
     }
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
-fn build_persistent_storage_target(
+#[cfg(target_os = "windows")]
+fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
 ) -> WebviewBuilder<Wry> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
-        #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            builder.data_directory(data_directory_for(directory_name))
+            builder.data_directory(data_directory_for(&directory_name))
         }
-
-        #[cfg(not(target_os = "windows"))]
-        SageAppStorage::WindowsProfile { .. } => builder,
 
         SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
     }
@@ -420,8 +431,5 @@ async fn mark_origin_may_contain_secrets_if_needed(
 }
 
 fn debug_test_apps_enabled() -> bool {
-    cfg!(debug_assertions)
-        && std::env::var("SAGE_DEBUG_TEST_APPS")
-            .map(|v| v == "1")
-            .unwrap_or(false)
+    cfg!(debug_assertions) && std::env::var("SAGE_DEBUG_TEST_APPS").is_ok_and(|v| v == "1")
 }

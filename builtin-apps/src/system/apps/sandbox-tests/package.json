@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@sage-system-app/sdk": "workspace:*"
+    "sage-system-app-sdk": "workspace:*"
   }
 }

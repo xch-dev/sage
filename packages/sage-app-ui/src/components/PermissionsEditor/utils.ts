@@ -5,7 +5,7 @@ import type {
   UserBridgeCapability,
   SageAppCapabilityDefinitionView,
   SageAppPackageManifest,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 type RequestedWhitelistByNetwork = Record<
   string,

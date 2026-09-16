@@ -29,11 +29,9 @@ export default tseslint.config(
       // React Hooks rules
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
-      // React Refresh (Vite fast refresh)
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      // React Refresh (Vite fast refresh) - disabled; mixed-export modules are
+      // intentional here and only cost a full reload during dev.
+      'react-refresh/only-export-components': 'off',
       // React rules
       ...react.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',

@@ -131,7 +131,7 @@ impl SyncManager {
                     };
 
                     if message.msg_type != ProtocolMessageTypes::Handshake {
-                        return Err(ClientError::InvalidResponse(
+                        Err(ClientError::InvalidResponse(
                             vec![ProtocolMessageTypes::Handshake],
                             message.msg_type,
                         ))?;
@@ -141,15 +141,15 @@ impl SyncManager {
                         Handshake::from_bytes(&message.data).map_err(ClientError::from)?;
 
                     if handshake.node_type != NodeType::Introducer {
-                        return Err(ClientError::WrongNodeType(
+                        Err(ClientError::WrongNodeType(
                             NodeType::Introducer,
                             handshake.node_type,
                         ))?;
                     }
 
                     if handshake.network_id != network_id {
-                        return Err(ClientError::WrongNetwork(
-                            network_id.to_string(),
+                        Err(ClientError::WrongNetwork(
+                            network_id.clone(),
                             handshake.network_id,
                         ))?;
                     }
@@ -220,7 +220,7 @@ impl SyncManager {
                     debug!("Failed to request peers from {}: {}", ip, error);
                     self.state.lock().await.ban(
                         ip,
-                        Duration::from_secs(300),
+                        Duration::from_mins(5),
                         "failed to request peers",
                     );
                 }
@@ -259,7 +259,7 @@ impl SyncManager {
                 if ban {
                     self.state.lock().await.ban(
                         ip,
-                        Duration::from_secs(300),
+                        Duration::from_mins(5),
                         "invalid ip in peer list",
                     );
                 }
@@ -317,7 +317,7 @@ impl SyncManager {
                     } else if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "could not add peer",
                         );
                     }
@@ -327,7 +327,7 @@ impl SyncManager {
                     if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "failed to connect",
                         );
                     }
@@ -337,7 +337,7 @@ impl SyncManager {
                     if !force {
                         self.state.lock().await.ban(
                             socket_addr.ip(),
-                            Duration::from_secs(60 * 10),
+                            Duration::from_mins(10),
                             "connection timed out",
                         );
                     }
@@ -434,7 +434,7 @@ impl SyncManager {
             } else if message.height > height.saturating_add(3) {
                 state.ban(
                     existing_peer.socket_addr().ip(),
-                    Duration::from_secs(900),
+                    Duration::from_mins(15),
                     "peer is behind",
                 );
             }

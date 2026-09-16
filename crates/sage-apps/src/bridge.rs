@@ -8,6 +8,10 @@ mod state;
 mod ts_exports;
 mod types;
 
+use tauri::{AppHandle, State};
+
+use crate::AppsHostState;
+
 pub use commands::*;
 pub use ts_exports::*;
 pub use types::*;
@@ -18,3 +22,11 @@ pub(crate) use event_emit::*;
 pub(crate) use methods::*;
 pub(crate) use registry::*;
 pub(crate) use state::*;
+
+pub async fn emit_selected_wallet_changed(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    fingerprint: u32,
+) {
+    emit_selected_wallet_changed_inner(app_handle, apps_state, fingerprint).await;
+}

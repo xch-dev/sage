@@ -29,7 +29,7 @@ pub struct Clawback {
     pub sender_puzzle_hash: Bytes32,
     pub receiver_puzzle_hash: Bytes32,
     pub seconds: u64,
-    pub version: u8
+    pub version: u8,
 }
 
 #[derive(Debug, Clone, Copy)]

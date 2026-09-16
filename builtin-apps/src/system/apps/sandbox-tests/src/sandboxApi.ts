@@ -1,7 +1,7 @@
 import {
   getSageSystemClient,
   type SandboxStateView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 const client = await getSageSystemClient();
 

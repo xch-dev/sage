@@ -15,6 +15,7 @@ pub struct SageAppRuntimeRecordView {
     presentation: AppPresentation,
     mode: SageAppRuntimeMode,
     visibility: SageAppRuntimeVisibility,
+    taskbar_order: u32,
     started_at: i64,
     last_active_at: i64,
     internal: bool,
@@ -23,13 +24,14 @@ pub struct SageAppRuntimeRecordView {
 impl From<&SharedRuntime> for SageAppRuntimeRecordView {
     fn from(value: &SharedRuntime) -> Self {
         value.with_runtime(|runtime| Self {
-            runtime_id: runtime.runtime_id().clone(),
+            runtime_id: runtime.runtime_id(),
             app: runtime.app().into(),
-            host_window_label: runtime.host_window_label().to_string(),
-            webview_label: runtime.webview_label().to_string(),
+            host_window_label: runtime.host_window_label(),
+            webview_label: runtime.webview_label(),
             presentation: runtime.presentation(),
             mode: runtime.mode(),
             visibility: runtime.visibility(),
+            taskbar_order: runtime.taskbar_order(),
             started_at: runtime.started_at(),
             last_active_at: runtime.last_active_at(),
             internal: runtime.internal(),

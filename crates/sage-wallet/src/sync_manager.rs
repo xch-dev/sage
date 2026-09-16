@@ -150,10 +150,21 @@ impl SyncManager {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
                 SyncCommand::SwitchWallet { wallet, delta_sync } => {
+                    let previous_fingerprint =
+                        self.wallet.as_ref().map(|wallet| wallet.fingerprint);
+                    let fingerprint = wallet.as_ref().map(|wallet| wallet.fingerprint);
+
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
+
+                    if previous_fingerprint != fingerprint {
+                        let _ = self
+                            .event_sender
+                            .send(SyncEvent::WalletChanged { fingerprint })
+                            .await;
+                    }
                 }
                 SyncCommand::SwitchNetwork(network) => {
                     if self.network.network_id() != network.network_id()
@@ -176,7 +187,7 @@ impl SyncManager {
                         debug!("Failed to handle message from {ip}: {error}");
                         self.state.lock().await.ban(
                             ip,
-                            Duration::from_secs(300),
+                            Duration::from_mins(5),
                             "failed to handle message",
                         );
                     }
@@ -250,7 +261,7 @@ impl SyncManager {
             warn!("Failed to add new subscriptions: {error}");
             self.state.lock().await.ban(
                 ip,
-                Duration::from_secs(300),
+                Duration::from_mins(5),
                 "failed to add new subscriptions",
             );
         } else {
@@ -505,11 +516,10 @@ impl SyncManager {
                 }
                 Ok(Err(error)) => {
                     warn!("Initial wallet sync failed: {error}");
-                    self.state.lock().await.ban(
-                        *ip,
-                        Duration::from_secs(300),
-                        "wallet sync failed",
-                    );
+                    self.state
+                        .lock()
+                        .await
+                        .ban(*ip, Duration::from_mins(5), "wallet sync failed");
                     self.initial_wallet_sync = InitialWalletSync::Idle;
                     self.event_sender.send(SyncEvent::Stop).await.ok();
                 }
@@ -517,7 +527,7 @@ impl SyncManager {
                     warn!("Initial wallet sync timed out");
                     self.state.lock().await.ban(
                         *ip,
-                        Duration::from_secs(300),
+                        Duration::from_mins(5),
                         "wallet sync timed out",
                     );
                     self.initial_wallet_sync = InitialWalletSync::Idle;

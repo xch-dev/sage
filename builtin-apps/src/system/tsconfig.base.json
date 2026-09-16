@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": "../../..",
     "paths": {
-      "@sage-app/ui": ["packages/sage-app-ui/src/index.ts"]
+      "sage-app-ui": ["packages/sage-app-ui/src/index.ts"]
     },
     "target": "ES2022",
     "useDefineForClassFields": true,

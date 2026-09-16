@@ -26,15 +26,25 @@
 
 ## `app.requestCapabilityGrant`
 
+> **Deprecated:** Use `app.requestPermissionGrants` instead. It supports both single and batched capability and network permission requests.
+
 | Field      | Value                          |
 | ---------- | ------------------------------ |
 | Capability | `app.request_capability_grant` |
 
 ## `app.requestNetworkWhitelistGrant`
 
+> **Deprecated:** Use `app.requestPermissionGrants` instead. It supports both single and batched capability and network permission requests.
+
 | Field      | Value                                 |
 | ---------- | ------------------------------------- |
 | Capability | `app.request_network_whitelist_grant` |
+
+## `app.requestPermissionGrants`
+
+| Field      | Value                           |
+| ---------- | ------------------------------- |
+| Capability | `app.request_permission_grants` |
 
 ## `bridge.ping`
 
@@ -54,6 +64,12 @@
 | ---------- | ------------------------- |
 | Capability | `environment.get_network` |
 
+## `environment.openExternalUrl`
+
+| Field      | Value                           |
+| ---------- | ------------------------------- |
+| Capability | `environment.open_external_url` |
+
 ## `environment.theme.getCurrent`
 
 | Field      | Value                           |
@@ -65,6 +81,24 @@
 | Field      | Value                  |
 | ---------- | ---------------------- |
 | Capability | `wallet.check_address` |
+
+## `wallet.filterUnlockedCoins`
+
+| Field      | Value                          |
+| ---------- | ------------------------------ |
+| Capability | `wallet.filter_unlocked_coins` |
+
+## `wallet.getAssetBalance`
+
+| Field      | Value                      |
+| ---------- | -------------------------- |
+| Capability | `wallet.get_asset_balance` |
+
+## `wallet.getAssetCoins`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_asset_coins` |
 
 ## `wallet.getCoins`
 
@@ -95,6 +129,12 @@
 | Field      | Value                             |
 | ---------- | --------------------------------- |
 | Capability | `wallet.get_pending_transactions` |
+
+## `wallet.getPublicKeys`
+
+| Field      | Value                    |
+| ---------- | ------------------------ |
+| Capability | `wallet.get_public_keys` |
 
 ## `wallet.getSecretKey`
 
@@ -138,8 +178,26 @@
 | ---------- | -------------------------- |
 | Capability | `wallet.get_xch_usd_price` |
 
+## `wallet.sendTransaction`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.send_transaction` |
+
 ## `wallet.sendXch`
 
 | Field      | Value             |
 | ---------- | ----------------- |
 | Capability | `wallet.send_xch` |
+
+## `wallet.signCoinSpends`
+
+| Field      | Value                     |
+| ---------- | ------------------------- |
+| Capability | `wallet.sign_coin_spends` |
+
+## `wallet.signMessage`
+
+| Field      | Value                 |
+| ---------- | --------------------- |
+| Capability | `wallet.sign_message` |

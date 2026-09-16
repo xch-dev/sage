@@ -9,6 +9,7 @@
   "rename_key": false,
   "set_wallet_emoji": false,
   "get_key": false,
+  "get_wallet_address": true,
   "get_secret_key": false,
   "get_keys": false,
   "get_sync_status": true,

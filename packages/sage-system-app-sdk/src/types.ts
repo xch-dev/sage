@@ -1,9 +1,9 @@
 import type * as Generated from './generated-types';
 
-export * from '@sage-app/sdk';
+export * from 'sage-app-sdk';
 export * from './generated-types';
 
-import type { SageClient } from '@sage-app/sdk';
+import type { SageClient } from 'sage-app-sdk';
 
 export type SageSystemBridgeVersion = 'v1';
 

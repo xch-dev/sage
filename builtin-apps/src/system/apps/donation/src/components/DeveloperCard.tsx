@@ -1,4 +1,4 @@
-import type { DonationDetails } from '@sage-system-app/sdk';
+import type { DonationDetails } from 'sage-system-app-sdk';
 import { inlineImageSrc } from '../utils';
 
 export function DeveloperCard({ details }: { details: DonationDetails }) {

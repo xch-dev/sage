@@ -21,6 +21,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
 import { amount } from '@/lib/formTypes';
 import { fromMojos, toMojos } from '@/lib/utils';
+import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
 import type { CustomError } from '@/contexts/ErrorContext';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -103,6 +104,7 @@ export function ClawbackCoinsCard({
   setSelectedCoins,
 }: ClawbackCoinsCardProps) {
   const walletState = useWalletState();
+  const { isTransactionDisabled } = useWallet();
 
   const { addError } = useErrors();
   const { isTestnet } = useNetwork();
@@ -463,6 +465,7 @@ export function ClawbackCoinsCard({
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
+  const ticker = asset.ticker;
 
   if (!hasLoaded || totalCoins === 0) {
     return null;
@@ -497,7 +500,7 @@ export function ClawbackCoinsCard({
             <>
               <Button
                 variant='outline'
-                disabled={!canClawBack}
+                disabled={isTransactionDisabled || !canClawBack}
                 onClick={() => {
                   if (canClawBack) setClawBackOpen(true);
                 }}
@@ -508,7 +511,12 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={selectedCoinIds.length === 0 || canClawBack || !canFinalize}
+                disabled={
+                  isTransactionDisabled ||
+                  selectedCoinIds.length === 0 ||
+                  canClawBack ||
+                  !canFinalize
+                }
                 onClick={() => {
                   if (canFinalize) setFinalizeOpen(true);
                 }}
@@ -519,7 +527,12 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={selectedCoinIds.length === 0 || canClawBack || !canClaim}
+                disabled={
+                  isTransactionDisabled ||
+                  selectedCoinIds.length === 0 ||
+                  canClawBack ||
+                  !canClaim
+                }
                 onClick={() => {
                   if (canClaim) setClaimOpen(true);
                 }}
@@ -550,7 +563,7 @@ export function ClawbackCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Claw Back {asset.ticker}</Trans>
+              <Trans>Claw Back {ticker}</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>This will claw back all of the selected coins.</Trans>
@@ -597,7 +610,7 @@ export function ClawbackCoinsCard({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              <Trans>Finalize {asset.ticker} Clawback</Trans>
+              <Trans>Finalize {ticker} Clawback</Trans>
             </DialogTitle>
             <DialogDescription>
               <Trans>

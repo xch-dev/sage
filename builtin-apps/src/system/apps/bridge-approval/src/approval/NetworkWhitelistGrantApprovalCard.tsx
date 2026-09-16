@@ -1,4 +1,4 @@
-import type { RustBridgeApprovalRequest } from '@sage-system-app/sdk';
+import type { RustBridgeApprovalRequest } from 'sage-system-app-sdk';
 
 interface Props {
   approval: Extract<

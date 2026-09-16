@@ -6,8 +6,8 @@ import {
   rmSync,
   statSync,
 } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
+import { runCommandSync } from './run-command.mjs';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 
@@ -19,7 +19,6 @@ const runtimeOut = join(outRoot, 'runtime');
 const testOut = join(outRoot, 'sandbox-test');
 
 const userSdkDist = join(repoRoot, 'packages/sage-app-sdk/dist');
-const pnpm = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 
 function copyDirFresh(src, dst) {
   rmSync(dst, { recursive: true, force: true });
@@ -33,8 +32,8 @@ function copyRuntimeBridge(outDir) {
 }
 
 function finalizeManifest(source, dist) {
-  execFileSync(
-    pnpm,
+  runCommandSync(
+    'pnpm',
     [
       'exec',
       'sage-app',

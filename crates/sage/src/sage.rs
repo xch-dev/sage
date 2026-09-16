@@ -436,14 +436,17 @@ impl Sage {
 
     pub async fn connect_to_database(&self, fingerprint: u32) -> Result<SqlitePool> {
         let path = self.wallet_db_path(fingerprint)?;
+        self.connect_to_pool(path).await
+    }
 
+    pub async fn connect_to_pool(&self, path: PathBuf) -> Result<SqlitePool> {
         let pool = SqlitePoolOptions::new()
             .connect_with(
                 SqliteConnectOptions::from_str(&format!("sqlite://{}?mode=rwc", path.display()))?
                     .journal_mode(SqliteJournalMode::Wal)
                     .log_statements(log::LevelFilter::Trace)
                     .synchronous(SqliteSynchronous::Normal)
-                    .busy_timeout(Duration::from_secs(60)),
+                    .busy_timeout(Duration::from_mins(1)),
             )
             .await?;
 

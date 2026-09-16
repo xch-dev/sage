@@ -1,6 +1,7 @@
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Header from '@/components/Header';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -11,13 +12,16 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
+import { Switch } from '@/components/ui/switch';
 import { useErrors } from '@/hooks/useErrors';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
+import { TriangleAlertIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
@@ -37,10 +41,14 @@ export default function IssueToken() {
     ticker: z.string().min(1, t`Ticker is required`),
     amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.precision).optional(),
+    revocable: z.boolean(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    defaultValues: {
+      revocable: false,
+    },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
@@ -49,6 +57,7 @@ export default function IssueToken() {
         name: values.name,
         ticker: values.ticker,
         amount: toMojos(values.amount.toString(), 3),
+        revocable: values.revocable,
         fee: toMojos(
           values.fee?.toString() || '0',
           walletState.sync.unit.precision,
@@ -147,6 +156,49 @@ export default function IssueToken() {
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name='revocable'
+              render={({ field }) => (
+                <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+                  <div className='space-y-1'>
+                    <Label htmlFor='revocable'>
+                      <Trans>Revocable CAT</Trans>
+                    </Label>
+                    <p className='text-sm text-muted-foreground'>
+                      <Trans>
+                        Use this wallet&apos;s change address as the
+                        token&apos;s revocation address.
+                      </Trans>
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      id='revocable'
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch('revocable') && (
+              <Alert variant='warning'>
+                <TriangleAlertIcon className='h-4 w-4' aria-hidden='true' />
+                <AlertTitle>
+                  <Trans>Revocable CAT Warning</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>
+                    Only issue a revocable CAT if you understand the risks. Sage
+                    cannot revoke it; revocation currently requires external
+                    tools.
+                  </Trans>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Button type='submit'>
               <Trans>Issue Token</Trans>
             </Button>
@@ -171,6 +223,7 @@ export default function IssueToken() {
                     name={form.getValues().name}
                     ticker={form.getValues().ticker}
                     amount={form.getValues().amount.toString()}
+                    revocable={form.getValues().revocable}
                   />
                 ),
               }

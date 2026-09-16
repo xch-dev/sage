@@ -277,7 +277,9 @@ impl Database {
                         clawback_timestamp: row
                             .get::<Option<i64>, _>("clawback_timestamp")
                             .convert()?,
-                        clawback_version: row.get::<Option<i64>, _>("clawback_version").convert()?,
+                        clawback_version: row
+                            .get::<Option<i64>, _>("clawback_version")
+                            .convert()?,
                         clawback_is_sender: false,
                         clawback_is_receiver: false,
                         created_height: row.get::<Option<i64>, _>("created_height").convert()?,

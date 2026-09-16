@@ -184,7 +184,7 @@ dependencies = [
  "objc2-foundation 0.3.2",
  "parking_lot",
  "percent-encoding",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
  "wl-clipboard-rs",
  "x11rb",
 ]
@@ -1694,9 +1694,9 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.54"
+version = "0.1.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
+checksum = "c0f78a02292a74a88ac736019ab962ece0bc380e3f977bf72e376c5d78ff0678"
 dependencies = [
  "cc",
 ]
@@ -1725,7 +1725,7 @@ version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "faf9468729b8cbcea668e36183cb69d317348c2e08e994829fb56ebfdfbaac34"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -2274,7 +2274,7 @@ dependencies = [
  "libc",
  "option-ext",
  "redox_users 0.5.2",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2570,7 +2570,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -3851,7 +3851,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4494,7 +4494,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4631,7 +4631,7 @@ version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ff32365de1b6743cb203b710788263c44a03de03802daf96092f2da4fe6ba4d7"
 dependencies = [
- "proc-macro-crate 3.4.0",
+ "proc-macro-crate 2.0.0",
  "proc-macro2",
  "quote",
  "syn 2.0.111",
@@ -5009,7 +5009,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7d8fae84b431384b68627d0f9b3b1245fcf9f46f6c0e3dc902e9dce64edd1967"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.45.0",
 ]
 
 [[package]]
@@ -5690,7 +5690,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.60.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6405,7 +6405,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.11.0",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6469,7 +6469,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "sage"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -6501,7 +6501,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "sage-api-macro",
  "sage-config",
@@ -6513,7 +6513,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api-macro"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "convert_case 0.8.0",
  "indexmap 2.12.1",
@@ -6546,6 +6546,7 @@ dependencies = [
  "sqlx",
  "tauri",
  "tauri-plugin-dialog",
+ "tauri-plugin-opener",
  "tempfile",
  "tokio",
  "tracing",
@@ -6556,7 +6557,7 @@ dependencies = [
 
 [[package]]
 name = "sage-assets"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "base64 0.22.1",
  "chia-wallet-sdk",
@@ -6576,7 +6577,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -6594,7 +6595,7 @@ dependencies = [
 
 [[package]]
 name = "sage-client"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "dirs 5.0.1",
  "reqwest 0.12.24",
@@ -6609,7 +6610,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "chia-wallet-sdk",
  "expect-test",
@@ -6624,7 +6625,7 @@ dependencies = [
 
 [[package]]
 name = "sage-database"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "chia-wallet-sdk",
  "hex",
@@ -6635,7 +6636,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -6651,7 +6652,7 @@ dependencies = [
 
 [[package]]
 name = "sage-rpc"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -6678,7 +6679,7 @@ dependencies = [
 
 [[package]]
 name = "sage-tauri"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -6718,7 +6719,7 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.12.11"
+version = "0.13.0"
 dependencies = [
  "anyhow",
  "chia-sha2 0.36.1",
@@ -7829,9 +7830,9 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-barcode-scanner"
-version = "2.4.4"
+version = "2.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "485cbcf227f04117e930be748ea71d835900466dcd1d455d5ec284d36107a305"
+checksum = "d3b68f0e3782b61a6e16a67380be40226e2b7233f3e36dadf6e5d03f07d2e7b3"
 dependencies = [
  "log",
  "serde",
@@ -8008,8 +8009,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime"
 version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b885ffeac82b00f1f6fd292b6e5aabfa7435d537cef57d11e38a489956535651"
+source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
 dependencies = [
  "cookie",
  "dpi",
@@ -8033,8 +8033,7 @@ dependencies = [
 [[package]]
 name = "tauri-runtime-wry"
 version = "2.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5204682391625e867d16584fedc83fc292fb998814c9f7918605c789cd876314"
+source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
 dependencies = [
  "gtk",
  "http",
@@ -8088,8 +8087,7 @@ dependencies = [
 [[package]]
 name = "tauri-utils"
 version = "2.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fcd169fccdff05eff2c1033210b9b94acd07a47e6fa9a3431cf09cfd4f01c87e"
+source = "git+https://github.com/Rigidity/tauri.git?rev=8b205bb844bd56b4ee027905d1b068553d867ebe#8b205bb844bd56b4ee027905d1b068553d867ebe"
 dependencies = [
  "anyhow",
  "brotli",
@@ -8144,7 +8142,7 @@ dependencies = [
  "getrandom 0.4.2",
  "once_cell",
  "rustix 1.1.3",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9408,7 +9406,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -10042,8 +10040,7 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 [[package]]
 name = "wry"
 version = "0.54.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ed1a195b0375491dd15a7066a10251be217ce743cf4bbbbdcf5391d6473bee0"
+source = "git+https://github.com/Rigidity/wry.git?branch=sage%2Fwry-v0.54.1-patched#76ac9922bc72342567c7d2fc0d2fd985621b1bdf"
 dependencies = [
  "base64 0.22.1",
  "block2 0.6.2",

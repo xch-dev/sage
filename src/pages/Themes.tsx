@@ -108,6 +108,8 @@ export default function Themes() {
     );
   }
 
+  const currentThemeName = currentTheme.displayName;
+
   try {
     return (
       <Layout>
@@ -135,7 +137,7 @@ export default function Themes() {
             <Card>
               <CardHeader>
                 <CardTitle>
-                  <Trans>Current Theme: {currentTheme.displayName}</Trans>
+                  <Trans>Current Theme: {currentThemeName}</Trans>
                 </CardTitle>
                 <CardDescription>
                   <Trans>

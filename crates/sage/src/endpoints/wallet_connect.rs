@@ -1,5 +1,6 @@
 use std::slice;
 
+use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use chia_wallet_sdk::{
     chia::{
         bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
@@ -8,7 +9,6 @@ use chia_wallet_sdk::{
     driver::P2DelegatedConditionsLayer,
     prelude::*,
 };
-use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use sage_api::{
     Amount,
     wallet_connect::{

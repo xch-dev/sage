@@ -3,20 +3,21 @@ import {
   AppModalShell,
   AppPermissionEditor,
   WalletScopeEditor,
-} from '@sage-app/ui';
+} from 'sage-app-ui';
 import {
   formatSageError,
   type SageAppCapabilityDefinitionView,
   type SageAppWalletScope,
   type SageGrantedPermissionsInput,
   type SystemWalletView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { closeSelf, installSource, listWallets } from '../api';
 import type { InstallSource } from '../types';
 import { resolveInstallIcon } from '../utils/icons';
 import {
   buildPreviewApp,
   emptyGrantedPermissions,
+  hasRequiredPermissions,
   initialGrantedPermissions,
   installManifest,
 } from '../utils/permissions';
@@ -32,8 +33,13 @@ export function ReviewInstallView({
   definitions: SageAppCapabilityDefinitionView[];
 }) {
   const manifest = installManifest(source);
+  const reviewsPermissions = manifest
+    ? hasRequiredPermissions(manifest, definitions)
+    : false;
 
-  const [step, setStep] = useState<Step>('permissions');
+  const [step, setStep] = useState<Step>(() =>
+    reviewsPermissions ? 'permissions' : 'wallets',
+  );
   const [installing, setInstalling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<SystemWalletView[]>([]);
@@ -128,7 +134,7 @@ export function ReviewInstallView({
           </button>
 
           <div className='flex gap-2'>
-            {step === 'wallets' ? (
+            {step === 'wallets' && reviewsPermissions ? (
               <button
                 className='rounded-md border border-border px-4 py-2 text-sm disabled:opacity-60'
                 disabled={installing}

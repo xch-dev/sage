@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { platform } from '@tauri-apps/plugin-os';
 import { useRuntimeWebviewBounds } from '@/hooks/useRuntimeWebviewBounds';
 import { useApps } from '@/contexts/AppsContext.tsx';
 
@@ -24,6 +25,20 @@ export function SystemAppModalLayer() {
 
   if (!modalRuntime) {
     return null;
+  }
+
+  if (platform() === 'linux') {
+    return (
+      <div className='pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm'>
+        <div
+          ref={containerRef}
+          style={{
+            width: 'min(420px, calc(100% - 4rem))',
+            height: 'min(620px, 72%)',
+          }}
+        />
+      </div>
+    );
   }
 
   return (

@@ -42,7 +42,7 @@ impl Sage {
         let ip = req.ip.parse()?;
 
         if req.ban {
-            peer_state.ban(ip, Duration::from_secs(60 * 60), "manually banned");
+            peer_state.ban(ip, Duration::from_hours(1), "manually banned");
         } else {
             peer_state.remove_peer(ip);
         }

@@ -1,7 +1,7 @@
 import type {
   SageAppCapabilityDefinitionView,
   UserBridgeCapability,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 export function definitionMap(definitions: SageAppCapabilityDefinitionView[]) {
   return new Map(definitions.map((d) => [d.key as UserBridgeCapability, d]));

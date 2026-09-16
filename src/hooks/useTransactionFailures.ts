@@ -21,9 +21,10 @@ export function useTransactionFailures() {
         }
 
         // Show toast notification with error message if available
+        const shortId = transaction_id.slice(0, 8);
         const message = error
           ? t`Transaction failed: ${error}`
-          : t`Transaction failed: ${transaction_id.slice(0, 8)}...`;
+          : t`Transaction failed: ${shortId}...`;
 
         toast.error(message, {
           autoClose: false, // Don't auto-close, let user dismiss manually

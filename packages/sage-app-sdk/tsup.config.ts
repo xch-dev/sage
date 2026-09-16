@@ -4,6 +4,7 @@ export default defineConfig([
   {
     entry: {
       index: 'src/index.ts',
+      'bridge-runtime-core': 'src/bridge/core.ts',
     },
     format: ['esm'],
     dts: true,

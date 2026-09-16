@@ -17,6 +17,7 @@
         "environment.theme.get_current",
         "environment.theme.listen_changed",
         "environment.theme.css_vars",
+        "environment.get_network",
         "wallet.get_xch_usd_price",
         "wallet.send_xch"
       ],

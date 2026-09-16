@@ -2,7 +2,7 @@ import type {
   SageAppCapabilityDefinitionView,
   SageAppPackageManifest,
   SageAppUrlPreview,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 
 export type InstallSource =
   | { kind: 'zip'; zipPath: string; manifest: SageAppPackageManifest }

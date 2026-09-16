@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::Amount;
+use crate::{Amount, TransactionCoinRecord};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -9,4 +9,6 @@ pub struct PendingTransactionRecord {
     pub transaction_id: String,
     pub fee: Amount,
     pub submitted_at: Option<u64>,
+    pub spent: Vec<TransactionCoinRecord>,
+    pub created: Vec<TransactionCoinRecord>,
 }

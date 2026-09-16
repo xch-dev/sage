@@ -2,7 +2,8 @@ use anyhow::{Context, Result as AnyResult};
 
 use crate::{
     MANIFEST_FILE_NAME, SageAppManifestUrl, SageAppPackageManifest, SageAppPackageManifestPreview,
-    bytes_sha256_hex, download_bytes_with_limit, parse_manifest_header_v0_from_value,
+    UserSageAppSource, bytes_sha256_hex, download_bytes_with_limit,
+    parse_manifest_header_v0_from_value, validate_network_permissions_for_source,
 };
 
 const MAX_URL_MANIFEST_BYTES: u64 = 1024 * 1024;
@@ -85,6 +86,7 @@ pub fn read_manifest(package_root: &std::path::Path) -> AnyResult<SageAppPackage
                 err.inner()
             )
         })?;
+    validate_network_permissions_for_source(manifest.permissions(), &UserSageAppSource::Zip)?;
     manifest.validate_package_files(package_root)?;
 
     Ok(manifest)

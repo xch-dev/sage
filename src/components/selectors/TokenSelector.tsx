@@ -14,6 +14,8 @@ export interface TokenSelectorProps {
   hideZeroBalance?: boolean;
   showAllCats?: boolean;
   includeXch?: boolean;
+  allowedAssetIds?: ReadonlySet<string>;
+  isLoading?: boolean;
 }
 
 export function TokenSelector({
@@ -24,6 +26,8 @@ export function TokenSelector({
   hideZeroBalance = false,
   showAllCats = false,
   includeXch = false,
+  allowedAssetIds,
+  isLoading = false,
 }: TokenSelectorProps) {
   const { addError } = useErrors();
 
@@ -69,6 +73,12 @@ export function TokenSelector({
   const filteredTokens = useMemo(() => {
     return Object.values(tokens).filter((token) => {
       if (!token.visible) return false;
+      if (
+        token.asset_id !== null &&
+        allowedAssetIds &&
+        !allowedAssetIds.has(token.asset_id.toLowerCase())
+      )
+        return false;
       if (hideZeroBalance && token.balance === 0) return false;
       if (!searchTerm) return true;
       if (isValidAssetId(searchTerm)) {
@@ -80,7 +90,7 @@ export function TokenSelector({
         token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     });
-  }, [tokens, hideZeroBalance, searchTerm]);
+  }, [tokens, allowedAssetIds, hideZeroBalance, searchTerm]);
 
   const handleSelect = useCallback(
     (assetId: string | null) => {
@@ -92,9 +102,11 @@ export function TokenSelector({
 
   const handleManualInput = useCallback(
     (assetId: string) => {
+      if (allowedAssetIds && !allowedAssetIds.has(assetId.toLowerCase()))
+        return;
       onChange(assetId);
     },
-    [onChange],
+    [allowedAssetIds, onChange],
   );
 
   // Convert disabled array to handle null -> 'xch' conversion
@@ -131,6 +143,18 @@ export function TokenSelector({
     [],
   );
 
+  const renderSelectedToken = useCallback(
+    (token: TokenRecord | undefined) => {
+      const selectedToken =
+        token ??
+        (value === undefined
+          ? undefined
+          : tokens[value === null ? 'xch' : value]);
+      return selectedToken ? renderToken(selectedToken) : t`Select asset`;
+    },
+    [renderToken, tokens, value],
+  );
+
   return (
     <SearchableSelect
       value={value === null ? 'xch' : value}
@@ -138,11 +162,13 @@ export function TokenSelector({
       items={filteredTokens}
       getItemId={(token) => token.asset_id ?? 'xch'}
       renderItem={renderToken}
+      renderSelectedItem={renderSelectedToken}
       onSearchChange={setSearchTerm}
       shouldFilter={false}
       validateManualInput={isValidAssetId}
       onManualInput={handleManualInput}
       disabled={disabledIds}
+      isLoading={isLoading}
       className={className}
       placeholder={t`Select asset`}
       searchPlaceholder={t`Search or enter asset id`}

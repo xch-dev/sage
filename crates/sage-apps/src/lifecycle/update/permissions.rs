@@ -12,6 +12,40 @@ use crate::{
     reload_app_runtime, resolve_app, start_user_app,
 };
 
+pub async fn grant_permissions(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+    capabilities: &[UserBridgeCapability],
+    network_whitelist: &[(Option<String>, SageNetworkWhitelistEntry)],
+) -> anyhow::Result<AppUpdateResult> {
+    let app = resolve_app_for_permission_update(app_handle, app_id).await?;
+
+    let granted_permissions = app.try_with(|sage_app| {
+        let requested = sage_app.common().requested_permissions();
+        let mut granted = sage_app.common().granted_permissions().clone();
+
+        for capability in capabilities {
+            granted = granted.with_capability_added(requested, *capability)?;
+        }
+
+        for (network_id, entry) in network_whitelist {
+            granted = match network_id {
+                Some(network_id) => granted.with_network_whitelist_entry_for_network_added(
+                    requested,
+                    network_id,
+                    entry.clone(),
+                )?,
+                None => granted.with_network_whitelist_entry_added(requested, entry.clone())?,
+            };
+        }
+
+        Ok::<_, anyhow::Error>(granted)
+    })?;
+
+    apply_granted_permissions(app_handle, apps_state, &app, &granted_permissions).await
+}
+
 pub async fn update_app_permissions_for_app(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,

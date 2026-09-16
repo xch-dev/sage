@@ -4,7 +4,7 @@ use specta::Type;
 
 use crate::{
     BridgeRegistryKind, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp,
-    UserBridgeCapability, WalletSendXchParams,
+    UserBridgeCapability, WalletSendXchParams, WalletSignCoinSpendsApprovalSummary,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -17,7 +17,7 @@ pub struct RustBridgeRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
-#[serde(tag = "kind", rename_all = "camelCase")]
+#[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub enum RustBridgeInvokeResult {
     Success(RustBridgeSuccessResponse),
     Error(RustBridgeErrorResponse),
@@ -62,6 +62,20 @@ pub struct ResolveBridgeApprovalArgs {
     pub approval_id: String,
     pub approved: bool,
     pub reason: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub approval_response: Option<RustBridgeApprovalResponse>,
+}
+
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(tag = "kind", content = "response", rename_all = "camelCase")]
+pub enum RustBridgeApprovalResponse {
+    SendXch(WalletSendXchApprovalResponse),
+}
+
+#[derive(Debug, Clone, Deserialize, Type)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WalletSendXchApprovalResponse {
+    pub selected_fee: String,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -80,6 +94,19 @@ pub enum RustBridgeApprovalBody {
     SendXch {
         summary: WalletSendXchParams,
     },
+    SignCoinSpends {
+        summary: WalletSignCoinSpendsApprovalSummary,
+        #[serde(rename = "partialSign")]
+        partial_sign: bool,
+    },
+    SignMessage {
+        message: String,
+        #[serde(rename = "publicKey")]
+        public_key: String,
+    },
+    OpenExternalUrl {
+        url: String,
+    },
     CapabilityGrant {
         capability: UserBridgeCapability,
         definition: SageAppCapabilityDefinitionView,
@@ -90,6 +117,28 @@ pub enum RustBridgeApprovalBody {
         #[serde(skip_serializing_if = "Option::is_none")]
         network_id: Option<String>,
     },
+    PermissionGrants {
+        capabilities: Vec<PermissionGrantCapabilityApproval>,
+
+        #[serde(rename = "networkWhitelist")]
+        network_whitelist: Vec<PermissionGrantNetworkTarget>,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct PermissionGrantCapabilityApproval {
+    pub capability: UserBridgeCapability,
+    pub definition: SageAppCapabilityDefinitionView,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Type, PartialEq, Eq, PartialOrd, Ord)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PermissionGrantNetworkTarget {
+    pub entry: SageNetworkWhitelistEntry,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub network_id: Option<String>,
 }
 
 pub(crate) struct BridgeOrigin {

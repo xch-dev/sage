@@ -48,6 +48,10 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         BridgeMethodCapability::user(UserBridgeCapability::AppRequestNetworkWhitelistGrant)
     }
 
+    fn deprecated_in_favor_of(&self) -> Option<&'static str> {
+        Some("app.requestPermissionGrants")
+    }
+
     fn approval_request(
         &self,
         ctx: BridgeContext<'_>,

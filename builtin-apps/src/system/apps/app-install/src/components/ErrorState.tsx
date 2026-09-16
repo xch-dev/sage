@@ -1,4 +1,4 @@
-import { AppModalShell } from '@sage-app/ui';
+import { AppModalShell } from 'sage-app-ui';
 
 export function ErrorState({ error }: { error: string }) {
   return (

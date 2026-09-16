@@ -2,9 +2,11 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
+import { platform } from '@tauri-apps/plugin-os';
 import { SystemModalShell } from './SystemModalShell';
 import { AppIcon } from '../../components';
 import { resolveBackgroundTintWithAlpha } from '../utils';
@@ -39,6 +41,7 @@ export function AppModalShell({
 }: AppModalShellProps) {
   const bodyRef = useRef<HTMLElement | null>(null);
   const [scrolledToEnd, setScrolledToEnd] = useState(!requireScrollEnd);
+  const isLinux = platform() === 'linux';
 
   const updateScrolledToEnd = useCallback(() => {
     if (!requireScrollEnd) {
@@ -58,6 +61,14 @@ export function AppModalShell({
     onScrollEndChange?.(next);
   }, [requireScrollEnd, onScrollEndChange]);
 
+  useLayoutEffect(() => {
+    // Wizard steps reuse this scroll container. Reset it before paint so a
+    // shorter next step is not left above WebKit's preserved scroll offset.
+    if (bodyRef.current) {
+      bodyRef.current.scrollTop = 0;
+    }
+  }, [requireScrollEnd]);
+
   useEffect(() => {
     setScrolledToEnd(!requireScrollEnd);
     onScrollEndChange?.(!requireScrollEnd);
@@ -73,7 +84,8 @@ export function AppModalShell({
     >
       <div
         className={[
-          'flex max-h-[min(620px,72vh)] min-h-0 flex-col',
+          'flex min-h-0 flex-col',
+          isLinux ? 'h-full' : 'max-h-[min(620px,72vh)]',
           className,
         ].join(' ')}
       >
@@ -105,6 +117,7 @@ export function AppModalShell({
           onScroll={updateScrolledToEnd}
           className={[
             'min-h-0 overflow-auto',
+            isLinux ? 'flex-1' : '',
             bodyPadded ? 'px-6 py-5' : '',
             requireScrollEnd ? 'pb-10' : '',
             bodyClassName,

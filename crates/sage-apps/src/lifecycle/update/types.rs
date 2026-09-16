@@ -248,4 +248,8 @@ impl GrantedNetworkWhitelistByNetworkChange {
             full: self.full.get(network_id).cloned().unwrap_or_default(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.removed.is_empty() && self.added.is_empty()
+    }
 }

@@ -78,6 +78,7 @@ export function getAssetDisplayName(
   ticker: string | null,
   kind: AssetKind,
 ) {
+  const upperKind = kind.toUpperCase();
   return (
     name ??
     ticker ??
@@ -85,7 +86,7 @@ export function getAssetDisplayName(
       ? t`Unknown CAT`
       : kind === 'option'
         ? 'Untitled Option'
-        : t`Untitled ${kind.toUpperCase()}`)
+        : t`Untitled ${upperKind}`)
   );
 }
 

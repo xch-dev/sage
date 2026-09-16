@@ -43,6 +43,10 @@ export function MintOptionConfirmation({
     return `${minutes}m`;
   };
 
+  const expiration = expirationSeconds
+    ? formatExpiration(expirationSeconds)
+    : '';
+
   return (
     <div className='space-y-4 text-xs'>
       <ConfirmationAlert
@@ -139,9 +143,7 @@ export function MintOptionConfirmation({
           title={<Trans>Expiration</Trans>}
         >
           <div className='text-muted-foreground'>
-            <Trans>
-              This option expires in {formatExpiration(expirationSeconds)}
-            </Trans>
+            <Trans>This option expires in {expiration}</Trans>
           </div>
         </ConfirmationCard>
       )}

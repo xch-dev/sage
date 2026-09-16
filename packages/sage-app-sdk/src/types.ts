@@ -27,10 +27,32 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
-  getKey(input: Generated.GetKey): Promise<Generated.GetKeyResponse>;
-  getSecretKey(
-    input: Generated.GetSecretKey,
-  ): Promise<Generated.GetSecretKeyResponse>;
+  onSelectedWalletChanged(
+    handler: (event: Generated.SelectedWalletChangedEvent) => void,
+  ): () => void;
+  sendTransaction(
+    input: Generated.WalletSendTransactionParams,
+  ): Promise<Generated.WalletSendTransactionResult>;
+  signMessage(
+    input: Generated.WalletSignMessageParams,
+  ): Promise<Generated.WalletSignMessageResult>;
+  signCoinSpends(
+    input: Generated.WalletSignCoinSpendsParams,
+  ): Promise<Generated.WalletSignCoinSpendsResult>;
+  getAssetBalance(
+    input: Generated.WalletGetAssetBalanceParams,
+  ): Promise<Generated.WalletGetAssetBalanceResult>;
+  getAssetCoins(
+    input: Generated.WalletGetAssetCoinsParams,
+  ): Promise<Generated.WalletGetAssetCoinsResult>;
+  filterUnlockedCoins(
+    input: Generated.WalletFilterUnlockedCoinsParams,
+  ): Promise<Generated.WalletFilterUnlockedCoinsResult>;
+  getPublicKeys(
+    input?: Generated.WalletGetPublicKeysParams,
+  ): Promise<Generated.WalletGetPublicKeysResult>;
+  getKey(): Promise<Generated.GetKeyResponse>;
+  getSecretKey(): Promise<Generated.GetSecretKeyResponse>;
 
   getSyncStatus(): Promise<Generated.GetSyncStatusResponse>;
   getVersion(): Promise<Generated.GetVersionResponse>;
@@ -73,12 +95,17 @@ export type SageAppClient = {
   bridgeSend(input: SageBridgeSendPayload): Promise<Generated.BridgeSendResult>;
   getInfo(): Promise<Generated.AppGetInfoResult>;
   getCapabilities(): Promise<string[]>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestCapabilityGrant(
     input: Generated.RequestCapabilityGrantParams,
   ): Promise<Generated.RequestCapabilityGrantResult>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestNetworkWhitelistGrant(
     input: Generated.RequestNetworkWhitelistGrantParams,
   ): Promise<Generated.RequestNetworkWhitelistGrantResult>;
+  requestPermissionGrants(
+    input: Generated.RequestPermissionGrantsParams,
+  ): Promise<Generated.RequestPermissionGrantsResult>;
   onGrantedCapabilitiesChange(
     handler: (event: Generated.GrantedCapabilitiesChangeEvent) => void,
   ): () => void;
@@ -101,6 +128,9 @@ export type SageEnvironmentThemeClient = {
 export type SageEnvironmentClient = {
   theme: SageEnvironmentThemeClient;
   getNetwork(): Promise<Generated.EnvironmentGetNetworkResult>;
+  openExternalUrl(
+    input: Generated.EnvironmentOpenExternalUrlParams,
+  ): Promise<Generated.EnvironmentOpenExternalUrlResult>;
 };
 
 export type SageClient = {

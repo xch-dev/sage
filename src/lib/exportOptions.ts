@@ -79,6 +79,7 @@ export async function exportOptions(options: OptionRecord[]) {
   } catch (error) {
     console.error('Failed to export options:', error);
     toast.dismiss();
-    toast.error(t`Failed to export options: ${error as string}`);
+    const message = error as string;
+    toast.error(t`Failed to export options: ${message}`);
   }
 }

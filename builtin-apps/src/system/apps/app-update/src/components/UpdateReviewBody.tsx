@@ -3,12 +3,12 @@ import {
   appIconFromCommonView,
   AppModalShell,
   UpdateDecisionPermissionEditor,
-} from '@sage-app/ui';
+} from 'sage-app-ui';
 import {
   formatSageError,
   getSageSystemClient,
   type SageGrantedPermissionsInput,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { NoUpdateBody } from './NoUpdateBody';
 import { PartialUpdateBody } from './PartialUpdateBody';
 

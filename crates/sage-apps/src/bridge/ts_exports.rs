@@ -1,7 +1,7 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKeyResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
     GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
     GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
     GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
@@ -17,16 +17,24 @@ use crate::{
     AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
     BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
     DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
+    EnvironmentOpenExternalUrlParams, EnvironmentOpenExternalUrlResult,
     EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
     FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
     ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
     ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult,
     RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
-    ResolveBridgeApprovalArgs, RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
-    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
-    SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
-    SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
-    SystemKillRuntimeResult, SystemWalletView, WalletListWalletsResult, WalletSendXchParams,
+    RequestPermissionGrantsParams, RequestPermissionGrantsResult, ResolveBridgeApprovalArgs,
+    RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeApprovalResponse,
+    RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope,
+    SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
+    SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
+    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
+    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
+    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
+    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
+    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
+    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -44,17 +52,31 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<RequestCapabilityGrantResult>();
     types.register::<RequestNetworkWhitelistGrantParams>();
     types.register::<RequestNetworkWhitelistGrantResult>();
+    types.register::<RequestPermissionGrantsParams>();
+    types.register::<RequestPermissionGrantsResult>();
     types.register::<GrantedCapabilitiesChangeEvent>();
     types.register::<GrantedNetworkWhitelistChangeEvent>();
     types.register::<BeforeStopEvent>();
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKey>();
     types.register::<GetKeyResponse>();
     types.register::<GetXchUsdPriceResponse>();
-    types.register::<GetSecretKey>();
     types.register::<GetSecretKeyResponse>();
+    types.register::<WalletGetPublicKeysParams>();
+    types.register::<WalletGetPublicKeysResult>();
+    types.register::<WalletFilterUnlockedCoinsParams>();
+    types.register::<WalletFilterUnlockedCoinsResult>();
+    types.register::<WalletGetAssetCoinsParams>();
+    types.register::<WalletGetAssetCoinsResult>();
+    types.register::<WalletGetAssetBalanceParams>();
+    types.register::<WalletGetAssetBalanceResult>();
+    types.register::<WalletSignCoinSpendsParams>();
+    types.register::<WalletSignCoinSpendsResult>();
+    types.register::<WalletSignMessageParams>();
+    types.register::<WalletSignMessageResult>();
+    types.register::<WalletSendTransactionParams>();
+    types.register::<WalletSendTransactionResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();
@@ -75,9 +97,12 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetTransactionResponse>();
     types.register::<GetTransactions>();
     types.register::<GetTransactionsResponse>();
+    types.register::<SelectedWalletChangedEvent>();
     types.register::<EnvironmentThemeGetCurrentResult>();
     types.register::<EnvironmentThemeChangedEvent>();
     types.register::<EnvironmentGetNetworkResult>();
+    types.register::<EnvironmentOpenExternalUrlParams>();
+    types.register::<EnvironmentOpenExternalUrlResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)
@@ -117,6 +142,8 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<FileSystemSelectFileResult>();
 
     types.register::<ResolveBridgeApprovalArgs>();
+    types.register::<RustBridgeApprovalResponse>();
+    types.register::<WalletSendXchApprovalResponse>();
     types.register::<PendingBridgeApprovalView>();
     types.register::<BridgeApprovalsChangedEvent>();
 

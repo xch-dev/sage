@@ -41,6 +41,9 @@ async setWalletEmoji(req: SetWalletEmoji) : Promise<SetWalletEmojiResponse> {
 async getKey(req: GetKey) : Promise<GetKeyResponse> {
     return await TAURI_INVOKE("get_key", { req });
 },
+async getWalletAddress(req: GetWalletAddress) : Promise<GetWalletAddressResponse> {
+    return await TAURI_INVOKE("get_wallet_address", { req });
+},
 async getSecretKey(req: GetSecretKey) : Promise<GetSecretKeyResponse> {
     return await TAURI_INVOKE("get_secret_key", { req });
 },
@@ -398,8 +401,8 @@ async appsUninstallApp(appId: string) : Promise<null> {
 async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
     return await TAURI_INVOKE("apps_check_app_update", { appId });
 },
-async appsApplyAppUpdate(appId: string) : Promise<SageAppView> {
-    return await TAURI_INVOKE("apps_apply_app_update", { appId });
+async appsApplyAppUpdate(appId: string, expectedManifestHash: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apps_apply_app_update", { appId, expectedManifestHash });
 },
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
@@ -421,6 +424,9 @@ async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> 
 },
 async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
     return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
+},
+async appsReorderTaskbarRuntimes(params: ReorderTaskbarRuntimesParams) : Promise<null> {
+    return await TAURI_INVOKE("apps_reorder_taskbar_runtimes", { params });
 },
 async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
@@ -1694,6 +1700,26 @@ export type GetVersionResponse = {
  * Semantic version string
  */
 version: string }
+/**
+ * Get the receive address for any wallet without switching sessions
+ */
+export type GetWalletAddress = { 
+/**
+ * Wallet fingerprint
+ */
+fingerprint: number; 
+/**
+ * Network ID to look up the address on (e.g. "mainnet", "testnet11")
+ */
+network_id: string }
+/**
+ * Response with the wallet's receive address
+ */
+export type GetWalletAddressResponse = { 
+/**
+ * The wallet's current receive address
+ */
+address: string }
 export type GetXchUsdPrice = Record<string, never>
 export type GetXchUsdPriceResponse = { usd: number }
 export type Id = 
@@ -1822,6 +1848,10 @@ ticker: string;
  * Initial supply amount
  */
 amount: Amount; 
+/**
+ * Whether the CAT can be revoked by the issuer
+ */
+revocable?: boolean; 
 /**
  * Transaction fee
  */
@@ -2127,7 +2157,7 @@ export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount;
 export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
-export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null }
+export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
 /**
  * Perform database maintenance operations
  */
@@ -2204,6 +2234,7 @@ name: string }
  * Response for key rename
  */
 export type RenameKeyResponse = Record<string, never>
+export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2270,7 +2301,7 @@ export type SageAppManifestVersion = number
 export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppPackageManifestPreview = { kind: "full"; manifest: SageAppPackageManifest } | { kind: "partial"; manifest_header: SageAppManifestHeaderV0; parse_error: string }
 export type SageAppRuntimeMode = "Inline" | "Windowed"
-export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
+export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; taskbarOrder: number; startedAt: number; lastActiveAt: number; internal: boolean }
 export type SageAppRuntimeVisibility = "Visible" | "Hidden"
 export type SageAppSnapshotView = { manifest: SageAppPackageManifest }
 export type SageAppUrl = string
@@ -2859,7 +2890,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }

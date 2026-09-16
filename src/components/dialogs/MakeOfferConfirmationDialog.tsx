@@ -568,6 +568,8 @@ export function MakeOfferConfirmationDialog({
                 );
                 if (!isSupported) return null;
 
+                const marketplaceName = marketplace.name;
+
                 return (
                   <div
                     key={marketplace.id}
@@ -588,13 +590,13 @@ export function MakeOfferConfirmationDialog({
                       className='flex flex-col'
                     >
                       <span>
-                        <Trans>Upload to {marketplace.name}</Trans>
+                        <Trans>Upload to {marketplaceName}</Trans>
                       </span>
                       {enabledMarketplaces[marketplace.id] && (
                         <span className='text-xs text-muted-foreground'>
                           <Trans>
                             This will make your offer(s) immediately public and
-                            takeable on {marketplace.name}.
+                            takeable on {marketplaceName}.
                           </Trans>
                         </span>
                       )}

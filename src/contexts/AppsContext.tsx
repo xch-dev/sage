@@ -28,8 +28,8 @@ const SAGE_RUNTIME_EVENT_NAME = 'apps:runtime-event';
 
 export type PendingUpdateStatusView =
   | { kind: 'none' }
-  | { kind: 'readyToApply' }
-  | { kind: 'requiresReview' };
+  | { kind: 'readyToApply'; manifestHash: string }
+  | { kind: 'requiresReview'; manifestHash: string };
 
 interface RuntimeManagerRuntimesChangedEvent {
   type: 'runtimeManager.runtimesChanged';

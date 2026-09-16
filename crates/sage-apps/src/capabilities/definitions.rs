@@ -57,6 +57,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to request access to an additional network target after installation.",
             CapabilityFlags::new(false, false, true, false, true),
         ),
+        UserBridgeCapability::AppRequestPermissionGrants => CapabilityDefinition::new(
+            capability,
+            "Request additional permissions",
+            "Allows the app to request additional capabilities and network targets in one approval after installation.",
+            CapabilityFlags::new(false, false, true, false, true),
+        ),
         UserBridgeCapability::WalletGetKey => CapabilityDefinition::new(
             capability,
             "Read wallet key",
@@ -105,6 +111,48 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to validate whether an address belongs to this wallet.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletFilterUnlockedCoins => CapabilityDefinition::new(
+            capability,
+            "Filter unlocked wallet coins",
+            "Allows the app to check which supplied coin IDs are currently spendable.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletGetAssetCoins => CapabilityDefinition::new(
+            capability,
+            "Read wallet asset coins",
+            "Allows the app to list spendable XCH, CAT, DID, or NFT coins.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletGetAssetBalance => CapabilityDefinition::new(
+            capability,
+            "Read wallet asset balance",
+            "Allows the app to read confirmed and spendable balances for XCH, CAT, DID, or NFT assets.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletSignCoinSpends => CapabilityDefinition::new(
+            capability,
+            "Sign wallet coin spends",
+            "Allows the app to request signatures for custom coin spends after per-request approval.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletSignMessage => CapabilityDefinition::new(
+            capability,
+            "Sign wallet messages",
+            "Allows the app to request a message signature after per-request approval.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletSendTransaction => CapabilityDefinition::new(
+            capability,
+            "Broadcast wallet transactions",
+            "Allows the app to submit an already signed spend bundle to the Chia network.",
+            CapabilityFlags::new(true, false, true, true, true),
+        ),
+        UserBridgeCapability::WalletGetPublicKeys => CapabilityDefinition::new(
+            capability,
+            "Read wallet public keys",
+            "Allows the app to read public keys derived by the active wallet.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::WalletGetDerivations => CapabilityDefinition::new(
             capability,
             "Read derivations",
@@ -147,6 +195,12 @@ pub(crate) fn get_user_capability_definition(
             "Allows the app to list wallet transactions.",
             CapabilityFlags::new(false, false, true, true, true),
         ),
+        UserBridgeCapability::WalletListenSelectedWalletChanged => CapabilityDefinition::new(
+            capability,
+            "Observe selected wallet changes",
+            "Allows the app to receive the fingerprint when Sage switches to a wallet where the app is installed.",
+            CapabilityFlags::new(false, false, true, true, true),
+        ),
         UserBridgeCapability::EnvironmentThemeGetCurrent => CapabilityDefinition::new(
             capability,
             "Read current theme",
@@ -170,6 +224,12 @@ pub(crate) fn get_user_capability_definition(
             "Read current network",
             "Allows the app to read Sage's currently active network information.",
             CapabilityFlags::new(false, false, true, false, true),
+        ),
+        UserBridgeCapability::EnvironmentOpenExternalUrl => CapabilityDefinition::new(
+            capability,
+            "Open external links",
+            "Allows the app to request opening an HTTP or HTTPS link in your default browser. Every link requires approval, and the destination can observe the request.",
+            CapabilityFlags::new(true, false, true, false, true),
         ),
     }
 }
@@ -349,4 +409,38 @@ pub(crate) fn user_registry() -> BTreeMap<UserBridgeCapability, UserCapabilityDe
 
 fn system_app_flags() -> CapabilityFlags {
     CapabilityFlags::new(false, false, true, false, true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn approval_gated_signing_does_not_claim_secret_exposure() {
+        for capability in [
+            UserBridgeCapability::WalletSignCoinSpends,
+            UserBridgeCapability::WalletSignMessage,
+        ] {
+            let flags = get_user_capability_definition(capability).flags();
+
+            assert!(flags.externally_observable());
+            assert!(!flags.accesses_sensitive_secret());
+            assert!(flags.requestable_by_app());
+            assert!(flags.user_grantable());
+            assert!(flags.shared_with_app());
+        }
+    }
+
+    #[test]
+    fn opening_external_urls_is_external_but_not_user_grantable() {
+        let flags =
+            get_user_capability_definition(UserBridgeCapability::EnvironmentOpenExternalUrl)
+                .flags();
+
+        assert!(flags.externally_observable());
+        assert!(!flags.accesses_sensitive_secret());
+        assert!(flags.requestable_by_app());
+        assert!(!flags.user_grantable());
+        assert!(flags.shared_with_app());
+    }
 }

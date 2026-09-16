@@ -95,13 +95,8 @@ impl Wallet {
             .iter()
             .map(|coin_spend| coin_spend.coin.coin_id())
             .collect_vec();
-        self.select_spends_excluding(
-            &mut ctx,
-            &mut spends,
-            &actions,
-            &offer_input_coin_ids,
-        )
-        .await?;
+        self.select_spends_excluding(&mut ctx, &mut spends, &actions, &offer_input_coin_ids)
+            .await?;
 
         // Reset DIDs and reveal trade prices
         let mut royalty_nft_count = 0;

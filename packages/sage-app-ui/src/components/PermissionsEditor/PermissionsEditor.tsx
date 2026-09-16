@@ -7,7 +7,7 @@ import type {
   SystemSageAppView,
   UserBridgeCapability,
   UserSageAppView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import type { NetworkPermissionScheme, PermissionEntry } from './types';
 import {
   buildCapabilityEntries,
@@ -35,16 +35,17 @@ interface UpdateDecisionPermissionEditorProps {
   emptyText?: string;
 }
 
-interface SharedPermissionEditorProps {
+export interface PermissionEditorProps {
   requestedPermissions: RequestedPermissionsView;
   grantedPermissions: SageGrantedPermissionsView;
   capabilityDefinitions: SageAppCapabilityDefinitionView[];
   onGrantedPermissionsChange?: (next: SageGrantedPermissionsInput) => void;
   editable?: boolean;
   emptyText?: string;
+  requiredSectionTitle?: string;
 }
 
-type RequestedPermissionsView = {
+export type RequestedPermissionsView = {
   capabilities?: {
     required?: UserBridgeCapability[];
     optional?: UserBridgeCapability[];
@@ -79,7 +80,7 @@ export function AppPermissionEditor({
   emptyText,
 }: AppPermissionEditorProps) {
   return (
-    <SharedPermissionEditor
+    <PermissionEditor
       requestedPermissions={
         app.common.activeSnapshot.manifest.permissions ?? {}
       }
@@ -144,7 +145,7 @@ export function UpdateDecisionPermissionEditor({
   }, [decision]);
 
   return (
-    <SharedPermissionEditor
+    <PermissionEditor
       requestedPermissions={requestedPermissions}
       grantedPermissions={grantedPermissions}
       capabilityDefinitions={capabilityDefinitions}
@@ -154,14 +155,15 @@ export function UpdateDecisionPermissionEditor({
   );
 }
 
-function SharedPermissionEditor({
+export function PermissionEditor({
   requestedPermissions,
   grantedPermissions,
   capabilityDefinitions,
   onGrantedPermissionsChange,
   editable = true,
   emptyText = 'This app does not request any permissions.',
-}: SharedPermissionEditorProps) {
+  requiredSectionTitle = 'Required permissions',
+}: PermissionEditorProps) {
   const definitionsByKey = useMemo(
     () => capabilityDefinitionMap(capabilityDefinitions),
     [capabilityDefinitions],
@@ -368,8 +370,17 @@ function SharedPermissionEditor({
       nextKeys.add(networkKey(requiredEntry));
     }
 
+    const httpKey = `http://${entry.host}`;
     const httpsKey = `https://${entry.host}`;
     const wssKey = `wss://${entry.host}`;
+
+    if (scheme === 'http') {
+      if (nextGranted) {
+        nextKeys.add(httpKey);
+      } else {
+        nextKeys.delete(httpKey);
+      }
+    }
 
     if (scheme === 'https') {
       if (nextGranted) {
@@ -442,6 +453,7 @@ function SharedPermissionEditor({
       optionalEntries={optionalEntries}
       editable={editable}
       emptyText={emptyText}
+      requiredSectionTitle={requiredSectionTitle}
       onToggleEntry={handleToggleEntry}
     />
   );
@@ -452,12 +464,14 @@ function PermissionSections({
   optionalEntries,
   editable,
   emptyText,
+  requiredSectionTitle,
   onToggleEntry,
 }: {
   requiredEntries: PermissionEntry[];
   optionalEntries: PermissionEntry[];
   editable: boolean;
   emptyText: string;
+  requiredSectionTitle: string;
   onToggleEntry: (
     entry: PermissionEntry,
     nextGranted: boolean,
@@ -503,7 +517,7 @@ function PermissionSections({
     <div className='space-y-4'>
       {requiredGroups.length > 0 ? (
         <PermissionSection
-          title='Required permissions'
+          title={requiredSectionTitle}
           groups={requiredGroups}
           editable={editable}
           onToggleEntry={onToggleEntry}

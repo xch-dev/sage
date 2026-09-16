@@ -4,7 +4,7 @@ import type {
   SageAppCapabilityDefinitionView,
   SageGrantedPermissionsInput,
   UserSageAppView,
-} from '@sage-system-app/sdk';
+} from 'sage-system-app-sdk';
 import { definitionMap } from '../utils/definitions';
 import { nextPermissionsForUpdate } from '../utils/permissions';
 

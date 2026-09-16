@@ -4,11 +4,14 @@ use std::{
 };
 
 use anyhow::{Context, Result as AnyResult, anyhow};
+use futures::{StreamExt, TryStreamExt, stream};
 
 use crate::{
     MANIFEST_FILE_NAME, SageAppPackageManifest, SageAppSnapshot, SageAppUrl, bytes_sha256_hex,
-    security::get_with_ssrf_guard,
+    security::{SsrfGuardedClient, get_with_ssrf_guard},
 };
+
+const MAX_CONCURRENT_FILE_DOWNLOADS: usize = 8;
 
 pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyResult<Vec<u8>> {
     let response = get_with_ssrf_guard(url)
@@ -16,6 +19,32 @@ pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyR
         .error_for_status()
         .with_context(|| format!("request failed for {url}"))?;
 
+    read_response_bytes_with_limit(url, response, max_bytes).await
+}
+
+async fn download_exact_bytes_with_client(
+    client: &SsrfGuardedClient,
+    url: &str,
+    expected_size: u64,
+) -> AnyResult<Vec<u8>> {
+    let response = client
+        .get(url)
+        .await?
+        .error_for_status()
+        .with_context(|| format!("request failed for {url}"))?;
+
+    let bytes = read_response_bytes_with_limit(url, response, expected_size).await?;
+
+    ensure_expected_size(url, &bytes, expected_size)?;
+
+    Ok(bytes)
+}
+
+async fn read_response_bytes_with_limit(
+    url: &str,
+    response: reqwest::Response,
+    max_bytes: u64,
+) -> AnyResult<Vec<u8>> {
     if let Some(content_length) = response.content_length() {
         ensure_within_max_response_size(url, content_length, max_bytes)?;
     }
@@ -40,14 +69,6 @@ pub(crate) async fn download_bytes_with_limit(url: &str, max_bytes: u64) -> AnyR
 
         bytes.extend_from_slice(&chunk);
     }
-
-    Ok(bytes)
-}
-
-async fn download_exact_bytes(url: &str, expected_size: u64) -> AnyResult<Vec<u8>> {
-    let bytes = download_bytes_with_limit(url, expected_size).await?;
-
-    ensure_expected_size(url, &bytes, expected_size)?;
 
     Ok(bytes)
 }
@@ -108,15 +129,26 @@ pub async fn download_url_snapshot(
     fs::create_dir_all(snapshot_dir)
         .with_context(|| format!("failed to create snapshot dir {}", snapshot_dir.display()))?;
 
-    for file in manifest.files() {
-        let url = app_url.join(file.path())?;
-        let bytes = download_exact_bytes(&url, file.size()).await?;
+    let client = SsrfGuardedClient::default();
 
-        ensure_expected_hash(file.path(), &bytes, file.sha256())?;
+    stream::iter(manifest.files().to_vec())
+        .map(|file| {
+            let client = &client;
+            async move {
+                let url = app_url.join(file.path())?;
+                let bytes = download_exact_bytes_with_client(client, &url, file.size()).await?;
 
-        let output_path = snapshot_dir.join(PathBuf::from(file.path()));
-        write_file(&output_path, &bytes)?;
-    }
+                ensure_expected_hash(file.path(), &bytes, file.sha256())?;
+
+                let output_path = snapshot_dir.join(PathBuf::from(file.path()));
+                write_file(&output_path, &bytes)?;
+
+                Ok::<(), anyhow::Error>(())
+            }
+        })
+        .buffer_unordered(MAX_CONCURRENT_FILE_DOWNLOADS)
+        .try_collect::<Vec<_>>()
+        .await?;
 
     SageAppSnapshot::new(
         manifest_hash.to_string(),
@@ -150,7 +182,103 @@ pub(crate) fn fresh_snapshot_dir(app_dir: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use std::{
+        io::{Read, Write},
+        net::TcpListener,
+        sync::{
+            Arc,
+            atomic::{AtomicUsize, Ordering},
+        },
+        thread,
+        time::Duration,
+    };
+
+    use tempfile::tempdir;
+
     use super::*;
+    use crate::{SageAppManifestFile, SageAppPackageManifestParts, SageRequestedPermissions};
+
+    #[tokio::test]
+    async fn downloads_snapshot_files_with_bounded_concurrency() {
+        const FILE_COUNT: usize = 12;
+
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let address = listener.local_addr().unwrap();
+        let active_requests = Arc::new(AtomicUsize::new(0));
+        let max_active_requests = Arc::new(AtomicUsize::new(0));
+        let server_active = active_requests.clone();
+        let server_max_active = max_active_requests.clone();
+
+        let server = thread::spawn(move || {
+            let mut workers = Vec::new();
+
+            for _ in 0..FILE_COUNT {
+                let (mut stream, _) = listener.accept().unwrap();
+                let active = server_active.clone();
+                let max_active = server_max_active.clone();
+
+                workers.push(thread::spawn(move || {
+                    let mut request = [0_u8; 4096];
+                    let bytes_read = stream.read(&mut request).unwrap();
+                    assert!(bytes_read > 0);
+
+                    let current = active.fetch_add(1, Ordering::SeqCst) + 1;
+                    max_active.fetch_max(current, Ordering::SeqCst);
+                    thread::sleep(Duration::from_millis(75));
+
+                    stream
+                        .write_all(
+                            b"HTTP/1.1 200 OK\r\nContent-Length: 1\r\nConnection: close\r\n\r\nx",
+                        )
+                        .unwrap();
+                    active.fetch_sub(1, Ordering::SeqCst);
+                }));
+            }
+
+            for worker in workers {
+                worker.join().unwrap();
+            }
+        });
+
+        let files = (0..FILE_COUNT)
+            .map(|index| {
+                SageAppManifestFile::new(format!("file-{index}.txt"), bytes_sha256_hex(b"x"), 1)
+                    .unwrap()
+            })
+            .collect();
+        let (manifest_version, sage_version) = SageAppPackageManifestParts::v0_defaults();
+        let manifest = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+            manifest_version,
+            name: "Concurrent Download Test".to_string(),
+            icon: None,
+            sage_version,
+            version: "1.0.0".to_string(),
+            permissions: SageRequestedPermissions::empty(),
+            files,
+            entry: Some("file-0.txt".to_string()),
+            author: None,
+            donation: None,
+        })
+        .unwrap();
+        let app_url = SageAppUrl::parse(format!("http://{address}/")).unwrap();
+        let dir = tempdir().unwrap();
+
+        download_url_snapshot(dir.path(), &app_url, &manifest, "manifest-hash")
+            .await
+            .unwrap();
+        server.join().unwrap();
+
+        let observed_max = max_active_requests.load(Ordering::SeqCst);
+        assert!(observed_max > 1, "downloads were sequential");
+        assert!(observed_max <= MAX_CONCURRENT_FILE_DOWNLOADS);
+
+        for index in 0..FILE_COUNT {
+            assert_eq!(
+                fs::read(dir.path().join(format!("file-{index}.txt"))).unwrap(),
+                b"x"
+            );
+        }
+    }
 
     #[test]
     fn ensure_expected_size_accepts_exact_size() {

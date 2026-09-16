@@ -11,14 +11,25 @@ impl Wallet {
         fee: u64,
         multi_issuance_key: Option<PublicKey>,
     ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
+        self.issue_cat_with_hidden_puzzle_hash(amount, fee, multi_issuance_key, None)
+            .await
+    }
+
+    pub async fn issue_cat_with_hidden_puzzle_hash(
+        &self,
+        amount: u64,
+        fee: u64,
+        multi_issuance_key: Option<PublicKey>,
+        hidden_puzzle_hash: Option<Bytes32>,
+    ) -> Result<(Vec<CoinSpend>, Bytes32), WalletError> {
         let mut ctx = SpendContext::new();
 
         let issue_cat = if let Some(public_key) = multi_issuance_key {
             let tail = ctx.curry(EverythingWithSignatureTailArgs::new(public_key))?;
             let tail_spend = Spend::new(tail, NodePtr::NIL);
-            Action::issue_cat(tail_spend, None, amount)
+            Action::issue_cat(tail_spend, hidden_puzzle_hash, amount)
         } else {
-            Action::single_issue_cat(None, amount)
+            Action::single_issue_cat(hidden_puzzle_hash, amount)
         };
         let actions = vec![Action::fee(fee), issue_cat];
         let outputs = self.spend(&mut ctx, vec![], &actions).await?;
@@ -86,6 +97,31 @@ mod tests {
     use tokio::time::sleep;
 
     use crate::TestWallet;
+
+    #[test(tokio::test)]
+    async fn test_issue_revocable_cat() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
+        let hidden_puzzle_hash = test.wallet.change_p2_puzzle_hash().await?;
+
+        let (coin_spends, asset_id) = test
+            .wallet
+            .issue_cat_with_hidden_puzzle_hash(1000, 0, None, Some(hidden_puzzle_hash))
+            .await?;
+
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        assert_eq!(
+            test.wallet
+                .db
+                .asset(asset_id)
+                .await?
+                .and_then(|asset| asset.hidden_puzzle_hash),
+            Some(hidden_puzzle_hash)
+        );
+
+        Ok(())
+    }
 
     #[test(tokio::test)]
     async fn test_send_cat() -> anyhow::Result<()> {

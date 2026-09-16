@@ -172,6 +172,14 @@ pub(crate) fn bridge_methods_markdown(kind: BridgeRegistryKind) -> String {
     for (name, method) in methods {
         writeln!(out, "## `{name}`\n").unwrap();
 
+        if let Some(replacement) = method.deprecated_in_favor_of() {
+            writeln!(
+                out,
+                "> **Deprecated:** Use `{replacement}` instead. It supports both single and batched capability and network permission requests.\n"
+            )
+            .unwrap();
+        }
+
         push_markdown_table(
             &mut out,
             ("Field", "Value"),
@@ -211,7 +219,8 @@ pub fn generate_docs() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{finish_markdown, push_markdown_table};
+    use super::{bridge_methods_markdown, finish_markdown, push_markdown_table};
+    use crate::BridgeRegistryKind;
 
     #[test]
     fn markdown_table_matches_prettier_alignment() {
@@ -231,5 +240,24 @@ mod tests {
     #[test]
     fn markdown_has_exactly_one_trailing_newline() {
         assert_eq!(finish_markdown("content\n\n".to_string()), "content\n");
+    }
+
+    #[test]
+    fn user_method_docs_include_permission_request_deprecations() {
+        let docs = bridge_methods_markdown(BridgeRegistryKind::User);
+
+        for method in [
+            "app.requestCapabilityGrant",
+            "app.requestNetworkWhitelistGrant",
+        ] {
+            let section = docs
+                .split(&format!("## `{method}`"))
+                .nth(1)
+                .and_then(|rest| rest.split("\n## `").next())
+                .expect("deprecated method section should exist");
+
+            assert!(section.contains("**Deprecated:**"));
+            assert!(section.contains("`app.requestPermissionGrants`"));
+        }
     }
 }

@@ -73,7 +73,7 @@ tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-os = "2.3.2"
 tauri-plugin-window-state = "2.4.1"
-tauri-plugin-barcode-scanner = "2.4.4"
+tauri-plugin-barcode-scanner = "2.4.5"
 tauri-plugin-biometric = "2.3.2"
 tauri-plugin-safe-area-insets = "0.1.0"
 tauri-plugin-sage = { path = "./tauri-plugin-sage" }
@@ -89,6 +89,7 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
+# Keep the clawback_v1 SDK pin; V1 claim/claw-back helpers are not in crates.io 0.36.0.
 chia-wallet-sdk = { git = "https://github.com/Jsewill/chia-wallet-sdk", rev = "a321b8cb57427051e7c821d6e8ff96184a5ea378", version = "0.34.0", features = ["rustls", "offer-compression", "peer-simulator"] }
 chia_streamable_macro = "0.36.1"
 chia-traits = "0.36.1"
@@ -144,3 +145,9 @@ clap = "4.5.21"
 # Testing
 tempfile = "3.25.0"
 tower = "0.5.3"
+
+[patch.crates-io]
+tauri-runtime = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
+tauri-runtime-wry = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
+tauri-utils = { git = "https://github.com/Rigidity/tauri.git", rev = "8b205bb844bd56b4ee027905d1b068553d867ebe" }
+wry = { git = "https://github.com/Rigidity/wry.git", branch = "sage/wry-v0.54.1-patched" }

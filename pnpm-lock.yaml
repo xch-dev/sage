@@ -80,12 +80,6 @@ importers:
       '@react-spring/web':
         specifier: ^9.7.5
         version: 9.7.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@sage-app/sdk':
-        specifier: workspace:*
-        version: link:packages/sage-app-sdk
-      '@sage-app/ui':
-        specifier: workspace:*
-        version: link:packages/sage-app-ui
       '@tanstack/react-table':
         specifier: ^8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -96,8 +90,8 @@ importers:
         specifier: ^2.10.1
         version: 2.10.1
       '@tauri-apps/plugin-barcode-scanner':
-        specifier: ^2.4.4
-        version: 2.4.4
+        specifier: ^2.4.5
+        version: 2.4.5
       '@tauri-apps/plugin-biometric':
         specifier: ^2.3.2
         version: 2.3.2
@@ -149,6 +143,9 @@ importers:
       framer-motion:
         specifier: ^12.33.0
         version: 12.33.0(@emotion/is-prop-valid@1.3.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      jsqr:
+        specifier: ^1.4.0
+        version: 1.4.0
       lucide-react:
         specifier: ^0.445.0
         version: 0.445.0(react@18.3.1)
@@ -176,6 +173,12 @@ importers:
       react-toastify:
         specifier: ^11.0.5
         version: 11.0.5(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      sage-app-sdk:
+        specifier: workspace:*
+        version: link:packages/sage-app-sdk
+      sage-app-ui:
+        specifier: workspace:*
+        version: link:packages/sage-app-ui
       spoiled:
         specifier: ^0.4.0
         version: 0.4.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -249,6 +252,9 @@ importers:
       concurrently:
         specifier: ^9.0.1
         version: 9.2.1
+      cross-spawn:
+        specifier: ^7.0.6
+        version: 7.0.6
       eslint:
         specifier: ^8.57.1
         version: 8.57.1
@@ -291,12 +297,6 @@ importers:
 
   builtin-apps/src/system:
     dependencies:
-      '@sage-app/ui':
-        specifier: workspace:*
-        version: link:../../../packages/sage-app-ui
-      '@sage-system-app/sdk':
-        specifier: workspace:*
-        version: link:../../../packages/sage-system-app-sdk
       '@tauri-apps/api':
         specifier: ^2.10.1
         version: 2.10.1
@@ -306,6 +306,12 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      sage-app-ui:
+        specifier: workspace:*
+        version: link:../../../packages/sage-app-ui
+      sage-system-app-sdk:
+        specifier: workspace:*
+        version: link:../../../packages/sage-system-app-sdk
     devDependencies:
       '@types/react':
         specifier: ^18.3.28
@@ -333,6 +339,13 @@ importers:
         version: 7.3.1(@types/node@22.19.10)(jiti@2.6.1)(yaml@2.5.1)
 
   packages/sage-app-sdk:
+    dependencies:
+      bech32:
+        specifier: ^2.0.0
+        version: 2.0.0
+      picomatch:
+        specifier: ^4.0.4
+        version: 4.0.4
     devDependencies:
       tsup:
         specifier: ^8.5.1
@@ -343,15 +356,18 @@ importers:
 
   packages/sage-app-ui:
     dependencies:
-      '@sage-system-app/sdk':
-        specifier: workspace:*
-        version: link:../sage-system-app-sdk
+      '@tauri-apps/plugin-os':
+        specifier: ^2.3.2
+        version: 2.3.2
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@18.3.1)
       react:
         specifier: ^18.3.1
         version: 18.3.1
+      sage-system-app-sdk:
+        specifier: workspace:*
+        version: link:../sage-system-app-sdk
     devDependencies:
       tsup:
         specifier: ^8.5.0
@@ -362,7 +378,7 @@ importers:
 
   packages/sage-system-app-sdk:
     dependencies:
-      '@sage-app/sdk':
+      sage-app-sdk:
         specifier: workspace:*
         version: link:../sage-app-sdk
     devDependencies:
@@ -1830,8 +1846,8 @@ packages:
     engines: {node: '>= 10'}
     hasBin: true
 
-  '@tauri-apps/plugin-barcode-scanner@2.4.4':
-    resolution: {integrity: sha512-uXvyMI8UgQjSrGxzTU5isNoQarMGRxFmTmb4TsgiWZHf/g7LsIyAQCwoFShjax0fXCK5mdVKDOvlkfOr21fo6g==}
+  '@tauri-apps/plugin-barcode-scanner@2.4.5':
+    resolution: {integrity: sha512-sIPRYEfxww8/y8skZ2LcAp/h5bwvlHkQiq+3w6QEl+2BHs13xnpn7hP+pv4fkBs8DyDfpUbOBIYS5YBwP7x1QQ==}
 
   '@tauri-apps/plugin-biometric@2.3.2':
     resolution: {integrity: sha512-RFydYGKEJ6m4UWdcPsO+vJQUb3JyyfFeNoZSPDs0uWjvwHBs03xey5wWO+uowmFFy03JAff1l2idQAwuycO8Uw==}
@@ -2020,6 +2036,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@use-gesture/core@10.3.1':
     resolution: {integrity: sha512-WcINiDt8WjqBdUXye25anHiNxPc0VOrlT8F6LLkU6cycrOGUDyY/yyFmsg3k8i5OLvv25llc0QC45GhR/C8llw==}
@@ -3057,6 +3074,9 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
+  jsqr@1.4.0:
+    resolution: {integrity: sha512-dxLob7q65Xg2DvstYkRpkYtmKm2sPJ9oFhrhmudT1dZvNFFTlroai3AWSpLey/w5vMcLBXRgOJsbXpdN9HzU/A==}
+
   jsx-ast-utils@3.3.5:
     resolution: {integrity: sha512-ZZow9HBI5O6EPgSJLUb8n2NKgmVWTwCvHGwFuJlMjvLFqlGG6pjirPhtdsseaLZjSibD8eegzmYpUZwoIlj2cQ==}
     engines: {node: '>=4.0'}
@@ -3331,6 +3351,10 @@ packages:
 
   picomatch@4.0.3:
     resolution: {integrity: sha512-5gTmgEY/sqK6gFXLIsQNH19lWb4ebPDLA4SdLP7dsWkIXHWlG66oPuVvXSGFPppYZz8ZDZq0dYYrbHfBCVUb1Q==}
+    engines: {node: '>=12'}
+
+  picomatch@4.0.4:
+    resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
 
   pify@2.3.0:
@@ -5452,9 +5476,9 @@ snapshots:
       '@tauri-apps/cli-win32-ia32-msvc': 2.10.0
       '@tauri-apps/cli-win32-x64-msvc': 2.10.0
 
-  '@tauri-apps/plugin-barcode-scanner@2.4.4':
+  '@tauri-apps/plugin-barcode-scanner@2.4.5':
     dependencies:
-      '@tauri-apps/api': 2.10.1
+      '@tauri-apps/api': 2.11.0
 
   '@tauri-apps/plugin-biometric@2.3.2':
     dependencies:
@@ -7123,6 +7147,8 @@ snapshots:
 
   json5@2.2.3: {}
 
+  jsqr@1.4.0: {}
+
   jsx-ast-utils@3.3.5:
     dependencies:
       array-includes: 3.1.9
@@ -7393,6 +7419,8 @@ snapshots:
   picomatch@2.3.1: {}
 
   picomatch@4.0.3: {}
+
+  picomatch@4.0.4: {}
 
   pify@2.3.0: {}
 

@@ -73,6 +73,7 @@ define_bridge_capabilities! {
         AppGetCapabilities => "app.get_capabilities",
         AppRequestCapabilityGrant => "app.request_capability_grant",
         AppRequestNetworkWhitelistGrant => "app.request_network_whitelist_grant",
+        AppRequestPermissionGrants => "app.request_permission_grants",
 
         WalletGetKey => "wallet.get_key",
         WalletGetSecretKey => "wallet.get_secret_key",
@@ -82,6 +83,13 @@ define_bridge_capabilities! {
         WalletGetVersion => "wallet.get_version",
         WalletGetXchUsdPrice => "wallet.get_xch_usd_price",
         WalletCheckAddress => "wallet.check_address",
+        WalletFilterUnlockedCoins => "wallet.filter_unlocked_coins",
+        WalletGetAssetCoins => "wallet.get_asset_coins",
+        WalletGetAssetBalance => "wallet.get_asset_balance",
+        WalletSignCoinSpends => "wallet.sign_coin_spends",
+        WalletSignMessage => "wallet.sign_message",
+        WalletSendTransaction => "wallet.send_transaction",
+        WalletGetPublicKeys => "wallet.get_public_keys",
         WalletGetDerivations => "wallet.get_derivations",
         WalletGetSpendableCoinCount => "wallet.get_spendable_coin_count",
         WalletGetCoinsByIds => "wallet.get_coins_by_ids",
@@ -89,11 +97,13 @@ define_bridge_capabilities! {
         WalletGetPendingTransactions => "wallet.get_pending_transactions",
         WalletGetTransaction => "wallet.get_transaction",
         WalletGetTransactions => "wallet.get_transactions",
+        WalletListenSelectedWalletChanged => "wallet.listen_selected_wallet_changed",
 
         EnvironmentThemeGetCurrent => "environment.theme.get_current",
         EnvironmentThemeCssVars => "environment.theme.css_vars",
         EnvironmentThemeListenChanged => "environment.theme.listen_changed",
         EnvironmentGetNetwork => "environment.get_network",
+        EnvironmentOpenExternalUrl => "environment.open_external_url",
 
         StoragePersistentWebview => "storage.persistent_webview",
     }
