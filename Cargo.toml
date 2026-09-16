@@ -89,8 +89,7 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-# Keep the clawback_v1 SDK pin; V1 claim/claw-back helpers are not in crates.io 0.36.0.
-chia-wallet-sdk = { git = "https://github.com/Jsewill/chia-wallet-sdk", rev = "a321b8cb57427051e7c821d6e8ff96184a5ea378", version = "0.34.0", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia-wallet-sdk = { git = "https://github.com/Jsewill/chia-wallet-sdk", rev = "4ab547bda5a036d69c5b3c4f495a103fd92658cf", version = "0.36.0", features = ["rustls", "offer-compression", "peer-simulator"] }
 chia_streamable_macro = "0.36.1"
 chia-traits = "0.36.1"
 chia-sha2 = "0.36.1"
