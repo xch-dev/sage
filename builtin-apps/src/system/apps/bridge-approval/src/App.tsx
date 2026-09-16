@@ -7,6 +7,7 @@ import {
 } from 'sage-system-app-sdk';
 import { Clock } from 'lucide-react';
 import { AppApprovalBody } from './approval/AppApprovalBody';
+import { parseXchFee } from './approval/fee';
 
 function appNameFromRuntime(
   runtime: SageAppRuntimeRecordView | null,
@@ -78,6 +79,10 @@ export function App() {
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState<string | null>(null);
+  const [feeDraft, setFeeDraft] = useState<{
+    approvalId: string | null;
+    value: string;
+  }>({ approvalId: null, value: '0' });
 
   async function refreshActiveRuntime() {
     const active = await sage.runtimeManager.getActiveTaskbarRuntime();
@@ -145,6 +150,12 @@ export function App() {
   }, [approvals, activeAppId]);
 
   const activeApproval = activeApprovals[0] ?? null;
+  const feeInput =
+    activeApproval && feeDraft.approvalId === activeApproval.approvalId
+      ? feeDraft.value
+      : '0';
+  const selectedFee =
+    activeApproval?.approval.kind === 'sendXch' ? parseXchFee(feeInput) : null;
   const pendingForActiveAppCount = activeApprovals.length;
   const queuedApprovalCount = Math.max(0, pendingForActiveAppCount - 1);
 
@@ -160,6 +171,19 @@ export function App() {
   async function resolve(approved: boolean) {
     if (!activeApproval || working) return;
 
+    const selectedFeeMojos =
+      approved && activeApproval.approval.kind === 'sendXch'
+        ? selectedFee?.mojos
+        : undefined;
+    if (
+      approved &&
+      activeApproval.approval.kind === 'sendXch' &&
+      !selectedFeeMojos
+    ) {
+      setError('Enter a valid network fee before approving.');
+      return;
+    }
+
     setWorking(true);
     setError(null);
 
@@ -168,6 +192,12 @@ export function App() {
         approvalId: activeApproval.approvalId,
         approved,
         reason: approved ? null : 'User denied the request',
+        approvalResponse: selectedFeeMojos
+          ? {
+              kind: 'sendXch',
+              response: { selectedFee: selectedFeeMojos },
+            }
+          : undefined,
       });
 
       setApprovals(await sage.bridgeApprovals.listPending());
@@ -244,7 +274,11 @@ export function App() {
 
             <button
               type='button'
-              disabled={working}
+              disabled={
+                working ||
+                (activeApproval.approval.kind === 'sendXch' &&
+                  selectedFee === null)
+              }
               onClick={() => void resolve(true)}
               className='rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50'
             >
@@ -272,6 +306,14 @@ export function App() {
           approval={activeApproval.approval}
           appName={activeAppName}
           expanded={expanded}
+          working={working}
+          feeInput={feeInput}
+          onFeeInputChange={(value) =>
+            setFeeDraft({
+              approvalId: activeApproval.approvalId,
+              value,
+            })
+          }
         />
 
         {error ? (

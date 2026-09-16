@@ -17,3 +17,11 @@ body {
   overflow: hidden;
   background: transparent;
 }
+
+.fee-input-frame {
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.fee-input-frame:focus-within {
+  border-color: hsl(var(--border));
+}

@@ -49,6 +49,10 @@ impl BridgeMethod for WalletSignMessage {
         BridgeMethodCapability::user(UserBridgeCapability::WalletSignMessage)
     }
 
+    fn binds_approval_to_wallet(&self) -> bool {
+        true
+    }
+
     fn approval_request(
         &self,
         _ctx: BridgeContext<'_>,
