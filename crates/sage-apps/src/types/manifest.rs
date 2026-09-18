@@ -7,7 +7,7 @@ use crate::{
     SageAppAuthor, SageAppDonation, SageRequestedPermissions, normalize_optional_manifest_path,
     normalized_non_empty_string, validate_declared_manifest_asset_exists,
     validate_manifest_file_path, validate_manifest_files, validate_package_files_match_manifest,
-    validate_sha256_hex,
+    validate_sage_version_range, validate_sha256_hex,
 };
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -34,6 +34,24 @@ pub struct SageAppManifestHeaderV0 {
     pub icon: Option<String>,
 
     pub sage_version: SageAppManifestSageVersion,
+}
+
+/// Minimal header used to identify and recover an installed app even when its
+/// full manifest no longer matches the current manifest schema. Compatibility
+/// metadata is optional here so legacy manifests still retain their identity.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SageAppManifestRecoveryHeaderV0 {
+    #[serde(default)]
+    pub manifest_version: SageAppManifestVersion,
+
+    pub name: String,
+
+    #[serde(default)]
+    pub icon: Option<String>,
+
+    #[serde(default)]
+    pub sage_version: Option<SageAppManifestSageVersion>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type, PartialEq, Eq)]
@@ -171,6 +189,7 @@ impl TryFrom<SageAppPackageManifestParts> for SageAppPackageManifest {
             min: sage_version_min,
             tested_max: sage_version_tested_max,
         };
+        validate_sage_version_range(&sage_version)?;
 
         let entry = normalize_optional_manifest_path(value.entry, "manifest entry")?;
         let icon = normalize_optional_manifest_path(value.icon, "manifest icon")?;
@@ -360,13 +379,40 @@ pub fn parse_manifest_header_v0_from_value(
         .map_err(|err| anyhow::anyhow!("failed to parse manifest v0 header: {err}"))
 }
 
+pub fn parse_manifest_recovery_header_v0_from_value(
+    value: serde_json::Value,
+) -> anyhow::Result<SageAppManifestRecoveryHeaderV0> {
+    let version = match value.get("manifestVersion") {
+        None => SageAppManifestVersion::default(),
+        Some(value) => {
+            let version = value
+                .as_u64()
+                .ok_or_else(|| anyhow::anyhow!("manifestVersion must be an integer"))?;
+            SageAppManifestVersion(
+                u16::try_from(version)
+                    .map_err(|_| anyhow::anyhow!("manifestVersion is too large"))?,
+            )
+        }
+    };
+
+    if version.0 != 0 {
+        return Err(anyhow::anyhow!(
+            "unsupported manifest recovery header version {}",
+            version.0
+        ));
+    }
+
+    serde_json::from_value(value)
+        .map_err(|err| anyhow::anyhow!("failed to parse manifest v0 recovery header: {err}"))
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         SageAppManifestFile, SageAppManifestSageVersion, SageAppManifestVersion,
         SageAppPackageManifest, SageAppPackageManifestParts, SageNetworkWhitelistEntry,
         SageRequestedCapabilities, SageRequestedNetworkPermissions, SageRequestedPermissions,
-        UserBridgeCapability,
+        UserBridgeCapability, parse_manifest_recovery_header_v0_from_value,
     };
 
     fn sample_manifest_file(path: &str, size: u64) -> SageAppManifestFile {
@@ -379,6 +425,22 @@ mod tests {
 
     fn entry(scheme: &str, host: &str) -> SageNetworkWhitelistEntry {
         SageNetworkWhitelistEntry::new(scheme, host).unwrap()
+    }
+
+    #[test]
+    fn recovery_header_preserves_identity_without_compatibility_metadata() {
+        let value = serde_json::json!({
+            "name": "Legacy app",
+            "icon": "icon.png",
+            "permissions": "future-incompatible-shape"
+        });
+
+        let header = parse_manifest_recovery_header_v0_from_value(value).unwrap();
+
+        assert_eq!(header.manifest_version, SageAppManifestVersion(0));
+        assert_eq!(header.name, "Legacy app");
+        assert_eq!(header.icon.as_deref(), Some("icon.png"));
+        assert_eq!(header.sage_version, None);
     }
 
     fn requested_permissions() -> SageRequestedPermissions {
@@ -504,6 +566,43 @@ mod tests {
         .unwrap_err();
 
         assert!(err.to_string().contains("unsupported manifestVersion 1"));
+    }
+
+    #[test]
+    fn manifest_rejects_invalid_sage_version_ranges() {
+        for sage_version in [
+            SageAppManifestSageVersion {
+                min: "not-a-version".to_string(),
+                tested_max: None,
+            },
+            SageAppManifestSageVersion {
+                min: "0.13.0".to_string(),
+                tested_max: Some("not-a-version".to_string()),
+            },
+            SageAppManifestSageVersion {
+                min: "1.0.0".to_string(),
+                tested_max: Some("0.13.0".to_string()),
+            },
+        ] {
+            let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {
+                manifest_version: SageAppManifestVersion(0),
+                name: "Test".to_string(),
+                icon: None,
+                sage_version,
+                version: "1.0.0".to_string(),
+                permissions: SageRequestedPermissions::empty(),
+                files: vec![sample_file()],
+                entry: Some("index.html".to_string()),
+                author: None,
+                donation: None,
+            })
+            .expect_err("invalid Sage version ranges must be rejected");
+
+            assert!(
+                err.to_string().contains("sageVersion"),
+                "unexpected error: {err}"
+            );
+        }
     }
 
     #[test]

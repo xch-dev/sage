@@ -20,10 +20,10 @@ impl AppInstallSource for SageAppUrl {
 
     async fn prepare(&self) -> AnyResult<Self::PreparedArtifact> {
         let (manifest, manifest_hash) = fetch_url_manifest_preview(&self.manifest_url()).await?;
+        let preview = SageAppUrlPreview::new(self, manifest, manifest_hash).await?;
+        preview.require_full_manifest()?;
 
-        Ok(PreparedUrlInstall {
-            preview: SageAppUrlPreview::new(self, manifest, manifest_hash).await?,
-        })
+        Ok(PreparedUrlInstall { preview })
     }
 
     fn manifest<'a>(&self, prepared: &'a Self::PreparedArtifact) -> &'a SageAppPackageManifest {

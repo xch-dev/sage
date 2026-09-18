@@ -6,12 +6,166 @@ use tauri::{AppHandle, Manager, State};
 
 use crate::{
     AppMutationManager, AppsHostState, CreateInstalledRuntimeArgs, ResolvedApp, Result, SageApp,
-    SageAppView, SageGrantedPermissionsInput, SharedSageApp, UserSageAppPendingUpdate,
+    SageAppCompatibility, SageAppCompatibilityStatus, SageAppView, SageGrantedPermissionsInput,
+    SharedSageApp, UserSageAppPendingUpdate, UserSageAppPendingUpdateDecisionView,
     check_app_update_inner, download_url_snapshot, emit_listed_apps_changed,
-    emit_pending_update_changed, find_active_taskbar_runtime, find_runtime_by_app_id_optional,
-    fresh_snapshot_dir, get_sage_window, resolve_app, resolve_stopped_app,
-    start_app_update_runtime, start_user_app, write_snapshot_manifest,
+    emit_pending_update_changed, fetch_recoverable_app_update, find_active_taskbar_runtime,
+    find_runtime_by_app_id_optional, fresh_snapshot_dir, get_sage_window, resolve_app,
+    resolve_stopped_app, start_app_update_runtime, start_user_app, write_snapshot_manifest,
 };
+
+pub(crate) enum RecoverableAppUpdateOutcome {
+    Applied(Box<SageAppView>),
+    ReviewOpened,
+    NotReady,
+}
+
+pub(crate) async fn apply_recoverable_app_update_inner(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+    additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
+    expected_manifest_hash: Option<&str>,
+    open_review_when_needed: bool,
+) -> Result<RecoverableAppUpdateOutcome> {
+    let _update_guard = apps_state
+        .try_begin_app_update(app_id)
+        .map_err(io::Error::other)?;
+
+    let operation_lock = apps_state.operation_lock_for_app(app_id);
+    let _operation_guard = operation_lock.lock().await;
+
+    let Some((recoverable, preview)) = fetch_recoverable_app_update(apps_state, app_id).await?
+    else {
+        return Ok(RecoverableAppUpdateOutcome::NotReady);
+    };
+
+    let Some(manifest) = preview.full_manifest() else {
+        if open_review_when_needed {
+            open_update_runtime(
+                app_handle,
+                apps_state,
+                app_id,
+                None,
+                "failed to open recovery update details",
+            )
+            .await;
+            return Ok(RecoverableAppUpdateOutcome::ReviewOpened);
+        }
+
+        return Ok(RecoverableAppUpdateOutcome::NotReady);
+    };
+
+    let crate::UserSageAppSource::Url { app_url } = recoverable.source() else {
+        return Ok(RecoverableAppUpdateOutcome::NotReady);
+    };
+    let pending = UserSageAppPendingUpdate::new(
+        app_url.clone(),
+        preview.manifest_hash().to_string(),
+        manifest.clone(),
+    );
+
+    ensure_pending_update_matches_review(app_id, pending.manifest_hash(), expected_manifest_hash)?;
+
+    let compatibility =
+        SageAppCompatibility::for_app(app_handle, pending.manifest().sage_version());
+    let decision = UserSageAppPendingUpdateDecisionView::from_pending_update(
+        recoverable.granted_permissions(),
+        pending.manifest().permissions(),
+    );
+    let needs_review = recovery_update_needs_review(&decision, &compatibility);
+
+    if needs_review && additional_granted_permissions_input.is_none() {
+        if open_review_when_needed {
+            open_update_runtime(
+                app_handle,
+                apps_state,
+                app_id,
+                None,
+                "failed to open recovery update review",
+            )
+            .await;
+
+            return Ok(RecoverableAppUpdateOutcome::ReviewOpened);
+        }
+
+        return Ok(RecoverableAppUpdateOutcome::NotReady);
+    }
+
+    compatibility
+        .ensure_installable()
+        .map_err(io::Error::other)?;
+
+    let granted_permissions = resolve_updated_permissions(
+        recoverable.granted_permissions(),
+        pending.manifest().permissions(),
+        additional_granted_permissions_input,
+    )
+    .map_err(|err| io::Error::other(format!("invalid recovery update permissions: {err}")))?;
+
+    let app_dir = PathBuf::from(recoverable.app_dir());
+    let old_snapshot_dir = recoverable.active_snapshot_dir().to_string();
+    let snapshot_dir = fresh_snapshot_dir(&app_dir);
+    let mut snapshot_dir_cleanup = SnapshotDirCleanup(Some(snapshot_dir.clone()));
+
+    let snapshot = download_url_snapshot(
+        &snapshot_dir,
+        pending.app_url(),
+        pending.manifest(),
+        pending.manifest_hash(),
+    )
+    .await
+    .map_err(|err| io::Error::other(format!("failed to download recovery snapshot: {err}")))?;
+
+    write_snapshot_manifest(&snapshot)
+        .map_err(|err| io::Error::other(format!("failed to write recovery manifest: {err}")))?;
+
+    let new_snapshot_dir = snapshot.snapshot_dir().to_string();
+    let repaired = recoverable
+        .repair(granted_permissions, snapshot)
+        .map_err(|err| io::Error::other(format!("failed to rebuild app after update: {err}")))?;
+
+    let mut tx = apps_state.db.begin_immediate().await.map_err(|err| {
+        io::Error::other(format!(
+            "failed to begin app recovery transaction for {app_id}: {err}"
+        ))
+    })?;
+
+    if let Err(err) = tx.persist_user_app(&repaired).await {
+        tx.rollback().await;
+        return Err(
+            io::Error::other(format!("failed to persist repaired app {app_id}: {err}")).into(),
+        );
+    }
+
+    let reread = match tx.load_user_app(app_id).await {
+        Ok(app) => app,
+        Err(err) => {
+            tx.rollback().await;
+            return Err(
+                io::Error::other(format!("failed to verify repaired app {app_id}: {err}")).into(),
+            );
+        }
+    };
+
+    tx.commit().await.map_err(|err| {
+        io::Error::other(format!("failed to commit repaired app {app_id}: {err}"))
+    })?;
+
+    snapshot_dir_cleanup.preserve();
+
+    if old_snapshot_dir != new_snapshot_dir {
+        let _ = fs::remove_dir_all(old_snapshot_dir);
+    }
+
+    let shared = SharedSageApp::new(SageApp::User(reread));
+    emit_pending_update_changed(app_handle, apps_state, &shared).await;
+    emit_listed_apps_changed(app_handle, apps_state).await;
+
+    Ok(RecoverableAppUpdateOutcome::Applied(Box::new(
+        shared.into(),
+    )))
+}
 
 pub(crate) async fn apply_app_update_inner(
     app_handle: &AppHandle,
@@ -26,7 +180,31 @@ pub(crate) async fn apply_app_update_inner(
 
     let preflight = preflight_apply_app_update(app_handle, apps_state, app_id).await?;
 
-    if preflight.should_review && additional_granted_permissions_input.is_none() {
+    if preflight.compatibility.ensure_installable().is_err() {
+        open_update_runtime(
+            app_handle,
+            apps_state,
+            app_id,
+            None,
+            "failed to open incompatible app update details",
+        )
+        .await;
+
+        let resolved = resolve_app(app_handle, app_id).await.map_err(|err| {
+            io::Error::other(format!("failed to read installed app {app_id}: {err}"))
+        })?;
+
+        return Ok(resolved.with_app(|app| app.into()));
+    }
+
+    let compatibility_needs_review = matches!(
+        preflight.compatibility.status(),
+        SageAppCompatibilityStatus::UntestedNewerSage { .. }
+    );
+
+    if (preflight.should_review || compatibility_needs_review)
+        && additional_granted_permissions_input.is_none()
+    {
         open_update_runtime(
             app_handle,
             apps_state,
@@ -100,16 +278,27 @@ pub(crate) async fn try_auto_apply_pending_update(
             return Ok(false);
         }
 
-        let has_pending_update = resolved.with_app(|app| {
+        let pending_compatibility = resolved.with_app(|app| {
             app.with(|sage_app| {
                 sage_app
                     .as_user()
                     .and_then(|user_app| user_app.pending_update())
-                    .is_some()
+                    .map(|pending| {
+                        SageAppCompatibility::for_app(app_handle, pending.manifest().sage_version())
+                    })
             })
         });
 
-        if !has_pending_update {
+        let Some(pending_compatibility) = pending_compatibility else {
+            return Ok(false);
+        };
+
+        if pending_compatibility.ensure_installable().is_err()
+            || matches!(
+                pending_compatibility.status(),
+                SageAppCompatibilityStatus::UntestedNewerSage { .. }
+            )
+        {
             return Ok(false);
         }
 
@@ -151,6 +340,10 @@ async fn execute_app_update(
     additional_granted_permissions_input: Option<SageGrantedPermissionsInput>,
     reopen_after_update: &mut ReopenAfterUpdate,
 ) -> Result<SharedSageApp> {
+    SageAppCompatibility::for_app(app_handle, pending.manifest().sage_version())
+        .ensure_installable()
+        .map_err(io::Error::other)?;
+
     let apps_state: State<'_, AppsHostState> = app_handle.state();
 
     let resolved = resolve_app(app_handle, app_id)
@@ -290,6 +483,33 @@ impl Drop for SnapshotDirCleanup {
     }
 }
 
+fn resolve_updated_permissions(
+    active_grants: &crate::SageGrantedPermissions,
+    requested: &crate::SageRequestedPermissions,
+    additional: Option<SageGrantedPermissionsInput>,
+) -> anyhow::Result<crate::SageGrantedPermissions> {
+    let retained = SageGrantedPermissionsInput::from((active_grants, requested));
+    let granted = match additional {
+        Some(additional) => retained.with_additional(additional),
+        None => retained,
+    };
+
+    granted.resolve(requested)
+}
+
+fn recovery_update_needs_review(
+    decision: &UserSageAppPendingUpdateDecisionView,
+    compatibility: &SageAppCompatibility,
+) -> bool {
+    decision.is_review()
+        || matches!(
+            compatibility.status(),
+            SageAppCompatibilityStatus::UntestedNewerSage { .. }
+                | SageAppCompatibilityStatus::Invalid { .. }
+                | SageAppCompatibilityStatus::RequiresNewerSage { .. }
+        )
+}
+
 async fn open_update_runtime(
     app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
@@ -319,6 +539,7 @@ async fn open_update_runtime(
 struct ApplyAppUpdatePreflight {
     pending: UserSageAppPendingUpdate,
     should_review: bool,
+    compatibility: SageAppCompatibility,
 }
 
 async fn preflight_apply_app_update(
@@ -354,10 +575,13 @@ async fn preflight_apply_app_update(
     };
 
     let should_review = resolved.with_app(SharedSageApp::should_review_pending_update);
+    let compatibility =
+        SageAppCompatibility::for_app(app_handle, pending.manifest().sage_version());
 
     Ok(ApplyAppUpdatePreflight {
         pending,
         should_review,
+        compatibility,
     })
 }
 
@@ -398,9 +622,20 @@ impl ReopenAfterUpdate {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeMap;
+
+    use semver::Version;
     use tempfile::tempdir;
 
-    use super::{SnapshotDirCleanup, ensure_pending_update_matches_review};
+    use super::{
+        SnapshotDirCleanup, ensure_pending_update_matches_review, recovery_update_needs_review,
+        resolve_updated_permissions,
+    };
+    use crate::{
+        SageAppCompatibility, SageAppManifestSageVersion, SageGrantedPermissions,
+        SageGrantedPermissionsInput, SageRequestedCapabilities, SageRequestedNetworkPermissions,
+        SageRequestedPermissions, UserBridgeCapability, UserSageAppPendingUpdateDecisionView,
+    };
 
     #[test]
     fn reviewed_manifest_hash_must_match_pending_update() {
@@ -432,5 +667,75 @@ mod tests {
 
             assert_eq!(path.exists(), preserve);
         }
+    }
+
+    #[test]
+    fn updated_permissions_retain_only_still_requested_grants_and_add_reviewed_grants() {
+        let old_requested = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::empty(),
+            SageRequestedCapabilities::new([], [UserBridgeCapability::StoragePersistentWebview]),
+        )
+        .unwrap();
+        let active_grants = SageGrantedPermissions::new(
+            &old_requested,
+            [UserBridgeCapability::StoragePersistentWebview],
+            [],
+            BTreeMap::new(),
+        )
+        .unwrap();
+
+        let pending_requested = SageRequestedPermissions::new(
+            SageRequestedNetworkPermissions::empty(),
+            SageRequestedCapabilities::new([], [UserBridgeCapability::WalletSendXch]),
+        )
+        .unwrap();
+        let additional = SageGrantedPermissionsInput::new(
+            [UserBridgeCapability::WalletSendXch],
+            [],
+            BTreeMap::new(),
+        );
+
+        let resolved =
+            resolve_updated_permissions(&active_grants, &pending_requested, Some(additional))
+                .unwrap();
+
+        assert!(resolved.has_capability(UserBridgeCapability::WalletSendXch));
+        assert!(!resolved.has_capability(UserBridgeCapability::StoragePersistentWebview));
+    }
+
+    #[test]
+    fn automatic_recovery_requires_compatible_update_without_permission_review() {
+        let decision = UserSageAppPendingUpdateDecisionView::Apply;
+        let compatible = SageAppCompatibility::evaluate(
+            &Version::parse("0.13.0").unwrap(),
+            &SageAppManifestSageVersion {
+                min: "0.12.0".to_string(),
+                tested_max: Some("0.13.0".to_string()),
+            },
+        );
+        let untested = SageAppCompatibility::evaluate(
+            &Version::parse("0.13.1").unwrap(),
+            &SageAppManifestSageVersion {
+                min: "0.12.0".to_string(),
+                tested_max: Some("0.13.0".to_string()),
+            },
+        );
+
+        assert!(!recovery_update_needs_review(&decision, &compatible));
+        assert!(recovery_update_needs_review(&decision, &untested));
+
+        let review = UserSageAppPendingUpdateDecisionView::from_pending_update(
+            &SageGrantedPermissions::default(),
+            &SageRequestedPermissions::new(
+                SageRequestedNetworkPermissions::empty(),
+                SageRequestedCapabilities::new(
+                    [UserBridgeCapability::StoragePersistentWebview],
+                    [],
+                ),
+            )
+            .unwrap(),
+        );
+
+        assert!(recovery_update_needs_review(&review, &compatible));
     }
 }

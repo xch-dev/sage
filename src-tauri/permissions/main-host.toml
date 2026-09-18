@@ -135,6 +135,7 @@ commands.allow = [
     "apps_uninstall_app",
     "apps_check_app_update",
     "apps_apply_app_update",
+    "apps_recover_app_update",
     "apps_list_runtimes",
     "apps_focus_taskbar_runtime",
     "apps_clear_active_taskbar_runtime",

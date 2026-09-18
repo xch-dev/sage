@@ -18,12 +18,13 @@ export async function listWallets(): Promise<WalletListWalletsResult> {
 
 export async function previewUrl(appUrl: string): Promise<InstallSource> {
   const client = await getSageSystemClient();
-  const preview = await client.appInstall.previewUrl({ appUrl });
+  const result = await client.appInstall.previewUrl({ appUrl });
 
   return {
     kind: 'url',
-    appUrl: preview.appUrl,
-    preview,
+    appUrl: result.preview.appUrl,
+    preview: result.preview,
+    compatibility: result.compatibility,
   };
 }
 
@@ -39,14 +40,15 @@ export async function selectAndPreviewZip(): Promise<InstallSource | null> {
     return null;
   }
 
-  const manifest = await client.appInstall.previewZip({
+  const result = await client.appInstall.previewZip({
     zipPath: selected.path,
   });
 
   return {
     kind: 'zip',
     zipPath: selected.path,
-    manifest,
+    preview: result.preview,
+    compatibility: result.compatibility,
   };
 }
 
