@@ -148,13 +148,13 @@ mod tests {
             },
             PendingUpdateStatusView::RequiresNewerSage {
                 manifest_hash: "hash".to_string(),
-                current_version: "0.13.0".to_string(),
+                current_version: "0.13.1".to_string(),
                 minimum_version: "0.14.0".to_string(),
             },
             PendingUpdateStatusView::UntestedNewerSage {
                 manifest_hash: "hash".to_string(),
                 current_version: "0.14.0".to_string(),
-                tested_max_version: "0.13.0".to_string(),
+                tested_max_version: "0.13.1".to_string(),
             },
         ] {
             let value = serde_json::to_value(status).unwrap();

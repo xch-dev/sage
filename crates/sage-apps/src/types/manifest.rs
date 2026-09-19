@@ -576,12 +576,12 @@ mod tests {
                 tested_max: None,
             },
             SageAppManifestSageVersion {
-                min: "0.13.0".to_string(),
+                min: "0.13.1".to_string(),
                 tested_max: Some("not-a-version".to_string()),
             },
             SageAppManifestSageVersion {
                 min: "1.0.0".to_string(),
-                tested_max: Some("0.13.0".to_string()),
+                tested_max: Some("0.13.1".to_string()),
             },
         ] {
             let err = SageAppPackageManifest::try_from(SageAppPackageManifestParts {

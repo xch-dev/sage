@@ -1,12 +1,12 @@
+import { bech32m } from 'bech32';
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { bech32m } from 'bech32';
 
 const cliPath = fileURLToPath(
   new URL('../cli/finalize-manifest.mjs', import.meta.url),
@@ -23,7 +23,7 @@ function createFixture(sourceOverrides = {}) {
     JSON.stringify({
       name: 'Test App',
       version: '1.0.0',
-      sageVersion: { min: '0.13.0' },
+      sageVersion: { min: '0.13.1' },
       ...sourceOverrides,
     }),
   );

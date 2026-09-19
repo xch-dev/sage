@@ -707,17 +707,17 @@ mod tests {
     fn automatic_recovery_requires_compatible_update_without_permission_review() {
         let decision = UserSageAppPendingUpdateDecisionView::Apply;
         let compatible = SageAppCompatibility::evaluate(
-            &Version::parse("0.13.0").unwrap(),
-            &SageAppManifestSageVersion {
-                min: "0.12.0".to_string(),
-                tested_max: Some("0.13.0".to_string()),
-            },
-        );
-        let untested = SageAppCompatibility::evaluate(
             &Version::parse("0.13.1").unwrap(),
             &SageAppManifestSageVersion {
                 min: "0.12.0".to_string(),
-                tested_max: Some("0.13.0".to_string()),
+                tested_max: Some("0.13.1".to_string()),
+            },
+        );
+        let untested = SageAppCompatibility::evaluate(
+            &Version::parse("999.999.999").unwrap(),
+            &SageAppManifestSageVersion {
+                min: "0.12.0".to_string(),
+                tested_max: Some("0.13.1".to_string()),
             },
         );
 
