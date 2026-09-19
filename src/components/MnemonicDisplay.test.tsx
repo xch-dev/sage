@@ -28,27 +28,20 @@ describe('MnemonicDisplay', () => {
     const words = mnemonic(24).split(' ');
     words[23] = words[0];
 
-    render(
-      <MnemonicDisplay mnemonic={words.join(' ')} expectedWordCount={24} />,
-    );
+    render(<MnemonicDisplay mnemonic={words.join(' ')} />);
 
     expect(screen.getAllByRole('listitem')).toHaveLength(24);
   });
 
   it('replaces the entire phrase without retaining old words', () => {
     const { rerender } = render(
-      <MnemonicDisplay
-        key='first-generation'
-        mnemonic={mnemonic(24, 'old')}
-        expectedWordCount={24}
-      />,
+      <MnemonicDisplay key='first-generation' mnemonic={mnemonic(24, 'old')} />,
     );
 
     rerender(
       <MnemonicDisplay
         key='second-generation'
         mnemonic={mnemonic(24, 'new')}
-        expectedWordCount={24}
       />,
     );
 
@@ -56,18 +49,5 @@ describe('MnemonicDisplay', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent);
     expect(displayedWords).toEqual(mnemonic(24, 'new').split(' '));
-  });
-
-  it('renders no partial or oversized phrase', () => {
-    const { rerender } = render(
-      <MnemonicDisplay mnemonic={mnemonic(25)} expectedWordCount={24} />,
-    );
-
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
-
-    rerender(
-      <MnemonicDisplay mnemonic={mnemonic(23)} expectedWordCount={24} />,
-    );
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
   });
 });

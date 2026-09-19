@@ -300,7 +300,6 @@ function CreateForm(props: {
                 <MnemonicDisplay
                   key={mnemonicGeneration}
                   mnemonic={mnemonic ?? ''}
-                  expectedWordCount={expectedWordCount}
                 />
               </div>
 

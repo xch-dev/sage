@@ -9,15 +9,8 @@ export function normalizeMnemonic(
   return words.length === expectedWordCount ? words.join(' ') : null;
 }
 
-export default function MnemonicDisplay({
-  mnemonic,
-  expectedWordCount,
-}: {
-  mnemonic: string;
-  expectedWordCount: number;
-}) {
-  const normalizedMnemonic = normalizeMnemonic(mnemonic, expectedWordCount);
-  const words = normalizedMnemonic?.split(' ') ?? [];
+export default function MnemonicDisplay({ mnemonic }: { mnemonic: string }) {
+  const words = mnemonic ? mnemonic.split(' ') : [];
 
   return (
     <div className='flex flex-wrap' role='list'>
