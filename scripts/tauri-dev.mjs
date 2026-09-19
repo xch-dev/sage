@@ -1,16 +1,9 @@
 import { spawn, spawnSync } from 'node:child_process';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const tauriCli = join(
-  repoRoot,
-  'node_modules',
-  '@tauri-apps',
-  'cli',
-  'tauri.js',
-);
 const forwardedArgs = process.argv.slice(2);
 const shutdownGraceMs = 2_000;
 
@@ -155,7 +148,7 @@ process.on('SIGHUP', () => {
 });
 
 async function runPreparation() {
-  const child = spawnManaged(process.execPath, ['scripts/dev-prepare.mjs']);
+  const child = spawnManaged('pnpm', ['run', 'dev:prepare']);
   const result = await waitForExit(child);
 
   if (result.code !== 0) {
@@ -174,11 +167,10 @@ async function main() {
     return;
   }
 
-  const systemApps = spawnManaged(process.execPath, [
-    'scripts/dev-system-apps-watch.mjs',
-  ]);
-  const tauri = spawnManaged(process.execPath, [
-    tauriCli,
+  const systemApps = spawnManaged('pnpm', ['run', 'dev:system-apps']);
+  const tauri = spawnManaged('pnpm', [
+    'exec',
+    'tauri',
     'dev',
     ...forwardedArgs,
   ]);
