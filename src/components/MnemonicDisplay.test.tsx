@@ -10,6 +10,15 @@ function mnemonic(length: number, prefix = 'word') {
   return Array.from({ length }, (_, index) => `${prefix}-${index}`).join(' ');
 }
 
+function overlappingMnemonic(generation: number) {
+  const words = Array.from(
+    { length: 24 },
+    (_, index) => `word-${(generation + index) % 32}`,
+  );
+  words[23] = words[0];
+  return words.join(' ');
+}
+
 describe('MnemonicDisplay', () => {
   it('renders every position when words repeat', () => {
     const words = mnemonic(24).split(' ');
@@ -36,5 +45,21 @@ describe('MnemonicDisplay', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent);
     expect(displayedWords).toEqual(mnemonic(24, 'new').split(' '));
+  });
+
+  it('stays at exactly 24 words through many generations', () => {
+    const { rerender } = render(
+      <MnemonicDisplay key={0} mnemonic={overlappingMnemonic(0)} />,
+    );
+
+    for (let generation = 1; generation <= 100; generation++) {
+      const currentMnemonic = overlappingMnemonic(generation);
+      rerender(<MnemonicDisplay key={generation} mnemonic={currentMnemonic} />);
+
+      const displayedWords = screen
+        .getAllByRole('listitem')
+        .map((item) => item.textContent);
+      expect(displayedWords).toEqual(currentMnemonic.split(' '));
+    }
   });
 });
