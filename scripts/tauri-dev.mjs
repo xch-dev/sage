@@ -5,7 +5,6 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const forwardedArgs = process.argv.slice(2);
-const interruptGraceMs = 100;
 const shutdownGraceMs = 2_000;
 
 if (forwardedArgs[0] === '--') {
@@ -70,7 +69,7 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function stopChildren(signal, fast) {
+async function stopChildren(signal) {
   const running = [...children];
 
   if (running.length === 0) {
@@ -81,17 +80,6 @@ async function stopChildren(signal, fast) {
 
   for (const child of running) {
     signalProcessTree(child, signal);
-  }
-
-  if (fast) {
-    await wait(interruptGraceMs);
-
-    for (const child of running) {
-      signalProcessTree(child, 'SIGKILL');
-    }
-
-    await allExited;
-    return;
   }
 
   if (
@@ -123,26 +111,40 @@ async function stopChildren(signal, fast) {
   await allExited;
 }
 
-function shutdown(signal, exitCode, fast = false) {
+function shutdown(signal, exitCode) {
   if (shuttingDown) {
     return shutdownPromise;
   }
 
   shuttingDown = true;
-  shutdownPromise = stopChildren(signal, fast).finally(() => {
+  shutdownPromise = stopChildren(signal).finally(() => {
     process.exitCode = exitCode;
   });
   return shutdownPromise;
 }
 
+function forceShutdown(exitCode) {
+  if (shuttingDown) {
+    return;
+  }
+
+  shuttingDown = true;
+
+  for (const child of children) {
+    signalProcessTree(child, 'SIGKILL');
+  }
+
+  process.exit(exitCode);
+}
+
 process.on('SIGINT', () => {
-  void shutdown('SIGINT', 130, true);
+  forceShutdown(130);
 });
 process.on('SIGTERM', () => {
-  void shutdown('SIGTERM', 143, true);
+  forceShutdown(143);
 });
 process.on('SIGHUP', () => {
-  void shutdown('SIGHUP', 129, true);
+  forceShutdown(129);
 });
 
 async function runPreparation() {
