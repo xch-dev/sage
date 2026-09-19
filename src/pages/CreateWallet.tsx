@@ -96,12 +96,10 @@ function CreateForm(props: {
 
   const use24Words = form.watch('use24Words', true);
   const mnemonicRequestId = useRef(0);
-  const [mnemonicGeneration, setMnemonicGeneration] = useState(0);
 
   const loadMnemonic = useCallback(() => {
     const requestId = ++mnemonicRequestId.current;
     form.setValue('mnemonic', '');
-    setMnemonicGeneration(requestId);
 
     commands
       .generateMnemonic({ use_24_words: use24Words })
@@ -285,10 +283,7 @@ function CreateForm(props: {
                     </Button>
                   </div>
                 </div>
-                <MnemonicDisplay
-                  key={mnemonicGeneration}
-                  mnemonic={mnemonic ?? ''}
-                />
+                <MnemonicDisplay mnemonic={mnemonic ?? ''} />
               </div>
 
               <Button type='submit' disabled={!mnemonic}>

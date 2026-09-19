@@ -31,15 +31,10 @@ describe('MnemonicDisplay', () => {
 
   it('replaces the entire phrase without retaining old words', () => {
     const { rerender } = render(
-      <MnemonicDisplay key='first-generation' mnemonic={mnemonic(24, 'old')} />,
+      <MnemonicDisplay mnemonic={mnemonic(24, 'old')} />,
     );
 
-    rerender(
-      <MnemonicDisplay
-        key='second-generation'
-        mnemonic={mnemonic(24, 'new')}
-      />,
-    );
+    rerender(<MnemonicDisplay mnemonic={mnemonic(24, 'new')} />);
 
     const displayedWords = screen
       .getAllByRole('listitem')
@@ -49,12 +44,12 @@ describe('MnemonicDisplay', () => {
 
   it('stays at exactly 24 words through many generations', () => {
     const { rerender } = render(
-      <MnemonicDisplay key={0} mnemonic={overlappingMnemonic(0)} />,
+      <MnemonicDisplay mnemonic={overlappingMnemonic(0)} />,
     );
 
     for (let generation = 1; generation <= 100; generation++) {
       const currentMnemonic = overlappingMnemonic(generation);
-      rerender(<MnemonicDisplay key={generation} mnemonic={currentMnemonic} />);
+      rerender(<MnemonicDisplay mnemonic={currentMnemonic} />);
 
       const displayedWords = screen
         .getAllByRole('listitem')
