@@ -36,6 +36,7 @@ export function SendXchApprovalCard({
 }: Props) {
   const summary = approval.summary;
 
+  const amount = parseMojos(summary.amount);
   const selectedFee = parseXchFee(feeInput);
   const suggestedFee = parseMojos(summary.fee);
   const hasSuggestedFee = suggestedFee !== null && suggestedFee.mojos !== '0';
@@ -79,7 +80,10 @@ export function SendXchApprovalCard({
       </div>
 
       <div className='space-y-2 rounded-xl border bg-background/70 p-3'>
-        <ApprovalDetailRow label='Amount' value={summary.amount} />
+        <ApprovalDetailRow
+          label='Amount'
+          value={amount ? `${amount.xch} XCH` : 'Invalid amount'}
+        />
         <ApprovalDetailRow label='To' value={summary.address} mono breakAll />
         {hasMemos ? (
           <ApprovalDetailRow label='Memos' value={`${memos.length} attached`} />
@@ -105,20 +109,22 @@ export function SendXchApprovalCard({
               value={feeInput}
               onChange={(event) => onFeeInputChange(event.target.value)}
               aria-invalid={selectedFee === null}
-              aria-describedby='send-xch-fee-description'
+              aria-describedby={
+                selectedFee === null ? 'send-xch-fee-description' : undefined
+              }
               className='min-w-0 flex-1 bg-transparent py-2 text-sm font-mono outline-none disabled:cursor-not-allowed disabled:opacity-60'
             />
             <span className='ml-2 text-xs text-muted-foreground'>XCH</span>
           </div>
 
-          <div
-            id='send-xch-fee-description'
-            className={`mt-1 text-xs ${selectedFee ? 'text-muted-foreground' : 'text-destructive'}`}
-          >
-            {selectedFee
-              ? `${selectedFee.mojos} mojos`
-              : 'Enter a non-negative fee with no more than 12 decimal places.'}
-          </div>
+          {selectedFee === null ? (
+            <div
+              id='send-xch-fee-description'
+              className='mt-1 text-xs text-destructive'
+            >
+              Enter a non-negative fee with no more than 12 decimal places.
+            </div>
+          ) : null}
         </div>
 
         {hasSuggestedFee && !isUsingSuggestedFee ? (
