@@ -138,7 +138,7 @@ function forceShutdown(exitCode) {
 }
 
 process.on('SIGINT', () => {
-  forceShutdown(130);
+  forceShutdown(0);
 });
 process.on('SIGTERM', () => {
   forceShutdown(143);
