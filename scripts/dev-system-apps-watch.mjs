@@ -8,6 +8,7 @@ const watchPaths = [
   'builtin-apps/src/system/apps/**/*',
   'builtin-apps/src/system/*.ts',
   'builtin-apps/src/system/*.js',
+  'packages/sage-app-sdk/cli/**/*',
   'packages/sage-app-sdk/src/**/*',
   'packages/sage-system-app-sdk/src/**/*',
   'packages/sage-app-ui/src/**/*',
