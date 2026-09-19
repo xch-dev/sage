@@ -60,24 +60,16 @@ async function rebuild({ packages = false, apps = [] } = {}) {
 
   try {
     if (packages) {
-      console.log('\n[system-apps-dev] rebuilding shared packages...');
-      await runCommand('pnpm', ['run', 'build:packages'], {
-        stdio: 'inherit',
-      });
+      console.log('\n[system-apps-dev] rebuilding shared dependencies...');
+    } else {
+      console.log(
+        apps.length > 0
+          ? `\n[system-apps-dev] rebuilding system apps: ${apps.join(', ')}`
+          : '\n[system-apps-dev] rebuilding changed assets...',
+      );
     }
 
-    const buildArgs =
-      apps.length > 0
-        ? ['run', 'build:system-apps', '--', ...apps]
-        : ['run', 'build:system-apps'];
-
-    console.log(
-      apps.length > 0
-        ? `\n[system-apps-dev] rebuilding system apps: ${apps.join(', ')}`
-        : '\n[system-apps-dev] rebuilding all system apps...',
-    );
-
-    await runCommand('pnpm', buildArgs, { stdio: 'inherit' });
+    await runCommand('pnpm', ['run', 'dev:prepare'], { stdio: 'inherit' });
 
     broadcast({
       type: 'system-apps-built',
