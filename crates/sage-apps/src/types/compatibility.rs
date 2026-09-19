@@ -131,15 +131,15 @@ mod tests {
 
     #[test]
     fn compatibility_covers_minimum_and_tested_max_boundaries() {
-        let required = requirement("0.13.0", Some("0.14.0"));
+        let required = requirement("0.13.1", Some("0.14.0"));
 
         assert!(matches!(
             SageAppCompatibility::evaluate(&Version::parse("0.12.9").unwrap(), &required).status(),
             SageAppCompatibilityStatus::RequiresNewerSage { minimum_version }
-                if minimum_version == "0.13.0"
+                if minimum_version == "0.13.1"
         ));
         assert_eq!(
-            SageAppCompatibility::evaluate(&Version::parse("0.13.0").unwrap(), &required).status(),
+            SageAppCompatibility::evaluate(&Version::parse("0.13.1").unwrap(), &required).status(),
             &SageAppCompatibilityStatus::Compatible
         );
         assert_eq!(
@@ -157,11 +157,11 @@ mod tests {
     fn invalid_ranges_are_reported_without_panicking() {
         for required in [
             requirement("not-a-version", None),
-            requirement("0.13.0", Some("also-not-a-version")),
-            requirement("1.0.0", Some("0.13.0")),
+            requirement("0.13.1", Some("also-not-a-version")),
+            requirement("1.0.0", Some("0.13.1")),
         ] {
             assert!(matches!(
-                SageAppCompatibility::evaluate(&Version::parse("0.13.0").unwrap(), &required)
+                SageAppCompatibility::evaluate(&Version::parse("0.13.1").unwrap(), &required)
                     .status(),
                 SageAppCompatibilityStatus::Invalid { .. }
             ));
