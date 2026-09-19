@@ -714,7 +714,7 @@ mod tests {
             },
         );
         let untested = SageAppCompatibility::evaluate(
-            &Version::parse("0.13.1").unwrap(),
+            &Version::parse("999.999.999").unwrap(),
             &SageAppManifestSageVersion {
                 min: "0.12.0".to_string(),
                 tested_max: Some("0.13.1".to_string()),
