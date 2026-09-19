@@ -7,6 +7,8 @@ import {
 } from '../generated-types';
 import { debugComms } from '../debug';
 
+const DEFAULT_BRIDGE_REQUEST_TIMEOUT_MS = 3 * 60 * 1000;
+
 export type GenericBridgeRequest = {
   bridgeVersion?: string;
   id: string;
@@ -121,7 +123,7 @@ export function createBridgeRuntimeCore(
 
   const webview = maybeWebview;
   const pendingRequests = new Map<string, PendingBridgeRequest>();
-  const timeoutMs = config.timeoutMs ?? 30000;
+  const timeoutMs = config.timeoutMs ?? DEFAULT_BRIDGE_REQUEST_TIMEOUT_MS;
 
   function rejectAllPending(reason: string) {
     for (const [id, pending] of pendingRequests.entries()) {
