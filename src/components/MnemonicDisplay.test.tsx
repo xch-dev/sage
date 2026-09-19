@@ -2,26 +2,13 @@
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import MnemonicDisplay, { normalizeMnemonic } from './MnemonicDisplay';
+import MnemonicDisplay from './MnemonicDisplay';
 
 afterEach(cleanup);
 
 function mnemonic(length: number, prefix = 'word') {
   return Array.from({ length }, (_, index) => `${prefix}-${index}`).join(' ');
 }
-
-describe('normalizeMnemonic', () => {
-  it('normalizes whitespace only when the word count is exact', () => {
-    const words = mnemonic(24).split(' ');
-    const value = `  ${words.slice(0, 12).join('  ')}\n${words
-      .slice(12)
-      .join('\t')}  `;
-
-    expect(normalizeMnemonic(value, 24)).toBe(words.join(' '));
-    expect(normalizeMnemonic(`${value} extra`, 24)).toBeNull();
-    expect(normalizeMnemonic(mnemonic(23), 24)).toBeNull();
-  });
-});
 
 describe('MnemonicDisplay', () => {
   it('renders every position when words repeat', () => {

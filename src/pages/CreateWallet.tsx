@@ -1,8 +1,6 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
-import MnemonicDisplay, {
-  normalizeMnemonic,
-} from '@/components/MnemonicDisplay';
+import MnemonicDisplay from '@/components/MnemonicDisplay';
 import SafeAreaView from '@/components/SafeAreaView';
 import { Button } from '@/components/ui/button';
 import {
@@ -97,7 +95,6 @@ function CreateForm(props: {
   });
 
   const use24Words = form.watch('use24Words', true);
-  const expectedWordCount = use24Words ? 24 : 12;
   const mnemonicRequestId = useRef(0);
   const [mnemonicGeneration, setMnemonicGeneration] = useState(0);
 
@@ -111,23 +108,14 @@ function CreateForm(props: {
       .then((data) => {
         if (requestId !== mnemonicRequestId.current) return;
 
-        const mnemonic = normalizeMnemonic(data.mnemonic, expectedWordCount);
-        if (!mnemonic) {
-          addError({
-            kind: 'invalid',
-            reason: `Generated mnemonic did not contain exactly ${expectedWordCount} words`,
-          });
-          return;
-        }
-
-        form.setValue('mnemonic', mnemonic);
+        form.setValue('mnemonic', data.mnemonic);
       })
       .catch((error) => {
         if (requestId === mnemonicRequestId.current) {
           addError(error);
         }
       });
-  }, [form, use24Words, expectedWordCount, addError]);
+  }, [form, use24Words, addError]);
 
   useEffect(() => {
     loadMnemonic();

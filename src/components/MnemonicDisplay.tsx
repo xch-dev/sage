@@ -1,14 +1,5 @@
 import { Badge } from '@/components/ui/badge';
 
-export function normalizeMnemonic(
-  mnemonic: string,
-  expectedWordCount: number,
-): string | null {
-  const words = mnemonic.trim().split(/\s+/).filter(Boolean);
-
-  return words.length === expectedWordCount ? words.join(' ') : null;
-}
-
 export default function MnemonicDisplay({ mnemonic }: { mnemonic: string }) {
   const words = mnemonic ? mnemonic.split(' ') : [];
 
