@@ -452,7 +452,7 @@ impl Sage {
 
         let pool = self.connect_to_pool(db_path).await?;
         let db = Database::new(pool);
-        let mut tx = db.tx().await?;
+        let mut tx = db.read_tx().await?;
         let index = tx.unused_derivation_index(hardened).await?;
         Ok(tx.custody_p2_puzzle_hash(index, hardened).await.ok())
     }

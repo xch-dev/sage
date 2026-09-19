@@ -25,7 +25,15 @@ impl Database {
         Self { pool }
     }
 
+    /// Begins a transaction that may write.
     pub async fn tx(&self) -> Result<DatabaseTx<'_>> {
+        let tx = self.pool.begin_with("BEGIN IMMEDIATE").await?;
+        Ok(DatabaseTx::new(tx))
+    }
+
+    /// Begins a read-only transaction, for callers that need several reads to see
+    /// a consistent snapshot but never write.
+    pub async fn read_tx(&self) -> Result<DatabaseTx<'_>> {
         let tx = self.pool.begin().await?;
         Ok(DatabaseTx::new(tx))
     }
