@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const forwardedArgs = process.argv.slice(2);
+const interruptGraceMs = 100;
+const shutdownGraceMs = 2_000;
 
 if (forwardedArgs[0] === '--') {
   forwardedArgs.shift();
@@ -41,12 +43,12 @@ function waitForExit(child) {
 }
 
 function signalProcessTree(child, signal) {
-  if (child.exitCode !== null || child.signalCode !== null) {
-    return;
-  }
-
   try {
     if (process.platform === 'win32') {
+      if (child.exitCode !== null || child.signalCode !== null) {
+        return;
+      }
+
       if (signal === 'SIGKILL') {
         spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
           stdio: 'ignore',
@@ -68,7 +70,7 @@ function wait(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-async function stopChildren(signal) {
+async function stopChildren(signal, fast) {
   const running = [...children];
 
   if (running.length === 0) {
@@ -81,10 +83,21 @@ async function stopChildren(signal) {
     signalProcessTree(child, signal);
   }
 
+  if (fast) {
+    await wait(interruptGraceMs);
+
+    for (const child of running) {
+      signalProcessTree(child, 'SIGKILL');
+    }
+
+    await allExited;
+    return;
+  }
+
   if (
     await Promise.race([
       allExited.then(() => true),
-      wait(2_000).then(() => false),
+      wait(shutdownGraceMs).then(() => false),
     ])
   ) {
     return;
@@ -97,7 +110,7 @@ async function stopChildren(signal) {
   if (
     await Promise.race([
       allExited.then(() => true),
-      wait(2_000).then(() => false),
+      wait(shutdownGraceMs).then(() => false),
     ])
   ) {
     return;
@@ -110,26 +123,26 @@ async function stopChildren(signal) {
   await allExited;
 }
 
-function shutdown(signal, exitCode) {
+function shutdown(signal, exitCode, fast = false) {
   if (shuttingDown) {
     return shutdownPromise;
   }
 
   shuttingDown = true;
-  shutdownPromise = stopChildren(signal).finally(() => {
+  shutdownPromise = stopChildren(signal, fast).finally(() => {
     process.exitCode = exitCode;
   });
   return shutdownPromise;
 }
 
 process.on('SIGINT', () => {
-  void shutdown('SIGINT', 130);
+  void shutdown('SIGINT', 130, true);
 });
 process.on('SIGTERM', () => {
-  void shutdown('SIGTERM', 143);
+  void shutdown('SIGTERM', 143, true);
 });
 process.on('SIGHUP', () => {
-  void shutdown('SIGHUP', 129);
+  void shutdown('SIGHUP', 129, true);
 });
 
 async function runPreparation() {
