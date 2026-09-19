@@ -1,7 +1,9 @@
 import { EmojiPicker } from '@/components/EmojiPicker';
 import Header from '@/components/Header';
+import MnemonicDisplay, {
+  normalizeMnemonic,
+} from '@/components/MnemonicDisplay';
 import SafeAreaView from '@/components/SafeAreaView';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -37,7 +39,7 @@ import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { writeText } from '@tauri-apps/plugin-clipboard-manager';
 import { CopyIcon, RefreshCwIcon } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import * as z from 'zod';
@@ -95,15 +97,37 @@ function CreateForm(props: {
   });
 
   const use24Words = form.watch('use24Words', true);
+  const expectedWordCount = use24Words ? 24 : 12;
+  const mnemonicRequestId = useRef(0);
+  const [mnemonicGeneration, setMnemonicGeneration] = useState(0);
 
   const loadMnemonic = useCallback(() => {
+    const requestId = ++mnemonicRequestId.current;
+    form.setValue('mnemonic', '');
+    setMnemonicGeneration(requestId);
+
     commands
       .generateMnemonic({ use_24_words: use24Words })
       .then((data) => {
-        form.setValue('mnemonic', data.mnemonic);
+        if (requestId !== mnemonicRequestId.current) return;
+
+        const mnemonic = normalizeMnemonic(data.mnemonic, expectedWordCount);
+        if (!mnemonic) {
+          addError({
+            kind: 'invalid',
+            reason: `Generated mnemonic did not contain exactly ${expectedWordCount} words`,
+          });
+          return;
+        }
+
+        form.setValue('mnemonic', mnemonic);
       })
-      .catch(addError);
-  }, [form, use24Words, addError]);
+      .catch((error) => {
+        if (requestId === mnemonicRequestId.current) {
+          addError(error);
+        }
+      });
+  }, [form, use24Words, expectedWordCount, addError]);
 
   useEffect(() => {
     loadMnemonic();
@@ -267,28 +291,20 @@ function CreateForm(props: {
                       variant='ghost'
                       size='sm'
                       onClick={copyMnemonic}
+                      disabled={!mnemonic}
                     >
                       <CopyIcon className='h-4 w-4' />
                     </Button>
                   </div>
                 </div>
-                <div className='flex flex-wrap'>
-                  {form
-                    .watch('mnemonic')
-                    ?.split(' ')
-                    .map((word) => (
-                      <Badge
-                        key={word}
-                        variant='outline'
-                        className='py-1.5 px-2.5 m-0.5 rounded-lg font-medium'
-                      >
-                        {word}
-                      </Badge>
-                    ))}
-                </div>
+                <MnemonicDisplay
+                  key={mnemonicGeneration}
+                  mnemonic={mnemonic ?? ''}
+                  expectedWordCount={expectedWordCount}
+                />
               </div>
 
-              <Button type='submit'>
+              <Button type='submit' disabled={!mnemonic}>
                 <Trans>Submit</Trans>
               </Button>
             </form>
