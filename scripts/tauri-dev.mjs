@@ -1,7 +1,8 @@
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import crossSpawn from 'cross-spawn';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const forwardedArgs = process.argv.slice(2);
@@ -16,7 +17,7 @@ let shuttingDown = false;
 let shutdownPromise = null;
 
 function spawnManaged(command, args) {
-  const child = spawn(command, args, {
+  const child = crossSpawn(command, args, {
     cwd: repoRoot,
     detached: process.platform !== 'win32',
     stdio: 'inherit',
