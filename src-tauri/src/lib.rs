@@ -1,7 +1,7 @@
 #[cfg(all(debug_assertions, not(mobile)))]
 use std::path::PathBuf;
 
-use app_state::{AppState, Initialized, RpcTask};
+use app_state::{AppState, Initialized, OfferCreationCancellation, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
@@ -96,6 +96,9 @@ macro_rules! sage_commands {
             commands::get_transactions,
             commands::validate_address,
             commands::make_offer,
+            commands::make_offers,
+            commands::make_offers_with_progress,
+            commands::cancel_make_offers,
             commands::take_offer,
             commands::combine_offers,
             commands::view_offer,
@@ -282,6 +285,7 @@ pub fn run() {
 
             app.manage(Initialized(Mutex::new(false)));
             app.manage(RpcTask(Mutex::new(None)));
+            app.manage(OfferCreationCancellation::default());
             app.manage(app_state);
 
             #[cfg(not(mobile))]

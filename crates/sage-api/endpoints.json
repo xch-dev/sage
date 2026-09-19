@@ -65,6 +65,7 @@
   "view_coin_spends": true,
   "submit_transaction": true,
   "make_offer": true,
+  "make_offers": true,
   "take_offer": true,
   "combine_offers": false,
   "view_offer": true,

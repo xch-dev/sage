@@ -19,7 +19,10 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
-use sage_api::{Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, SendXch};
+use sage_api::{
+    Amount, GetKey, GetOffers, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, MakeOffer,
+    OfferAmount, SendXch,
+};
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
@@ -277,6 +280,35 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_make_offer_auto_imports() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1_000_000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    app.make_offer(MakeOffer {
+        offered_assets: vec![OfferAmount {
+            asset_id: None,
+            hidden_puzzle_hash: None,
+            amount: Amount::u64(1000),
+        }],
+        requested_assets: vec![],
+        fee: Amount::u64(0),
+        receive_address: None,
+        expires_at_second: None,
+        auto_import: true,
+        coin_ids: None,
+    })
+    .await?;
+
+    let offers = app.get_offers(GetOffers {}).await?.offers;
+    assert_eq!(offers.len(), 1);
 
     Ok(())
 }

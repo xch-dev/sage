@@ -1,5 +1,4 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::nft::NftMetadata,
     driver::{decode_offer, encode_offer},
     prelude::*,
 };
@@ -8,24 +7,21 @@ use sage_api::{
     Amount, CancelOffer, CancelOfferResponse, CancelOffers, CancelOffersResponse, CombineOffers,
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
     GetOffersForAsset, GetOffersForAssetResponse, GetOffersResponse, ImportOffer,
-    ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset,
-    OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    ImportOfferResponse, MakeOffer, MakeOfferResponse, MakeOffers, MakeOffersProgress,
+    MakeOffersResponse, NftRoyalty, OfferAmount, OfferAsset, OfferRecord, OfferRecordStatus,
+    OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
-use sage_assets::fetch_uris_with_hash;
-use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
+use sage_database::{AssetKind, DatabaseTx, OfferRow, OfferStatus, OfferedAsset};
 use sage_wallet::{
     Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
     aggregate_offers, insert_transaction, sort_offer,
 };
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::time::timeout;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tracing::debug;
 
 use crate::{
-    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
-    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id,
+    ConfirmationInfo, Error, Result, Sage, json_bundle, offer_expiration, parse_amount,
+    parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id, parse_offer_id, parse_option_id,
 };
 
 #[derive(Debug, Clone)]
@@ -39,6 +35,20 @@ struct AssetToOffer {
 
 impl Sage {
     pub async fn make_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
+        let auto_import = req.auto_import;
+        let response = self.build_offer(req).await?;
+
+        if auto_import {
+            self.import_offer(ImportOffer {
+                offer: response.offer.clone(),
+            })
+            .await?;
+        }
+
+        Ok(response)
+    }
+
+    async fn build_offer(&self, req: MakeOffer) -> Result<MakeOfferResponse> {
         let wallet = self.wallet()?;
 
         let selected_coin_ids = parse_coin_ids(req.coin_ids.unwrap_or_default())?;
@@ -183,16 +193,68 @@ impl Sage {
 
         let encoded_offer = encode_offer(&offer)?;
 
-        if req.auto_import {
-            self.import_offer(ImportOffer {
-                offer: encoded_offer.clone(),
-            })
-            .await?;
-        }
-
         Ok(MakeOfferResponse {
             offer: encoded_offer,
             offer_id: hex::encode(sort_offer(offer).name()),
+        })
+    }
+
+    pub async fn make_offers(&self, req: MakeOffers) -> Result<MakeOffersResponse> {
+        self.make_offers_with_progress(req, |_| {}, || false).await
+    }
+
+    pub async fn make_offers_with_progress(
+        &self,
+        req: MakeOffers,
+        mut on_progress: impl FnMut(MakeOffersProgress),
+        is_cancelled: impl Fn() -> bool,
+    ) -> Result<MakeOffersResponse> {
+        let wallet = self.wallet()?;
+
+        let mut built = Vec::with_capacity(req.offers.len());
+
+        for (index, item) in req.offers.into_iter().enumerate() {
+            if is_cancelled() {
+                return Err(Error::Cancelled);
+            }
+
+            on_progress(MakeOffersProgress::Building {
+                index: index as u32,
+            });
+
+            let auto_import = item.auto_import;
+            built.push((self.build_offer(item).await?, auto_import));
+        }
+
+        // One shared transaction, not one per offer: N separate transactions serialize behind
+        // SQLite's single-writer lock alongside unrelated background database activity, which
+        // is measurably slow for large batches.
+        if built.iter().any(|(_, auto_import)| *auto_import) {
+            on_progress(MakeOffersProgress::Importing);
+
+            let mut tx = wallet.db.tx().await?;
+
+            for (response, auto_import) in &built {
+                if is_cancelled() {
+                    return Err(Error::Cancelled);
+                }
+
+                if *auto_import {
+                    self.import_offer_into(
+                        &mut tx,
+                        ImportOffer {
+                            offer: response.offer.clone(),
+                        },
+                    )
+                    .await?;
+                }
+            }
+
+            tx.commit().await?;
+        }
+
+        Ok(MakeOffersResponse {
+            offers: built.into_iter().map(|(response, _)| response).collect(),
         })
     }
 
@@ -283,13 +345,28 @@ impl Sage {
 
     pub async fn import_offer(&self, req: ImportOffer) -> Result<ImportOfferResponse> {
         let wallet = self.wallet()?;
+        let mut tx = wallet.db.tx().await?;
+
+        let offer_id = self.import_offer_into(&mut tx, req).await?;
+
+        tx.commit().await?;
+
+        Ok(ImportOfferResponse {
+            offer_id: hex::encode(offer_id),
+        })
+    }
+
+    // Caller commits `tx`.
+    async fn import_offer_into(
+        &self,
+        tx: &mut DatabaseTx<'_>,
+        req: ImportOffer,
+    ) -> Result<Bytes32> {
         let spend_bundle = sort_offer(decode_offer(&req.offer)?);
         let offer_id = spend_bundle.name();
 
-        if wallet.db.offer(offer_id).await?.is_some() {
-            return Ok(ImportOfferResponse {
-                offer_id: hex::encode(offer_id),
-            });
+        if tx.offer(offer_id).await?.is_some() {
+            return Ok(offer_id);
         }
 
         let mut ctx = SpendContext::new();
@@ -321,37 +398,7 @@ impl Sage {
             });
         }
 
-        let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
-
         for nft in offer.offered_coins().nfts.values() {
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
-                let mut confirmation_info = ConfirmationInfo::default();
-
-                if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
-                        Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
-                    )
-                    .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
-                }
-
-                if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
-                        Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
-                    )
-                    .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
-                }
-
-                extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
-            } else {
-                ExtractedNftData::default()
-            };
-
             nft_rows.push(AssetToOffer {
                 offer_id,
                 is_requested: false,
@@ -406,34 +453,6 @@ impl Sage {
             )
             .await?;
 
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
-                let mut confirmation_info = ConfirmationInfo::default();
-
-                if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
-                        Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
-                    )
-                    .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
-                }
-
-                if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
-                        Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
-                    )
-                    .await
-                {
-                    confirmation_info.nft_data.insert(hash, data);
-                }
-
-                extract_nft_data(Some(&wallet.db), Some(metadata), &confirmation_info).await?
-            } else {
-                ExtractedNftData::default()
-            };
-
             nft_rows.push(AssetToOffer {
                 offer_id,
                 is_requested: true,
@@ -454,8 +473,6 @@ impl Sage {
                 royalty: 0,
             });
         }
-
-        let mut tx = wallet.db.tx().await?;
 
         let inserted_timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -536,11 +553,7 @@ impl Sage {
             .await?;
         }
 
-        tx.commit().await?;
-
-        Ok(ImportOfferResponse {
-            offer_id: hex::encode(offer_id),
-        })
+        Ok(offer_id)
     }
 
     pub fn combine_offers(&self, req: CombineOffers) -> Result<CombineOffersResponse> {

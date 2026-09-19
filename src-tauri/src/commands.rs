@@ -1,7 +1,7 @@
 use std::{fs, time::Duration};
 
 use crate::{
-    app_state::{self, AppState, Initialized, RpcTask},
+    app_state::{self, AppState, Initialized, OfferCreationCancellation, RpcTask},
     error::Result,
 };
 use chia_wallet_sdk::utils::Address;
@@ -72,6 +72,40 @@ impl_endpoints_tauri! {
             Ok(state.lock().await.endpoint(req) maybe_await?)
         }
     )
+}
+
+#[command]
+#[specta]
+pub async fn make_offers_with_progress(
+    state: State<'_, AppState>,
+    cancellation: State<'_, OfferCreationCancellation>,
+    req: MakeOffers,
+    on_progress: tauri::ipc::Channel<MakeOffersProgress>,
+) -> Result<MakeOffersResponse> {
+    let cancelled = cancellation.begin().await;
+
+    let result = state
+        .lock()
+        .await
+        .make_offers_with_progress(
+            req,
+            |progress| {
+                let _ = on_progress.send(progress);
+            },
+            || cancelled.is_cancelled(),
+        )
+        .await;
+
+    cancellation.end(&cancelled).await;
+
+    Ok(result?)
+}
+
+#[command]
+#[specta]
+pub async fn cancel_make_offers(cancellation: State<'_, OfferCreationCancellation>) -> Result<()> {
+    cancellation.cancel().await;
+    Ok(())
 }
 
 #[command]
