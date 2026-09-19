@@ -10,6 +10,7 @@ import {
   type SageAppWalletScope,
   type SageGrantedPermissionsInput,
   type SystemWalletView,
+  type AppInstallDownloadProgressEvent,
 } from 'sage-system-app-sdk';
 import { closeSelf, installSource, listWallets } from '../api';
 import type { InstallSource } from '../types';
@@ -42,6 +43,8 @@ export function ReviewInstallView({
     reviewsPermissions ? 'permissions' : 'wallets',
   );
   const [installing, setInstalling] = useState(false);
+  const [downloadProgress, setDownloadProgress] =
+    useState<AppInstallDownloadProgressEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<SystemWalletView[]>([]);
   const [walletsLoading, setWalletsLoading] = useState(true);
@@ -103,10 +106,16 @@ export function ReviewInstallView({
     if (!manifest || !canInstall) return;
 
     setInstalling(true);
+    setDownloadProgress(null);
     setError(null);
 
     try {
-      await installSource(source, grantedPermissions, walletScope);
+      await installSource(
+        source,
+        grantedPermissions,
+        walletScope,
+        setDownloadProgress,
+      );
       await closeSelf();
     } catch (err) {
       setError(formatSageError(err));
@@ -157,6 +166,17 @@ export function ReviewInstallView({
       </AppModalShell>
     );
   }
+
+  const downloadPercent =
+    downloadProgress && downloadProgress.totalBytes > 0
+      ? Math.min(
+          100,
+          Math.floor(
+            (downloadProgress.downloadedBytes / downloadProgress.totalBytes) *
+              100,
+          ),
+        )
+      : 0;
 
   return (
     <AppModalShell
@@ -246,6 +266,21 @@ export function ReviewInstallView({
         {error ? (
           <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
             {error}
+          </div>
+        ) : null}
+
+        {installing && source.kind === 'url' ? (
+          <div className='space-y-2 rounded-xl border border-border p-4'>
+            <div className='flex justify-between text-sm'>
+              <span>Downloading…</span>
+              <span className='text-muted-foreground'>{downloadPercent}%</span>
+            </div>
+            <div className='h-2 overflow-hidden rounded-full bg-muted'>
+              <div
+                className='h-full rounded-full bg-primary transition-[width] duration-150'
+                style={{ width: `${downloadPercent}%` }}
+              />
+            </div>
           </div>
         ) : null}
       </div>
