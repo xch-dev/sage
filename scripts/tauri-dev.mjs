@@ -184,7 +184,7 @@ async function main() {
   }
 
   const exitCode = firstExit.code ?? (firstExit.signal ? 1 : 0);
-  await shutdown('SIGTERM', exitCode);
+  forceShutdown(exitCode);
 }
 
 try {
