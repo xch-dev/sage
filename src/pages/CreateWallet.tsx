@@ -99,7 +99,6 @@ function CreateForm(props: {
 
   const loadMnemonic = useCallback(() => {
     const requestId = ++mnemonicRequestId.current;
-    form.setValue('mnemonic', '');
 
     commands
       .generateMnemonic({ use_24_words: use24Words })
