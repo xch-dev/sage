@@ -27,9 +27,7 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    let path = dirs::data_dir()
-        .expect("could not get data directory")
-        .join("com.rigidnetwork.sage");
+    let path = sage_config::sage_root().expect("could not get Sage root directory");
 
     match args.command {
         Command::Rpc { command } => command.handle(path).await?,

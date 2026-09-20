@@ -24,7 +24,7 @@ sage-api = { workspace = true }
 sage-api-macro = { workspace = true }
 sage-rpc = { workspace = true }
 sage-client = { workspace = true }
-dirs = { workspace = true }
+sage-config = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 anyhow = { workspace = true }
 serde = { workspace = true }

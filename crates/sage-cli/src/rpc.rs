@@ -45,7 +45,7 @@ impl_endpoints! {
                     Ok(())
                 },
                 (repeat Self::Endpoint { body } => {
-                    let client = Client::new()?;
+                    let client = Client::from_dir(&path)?;
                     handle(client.endpoint(body).await);
                     Ok(())
                 } ,)
