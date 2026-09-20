@@ -25,7 +25,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 use tokio::sync::{Mutex, mpsc};
-use tracing::{Level, error, info};
+use tracing::{Level, error, info, warn};
 use tracing_appender::rolling::{Builder, Rotation};
 use tracing_subscriber::{
     EnvFilter, Layer, Registry, filter::filter_fn, fmt, layer::SubscriberExt,
@@ -454,6 +454,8 @@ impl Sage {
             return Err(Error::DatabaseVersionTooOld);
         }
 
+        update_query_planner_stats(&pool).await;
+
         Ok(pool)
     }
 
@@ -535,5 +537,14 @@ impl Sage {
     pub fn save_keychain(&self) -> Result<()> {
         fs::write(self.path.join("keys.bin"), self.keychain.to_bytes()?)?;
         Ok(())
+    }
+}
+
+/// Refreshes the query planner's table statistics.
+async fn update_query_planner_stats(pool: &SqlitePool) {
+    if let Err(error) = Database::new(pool.clone()).analyze().await {
+        warn!("Failed to update query planner stats: {error}");
+    } else {
+        info!("Updated database query planner statistics");
     }
 }

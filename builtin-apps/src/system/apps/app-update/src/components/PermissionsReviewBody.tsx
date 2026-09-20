@@ -14,7 +14,10 @@ import {
 } from 'sage-system-app-sdk';
 import type { LoadState } from '../types';
 
-type PermissionsReadyState = Extract<LoadState, { kind: 'ready' }>;
+type PermissionsReadyState = Extract<
+  LoadState,
+  { kind: 'ready'; mode: 'review-permissions' }
+>;
 type ReviewTab = 'permissions' | 'wallets';
 
 export function PermissionsReviewBody({

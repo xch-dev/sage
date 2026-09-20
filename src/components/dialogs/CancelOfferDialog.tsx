@@ -16,6 +16,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { FeeAmountInput } from '@/components/ui/masked-input';
+import { LoadingButton } from '@/components/ui/loading-button';
+import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { UseFormReturn } from 'react-hook-form';
 
@@ -27,6 +29,7 @@ interface CancelOfferDialogProps {
   title?: React.ReactNode;
   description?: React.ReactNode;
   feeLabel?: React.ReactNode;
+  pending?: boolean;
 }
 
 export function CancelOfferDialog({
@@ -37,6 +40,7 @@ export function CancelOfferDialog({
   title,
   description,
   feeLabel,
+  pending = false,
 }: CancelOfferDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,13 +78,18 @@ export function CancelOfferDialog({
               <Button
                 type='button'
                 variant='outline'
+                disabled={pending}
                 onClick={() => onOpenChange(false)}
               >
                 <Trans>Cancel</Trans>
               </Button>
-              <Button type='submit'>
+              <LoadingButton
+                type='submit'
+                loading={pending}
+                loadingText={t`Submitting`}
+              >
                 <Trans>Submit</Trans>
-              </Button>
+              </LoadingButton>
             </DialogFooter>
           </form>
         </Form>

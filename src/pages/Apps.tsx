@@ -204,16 +204,24 @@ export function Apps() {
       activePendingUpdate.kind !== 'none' ? (
         <Alert className='shrink-0 rounded-none border-x-0 border-t-0'>
           <AlertTitle>
-            {activePendingUpdate.kind === 'requiresReview'
-              ? 'Update needs review'
-              : 'Update ready'}
+            {activePendingUpdate.kind === 'requiresNewerSage'
+              ? 'Update requires newer Sage'
+              : activePendingUpdate.kind === 'untestedNewerSage'
+                ? 'Update compatibility warning'
+                : activePendingUpdate.kind === 'requiresReview'
+                  ? 'Update needs review'
+                  : 'Update ready'}
           </AlertTitle>
 
           <AlertDescription className='flex items-center justify-between gap-4'>
             <span>
-              {activePendingUpdate.kind === 'requiresReview'
-                ? `An update is available for ${activeApp.common.activeSnapshot.manifest.name} and needs review before it can be applied.`
-                : `An update is ready to apply for ${activeApp.common.activeSnapshot.manifest.name}.`}
+              {activePendingUpdate.kind === 'requiresNewerSage'
+                ? `This update requires Sage ${activePendingUpdate.minimumVersion} or newer. You are running Sage ${activePendingUpdate.currentVersion}.`
+                : activePendingUpdate.kind === 'untestedNewerSage'
+                  ? `This update has only been tested through Sage ${activePendingUpdate.testedMaxVersion}. You are running Sage ${activePendingUpdate.currentVersion}.`
+                  : activePendingUpdate.kind === 'requiresReview'
+                    ? `An update is available for ${activeApp.common.activeSnapshot.manifest.name} and needs review before it can be applied.`
+                    : `An update is ready to apply for ${activeApp.common.activeSnapshot.manifest.name}.`}
             </span>
 
             <Button
@@ -226,9 +234,13 @@ export function Apps() {
                 void handleApplyActiveUpdate(activePendingUpdate.manifestHash);
               }}
             >
-              {activePendingUpdate.kind === 'requiresReview'
-                ? 'Review update'
-                : 'Apply update'}
+              {activePendingUpdate.kind === 'requiresNewerSage'
+                ? 'View requirements'
+                : activePendingUpdate.kind === 'untestedNewerSage'
+                  ? 'Review update'
+                  : activePendingUpdate.kind === 'requiresReview'
+                    ? 'Review update'
+                    : 'Apply update'}
             </Button>
           </AlertDescription>
         </Alert>

@@ -23,7 +23,7 @@ pub use bridge::{apps_invoke_bridge, apps_invoke_system_bridge};
 pub use environment::apps_set_environment_theme;
 pub use lifecycle::{
     apps_apply_app_update, apps_check_app_update, apps_clear_runtime_browsing_data,
-    apps_list_installed_apps, apps_uninstall_app,
+    apps_list_installed_apps, apps_recover_app_update, apps_uninstall_app,
 };
 pub use runtime::{
     apps_clear_active_taskbar_runtime, apps_dev_reload_runtime, apps_enter_workspace,
