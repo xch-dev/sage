@@ -10,6 +10,7 @@ import {
   type SageAppWalletScope,
   type SageGrantedPermissionsInput,
   type SystemWalletView,
+  type AppInstallDownloadProgressEvent,
 } from 'sage-system-app-sdk';
 import { closeSelf, installSource, listWallets } from '../api';
 import type { InstallSource } from '../types';
@@ -36,11 +37,14 @@ export function ReviewInstallView({
   const reviewsPermissions = manifest
     ? hasRequiredPermissions(manifest, definitions)
     : false;
+  const compatibility = source.compatibility;
 
   const [step, setStep] = useState<Step>(() =>
     reviewsPermissions ? 'permissions' : 'wallets',
   );
   const [installing, setInstalling] = useState(false);
+  const [downloadProgress, setDownloadProgress] =
+    useState<AppInstallDownloadProgressEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<SystemWalletView[]>([]);
   const [walletsLoading, setWalletsLoading] = useState(true);
@@ -94,16 +98,24 @@ export function ReviewInstallView({
   const canInstall =
     !installing &&
     !walletsLoading &&
+    compatibility.status.kind !== 'requiresNewerSage' &&
+    compatibility.status.kind !== 'invalid' &&
     (walletScope.kind === 'allWallets' || walletScope.fingerprints.length > 0);
 
   async function install() {
     if (!manifest || !canInstall) return;
 
     setInstalling(true);
+    setDownloadProgress(null);
     setError(null);
 
     try {
-      await installSource(source, grantedPermissions, walletScope);
+      await installSource(
+        source,
+        grantedPermissions,
+        walletScope,
+        setDownloadProgress,
+      );
       await closeSelf();
     } catch (err) {
       setError(formatSageError(err));
@@ -115,6 +127,56 @@ export function ReviewInstallView({
   if (!manifest || !previewApp) {
     return <UnsupportedManifestView source={source} error={error} />;
   }
+
+  if (
+    compatibility.status.kind === 'requiresNewerSage' ||
+    compatibility.status.kind === 'invalid'
+  ) {
+    return (
+      <AppModalShell
+        appName={manifest.name}
+        appIcon={resolveInstallIcon(source)}
+        title='App cannot be installed'
+        footer={
+          <div className='flex justify-end'>
+            <button
+              className='rounded-md border border-border px-4 py-2 text-sm'
+              onClick={closeSelf}
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div className='space-y-3 text-sm'>
+          <h1 className='text-lg font-semibold'>
+            {compatibility.status.kind === 'requiresNewerSage'
+              ? 'Requires a newer Sage'
+              : 'Invalid Sage version requirement'}
+          </h1>
+          {compatibility.status.kind === 'requiresNewerSage' ? (
+            <p className='text-muted-foreground'>
+              This app requires Sage {compatibility.status.minimumVersion} or
+              newer. You are running Sage {compatibility.currentVersion}.
+            </p>
+          ) : (
+            <p className='text-destructive'>{compatibility.status.reason}</p>
+          )}
+        </div>
+      </AppModalShell>
+    );
+  }
+
+  const downloadPercent =
+    downloadProgress && downloadProgress.totalBytes > 0
+      ? Math.min(
+          100,
+          Math.floor(
+            (downloadProgress.downloadedBytes / downloadProgress.totalBytes) *
+              100,
+          ),
+        )
+      : 0;
 
   return (
     <AppModalShell
@@ -169,6 +231,15 @@ export function ReviewInstallView({
       }
     >
       <div className='space-y-5'>
+        {compatibility.status.kind === 'untestedNewerSage' ? (
+          <div className='rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300'>
+            This app has only been tested through Sage{' '}
+            {compatibility.status.testedMaxVersion}. You are running Sage{' '}
+            {compatibility.currentVersion}, so some features may not work as
+            expected.
+          </div>
+        ) : null}
+
         {step === 'permissions' ? (
           <AppPermissionEditor
             app={previewApp}
@@ -195,6 +266,21 @@ export function ReviewInstallView({
         {error ? (
           <div className='rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'>
             {error}
+          </div>
+        ) : null}
+
+        {installing && source.kind === 'url' ? (
+          <div className='space-y-2 rounded-xl border border-border p-4'>
+            <div className='flex justify-between text-sm'>
+              <span>Downloading…</span>
+              <span className='text-muted-foreground'>{downloadPercent}%</span>
+            </div>
+            <div className='h-2 overflow-hidden rounded-full bg-muted'>
+              <div
+                className='h-full rounded-full bg-primary transition-[width] duration-150'
+                style={{ width: `${downloadPercent}%` }}
+              />
+            </div>
           </div>
         ) : null}
       </div>

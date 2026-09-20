@@ -190,6 +190,10 @@ impl WalletPeer {
         )))
     }
 
+    pub fn is_pending_spend(&self, coin_id: Bytes32) -> bool {
+        self.pending_coin_spends.contains_key(&coin_id)
+    }
+
     pub async fn try_fetch_singleton_child(
         &self,
         coin_id: Bytes32,

@@ -6474,7 +6474,7 @@ checksum = "28d3b2b1366ec20994f1fd18c3c594f05c5dd4bc44d8bb0c1c632c8d6829481f"
 
 [[package]]
 name = "sage"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -6506,7 +6506,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "sage-api-macro",
  "sage-config",
@@ -6518,7 +6518,7 @@ dependencies = [
 
 [[package]]
 name = "sage-api-macro"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "convert_case 0.8.0",
  "indexmap 2.12.1",
@@ -6542,6 +6542,7 @@ dependencies = [
  "reqwest 0.12.24",
  "sage",
  "sage-api",
+ "semver",
  "serde",
  "serde_json",
  "serde_path_to_error",
@@ -6562,7 +6563,7 @@ dependencies = [
 
 [[package]]
 name = "sage-assets"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "base64 0.22.1",
  "chia-wallet-sdk",
@@ -6582,7 +6583,7 @@ dependencies = [
 
 [[package]]
 name = "sage-cli"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -6600,7 +6601,7 @@ dependencies = [
 
 [[package]]
 name = "sage-client"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "dirs 5.0.1",
  "reqwest 0.12.24",
@@ -6615,7 +6616,7 @@ dependencies = [
 
 [[package]]
 name = "sage-config"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "chia-wallet-sdk",
  "expect-test",
@@ -6630,7 +6631,7 @@ dependencies = [
 
 [[package]]
 name = "sage-database"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "chia-wallet-sdk",
  "hex",
@@ -6641,7 +6642,7 @@ dependencies = [
 
 [[package]]
 name = "sage-keychain"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -6657,7 +6658,7 @@ dependencies = [
 
 [[package]]
 name = "sage-rpc"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "axum",
@@ -6684,7 +6685,7 @@ dependencies = [
 
 [[package]]
 name = "sage-tauri"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "aws-lc-rs",
@@ -6724,7 +6725,7 @@ dependencies = [
 
 [[package]]
 name = "sage-wallet"
-version = "0.13.0"
+version = "0.13.1"
 dependencies = [
  "anyhow",
  "chia-sha2 0.36.1",
@@ -10045,7 +10046,7 @@ checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 [[package]]
 name = "wry"
 version = "0.54.1"
-source = "git+https://github.com/Rigidity/wry.git?branch=sage%2Fwry-v0.54.1-patched#76ac9922bc72342567c7d2fc0d2fd985621b1bdf"
+source = "git+https://github.com/Rigidity/wry.git?rev=997ce01862c23b0220b95b4b5541e55fd48670ec#997ce01862c23b0220b95b4b5541e55fd48670ec"
 dependencies = [
  "base64 0.22.1",
  "block2 0.6.2",

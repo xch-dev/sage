@@ -3,8 +3,8 @@ use std::io;
 use tauri::{AppHandle, State};
 
 use crate::{
-    AppMutationManager, AppsHostState, ResolvedApp, Result, SageApp, SageAppSnapshot,
-    SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+    AppMutationManager, AppsHostState, RecoverableUserSageApp, ResolvedApp, Result, SageApp,
+    SageAppSnapshot, SageAppUrlPreview, SharedSageApp, UserSageAppPendingUpdate, UserSageAppSource,
     emit_pending_update_changed, fetch_url_manifest, fetch_url_manifest_preview, resolve_app,
 };
 
@@ -19,9 +19,9 @@ pub(crate) async fn check_app_update_inner(
     apps_state: &State<'_, AppsHostState>,
     app_id: &str,
 ) -> Result<Option<SageAppUrlPreview>> {
-    let resolved = resolve_app(app_handle, app_id)
-        .await
-        .map_err(|err| io::Error::other(format!("failed to read installed app {app_id}: {err}")))?;
+    let Ok(resolved) = resolve_app(app_handle, app_id).await else {
+        return check_recoverable_app_update_inner(apps_state, app_id).await;
+    };
 
     let app = resolved.clone_app_for_operation();
     let mutation_manager = AppMutationManager::new(app_handle, apps_state);
@@ -84,6 +84,50 @@ pub(crate) async fn check_app_update_inner(
     emit_pending_update_changed(app_handle, apps_state, &app).await;
 
     Ok(Some(preview))
+}
+
+async fn check_recoverable_app_update_inner(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<Option<SageAppUrlPreview>> {
+    let operation_lock = apps_state.operation_lock_for_app(app_id);
+    let _operation_guard = operation_lock.lock().await;
+
+    let Some(candidate) = fetch_recoverable_app_update(apps_state, app_id).await? else {
+        return Ok(None);
+    };
+
+    Ok(Some(candidate.1))
+}
+
+pub(crate) async fn fetch_recoverable_app_update(
+    apps_state: &State<'_, AppsHostState>,
+    app_id: &str,
+) -> Result<Option<(RecoverableUserSageApp, SageAppUrlPreview)>> {
+    let recoverable = apps_state
+        .db
+        .get_recoverable_user_app(app_id)
+        .await
+        .map_err(|err| {
+            io::Error::other(format!(
+                "failed to load recovery state for app {app_id}: {err}"
+            ))
+        })?
+        .ok_or_else(|| io::Error::other(format!("app {app_id} is not installed")))?;
+
+    let UserSageAppSource::Url { app_url } = recoverable.source() else {
+        return Ok(None);
+    };
+
+    let (manifest_preview, manifest_hash) = fetch_url_manifest_preview(&app_url.manifest_url())
+        .await
+        .map_err(|err| io::Error::other(format!("failed to fetch app manifest: {err}")))?;
+
+    let preview = SageAppUrlPreview::new(app_url, manifest_preview, manifest_hash)
+        .await
+        .map_err(|err| io::Error::other(format!("failed to preview app URL: {err}")))?;
+
+    Ok(Some((recoverable, preview)))
 }
 
 async fn preview_app_update(app: &ResolvedApp) -> Result<AppUpdatePreviewResult> {
