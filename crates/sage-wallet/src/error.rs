@@ -125,6 +125,27 @@ pub enum WalletError {
     #[error("Cannot find clawback info for coin with id {0}")]
     MissingClawbackInfo(Bytes32),
 
+    #[error("Clawback V1 coin {0} is not yet claimable (relative timelock)")]
+    ClawbackNotYetClaimable(Bytes32),
+
+    #[error(
+        "Clawback version mismatch for coin {coin_id}: expected version {expected}, found {actual}"
+    )]
+    ClawbackVersionMismatch {
+        coin_id: Bytes32,
+        expected: u8,
+        actual: u8,
+    },
+
+    #[error("Cannot fulfill clawback spend (wrong role, version path, or time window)")]
+    ClawbackSpendNotAllowed,
+
+    #[error("Clawback V1 receiver spend requires claim_clawback")]
+    ClawbackClaimRequired,
+
+    #[error("Clawback coin {0} is already spent or pending in the mempool")]
+    ClawbackAlreadySpentOrPending(Bytes32),
+
     #[error("Try from int error: {0}")]
     TryFromInt(#[from] TryFromIntError),
 }

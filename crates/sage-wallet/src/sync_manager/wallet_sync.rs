@@ -241,10 +241,16 @@ pub async fn incremental_sync(
             .await?;
         }
 
-        confirmed_transactions.extend(
-            tx.mempool_items_for_output(coin_state.coin.coin_id())
-                .await?,
-        );
+        if let Some(height) = coin_state.created_height {
+            for mempool_item_id in tx
+                .mempool_items_for_output(coin_state.coin.coin_id())
+                .await?
+            {
+                tx.mark_mempool_inputs_spent(mempool_item_id, height)
+                    .await?;
+                confirmed_transactions.insert(mempool_item_id);
+            }
+        }
 
         if coin_state.spent_height.is_some() {
             confirmed_transactions.extend(

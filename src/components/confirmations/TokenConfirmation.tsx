@@ -23,7 +23,8 @@ type TokenOperationType =
   | 'issue'
   | 'send'
   | 'clawback'
-  | 'finalize_clawback';
+  | 'finalize_clawback'
+  | 'claim_clawback';
 
 interface TokenConfirmationProps {
   type: TokenOperationType;
@@ -124,6 +125,18 @@ export function TokenConfirmation({
         </Trans>
       ),
     },
+    claim_clawback: {
+      icon: CoinsIcon,
+      title: <Trans>Claim Clawback</Trans>,
+      variant: 'info' as const,
+      message: (
+        <Trans>
+          You are about to claim coins from a early type of clawback. This will
+          send the funds to your wallet, and the original sender will no longer
+          be able to claw it back.
+        </Trans>
+      ),
+    },
   };
 
   const { icon: Icon, title, variant, message } = config[type];
@@ -218,7 +231,8 @@ export function TokenConfirmation({
       {(type === 'split' ||
         type === 'combine' ||
         type === 'clawback' ||
-        type === 'finalize_clawback') &&
+        type === 'finalize_clawback' ||
+        type === 'claim_clawback') &&
         coins && (
           <>
             <ConfirmationCard
@@ -241,11 +255,17 @@ export function TokenConfirmation({
                     one='Claw back # coin'
                     other='Claw back # coins'
                   />
-                ) : (
+                ) : type === 'finalize_clawback' ? (
                   <Plural
                     value={coinCount}
                     one='Finalize clawback # coin'
                     other='Finalize clawback # coins'
+                  />
+                ) : (
+                  <Plural
+                    value={coinCount}
+                    one='Claim clawback # coin'
+                    other='Claim clawback # coins'
                   />
                 )
               }
@@ -305,6 +325,12 @@ export function TokenConfirmation({
                         value={coinCount}
                         one='# finalized clawback'
                         other='# finalized clawbacks'
+                      />
+                    ) : type === 'claim_clawback' ? (
+                      <Plural
+                        value={coinCount}
+                        one='# claimed coin'
+                        other='# claimed coins'
                       />
                     ) : null}
                   </div>
