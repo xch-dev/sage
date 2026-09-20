@@ -111,7 +111,7 @@ jobs:
             ipa_name: Sage_AppStore
           - platform: 'blacksmith-8vcpu-ubuntu-2404'
             platform_name: Android
-            cache_key: android
+            cache_key: android-ndk-r26d
             build: 'pnpm tauri android build'
     steps:
       - name: Checkout

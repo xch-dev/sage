@@ -17,9 +17,11 @@ export const initialGrantedPermissions = initialGrantedPermissionsInput;
 export function installManifest(
   source: InstallSource,
 ): SageAppPackageManifest | null {
-  if (source.kind === 'zip') return source.manifest;
-  if (source.preview.manifest.kind !== 'full') return null;
-  return source.preview.manifest.manifest;
+  const preview =
+    source.kind === 'zip' ? source.preview : source.preview.manifest;
+
+  if (preview.kind !== 'full') return null;
+  return preview.manifest;
 }
 
 export function hasRequiredPermissions(

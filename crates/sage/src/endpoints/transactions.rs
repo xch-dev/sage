@@ -584,16 +584,7 @@ impl Sage {
         } else if item.data_uris.is_empty() {
             None
         } else {
-            let data = timeout(
-                Duration::from_secs(10),
-                fetch_uris_without_hash(item.data_uris.clone(), testnet),
-            )
-            .await??;
-
-            let hash = data.hash;
-            info.nft_data.insert(hash, data);
-
-            Some(hash)
+            Some(fetch_uri_hash(info, item.data_uris.clone(), testnet).await?)
         };
 
         let metadata_hash = if let Some(metadata_hash) = item.metadata_hash {
@@ -601,16 +592,7 @@ impl Sage {
         } else if item.metadata_uris.is_empty() {
             None
         } else {
-            let metadata = timeout(
-                Duration::from_secs(10),
-                fetch_uris_without_hash(item.metadata_uris.clone(), testnet),
-            )
-            .await??;
-
-            let hash = metadata.hash;
-            info.nft_data.insert(hash, metadata);
-
-            Some(hash)
+            Some(fetch_uri_hash(info, item.metadata_uris.clone(), testnet).await?)
         };
 
         let license_hash = if let Some(license_hash) = item.license_hash {
@@ -618,16 +600,7 @@ impl Sage {
         } else if item.license_uris.is_empty() {
             None
         } else {
-            let data = timeout(
-                Duration::from_secs(10),
-                fetch_uris_without_hash(item.license_uris.clone(), testnet),
-            )
-            .await??;
-
-            let hash = data.hash;
-            info.nft_data.insert(hash, data);
-
-            Some(hash)
+            Some(fetch_uri_hash(info, item.license_uris.clone(), testnet).await?)
         };
 
         let p2_puzzle_hash = if let Some(address) = item.address {
@@ -652,4 +625,26 @@ impl Sage {
             royalty_basis_points: royalty_ten_thousandths,
         })
     }
+}
+
+async fn fetch_uri_hash(
+    info: &mut ConfirmationInfo,
+    uris: Vec<String>,
+    testnet: bool,
+) -> Result<Bytes32> {
+    if let Some(&hash) = info.uri_hashes.get(&uris) {
+        return Ok(hash);
+    }
+
+    let data = timeout(
+        Duration::from_secs(10),
+        fetch_uris_without_hash(uris.clone(), testnet),
+    )
+    .await??;
+
+    let hash = data.hash;
+    info.uri_hashes.insert(uris, hash);
+    info.nft_data.insert(hash, data);
+
+    Ok(hash)
 }

@@ -10,8 +10,9 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
 use crate::{
-    AppGetInfoResult, AppInstallInstallResult, AppInstallInstallUrlParams,
-    AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams,
+    AppGetInfoResult, AppInstallDownloadProgressEvent, AppInstallInstallResult,
+    AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams,
+    AppInstallPreviewUrlResult, AppInstallPreviewZipParams, AppInstallPreviewZipResult,
     AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
     AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams,
     AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
@@ -119,10 +120,13 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<RuntimeManagerActiveTaskbarRuntimeChangedEvent>();
 
     types.register::<AppInstallPreviewUrlParams>();
+    types.register::<AppInstallPreviewUrlResult>();
     types.register::<AppInstallPreviewZipParams>();
+    types.register::<AppInstallPreviewZipResult>();
     types.register::<AppInstallInstallUrlParams>();
     types.register::<AppInstallInstallZipParams>();
     types.register::<AppInstallInstallResult>();
+    types.register::<AppInstallDownloadProgressEvent>();
 
     types.register::<AppUpdateGetReviewContextParams>();
     types.register::<AppUpdateReviewContext>();

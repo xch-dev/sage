@@ -4,8 +4,8 @@ use futures::future::join_all;
 use tauri::{AppHandle, Manager, State};
 
 use crate::{
-    AppsHostState, ListedSageApp, check_app_update_inner, list_installed_apps_internal,
-    try_auto_apply_pending_update,
+    AppsHostState, ListedSageApp, RecoverableAppUpdateOutcome, apply_recoverable_app_update_inner,
+    check_app_update_inner, list_installed_apps_internal, try_auto_apply_pending_update,
 };
 
 pub fn start_background_app_update_checker(app_handle: AppHandle) {
@@ -37,6 +37,7 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
         .into_iter()
         .filter_map(|installed_app| match installed_app {
             ListedSageApp::User(app) => Some(app.common().id().to_string()),
+            ListedSageApp::Corrupted(app) if app.source().is_some() => Some(app.id().to_string()),
             ListedSageApp::System(_) | ListedSageApp::Corrupted(_) => None,
         })
         .collect::<Vec<_>>();
@@ -65,7 +66,24 @@ async fn run_background_app_update_check(app_handle: &AppHandle) -> anyhow::Resu
                 .unwrap_or(false);
 
             if auto_update_enabled {
-                match try_auto_apply_pending_update(&app_handle, &host_state, &app_id).await {
+                let auto_apply = match host_state.db.get_user_app(&app_id).await {
+                    Ok(Some(_)) => {
+                        try_auto_apply_pending_update(&app_handle, &host_state, &app_id).await
+                    }
+                    Err(_) => apply_recoverable_app_update_inner(
+                        &app_handle,
+                        &host_state,
+                        &app_id,
+                        None,
+                        None,
+                        false,
+                    )
+                    .await
+                    .map(|outcome| matches!(outcome, RecoverableAppUpdateOutcome::Applied(_))),
+                    Ok(None) => Ok(false),
+                };
+
+                match auto_apply {
                     Ok(true) => {
                         tracing::info!(
                             app_id = %app_id,

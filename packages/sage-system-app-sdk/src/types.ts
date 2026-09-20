@@ -47,16 +47,19 @@ export type SageSystemAppPermissionsClient = {
 export type SageSystemAppInstallClient = {
   previewUrl(
     input: Generated.AppInstallPreviewUrlParams,
-  ): Promise<Generated.SageAppUrlPreview>;
+  ): Promise<Generated.AppInstallPreviewUrlResult>;
   previewZip(
     input: Generated.AppInstallPreviewZipParams,
-  ): Promise<Generated.SageAppPackageManifest>;
+  ): Promise<Generated.AppInstallPreviewZipResult>;
   installUrl(
     input: Generated.AppInstallInstallUrlParams,
   ): Promise<Generated.AppInstallInstallResult>;
   installZip(
     input: Generated.AppInstallInstallZipParams,
   ): Promise<Generated.AppInstallInstallResult>;
+  onDownloadProgress(
+    handler: (event: Generated.AppInstallDownloadProgressEvent) => void,
+  ): () => void;
 };
 
 export type SageSystemAppUpdateClient = {

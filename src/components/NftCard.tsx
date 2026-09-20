@@ -10,7 +10,7 @@ import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
 import { offersEnabled } from '@/lib/features';
 import { amount } from '@/lib/formTypes';
 import { nftUri } from '@/lib/nftUri';
-import { toMojos } from '@/lib/utils';
+import { cn, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { useWallet } from '@/contexts/WalletContext';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -41,6 +41,7 @@ import ConfirmationDialog from './ConfirmationDialog';
 import { AddUrlConfirmation } from './confirmations/AddUrlConfirmation';
 import { NftConfirmation } from './confirmations/NftConfirmation';
 import { FeeOnlyDialog } from './FeeOnlyDialog';
+import { SelectableCard, SelectionState } from './SelectableCard';
 import { TransferDialog } from './TransferDialog';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
@@ -83,16 +84,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip';
-export interface NftProps {
-  nft: NftRecord;
-  updateNfts: () => void;
-  selectionState: [boolean, (value: boolean) => void] | null;
-}
-
 interface NftCardProps {
   nft: NftRecord;
   updateNfts: () => void;
-  selectionState: [boolean, (value: boolean) => void] | null;
+  selectionState: SelectionState;
 }
 
 export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
@@ -297,40 +292,17 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
 
   return (
     <>
-      <div
-        className={`cursor-pointer group rounded-lg transition-all${
+      <SelectableCard
+        selectionState={selectionState}
+        onOpen={() => navigate(`/nfts/${nft.launcher_id}`)}
+        className={cn(
+          'group rounded-lg transition-all',
           !nft.visible
-            ? ' opacity-50 grayscale'
-            : !nft.created_height
-              ? ' pulsate-opacity'
-              : ''
-        }${
-          selectionState?.[0]
-            ? ' ring-2 ring-primary ring-offset-2 bg-primary/5'
-            : ''
-        }`}
-        onClick={() => {
-          if (selectionState === null) {
-            navigate(`/nfts/${nft.launcher_id}`);
-          } else {
-            selectionState[1](!selectionState[0]);
-          }
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            if (selectionState === null) {
-              navigate(`/nfts/${nft.launcher_id}`);
-            } else {
-              selectionState[1](!selectionState[0]);
-            }
-          }
-        }}
-        role='article'
-        tabIndex={0}
-        aria-label={nftName}
-        aria-disabled={!nft.created_height}
-        aria-selected={selectionState?.[0]}
+            ? 'opacity-50 grayscale'
+            : !nft.created_height && 'pulsate-opacity',
+        )}
+        disabled={!nft.created_height}
+        ariaLabel={nftName}
       >
         <div className='overflow-hidden rounded-t-lg relative'>
           <TooltipProvider>
@@ -608,7 +580,7 @@ export function NftCard({ nft, updateNfts, selectionState }: NftCardProps) {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </SelectableCard>
 
       <TransferDialog
         title={t`Transfer NFT`}
