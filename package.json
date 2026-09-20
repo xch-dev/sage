@@ -21,6 +21,7 @@
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
     "tauri:dev": "node scripts/tauri-dev.mjs",
     "tauri:build": "pnpm build && tauri build",
+    "package:arch": "node scripts/package-arch.mjs",
     "lint": "eslint .",
     "test:unit": "vitest run src",
     "preview": "vite preview",
