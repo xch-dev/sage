@@ -1397,7 +1397,35 @@ offer: OfferRecord }
 /**
  * List all offers
  */
-export type GetOffers = Record<string, never>
+export type GetOffers = { 
+/**
+ * Starting offset for pagination
+ */
+offset?: number | null; 
+/**
+ * Maximum number of offers to return (all when omitted)
+ */
+limit?: number | null; 
+/**
+ * Only return offers with this status
+ */
+status?: OfferRecordStatus | null; 
+/**
+ * Search by asset name, ticker, asset/offer id, or NFT/DID/option address
+ */
+find_value?: string | null; 
+/**
+ * Which side of the offer the search applies to (defaults to any)
+ */
+find_side?: OfferFindSide | null; 
+/**
+ * Sort column (defaults to creation time)
+ */
+sort_mode?: OfferSortMode | null; 
+/**
+ * Sort ascending (defaults to false, newest first)
+ */
+ascending?: boolean }
 /**
  * Get offers for a specific asset
  */
@@ -1421,7 +1449,11 @@ export type GetOffersResponse = {
 /**
  * List of offers
  */
-offers: OfferRecord[] }
+offers: OfferRecord[]; 
+/**
+ * Total number of offers matching the filters, before paging
+ */
+total: number }
 /**
  * Get a specific option
  */
@@ -2122,8 +2154,16 @@ hidden_puzzle_hash?: string | null;
  */
 amount: Amount }
 export type OfferAsset = { asset: Asset; amount: Amount; royalty: Amount; nft_royalty: NftRoyalty | null; option_assets: OptionAssets | null }
+/**
+ * Which side of an offer a search matches
+ */
+export type OfferFindSide = "any" | "offered" | "requested"
 export type OfferRecord = { offer_id: string; offer: string; status: OfferRecordStatus; creation_timestamp: number; summary: OfferSummary }
 export type OfferRecordStatus = "pending" | "active" | "completed" | "cancelled" | "expired"
+/**
+ * Offer list sort column
+ */
+export type OfferSortMode = "created" | "expiration"
 export type OfferSummary = { fee: Amount; maker: OfferAsset[]; taker: OfferAsset[]; expiration_height: number | null; expiration_timestamp: number | null }
 /**
  * Asset specification for options
