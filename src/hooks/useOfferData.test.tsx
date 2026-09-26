@@ -2,7 +2,7 @@
 
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { OfferParams } from './useOfferParams';
+import { OfferQueryParams } from './useOfferParams';
 
 const getOffers = vi.fn();
 
@@ -21,7 +21,7 @@ vi.mock('@/hooks/useErrors', () => ({
 
 const { useOfferData } = await import('./useOfferData');
 
-const base: OfferParams = {
+const base: OfferQueryParams = {
   page: 1,
   pageSize: 2,
   query: null,
@@ -92,7 +92,7 @@ describe('useOfferData', () => {
       .mockReturnValueOnce(second.promise);
 
     const { result, rerender } = renderHook(
-      (p: OfferParams) => useOfferData(p),
+      (p: OfferQueryParams) => useOfferData(p),
       {
         initialProps: base,
       },
@@ -153,7 +153,7 @@ describe('useOfferData', () => {
       .mockReturnValueOnce(second.promise);
 
     const { result, rerender } = renderHook(
-      (p: OfferParams) => useOfferData(p),
+      (p: OfferQueryParams) => useOfferData(p),
       { initialProps: base },
     );
 
@@ -179,7 +179,7 @@ describe('useOfferData', () => {
       .mockReturnValueOnce(second.promise);
 
     const { result, rerender } = renderHook(
-      (p: OfferParams) => useOfferData(p),
+      (p: OfferQueryParams) => useOfferData(p),
       {
         initialProps: base,
       },

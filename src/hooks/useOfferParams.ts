@@ -1,4 +1,5 @@
 import { OfferFindSide, OfferRecordStatus, OfferSortMode } from '@/bindings';
+import { CardSize } from '@/hooks/useNftParams';
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLocalStorage } from 'usehooks-ts';
@@ -8,6 +9,7 @@ const OFFER_SIDE_STORAGE_KEY = 'sage-offer-find-side';
 const OFFER_SORT_STORAGE_KEY = 'sage-offer-sort';
 const OFFER_ASCENDING_STORAGE_KEY = 'sage-offer-ascending';
 const OFFER_PAGE_SIZE_STORAGE_KEY = 'sage-offer-page-size';
+const OFFER_CARD_SIZE_STORAGE_KEY = 'sage-offer-card-size';
 
 export type OfferStatusFilter = OfferRecordStatus | 'all';
 
@@ -19,7 +21,11 @@ export interface OfferParams {
   findSide: OfferFindSide;
   sort: OfferSortMode;
   ascending: boolean;
+  cardSize: CardSize;
 }
+
+/** The params that affect which offers are fetched (display settings excluded). */
+export type OfferQueryParams = Omit<OfferParams, 'cardSize'>;
 
 export type SetOfferParams = (params: Partial<OfferParams>) => void;
 
@@ -45,6 +51,10 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
     OFFER_PAGE_SIZE_STORAGE_KEY,
     24,
   );
+  const [cardSize, setCardSize] = useLocalStorage<CardSize>(
+    OFFER_CARD_SIZE_STORAGE_KEY,
+    CardSize.Large,
+  );
 
   const params = useMemo(() => {
     const pageParam = searchParams.get('page');
@@ -55,8 +65,17 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
     const queryParam = searchParams.get('query');
     const query = queryParam && queryParam.trim() !== '' ? queryParam : null;
 
-    return { page, pageSize, query, status, findSide, sort, ascending };
-  }, [searchParams, pageSize, status, findSide, sort, ascending]);
+    return {
+      page,
+      pageSize,
+      query,
+      status,
+      findSide,
+      sort,
+      ascending,
+      cardSize,
+    };
+  }, [searchParams, pageSize, status, findSide, sort, ascending, cardSize]);
 
   const setParams = useCallback(
     (newParams: Partial<OfferParams>) => {
@@ -67,6 +86,7 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
       if (newParams.sort !== undefined) setSort(newParams.sort);
       if (newParams.ascending !== undefined) setAscending(newParams.ascending);
       if (newParams.pageSize !== undefined) setPageSize(newParams.pageSize);
+      if (newParams.cardSize !== undefined) setCardSize(newParams.cardSize);
 
       setSearchParams(
         {
@@ -84,6 +104,7 @@ export function useOfferParams(): [OfferParams, SetOfferParams] {
       setSort,
       setAscending,
       setPageSize,
+      setCardSize,
     ],
   );
 

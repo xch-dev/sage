@@ -1,7 +1,7 @@
 import { commands, events, OfferRecord } from '@/bindings';
 import { useErrors } from '@/hooks/useErrors';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { OfferParams } from './useOfferParams';
+import { OfferQueryParams } from './useOfferParams';
 
 export function useOfferData({
   page,
@@ -11,7 +11,7 @@ export function useOfferData({
   findSide,
   sort,
   ascending,
-}: OfferParams) {
+}: OfferQueryParams) {
   const { addError } = useErrors();
   const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [total, setTotal] = useState(0);
