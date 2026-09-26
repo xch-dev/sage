@@ -19,7 +19,7 @@ export function OfferSummaryCard({
   selectionState = null,
 }: OfferSummaryCardProps) {
   return (
-    <div className='flex items-start gap-3 p-4 rounded-sm bg-card border border-border'>
+    <div className='flex items-start gap-3 p-4 rounded-lg bg-card border border-border shadow'>
       {selectionState !== null && (
         <Checkbox
           checked={selectionState[0]}

@@ -1,4 +1,3 @@
-import { useDebounce } from '@/hooks/useDebounce';
 import {
   CardSize,
   NftGroupMode,
@@ -13,7 +12,6 @@ import {
   ArrowDownAz,
   ArrowLeftIcon,
   Clock2,
-  CopyPlus,
   Download,
   EyeIcon,
   EyeOff,
@@ -22,12 +20,9 @@ import {
   Maximize2,
   Minimize2,
   Paintbrush,
-  SearchIcon,
   Settings2,
   UserIcon,
-  XIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from './ui/button';
 import {
@@ -37,7 +32,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { Input } from './ui/input';
+import { DebouncedSearchInput } from './DebouncedSearchInput';
+import { MultiSelectToggle } from './MultiSelectToggle';
 
 export interface NftOptionsProps {
   isCollection?: boolean;
@@ -69,34 +65,6 @@ export function NftOptions({
   const navigate = useNavigate();
   const isFilteredView = Boolean(collection_id || owner_did || minter_did);
   const allowSearch = group === NftGroupMode.None || isFilteredView;
-  const [searchValue, setSearchValue] = useState(query ?? '');
-  const debouncedSearch = useDebounce(searchValue, 400);
-  const prevSearchRef = useRef(query);
-
-  useEffect(() => {
-    setSearchValue(query ?? '');
-  }, [query]);
-
-  useEffect(() => {
-    // Convert empty string, undefined, and null to consistent values for comparison
-    const normalizedDebounced = debouncedSearch || null;
-    const normalizedQuery = query || null;
-
-    // Check if queries are meaningfully different after normalization
-    if (normalizedDebounced !== normalizedQuery) {
-      const shouldResetPage = prevSearchRef.current !== debouncedSearch;
-      prevSearchRef.current = debouncedSearch;
-
-      setParams({
-        query: debouncedSearch || null,
-        ...(shouldResetPage && { page: 1 }),
-      });
-    }
-  }, [debouncedSearch, query, setParams]);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchValue('');
-  }, []);
 
   const handleBack = () => {
     if (collection_id) {
@@ -129,37 +97,12 @@ export function NftOptions({
       role='toolbar'
       aria-label={t`NFT filtering and sorting options`}
     >
-      <div className='relative flex-1' role='search'>
-        <div className='relative'>
-          <SearchIcon
-            className='absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground'
-            aria-hidden='true'
-          />
-          <Input
-            value={searchValue}
-            aria-label={t`Search NFTs...`}
-            title={t`Search NFTs...`}
-            placeholder={t`Search NFTs...`}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className='w-full pl-8 pr-8'
-            disabled={!allowSearch}
-            aria-disabled={!allowSearch}
-          />
-        </div>
-        {searchValue && (
-          <Button
-            variant='ghost'
-            size='icon'
-            title={t`Clear search`}
-            aria-label={t`Clear search`}
-            className='absolute right-0 top-0 h-full px-2 hover:bg-transparent'
-            onClick={handleClearSearch}
-            disabled={!allowSearch}
-          >
-            <XIcon className='h-4 w-4' aria-hidden='true' />
-          </Button>
-        )}
-      </div>
+      <DebouncedSearchInput
+        value={query}
+        onChange={(value) => setParams({ query: value, page: 1 })}
+        placeholder={t`Search NFTs...`}
+        disabled={!allowSearch}
+      />
 
       <div className='flex items-center justify-between'>
         <AnimatePresence mode='wait'>
@@ -202,19 +145,11 @@ export function NftOptions({
             <Download className='h-4 w-4' aria-hidden='true' />
           </Button>
 
-          <Button
-            variant='outline'
-            size='icon'
-            onClick={() => setMultiSelect(!multiSelect)}
-            aria-label={t`Toggle multi-select`}
-            title={t`Toggle multi-select`}
+          <MultiSelectToggle
+            active={multiSelect}
+            onToggle={() => setMultiSelect(!multiSelect)}
             disabled={!(group === NftGroupMode.None || isFilteredView)}
-          >
-            <CopyPlus
-              className={`h-4 w-4 ${multiSelect ? 'text-green-600 dark:text-green-400' : ''}`}
-              aria-hidden='true'
-            />
-          </Button>
+          />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

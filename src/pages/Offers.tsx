@@ -1,51 +1,37 @@
-import { commands, events, OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
-import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
+import { OfferOptions } from '@/components/OfferOptions';
 import { OfferRowCard } from '@/components/OfferRowCard';
 import { OffersMultiSelectActions } from '@/components/OffersMultiSelectActions';
+import { Pagination } from '@/components/Pagination';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
+import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
+import { useMultiSelect } from '@/hooks/useMultiSelect';
+import { CardSize } from '@/hooks/useNftParams';
+import { useOfferData } from '@/hooks/useOfferData';
+import { useOfferParams } from '@/hooks/useOfferParams';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { deleteOffers } from '@/lib/offers';
 import { cn } from '@/lib/utils';
 import { useOfferState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
 import {
-  CopyPlus,
-  FilterIcon,
   HandCoins,
   ImageIcon,
   NfcIcon,
+  PlusIcon,
   ScanIcon,
-  TrashIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
-import { useLocalStorage } from 'usehooks-ts';
-
-const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
 
 export function Offers() {
   const navigate = useNavigate();
@@ -53,22 +39,51 @@ export function Offers() {
   const { addError } = useErrors();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [offers, setOffers] = useState<OfferRecord[]>([]);
   const [isNfcAvailable, setIsNfcAvailable] = useState(false);
   const [showScanUi, setShowScanUi] = useState(false);
-  const [statusFilter, setStatusFilter] = useLocalStorage(
-    OFFER_FILTER_STORAGE_KEY,
-    'all',
-  );
-  const [multiSelect, setMultiSelect] = useState(false);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
 
-  const toggleSelected = useCallback((offerId: string, value: boolean) => {
-    setSelected((prev) =>
-      value ? [...prev, offerId] : prev.filter((id) => id !== offerId),
-    );
-  }, []);
+  const [params, setParams] = useOfferParams();
+  const { offers, total, isLoading, loaded, isPastEnd, isCurrent, refresh } =
+    useOfferData(params);
+  const {
+    multiSelect,
+    setMultiSelect,
+    selected,
+    selectionStateFor,
+    selectAll,
+    clear,
+  } = useMultiSelect();
+
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const [isOptionsVisible, setIsOptionsVisible] = useState(true);
+
+  useIntersectionObserver(optionsRef, ([entry]) => {
+    setIsOptionsVisible(entry.isIntersecting);
+  });
+
+  // Deleting or cancelling the last offers on the final page leaves it empty.
+  // A stale `?page=N` URL (e.g. from history/back-forward) can also land far
+  // past the actual last page; jump straight to page 1 rather than walking
+  // back one page (and one request) at a time.
+  useEffect(() => {
+    if (isPastEnd) {
+      setParams({ page: 1 });
+    }
+  }, [isPastEnd, setParams]);
+
+  const hasFilters = params.query !== null || params.status !== 'all';
+  // Gated on `isCurrent` so these don't flash stale states: e.g. clicking
+  // "Clear filters" on a no-match result shouldn't show "No offers yet"
+  // using the previous (filtered, empty) response while the unfiltered one
+  // is still loading.
+  const showIntro =
+    loaded && isCurrent && total === 0 && params.page === 1 && !hasFilters;
+  const showNoMatches =
+    loaded &&
+    isCurrent &&
+    offers.length === 0 &&
+    params.page === 1 &&
+    hasFilters;
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -98,29 +113,6 @@ export function Offers() {
       handleScanImage(file);
     }
   };
-
-  const updateOffers = useCallback(
-    () =>
-      commands
-        .getOffers({})
-        .then((data) => setOffers(data.offers))
-        .catch(addError),
-    [addError],
-  );
-
-  useEffect(() => {
-    updateOffers();
-
-    const unlisten = events.syncEvent.listen((data) => {
-      if (data.payload.type === 'coin_state') {
-        updateOffers();
-      }
-    });
-
-    return () => {
-      unlisten.then((u) => u());
-    };
-  }, [updateOffers]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -170,14 +162,22 @@ export function Offers() {
     viewOffer(text);
   };
 
-  const filteredOffers = offers.filter((offer) =>
-    statusFilter === 'all' ? true : offer.status === statusFilter,
+  const renderPagination = useCallback(
+    (compact = false) => (
+      <Pagination
+        page={params.page}
+        total={total}
+        pageSize={params.pageSize}
+        onPageChange={(page) => setParams({ page })}
+        onPageSizeChange={(pageSize) => setParams({ pageSize, page: 1 })}
+        pageSizeOptions={[24, 48, 72, 96]}
+        compact={compact}
+        canLoadMore={offers.length === params.pageSize}
+        isLoading={isLoading}
+      />
+    ),
+    [params.page, params.pageSize, total, setParams, offers.length, isLoading],
   );
-
-  useEffect(() => {
-    setMultiSelect(false);
-    setSelected([]);
-  }, [statusFilter]);
 
   const scanImageButton = (
     <Button
@@ -189,6 +189,34 @@ export function Offers() {
       <ImageIcon className='h-5 w-5' aria-hidden='true' />
     </Button>
   );
+
+  const actionButtons = (
+    <div className='flex gap-2'>
+      <ReadOnlyButton
+        requiresSigning
+        onClick={() => navigate('/offers/make', { replace: true })}
+      >
+        <PlusIcon className='h-4 w-4 mr-2' aria-hidden='true' />
+        <Trans>Create Offer</Trans>
+      </ReadOnlyButton>
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogTrigger asChild>
+          <Button variant='outline'>
+            <Trans>View Offer</Trans>
+          </Button>
+        </DialogTrigger>
+        <ViewOfferDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          offerString={offerString}
+          setOfferString={setOfferString}
+          onSubmit={handleViewOffer}
+        />
+      </Dialog>
+    </div>
+  );
+
+  const pasteShortcut = platform() === 'macos' ? '⌘+V' : 'Ctrl+V';
 
   return (
     <>
@@ -202,6 +230,9 @@ export function Offers() {
       <Header
         title={<Trans>Offers</Trans>}
         alwaysShowChildren
+        paginationControls={
+          !showIntro && !isOptionsVisible ? renderPagination(true) : undefined
+        }
         mobileActionItems={
           <div className='flex items-center gap-2'>
             <Button
@@ -227,9 +258,10 @@ export function Offers() {
       >
         {!isMobile && scanImageButton}
       </Header>
+
       <Container>
-        <Card className='p-6'>
-          <div className='flex flex-col gap-10'>
+        {showIntro ? (
+          <Card className='p-6'>
             <div className='flex flex-col items-center justify-center pt-4 text-center gap-4'>
               <HandCoins
                 className='h-12 w-12 text-muted-foreground'
@@ -237,11 +269,7 @@ export function Offers() {
               />
               <div>
                 <h2 className='text-lg font-semibold'>
-                  {offers.length > 0 ? (
-                    <Trans>Manage offers</Trans>
-                  ) : (
-                    <Trans>No offers yet</Trans>
-                  )}
+                  <Trans>No offers yet</Trans>
                 </h2>
                 <p className='mt-2 text-sm text-muted-foreground'>
                   <Trans>
@@ -250,168 +278,89 @@ export function Offers() {
                 </p>
                 <p className='mt-1 text-sm text-muted-foreground'>
                   <Trans>You can also paste an offer using</Trans>{' '}
-                  <kbd>{platform() === 'macos' ? '⌘+V' : 'Ctrl+V'}</kbd>.
+                  <kbd>{pasteShortcut}</kbd>.
                 </p>
               </div>
-              <div className='flex gap-2'>
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant='outline'
-                      className='flex items-center gap-1'
-                    >
-                      <Trans>View Offer</Trans>
-                    </Button>
-                  </DialogTrigger>
-                  <ViewOfferDialog
-                    open={dialogOpen}
-                    onOpenChange={setDialogOpen}
-                    offerString={offerString}
-                    setOfferString={setOfferString}
-                    onSubmit={handleViewOffer}
-                  />
-                </Dialog>
-                <ReadOnlyButton
-                  requiresSigning
-                  onClick={() => navigate('/offers/make', { replace: true })}
-                >
-                  <Trans>Create Offer</Trans>
-                </ReadOnlyButton>
-              </div>
+              {actionButtons}
             </div>
+          </Card>
+        ) : (
+          <div className='flex flex-wrap items-center gap-x-4 gap-y-2'>
+            {actionButtons}
+            <span className='text-sm text-muted-foreground'>
+              <Trans>or paste an offer with</Trans> <kbd>{pasteShortcut}</kbd>
+            </span>
+          </div>
+        )}
 
-            {offers.length > 0 && (
-              <div className='flex flex-col gap-4'>
-                <div className='flex flex-row items-center justify-between gap-4'>
-                  <div className='flex items-center gap-2'>
-                    <FilterIcon
-                      className='h-4 w-4 text-muted-foreground'
-                      aria-hidden='true'
-                    />
-                    <Select
-                      value={statusFilter}
-                      onValueChange={setStatusFilter}
-                    >
-                      <SelectTrigger className='w-[180px]'>
-                        <SelectValue placeholder='Filter by status' />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value='all'>All Offers</SelectItem>
-                        <SelectItem value='active'>Active</SelectItem>
-                        <SelectItem value='completed'>Completed</SelectItem>
-                        <SelectItem value='cancelled'>Cancelled</SelectItem>
-                        <SelectItem value='expired'>Expired</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className='flex items-center gap-2 min-w-fit'>
-                    {filteredOffers.length > 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant='outline'
-                              size='icon'
-                              onClick={() => {
-                                setMultiSelect(!multiSelect);
-                                setSelected([]);
-                              }}
-                              aria-label={t`Toggle multi-select`}
-                            >
-                              <CopyPlus
-                                className={cn(
-                                  'h-4 w-4',
-                                  multiSelect &&
-                                    'text-green-600 dark:text-green-400',
-                                )}
-                                aria-hidden='true'
-                              />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <Trans>Toggle multi-select</Trans>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                    {filteredOffers.length > 0 && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant='destructive'
-                              size='sm'
-                              className='flex items-center gap-1'
-                              onClick={() => setIsDeleteAllOpen(true)}
-                            >
-                              <TrashIcon
-                                className='h-4 w-4'
-                                aria-hidden='true'
-                              />
-                              <span className='hidden sm:inline'>
-                                <Trans>Delete All</Trans>
-                              </span>
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <Trans>Delete All Filtered Offers</Trans>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                </div>
+        {/* Always mounted: useIntersectionObserver binds to this element once. */}
+        <div ref={optionsRef} className={cn(showIntro && 'hidden')}>
+          <OfferOptions
+            params={params}
+            setParams={setParams}
+            multiSelect={multiSelect}
+            setMultiSelect={setMultiSelect}
+            renderPagination={() => renderPagination(false)}
+            className='mt-4'
+          />
+        </div>
 
-                <div className='flex flex-col gap-2'>
-                  {filteredOffers.map((record) => (
-                    <OfferRowCard
-                      record={record}
-                      key={record.offer_id}
-                      refresh={updateOffers}
-                      selectionState={
-                        multiSelect
-                          ? [
-                              selected.includes(record.offer_id),
-                              (value) => toggleSelected(record.offer_id, value),
-                            ]
-                          : null
-                      }
-                    />
-                  ))}
-                </div>
+        {!showIntro && (
+          <main aria-label={t`Offers`} className='mt-4'>
+            {showNoMatches ? (
+              <div className='flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground'>
+                <p>
+                  <Trans>No offers match your filters.</Trans>
+                </p>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() =>
+                    setParams({
+                      query: null,
+                      status: 'all',
+                      findSide: 'any',
+                      page: 1,
+                    })
+                  }
+                >
+                  <Trans>Clear filters</Trans>
+                </Button>
+              </div>
+            ) : (
+              <div
+                className={
+                  params.cardSize === CardSize.Small
+                    ? 'grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2'
+                    : 'flex flex-col gap-2'
+                }
+              >
+                {offers.map((record) => (
+                  <OfferRowCard
+                    record={record}
+                    key={record.offer_id}
+                    refresh={refresh}
+                    selectionState={selectionStateFor(record.offer_id)}
+                    size={params.cardSize}
+                  />
+                ))}
               </div>
             )}
-          </div>
-        </Card>
+          </main>
+        )}
       </Container>
 
       <NfcScanDialog open={showScanUi} onOpenChange={setShowScanUi} />
 
-      <DeleteOfferDialog
-        open={isDeleteAllOpen}
-        onOpenChange={setIsDeleteAllOpen}
-        offerCount={filteredOffers.length}
-        onDelete={() => {
-          deleteOffers(filteredOffers.map((offer) => offer.offer_id))
-            .then(updateOffers)
-            .catch(addError)
-            .finally(() => setIsDeleteAllOpen(false));
-        }}
-      />
-
       {selected.length > 0 && (
         <OffersMultiSelectActions
           selected={selected}
-          offers={filteredOffers}
           onConfirm={() => {
-            updateOffers();
-            setSelected([]);
+            refresh();
             setMultiSelect(false);
           }}
-          onSelectAll={() =>
-            setSelected(filteredOffers.map((offer) => offer.offer_id))
-          }
-          onClearSelection={() => setSelected([])}
+          onSelectAll={() => selectAll(offers.map((offer) => offer.offer_id))}
+          onClearSelection={clear}
         />
       )}
     </>
