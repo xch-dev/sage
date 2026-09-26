@@ -640,8 +640,12 @@ mod tests {
         })
         .await
         .unwrap();
-        tx.insert_offer_asset(offer_id, offered, 1, 0, false).await.unwrap();
-        tx.insert_offer_asset(offer_id, requested, 1, 0, true).await.unwrap();
+        tx.insert_offer_asset(offer_id, offered, 1, 0, false)
+            .await
+            .unwrap();
+        tx.insert_offer_asset(offer_id, requested, 1, 0, true)
+            .await
+            .unwrap();
         tx.commit().await.unwrap();
     }
 
@@ -661,7 +665,10 @@ mod tests {
     async fn defaults_return_all_newest_first() {
         let db = setup().await;
         // 4 and 3 share inserted_timestamp 300; row id breaks the tie.
-        assert_eq!(ids(&db, OffersPageParams::default()).await, (vec![4, 3, 2, 1], 4));
+        assert_eq!(
+            ids(&db, OffersPageParams::default()).await,
+            (vec![4, 3, 2, 1], 4)
+        );
     }
 
     #[tokio::test]
