@@ -123,6 +123,7 @@ export function OfferRowCard({
     <>
       <SelectableCard
         selectionState={selectionState}
+        className='rounded-lg transition-all'
         ariaLabel={
           size === CardSize.Small ? offerSummaryLabel(record) : undefined
         }

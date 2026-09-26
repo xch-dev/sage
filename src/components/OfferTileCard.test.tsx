@@ -103,10 +103,37 @@ describe('OfferTileCard', () => {
     expect(screen.getByText('+2')).toBeTruthy();
   });
 
-  it('shows relative expiry and age', () => {
+  it('shows only the expiry for live offers', () => {
     render(<OfferTileCard record={record()} content={null} now={NOW} />);
     expect(screen.getByText('in 3d')).toBeTruthy();
+    expect(screen.queryByText('2h ago')).toBeNull();
+  });
+
+  it('shows only the age for ended offers', () => {
+    render(
+      <OfferTileCard
+        record={{ ...record(), status: 'expired' }}
+        content={null}
+        now={NOW}
+      />,
+    );
     expect(screen.getByText('2h ago')).toBeTruthy();
+    expect(screen.queryByText('in 3d')).toBeNull();
+  });
+
+  it('shows dust amounts as a floor with the exact value in the title', () => {
+    const dust = offered(
+      asset({ asset_id: 'e'.repeat(64), ticker: 'XCH', precision: 12 }),
+      1,
+    );
+    render(
+      <OfferTileCard
+        record={record({ maker: [dust] })}
+        content={null}
+        now={NOW}
+      />,
+    );
+    expect(screen.getByText('<0.001').title).toBe('0.000000000001');
   });
 
   it('shows the block height for height-based expiry', () => {
@@ -133,6 +160,7 @@ describe('OfferTileCard', () => {
     );
     expect(screen.queryByText('in 3d')).toBeNull();
     expect(screen.queryByTitle(/Expires at block/)).toBeNull();
+    expect(screen.getByText('2h ago')).toBeTruthy();
   });
 
   it('renders the selection checkbox only in multi-select', () => {
