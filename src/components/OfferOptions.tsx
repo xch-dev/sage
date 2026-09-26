@@ -1,4 +1,5 @@
 import { OfferFindSide } from '@/bindings';
+import { CardSize } from '@/hooks/useNftParams';
 import {
   OfferParams,
   OfferStatusFilter,
@@ -14,6 +15,8 @@ import {
   CalendarClock,
   Clock2,
   FilterIcon,
+  Maximize2,
+  Minimize2,
   Settings2,
 } from 'lucide-react';
 import { DebouncedSearchInput } from './DebouncedSearchInput';
@@ -52,7 +55,7 @@ const optionsPaginationVariants = {
 };
 
 export function OfferOptions({
-  params: { query, status, findSide, sort, ascending },
+  params: { query, status, findSide, sort, ascending, cardSize },
   setParams,
   multiSelect,
   setMultiSelect,
@@ -76,7 +79,7 @@ export function OfferOptions({
   ];
   const currentStatusLabel = statusLabels[status];
   const statusLabel = t`Filter by status: ${currentStatusLabel}`;
-  const sortLabel = t`Sort options`;
+  const sortLabel = t`View options`;
 
   return (
     <div
@@ -239,6 +242,31 @@ export function OfferOptions({
                     <Trans>Ascending</Trans>
                   ) : (
                     <Trans>Descending</Trans>
+                  )}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className='cursor-pointer'
+                onClick={() =>
+                  setParams({
+                    cardSize:
+                      cardSize === CardSize.Large
+                        ? CardSize.Small
+                        : CardSize.Large,
+                  })
+                }
+              >
+                {cardSize === CardSize.Large ? (
+                  <Minimize2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                ) : (
+                  <Maximize2 className='mr-2 h-4 w-4' aria-hidden='true' />
+                )}
+                <span>
+                  {cardSize === CardSize.Large ? (
+                    <Trans>Small Cards</Trans>
+                  ) : (
+                    <Trans>Large Cards</Trans>
                   )}
                 </span>
               </DropdownMenuItem>

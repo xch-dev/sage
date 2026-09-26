@@ -13,6 +13,7 @@ import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { useErrors } from '@/hooks/useErrors';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
+import { CardSize } from '@/hooks/useNftParams';
 import { useOfferData } from '@/hooks/useOfferData';
 import { useOfferParams } from '@/hooks/useOfferParams';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
@@ -305,7 +306,7 @@ export function Offers() {
         </div>
 
         {!showIntro && (
-          <main aria-label={t`Offers`} className='mt-4 flex flex-col gap-2'>
+          <main aria-label={t`Offers`} className='mt-4'>
             {showNoMatches ? (
               <div className='flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground'>
                 <p>
@@ -327,14 +328,23 @@ export function Offers() {
                 </Button>
               </div>
             ) : (
-              offers.map((record) => (
-                <OfferRowCard
-                  record={record}
-                  key={record.offer_id}
-                  refresh={refresh}
-                  selectionState={selectionStateFor(record.offer_id)}
-                />
-              ))
+              <div
+                className={
+                  params.cardSize === CardSize.Small
+                    ? 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'
+                    : 'flex flex-col gap-2'
+                }
+              >
+                {offers.map((record) => (
+                  <OfferRowCard
+                    record={record}
+                    key={record.offer_id}
+                    refresh={refresh}
+                    selectionState={selectionStateFor(record.offer_id)}
+                    size={params.cardSize}
+                  />
+                ))}
+              </div>
             )}
           </main>
         )}
