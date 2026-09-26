@@ -331,7 +331,7 @@ export function Offers() {
               <div
                 className={
                   params.cardSize === CardSize.Small
-                    ? 'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8'
+                    ? 'grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2'
                     : 'flex flex-col gap-2'
                 }
               >
