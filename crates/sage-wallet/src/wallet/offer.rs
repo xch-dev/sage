@@ -12,7 +12,7 @@ pub use take_offer::*;
 mod tests {
     use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, prelude::*};
     use indexmap::indexmap;
-    use sage_database::NftOfferInfo;
+    use sage_database::{NftOfferInfo, SerializedNft};
     use test_log::test;
 
     use crate::{
@@ -40,6 +40,42 @@ mod tests {
             .await?;
 
         Ok(offer.take(spend_bundle))
+    }
+
+    async fn mint_nft(
+        wallet: &mut TestWallet,
+        royalty_basis_points: u16,
+    ) -> anyhow::Result<SerializedNft> {
+        let (coin_spends, did) = wallet.wallet.create_did(0).await?;
+        wallet.transact(coin_spends).await?;
+        wallet.wait_for_coins().await;
+
+        let (coin_spends, mut nfts) = wallet
+            .wallet
+            .bulk_mint_nfts(
+                0,
+                did.info.launcher_id,
+                vec![WalletNftMint {
+                    metadata: NftMetadata::default(),
+                    p2_puzzle_hash: None,
+                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_basis_points,
+                }],
+            )
+            .await?;
+        wallet.transact(coin_spends).await?;
+        wallet.wait_for_coins().await;
+
+        Ok(nfts.remove(0))
+    }
+
+    fn nft_offer_info(nft: &SerializedNft) -> NftOfferInfo {
+        NftOfferInfo {
+            metadata: nft.info.metadata.clone(),
+            metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
+            royalty_puzzle_hash: nft.info.royalty_puzzle_hash,
+            royalty_basis_points: nft.info.royalty_basis_points,
+        }
     }
 
     #[test(tokio::test)]
@@ -158,6 +194,7 @@ mod tests {
 
         // Check balances
         assert_ne!(alice.wallet.db.nft(nft.info.launcher_id).await?, None);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
         assert_eq!(bob.wallet.db.xch_balance().await?, 1000);
 
         Ok(())
@@ -221,6 +258,7 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
         assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())
@@ -304,6 +342,7 @@ mod tests {
             bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
 
         Ok(())
     }
@@ -383,6 +422,7 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 0);
         assert_ne!(
             bob.wallet.db.nft(nft_id_first.info.launcher_id).await?,
             None
@@ -473,6 +513,8 @@ mod tests {
             bob.wallet.db.nft(nft_id_second.info.launcher_id).await?,
             None
         );
+        // Royalty-free NFTs don't share the trade price, so the royalty is on the full 1000
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
 
         Ok(())
     }
@@ -567,8 +609,210 @@ mod tests {
 
         // Check balances
         assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
         assert_ne!(bob.wallet.db.nft(nft_first.info.launcher_id).await?, None);
         assert_ne!(bob.wallet.db.nft(nft_second.info.launcher_id).await?, None);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_for_nft_with_royalties() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(2).await?;
+
+        let alice_nft = mint_nft(&mut alice, 300).await?;
+        let bob_nft = mint_nft(&mut bob, 300).await?;
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    nfts: vec![alice_nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    nfts: indexmap! { bob_nft.info.launcher_id => nft_offer_info(&bob_nft) },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        // No fungible trade price, so no royalties are owed on either side
+        assert_ne!(alice.wallet.db.nft(bob_nft.info.launcher_id).await?, None);
+        assert_ne!(bob.wallet.db.nft(alice_nft.info.launcher_id).await?, None);
+        assert_eq!(alice.wallet.db.xch_balance().await?, 0);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_for_xch_and_cat() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(2060).await?;
+
+        let nft = mint_nft(&mut alice, 300).await?;
+
+        let (coin_spends, asset_id) = bob.wallet.issue_cat(1030, 0, None).await?;
+        bob.transact(coin_spends).await?;
+        bob.wait_for_coins().await;
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1000,
+                    cats: indexmap! { asset_id => RequestedCat { amount: 1000, hidden_puzzle_hash: None } },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        bob.wait_for_coins().await;
+        alice.wait_for_coins().await;
+        alice.wait_for_puzzles().await;
+
+        // Bob pays a 3% royalty in each requested asset
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(alice.wallet.db.cat_balance(asset_id).await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
+        assert_eq!(bob.wallet.db.cat_balance(asset_id).await?, 0);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_offer_nft_and_xch_for_xch() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(102).await?;
+        let mut bob = alice.next(930).await?;
+
+        let nft = mint_nft(&mut alice, 300).await?;
+
+        let offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 100,
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let offer = alice
+            .wallet
+            .sign_transaction(offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        let offer = bob.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&bob, offer).await?;
+        bob.push_bundle(spend_bundle).await?;
+
+        alice.wait_for_coins().await;
+        bob.wait_for_coins().await;
+
+        // Alice's NFT commits to a 1000 trade price, so the royalty is 30 even though
+        // Bob only adds 900 on top of Alice's offered 100
+        assert_eq!(alice.wallet.db.xch_balance().await?, 1000);
+        assert_eq!(bob.wallet.db.xch_balance().await?, 0);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_take_aggregate_offer_with_pass_through_nft() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(2).await?;
+        let mut bob = alice.next(1030).await?;
+        let mut carol = bob.next(0).await?;
+
+        let nft = mint_nft(&mut alice, 300).await?;
+
+        // Alice sells the NFT for 500
+        let sell_offer = alice
+            .wallet
+            .make_offer(
+                Offered {
+                    nfts: vec![nft.info.launcher_id],
+                    ..Default::default()
+                },
+                Requested {
+                    xch: 500,
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let sell_offer = alice
+            .wallet
+            .sign_transaction(sell_offer, &alice.agg_sig, alice.master_sk.clone(), true)
+            .await?;
+
+        // Bob bids 1000 for the same NFT
+        let buy_offer = bob
+            .wallet
+            .make_offer(
+                Offered {
+                    xch: 1000,
+                    ..Default::default()
+                },
+                Requested {
+                    nfts: indexmap! { nft.info.launcher_id => nft_offer_info(&nft) },
+                    ..Default::default()
+                },
+                None,
+            )
+            .await?;
+        let buy_offer = bob
+            .wallet
+            .sign_transaction(buy_offer, &bob.agg_sig, bob.master_sk.clone(), true)
+            .await?;
+
+        // Carol takes the aggregate without owning the NFT
+        let offer = aggregate_offers(vec![sell_offer, buy_offer]);
+        let offer = carol.wallet.take_offer(offer, 0).await?;
+        let spend_bundle = sign_taken_offer(&carol, offer).await?;
+        carol.push_bundle(spend_bundle).await?;
+
+        carol.wait_for_coins().await;
+        alice.wait_for_coins().await;
+        bob.wait_for_puzzles().await;
+
+        // Bob pays his own royalty, so Carol keeps 1000 minus Alice's 500 and her 15 royalty
+        assert_eq!(alice.wallet.db.xch_balance().await?, 500);
+        assert_eq!(carol.wallet.db.xch_balance().await?, 485);
+        assert_ne!(bob.wallet.db.nft(nft.info.launcher_id).await?, None);
 
         Ok(())
     }
