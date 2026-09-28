@@ -119,6 +119,9 @@ pub enum WalletError {
     #[error("Uncancellable offer")]
     UncancellableOffer,
 
+    #[error("Offer can't be taken: NFT {0} requires a royalty payment that rounds to zero")]
+    ZeroRoyaltyPayment(Bytes32),
+
     #[error("Cannot import offer that doesn't belong to this wallet")]
     CannotImportOffer,
 

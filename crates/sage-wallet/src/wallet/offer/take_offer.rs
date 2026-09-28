@@ -1,13 +1,9 @@
-use chia_wallet_sdk::{
-    driver::{
-        TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
-        calculate_trade_prices,
-    },
-    prelude::*,
-};
+use chia_wallet_sdk::{driver::TransferNftById, prelude::*};
 use itertools::Itertools;
 
-use crate::{Wallet, WalletError};
+use crate::{
+    Wallet, WalletError, offered_nft_royalty_actions, prepaid_royalties, requested_nft_trade_prices,
+};
 
 #[derive(Debug)]
 pub struct TakenOffer {
@@ -24,29 +20,14 @@ impl Wallet {
         let mut ctx = SpendContext::new();
         let offer = Offer::from_spend_bundle(&mut ctx, &spend_bundle)?;
 
-        let arbitrage = offer.arbitrage();
-
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
-
-        let requested_amounts = OfferAmounts {
-            xch: arbitrage.requested.xch,
-            cats: arbitrage.requested.cats.clone(),
-        };
 
         // Make payments
         let mut actions = vec![Action::fee(fee)];
 
         // Pay royalties on every offered NFT, including ones that are also requested and only
-        // pass through settlement. Makers commit to trade prices based on their gross requested
-        // amounts, not the net arbitrage.
-        let offer_royalties = offer.requested_royalties();
-        let offer_trade_price_amounts = calculate_trade_price_amounts(
-            &offer.requested_payments().amounts(),
-            offer_royalties.len(),
-        );
-        let royalty_payments =
-            calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
-        actions.extend(royalty_payments.actions());
+        // pass through settlement
+        actions.extend(offered_nft_royalty_actions(&mut ctx, &offer)?);
 
         // Pay requested payments
         let mut spends = Spends::new(change_puzzle_hash);
@@ -63,25 +44,8 @@ impl Wallet {
         self.select_spends_excluding(&mut ctx, &mut spends, &actions, &offer_input_coin_ids)
             .await?;
 
-        // Reset DIDs and reveal trade prices
-        let mut royalty_nft_count = 0;
-
-        for nft in spends.nfts.values().rev() {
-            let nft = nft.last()?;
-
-            if !nft.kind.is_conditions() {
-                continue;
-            }
-
-            if nft.asset.info.royalty_basis_points > 0 {
-                royalty_nft_count += 1;
-            }
-        }
-
-        let trade_prices = calculate_trade_prices(
-            &calculate_trade_price_amounts(&requested_amounts, royalty_nft_count),
-            offer.asset_info(),
-        )?;
+        // Reset DIDs and reveal trade prices matching the royalties buyers already paid
+        let prepaid_royalties = prepaid_royalties(&mut ctx, &offer)?;
 
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
@@ -97,11 +61,7 @@ impl Wallet {
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        if nft.asset.info.royalty_basis_points > 0 {
-                            trade_prices.clone()
-                        } else {
-                            vec![]
-                        },
+                        requested_nft_trade_prices(&prepaid_royalties, &nft.asset.info),
                     )),
                 ),
             );
