@@ -5,9 +5,7 @@ use chia_wallet_sdk::{
     },
     prelude::*,
 };
-use indexmap::IndexMap;
 use itertools::Itertools;
-use sage_database::NftOfferInfo;
 
 use crate::{Wallet, WalletError};
 
@@ -28,57 +26,24 @@ impl Wallet {
 
         let arbitrage = offer.arbitrage();
 
-        let mut requested_nfts = IndexMap::new();
-
-        for launcher_id in arbitrage.requested.nfts {
-            let Some(nft) = offer.asset_info().nft(launcher_id) else {
-                return Err(WalletError::MissingNft(launcher_id));
-            };
-
-            let metadata = ctx.serialize(&nft.metadata)?;
-
-            requested_nfts.insert(
-                launcher_id,
-                NftOfferInfo {
-                    metadata,
-                    metadata_updater_puzzle_hash: nft.metadata_updater_puzzle_hash,
-                    royalty_puzzle_hash: nft.royalty_puzzle_hash,
-                    royalty_basis_points: nft.royalty_basis_points,
-                },
-            );
-        }
-
         let change_puzzle_hash = self.change_p2_puzzle_hash().await?;
-
-        let offer_amounts = OfferAmounts {
-            xch: arbitrage.offered.xch,
-            cats: arbitrage.offered.cats.clone(),
-        };
 
         let requested_amounts = OfferAmounts {
             xch: arbitrage.requested.xch,
             cats: arbitrage.requested.cats.clone(),
         };
 
-        let offer_royalties = requested_nfts
-            .iter()
-            .map(|(&launcher_id, nft)| {
-                RoyaltyInfo::new(
-                    launcher_id,
-                    nft.royalty_puzzle_hash,
-                    nft.royalty_basis_points,
-                )
-            })
-            .filter(|info| info.basis_points > 0)
-            .collect_vec();
-
-        let offer_trade_price_amounts =
-            calculate_trade_price_amounts(&offer_amounts, offer_royalties.len());
-
         // Make payments
         let mut actions = vec![Action::fee(fee)];
 
-        // Pay royalties
+        // Pay royalties on every offered NFT, including ones that are also requested and only
+        // pass through settlement. Makers commit to trade prices based on their gross requested
+        // amounts, not the net arbitrage.
+        let offer_royalties = offer.requested_royalties();
+        let offer_trade_price_amounts = calculate_trade_price_amounts(
+            &offer.requested_payments().amounts(),
+            offer_royalties.len(),
+        );
         let royalty_payments =
             calculate_royalty_payments(&mut ctx, &offer_trade_price_amounts, &offer_royalties)?;
         actions.extend(royalty_payments.actions());
