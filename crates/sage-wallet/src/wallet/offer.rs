@@ -1,4 +1,6 @@
 mod aggregate_offer;
+#[cfg(test)]
+mod aggregate_royalty_tests;
 mod cancel_offer;
 mod make_offer;
 mod offer_assets;
@@ -21,7 +23,7 @@ mod tests {
 
     use super::aggregate_offers;
 
-    async fn sign_taken_offer(
+    pub(super) async fn sign_taken_offer(
         wallet: &TestWallet,
         taken: TakenOffer,
     ) -> anyhow::Result<SpendBundle> {
@@ -46,6 +48,14 @@ mod tests {
         wallet: &mut TestWallet,
         royalty_basis_points: u16,
     ) -> anyhow::Result<SerializedNft> {
+        mint_nft_with_royalty(wallet, Bytes32::default(), royalty_basis_points).await
+    }
+
+    pub(super) async fn mint_nft_with_royalty(
+        wallet: &mut TestWallet,
+        royalty_puzzle_hash: Bytes32,
+        royalty_basis_points: u16,
+    ) -> anyhow::Result<SerializedNft> {
         let (coin_spends, did) = wallet.wallet.create_did(0).await?;
         wallet.transact(coin_spends).await?;
         wallet.wait_for_coins().await;
@@ -58,7 +68,7 @@ mod tests {
                 vec![WalletNftMint {
                     metadata: NftMetadata::default(),
                     p2_puzzle_hash: None,
-                    royalty_puzzle_hash: Some(Bytes32::default()),
+                    royalty_puzzle_hash: Some(royalty_puzzle_hash),
                     royalty_basis_points,
                 }],
             )
@@ -69,7 +79,7 @@ mod tests {
         Ok(nfts.remove(0))
     }
 
-    fn nft_offer_info(nft: &SerializedNft) -> NftOfferInfo {
+    pub(super) fn nft_offer_info(nft: &SerializedNft) -> NftOfferInfo {
         NftOfferInfo {
             metadata: nft.info.metadata.clone(),
             metadata_updater_puzzle_hash: nft.info.metadata_updater_puzzle_hash,
