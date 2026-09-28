@@ -372,7 +372,8 @@ async fn test_sell_price_below_royalty_granularity() -> anyhow::Result<()> {
 
     let nft_a = mint_nft_with_royalty(&mut alice, ROYALTY_A, 300).await?;
 
-    // 3% of 10 mojos rounds down to 0, but the NFT still asserts a payment for that trade price
+    // 3% of 10 mojos rounds down to 0. Settlement can't make a 0 payment, so the maker must not
+    // commit that trade price.
     take_aggregate(&carol, vec![sell_for_xch(&alice, &[&nft_a], 10).await?]).await?;
 
     carol.wait_for_coins().await;

@@ -287,6 +287,8 @@ impl Wallet {
                 Action::update_nft(
                     Id::Existing(nft.asset.info.launcher_id),
                     vec![],
+                    // Settlement payments must be positive, so a trade price whose royalty rounds
+                    // to zero would make the offer impossible to take
                     Some(TransferNftById::new(
                         None,
                         payable_trade_prices(&trade_prices, nft.asset.info.royalty_basis_points),
