@@ -4,11 +4,14 @@ mod aggregate_royalty_tests;
 mod cancel_offer;
 mod make_offer;
 mod offer_assets;
+mod offer_royalties;
 mod take_offer;
 
 pub use aggregate_offer::*;
 pub use make_offer::*;
 pub use take_offer::*;
+
+pub(crate) use offer_royalties::*;
 
 #[cfg(test)]
 mod tests {
