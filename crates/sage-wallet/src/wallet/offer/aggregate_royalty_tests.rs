@@ -10,7 +10,7 @@
 //! Each test asserts that exact outcome for one combination of offers.
 
 use chia_wallet_sdk::prelude::*;
-use indexmap::indexmap;
+use indexmap::{IndexMap, indexmap};
 use sage_database::SerializedNft;
 use test_log::test;
 
@@ -71,10 +71,12 @@ async fn bid_xch(maker: &TestWallet, nft: &SerializedNft, xch: u64) -> anyhow::R
     .await
 }
 
-/// Takes the aggregate of `offers`. The spend is validated against a copy of the simulator first,
-/// so a rejected take fails with the validation error instead of a sync timeout.
-async fn take_aggregate(taker: &TestWallet, offers: Vec<SpendBundle>) -> anyhow::Result<()> {
+/// Takes the aggregate of `offers`, returning the parsed offer so tests can check the royalty
+/// amounts Sage displays for it. The spend is validated against a copy of the simulator first, so
+/// a rejected take fails with the validation error instead of a sync timeout.
+async fn take_aggregate(taker: &TestWallet, offers: Vec<SpendBundle>) -> anyhow::Result<Offer> {
     let taken = taker.wallet.take_offer(aggregate_offers(offers), 0).await?;
+    let offer = taken.offer.clone();
     let spend_bundle = sign_taken_offer(taker, taken).await?;
     taker
         .sim
@@ -82,7 +84,15 @@ async fn take_aggregate(taker: &TestWallet, offers: Vec<SpendBundle>) -> anyhow:
         .await
         .clone()
         .new_transaction(spend_bundle.clone())?;
-    taker.push_bundle(spend_bundle).await
+    taker.push_bundle(spend_bundle).await?;
+    Ok(offer)
+}
+
+fn xch_amounts(xch: u64) -> OfferAmounts {
+    OfferAmounts {
+        xch,
+        cats: IndexMap::new(),
+    }
 }
 
 /// Returns the (XCH, CAT) amounts paid to a royalty address.
@@ -118,7 +128,8 @@ async fn test_aggregate_sells_same_price_different_royalties() -> anyhow::Result
         sell_for_xch(&alice, &[&nft_a], 10_000).await?,
         sell_for_xch(&bob, &[&nft_b], 10_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(1500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -148,7 +159,8 @@ async fn test_aggregate_sells_different_prices_different_royalties() -> anyhow::
         sell_for_xch(&alice, &[&nft_a], 10_000).await?,
         sell_for_xch(&bob, &[&nft_b], 30_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(3500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -176,7 +188,8 @@ async fn test_aggregate_sells_different_prices_same_royalty() -> anyhow::Result<
         sell_for_xch(&alice, &[&nft_a], 10_000).await?,
         sell_for_xch(&bob, &[&nft_b], 30_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(2000));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -205,7 +218,8 @@ async fn test_aggregate_sells_multi_nft_leg_and_single_nft_leg() -> anyhow::Resu
         sell_for_xch(&alice, &[&nft_a1, &nft_a2], 30_000).await?,
         sell_for_xch(&bob, &[&nft_b], 10_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(2000));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -246,7 +260,14 @@ async fn test_aggregate_sells_for_different_assets() -> anyhow::Result<()> {
     .await?;
 
     let offers = vec![sell_for_xch(&alice, &[&nft_a], 10_000).await?, cat_offer];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(
+        offer.requested_royalty_amounts(),
+        OfferAmounts {
+            xch: 500,
+            cats: indexmap! { asset_id => 500 },
+        }
+    );
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -290,7 +311,8 @@ async fn test_aggregate_nft_sell_with_unrelated_cat_trade() -> anyhow::Result<()
     .await?;
 
     let offers = vec![sell_for_xch(&alice, &[&nft_a], 10_000).await?, cat_offer];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.requested_royalty_amounts(), xch_amounts(500));
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
@@ -319,7 +341,8 @@ async fn test_aggregate_bids_same_price_different_royalties() -> anyhow::Result<
         bid_xch(&alice, &nft_a, 10_000).await?,
         bid_xch(&bob, &nft_b, 10_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.offered_royalty_amounts(), xch_amounts(1500));
 
     carol.wait_for_coins().await;
     alice.wait_for_puzzles().await;
@@ -349,7 +372,8 @@ async fn test_aggregate_bids_different_prices() -> anyhow::Result<()> {
         bid_xch(&alice, &nft_a, 10_000).await?,
         bid_xch(&bob, &nft_b, 30_000).await?,
     ];
-    take_aggregate(&carol, offers).await?;
+    let offer = take_aggregate(&carol, offers).await?;
+    assert_eq!(offer.offered_royalty_amounts(), xch_amounts(3500));
 
     carol.wait_for_coins().await;
     alice.wait_for_puzzles().await;
@@ -374,7 +398,8 @@ async fn test_sell_price_below_royalty_granularity() -> anyhow::Result<()> {
 
     // 3% of 10 mojos rounds down to 0. Settlement can't make a 0 payment, so the maker must not
     // commit that trade price.
-    take_aggregate(&carol, vec![sell_for_xch(&alice, &[&nft_a], 10).await?]).await?;
+    let offer = take_aggregate(&carol, vec![sell_for_xch(&alice, &[&nft_a], 10).await?]).await?;
+    assert_eq!(offer.requested_royalty_amounts(), OfferAmounts::new());
 
     carol.wait_for_coins().await;
     alice.wait_for_coins().await;
