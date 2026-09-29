@@ -1,8 +1,8 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::{NotarizedPayment, Payment},
     driver::{
-        FungibleSpends, TransferNftById, calculate_nft_royalty, calculate_royalty_payments,
-        calculate_trade_price_amounts, calculate_trade_prices, coin_amount,
+        FungibleSpends, TransferNftById, calculate_royalty_payments, calculate_trade_price_amounts,
+        calculate_trade_prices, coin_amount, payable_trade_prices,
     },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
@@ -287,20 +287,9 @@ impl Wallet {
                 Action::update_nft(
                     Id::Existing(nft.asset.info.launcher_id),
                     vec![],
-                    // Settlement payments must be positive, so a trade price whose royalty rounds
-                    // to zero would make the offer impossible to take
                     Some(TransferNftById::new(
                         None,
-                        trade_prices
-                            .iter()
-                            .filter(|trade_price| {
-                                calculate_nft_royalty(
-                                    trade_price.amount,
-                                    nft.asset.info.royalty_basis_points,
-                                ) > 0
-                            })
-                            .copied()
-                            .collect(),
+                        payable_trade_prices(&trade_prices, nft.asset.info.royalty_basis_points),
                     )),
                 ),
             );

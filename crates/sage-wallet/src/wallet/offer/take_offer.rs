@@ -1,9 +1,7 @@
 use chia_wallet_sdk::{driver::TransferNftById, prelude::*};
 use itertools::Itertools;
 
-use crate::{
-    Wallet, WalletError, offered_nft_royalty_actions, prepaid_royalties, requested_nft_trade_prices,
-};
+use crate::{Wallet, WalletError};
 
 #[derive(Debug)]
 pub struct TakenOffer {
@@ -27,7 +25,7 @@ impl Wallet {
 
         // Pay royalties on every offered NFT, including ones that are also requested and only
         // pass through settlement
-        actions.extend(offered_nft_royalty_actions(&mut ctx, &offer)?);
+        actions.extend(offer.requested_royalty_payments(&mut ctx)?.actions());
 
         // Pay requested payments
         let mut spends = Spends::new(change_puzzle_hash);
@@ -45,8 +43,6 @@ impl Wallet {
             .await?;
 
         // Reset DIDs and reveal trade prices matching the royalties buyers already paid
-        let prepaid_royalties = prepaid_royalties(&mut ctx, &offer)?;
-
         for nft in spends.nfts.values().rev() {
             let nft = nft.last()?;
 
@@ -54,14 +50,16 @@ impl Wallet {
                 continue;
             }
 
+            let launcher_id = nft.asset.info.launcher_id;
+
             actions.insert(
                 0,
                 Action::update_nft(
-                    Id::Existing(nft.asset.info.launcher_id),
+                    Id::Existing(launcher_id),
                     vec![],
                     Some(TransferNftById::new(
                         None,
-                        requested_nft_trade_prices(&prepaid_royalties, &nft.asset.info),
+                        offer.requested_nft_trade_prices(launcher_id),
                     )),
                 ),
             );
