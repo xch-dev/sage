@@ -16,6 +16,7 @@ import {
   handleGetNfts,
   handleSend,
   handleSignMessageByAddress,
+  handleWatchAsset,
 } from './commands/high-level';
 import {
   handleCancelOffer,
@@ -90,6 +91,8 @@ export const handleCommand = async (
       );
     case 'chia_bulkMintNfts':
       return await handleBulkMintNfts(parseCommand(command, params), context);
+    case 'chia_watchAsset':
+      return await handleWatchAsset(parseCommand(command, params));
     default:
       throw new Error(`Unknown command: ${command}`);
   }
