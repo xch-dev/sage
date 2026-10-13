@@ -9,7 +9,13 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    ignores: ['target/**/*', 'dist/**/*', 'src/bindings.ts'],
+    ignores: [
+      'target/**/*',
+      'dist/**/*',
+      'src/bindings.ts',
+      'src-tauri/arch/src/**/*',
+      'src-tauri/arch/pkg/**/*',
+    ],
   },
   {
     files: ['src/**/*.ts', 'src/**/*.tsx'],

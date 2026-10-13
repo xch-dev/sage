@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Sage
+Comment=A light wallet for the Chia blockchain
+Exec=sage-tauri
+Icon=sage-tauri
+Terminal=false
+Categories=Office;Finance;
+StartupWMClass=sage-tauri

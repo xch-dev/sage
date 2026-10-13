@@ -1,0 +1,78 @@
+pkgname=sage-wallet
+pkgver=0.13.0
+pkgrel=4
+pkgdesc='A light wallet for the Chia blockchain'
+arch=('x86_64')
+url='https://github.com/xch-dev/sage'
+license=('Apache-2.0')
+depends=(
+  'cairo'
+  'gdk-pixbuf2'
+  'glib2'
+  'glibc'
+  'gtk3'
+  'hicolor-icon-theme'
+  'libgcc'
+  'libsoup3'
+  'webkit2gtk-4.1'
+  'xdg-utils'
+)
+makedepends=('rustup' 'clang' 'cmake' 'git' 'nodejs>=22.12.0' 'pnpm')
+checkdepends=('desktop-file-utils')
+options=('!debug' '!lto')
+
+_repo_dir=$(realpath "$(dirname "${BASH_SOURCE[0]}")/../..")
+
+pkgver() {
+  cd "$_repo_dir"
+  node -p "require('./src-tauri/tauri.conf.json').version.replace(/-(?=[A-Za-z])/, '')"
+}
+
+_build_env() {
+  export CARGO_TARGET_DIR="$_repo_dir/target"
+  export CARGO_PROFILE_DEV_DEBUG=0
+  export SQLX_OFFLINE=true
+}
+
+prepare() {
+  _build_env
+  cd "$_repo_dir"
+  cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+  pnpm install --frozen-lockfile
+}
+
+build() {
+  _build_env
+  export CARGO_NET_OFFLINE=true
+  # glibc 2.44's const-preserving memchr trips AWS-LC 0.34's old wrapper.
+  # Keep this diagnostic as a warning only for that dependency.
+  export AWS_LC_SYS_CFLAGS="$CFLAGS -Wno-error=discarded-qualifiers"
+  cd "$_repo_dir"
+
+  # Tauri's beforeBuildCommand builds the frontend and built-in apps once.
+  pnpm exec tauri build --no-bundle -- --frozen
+}
+
+check() {
+  cd "$_repo_dir"
+  desktop-file-validate src-tauri/arch/sage-wallet.desktop
+  sh -n src-tauri/arch/sage-tauri
+  node --test scripts/package-arch.test.mjs
+}
+
+package() {
+  cd "$_repo_dir"
+  install -Dm755 "$_repo_dir/target/release/sage-tauri" "$pkgdir/usr/lib/sage-wallet/sage-tauri"
+  install -Dm755 src-tauri/arch/sage-tauri "$pkgdir/usr/bin/sage-tauri"
+
+  # Tauri resolves resources using productName ("Sage"), including its case.
+  install -d "$pkgdir/usr/lib/Sage/builtin-apps"
+  cp -r builtin-apps/build/dist/. "$pkgdir/usr/lib/Sage/builtin-apps/"
+  rm -f "$pkgdir/usr/lib/Sage/builtin-apps/.gitkeep"
+
+  install -Dm644 src-tauri/arch/sage-wallet.desktop "$pkgdir/usr/share/applications/sage-wallet.desktop"
+  install -Dm644 src-tauri/icons/32x32.png "$pkgdir/usr/share/icons/hicolor/32x32/apps/sage-tauri.png"
+  install -Dm644 src-tauri/icons/128x128.png "$pkgdir/usr/share/icons/hicolor/128x128/apps/sage-tauri.png"
+  install -Dm644 src-tauri/icons/128x128@2x.png "$pkgdir/usr/share/icons/hicolor/256x256/apps/sage-tauri.png"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

@@ -65,6 +65,7 @@ jobs:
   build:
     name: ${{ matrix.platform_name }}
     runs-on: ${{ matrix.platform }}
+    container: ${{ matrix.container || '' }}
     permissions:
       contents: write
     strategy:
@@ -79,6 +80,17 @@ jobs:
             platform_name: Linux (x64)
             cache_key: linux-x64
             build: 'pnpm tauri build'
+          - platform: 'ubuntu-latest'
+            platform_name: Arch Linux (x64)
+            cache_key: arch-x64
+            container:
+              image: archlinux:base-devel
+              env:
+                CARGO_HOME: /opt/cargo
+                RUSTUP_HOME: /opt/rustup
+                npm_config_store_dir: /opt/pnpm-store
+                pnpm_config_store_dir: /opt/pnpm-store
+            build: 'runuser -u builder -- pnpm package:arch --noconfirm'
           - platform: 'linux-arm64'
             platform_name: Linux (ARM)
             cache_key: linux-arm64
@@ -114,6 +126,16 @@ jobs:
             cache_key: android-ndk-r26d
             build: 'pnpm tauri android build'
     steps:
+      - name: Arch dependencies
+        if: matrix.platform_name == 'Arch Linux (x64)'
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm --needed git nodejs pnpm rustup sudo
+          useradd --create-home builder
+          echo 'builder ALL=(ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
+          chmod 440 /etc/sudoers.d/builder
+          install -d -o builder -g builder "$CARGO_HOME" "$RUSTUP_HOME" "$pnpm_config_store_dir"
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -216,6 +238,10 @@ jobs:
       - name: Bindgen CLI
         run: cargo install bindgen-cli --locked
 
+      - name: Prepare Arch build
+        if: matrix.platform_name == 'Arch Linux (x64)'
+        run: chown -R builder:builder "$GITHUB_WORKSPACE" "$CARGO_HOME" "$RUSTUP_HOME" "$pnpm_config_store_dir"
+
       # On MacOS we only notarize on tagged releases
       # On iOS we need these secrets as well to do code signing
       - name: Build with secrets
@@ -308,6 +334,21 @@ jobs:
             target/release/bundle/deb/*.deb
             target/release/bundle/rpm/*.rpm
             target/release/bundle/appimage/*.AppImage
+
+      # Arch Linux x64
+      - name: Upload package (Arch Linux x64)
+        uses: actions/upload-artifact@v4
+        if: matrix.platform_name == 'Arch Linux (x64)'
+        with:
+          name: Sage_x64.pkg.tar.zst
+          path: target/release/bundle/arch/*.pkg.tar.zst
+          if-no-files-found: error
+
+      - name: Release (Arch Linux x64)
+        uses: softprops/action-gh-release@v2
+        if: matrix.platform_name == 'Arch Linux (x64)' && startsWith(github.event.ref, 'refs/tags/v')
+        with:
+          files: target/release/bundle/arch/*.pkg.tar.zst
 
       # Linux ARM
       - name: Upload DEB (Linux ARM)
