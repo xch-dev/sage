@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useErrors } from '@/hooks/useErrors';
 import { useLongPress } from '@/hooks/useLongPress';
+import { getReadableSurfaceColor } from '@/lib/themeSurface';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Plural, Trans } from '@lingui/react/macro';
@@ -53,6 +54,7 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTheme } from 'theme-o-rama';
 import { commands, PeerRecord } from '../bindings';
 
 const SelectAllHeader = ({ table }: { table: Table<PeerRecord> }) => (
@@ -165,6 +167,13 @@ const MobileRow = ({
     x: 0,
     config: { tension: 400, friction: 30 },
   }));
+  const { currentTheme } = useTheme();
+  // Re-read when the theme changes: the helper reads the applied CSS variables.
+  const surfaceColor = useMemo(
+    () => getReadableSurfaceColor(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentTheme],
+  );
 
   const handleDelete = () => {
     api.start({
@@ -216,11 +225,12 @@ const MobileRow = ({
         {...longPressHandlers}
         style={{
           x,
-          // this removes transparency of the secondary color
+          // this removes transparency of the surface color
           backgroundColor:
             // because otherwise the trashcan shows through when there is
-            //transparency or a background image set
-            'color-mix(in srgb, var(--secondary) 100%, transparent)',
+            // transparency or a background image set. The surface is the
+            // theme's secondary unless that clashes with the text color.
+            `color-mix(in srgb, ${surfaceColor} 100%, transparent)`,
         }}
         className='relative p-4 touch-pan-y select-none'
       >
