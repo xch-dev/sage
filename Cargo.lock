@@ -6598,6 +6598,7 @@ dependencies = [
  "anyhow",
  "clap",
  "dirs 5.0.1",
+ "hex",
  "rustls",
  "sage",
  "sage-api",
