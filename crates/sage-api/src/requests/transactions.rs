@@ -33,6 +33,10 @@ pub struct SendXch {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 /// Send XCH to multiple addresses
@@ -258,6 +262,10 @@ pub struct SendCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 /// Send CAT tokens to multiple addresses

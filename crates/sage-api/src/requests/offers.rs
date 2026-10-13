@@ -307,6 +307,10 @@ pub struct CancelOffer {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOfferResponse = TransactionResponse;
@@ -332,6 +336,10 @@ pub struct CancelOffers {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub auto_submit: bool,
+    /// Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(nullable = true))]
+    pub coin_ids: Option<Vec<String>>,
 }
 
 pub type CancelOffersResponse = TransactionResponse;

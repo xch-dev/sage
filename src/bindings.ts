@@ -701,7 +701,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Cancel multiple offers
  */
@@ -717,7 +721,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Validate and check an address
  */
@@ -2382,7 +2390,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Send a transaction immediately
  */
@@ -2430,7 +2442,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Set the change address for transactions
  */
