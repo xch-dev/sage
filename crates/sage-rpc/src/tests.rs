@@ -19,7 +19,10 @@ use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha8Rng;
 use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
-use sage_api::{Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, SendXch};
+use sage_api::{
+    Amount, GetKey, GetPeers, GetSyncStatus, GetVersion, ImportKey, Login, MakeOffer, OfferAmount,
+    SendXch,
+};
 use sage_api_macro::impl_endpoints;
 use sage_wallet::{SyncCommand, SyncEvent};
 use serde::{Serialize, de::DeserializeOwned};
@@ -255,6 +258,7 @@ async fn test_send_xch() -> Result<()> {
         memos: vec![],
         clawback: None,
         auto_submit: true,
+        coin_ids: None,
     })
     .await?;
 
@@ -277,6 +281,98 @@ async fn test_send_xch() -> Result<()> {
         .selectable_balance
         .to_u64();
     assert_eq!(balance, Some(2000));
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_send_xch_with_coin_ids() -> Result<()> {
+    let mut app = TestApp::new().await?;
+
+    let alice = app.setup_bls(1000).await?;
+    app.login(Login { fingerprint: alice }).await?;
+    app.wait_for_coins().await;
+
+    let selectable = async |app: &TestApp| -> Result<Vec<Coin>> {
+        Ok(app
+            .sage
+            .lock()
+            .await
+            .wallet()?
+            .db
+            .selectable_xch_coins()
+            .await?)
+    };
+    let send = |coin_ids: Vec<String>, address: String, amount: u64| SendXch {
+        address,
+        amount: Amount::u64(amount),
+        fee: Amount::u64(0),
+        memos: vec![],
+        clawback: None,
+        auto_submit: true,
+        coin_ids: Some(coin_ids),
+    };
+
+    let own = app.get_sync_status(GetSyncStatus {}).await?.receive_address;
+    let start = selectable(&app).await?;
+    assert_eq!(start.len(), 1);
+    let first = start[0].coin_id();
+
+    // A chosen coin is spent: 400 to ourselves, 600 change.
+    app.send_xch(send(vec![first.to_string()], own.clone(), 400))
+        .await?;
+    app.wait_for_coins().await;
+
+    let coins = selectable(&app).await?;
+    let mut amounts: Vec<u64> = coins.iter().map(|coin| coin.amount).collect();
+    amounts.sort_unstable();
+    assert_eq!(amounts, vec![400, 600]);
+
+    // A coin this wallet does not have, and one it has already spent, are refused.
+    for coin_id in [Bytes32::new([7; 32]), first] {
+        let error = app
+            .send_xch(send(vec![coin_id.to_string()], own.clone(), 1))
+            .await
+            .expect_err("a coin the wallet cannot select must be refused");
+        assert!(error.to_string().contains("cannot be selected"), "{error}");
+    }
+
+    // A coin backing an open offer is refused too: choosing it must not cancel the offer.
+    let locked = coins
+        .iter()
+        .find(|coin| coin.amount == 400)
+        .expect("400 coin");
+    let free = coins
+        .iter()
+        .find(|coin| coin.amount == 600)
+        .expect("600 coin");
+    app.make_offer(MakeOffer {
+        requested_assets: vec![OfferAmount {
+            asset_id: None,
+            hidden_puzzle_hash: None,
+            amount: Amount::u64(1),
+        }],
+        offered_assets: vec![OfferAmount {
+            asset_id: None,
+            hidden_puzzle_hash: None,
+            amount: Amount::u64(400),
+        }],
+        fee: Amount::u64(0),
+        receive_address: None,
+        expires_at_second: None,
+        auto_import: true,
+        coin_ids: Some(vec![locked.coin_id().to_string()]),
+    })
+    .await?;
+
+    let error = app
+        .send_xch(send(vec![locked.coin_id().to_string()], own.clone(), 1))
+        .await
+        .expect_err("a coin locked in an offer must be refused");
+    assert!(error.to_string().contains("cannot be selected"), "{error}");
+
+    app.send_xch(send(vec![free.coin_id().to_string()], own, 100))
+        .await?;
 
     Ok(())
 }

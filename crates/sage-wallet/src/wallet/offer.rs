@@ -1001,7 +1001,7 @@ mod tests {
         );
 
         // Cancelled together, the fee coin is selected once.
-        let coin_spends = alice.wallet.cancel_offers(offers, 2).await?;
+        let coin_spends = alice.wallet.cancel_offers(offers, 2, Vec::new()).await?;
         let fee_coin_spends = coin_spends
             .iter()
             .filter(|cs| cs.coin.coin_id() == fee_coin_id)

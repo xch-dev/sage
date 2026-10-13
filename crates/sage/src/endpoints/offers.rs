@@ -25,7 +25,7 @@ use tracing::debug;
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
     offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id,
+    parse_offer_id, parse_option_id, selectable_coin_ids,
 };
 
 #[derive(Debug, Clone)]
@@ -713,7 +713,8 @@ impl Sage {
         };
 
         let offer = decode_offer(&row.encoded_offer)?;
-        let coin_spends = wallet.cancel_offer(offer, fee).await?;
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -745,7 +746,10 @@ impl Sage {
             .and_then(|count| fee.checked_mul(count))
             .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
 
-        let coin_spends = wallet.cancel_offers(offers, total_fee).await?;
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet
+            .cancel_offers(offers, total_fee, fee_coin_ids)
+            .await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
