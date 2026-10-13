@@ -3,9 +3,9 @@ import { useWalletState } from '@/state';
 import { Params, Return } from '../commands';
 import { HandlerContext } from '../handler';
 
-export async function handleWatchAsset(
-  params: Params<'chia_watchAsset'>,
-): Promise<Return<'chia_watchAsset'>> {
+export async function handleUpdateCat(
+  params: Params<'chia_updateCat'>,
+): Promise<Return<'chia_updateCat'>> {
   const assetId = params.assetId.toLowerCase().replace(/^0x/, '');
   const { token } = await commands.getToken({ asset_id: assetId });
 

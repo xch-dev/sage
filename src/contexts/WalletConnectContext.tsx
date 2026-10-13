@@ -758,7 +758,7 @@ function SendDialog({ params, onFeeChange }: CommandDialogProps<'chia_send'>) {
   );
 }
 
-function WatchAssetDialog({ params }: CommandDialogProps<'chia_watchAsset'>) {
+function UpdateCatDialog({ params }: CommandDialogProps<'chia_updateCat'>) {
   const [token, setToken] = useState<TokenRecord | null | undefined>(undefined);
   const { addError } = useErrors();
   const assetId = (params.assetId ?? '').toLowerCase().replace(/^0x/, '');
@@ -851,7 +851,7 @@ const COMMAND_COMPONENTS: {
   chia_cancelOffer: CancelOfferDialog,
   chia_send: SendDialog,
   chia_signMessageByAddress: SignMessageByAddressDialog,
-  chia_watchAsset: WatchAssetDialog,
+  chia_updateCat: UpdateCatDialog,
 };
 
 const COMMANDS_WITH_FEE = new Set<string>([
@@ -895,8 +895,8 @@ const COMMAND_METADATA: Partial<
     title: 'Sign Message',
     description: "Sign a message with your address's private key",
   },
-  chia_watchAsset: {
-    title: 'Label Token',
+  chia_updateCat: {
+    title: 'Update Token',
     description: 'A site suggests how this token is shown in your wallet',
   },
 };

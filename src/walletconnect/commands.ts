@@ -244,10 +244,10 @@ export const walletConnectCommands = {
     }),
     confirm: true,
   },
-  // Suggest a display name, ticker, icon and description for a CAT this wallet
-  // already holds (like EIP-747's wallet_watchAsset). Nothing is signed; the user
+  // Update the display name, ticker, icon and description of a CAT this wallet
+  // already holds (the same record update_cat edits). Nothing is signed; the user
   // reviews the suggestion against the asset id and approves or rejects it.
-  chia_watchAsset: {
+  chia_updateCat: {
     paramsType: z.object({
       assetId: z
         .string()
