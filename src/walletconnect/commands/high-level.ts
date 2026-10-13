@@ -3,6 +3,34 @@ import { useWalletState } from '@/state';
 import { Params, Return } from '../commands';
 import { HandlerContext } from '../handler';
 
+export async function handleUpdateCat(
+  params: Params<'chia_updateCat'>,
+): Promise<Return<'chia_updateCat'>> {
+  const assetId = params.assetId.toLowerCase().replace(/^0x/, '');
+  const { token } = await commands.getToken({ asset_id: assetId });
+
+  // Only a CAT the wallet already knows can be labelled: this edits Sage's own
+  // record of it, it does not add an asset the wallet has never seen.
+  if (!token) {
+    throw new Error(
+      'This wallet does not hold that CAT yet, so there is nothing to label',
+    );
+  }
+
+  // Fields the site left out keep what the wallet already has.
+  await commands.updateCat({
+    record: {
+      ...token,
+      name: params.name ?? token.name,
+      ticker: params.ticker ?? token.ticker,
+      icon_url: params.iconUrl ?? token.icon_url,
+      description: params.description ?? token.description,
+    },
+  });
+
+  return {};
+}
+
 export async function handleGetNfts(
   params: Params<'chia_getNfts'>,
 ): Promise<Return<'chia_getNfts'>> {

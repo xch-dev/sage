@@ -2,6 +2,7 @@ import {
   commands,
   OfferRecord,
   OfferSummary,
+  TokenRecord,
   TransactionSummary,
 } from '@/bindings';
 import { AdvancedTransactionSummary } from '@/components/AdvancedTransactionSummary';
@@ -757,6 +758,78 @@ function SendDialog({ params, onFeeChange }: CommandDialogProps<'chia_send'>) {
   );
 }
 
+function UpdateCatDialog({ params }: CommandDialogProps<'chia_updateCat'>) {
+  const [token, setToken] = useState<TokenRecord | null | undefined>(undefined);
+  const { addError } = useErrors();
+  const assetId = (params.assetId ?? '').toLowerCase().replace(/^0x/, '');
+
+  useEffect(() => {
+    commands
+      .getToken({ asset_id: assetId })
+      .then((data) => setToken(data.token))
+      .catch(addError);
+  }, [assetId, addError]);
+
+  const rows: [string, string | null | undefined, string | undefined][] = [
+    ['Name', token?.name, params.name],
+    ['Ticker', token?.ticker, params.ticker],
+    ['Description', token?.description, params.description],
+  ];
+
+  return (
+    <div className='space-y-4 p-4'>
+      <div className='rounded-lg bg-amber-50 dark:bg-amber-950 p-4 border border-amber-200 dark:border-amber-800'>
+        <div className='flex items-start gap-3'>
+          <AlertTriangleIcon className='h-5 w-5 text-amber-500 mt-0.5' />
+          <p className='text-sm text-amber-700 dark:text-amber-300'>
+            The site chose these labels. Anyone can name a token anything, so
+            check the asset id below before approving. This changes only how the
+            token is shown in this wallet.
+          </p>
+        </div>
+      </div>
+      <div className='space-y-2'>
+        <div className='font-medium'>Asset Id</div>
+        <div className='text-sm text-muted-foreground break-all font-mono bg-muted p-2 rounded'>
+          {assetId}
+        </div>
+      </div>
+      {token === null && (
+        <div className='text-sm text-destructive'>
+          This wallet does not hold this CAT, so the request will fail.
+        </div>
+      )}
+      {rows
+        .filter(([, , proposed]) => proposed !== undefined)
+        .map(([label, current, proposed]) => (
+          <div key={label}>
+            <div className='font-medium'>{label}</div>
+            <div className='text-sm text-muted-foreground'>
+              {current ? `${current} → ` : ''}
+              <span className='text-foreground'>{proposed}</span>
+            </div>
+          </div>
+        ))}
+      {params.iconUrl && (
+        <div>
+          <div className='font-medium'>Icon</div>
+          <div className='flex items-center gap-3 mt-1'>
+            <img
+              src={params.iconUrl}
+              alt=''
+              className='h-10 w-10 rounded-full'
+              referrerPolicy='no-referrer'
+            />
+            <span className='text-xs text-muted-foreground break-all'>
+              {params.iconUrl}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DefaultCommandDialog({ params }: { params: unknown }) {
   return (
     <div className='p-4'>
@@ -778,6 +851,7 @@ const COMMAND_COMPONENTS: {
   chia_cancelOffer: CancelOfferDialog,
   chia_send: SendDialog,
   chia_signMessageByAddress: SignMessageByAddressDialog,
+  chia_updateCat: UpdateCatDialog,
 };
 
 const COMMANDS_WITH_FEE = new Set<string>([
@@ -820,6 +894,10 @@ const COMMAND_METADATA: Partial<
   chia_signMessageByAddress: {
     title: 'Sign Message',
     description: "Sign a message with your address's private key",
+  },
+  chia_updateCat: {
+    title: 'Update Token',
+    description: 'A site suggests how this token is shown in your wallet',
   },
 };
 
