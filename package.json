@@ -21,6 +21,8 @@
     "build": "pnpm run build:builtin-apps && pnpm run build:frontend",
     "tauri:dev": "node scripts/tauri-dev.mjs",
     "tauri:build": "pnpm build && tauri build",
+    "package:flatpak": "node scripts/package-flatpak.mjs",
+    "check:flatpak-package": "node scripts/check-flatpak-package.mjs",
     "lint": "eslint .",
     "test:unit": "vitest run src",
     "preview": "vite preview",
