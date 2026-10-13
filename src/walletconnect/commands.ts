@@ -244,6 +244,30 @@ export const walletConnectCommands = {
     }),
     confirm: true,
   },
+  // Update the display name, ticker, icon and description of a CAT this wallet
+  // already holds (the same record update_cat edits). Nothing is signed; the user
+  // reviews the suggestion against the asset id and approves or rejects it.
+  chia_updateCat: {
+    paramsType: z.object({
+      assetId: z
+        .string()
+        .regex(
+          /^(0x)?[0-9a-fA-F]{64}$/,
+          'assetId must be a 32-byte hex asset id',
+        ),
+      name: z.string().trim().min(1).max(64).optional(),
+      ticker: z.string().trim().min(1).max(16).optional(),
+      iconUrl: z
+        .string()
+        .url()
+        .max(512)
+        .refine((url) => url.startsWith('https://'), 'iconUrl must be https')
+        .optional(),
+      description: z.string().trim().max(280).optional(),
+    }),
+    returnType: z.object({}),
+    confirm: true,
+  },
 } as const;
 
 // Define a union of valid commands
