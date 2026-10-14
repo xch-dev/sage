@@ -6597,12 +6597,12 @@ version = "0.13.1"
 dependencies = [
  "anyhow",
  "clap",
- "dirs 5.0.1",
  "rustls",
  "sage",
  "sage-api",
  "sage-api-macro",
  "sage-client",
+ "sage-config",
  "sage-rpc",
  "serde",
  "serde_json",
@@ -6613,7 +6613,6 @@ dependencies = [
 name = "sage-client"
 version = "0.13.1"
 dependencies = [
- "dirs 5.0.1",
  "reqwest 0.12.24",
  "sage-api",
  "sage-api-macro",
@@ -6629,6 +6628,7 @@ name = "sage-config"
 version = "0.13.1"
 dependencies = [
  "chia-wallet-sdk",
+ "dirs 5.0.1",
  "expect-test",
  "hex",
  "indexmap 2.12.1",

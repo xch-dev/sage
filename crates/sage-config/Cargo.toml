@@ -21,6 +21,7 @@ serde_with = { workspace = true, features = ["hex"] }
 indexmap = { workspace = true, features = ["serde"] }
 specta = { workspace = true, features = ["derive", "indexmap"] }
 hex = { workspace = true }
+dirs = { workspace = true }
 
 [dev-dependencies]
 expect-test = { workspace = true }
