@@ -1,5 +1,6 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::{LineageProof, Proof, nft::NftMetadata},
+    driver::{Clawback as ClawbackV1, ClawbackV2},
     prelude::*,
     puzzles::SINGLETON_LAUNCHER_HASH,
 };
@@ -15,6 +16,9 @@ pub enum ChildKind {
     Launcher,
     Clawback {
         info: ClawbackV2,
+    },
+    ClawbackV1 {
+        info: ClawbackV1,
     },
     Cat {
         info: CatInfo,
@@ -317,6 +321,15 @@ impl ChildKind {
             return Ok(Self::Clawback { info: clawback });
         }
 
+        // V1 structure lives in parent REMARK conditions (not CREATE_COIN memos).
+        match ClawbackV1::parse_child(allocator, parent_puzzle, parent_solution, coin.puzzle_hash) {
+            Ok(Some(info)) => return Ok(Self::ClawbackV1 { info }),
+            Ok(None) => {}
+            Err(error) => {
+                warn!("Failed to parse clawback v1 from parent: {error}");
+            }
+        }
+
         Ok(Self::Unknown)
     }
 
@@ -325,6 +338,7 @@ impl ChildKind {
             // TODO: Should we add the puzzle hash of the coin as a candidate?
             Self::Launcher | Self::Unknown => vec![],
             Self::Clawback { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
+            Self::ClawbackV1 { info } => vec![info.sender_puzzle_hash, info.receiver_puzzle_hash],
             Self::Cat {
                 info: CatInfo { p2_puzzle_hash, .. },
                 clawback,
@@ -354,6 +368,7 @@ impl ChildKind {
         match self {
             Self::Launcher | Self::Unknown => None,
             Self::Clawback { info } => Some(info.receiver_puzzle_hash),
+            Self::ClawbackV1 { info } => Some(info.receiver_puzzle_hash),
             Self::Cat { info, clawback, .. } => clawback
                 .map_or(Some(info.p2_puzzle_hash), |clawback| {
                     Some(clawback.receiver_puzzle_hash)
@@ -377,6 +392,7 @@ impl ChildKind {
         matches!(
             self,
             Self::Clawback { .. }
+                | Self::ClawbackV1 { .. }
                 | Self::Cat { .. }
                 | Self::Did { .. }
                 | Self::Nft { .. }

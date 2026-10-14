@@ -1,5 +1,6 @@
 use std::slice;
 
+use chia_wallet_sdk::driver::{Clawback as ClawbackV1, ClawbackV2};
 use chia_wallet_sdk::{
     chia::{
         bls::{master_to_wallet_hardened, master_to_wallet_unhardened, sign},
@@ -89,14 +90,23 @@ impl Sage {
             let p2_puzzle = match wallet.db.p2_puzzle(row.p2_puzzle_hash).await? {
                 P2Puzzle::PublicKey(key) => StandardLayer::new(key).construct_puzzle(&mut ctx)?,
                 P2Puzzle::Clawback(clawback) => {
-                    let clawback = ClawbackV2::new(
-                        clawback.sender_puzzle_hash,
-                        clawback.receiver_puzzle_hash,
-                        clawback.seconds,
-                        row.coin.amount,
-                        true,
-                    );
-                    clawback.into_1_of_n().construct_puzzle(&mut ctx)?
+                    if clawback.version == 1 {
+                        let v1 = ClawbackV1::new(
+                            clawback.seconds,
+                            clawback.sender_puzzle_hash,
+                            clawback.receiver_puzzle_hash,
+                        );
+                        v1.into_1_of_n().construct_puzzle(&mut ctx)?
+                    } else {
+                        let v2 = ClawbackV2::new(
+                            clawback.sender_puzzle_hash,
+                            clawback.receiver_puzzle_hash,
+                            clawback.seconds,
+                            row.coin.amount,
+                            true,
+                        );
+                        v2.into_1_of_n().construct_puzzle(&mut ctx)?
+                    }
                 }
                 P2Puzzle::Option(underlying) => {
                     let underlying = OptionUnderlying::new(

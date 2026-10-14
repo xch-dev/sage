@@ -700,7 +700,7 @@ pub struct TransferOptions {
     pub auto_submit: bool,
 }
 
-/// Send CAT tokens to an address
+/// Finalize the clawback for a set of coins
 #[cfg_attr(
     feature = "openapi",
     crate::openapi_attr(
@@ -714,6 +714,29 @@ pub struct TransferOptions {
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct FinalizeClawback {
     /// The coins to finalize the clawback for
+    pub coin_ids: Vec<String>,
+    /// Transaction fee
+    pub fee: Amount,
+    /// Whether to automatically submit the transaction
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub auto_submit: bool,
+}
+
+/// Claim Clawback
+#[cfg_attr(
+    feature = "openapi",
+    crate::openapi_attr(
+        tag = "XCH Transactions",
+        description = "Claim the coins from an early clawback version.",
+        response_type = "TransactionResponse"
+    )
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+pub struct ClaimClawback {
+    /// The coins to claim from the clawback v1 coin.
     pub coin_ids: Vec<String>,
     /// Transaction fee
     pub fee: Amount,
@@ -835,3 +858,4 @@ pub type NormalizeDidsResponse = TransactionResponse;
 pub type TransferOptionsResponse = TransactionResponse;
 pub type ExerciseOptionsResponse = TransactionResponse;
 pub type FinalizeClawbackResponse = TransactionResponse;
+pub type ClaimClawbackResponse = TransactionResponse;

@@ -5,7 +5,9 @@ use std::{
 
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::SettlementPaymentsSolution,
-    driver::{P2DelegatedConditionsLayer, SpendKind, SpendableAsset},
+    driver::{
+        Clawback as ClawbackV1, ClawbackV2, P2DelegatedConditionsLayer, SpendKind, SpendableAsset,
+    },
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
     types::puzzles::P2DelegatedConditionsSolution,
@@ -348,31 +350,43 @@ impl Wallet {
 
                             let custody = StandardLayer::new(public_key);
                             let spend = custody.spend_with_conditions(ctx, spend.finish())?;
-
-                            let clawback = ClawbackV2::new(
-                                clawback.sender_puzzle_hash,
-                                clawback.receiver_puzzle_hash,
-                                clawback.seconds,
-                                asset.coin().amount,
-                                !matches!(asset, SpendableAsset::Xch(..)),
-                            );
-
                             let is_receiver =
                                 custody.tree_hash() == clawback.receiver_puzzle_hash.into();
                             let is_sender =
                                 custody.tree_hash() == clawback.sender_puzzle_hash.into();
 
-                            if is_sender && timestamp < clawback.seconds {
-                                clawback.sender_spend(ctx, spend)?
-                            } else if is_receiver && timestamp >= clawback.seconds {
-                                clawback.receiver_spend(ctx, spend)?
-                            } else if is_sender || is_receiver {
-                                return Err(DriverError::Custom(
-                                    "Cannot fulfill clawback spend".to_string(),
-                                )
-                                .into());
+                            if clawback.version == 1 {
+                                // V1 sender can claw anytime; receiver must use claim_clawback.
+                                let v1 = ClawbackV1::new(
+                                    clawback.seconds,
+                                    clawback.sender_puzzle_hash,
+                                    clawback.receiver_puzzle_hash,
+                                );
+                                if is_sender {
+                                    v1.sender_spend(ctx, spend)?
+                                } else if is_receiver {
+                                    return Err(WalletError::ClawbackClaimRequired);
+                                } else {
+                                    return Err(DriverError::MissingKey.into());
+                                }
                             } else {
-                                return Err(DriverError::MissingKey.into());
+                                let v2 = ClawbackV2::new(
+                                    clawback.sender_puzzle_hash,
+                                    clawback.receiver_puzzle_hash,
+                                    clawback.seconds,
+                                    asset.coin().amount,
+                                    !matches!(asset, SpendableAsset::Xch(..)),
+                                );
+
+                                if is_sender && timestamp < clawback.seconds {
+                                    v2.sender_spend(ctx, spend)?
+                                } else if is_receiver && timestamp >= clawback.seconds {
+                                    v2.receiver_spend(ctx, spend)?
+                                } else if is_sender || is_receiver {
+                                    return Err(WalletError::ClawbackSpendNotAllowed);
+                                } else {
+                                    return Err(DriverError::MissingKey.into());
+                                }
                             }
                         }
                         P2Puzzle::Option(underlying) => {
