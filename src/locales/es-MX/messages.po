@@ -500,7 +500,7 @@ msgstr ""
 msgid "asset"
 msgstr "activo"
 
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:199
 #: src/components/TokenGridView.tsx:73
 #: src/components/TransactionColumns.tsx:83
@@ -728,7 +728,7 @@ msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad 
 #: src/components/OwnedCoinsCard.tsx:611
 #: src/components/OwnedCoinsCard.tsx:694
 #: src/components/ThemeCard.tsx:216
-#: src/components/TokenCard.tsx:288
+#: src/components/TokenCard.tsx:295
 #: src/components/TransferDialog.tsx:129
 #: src/components/WalletCard.tsx:394
 #: src/components/WalletCard.tsx:444
@@ -1613,7 +1613,7 @@ msgstr ""
 msgid "e.g. ff00ab"
 msgstr ""
 
-#: src/components/TokenCard.tsx:169
+#: src/components/TokenCard.tsx:176
 #: src/contexts/WalletConnectContext.tsx:447
 msgid "Edit"
 msgstr "Editar"
@@ -1641,7 +1641,7 @@ msgstr "Editar Perfil"
 msgid "Edit profile for {selectedCount} selected NFTs"
 msgstr "Editar perfil para {selectedCount} NFT seleccionados"
 
-#: src/components/TokenCard.tsx:234
+#: src/components/TokenCard.tsx:241
 msgid "Edit Token Details"
 msgstr "Editar detalles del token"
 
@@ -1754,7 +1754,7 @@ msgstr ""
 msgid "Enter the IP addresses of the peers you want to connect to."
 msgstr "Introduce las direcciones IP de los nodos a los que deseas conectarte."
 
-#: src/components/TokenCard.tsx:237
+#: src/components/TokenCard.tsx:244
 msgid "Enter the new display details for this token"
 msgstr "Introduzca los nuevos detalles de visualización para este token"
 
@@ -1945,7 +1945,7 @@ msgstr ""
 #~ msgid "Failed to open dexie.space"
 #~ msgstr "No se pudo abrir dexie.space"
 
-#: src/components/TokenCard.tsx:190
+#: src/components/TokenCard.tsx:197
 #: src/components/TokenColumns.tsx:208
 msgid "Failed to open dexie.space: {error}"
 msgstr ""
@@ -2144,7 +2144,7 @@ msgstr ""
 #: src/components/NftGroupCard.tsx:349
 #: src/components/OptionCard.tsx:183
 #: src/components/OptionColumns.tsx:234
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
 #: src/pages/DidList.tsx:323
@@ -2377,7 +2377,7 @@ msgstr "ID de lanzador copiado al portapapeles"
 msgid "Launcher ID copied to clipboard"
 msgstr "ID de lanzador copiado al portapapeles"
 
-#: src/components/TokenCard.tsx:217
+#: src/components/TokenCard.tsx:224
 msgid "Learn more"
 msgstr ""
 
@@ -2633,7 +2633,7 @@ msgstr "Minutos"
 msgid "Mnemonic"
 msgstr "Mnemotécnico"
 
-#: src/components/TokenCard.tsx:162
+#: src/components/TokenCard.tsx:169
 msgid "More options"
 msgstr ""
 
@@ -2654,7 +2654,7 @@ msgid "My wallets"
 msgstr ""
 
 #: src/components/OptionColumns.tsx:35
-#: src/components/TokenCard.tsx:243
+#: src/components/TokenCard.tsx:250
 #: src/components/TokenColumns.tsx:57
 #: src/pages/CreateProfile.tsx:70
 #: src/pages/DidList.tsx:350
@@ -2667,7 +2667,7 @@ msgstr "Nombre"
 msgid "Name is required"
 msgstr "El nombre es obligatorio"
 
-#: src/components/TokenCard.tsx:247
+#: src/components/TokenCard.tsx:254
 msgid "Name of this token"
 msgstr "Nombre de este token"
 
@@ -3525,7 +3525,7 @@ msgstr ""
 #~ msgid "Reassign Profile"
 #~ msgstr "Reasignar Perfil"
 
-#: src/components/TokenCard.tsx:153
+#: src/components/TokenCard.tsx:160
 msgid "Receive"
 msgstr "Recibir"
 
@@ -3576,7 +3576,7 @@ msgstr "Volver a descargar {nftName}"
 msgid "Refresh"
 msgstr ""
 
-#: src/components/TokenCard.tsx:173
+#: src/components/TokenCard.tsx:180
 #: src/components/TokenColumns.tsx:186
 #: src/components/TokenGridView.tsx:62
 msgid "Refresh Info"
@@ -3594,7 +3594,7 @@ msgstr ""
 msgid "Remove Emoji"
 msgstr ""
 
-#: src/components/TokenCard.tsx:291
+#: src/components/TokenCard.tsx:298
 #: src/components/WalletCard.tsx:296
 #: src/components/WalletCard.tsx:447
 #: src/pages/DidList.tsx:307
@@ -3687,7 +3687,7 @@ msgstr "Revelar Tokens Ocultos"
 msgid "Revocable"
 msgstr ""
 
-#: src/components/TokenCard.tsx:207
+#: src/components/TokenCard.tsx:214
 #: src/pages/IssueToken.tsx:166
 msgid "Revocable CAT"
 msgstr ""
@@ -3994,7 +3994,7 @@ msgstr "Perfil seleccionado"
 msgid "Selection options"
 msgstr ""
 
-#: src/components/TokenCard.tsx:149
+#: src/components/TokenCard.tsx:156
 msgid "Send"
 msgstr "Enviar"
 
@@ -4062,7 +4062,7 @@ msgstr ""
 #: src/components/NftGroupCard.tsx:356
 #: src/components/OptionCard.tsx:183
 #: src/components/OptionColumns.tsx:234
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
 #: src/pages/DidList.tsx:323
@@ -4246,7 +4246,7 @@ msgstr ""
 msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names from a token index are shown only for tokens that have no name, and are never saved to the wallet."
 msgstr ""
 
-#: src/components/TokenCard.tsx:123
+#: src/components/TokenCard.tsx:130
 msgid "spendable"
 msgstr ""
 
@@ -4607,7 +4607,7 @@ msgstr "Estos perfiles serán eliminados permanentemente al enviarlos a la direc
 msgid "These profiles will be transferred to the address below."
 msgstr "Estos perfiles serán transferidos a la dirección que se indica a continuación."
 
-#: src/components/TokenCard.tsx:210
+#: src/components/TokenCard.tsx:217
 msgid "This asset can be revoked by its issuer."
 msgstr ""
 
@@ -4850,12 +4850,12 @@ msgstr "Esto dividirá todas las monedas seleccionadas."
 #~ msgstr "Esto desasignará el NFT de su perfil."
 
 #: src/components/confirmations/TokenConfirmation.tsx:186
-#: src/components/TokenCard.tsx:262
+#: src/components/TokenCard.tsx:269
 #: src/pages/IssueToken.tsx:100
 msgid "Ticker"
 msgstr "Ticker"
 
-#: src/components/TokenCard.tsx:266
+#: src/components/TokenCard.tsx:273
 msgid "Ticker for this token"
 msgstr "Ticker para este token"
 
@@ -5442,7 +5442,7 @@ msgstr "Ver Oferta"
 msgid "View on {marketplaceName}"
 msgstr ""
 
-#: src/components/TokenCard.tsx:195
+#: src/components/TokenCard.tsx:202
 #: src/components/TokenColumns.tsx:213
 msgid "View on dexie"
 msgstr "Ver en Dexie"

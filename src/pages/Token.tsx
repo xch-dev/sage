@@ -219,6 +219,7 @@ export default function Token() {
             <div className='flex flex-col gap-4 max-w-screen-lg'>
               <TokenCard
                 asset={asset}
+                display={shownAsset ?? undefined}
                 balanceInUsd={balanceInUsd}
                 onRedownload={redownload}
                 onVisibilityChange={() => {

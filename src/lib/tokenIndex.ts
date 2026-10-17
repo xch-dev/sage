@@ -114,8 +114,9 @@ export function isIndexForNetwork(index: TokenIndex, isTestnet: boolean) {
 }
 
 /**
- * A token as shown, with the index's name, ticker and icon suggested only for a
- * token that has no name. Labels from the user or Dexie are never replaced, and
+ * A token as shown, with the index's name, ticker and icon each suggested only
+ * where the token has none: a token named in the wallet but missing a ticker or
+ * icon still gets them. A value from the user or Dexie is never replaced, and
  * nothing is written to the wallet.
  */
 export function withSuggestedLabel<
@@ -125,14 +126,21 @@ export function withSuggestedLabel<
     icon_url: string | null;
   },
 >(token: T, entry: TokenIndexEntry | null): T {
-  if (!entry?.name || token.name) return token;
+  if (!entry) return token;
 
-  return {
-    ...token,
-    name: entry.name,
-    ticker: token.ticker || entry.ticker,
-    icon_url: token.icon_url || entry.iconUrl,
-  };
+  const name = token.name || entry.name;
+  const ticker = token.ticker || entry.ticker;
+  const icon_url = token.icon_url || entry.iconUrl;
+
+  if (
+    name === token.name &&
+    ticker === token.ticker &&
+    icon_url === token.icon_url
+  ) {
+    return token;
+  }
+
+  return { ...token, name, ticker, icon_url };
 }
 
 /** Whether a URL can be used as a token index URL (https only). */

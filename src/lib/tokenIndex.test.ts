@@ -126,9 +126,26 @@ describe('withSuggestedLabel', () => {
     });
   });
 
+  it('fills a missing ticker and icon on a token the wallet already named', () => {
+    expect(
+      withSuggestedLabel(
+        { name: 'My Sprout', ticker: null, icon_url: null },
+        entry,
+      ),
+    ).toEqual({
+      name: 'My Sprout',
+      ticker: '🌱',
+      icon_url: 'https://index.example/sprout.webp',
+    });
+  });
+
   it('never replaces an existing label', () => {
-    const named = { name: 'My Sprout', ticker: null, icon_url: null };
-    expect(withSuggestedLabel(named, entry)).toBe(named);
+    const labeled = {
+      name: 'My Sprout',
+      ticker: 'MINE',
+      icon_url: 'https://mine.example/a.png',
+    };
+    expect(withSuggestedLabel(labeled, entry)).toBe(labeled);
 
     expect(
       withSuggestedLabel(
@@ -142,10 +159,14 @@ describe('withSuggestedLabel', () => {
     });
   });
 
-  it('suggests nothing without an index name', () => {
+  it('suggests nothing without an index entry, and only what the entry has', () => {
     const token = { name: null, ticker: null, icon_url: null };
     expect(withSuggestedLabel(token, null)).toBe(token);
-    expect(withSuggestedLabel(token, { ...entry, name: null })).toBe(token);
+    expect(withSuggestedLabel(token, { ...entry, name: null })).toEqual({
+      name: null,
+      ticker: '🌱',
+      icon_url: 'https://index.example/sprout.webp',
+    });
   });
 });
 
