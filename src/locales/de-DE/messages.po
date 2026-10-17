@@ -805,8 +805,12 @@ msgid "CAT prices, names and icons (names are saved in the wallet)"
 msgstr ""
 
 #: src/pages/Settings.tsx:682
-msgid "CAT prices, XCH/USD rate, names and icons for unnamed tokens"
+msgid "CAT prices, XCH/USD rate, and names, tickers and icons a token lacks"
 msgstr ""
+
+#: src/pages/Settings.tsx:682
+#~ msgid "CAT prices, XCH/USD rate, names and icons for unnamed tokens"
+#~ msgstr ""
 
 #: src/components/ConfirmationDialog.tsx:128
 #: src/components/ConfirmationDialog.tsx:356
@@ -4243,7 +4247,15 @@ msgid "Source"
 msgstr ""
 
 #: src/pages/Settings.tsx:714
-msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names from a token index are shown only for tokens that have no name, and are never saved to the wallet."
+#~ msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. A token index's name, ticker and icon are shown only where a token has none, and are never saved to the wallet."
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:714
+#~ msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names from a token index are shown only for tokens that have no name, and are never saved to the wallet."
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:714
+msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names, tickers and icons from a token index are shown only where a token has none, and are never saved to the wallet."
 msgstr ""
 
 #: src/components/TokenCard.tsx:130

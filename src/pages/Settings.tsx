@@ -679,7 +679,7 @@ function priceSourceProvides(source: BuiltInPriceSource | null) {
     case 'coingecko':
       return t`XCH/USD rate`;
     default:
-      return t`CAT prices, XCH/USD rate, names and icons for unnamed tokens`;
+      return t`CAT prices, XCH/USD rate, and names, tickers and icons a token lacks`;
   }
 }
 
@@ -713,9 +713,9 @@ function PriceSourceSettings() {
       <div className='p-3 text-sm text-muted-foreground'>
         <Trans>
           Sources are used in this order. For each token, the first enabled
-          source with a price wins and later sources only fill gaps. Names from
-          a token index are shown only for tokens that have no name, and are
-          never saved to the wallet.
+          source with a price wins and later sources only fill gaps. Names,
+          tickers and icons from a token index are shown only where a token has
+          none, and are never saved to the wallet.
         </Trans>
       </div>
 
