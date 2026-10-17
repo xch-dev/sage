@@ -42,6 +42,19 @@ export const BUILT_IN_PRICE_SOURCES: BuiltInPriceSource[] = [
     homepage: 'https://www.coingecko.com',
     enabledByDefault: true,
   },
+  // After Dexie and CoinGecko, so it only fills what they lack: prices from
+  // the Forge's AMM pools and labels for Forge-traded CATs and LP tokens.
+  {
+    id: 'forge',
+    name: 'The Forge',
+    kind: 'index',
+    homepage: 'https://forge.awizard.dev',
+    enabledByDefault: true,
+    indexUrls: {
+      mainnet: 'https://forge.awizard.dev/token-index/v1/mainnet.json',
+      testnet11: 'https://forge.awizard.dev/token-index/v1/testnet11.json',
+    },
+  },
 ];
 
 /** One entry of the stored, ordered source list. */

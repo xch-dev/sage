@@ -31,15 +31,47 @@ const label = (name: string | null) => ({
 });
 
 describe('defaults', () => {
-  it('reproduce Sage today: Dexie, then CoinGecko, both on, nothing else', () => {
+  it('are Dexie, CoinGecko, then The Forge, all on', () => {
     expect(normalizePriceSources(null)).toEqual(defaultPriceSources());
     expect(activePriceSources(defaultPriceSources(), false)).toEqual([
       { id: 'dexie', kind: 'dexie' },
       { id: 'coingecko', kind: 'coingecko' },
+      {
+        id: 'forge',
+        kind: 'index',
+        url: 'https://forge.awizard.dev/token-index/v1/mainnet.json',
+      },
     ]);
-    expect(activePriceSources(defaultPriceSources(), true)).toEqual([
-      { id: 'dexie', kind: 'dexie' },
-      { id: 'coingecko', kind: 'coingecko' },
+    expect(activePriceSources(defaultPriceSources(), true).at(-1)?.url).toBe(
+      'https://forge.awizard.dev/token-index/v1/testnet11.json',
+    );
+  });
+
+  it('keep Dexie and CoinGecko ahead of The Forge', () => {
+    const dexie: PriceLayer = { catPricesXch: { [SPROUT]: 0.5 } };
+    const coingecko: PriceLayer = { xchUsd: 10 };
+    const forge: PriceLayer = {
+      catPricesXch: { [SPROUT]: 0.25, [OTHER]: 0.1 },
+      xchUsd: 12,
+    };
+    const layers = [dexie, coingecko, forge];
+
+    expect(firstCatPriceXch(layers, SPROUT)).toBe(0.5);
+    expect(firstCatPriceXch(layers, OTHER)).toBe(0.1);
+    expect(firstXchUsd(layers)).toBe(10);
+  });
+
+  it('turn The Forge on for a list saved before it existed', () => {
+    const saved = [
+      { id: 'coingecko', enabled: true },
+      { id: 'dexie', enabled: false },
+      { id: customSourceId(URL_A), enabled: true, url: URL_A },
+    ];
+
+    expect(normalizePriceSources(saved)).toEqual([
+      ...saved.slice(0, 2),
+      { id: 'forge', enabled: true },
+      saved[2],
     ]);
   });
 });
