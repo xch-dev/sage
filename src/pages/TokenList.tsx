@@ -17,6 +17,7 @@ import { useErrors } from '@/hooks/useErrors';
 import { usePrices } from '@/hooks/usePrices';
 import { TokenSortMode, useTokenParams } from '@/hooks/useTokenParams';
 import { exportTokens } from '@/lib/exportTokens';
+import { withSuggestedLabel } from '@/lib/tokenIndex';
 import { isValidAssetId, toDecimal } from '@/lib/utils';
 import { PricedTokenRecord } from '@/types/TokenViewProps';
 import { t } from '@lingui/core/macro';
@@ -31,7 +32,7 @@ import { useWalletState } from '../state';
 export function TokenList() {
   const navigate = useNavigate();
   const walletState = useWalletState();
-  const { getBalanceInUsd, getPriceInUsd } = usePrices();
+  const { getBalanceInUsd, getPriceInUsd, getSuggestedLabel } = usePrices();
   const { addError } = useErrors();
   const [params, setParams] = useTokenParams();
   const { viewMode, sortMode, showZeroBalanceTokens, showHiddenCats } = params;
@@ -46,13 +47,13 @@ export function TokenList() {
         );
 
         return {
-          ...token,
+          ...withSuggestedLabel(token, getSuggestedLabel(token.asset_id)),
           balanceInUsd: usdValue,
           sortValue: usdValue,
           priceInUsd: getPriceInUsd(token.asset_id),
         };
       }),
-    [tokens, getBalanceInUsd, getPriceInUsd],
+    [tokens, getBalanceInUsd, getPriceInUsd, getSuggestedLabel],
   )
     .sort((a, b) => {
       if (!a.asset_id && b.asset_id) return -1;
