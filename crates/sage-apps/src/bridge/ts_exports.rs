@@ -30,12 +30,13 @@ use crate::{
     RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope,
     SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
     SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
-    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
-    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
-    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
-    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
-    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
-    WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
+    SystemWalletView, WalletCreateOfferParams, WalletCreateOfferResult,
+    WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams,
+    WalletGetAssetBalanceResult, WalletGetAssetCoinsParams, WalletGetAssetCoinsResult,
+    WalletGetPublicKeysParams, WalletGetPublicKeysResult, WalletListWalletsResult,
+    WalletSendTransactionParams, WalletSendTransactionResult, WalletSendXchApprovalResponse,
+    WalletSendXchParams, WalletSignCoinSpendsParams, WalletSignCoinSpendsResult,
+    WalletSignMessageParams, WalletSignMessageResult,
 };
 
 pub fn export_user_bridge_typescript() -> Result<String, String> {
@@ -78,6 +79,8 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<WalletSignMessageResult>();
     types.register::<WalletSendTransactionParams>();
     types.register::<WalletSendTransactionResult>();
+    types.register::<WalletCreateOfferParams>();
+    types.register::<WalletCreateOfferResult>();
     types.register::<GetSyncStatus>();
     types.register::<GetSyncStatusResponse>();
     types.register::<GetVersion>();
