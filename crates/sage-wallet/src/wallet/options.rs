@@ -244,7 +244,8 @@ mod tests {
 
     use crate::{TestWallet, WalletOptionMint};
 
-    use chia_wallet_sdk::driver::OptionType;
+    use chia_wallet_sdk::{driver::OptionType, prelude::Bytes32};
+    use sage_database::{OptionFilter, OptionSortMode};
     use test_log::test;
     use tokio::time::sleep;
 
@@ -344,6 +345,96 @@ mod tests {
 
         assert!(bob.wallet.db.option(option_id).await?.is_some());
         assert!(bob.wallet.db.spendable_option(option_id).await?.is_some());
+
+        Ok(())
+    }
+
+    async fn list_options(
+        test: &TestWallet,
+        filter: OptionFilter,
+    ) -> anyhow::Result<Vec<(Bytes32, Option<u32>)>> {
+        let (rows, total) = test
+            .wallet
+            .db
+            .owned_options(10, 0, OptionSortMode::Name, true, None, true, filter)
+            .await?;
+
+        assert_eq!(rows.len(), total as usize);
+
+        Ok(rows
+            .into_iter()
+            .map(|row| (row.asset.hash, row.coin_row.spent_height))
+            .collect())
+    }
+
+    #[test(tokio::test)]
+    async fn test_created_option_history() -> anyhow::Result<()> {
+        let mut alice = TestWallet::new(1001).await?;
+        let mut bob = alice.next(0).await?;
+
+        let (coin_spends, asset_id) = alice.wallet.issue_cat(1000, 0, None).await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let timestamp = alice.new_block_with_current_time().await?;
+
+        let (coin_spends, option) = alice
+            .wallet
+            .mint_option(
+                WalletOptionMint {
+                    expiration_seconds: timestamp + 1000,
+                    underlying_type: OptionType::Cat {
+                        asset_id,
+                        amount: 1000,
+                    },
+                    strike_type: OptionType::Xch { amount: 2000 },
+                },
+                0,
+            )
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        let option_id = option.info.launcher_id;
+
+        // While held, the minted option is both owned and created
+        for filter in [
+            OptionFilter::Owned,
+            OptionFilter::Created,
+            OptionFilter::All,
+        ] {
+            let options = list_options(&alice, filter).await?;
+            assert_eq!(options.len(), 1);
+            assert_eq!(options[0].0, option_id);
+            assert_eq!(options[0].1, None);
+        }
+
+        let coin_spends = alice
+            .wallet
+            .transfer_options(vec![option_id], bob.puzzle_hash, 0, None)
+            .await?;
+
+        alice.transact(coin_spends).await?;
+        alice.wait_for_coins().await;
+
+        // Once transferred, it is no longer owned but remains in the creator's history
+        assert!(list_options(&alice, OptionFilter::Owned).await?.is_empty());
+
+        for filter in [OptionFilter::Created, OptionFilter::All] {
+            let options = list_options(&alice, filter).await?;
+            assert_eq!(options.len(), 1);
+            assert_eq!(options[0].0, option_id);
+            assert!(options[0].1.is_some());
+        }
+
+        bob.wait_for_puzzles().await;
+
+        // The recipient owns the option, but did not create it
+        assert_eq!(list_options(&bob, OptionFilter::Owned).await?.len(), 1);
+        assert!(list_options(&bob, OptionFilter::Created).await?.is_empty());
+        assert_eq!(list_options(&bob, OptionFilter::All).await?.len(), 1);
 
         Ok(())
     }

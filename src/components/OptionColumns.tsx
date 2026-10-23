@@ -149,7 +149,11 @@ export const columns = (
 
       return (
         <div className='text-sm'>
-          {isPending ? (
+          {!option.is_owned ? (
+            <span className='text-muted-foreground font-medium'>
+              <Trans>Transferred</Trans>
+            </span>
+          ) : isPending ? (
             <span className='text-yellow-500 font-medium'>
               <Trans>Pending</Trans>
             </span>
@@ -183,7 +187,7 @@ export const columns = (
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end'>
-            {!isPending && (
+            {!isPending && option.is_owned && (
               <>
                 {actionHandlers?.onExercise && (
                   <DropdownMenuItem

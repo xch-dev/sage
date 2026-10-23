@@ -47,12 +47,14 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
   const [offerState, setOfferState] = useOfferStateWithDefault();
   const navigate = useNavigate();
   const optionName = option.name || 'Unknown Option';
+  const isActionDisabled =
+    isTransactionDisabled || option.created_height === null || !option.is_owned;
 
   return (
     <>
       <Card
         key={option.launcher_id}
-        className={`${!option.visible ? 'opacity-50 grayscale' : option.created_height === null ? 'pulsate-opacity' : ''}`}
+        className={`${!option.visible || !option.is_owned ? 'opacity-50 grayscale' : option.created_height === null ? 'pulsate-opacity' : ''}`}
       >
         <CardHeader className='-mt-2 flex flex-row items-center justify-between space-y-0 pb-2 pr-2 space-x-2'>
           <CardTitle className='text-md font-medium truncate flex items-center'>
@@ -78,9 +80,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onExercise(option);
                   }}
-                  disabled={
-                    isTransactionDisabled || option.created_height === null
-                  }
+                  disabled={isActionDisabled}
                 >
                   <HandCoins className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Exercise</Trans>
@@ -92,9 +92,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onTransfer(option);
                   }}
-                  disabled={
-                    isTransactionDisabled || option.created_height === null
-                  }
+                  disabled={isActionDisabled}
                 >
                   <SendIcon className='mr-2 h-4 w-4' aria-hidden='true' />
                   <Trans>Transfer</Trans>
@@ -106,9 +104,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                     e.stopPropagation();
                     actionHandlers.onBurn(option);
                   }}
-                  disabled={
-                    isTransactionDisabled || option.created_height === null
-                  }
+                  disabled={isActionDisabled}
                 >
                   <Flame className='mr-2 h-4 w-4' />
                   <Trans>Burn</Trans>
@@ -137,8 +133,7 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
                       });
                     }}
                     disabled={
-                      isTransactionDisabled ||
-                      option.created_height === null ||
+                      isActionDisabled ||
                       option.expiration_seconds * 1000 < Date.now() ||
                       offerState.offered.options.includes(option.launcher_id)
                     }
@@ -210,6 +205,13 @@ export function OptionCard({ option, actionHandlers }: OptionCardProps) {
               <div className='flex items-center gap-1.5 text-sm font-medium text-blue-400'>
                 <InfoCircledIcon className='h-4 w-4' aria-hidden='true' />
                 <Trans>Active</Trans>
+              </div>
+            )}
+
+            {!option.is_owned && (
+              <div className='flex items-center gap-1.5 text-sm font-medium text-muted-foreground'>
+                <SendIcon className='h-4 w-4' aria-hidden='true' />
+                <Trans>Transferred</Trans>
               </div>
             )}
 
