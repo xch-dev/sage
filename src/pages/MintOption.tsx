@@ -2,25 +2,23 @@ import { commands, TokenRecord, TransactionResponse } from '@/bindings';
 import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { MintOptionConfirmation } from '@/components/confirmations/MintOptionConfirmation.tsx';
 import Container from '@/components/Container';
+import { ExpirationInput } from '@/components/ExpirationInput';
 import Header from '@/components/Header';
 import { TokenSelector } from '@/components/selectors/TokenSelector';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  FeeAmountInput,
-  IntegerInput,
-  TokenAmountInput,
-} from '@/components/ui/masked-input';
+import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
+import { Expiration, expirationTimestamp, nowSeconds } from '@/lib/expiration';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import BigNumber from 'bignumber.js';
 import { AlertCircleIcon, HandCoins, Handshake } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export function MintOption() {
@@ -30,9 +28,11 @@ export function MintOption() {
   const { addError } = useErrors();
 
   const [fee, setFee] = useState('');
-  const [days, setDays] = useState('');
-  const [hours, setHours] = useState('');
-  const [minutes, setMinutes] = useState('');
+  const [expiration, setExpiration] = useState<Expiration>({
+    days: '',
+    hours: '',
+    minutes: '',
+  });
 
   const [underlyingAssetId, setUnderlyingAssetId] = useState<
     string | null | undefined
@@ -45,6 +45,8 @@ export function MintOption() {
   const [strikeAmount, setStrikeAmount] = useState('');
 
   const [response, setResponse] = useState<TransactionResponse | null>(null);
+  // The expiration actually sent to mintOption, shown in the confirmation.
+  const [mintedExpirationSeconds, setMintedExpirationSeconds] = useState(0);
 
   // State for token details
   const [underlyingAsset, setUnderlyingAsset] = useState<TokenRecord | null>(
@@ -80,12 +82,15 @@ export function MintOption() {
       return;
     }
 
-    const daysInt = parseInt(days) || 0;
-    const hoursInt = parseInt(hours) || 0;
-    const minutesInt = parseInt(minutes) || 0;
-    const expiration =
-      Math.ceil(Date.now() / 1000) +
-      (daysInt * 24 * 60 * 60 + hoursInt * 60 * 60 + minutesInt * 60);
+    // A picked date can pass while the form is open, so check again here.
+    const expirationSeconds = expirationTimestamp(expiration);
+    if (expirationSeconds <= nowSeconds()) {
+      addError({
+        kind: 'invalid',
+        reason: t`Expiration must be in the future`,
+      });
+      return;
+    }
 
     commands
       .mintOption({
@@ -104,9 +109,12 @@ export function MintOption() {
             strikeAssetId === null ? walletState.sync.unit.precision : 3,
           ),
         },
-        expiration_seconds: expiration,
+        expiration_seconds: expirationSeconds,
       })
-      .then(setResponse)
+      .then((response) => {
+        setMintedExpirationSeconds(expirationSeconds);
+        setResponse(response);
+      })
       .catch(addError);
   }, [
     addError,
@@ -116,21 +124,8 @@ export function MintOption() {
     strikeAssetId,
     strikeAmount,
     walletState.sync.unit.precision,
-    days,
-    hours,
-    minutes,
+    expiration,
   ]);
-
-  // Calculate expiration time for display
-  const expirationSeconds = useMemo(() => {
-    const daysInt = parseInt(days) || 0;
-    const hoursInt = parseInt(hours) || 0;
-    const minutesInt = parseInt(minutes) || 0;
-    return (
-      Math.ceil(Date.now() / 1000) +
-      (daysInt * 24 * 60 * 60 + hoursInt * 60 * 60 + minutesInt * 60)
-    );
-  }, [days, hours, minutes]);
 
   return (
     <>
@@ -246,52 +241,7 @@ export function MintOption() {
           <div className='flex flex-col gap-1'>
             <Trans>Expiration</Trans>
 
-            <div className='flex gap-2'>
-              <div className='relative'>
-                <IntegerInput
-                  className='pr-12'
-                  value={days}
-                  placeholder='0'
-                  min={0}
-                  onValueChange={(values) => setDays(values.value)}
-                />
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-muted-foreground text-sm'>
-                    <Trans>Days</Trans>
-                  </span>
-                </div>
-              </div>
-
-              <div className='relative'>
-                <IntegerInput
-                  className='pr-12'
-                  value={hours}
-                  placeholder='0'
-                  min={0}
-                  onValueChange={(values) => setHours(values.value)}
-                />
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-muted-foreground text-sm'>
-                    <Trans>Hours</Trans>
-                  </span>
-                </div>
-              </div>
-
-              <div className='relative'>
-                <IntegerInput
-                  className='pr-12'
-                  value={minutes}
-                  placeholder='0'
-                  min={0}
-                  onValueChange={(values) => setMinutes(values.value)}
-                />
-                <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                  <span className='text-muted-foreground text-sm'>
-                    <Trans>Minutes</Trans>
-                  </span>
-                </div>
-              </div>
-            </div>
+            <ExpirationInput value={expiration} onChange={setExpiration} />
           </div>
         </div>
 
@@ -323,7 +273,7 @@ export function MintOption() {
               underlyingAssetId === undefined ||
               !strikeAmount ||
               !underlyingAmount ||
-              (!days && !hours && !minutes)
+              expirationTimestamp(expiration) <= nowSeconds()
             }
             onClick={mint}
           >
@@ -344,7 +294,7 @@ export function MintOption() {
                 underlyingAmount={underlyingAmount}
                 strikeAsset={strikeAsset}
                 strikeAmount={strikeAmount}
-                expirationSeconds={expirationSeconds}
+                expirationSeconds={mintedExpirationSeconds}
               />
             ),
           }}

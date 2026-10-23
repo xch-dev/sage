@@ -2,6 +2,7 @@ import ConfirmationDialog from '@/components/ConfirmationDialog';
 import { WalletAddressPicker } from '@/components/WalletAddressPicker';
 import { TokenConfirmation } from '@/components/confirmations/TokenConfirmation';
 import Container from '@/components/Container';
+import { ExpirationInput } from '@/components/ExpirationInput';
 import Header from '@/components/Header';
 import { NumberFormat } from '@/components/NumberFormat';
 import { PasteInput } from '@/components/PasteInput';
@@ -18,16 +19,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  FeeAmountInput,
-  IntegerInput,
-  TokenAmountInput,
-} from '@/components/ui/masked-input';
+import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
+import { expirationTimestamp, nowSeconds } from '@/lib/expiration';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import {
   fromHexStrict,
@@ -55,6 +53,8 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
+
+const emptyClawback = { days: '0', hours: '0', minutes: '0' };
 
 export default function Send() {
   let { asset_id: assetId = null } = useParams();
@@ -145,6 +145,7 @@ export default function Send() {
           days: z.string(),
           hours: z.string(),
           minutes: z.string(),
+          timestamp: z.number().optional(),
         })
         .optional(),
     })
@@ -158,6 +159,18 @@ export default function Send() {
           code: z.ZodIssueCode.custom,
           path: ['memo'],
           message: t`Memo must be valid hex bytes (even length, 0-9, a-f)`,
+        });
+      }
+
+      if (
+        values.clawbackEnabled &&
+        values.clawback &&
+        expirationTimestamp(values.clawback) <= nowSeconds()
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['clawback'],
+          message: t`Clawback must end in the future`,
         });
       }
     });
@@ -197,12 +210,7 @@ export default function Send() {
     let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
-      const days = parseInt(values.clawback.days) || 0;
-      const hours = parseInt(values.clawback.hours) || 0;
-      const minutes = parseInt(values.clawback.minutes) || 0;
-      clawback =
-        Math.ceil(Date.now() / 1000) +
-        (days * 24 * 60 * 60 + hours * 60 * 60 + minutes * 60);
+      clawback = expirationTimestamp(values.clawback);
     }
 
     let result: Promise<TransactionResponse>;
@@ -467,58 +475,16 @@ export default function Send() {
 
                     {form.watch('clawbackEnabled') && (
                       <div className='flex flex-col gap-4'>
-                        <div className='flex gap-2'>
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.days')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.days', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Days</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.hours')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.hours', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Hours</Trans>
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className='relative'>
-                            <IntegerInput
-                              className='pr-12'
-                              value={form.watch('clawback.minutes')}
-                              placeholder='0'
-                              min={0}
-                              onValueChange={(values: { value: string }) => {
-                                form.setValue('clawback.minutes', values.value);
-                              }}
-                            />
-                            <div className='pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3'>
-                              <span className='text-muted-foreground text-sm'>
-                                <Trans>Minutes</Trans>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                        <ExpirationInput
+                          value={form.watch('clawback') ?? emptyClawback}
+                          onChange={(value) =>
+                            form.setValue('clawback', value, {
+                              shouldValidate: !!form.formState.errors.clawback,
+                            })
+                          }
+                          formatLabel={(date) => t`Clawback until ${date}`}
+                          error={form.formState.errors.clawback?.message}
+                        />
 
                         <Alert variant='warning'>
                           <AlertCircleIcon className='h-4 w-4' />
