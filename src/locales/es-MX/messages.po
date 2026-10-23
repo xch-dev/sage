@@ -444,11 +444,11 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:935
+#: src/contexts/WalletConnectContext.tsx:1013
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:925
+#: src/contexts/WalletConnectContext.tsx:1003
 msgid "Approving"
 msgstr ""
 
@@ -572,6 +572,7 @@ msgstr "Descubrir y conectarse automáticamente a nodos"
 msgid "Automatically start the RPC server when the app launches"
 msgstr "Iniciar automáticamente el servidor RPC cuando se inicia la aplicación"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:277
 #: src/components/Header.tsx:50
 msgid "Back"
 msgstr "Atrás"
@@ -705,6 +706,7 @@ msgstr "Al deshabilitar esto, estás creando una billetera fría, sin capacidad 
 #: src/components/ConfirmationDialog.tsx:622
 #: src/components/dialogs/CancelOfferDialog.tsx:84
 #: src/components/dialogs/DeleteOfferDialog.tsx:58
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:320
 #: src/components/dialogs/MakeOfferConfirmationDialog.tsx:613
 #: src/components/dialogs/MigrationDialog.tsx:52
 #: src/components/dialogs/OfferCreationProgressDialog.tsx:352
@@ -878,8 +880,8 @@ msgstr ""
 #: src/components/OptionOptions.tsx:105
 #: src/components/TokenOptions.tsx:106
 #: src/components/TokenOptions.tsx:107
-#: src/components/TransactionOptions.tsx:88
-#: src/components/TransactionOptions.tsx:89
+#: src/components/TransactionOptions.tsx:91
+#: src/components/TransactionOptions.tsx:92
 msgid "Clear search"
 msgstr "Limpiar búsqueda"
 
@@ -1146,6 +1148,7 @@ msgstr "Copiado"
 msgid "Copied!"
 msgstr "Copiado"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:285
 #: src/components/OfferRowCard.tsx:79
 #: src/components/QRCodeDialog.tsx:65
 msgid "Copy"
@@ -1527,7 +1530,7 @@ msgstr ""
 msgid "Destructive"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:152
+#: src/components/TransactionOptions.tsx:155
 msgid "Detailed View"
 msgstr "Vista detallada"
 
@@ -1594,7 +1597,7 @@ msgid "e.g. ff00ab"
 msgstr ""
 
 #: src/components/TokenCard.tsx:169
-#: src/contexts/WalletConnectContext.tsx:446
+#: src/contexts/WalletConnectContext.tsx:447
 msgid "Edit"
 msgstr "Editar"
 
@@ -1861,8 +1864,8 @@ msgstr ""
 msgid "Export tokens"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:113
-#: src/components/TransactionOptions.tsx:114
+#: src/components/TransactionOptions.tsx:116
+#: src/components/TransactionOptions.tsx:117
 msgid "Export transactions"
 msgstr ""
 
@@ -1940,8 +1943,8 @@ msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:89
 #: src/components/ConfirmationDialog.tsx:453
-#: src/contexts/WalletConnectContext.tsx:426
-#: src/contexts/WalletConnectContext.tsx:466
+#: src/contexts/WalletConnectContext.tsx:427
+#: src/contexts/WalletConnectContext.tsx:467
 msgid "Fee"
 msgstr "Tarifa"
 
@@ -2226,6 +2229,11 @@ msgstr ""
 msgid "Import Offer"
 msgstr ""
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:192
+#: src/components/TransactionOptions.tsx:165
+msgid "Import Spend Bundle"
+msgstr ""
+
 #: src/pages/ImportWallet.tsx:107
 #: src/pages/Login.tsx:217
 msgid "Import Wallet"
@@ -2290,6 +2298,10 @@ msgstr "Direcciones inválidas"
 #: src/components/ui/masked-input.tsx:35
 msgid "Invalid number {pastedText}"
 msgstr "Número no válido {pastedText}"
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:259
+msgid "Invalid spend bundle"
+msgstr ""
 
 #: src/pages/PeerList.tsx:132
 msgid "IP Address"
@@ -2385,6 +2397,7 @@ msgstr ""
 msgid "Link copied to clipboard"
 msgstr ""
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:324
 #: src/components/ui/loading-button.tsx:26
 #: src/components/ui/loading-button.tsx:28
 msgid "Loading"
@@ -2406,7 +2419,7 @@ msgstr "Cargando Colección..."
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:610
+#: src/contexts/WalletConnectContext.tsx:611
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2433,7 +2446,7 @@ msgid "Loading token details..."
 msgstr ""
 
 #: src/components/TransactionListView.tsx:196
-#: src/pages/Transactions.tsx:219
+#: src/pages/Transactions.tsx:222
 msgid "Loading transactions..."
 msgstr "Cargando transacciones..."
 
@@ -2940,7 +2953,7 @@ msgstr ""
 msgid "Not enough funds to cover the fee"
 msgstr "No hay fondos suficientes para cubrir la tarifa"
 
-#: src/pages/Transactions.tsx:177
+#: src/pages/Transactions.tsx:179
 msgid "Note"
 msgstr "Nota"
 
@@ -3243,8 +3256,16 @@ msgstr ""
 msgid "Pagination"
 msgstr "Paginación"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:201
+msgid "Paste a JSON spend bundle with coin spends and an aggregated signature to review, sign, or submit it."
+msgstr ""
+
 #: src/components/PasteInput.tsx:88
 msgid "Paste from clipboard"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:249
+msgid "Paste spend bundle JSON"
 msgstr ""
 
 #: src/pages/Settings.tsx:172
@@ -3599,7 +3620,7 @@ msgstr ""
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:484
+#: src/contexts/WalletConnectContext.tsx:485
 msgid "Reset"
 msgstr ""
 
@@ -3645,6 +3666,14 @@ msgstr ""
 #: src/components/TokenOptions.tsx:163
 msgid "Reveal Hidden Tokens"
 msgstr "Revelar Tokens Ocultos"
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:328
+msgid "Review"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:196
+msgid "Review the spend bundle below. You can add this wallet's signature, copy the result, or submit it to the network."
+msgstr ""
 
 #: src/components/Assets.tsx:64
 #: src/components/confirmations/TokenConfirmation.tsx:208
@@ -3795,9 +3824,9 @@ msgstr "Buscar o introducir id de activo"
 msgid "Search tokens..."
 msgstr "Buscar tokens..."
 
-#: src/components/TransactionOptions.tsx:77
-#: src/components/TransactionOptions.tsx:78
-#: src/components/TransactionOptions.tsx:79
+#: src/components/TransactionOptions.tsx:80
+#: src/components/TransactionOptions.tsx:81
+#: src/components/TransactionOptions.tsx:82
 msgid "Search transactions..."
 msgstr "Buscar transacciones..."
 
@@ -4131,11 +4160,21 @@ msgstr ""
 msgid "Sidebar navigation"
 msgstr "Navegación de barra lateral"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:301
+msgid "Sign"
+msgstr ""
+
 #: src/components/ConfirmationDialog.tsx:563
 msgid "Sign Transaction"
 msgstr "Firmar transacción"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:212
+msgid "Signature"
+msgstr ""
+
 #: src/components/ConfirmationDialog.tsx:560
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:219
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:301
 msgid "Signed"
 msgstr "Firmado"
 
@@ -4147,7 +4186,7 @@ msgstr "Tarjetas pequeñas"
 #~ msgid "Sort Alphabetically"
 #~ msgstr "Ordenar alfabéticamente"
 
-#: src/components/TransactionOptions.tsx:140
+#: src/components/TransactionOptions.tsx:143
 msgid "Sort Ascending"
 msgstr "Ordenar Ascendente"
 
@@ -4186,7 +4225,7 @@ msgstr "Ordenar por nombre"
 msgid "Sort by Recent"
 msgstr "Ordenar por más recientes"
 
-#: src/components/TransactionOptions.tsx:140
+#: src/components/TransactionOptions.tsx:143
 msgid "Sort Descending"
 msgstr "Ordenar descendente"
 
@@ -4204,6 +4243,18 @@ msgstr "Ordenar descendente"
 
 #: src/pages/Settings.tsx:950
 msgid "Source"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:159
+msgid "Spend bundle copied to clipboard"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:250
+msgid "Spend bundle JSON"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:149
+msgid "Spend bundle signed successfully"
 msgstr ""
 
 #: src/components/TokenCard.tsx:123
@@ -4288,20 +4339,30 @@ msgstr ""
 #: src/components/ConfirmationDialog.tsx:634
 #: src/components/ConfirmationDialog.tsx:695
 #: src/components/dialogs/CancelOfferDialog.tsx:91
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:313
 #: src/pages/CreateWallet.tsx:289
 msgid "Submit"
 msgstr "Enviar"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:311
+msgid "Submit Anyway"
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:230
+msgid "Submit unsigned spend bundle?"
+msgstr ""
+
 #: src/components/ConfirmationDialog.tsx:648
 #: src/components/dialogs/CancelOfferDialog.tsx:89
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:305
 msgid "Submitting"
 msgstr "Enviando"
 
-#: src/contexts/WalletConnectContext.tsx:428
+#: src/contexts/WalletConnectContext.tsx:429
 msgid "suggested by dApp"
 msgstr ""
 
-#: src/components/TransactionOptions.tsx:152
+#: src/components/TransactionOptions.tsx:155
 msgid "Summarized View"
 msgstr "Vista resumida"
 
@@ -4673,7 +4734,15 @@ msgstr "Este perfil será eliminado de forma permanente al enviarlo a la direcci
 msgid "This profile will be transferred to the address below."
 msgstr "Este perfil será transferido a la dirección a continuación."
 
-#: src/walletconnect/handler.ts:51
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:233
+msgid "This spend bundle has no signature. It will be rejected unless none of its coin spends require one."
+msgstr ""
+
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:136
+msgid "This wallet has no signatures to add to this bundle"
+msgstr ""
+
+#: src/walletconnect/handler.ts:52
 msgid "This wallet is read-only and cannot sign, so {command} is not available"
 msgstr ""
 
@@ -4965,7 +5034,7 @@ msgstr ""
 msgid "Transaction Fee"
 msgstr "Tarifa de transacción"
 
-#: src/components/TransactionOptions.tsx:67
+#: src/components/TransactionOptions.tsx:70
 msgid "Transaction filtering and sorting options"
 msgstr "Opciones de filtrado y ordenación de transacciones"
 
@@ -4987,6 +5056,7 @@ msgid "Transaction signed successfully"
 msgstr "Transacción firmada con éxito"
 
 #: src/components/ConfirmationDialog.tsx:689
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:179
 msgid "Transaction submitted successfully"
 msgstr "Transacción enviada con éxito"
 
@@ -4995,7 +5065,7 @@ msgstr "Transacción enviada con éxito"
 #~ msgstr "Tiempo de transacción"
 
 #: src/components/Nav.tsx:114
-#: src/pages/Transactions.tsx:162
+#: src/pages/Transactions.tsx:164
 msgid "Transactions"
 msgstr "Transacciones"
 
@@ -5175,6 +5245,10 @@ msgstr ""
 #~ msgid "Unnamed Profile"
 #~ msgstr "Perfil sin nombre"
 
+#: src/components/dialogs/ImportSpendBundleDialog.tsx:215
+msgid "Unsigned"
+msgstr ""
+
 #: src/components/CoinList.tsx:223
 #: src/components/CoinList.tsx:246
 #: src/components/CoinList.tsx:286
@@ -5288,7 +5362,7 @@ msgstr ""
 msgid "Use 24 words"
 msgstr "Usar 24 palabras"
 
-#: src/contexts/WalletConnectContext.tsx:455
+#: src/contexts/WalletConnectContext.tsx:456
 msgid "Use default"
 msgstr ""
 
@@ -5414,8 +5488,8 @@ msgstr ""
 #: src/components/OptionOptions.tsx:130
 #: src/components/TokenOptions.tsx:131
 #: src/components/TokenOptions.tsx:132
-#: src/components/TransactionOptions.tsx:124
-#: src/components/TransactionOptions.tsx:125
+#: src/components/TransactionOptions.tsx:127
+#: src/components/TransactionOptions.tsx:128
 msgid "View options"
 msgstr "Ver opciones"
 
@@ -5612,7 +5686,7 @@ msgstr "También puedes pegar una oferta utilizando"
 #~ msgid "You do not currently have any NFTs. Would you like to mint one?"
 #~ msgstr "Actualmente no tienes ningún NFT. ¿Te gustaría acuñar uno?"
 
-#: src/pages/Transactions.tsx:180
+#: src/pages/Transactions.tsx:182
 msgid "You have not made any transactions yet."
 msgstr "No ha realizado transacciones aún."
 
