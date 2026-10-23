@@ -1,4 +1,5 @@
 import Container from '@/components/Container';
+import { ImportSpendBundleDialog } from '@/components/dialogs/ImportSpendBundleDialog';
 import Header from '@/components/Header';
 import { Loading } from '@/components/Loading';
 import { Pagination } from '@/components/Pagination';
@@ -40,6 +41,7 @@ export function Transactions() {
   const [isOptionsVisible, setIsOptionsVisible] = useState(true);
   const listRef = useRef<HTMLDivElement>(null);
   const [isPaginationLoading, setIsPaginationLoading] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   useIntersectionObserver(optionsRef, ([entry]) => {
     setIsOptionsVisible(entry.isIntersecting);
@@ -203,6 +205,7 @@ export function Transactions() {
                 ascending,
               })
             }
+            onImportSpendBundle={() => setIsImportOpen(true)}
           />
         </div>
 
@@ -233,6 +236,12 @@ export function Transactions() {
           />
         </div>
       </Container>
+
+      <ImportSpendBundleDialog
+        open={isImportOpen}
+        setOpen={setIsImportOpen}
+        onSubmitted={() => updateTransactions(false)}
+      />
     </>
   );
 }
