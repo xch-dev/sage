@@ -2,6 +2,7 @@ import Container from '@/components/Container';
 import Header from '@/components/Header';
 import { PasteInput } from '@/components/PasteInput';
 import { ReceiveAddress } from '@/components/ReceiveAddress';
+import { SignMessageDialog } from '@/components/dialogs/SignMessageDialog';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,8 +18,8 @@ import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
-import { CheckIcon, XCircleIcon } from 'lucide-react';
-import { useState } from 'react';
+import { CheckIcon, SignatureIcon, XCircleIcon } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 import { commands } from '../bindings';
 import AddressList from '../components/AddressList';
@@ -33,6 +34,13 @@ export default function Addresses() {
   const [checkStatus, setCheckStatus] = useState<'idle' | 'valid' | 'invalid'>(
     'idle',
   );
+  const [signOpen, setSignOpen] = useState(false);
+  const [signAddress, setSignAddress] = useState('');
+
+  const openSignMessage = useCallback((address: string) => {
+    setSignAddress(address);
+    setSignOpen(true);
+  }, []);
 
   const {
     derivations,
@@ -68,7 +76,12 @@ export default function Addresses() {
 
   return (
     <>
-      <Header title={t`Receive ${ticker}`} />
+      <Header title={t`Receive ${ticker}`} alwaysShowChildren>
+        <Button variant='outline' onClick={() => openSignMessage('')}>
+          <SignatureIcon className='h-4 w-4 mr-2' aria-hidden='true' />
+          <Trans>Sign Message</Trans>
+        </Button>
+      </Header>
 
       <Container className='flex flex-col gap-4 max-w-screen-lg'>
         <Card>
@@ -173,10 +186,17 @@ export default function Addresses() {
               totalPages={pageCount}
               setCurrentPage={setCurrentPage}
               totalDerivations={totalDerivations}
+              onSignMessage={openSignMessage}
             />
           </CardContent>
         </Card>
       </Container>
+
+      <SignMessageDialog
+        open={signOpen}
+        setOpen={setSignOpen}
+        address={signAddress}
+      />
     </>
   );
 }
