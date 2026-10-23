@@ -3,11 +3,12 @@ use std::time::Duration;
 use itertools::Itertools;
 use sage_api::{
     AddPeer, AddPeerResponse, GetNetwork, GetNetworkResponse, GetNetworks, GetNetworksResponse,
-    GetPeers, GetPeersResponse, NetworkKind, PeerRecord, RemovePeer, RemovePeerResponse,
-    SetChangeAddress, SetChangeAddressResponse, SetDeltaSync, SetDeltaSyncOverride,
-    SetDeltaSyncOverrideResponse, SetDeltaSyncResponse, SetDiscoverPeers, SetDiscoverPeersResponse,
-    SetNetwork, SetNetworkOverride, SetNetworkOverrideResponse, SetNetworkResponse, SetTargetPeers,
-    SetTargetPeersResponse,
+    GetPeers, GetPeersResponse, GetSelectedTheme, GetSelectedThemeResponse, NetworkKind,
+    PeerRecord, RemovePeer, RemovePeerResponse, SetChangeAddress, SetChangeAddressResponse,
+    SetDeltaSync, SetDeltaSyncOverride, SetDeltaSyncOverrideResponse, SetDeltaSyncResponse,
+    SetDiscoverPeers, SetDiscoverPeersResponse, SetNetwork, SetNetworkOverride,
+    SetNetworkOverrideResponse, SetNetworkResponse, SetSelectedTheme, SetSelectedThemeResponse,
+    SetTargetPeers, SetTargetPeersResponse,
 };
 use sage_config::{MAINNET, TESTNET11};
 use sage_wallet::SyncCommand;
@@ -157,6 +158,26 @@ impl Sage {
         wallet_config.delta_sync = req.delta_sync;
         self.save_config()?;
         Ok(SetDeltaSyncOverrideResponse {})
+    }
+
+    pub fn get_selected_theme(
+        &mut self,
+        _req: GetSelectedTheme,
+    ) -> Result<GetSelectedThemeResponse> {
+        Ok(GetSelectedThemeResponse {
+            theme: self.config.global.theme.clone(),
+        })
+    }
+
+    pub fn set_selected_theme(
+        &mut self,
+        req: SetSelectedTheme,
+    ) -> Result<SetSelectedThemeResponse> {
+        if self.config.global.theme != req.theme {
+            self.config.global.theme = req.theme;
+            self.save_config()?;
+        }
+        Ok(SetSelectedThemeResponse {})
     }
 
     pub async fn set_change_address(
