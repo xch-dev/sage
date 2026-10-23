@@ -1,6 +1,6 @@
 import { commands, OfferAmount } from '@/bindings';
 import { useBiometric } from '@/hooks/useBiometric';
-import { expirationTimestamp, nowSeconds } from '@/lib/expiration';
+import { futureExpirationTimestamp } from '@/lib/expiration';
 import { toMojos } from '@/lib/utils';
 import { OfferState, useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -50,12 +50,7 @@ export function useOfferProcessor({
 
     let expiresAtSecond: number | null = null;
     if (offerState.expiration !== null) {
-      const now = nowSeconds();
-      expiresAtSecond = expirationTimestamp(offerState.expiration, now);
-
-      if (expiresAtSecond <= now) {
-        throw new Error(t`Expiration must be at least 1 second in the future`);
-      }
+      expiresAtSecond = futureExpirationTimestamp(offerState.expiration);
     }
 
     if (!(await promptIfEnabled())) {

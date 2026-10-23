@@ -25,7 +25,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { expirationTimestamp, nowSeconds } from '@/lib/expiration';
+import {
+  expirationTimestamp,
+  futureExpirationTimestamp,
+  nowSeconds,
+} from '@/lib/expiration';
 import { amount, positiveAmount } from '@/lib/formTypes';
 import {
   fromHexStrict,
@@ -210,7 +214,12 @@ export default function Send() {
     let clawback: number | null = null;
 
     if (values.clawbackEnabled && values.clawback) {
-      clawback = expirationTimestamp(values.clawback);
+      try {
+        clawback = futureExpirationTimestamp(values.clawback);
+      } catch (error) {
+        addError({ kind: 'invalid', reason: (error as Error).message });
+        return;
+      }
     }
 
     let result: Promise<TransactionResponse>;

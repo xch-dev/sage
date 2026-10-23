@@ -105,10 +105,6 @@ msgstr ""
 msgid "{createdOfferCount} offers have been created and imported successfully. You will now be redirected to the offers page where you can view the details of each offer."
 msgstr ""
 
-#: src/components/ExpirationInput.tsx:199
-msgid "{days}d {hours}h {minutes}m from now"
-msgstr ""
-
 #: src/pages/DidList.tsx:95
 #~ msgid "{didsCount, plural, one {You do not currently have any DID profile. Would you like to create one?} other {You do not currently have any DID profiles. Would you like to create one?}}"
 #~ msgstr "{didsCount, plural, one {Actualmente no tienes ningún perfil de DID. ¿Te gustaría crear uno?} other {Actualmente no tienes perfiles de DID. ¿Te gustaría crear uno?}}"
@@ -230,7 +226,7 @@ msgstr "1 moneda combinada"
 msgid "A more lightweight sync that only checks unseen blocks"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:96
+#: src/pages/MakeOffer.tsx:99
 msgid "A request-only offer requires a network fee."
 msgstr ""
 
@@ -306,11 +302,11 @@ msgstr "Agregar URL de NFT"
 msgid "Add Peers"
 msgstr "Agregar nodos"
 
-#: src/pages/MakeOffer.tsx:133
+#: src/pages/MakeOffer.tsx:138
 msgid "Add the assets you are offering."
 msgstr "Agrega los activos que estás ofreciendo."
 
-#: src/pages/MakeOffer.tsx:157
+#: src/pages/MakeOffer.tsx:162
 msgid "Add the assets you are requesting."
 msgstr "Agrega los activos que estás solicitando."
 
@@ -349,7 +345,7 @@ msgstr "Agregados {addedCount} {nfts} a la oferta"
 #: src/components/TransferDialog.tsx:90
 #: src/pages/Nft.tsx:622
 #: src/pages/Option.tsx:279
-#: src/pages/Send.tsx:304
+#: src/pages/Send.tsx:296
 msgid "Address"
 msgstr "Dirección"
 
@@ -428,9 +424,9 @@ msgstr ""
 #: src/components/selectors/AssetSelector.tsx:266
 #: src/components/TransactionColumns.tsx:117
 #: src/pages/IssueToken.tsx:118
-#: src/pages/MintOption.tsx:176
-#: src/pages/MintOption.tsx:228
-#: src/pages/Send.tsx:347
+#: src/pages/MintOption.tsx:181
+#: src/pages/MintOption.tsx:233
+#: src/pages/Send.tsx:339
 #: src/pages/Swap.tsx:280
 #: src/pages/Swap.tsx:356
 msgid "Amount"
@@ -448,11 +444,11 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:1013
+#: src/contexts/WalletConnectContext.tsx:935
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:1003
+#: src/contexts/WalletConnectContext.tsx:925
 msgid "Approving"
 msgstr ""
 
@@ -610,7 +606,7 @@ msgstr "Banner para {collectionName}"
 msgid "Biometric Authentication"
 msgstr ""
 
-#: src/hooks/useOfferProcessor.ts:62
+#: src/hooks/useOfferProcessor.ts:64
 msgid "Biometric authentication failed or was cancelled"
 msgstr ""
 
@@ -755,7 +751,7 @@ msgid "Cancel Details"
 msgstr "Cancelar detalles"
 
 #: src/components/dialogs/CancelOffersFlow.tsx:90
-#: src/pages/MakeOffer.tsx:238
+#: src/pages/MakeOffer.tsx:309
 msgid "Cancel Offer"
 msgstr "Cancelar oferta"
 
@@ -874,14 +870,6 @@ msgstr ""
 
 #: src/components/CoinList.tsx:243
 msgid "Clawback Expiration"
-msgstr ""
-
-#: src/pages/Send.tsx:173
-msgid "Clawback must end in the future"
-msgstr ""
-
-#: src/pages/Send.tsx:485
-msgid "Clawback until {date}"
 msgstr ""
 
 #: src/components/NftOptions.tsx:153
@@ -1264,7 +1252,7 @@ msgstr ""
 msgid "Create new NFT"
 msgstr "Crear nuevo NFT"
 
-#: src/pages/MakeOffer.tsx:245
+#: src/pages/MakeOffer.tsx:316
 #: src/pages/Offers.tsx:278
 msgid "Create Offer"
 msgstr "Crear Oferta"
@@ -1389,11 +1377,9 @@ msgstr ""
 msgid "Database Stats"
 msgstr ""
 
-#: src/components/ExpirationInput.tsx:126
-msgid "Date & time"
-msgstr ""
-
-#: src/components/ExpirationInput.tsx:134
+#: src/pages/MakeOffer.tsx:245
+#: src/pages/MintOption.tsx:260
+#: src/pages/Send.tsx:483
 #: src/pages/Settings.tsx:371
 #: src/pages/Settings.tsx:409
 msgid "Days"
@@ -1603,16 +1589,12 @@ msgstr "Listo"
 msgid "Downloading {checkedFiles} / {totalFiles}"
 msgstr ""
 
-#: src/components/ExpirationInput.tsx:123
-msgid "Duration"
-msgstr ""
-
-#: src/pages/Send.tsx:431
+#: src/pages/Send.tsx:423
 msgid "e.g. ff00ab"
 msgstr ""
 
 #: src/components/TokenCard.tsx:169
-#: src/contexts/WalletConnectContext.tsx:447
+#: src/contexts/WalletConnectContext.tsx:446
 msgid "Edit"
 msgstr "Editar"
 
@@ -1663,7 +1645,7 @@ msgstr ""
 msgid "Edition Total"
 msgstr ""
 
-#: src/pages/Send.tsx:456
+#: src/pages/Send.tsx:448
 msgid "Enable clawback"
 msgstr ""
 
@@ -1674,7 +1656,7 @@ msgstr ""
 #: src/components/TransferDialog.tsx:99
 #: src/pages/Addresses.tsx:102
 #: src/pages/MintNft.tsx:264
-#: src/pages/Send.tsx:328
+#: src/pages/Send.tsx:320
 msgid "Enter address"
 msgstr "Introducir dirección"
 
@@ -1704,11 +1686,11 @@ msgstr "Introduzca índice de derivación"
 #~ msgid "Enter fee amount"
 #~ msgstr "Introduzca el monto de la tarifa"
 
-#: src/pages/Send.tsx:432
+#: src/pages/Send.tsx:424
 msgid "Enter memo"
 msgstr "Introducir memo"
 
-#: src/pages/Send.tsx:320
+#: src/pages/Send.tsx:312
 msgid "Enter multiple distinct addresses"
 msgstr "Introduzca varias direcciones distintas"
 
@@ -1818,27 +1800,22 @@ msgstr "Ampliar barra lateral"
 #~ msgid "Expand sidebar - {0}"
 #~ msgstr "Ampliar barra lateral - {0}"
 
-#: src/pages/MintOption.tsx:138
-#: src/pages/Send.tsx:492
+#: src/pages/MintOption.tsx:143
+#: src/pages/Send.tsx:526
 msgid "Experimental Feature"
 msgstr ""
 
 #: src/components/confirmations/MintOptionConfirmation.tsx.tsx:143
 #: src/components/OptionCard.tsx:194
 #: src/components/OptionColumns.tsx:106
-#: src/pages/MintOption.tsx:242
+#: src/pages/MintOption.tsx:247
 msgid "Expiration"
 msgstr ""
 
-#: src/hooks/useOfferProcessor.ts:57
-#: src/pages/MakeOffer.tsx:45
+#: src/hooks/useOfferProcessor.ts:58
+#: src/pages/MakeOffer.tsx:48
 msgid "Expiration must be at least 1 second in the future"
 msgstr "La expiración debe ser al menos 1 segundo en el futuro"
-
-#: src/components/ExpirationInput.tsx:67
-#: src/pages/MintOption.tsx:90
-msgid "Expiration must be in the future"
-msgstr ""
 
 #: src/components/OfferCard.tsx:145
 #: src/components/OptionCard.tsx:201
@@ -1856,15 +1833,11 @@ msgstr ""
 msgid "Expires"
 msgstr "Caduca"
 
-#: src/components/ExpirationInput.tsx:38
-msgid "Expires {date}"
-msgstr ""
-
 #: src/components/Assets.tsx:192
 msgid "Expires:"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:199
+#: src/pages/MakeOffer.tsx:204
 msgid "Expiring offer"
 msgstr "Oferta que caduca"
 
@@ -1967,8 +1940,8 @@ msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:89
 #: src/components/ConfirmationDialog.tsx:453
-#: src/contexts/WalletConnectContext.tsx:427
-#: src/contexts/WalletConnectContext.tsx:467
+#: src/contexts/WalletConnectContext.tsx:426
+#: src/contexts/WalletConnectContext.tsx:466
 msgid "Fee"
 msgstr "Tarifa"
 
@@ -2139,11 +2112,11 @@ msgstr "Altura"
 msgid "Height:"
 msgstr "Altura:"
 
-#: src/pages/Send.tsx:402
+#: src/pages/Send.tsx:394
 msgid "Hex"
 msgstr ""
 
-#: src/pages/Send.tsx:444
+#: src/pages/Send.tsx:436
 msgid "Hex bytes"
 msgstr ""
 
@@ -2220,7 +2193,9 @@ msgstr "Caliente"
 #~ msgid "Hot Wallet"
 #~ msgstr "Hot Wallet"
 
-#: src/components/ExpirationInput.tsx:135
+#: src/pages/MakeOffer.tsx:268
+#: src/pages/MintOption.tsx:275
+#: src/pages/Send.tsx:500
 #: src/pages/Settings.tsx:376
 #: src/pages/Settings.tsx:414
 msgid "Hours"
@@ -2431,7 +2406,7 @@ msgstr "Cargando Colección..."
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:611
+#: src/contexts/WalletConnectContext.tsx:610
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2539,11 +2514,11 @@ msgstr "Cantidad Máxima de Monedas"
 msgid "Maximum Number of Coins"
 msgstr "Número Máximo de Monedas"
 
-#: src/pages/Send.tsx:398
+#: src/pages/Send.tsx:390
 msgid "Memo (optional)"
 msgstr "Nota (opcional)"
 
-#: src/pages/Send.tsx:161
+#: src/pages/Send.tsx:160
 msgid "Memo must be valid hex bytes (even length, 0-9, a-f)"
 msgstr ""
 
@@ -2589,8 +2564,8 @@ msgstr ""
 msgid "Mint NFT"
 msgstr "Crear NFT"
 
-#: src/pages/MintOption.tsx:132
-#: src/pages/MintOption.tsx:280
+#: src/pages/MintOption.tsx:137
+#: src/pages/MintOption.tsx:330
 #: src/pages/OptionList.tsx:96
 msgid "Mint Option"
 msgstr ""
@@ -2625,7 +2600,9 @@ msgstr "Minters"
 msgid "Minting"
 msgstr "Minting"
 
-#: src/components/ExpirationInput.tsx:136
+#: src/pages/MakeOffer.tsx:291
+#: src/pages/MintOption.tsx:290
+#: src/pages/Send.tsx:517
 #: src/pages/Settings.tsx:381
 #: src/pages/Settings.tsx:419
 msgid "Minutes"
@@ -2704,11 +2681,11 @@ msgstr "Red"
 #: src/components/TransferDialog.tsx:114
 #: src/pages/CreateProfile.tsx:87
 #: src/pages/IssueToken.tsx:146
-#: src/pages/MakeOffer.tsx:173
+#: src/pages/MakeOffer.tsx:178
 #: src/pages/MintNft.tsx:389
-#: src/pages/MintOption.tsx:250
+#: src/pages/MintOption.tsx:300
 #: src/pages/Offer.tsx:135
-#: src/pages/Send.tsx:383
+#: src/pages/Send.tsx:375
 #: src/pages/Swap.tsx:378
 msgid "Network Fee"
 msgstr "Tarifa de red"
@@ -2734,7 +2711,7 @@ msgstr ""
 #~ msgid "Network status"
 #~ msgstr "Estatus de la  Red"
 
-#: src/pages/MakeOffer.tsx:120
+#: src/pages/MakeOffer.tsx:125
 msgid "New Offer"
 msgstr "Nueva Oferta"
 
@@ -3012,12 +2989,12 @@ msgstr "Detalles de la Oferta"
 msgid "Offer ID"
 msgstr "ID de oferta"
 
-#: src/pages/MakeOffer.tsx:83
+#: src/pages/MakeOffer.tsx:86
 msgid "Offer must include at least one offered or requested asset."
 msgstr ""
 
 #: src/components/OfferCard.tsx:228
-#: src/pages/MakeOffer.tsx:128
+#: src/pages/MakeOffer.tsx:133
 msgid "Offered"
 msgstr "Ofrecido"
 
@@ -3134,11 +3111,11 @@ msgstr ""
 #~ msgid "Option Contracts are an experimental feature that will lock up your underlying assets until expiration or exercise. Support in other apps is limited at this time."
 #~ msgstr ""
 
-#: src/pages/MintOption.tsx:141
+#: src/pages/MintOption.tsx:146
 msgid "Option Contracts are experimental and support in other apps is limited."
 msgstr ""
 
-#: src/pages/MintOption.tsx:290
+#: src/pages/MintOption.tsx:340
 msgid "Option Details"
 msgstr ""
 
@@ -3339,10 +3316,6 @@ msgstr "Quemado de forma permanente"
 #: src/components/WalletCard.tsx:382
 msgid "Permanently Delete"
 msgstr "Eliminar permanentemente"
-
-#: src/components/ExpirationInput.tsx:149
-msgid "Pick expiration date and time"
-msgstr ""
 
 #: src/components/dialogs/NfcScanDialog.tsx:22
 msgid "Place the NFC tag near your device to scan it."
@@ -3602,7 +3575,7 @@ msgid "Rename Wallet"
 msgstr "Renombrar billetera"
 
 #: src/components/OfferCard.tsx:210
-#: src/pages/MakeOffer.tsx:152
+#: src/pages/MakeOffer.tsx:157
 msgid "Requested"
 msgstr "Solicitado"
 
@@ -3626,7 +3599,7 @@ msgstr ""
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:485
+#: src/contexts/WalletConnectContext.tsx:484
 msgid "Reset"
 msgstr ""
 
@@ -3936,7 +3909,7 @@ msgstr ""
 #~ msgid "Select the asset that you want to lock up in the option."
 #~ msgstr ""
 
-#: src/pages/MintOption.tsx:158
+#: src/pages/MintOption.tsx:163
 msgid "Select the asset that you want to lock up."
 msgstr ""
 
@@ -3952,7 +3925,7 @@ msgstr ""
 #~ msgid "Select the asset that you want to request as the strike price."
 #~ msgstr ""
 
-#: src/pages/MintOption.tsx:209
+#: src/pages/MintOption.tsx:214
 msgid "Select the asset that you want to request."
 msgstr ""
 
@@ -3989,13 +3962,13 @@ msgstr ""
 msgid "Send"
 msgstr "Enviar"
 
-#: src/pages/Send.tsx:267
-#: src/pages/Send.tsx:510
-#: src/pages/Send.tsx:523
+#: src/pages/Send.tsx:259
+#: src/pages/Send.tsx:544
+#: src/pages/Send.tsx:557
 msgid "Send {ticker}"
 msgstr "Enviar {ticker}"
 
-#: src/pages/Send.tsx:290
+#: src/pages/Send.tsx:282
 msgid "Send in bulk (airdrop)"
 msgstr "Enviar en masa (airdrop)"
 
@@ -4237,7 +4210,7 @@ msgstr ""
 msgid "spendable"
 msgstr ""
 
-#: src/pages/Send.tsx:274
+#: src/pages/Send.tsx:266
 msgid "Spendable Balance"
 msgstr ""
 
@@ -4303,7 +4276,7 @@ msgstr "Detenido"
 #: src/components/Assets.tsx:171
 #: src/components/confirmations/MintOptionConfirmation.tsx.tsx:105
 #: src/components/OptionColumns.tsx:80
-#: src/pages/MintOption.tsx:204
+#: src/pages/MintOption.tsx:209
 #: src/pages/Option.tsx:197
 msgid "Strike Asset"
 msgstr ""
@@ -4324,7 +4297,7 @@ msgstr "Enviar"
 msgid "Submitting"
 msgstr "Enviando"
 
-#: src/contexts/WalletConnectContext.tsx:429
+#: src/contexts/WalletConnectContext.tsx:428
 msgid "suggested by dApp"
 msgstr ""
 
@@ -4337,7 +4310,7 @@ msgstr "Vista resumida"
 msgid "Summary"
 msgstr "Resumen"
 
-#: src/pages/Send.tsx:495
+#: src/pages/Send.tsx:529
 msgid "Support for Clawback v2 is limited at this time. Please make sure the recipient supports it before submitting this transaction."
 msgstr ""
 
@@ -4700,7 +4673,7 @@ msgstr "Este perfil será eliminado de forma permanente al enviarlo a la direcci
 msgid "This profile will be transferred to the address below."
 msgstr "Este perfil será transferido a la dirección a continuación."
 
-#: src/walletconnect/handler.ts:52
+#: src/walletconnect/handler.ts:51
 msgid "This wallet is read-only and cannot sign, so {command} is not available"
 msgstr ""
 
@@ -4846,10 +4819,6 @@ msgstr "Ticker para este token"
 msgid "Ticker is required"
 msgstr "El ticker es obligatorio"
 
-#: src/components/ExpirationInput.tsx:178
-msgid "Time"
-msgstr ""
-
 #: src/components/ConfirmationDialog.tsx:323
 msgid "To:"
 msgstr "Para:"
@@ -4920,7 +4889,7 @@ msgstr ""
 msgid "Tokens exported successfully"
 msgstr ""
 
-#: src/pages/MakeOffer.tsx:57
+#: src/pages/MakeOffer.tsx:60
 msgid "Tokens must have a positive amount."
 msgstr ""
 
@@ -5112,7 +5081,7 @@ msgstr "Tipo"
 #: src/components/Assets.tsx:160
 #: src/components/OptionCard.tsx:252
 #: src/components/OptionColumns.tsx:51
-#: src/pages/MintOption.tsx:153
+#: src/pages/MintOption.tsx:158
 #: src/pages/Option.tsx:189
 msgid "Underlying Asset"
 msgstr ""
@@ -5319,7 +5288,7 @@ msgstr ""
 msgid "Use 24 words"
 msgstr "Usar 24 palabras"
 
-#: src/contexts/WalletConnectContext.tsx:456
+#: src/contexts/WalletConnectContext.tsx:455
 msgid "Use default"
 msgstr ""
 
@@ -5345,7 +5314,7 @@ msgstr "Utilice esta dirección para recibir {name}"
 msgid "Use this wallet's change address as the token's revocation address."
 msgstr ""
 
-#: src/pages/Send.tsx:446
+#: src/pages/Send.tsx:438
 msgid "UTF-8 string"
 msgstr ""
 

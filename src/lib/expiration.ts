@@ -1,3 +1,5 @@
+import { t } from '@lingui/core/macro';
+
 // A relative duration, optionally pinned to an absolute time picked by the user.
 export interface Expiration {
   days: string;
@@ -40,4 +42,28 @@ export function durationUntil(
     hours: Math.floor((totalMinutes % (24 * 60)) / 60).toString(),
     minutes: (totalMinutes % 60).toString(),
   };
+}
+
+// The expiration to send when creating an offer, option or clawback. Unlike
+// expirationTimestamp, which also drives display, this throws if the
+// expiration is malformed or not in the future, as a backstop for callers.
+export function futureExpirationTimestamp(
+  expiration: Expiration,
+  now = nowSeconds(),
+): number {
+  if (
+    expiration.timestamp === undefined &&
+    [expiration.days, expiration.hours, expiration.minutes].some(
+      (value) => (parseInt(value) || 0) < 0,
+    )
+  ) {
+    throw new Error(t`Expiration duration cannot be negative`);
+  }
+
+  const timestamp = expirationTimestamp(expiration, now);
+  if (!Number.isSafeInteger(timestamp) || timestamp <= now) {
+    throw new Error(t`Expiration must be in the future`);
+  }
+
+  return timestamp;
 }

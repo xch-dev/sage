@@ -13,7 +13,11 @@ import { Switch } from '@/components/ui/switch';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
 import useOfferStateWithDefault from '@/hooks/useOfferStateWithDefault';
-import { expirationTimestamp, nowSeconds } from '@/lib/expiration';
+import {
+  expirationTimestamp,
+  futureExpirationTimestamp,
+  nowSeconds,
+} from '@/lib/expiration';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
@@ -39,11 +43,10 @@ export function MakeOffer() {
 
   const makeAction = () => {
     if (state.expiration !== null) {
-      if (expirationTimestamp(state.expiration) <= nowSeconds()) {
-        addError({
-          kind: 'invalid',
-          reason: t`Expiration must be at least 1 second in the future`,
-        });
+      try {
+        futureExpirationTimestamp(state.expiration);
+      } catch (error) {
+        addError({ kind: 'invalid', reason: (error as Error).message });
         return;
       }
     }

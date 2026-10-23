@@ -3,6 +3,7 @@ import {
   durationUntil,
   expirationDurationSeconds,
   expirationTimestamp,
+  futureExpirationTimestamp,
 } from './expiration';
 
 const now = 1_800_000_000;
@@ -53,5 +54,40 @@ describe('durationUntil', () => {
       hours: '0',
       minutes: '0',
     });
+  });
+});
+
+describe('futureExpirationTimestamp', () => {
+  it('returns the timestamp when it is in the future', () => {
+    expect(
+      futureExpirationTimestamp({ days: '0', hours: '0', minutes: '1' }, now),
+    ).toBe(now + 60);
+    expect(
+      futureExpirationTimestamp(
+        { days: '0', hours: '0', minutes: '0', timestamp: now + 1 },
+        now,
+      ),
+    ).toBe(now + 1);
+  });
+
+  it('throws for a zero duration', () => {
+    expect(() =>
+      futureExpirationTimestamp({ days: '0', hours: '0', minutes: '0' }, now),
+    ).toThrow();
+  });
+
+  it('throws for a negative duration', () => {
+    expect(() =>
+      futureExpirationTimestamp({ days: '1', hours: '-2', minutes: '0' }, now),
+    ).toThrow();
+  });
+
+  it('throws for a picked time that is now or in the past', () => {
+    expect(() =>
+      futureExpirationTimestamp(
+        { days: '1', hours: '0', minutes: '0', timestamp: now },
+        now,
+      ),
+    ).toThrow();
   });
 });

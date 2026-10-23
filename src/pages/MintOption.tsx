@@ -11,7 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FeeAmountInput, TokenAmountInput } from '@/components/ui/masked-input';
 import { useErrors } from '@/hooks/useErrors';
-import { Expiration, expirationTimestamp, nowSeconds } from '@/lib/expiration';
+import {
+  Expiration,
+  expirationTimestamp,
+  futureExpirationTimestamp,
+  nowSeconds,
+} from '@/lib/expiration';
 import { toDecimal, toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
 import { t } from '@lingui/core/macro';
@@ -83,12 +88,11 @@ export function MintOption() {
     }
 
     // A picked date can pass while the form is open, so check again here.
-    const expirationSeconds = expirationTimestamp(expiration);
-    if (expirationSeconds <= nowSeconds()) {
-      addError({
-        kind: 'invalid',
-        reason: t`Expiration must be in the future`,
-      });
+    let expirationSeconds: number;
+    try {
+      expirationSeconds = futureExpirationTimestamp(expiration);
+    } catch (error) {
+      addError({ kind: 'invalid', reason: (error as Error).message });
       return;
     }
 
