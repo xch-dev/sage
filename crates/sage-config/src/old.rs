@@ -130,6 +130,7 @@ pub fn migrate_config(old: OldConfig) -> Result<(Config, WalletConfig), ParseInt
         global: GlobalConfig {
             log_level: old.app.log_level,
             fingerprint: old.app.active_fingerprint,
+            theme: None,
         },
         network: NetworkConfig {
             default_network: old.network.network_id,
