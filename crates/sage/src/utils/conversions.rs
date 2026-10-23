@@ -4,7 +4,7 @@ use chia_wallet_sdk::{
     puzzles::{SETTLEMENT_PAYMENT_HASH, SINGLETON_LAUNCHER_HASH},
 };
 use sage_api::AddressKind;
-use sage_database::{Asset, AssetKind};
+use sage_database::{Asset, AssetKind, TransactionCustody};
 
 use crate::{Result, Sage};
 
@@ -28,8 +28,12 @@ impl Sage {
     }
 }
 
-pub fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
-    let Some(p2_puzzle_hash) = p2_puzzle_hash else {
+pub fn address_kind(custody: Option<TransactionCustody>) -> AddressKind {
+    let Some(TransactionCustody {
+        p2_puzzle_hash,
+        is_own,
+    }) = custody
+    else {
         return AddressKind::External;
     };
 
@@ -43,7 +47,11 @@ pub fn address_kind(p2_puzzle_hash: Option<Bytes32>) -> AddressKind {
         return AddressKind::Offer;
     }
 
-    AddressKind::Own
+    if is_own {
+        AddressKind::Own
+    } else {
+        AddressKind::External
+    }
 }
 
 pub fn encode_asset_id(hash: Bytes32, kind: AssetKind) -> Result<Option<String>> {
