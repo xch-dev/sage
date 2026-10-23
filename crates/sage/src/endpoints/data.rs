@@ -416,6 +416,12 @@ impl Sage {
             ApiOptionSortMode::ExpirationSeconds => OptionSortMode::ExpirationSeconds,
         };
 
+        let filter = match req.filter {
+            sage_api::OptionFilter::Owned => sage_database::OptionFilter::Owned,
+            sage_api::OptionFilter::Created => sage_database::OptionFilter::Created,
+            sage_api::OptionFilter::All => sage_database::OptionFilter::All,
+        };
+
         let mut options = Vec::new();
 
         let (rows, total) = wallet
@@ -427,6 +433,7 @@ impl Sage {
                 req.ascending,
                 req.find_value,
                 req.include_hidden,
+                filter,
             )
             .await?;
 
@@ -447,6 +454,8 @@ impl Sage {
                 expiration_seconds: row.expiration_seconds,
                 created_height: row.coin_row.created_height,
                 created_timestamp: row.coin_row.created_timestamp,
+                is_owned: row.coin_row.spent_height.is_none()
+                    && row.coin_row.mempool_item_hash.is_none(),
             });
         }
 
@@ -479,6 +488,7 @@ impl Sage {
             expiration_seconds: row.expiration_seconds,
             created_height: row.coin_row.created_height,
             created_timestamp: row.coin_row.created_timestamp,
+            is_owned: row.coin_row.spent_height.is_none(),
         };
 
         Ok(GetOptionResponse {
