@@ -162,9 +162,14 @@ impl Sage {
         } else {
             None
         };
+        let multi_issuance_key = if req.multi_issuance {
+            Some(wallet.multi_issuance_key().await?)
+        } else {
+            None
+        };
 
         let (coin_spends, asset_id) = wallet
-            .issue_cat_with_hidden_puzzle_hash(amount, fee, None, hidden_puzzle_hash)
+            .issue_cat_with_hidden_puzzle_hash(amount, fee, multi_issuance_key, hidden_puzzle_hash)
             .await?;
         let mut tx = wallet.db.tx().await?;
 

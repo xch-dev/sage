@@ -42,12 +42,14 @@ export default function IssueToken() {
     amount: positiveAmount(3),
     fee: amount(walletState.sync.unit.precision).optional(),
     revocable: z.boolean(),
+    multiIssuance: z.boolean(),
   });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       revocable: false,
+      multiIssuance: false,
     },
   });
 
@@ -58,6 +60,7 @@ export default function IssueToken() {
         ticker: values.ticker,
         amount: toMojos(values.amount.toString(), 3),
         revocable: values.revocable,
+        multi_issuance: values.multiIssuance,
         fee: toMojos(
           values.fee?.toString() || '0',
           walletState.sync.unit.precision,
@@ -199,6 +202,47 @@ export default function IssueToken() {
               </Alert>
             )}
 
+            <FormField
+              control={form.control}
+              name='multiIssuance'
+              render={({ field }) => (
+                <FormItem className='flex items-center justify-between gap-4 rounded-lg border p-4'>
+                  <div className='space-y-1'>
+                    <Label htmlFor='multiIssuance'>
+                      <Trans>Multi-issuance</Trans>
+                    </Label>
+                    <p className='text-sm text-muted-foreground'>
+                      <Trans>
+                        Allow this wallet to issue more of the token later.
+                      </Trans>
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      id='multiIssuance'
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {form.watch('multiIssuance') && (
+              <Alert variant='warning'>
+                <TriangleAlertIcon className='h-4 w-4' aria-hidden='true' />
+                <AlertTitle>
+                  <Trans>Multi-issuance CAT Warning</Trans>
+                </AlertTitle>
+                <AlertDescription>
+                  <Trans>
+                    The total supply will not be fixed. This wallet will be able
+                    to increase it later, so holders must trust the issuer.
+                  </Trans>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <Button type='submit'>
               <Trans>Issue Token</Trans>
             </Button>
@@ -224,6 +268,7 @@ export default function IssueToken() {
                     ticker={form.getValues().ticker}
                     amount={form.getValues().amount.toString()}
                     revocable={form.getValues().revocable}
+                    multiIssuance={form.getValues().multiIssuance}
                   />
                 ),
               }

@@ -34,6 +34,7 @@ interface TokenConfirmationProps {
   name?: string;
   amount?: string;
   revocable?: boolean;
+  multiIssuance?: boolean;
   currentMemo?: Memo;
 }
 
@@ -46,6 +47,7 @@ export function TokenConfirmation({
   name,
   amount,
   revocable,
+  multiIssuance,
   currentMemo,
 }: TokenConfirmationProps) {
   const config = {
@@ -90,6 +92,11 @@ export function TokenConfirmation({
             <Trans>
               This wallet&apos;s change address will be used as the revocation
               address.
+            </Trans>
+          )}{' '}
+          {multiIssuance && (
+            <Trans>
+              This wallet will be able to issue more of this token later.
             </Trans>
           )}
         </>

@@ -73,27 +73,27 @@ msgstr ""
 msgid "{activeOfferCount} active offers"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:298
+#: src/components/confirmations/TokenConfirmation.tsx:305
 msgid "{coinCount, plural, one {# clawed back coin} other {# clawed back coins}}"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:304
+#: src/components/confirmations/TokenConfirmation.tsx:311
 msgid "{coinCount, plural, one {# finalized clawback} other {# finalized clawbacks}}"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:239
+#: src/components/confirmations/TokenConfirmation.tsx:246
 msgid "{coinCount, plural, one {Claw back # coin} other {Claw back # coins}}"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:233
+#: src/components/confirmations/TokenConfirmation.tsx:240
 msgid "{coinCount, plural, one {Combine # coin} other {Combine # coins}}"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:245
+#: src/components/confirmations/TokenConfirmation.tsx:252
 msgid "{coinCount, plural, one {Finalize clawback # coin} other {Finalize clawback # coins}}"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:227
+#: src/components/confirmations/TokenConfirmation.tsx:234
 msgid "{coinCount, plural, one {Split # coin} other {Split # coins}}"
 msgstr ""
 
@@ -149,7 +149,7 @@ msgstr ""
 msgid "{marketplaceName} link"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:294
+#: src/components/confirmations/TokenConfirmation.tsx:301
 msgid "{outputCount} coins"
 msgstr "{outputCount} monedas"
 
@@ -218,7 +218,7 @@ msgstr "{selectedCount} seleccionados"
 msgid "1 active offer"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:296
+#: src/components/confirmations/TokenConfirmation.tsx:303
 msgid "1 combined coin"
 msgstr "1 moneda combinada"
 
@@ -415,15 +415,19 @@ msgstr ""
 msgid "All Sources"
 msgstr ""
 
+#: src/pages/IssueToken.tsx:215
+msgid "Allow this wallet to issue more of the token later."
+msgstr ""
+
 #: src/pages/Settings.tsx:1057
 msgid "Allow Unsigned Transactions"
 msgstr ""
 
 #: src/components/CoinList.tsx:142
-#: src/components/confirmations/TokenConfirmation.tsx:193
+#: src/components/confirmations/TokenConfirmation.tsx:200
 #: src/components/selectors/AssetSelector.tsx:266
 #: src/components/TransactionColumns.tsx:117
-#: src/pages/IssueToken.tsx:118
+#: src/pages/IssueToken.tsx:121
 #: src/pages/MintOption.tsx:181
 #: src/pages/MintOption.tsx:233
 #: src/pages/Send.tsx:339
@@ -444,11 +448,11 @@ msgstr "Cantidad incluye"
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:935
+#: src/contexts/WalletConnectContext.tsx:1013
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:925
+#: src/contexts/WalletConnectContext.tsx:1003
 msgid "Approving"
 msgstr ""
 
@@ -843,7 +847,7 @@ msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:330
 #: src/components/ClawbackCoinsCard.tsx:405
-#: src/components/confirmations/TokenConfirmation.tsx:100
+#: src/components/confirmations/TokenConfirmation.tsx:107
 msgid "Claw Back"
 msgstr ""
 
@@ -1031,7 +1035,7 @@ msgstr "Combinar"
 msgid "Combine {ticker}"
 msgstr "Combinar {ticker}"
 
-#: src/components/confirmations/TokenConfirmation.tsx:70
+#: src/components/confirmations/TokenConfirmation.tsx:72
 #: src/pages/Token.tsx:143
 msgid "Combine Coins"
 msgstr "Combinar Monedas"
@@ -1301,7 +1305,7 @@ msgstr ""
 msgid "Creating Offers"
 msgstr ""
 
-#: src/pages/IssueToken.tsx:103
+#: src/pages/IssueToken.tsx:106
 msgid "Currency Symbol"
 msgstr "Símbolo de moneda"
 
@@ -1337,7 +1341,7 @@ msgstr "Datos"
 msgid "Data and License Details"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:172
+#: src/components/confirmations/TokenConfirmation.tsx:179
 msgid "Data copied to clipboard"
 msgstr "Datos copiados al portapapeles"
 
@@ -1576,7 +1580,7 @@ msgstr "Descubrir nodos"
 #~ msgstr "Descubrir nodos automaticamente"
 
 #: src/pages/CreateProfile.tsx:73
-#: src/pages/IssueToken.tsx:87
+#: src/pages/IssueToken.tsx:90
 msgid "Display name"
 msgstr "Nombre para mostrar"
 
@@ -1594,7 +1598,7 @@ msgid "e.g. ff00ab"
 msgstr ""
 
 #: src/components/TokenCard.tsx:169
-#: src/contexts/WalletConnectContext.tsx:446
+#: src/contexts/WalletConnectContext.tsx:447
 msgid "Edit"
 msgstr "Editar"
 
@@ -1940,8 +1944,8 @@ msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:89
 #: src/components/ConfirmationDialog.tsx:453
-#: src/contexts/WalletConnectContext.tsx:426
-#: src/contexts/WalletConnectContext.tsx:466
+#: src/contexts/WalletConnectContext.tsx:427
+#: src/contexts/WalletConnectContext.tsx:467
 msgid "Fee"
 msgstr "Tarifa"
 
@@ -1990,7 +1994,7 @@ msgstr ""
 msgid "Finalize {ticker} Clawback"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:117
+#: src/components/confirmations/TokenConfirmation.tsx:124
 msgid "Finalize Clawback"
 msgstr ""
 
@@ -2303,8 +2307,8 @@ msgstr "Direcciones IP"
 msgid "Issue new token"
 msgstr "Emisión de nuevo token"
 
-#: src/pages/IssueToken.tsx:72
-#: src/pages/IssueToken.tsx:203
+#: src/pages/IssueToken.tsx:75
+#: src/pages/IssueToken.tsx:247
 #: src/pages/TokenList.tsx:186
 msgid "Issue Token"
 msgstr "Emisión de Token"
@@ -2406,7 +2410,7 @@ msgstr "Cargando Colección..."
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:610
+#: src/contexts/WalletConnectContext.tsx:611
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2621,6 +2625,14 @@ msgstr ""
 msgid "More Themes..."
 msgstr ""
 
+#: src/pages/IssueToken.tsx:212
+msgid "Multi-issuance"
+msgstr ""
+
+#: src/pages/IssueToken.tsx:235
+msgid "Multi-issuance CAT Warning"
+msgstr ""
+
 #: src/components/WalletAddressPicker.tsx:96
 msgid "My wallets"
 msgstr ""
@@ -2630,7 +2642,7 @@ msgstr ""
 #: src/components/TokenColumns.tsx:57
 #: src/pages/CreateProfile.tsx:70
 #: src/pages/DidList.tsx:350
-#: src/pages/IssueToken.tsx:84
+#: src/pages/IssueToken.tsx:87
 msgid "Name"
 msgstr "Nombre"
 
@@ -2680,7 +2692,7 @@ msgstr "Red"
 #: src/components/OwnedCoinsCard.tsx:646
 #: src/components/TransferDialog.tsx:114
 #: src/pages/CreateProfile.tsx:87
-#: src/pages/IssueToken.tsx:146
+#: src/pages/IssueToken.tsx:149
 #: src/pages/MakeOffer.tsx:178
 #: src/pages/MintNft.tsx:389
 #: src/pages/MintOption.tsx:300
@@ -2790,7 +2802,7 @@ msgstr "NFTs"
 msgid "NFTs exported successfully"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:211
+#: src/components/confirmations/TokenConfirmation.tsx:218
 msgid "No"
 msgstr ""
 
@@ -3039,16 +3051,16 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:320
+#: src/components/confirmations/TokenConfirmation.tsx:327
 msgid "Once issued, this token will appear in your wallet. You can then send it to other addresses or create offers to trade it."
 msgstr "Una vez emitido, este token aparecerá en tu billetera. Luego, puedes enviarlo a otras direcciones o crear ofertas para intercambiarlo."
 
-#: src/components/confirmations/TokenConfirmation.tsx:325
+#: src/components/confirmations/TokenConfirmation.tsx:332
 msgid "Once issued, this token will appear in your wallet. You can then send it to other addresses."
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:156
-#: src/pages/IssueToken.tsx:193
+#: src/components/confirmations/TokenConfirmation.tsx:163
+#: src/pages/IssueToken.tsx:196
 msgid "Only issue a revocable CAT if you understand the risks. Sage cannot revoke it; revocation currently requires external tools."
 msgstr ""
 
@@ -3169,7 +3181,7 @@ msgstr "Opciones para {nftName}"
 msgid "Outline"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:287
+#: src/components/confirmations/TokenConfirmation.tsx:294
 #: src/components/OwnedCoinsCard.tsx:575
 msgid "Output Count"
 msgstr "Cantidad de salidas"
@@ -3599,11 +3611,11 @@ msgstr ""
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:484
+#: src/contexts/WalletConnectContext.tsx:485
 msgid "Reset"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:289
+#: src/components/confirmations/TokenConfirmation.tsx:296
 msgid "Result"
 msgstr "Resultado"
 
@@ -3647,17 +3659,17 @@ msgid "Reveal Hidden Tokens"
 msgstr "Revelar Tokens Ocultos"
 
 #: src/components/Assets.tsx:64
-#: src/components/confirmations/TokenConfirmation.tsx:208
+#: src/components/confirmations/TokenConfirmation.tsx:215
 msgid "Revocable"
 msgstr ""
 
 #: src/components/TokenCard.tsx:207
-#: src/pages/IssueToken.tsx:166
+#: src/pages/IssueToken.tsx:169
 msgid "Revocable CAT"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:153
-#: src/pages/IssueToken.tsx:190
+#: src/components/confirmations/TokenConfirmation.tsx:160
+#: src/pages/IssueToken.tsx:193
 msgid "Revocable CAT Warning"
 msgstr ""
 
@@ -3972,7 +3984,7 @@ msgstr "Enviar {ticker}"
 msgid "Send in bulk (airdrop)"
 msgstr "Enviar en masa (airdrop)"
 
-#: src/components/confirmations/TokenConfirmation.tsx:111
+#: src/components/confirmations/TokenConfirmation.tsx:118
 msgid "Send Token"
 msgstr "Enviar Token"
 
@@ -4236,7 +4248,7 @@ msgstr "Dividir"
 msgid "Split {ticker}"
 msgstr "Dividir {ticker}"
 
-#: src/components/confirmations/TokenConfirmation.tsx:54
+#: src/components/confirmations/TokenConfirmation.tsx:56
 #: src/pages/Token.tsx:130
 msgid "Split Coins"
 msgstr "Dividir Monedas"
@@ -4297,7 +4309,7 @@ msgstr "Enviar"
 msgid "Submitting"
 msgstr "Enviando"
 
-#: src/contexts/WalletConnectContext.tsx:428
+#: src/contexts/WalletConnectContext.tsx:429
 msgid "suggested by dApp"
 msgstr ""
 
@@ -4490,6 +4502,10 @@ msgstr "El número de direcciones gestionadas por esta billetera"
 msgid "The offer to fulfill the swap has been created successfully. It will now be executed on Dexie and imported on the offers page."
 msgstr ""
 
+#: src/pages/IssueToken.tsx:238
+msgid "The total supply will not be fixed. This wallet will be able to increase it later, so holders must trust the issuer."
+msgstr ""
+
 #: src/components/confirmations/CancelOfferConfirmation.tsx:49
 msgid "The transaction fee of {fee} applies to each offer being canceled."
 msgstr ""
@@ -4673,7 +4689,7 @@ msgstr "Este perfil será eliminado de forma permanente al enviarlo a la direcci
 msgid "This profile will be transferred to the address below."
 msgstr "Este perfil será transferido a la dirección a continuación."
 
-#: src/walletconnect/handler.ts:51
+#: src/walletconnect/handler.ts:52
 msgid "This wallet is read-only and cannot sign, so {command} is not available"
 msgstr ""
 
@@ -4681,7 +4697,11 @@ msgstr ""
 #~ msgid "This wallet requires a database migration to continue. Would you like to delete the wallet's data or cancel the login? The keys will not be affected."
 #~ msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:90
+#: src/components/confirmations/TokenConfirmation.tsx:98
+msgid "This wallet will be able to issue more of this token later."
+msgstr ""
+
+#: src/components/confirmations/TokenConfirmation.tsx:92
 msgid "This wallet's change address will be used as the revocation address."
 msgstr ""
 
@@ -4805,9 +4825,9 @@ msgstr "Esto dividirá todas las monedas seleccionadas."
 #~ msgid "This will unassign the NFT from its profile."
 #~ msgstr "Esto desasignará el NFT de su perfil."
 
-#: src/components/confirmations/TokenConfirmation.tsx:186
+#: src/components/confirmations/TokenConfirmation.tsx:193
 #: src/components/TokenCard.tsx:262
-#: src/pages/IssueToken.tsx:100
+#: src/pages/IssueToken.tsx:103
 msgid "Ticker"
 msgstr "Ticker"
 
@@ -4843,7 +4863,7 @@ msgstr "Alternar menú de navegación"
 msgid "Token"
 msgstr "Token"
 
-#: src/pages/IssueToken.tsx:219
+#: src/pages/IssueToken.tsx:263
 msgid "Token Details"
 msgstr "Detalles del Token"
 
@@ -4859,7 +4879,7 @@ msgstr "Cuadrícula de tokens"
 msgid "Token Icon"
 msgstr "Icono de Token"
 
-#: src/components/confirmations/TokenConfirmation.tsx:81
+#: src/components/confirmations/TokenConfirmation.tsx:83
 msgid "Token Issuance"
 msgstr "Emisión de tokens"
 
@@ -4893,7 +4913,7 @@ msgstr ""
 msgid "Tokens must have a positive amount."
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:278
+#: src/components/confirmations/TokenConfirmation.tsx:285
 msgid "Total Amount"
 msgstr "Cantidad total"
 
@@ -5288,7 +5308,7 @@ msgstr ""
 msgid "Use 24 words"
 msgstr "Usar 24 palabras"
 
-#: src/contexts/WalletConnectContext.tsx:455
+#: src/contexts/WalletConnectContext.tsx:456
 msgid "Use default"
 msgstr ""
 
@@ -5310,7 +5330,7 @@ msgstr ""
 msgid "Use this address to receive {name}"
 msgstr "Utilice esta dirección para recibir {name}"
 
-#: src/pages/IssueToken.tsx:169
+#: src/pages/IssueToken.tsx:172
 msgid "Use this wallet's change address as the token's revocation address."
 msgstr ""
 
@@ -5524,7 +5544,7 @@ msgstr "con {syncedCoins} / {totalCoins} monedas sincronizadas"
 #~ msgid "XCH logo"
 #~ msgstr "XCH logo"
 
-#: src/components/confirmations/TokenConfirmation.tsx:211
+#: src/components/confirmations/TokenConfirmation.tsx:218
 msgid "Yes"
 msgstr ""
 
@@ -5540,7 +5560,7 @@ msgstr ""
 msgid "You"
 msgstr "Tú"
 
-#: src/components/confirmations/TokenConfirmation.tsx:103
+#: src/components/confirmations/TokenConfirmation.tsx:110
 msgid "You are about to claw back coins. This will return them to your wallet."
 msgstr ""
 
@@ -5552,7 +5572,7 @@ msgstr ""
 msgid "You are about to create <0>1</0> offer."
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:120
+#: src/components/confirmations/TokenConfirmation.tsx:127
 msgid "You are about to finalize the clawback transaction. This will send the funds to the original recipient (even if the recipient wallet does not support clawbacks)."
 msgstr ""
 
@@ -5572,7 +5592,7 @@ msgstr ""
 msgid "You are canceling this offer on-chain. This will prevent it from being taken even if someone has the original offer file."
 msgstr "Estás cancelando esta oferta en la cadena de bloques. Esto evitará que sea aceptada, incluso si alguien tiene el archivo de oferta original."
 
-#: src/components/confirmations/TokenConfirmation.tsx:73
+#: src/components/confirmations/TokenConfirmation.tsx:75
 msgid "You are combining multiple coins into a single coin. This can help reduce the number of coins in your wallet."
 msgstr "Estás combinando varias monedas en una sola moneda. Esto puede ayudar a reducir la cantidad de monedas en tu billetera."
 
@@ -5580,7 +5600,7 @@ msgstr "Estás combinando varias monedas en una sola moneda. Esto puede ayudar a
 msgid "You are creating a new profile. This will generate a decentralized identifier (DID) that can be used to associate NFTs and other digital assets with your identity."
 msgstr "Estás creando un nuevo perfil. Esto generará un identificador descentralizado (DID) que se puede utilizar para asociar NFT y otros activos digitales con tu identidad."
 
-#: src/components/confirmations/TokenConfirmation.tsx:85
+#: src/components/confirmations/TokenConfirmation.tsx:87
 msgid "You are issuing a new token. This will create a CAT (Chia Asset Token) that can be sent to other users and traded on exchanges."
 msgstr "Estás emitiendo un nuevo token. Esto creará un CAT (Token de Activos Chia) que se puede enviar a otros usuarios y negociar en bolsas de valores."
 
@@ -5596,11 +5616,11 @@ msgstr ""
 msgid "You Are Requesting"
 msgstr ""
 
-#: src/components/confirmations/TokenConfirmation.tsx:57
+#: src/components/confirmations/TokenConfirmation.tsx:59
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions and offer creation."
 msgstr "Estás dividiendo monedas en múltiples monedas de igual valor. Esto puede ayudar con transacciones paralelas y la creación de ofertas."
 
-#: src/components/confirmations/TokenConfirmation.tsx:62
+#: src/components/confirmations/TokenConfirmation.tsx:64
 msgid "You are splitting coins into multiple coins of equal value. This can help with parallel transactions."
 msgstr ""
 

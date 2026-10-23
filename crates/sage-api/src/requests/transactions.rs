@@ -214,6 +214,10 @@ pub struct IssueCat {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub revocable: bool,
+    /// Whether more of the CAT can be issued later by this wallet
+    #[serde(default)]
+    #[cfg_attr(feature = "openapi", schema(default = false))]
+    pub multi_issuance: bool,
     /// Transaction fee
     pub fee: Amount,
     /// Whether to automatically submit the transaction
