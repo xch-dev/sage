@@ -4,7 +4,8 @@ use specta::Type;
 
 use crate::{
     BridgeRegistryKind, SageAppCapabilityDefinitionView, SageNetworkWhitelistEntry, SharedSageApp,
-    UserBridgeCapability, WalletSendXchParams, WalletSignCoinSpendsApprovalSummary,
+    UserBridgeCapability, WalletCreateOfferApprovalSummary, WalletSendXchParams,
+    WalletSignCoinSpendsApprovalSummary,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
@@ -98,6 +99,9 @@ pub enum RustBridgeApprovalBody {
         summary: WalletSignCoinSpendsApprovalSummary,
         #[serde(rename = "partialSign")]
         partial_sign: bool,
+    },
+    CreateOffer {
+        summary: WalletCreateOfferApprovalSummary,
     },
     SignMessage {
         message: String,
