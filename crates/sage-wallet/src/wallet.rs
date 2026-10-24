@@ -5,7 +5,7 @@ use std::{
 
 use chia_wallet_sdk::{
     chia::puzzle_types::offer::SettlementPaymentsSolution,
-    driver::{P2DelegatedConditionsLayer, SpendKind, SpendableAsset},
+    driver::{P2DelegatedConditionsLayer, SpendKind, SpendableAsset, coin_amount},
     prelude::*,
     puzzles::SETTLEMENT_PAYMENT_HASH,
     types::puzzles::P2DelegatedConditionsSolution,
@@ -228,7 +228,7 @@ impl Wallet {
                     }
 
                     let coins = self
-                        .select_xch_coins(required_amount, &selected_coin_ids)
+                        .select_xch_coins(coin_amount(required_amount)?, &selected_coin_ids)
                         .await?;
 
                     for coin in coins {
@@ -248,7 +248,11 @@ impl Wallet {
                         }
 
                         let coins = self
-                            .select_cat_coins(asset_id, required_amount, &selected_coin_ids)
+                            .select_cat_coins(
+                                asset_id,
+                                coin_amount(required_amount)?,
+                                &selected_coin_ids,
+                            )
                             .await?;
 
                         for coin in coins {
