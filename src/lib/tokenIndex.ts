@@ -143,6 +143,24 @@ export function withSuggestedLabel<
   return { ...token, name, ticker, icon_url };
 }
 
+/**
+ * An asset as shown anywhere in the wallet: a CAT with no name, ticker or icon
+ * takes the index's suggestion for it (withSuggestedLabel); XCH, NFTs, DIDs and
+ * options are shown as they are.
+ */
+export function labelAsset<
+  T extends {
+    asset_id: string | null;
+    name: string | null;
+    ticker: string | null;
+    icon_url: string | null;
+    kind?: string;
+  },
+>(asset: T, suggest: (assetId: string) => TokenIndexEntry | null): T {
+  if (!asset.asset_id || (asset.kind && asset.kind !== 'token')) return asset;
+  return withSuggestedLabel(asset, suggest(asset.asset_id));
+}
+
 /** Whether a URL can be used as a token index URL (https only). */
 export function isValidTokenIndexUrl(url: string) {
   return httpsUrl(url.trim()) !== null;

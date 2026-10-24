@@ -1,4 +1,5 @@
 import { DataTable } from '@/components/ui/data-table';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { getAssetDisplayName } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import { Row, SortingState } from '@tanstack/react-table';
@@ -23,50 +24,48 @@ export function TransactionListView({
   summarized?: boolean;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
+  // An unnamed CAT shows a token index's suggested label here too, as on the token list.
+  const label = useAssetLabel();
 
   const flattenedPending: FlattenedTransaction[] = pendingTransactions.flatMap(
     (transaction) => {
-      const created = transaction.created.map(
-        (coin): FlattenedTransaction => ({
-          type: coin.asset.kind,
-          address: coin.address,
-          displayName: getAssetDisplayName(
-            coin.asset.name,
-            coin.asset.ticker,
-            coin.asset.kind,
-          ),
-          itemId: coin.asset.asset_id ?? 'XCH',
-          amount: coin.amount.toString(),
-          transactionHeight: 0,
-          iconUrl: coin.asset.icon_url ?? '',
-          timestamp: null,
-          precision: coin.asset.precision,
-          groupKey: transaction.transaction_id,
-          isPending: true,
-          transactionId: transaction.transaction_id,
-        }),
-      );
+      const created = transaction.created.map((coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: getAssetDisplayName(
+          label(coin.asset).name,
+          label(coin.asset).ticker,
+          coin.asset.kind,
+        ),
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: coin.amount.toString(),
+        transactionHeight: 0,
+        iconUrl: label(coin.asset).icon_url ?? '',
+        timestamp: null,
+        precision: coin.asset.precision,
+        groupKey: transaction.transaction_id,
+        isPending: true,
+        transactionId: transaction.transaction_id,
+      }));
 
-      const spent = transaction.spent.map(
-        (coin): FlattenedTransaction => ({
-          type: coin.asset.kind,
-          address: coin.address,
-          displayName: getAssetDisplayName(
-            coin.asset.name,
-            coin.asset.ticker,
-            coin.asset.kind,
-          ),
-          itemId: coin.asset.asset_id ?? 'XCH',
-          amount: BigNumber(coin.amount).negated().toString(),
-          transactionHeight: 0,
-          iconUrl: coin.asset.icon_url ?? '',
-          timestamp: null,
-          precision: coin.asset.precision,
-          groupKey: transaction.transaction_id,
-          isPending: true,
-          transactionId: transaction.transaction_id,
-        }),
-      );
+      const spent = transaction.spent.map((coin): FlattenedTransaction => ({
+        type: coin.asset.kind,
+        address: coin.address,
+        displayName: getAssetDisplayName(
+          label(coin.asset).name,
+          label(coin.asset).ticker,
+          coin.asset.kind,
+        ),
+        itemId: coin.asset.asset_id ?? 'XCH',
+        amount: BigNumber(coin.amount).negated().toString(),
+        transactionHeight: 0,
+        iconUrl: label(coin.asset).icon_url ?? '',
+        timestamp: null,
+        precision: coin.asset.precision,
+        groupKey: transaction.transaction_id,
+        isPending: true,
+        transactionId: transaction.transaction_id,
+      }));
 
       if (!summarized) {
         return [...created, ...spent];
@@ -91,43 +90,39 @@ export function TransactionListView({
   );
 
   const flattenedTransactions = transactions.flatMap((transaction) => {
-    const created = transaction.created.map(
-      (coin): FlattenedTransaction => ({
-        type: coin.asset.kind,
-        address: coin.address,
-        displayName: getAssetDisplayName(
-          coin.asset.name,
-          coin.asset.ticker,
-          coin.asset.kind,
-        ),
-        itemId: coin.asset.asset_id ?? 'XCH',
-        amount: coin.amount.toString(),
-        transactionHeight: transaction.height,
-        iconUrl: coin.asset.icon_url ?? '',
-        timestamp: transaction.timestamp,
-        precision: coin.asset.precision,
-        groupKey: String(transaction.height),
-      }),
-    );
+    const created = transaction.created.map((coin): FlattenedTransaction => ({
+      type: coin.asset.kind,
+      address: coin.address,
+      displayName: getAssetDisplayName(
+        label(coin.asset).name,
+        label(coin.asset).ticker,
+        coin.asset.kind,
+      ),
+      itemId: coin.asset.asset_id ?? 'XCH',
+      amount: coin.amount.toString(),
+      transactionHeight: transaction.height,
+      iconUrl: label(coin.asset).icon_url ?? '',
+      timestamp: transaction.timestamp,
+      precision: coin.asset.precision,
+      groupKey: String(transaction.height),
+    }));
 
-    const spent = transaction.spent.map(
-      (coin): FlattenedTransaction => ({
-        type: coin.asset.kind,
-        address: coin.address,
-        displayName: getAssetDisplayName(
-          coin.asset.name,
-          coin.asset.ticker,
-          coin.asset.kind,
-        ),
-        itemId: coin.asset.asset_id ?? 'XCH',
-        amount: BigNumber(coin.amount).negated().toString(),
-        transactionHeight: transaction.height,
-        iconUrl: coin.asset.icon_url ?? '',
-        timestamp: transaction.timestamp,
-        precision: coin.asset.precision,
-        groupKey: String(transaction.height),
-      }),
-    );
+    const spent = transaction.spent.map((coin): FlattenedTransaction => ({
+      type: coin.asset.kind,
+      address: coin.address,
+      displayName: getAssetDisplayName(
+        label(coin.asset).name,
+        label(coin.asset).ticker,
+        coin.asset.kind,
+      ),
+      itemId: coin.asset.asset_id ?? 'XCH',
+      amount: BigNumber(coin.amount).negated().toString(),
+      transactionHeight: transaction.height,
+      iconUrl: label(coin.asset).icon_url ?? '',
+      timestamp: transaction.timestamp,
+      precision: coin.asset.precision,
+      groupKey: String(transaction.height),
+    }));
 
     if (!summarized) {
       return [...created, ...spent];

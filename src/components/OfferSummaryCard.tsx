@@ -1,5 +1,6 @@
 import { OfferAsset, OfferRecord } from '@/bindings';
 import { NumberFormat } from '@/components/NumberFormat';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
@@ -70,10 +71,16 @@ interface AssetPreviewProps {
 }
 
 function AssetPreview({ label, assets }: AssetPreviewProps) {
+  // Unnamed CATs show a token index's suggested label, as on the token list.
+  const suggest = useAssetLabel();
+  const shown = assets.map((entry) => ({
+    ...entry,
+    asset: suggest(entry.asset),
+  }));
   return (
     <div className='flex flex-col gap-1 w-[125px] lg:w-[200px] xl:w-[300px]'>
       <div>{label}</div>
-      {assets.map(({ amount, royalty, asset }) => (
+      {shown.map(({ amount, royalty, asset }) => (
         <div className='flex items-center gap-2' key={asset.asset_id ?? 'xch'}>
           <AssetIcon asset={asset} size='md' />
           <div className='text-sm text-muted-foreground truncate'>

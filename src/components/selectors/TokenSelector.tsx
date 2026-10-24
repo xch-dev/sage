@@ -1,4 +1,5 @@
 import { TokenRecord, commands } from '@/bindings';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { useErrors } from '@/hooks/useErrors';
 import { getAssetDisplayName, isValidAssetId } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -30,6 +31,8 @@ export function TokenSelector({
   isLoading = false,
 }: TokenSelectorProps) {
   const { addError } = useErrors();
+  // Unnamed CATs show a token index's suggested label, as on the token list.
+  const label = useAssetLabel();
 
   const [tokens, setTokens] = useState<Record<string, TokenRecord>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,26 +74,28 @@ export function TokenSelector({
 
   // Filter tokens based on search term and visibility/balance settings
   const filteredTokens = useMemo(() => {
-    return Object.values(tokens).filter((token) => {
-      if (!token.visible) return false;
-      if (
-        token.asset_id !== null &&
-        allowedAssetIds &&
-        !allowedAssetIds.has(token.asset_id.toLowerCase())
-      )
-        return false;
-      if (hideZeroBalance && token.balance === 0) return false;
-      if (!searchTerm) return true;
-      if (isValidAssetId(searchTerm)) {
-        return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
-      }
+    return Object.values(tokens)
+      .map(label)
+      .filter((token) => {
+        if (!token.visible) return false;
+        if (
+          token.asset_id !== null &&
+          allowedAssetIds &&
+          !allowedAssetIds.has(token.asset_id.toLowerCase())
+        )
+          return false;
+        if (hideZeroBalance && token.balance === 0) return false;
+        if (!searchTerm) return true;
+        if (isValidAssetId(searchTerm)) {
+          return token.asset_id?.toLowerCase() === searchTerm.toLowerCase();
+        }
 
-      return (
-        token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    });
-  }, [tokens, allowedAssetIds, hideZeroBalance, searchTerm]);
+        return (
+          token.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          token.ticker?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
+  }, [tokens, label, allowedAssetIds, hideZeroBalance, searchTerm]);
 
   const handleSelect = useCallback(
     (assetId: string | null) => {
@@ -115,32 +120,35 @@ export function TokenSelector({
   }, [disabled]);
 
   const renderToken = useCallback(
-    (token: TokenRecord) => (
-      <div className='flex items-center gap-2 min-w-0'>
-        <AssetIcon
-          asset={{
-            icon_url: token.icon_url ?? null,
-            kind: 'token',
-            revocation_address: token.revocation_address ?? null,
-          }}
-          size='md'
-          className='flex-shrink-0'
-        />
-        <div className='flex flex-col min-w-0'>
-          <span className='truncate' role='text'>
-            {getAssetDisplayName(token.name, token.ticker, 'token')}
-            {token.ticker && ` (${token.ticker})`}
-          </span>
-          <span
-            className='text-xs text-muted-foreground truncate'
-            aria-label={t`Asset ID`}
-          >
-            {token.asset_id === null ? null : token.asset_id}
-          </span>
+    (walletToken: TokenRecord) => {
+      const token = label(walletToken);
+      return (
+        <div className='flex items-center gap-2 min-w-0'>
+          <AssetIcon
+            asset={{
+              icon_url: token.icon_url ?? null,
+              kind: 'token',
+              revocation_address: token.revocation_address ?? null,
+            }}
+            size='md'
+            className='flex-shrink-0'
+          />
+          <div className='flex flex-col min-w-0'>
+            <span className='truncate' role='text'>
+              {getAssetDisplayName(token.name, token.ticker, 'token')}
+              {token.ticker && ` (${token.ticker})`}
+            </span>
+            <span
+              className='text-xs text-muted-foreground truncate'
+              aria-label={t`Asset ID`}
+            >
+              {token.asset_id === null ? null : token.asset_id}
+            </span>
+          </div>
         </div>
-      </div>
-    ),
-    [],
+      );
+    },
+    [label],
   );
 
   const renderSelectedToken = useCallback(

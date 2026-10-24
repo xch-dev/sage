@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { LoadingButton } from '@/components/ui/loading-button';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { useBiometric } from '@/hooks/useBiometric';
 import { useErrors } from '@/hooks/useErrors';
 import { useWallet } from '@/contexts/WalletContext';
@@ -64,6 +65,7 @@ export default function ConfirmationDialog({
   showRecipientDetails = true,
 }: ConfirmationDialogProps) {
   const walletState = useWalletState();
+  const label = useAssetLabel();
   const ticker = walletState.sync.unit.ticker;
 
   const { addError } = useErrors();
@@ -96,7 +98,7 @@ export default function ConfirmationDialog({
   };
 
   const { spent, created } = response
-    ? calculateTransaction(walletState.sync.unit, response.summary)
+    ? calculateTransaction(walletState.sync.unit, response.summary, label)
     : { spent: [], created: [] };
   const fee = BigNumber(response?.summary.fee || 0);
   const isHighFee = fee.isGreaterThan(1000_000_000); // Adjust threshold as needed
