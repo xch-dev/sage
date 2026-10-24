@@ -47,6 +47,31 @@ impl Wallet {
         memos: Vec<Bytes>,
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
+        self.send_cat_with_coins(
+            asset_id,
+            amounts,
+            fee,
+            include_hint,
+            memos,
+            clawback,
+            Vec::new(),
+        )
+        .await
+    }
+
+    /// As [`Self::send_cat`], spending `selected_coin_ids` (CAT coins of `asset_id`, XCH for
+    /// the fee) first; coin selection only adds what they do not cover.
+    #[allow(clippy::too_many_arguments)]
+    pub async fn send_cat_with_coins(
+        &self,
+        asset_id: Bytes32,
+        amounts: Vec<(Bytes32, u64)>,
+        fee: u64,
+        include_hint: bool,
+        memos: Vec<Bytes>,
+        clawback: Option<u64>,
+        selected_coin_ids: Vec<Bytes32>,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
         let sender_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
@@ -83,7 +108,7 @@ impl Wallet {
             ));
         }
 
-        self.spend(&mut ctx, vec![], &actions).await?;
+        self.spend(&mut ctx, selected_coin_ids, &actions).await?;
 
         Ok(ctx.take())
     }

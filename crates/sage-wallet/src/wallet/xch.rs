@@ -17,6 +17,20 @@ impl Wallet {
         memos: Vec<Bytes>,
         clawback: Option<u64>,
     ) -> Result<Vec<CoinSpend>, WalletError> {
+        self.send_xch_with_coins(amounts, fee, memos, clawback, Vec::new())
+            .await
+    }
+
+    /// As [`Self::send_xch`], spending `selected_coin_ids` first; coin selection only adds
+    /// what they do not cover.
+    pub async fn send_xch_with_coins(
+        &self,
+        amounts: Vec<(Bytes32, u64)>,
+        fee: u64,
+        memos: Vec<Bytes>,
+        clawback: Option<u64>,
+        selected_coin_ids: Vec<Bytes32>,
+    ) -> Result<Vec<CoinSpend>, WalletError> {
         let sender_puzzle_hash = self.change_p2_puzzle_hash().await?;
 
         let mut ctx = SpendContext::new();
@@ -46,7 +60,7 @@ impl Wallet {
             actions.push(Action::send(Id::Xch, p2_puzzle_hash, amount, memos));
         }
 
-        self.spend(&mut ctx, vec![], &actions).await?;
+        self.spend(&mut ctx, selected_coin_ids, &actions).await?;
 
         Ok(ctx.take())
     }
