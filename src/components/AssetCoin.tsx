@@ -2,6 +2,7 @@ import { Amount, Asset, AssetKind } from '@/bindings';
 import { AssetIcon } from '@/components/AssetIcon';
 import { CopyButton } from '@/components/CopyButton';
 import { NumberFormat } from '@/components/NumberFormat';
+import { useAssetLabel } from '@/hooks/useAssetLabel';
 import { useNetwork } from '@/hooks/useNetwork';
 import { spacescanCoinUrl } from '@/lib/urls';
 import { formatAddress, fromMojos, getAssetDisplayName } from '@/lib/utils';
@@ -49,7 +50,9 @@ interface AssetAmountProps {
   amount: Amount;
 }
 
-function AssetAmount({ asset, amount }: AssetAmountProps) {
+function AssetAmount({ asset: walletAsset, amount }: AssetAmountProps) {
+  // An unnamed CAT shows a token index's suggested label, as on the token list.
+  const asset = useAssetLabel()(walletAsset);
   const name = getAssetDisplayName(asset.name, asset.ticker, asset.kind);
 
   return (

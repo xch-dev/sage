@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isIndexForNetwork,
   isValidTokenIndexUrl,
+  labelAsset,
   parseTokenIndex,
   withSuggestedLabel,
 } from './tokenIndex';
@@ -180,5 +181,52 @@ describe('isValidTokenIndexUrl', () => {
     );
     expect(isValidTokenIndexUrl('not a url')).toBe(false);
     expect(isValidTokenIndexUrl('')).toBe(false);
+  });
+});
+
+describe('labelAsset', () => {
+  const entry = {
+    name: 'Forge LP',
+    ticker: 'FLP',
+    iconUrl: 'https://i.example/lp.png',
+    priceXch: null,
+  };
+  const suggest = (assetId: string) => (assetId === LP ? entry : null);
+  const cat = (name: string | null, kind = 'token') => ({
+    asset_id: LP,
+    name,
+    ticker: null,
+    icon_url: null,
+    kind,
+  });
+
+  it('shows an unnamed CAT with the suggestion, in a transaction row as on the token list', () => {
+    expect(labelAsset(cat(null), suggest)).toMatchObject({
+      name: 'Forge LP',
+      ticker: 'FLP',
+      icon_url: entry.iconUrl,
+    });
+  });
+
+  it('keeps a name the wallet has, and only fills what is missing', () => {
+    expect(labelAsset(cat('Mine'), suggest)).toMatchObject({
+      name: 'Mine',
+      ticker: 'FLP',
+    });
+  });
+
+  it('leaves XCH, NFTs and unknown asset ids alone', () => {
+    expect(
+      labelAsset({ ...cat(null), asset_id: null }, suggest).name,
+    ).toBeNull();
+    expect(labelAsset(cat(null, 'nft'), suggest).name).toBeNull();
+    expect(
+      labelAsset({ ...cat(null), asset_id: SPROUT }, suggest).name,
+    ).toBeNull();
+  });
+
+  it('works for records with no kind, such as token records', () => {
+    const record = { asset_id: LP, name: null, ticker: null, icon_url: null };
+    expect(labelAsset(record, suggest).name).toBe('Forge LP');
   });
 });
