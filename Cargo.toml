@@ -89,10 +89,10 @@ tauri-specta = "2.0.0-rc.21"
 utoipa = "5.2.0"
 
 # Chia
-chia-wallet-sdk = { version = "0.36.0", features = ["rustls", "offer-compression", "peer-simulator"] }
-chia_streamable_macro = "0.36.1"
-chia-traits = "0.36.1"
-chia-sha2 = "0.36.1"
+chia-wallet-sdk = { version = "0.37.0", features = ["rustls", "offer-compression", "peer-simulator"] }
+chia_streamable_macro = "0.52.1"
+chia-traits = "0.52.1"
+chia-sha2 = "0.52.1"
 bip39 = "2.0.0"
 bech32 = "0.9.1"
 rand = "0.8.5"
