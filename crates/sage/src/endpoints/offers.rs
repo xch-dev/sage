@@ -728,17 +728,24 @@ impl Sage {
             .map(|offer_id| parse_offer_id(offer_id.clone()))
             .collect::<Result<Vec<_>>>()?;
 
-        let mut coin_spends = Vec::new();
+        let mut offers = Vec::with_capacity(offer_ids.len());
 
         for offer_id in offer_ids {
             let Some(row) = wallet.db.offer(offer_id).await? else {
                 return Err(Error::MissingOffer(offer_id));
             };
 
-            let offer = decode_offer(&row.encoded_offer)?;
-            let spends = wallet.cancel_offer(offer, fee).await?;
-            coin_spends.extend(spends);
+            offers.push(decode_offer(&row.encoded_offer)?);
         }
+
+        // The fee is per offer (the UI labels it "Network Fee (per offer)"), but the batch is
+        // one spend, so its fee coins are selected once and can never be picked twice.
+        let total_fee = u64::try_from(offers.len())
+            .ok()
+            .and_then(|count| fee.checked_mul(count))
+            .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
+
+        let coin_spends = wallet.cancel_offers(offers, total_fee).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
