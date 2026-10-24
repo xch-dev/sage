@@ -9,11 +9,14 @@ use sage_api::{
     CombineOffersResponse, DeleteOffer, DeleteOfferResponse, GetOffer, GetOfferResponse, GetOffers,
     GetOffersForAsset, GetOffersForAssetResponse, GetOffersResponse, ImportOffer,
     ImportOfferResponse, MakeOffer, MakeOfferResponse, NftRoyalty, OfferAmount, OfferAsset,
-    OfferRecord, OfferRecordStatus, OfferSummary, OptionAssets, TakeOffer, TakeOfferResponse,
-    ViewOffer, ViewOfferResponse,
+    OfferFindSide, OfferRecord, OfferRecordStatus, OfferSortMode, OfferSummary, OptionAssets,
+    TakeOffer, TakeOfferResponse, ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
+use sage_database::{
+    AssetKind, OfferRow, OfferSearchSide, OfferSortColumn, OfferStatus, OfferedAsset,
+    OffersPageParams,
+};
 use sage_wallet::{
     Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
     aggregate_offers, insert_transaction, sort_offer,
@@ -24,8 +27,8 @@ use tracing::debug;
 
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
-    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id,
+    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_did_id, parse_hash,
+    parse_nft_id, parse_offer_id, parse_option_id,
 };
 
 #[derive(Debug, Clone)]
@@ -555,9 +558,43 @@ impl Sage {
         })
     }
 
-    pub async fn get_offers(&self, _req: GetOffers) -> Result<GetOffersResponse> {
+    pub async fn get_offers(&self, req: GetOffers) -> Result<GetOffersResponse> {
         let wallet = self.wallet()?;
-        let offers = wallet.db.offers(None).await?;
+
+        let find_text = req
+            .find_value
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string);
+        let find_id = find_text.clone().and_then(parse_find_id);
+
+        let (offers, total) = wallet
+            .db
+            .offers_page(OffersPageParams {
+                status: req.status.map(|status| match status {
+                    OfferRecordStatus::Pending => OfferStatus::Pending,
+                    OfferRecordStatus::Active => OfferStatus::Active,
+                    OfferRecordStatus::Completed => OfferStatus::Completed,
+                    OfferRecordStatus::Cancelled => OfferStatus::Cancelled,
+                    OfferRecordStatus::Expired => OfferStatus::Expired,
+                }),
+                find_text,
+                find_id,
+                side: match req.find_side.unwrap_or_default() {
+                    OfferFindSide::Any => OfferSearchSide::Any,
+                    OfferFindSide::Offered => OfferSearchSide::Offered,
+                    OfferFindSide::Requested => OfferSearchSide::Requested,
+                },
+                sort: match req.sort_mode.unwrap_or_default() {
+                    OfferSortMode::Created => OfferSortColumn::Created,
+                    OfferSortMode::Expiration => OfferSortColumn::Expiration,
+                },
+                ascending: req.ascending,
+                limit: req.limit,
+                offset: req.offset.unwrap_or(0),
+            })
+            .await?;
 
         let mut records = Vec::new();
 
@@ -565,7 +602,10 @@ impl Sage {
             records.push(self.offer_record(&wallet, offer).await?);
         }
 
-        Ok(GetOffersResponse { offers: records })
+        Ok(GetOffersResponse {
+            offers: records,
+            total,
+        })
     }
 
     pub async fn get_offers_for_asset(
@@ -741,5 +781,43 @@ impl Sage {
         }
 
         self.transact(coin_spends, req.auto_submit).await
+    }
+}
+
+/// Interprets a search string as an exact id: 64-char hex (offer or asset id,
+/// optional 0x prefix) or an nft / did:chia / option address.
+fn parse_find_id(value: String) -> Option<Bytes32> {
+    let hex = value.strip_prefix("0x").unwrap_or(&value).to_string();
+
+    parse_offer_id(hex)
+        .ok()
+        .or_else(|| parse_nft_id(value.clone()).ok())
+        .or_else(|| parse_did_id(value.clone()).ok())
+        .or_else(|| parse_option_id(value).ok())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_find_id;
+    use chia_wallet_sdk::prelude::*;
+
+    #[test]
+    fn parses_hex_ids_with_or_without_prefix() {
+        let id = Bytes32::new([7; 32]);
+        assert_eq!(parse_find_id(hex::encode(id)), Some(id));
+        assert_eq!(parse_find_id(format!("0x{}", hex::encode(id))), Some(id));
+    }
+
+    #[test]
+    fn parses_nft_addresses() {
+        let id = Bytes32::new([9; 32]);
+        let nft = Address::new(id, "nft".to_string()).encode().unwrap();
+        assert_eq!(parse_find_id(nft), Some(id));
+    }
+
+    #[test]
+    fn ignores_plain_text() {
+        assert_eq!(parse_find_id("spacebucks".to_string()), None);
+        assert_eq!(parse_find_id("abcd".to_string()), None);
     }
 }
