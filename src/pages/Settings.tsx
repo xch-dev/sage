@@ -43,11 +43,17 @@ import { useDefaultClawback } from '@/hooks/useDefaultClawback';
 import { useDefaultFee } from '@/hooks/useDefaultFee';
 import { useDefaultOfferExpiry } from '@/hooks/useDefaultOfferExpiry';
 import { useErrors } from '@/hooks/useErrors';
+import { usePriceSources } from '@/hooks/usePriceSources';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
 import { useWalletConnect } from '@/hooks/useWalletConnect';
 import { getConsoleLogs } from '@/lib/consoleCapture';
 import { exportText, ExportType } from '@/lib/exportText';
 import { offersEnabled } from '@/lib/features';
+import {
+  builtInSource,
+  BuiltInPriceSource,
+  PriceSourceSetting,
+} from '@/lib/priceSources';
 import {
   clearState,
   fetchState,
@@ -61,6 +67,8 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { getVersion } from '@tauri-apps/api/app';
 import { platform } from '@tauri-apps/plugin-os';
 import {
+  ArrowDownIcon,
+  ArrowUpIcon,
   DownloadIcon,
   LoaderCircleIcon,
   TrashIcon,
@@ -196,7 +204,10 @@ export default function Settings() {
               </TabsContent>
 
               <TabsContent value='network'>
-                <NetworkSettings />
+                <div className='grid gap-4'>
+                  <NetworkSettings />
+                  <PriceSourceSettings />
+                </div>
               </TabsContent>
 
               <TabsContent value='advanced'>
@@ -657,6 +668,150 @@ function NetworkSettings() {
           />
         }
       />
+    </SettingsSection>
+  );
+}
+
+function priceSourceProvides(source: BuiltInPriceSource | null) {
+  switch (source?.kind) {
+    case 'dexie':
+      return t`CAT prices, names and icons (names are saved in the wallet)`;
+    case 'coingecko':
+      return t`XCH/USD rate`;
+    default:
+      return t`CAT prices, XCH/USD rate, and names, tickers and icons a token lacks`;
+  }
+}
+
+function priceSourceName(source: PriceSourceSetting) {
+  const builtIn = builtInSource(source.id);
+  if (builtIn) return builtIn.name;
+
+  try {
+    return new URL(source.url ?? '').host;
+  } catch {
+    return source.url ?? source.id;
+  }
+}
+
+function PriceSourceSettings() {
+  const { sources, setEnabled, move, remove, addCustom } = usePriceSources();
+  const [customUrl, setCustomUrl] = useState('');
+  const [invalidCustomUrl, setInvalidCustomUrl] = useState(false);
+
+  const add = () => {
+    if (addCustom(customUrl)) {
+      setCustomUrl('');
+      setInvalidCustomUrl(false);
+    } else {
+      setInvalidCustomUrl(true);
+    }
+  };
+
+  return (
+    <SettingsSection title={t`Price & Token Sources`}>
+      <div className='p-3 text-sm text-muted-foreground'>
+        <Trans>
+          Sources are used in this order. For each token, the first enabled
+          source with a price wins and later sources only fill gaps. Names,
+          tickers and icons from a token index are shown only where a token has
+          none, and are never saved to the wallet.
+        </Trans>
+      </div>
+
+      {sources.map((source, index) => {
+        const builtIn = builtInSource(source.id);
+        const name = priceSourceName(source);
+
+        return (
+          <div
+            key={source.id}
+            className='p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-x-4 gap-y-2'
+          >
+            <div className='space-y-1 min-w-0'>
+              <Label className='text-sm font-medium break-all'>
+                {index + 1}. {name}
+              </Label>
+              <div className='text-sm text-muted-foreground break-all'>
+                {priceSourceProvides(builtIn)}
+                {source.url && <div>{source.url}</div>}
+              </div>
+            </div>
+            <div className='flex items-center gap-1 shrink-0'>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label={t`Move ${name} up`}
+                disabled={index === 0}
+                onClick={() => move(source.id, -1)}
+              >
+                <ArrowUpIcon className='h-4 w-4' />
+              </Button>
+              <Button
+                variant='ghost'
+                size='icon'
+                aria-label={t`Move ${name} down`}
+                disabled={index === sources.length - 1}
+                onClick={() => move(source.id, 1)}
+              >
+                <ArrowDownIcon className='h-4 w-4' />
+              </Button>
+              {source.url && (
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  aria-label={t`Remove ${name}`}
+                  onClick={() => remove(source.id)}
+                >
+                  <TrashIcon className='h-4 w-4' />
+                </Button>
+              )}
+              <Switch
+                className='ml-2'
+                aria-label={t`Use ${name}`}
+                checked={source.enabled}
+                onCheckedChange={(enabled) => setEnabled(source.id, enabled)}
+              />
+            </div>
+          </div>
+        );
+      })}
+
+      <SettingItem
+        label={t`Add Token Index`}
+        description={t`An https URL serving a token index (version 1)`}
+        control={
+          <form
+            className='flex gap-2'
+            onSubmit={(event) => {
+              event.preventDefault();
+              add();
+            }}
+          >
+            <Input
+              type='url'
+              className='w-[240px]'
+              placeholder='https://'
+              aria-label={t`Token index URL`}
+              value={customUrl}
+              aria-invalid={invalidCustomUrl}
+              onChange={(event) => {
+                setCustomUrl(event.target.value);
+                setInvalidCustomUrl(false);
+              }}
+            />
+            <Button type='submit' variant='outline'>
+              <Trans>Add</Trans>
+            </Button>
+          </form>
+        }
+      >
+        {invalidCustomUrl && (
+          <span className='text-sm text-destructive'>
+            <Trans>The token index URL must start with https://</Trans>
+          </span>
+        )}
+      </SettingItem>
     </SettingsSection>
   );
 }

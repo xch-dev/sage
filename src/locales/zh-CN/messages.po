@@ -222,7 +222,7 @@ msgstr ""
 msgid "1 combined coin"
 msgstr ""
 
-#: src/pages/Settings.tsx:432
+#: src/pages/Settings.tsx:443
 msgid "A more lightweight sync that only checks unseen blocks"
 msgstr ""
 
@@ -255,6 +255,10 @@ msgstr ""
 #: src/components/OptionColumns.tsx:158
 #: src/pages/Option.tsx:127
 msgid "Active"
+msgstr ""
+
+#: src/pages/Settings.tsx:804
+msgid "Add"
 msgstr ""
 
 #: src/components/OptionCard.tsx:133
@@ -314,6 +318,10 @@ msgstr "添加请求的资产."
 #: src/components/NftCard.tsx:521
 #: src/components/OptionCard.tsx:149
 msgid "Add to Offer"
+msgstr ""
+
+#: src/pages/Settings.tsx:781
+msgid "Add Token Index"
 msgstr ""
 
 #: src/components/confirmations/AddUrlConfirmation.tsx:31
@@ -391,7 +399,7 @@ msgstr ""
 msgid "Addresses"
 msgstr "地址"
 
-#: src/pages/Settings.tsx:159
+#: src/pages/Settings.tsx:167
 msgid "Advanced"
 msgstr "高级"
 
@@ -407,15 +415,15 @@ msgstr ""
 msgid "All Addresses"
 msgstr "所有地址"
 
-#: src/pages/Settings.tsx:922
+#: src/pages/Settings.tsx:1077
 msgid "All Levels"
 msgstr ""
 
-#: src/pages/Settings.tsx:954
+#: src/pages/Settings.tsx:1109
 msgid "All Sources"
 msgstr ""
 
-#: src/pages/Settings.tsx:1057
+#: src/pages/Settings.tsx:1212
 msgid "Allow Unsigned Transactions"
 msgstr ""
 
@@ -440,15 +448,19 @@ msgstr ""
 msgid "Amount includes"
 msgstr "金额包括"
 
-#: src/pages/Settings.tsx:1694
+#: src/pages/Settings.tsx:782
+msgid "An https URL serving a token index (version 1)"
+msgstr ""
+
+#: src/pages/Settings.tsx:1849
 msgid "Analyze Duration"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:935
+#: src/contexts/WalletConnectContext.tsx:1013
 msgid "Approve"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:925
+#: src/contexts/WalletConnectContext.tsx:1003
 msgid "Approving"
 msgstr ""
 
@@ -488,7 +500,7 @@ msgstr ""
 msgid "asset"
 msgstr ""
 
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:199
 #: src/components/TokenGridView.tsx:73
 #: src/components/TransactionColumns.tsx:83
@@ -511,7 +523,7 @@ msgstr ""
 #: src/components/AssetCoin.tsx:85
 #: src/components/TokenColumns.tsx:221
 #: src/components/TokenGridView.tsx:81
-#: src/pages/Token.tsx:202
+#: src/pages/Token.tsx:208
 msgid "Asset ID copied to clipboard"
 msgstr ""
 
@@ -519,7 +531,7 @@ msgstr ""
 msgid "assets"
 msgstr ""
 
-#: src/pages/TokenList.tsx:174
+#: src/pages/TokenList.tsx:175
 msgid "Assets"
 msgstr "资产"
 
@@ -560,7 +572,7 @@ msgstr ""
 msgid "Auto-discovered peer"
 msgstr ""
 
-#: src/pages/Settings.tsx:621
+#: src/pages/Settings.tsx:632
 msgid "Automatically discover and connect to peers"
 msgstr ""
 
@@ -568,7 +580,7 @@ msgstr ""
 #~ msgid "Automatically generate new addresses as needed"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1142
+#: src/pages/Settings.tsx:1297
 msgid "Automatically start the RPC server when the app launches"
 msgstr ""
 
@@ -581,7 +593,7 @@ msgstr "返回"
 msgid "Back to groups"
 msgstr ""
 
-#: src/pages/Settings.tsx:957
+#: src/pages/Settings.tsx:1112
 msgid "Backend"
 msgstr ""
 
@@ -602,7 +614,7 @@ msgstr ""
 msgid "Banner for {collectionName}"
 msgstr ""
 
-#: src/pages/Settings.tsx:311
+#: src/pages/Settings.tsx:322
 msgid "Biometric Authentication"
 msgstr ""
 
@@ -716,7 +728,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/components/OwnedCoinsCard.tsx:611
 #: src/components/OwnedCoinsCard.tsx:694
 #: src/components/ThemeCard.tsx:216
-#: src/components/TokenCard.tsx:288
+#: src/components/TokenCard.tsx:295
 #: src/components/TransferDialog.tsx:129
 #: src/components/WalletCard.tsx:394
 #: src/components/WalletCard.tsx:444
@@ -725,7 +737,7 @@ msgstr "禁用此功能后, 将创建一个冷钱包, 该钱包无法签署交�
 #: src/pages/PeerList.tsx:431
 #: src/pages/PeerList.tsx:487
 #: src/pages/PeerList.tsx:677
-#: src/pages/Settings.tsx:1634
+#: src/pages/Settings.tsx:1789
 msgid "Cancel"
 msgstr "取消"
 
@@ -772,7 +784,7 @@ msgstr ""
 msgid "Cancelled"
 msgstr "已取消"
 
-#: src/pages/Settings.tsx:1281
+#: src/pages/Settings.tsx:1436
 msgid "Cannot send change to external address. Setting not updated."
 msgstr ""
 
@@ -788,6 +800,18 @@ msgstr ""
 #~ msgid "CAT icon"
 #~ msgstr "CAT硬币"
 
+#: src/pages/Settings.tsx:678
+msgid "CAT prices, names and icons (names are saved in the wallet)"
+msgstr ""
+
+#: src/pages/Settings.tsx:682
+msgid "CAT prices, XCH/USD rate, and names, tickers and icons a token lacks"
+msgstr ""
+
+#: src/pages/Settings.tsx:682
+#~ msgid "CAT prices, XCH/USD rate, names and icons for unnamed tokens"
+#~ msgstr ""
+
 #: src/components/ConfirmationDialog.tsx:128
 #: src/components/ConfirmationDialog.tsx:356
 #: src/components/ConfirmationDialog.tsx:377
@@ -795,7 +819,7 @@ msgstr ""
 msgid "Change"
 msgstr "修改"
 
-#: src/pages/Settings.tsx:1415
+#: src/pages/Settings.tsx:1570
 msgid "Change Address"
 msgstr ""
 
@@ -825,15 +849,15 @@ msgstr ""
 msgid "Choose an emoji to easily identify your wallet"
 msgstr ""
 
-#: src/pages/Settings.tsx:581
+#: src/pages/Settings.tsx:592
 msgid "Choose the network to connect to"
 msgstr ""
 
-#: src/pages/Settings.tsx:324
+#: src/pages/Settings.tsx:335
 msgid "Choose your preferred language"
 msgstr ""
 
-#: src/pages/Settings.tsx:292
+#: src/pages/Settings.tsx:303
 msgid "Choose your preferred theme"
 msgstr ""
 
@@ -860,7 +884,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:227
-#: src/pages/Token.tsx:155
+#: src/pages/Token.tsx:161
 msgid "Claw Back Details"
 msgstr ""
 
@@ -898,7 +922,7 @@ msgstr ""
 msgid "Click here to go to offer."
 msgstr ""
 
-#: src/pages/Settings.tsx:1729
+#: src/pages/Settings.tsx:1884
 msgid "Close"
 msgstr ""
 
@@ -959,7 +983,7 @@ msgstr ""
 #~ msgid "Cold Wallet"
 #~ msgstr "冷钱包"
 
-#: src/pages/Settings.tsx:1055
+#: src/pages/Settings.tsx:1210
 msgid "Cold Wallets"
 msgstr ""
 
@@ -1032,7 +1056,7 @@ msgid "Combine {ticker}"
 msgstr "合并 {ticker}"
 
 #: src/components/confirmations/TokenConfirmation.tsx:70
-#: src/pages/Token.tsx:143
+#: src/pages/Token.tsx:149
 msgid "Combine Coins"
 msgstr ""
 
@@ -1045,11 +1069,11 @@ msgstr ""
 msgid "Combined Swap"
 msgstr ""
 
-#: src/pages/Settings.tsx:1536
+#: src/pages/Settings.tsx:1691
 msgid "Compactable Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1519
+#: src/pages/Settings.tsx:1674
 msgid "Compactable Space"
 msgstr ""
 
@@ -1095,15 +1119,15 @@ msgid "Confirmed"
 msgstr "已确认"
 
 #: src/pages/PeerList.tsx:512
-#: src/pages/Settings.tsx:541
+#: src/pages/Settings.tsx:552
 msgid "Connect"
 msgstr "连接"
 
-#: src/pages/Settings.tsx:187
+#: src/pages/Settings.tsx:195
 msgid "Connect a wallet to manage its settings"
 msgstr ""
 
-#: src/pages/Settings.tsx:191
+#: src/pages/Settings.tsx:199
 msgid "Connect Wallet"
 msgstr ""
 
@@ -1120,7 +1144,7 @@ msgid "connecting..."
 msgstr "连接中..."
 
 #: src/components/Nav.tsx:177
-#: src/pages/Settings.tsx:539
+#: src/pages/Settings.tsx:550
 msgid "Connecting..."
 msgstr ""
 
@@ -1305,7 +1329,7 @@ msgstr ""
 msgid "Currency Symbol"
 msgstr "货币符号"
 
-#: src/pages/Settings.tsx:1470
+#: src/pages/Settings.tsx:1625
 msgid "Current database statistics and health information"
 msgstr ""
 
@@ -1357,7 +1381,7 @@ msgstr "数据URI"
 msgid "Data URLs"
 msgstr "数据URL"
 
-#: src/pages/Settings.tsx:1667
+#: src/pages/Settings.tsx:1822
 msgid "Database Maintenance Complete"
 msgstr ""
 
@@ -1365,39 +1389,39 @@ msgstr ""
 msgid "Database Migration Required"
 msgstr ""
 
-#: src/pages/Settings.tsx:1670
+#: src/pages/Settings.tsx:1825
 msgid "Database optimization has completed successfully."
 msgstr ""
 
-#: src/pages/Settings.tsx:1511
+#: src/pages/Settings.tsx:1666
 msgid "Database Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1469
+#: src/pages/Settings.tsx:1624
 msgid "Database Stats"
 msgstr ""
 
 #: src/pages/MakeOffer.tsx:245
 #: src/pages/MintOption.tsx:260
 #: src/pages/Send.tsx:483
-#: src/pages/Settings.tsx:371
-#: src/pages/Settings.tsx:409
+#: src/pages/Settings.tsx:382
+#: src/pages/Settings.tsx:420
 msgid "Days"
 msgstr "天"
 
-#: src/pages/Settings.tsx:354
+#: src/pages/Settings.tsx:365
 msgid "Default Clawback"
 msgstr ""
 
-#: src/pages/Settings.tsx:343
+#: src/pages/Settings.tsx:354
 msgid "Default Fee"
 msgstr ""
 
-#: src/pages/Settings.tsx:580
+#: src/pages/Settings.tsx:591
 msgid "Default Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:392
+#: src/pages/Settings.tsx:403
 msgid "Default Offer Expiry"
 msgstr ""
 
@@ -1438,7 +1462,7 @@ msgstr ""
 msgid "Delete All Filtered Offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1454
+#: src/pages/Settings.tsx:1609
 msgid "Delete and redownload coin data from the network"
 msgstr ""
 
@@ -1488,16 +1512,16 @@ msgstr ""
 msgid "Deleting..."
 msgstr ""
 
-#: src/pages/Settings.tsx:431
+#: src/pages/Settings.tsx:442
 msgid "Delta Sync"
 msgstr ""
 
-#: src/pages/Settings.tsx:1592
+#: src/pages/Settings.tsx:1747
 msgid "Derivation index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1436
-#: src/pages/Settings.tsx:1586
+#: src/pages/Settings.tsx:1591
+#: src/pages/Settings.tsx:1741
 msgid "Derivation Index"
 msgstr ""
 
@@ -1567,7 +1591,7 @@ msgstr "已保存好助记词?"
 #~ msgid "Disconnect"
 #~ msgstr "断开连接"
 
-#: src/pages/Settings.tsx:620
+#: src/pages/Settings.tsx:631
 msgid "Discover Peers"
 msgstr ""
 
@@ -1593,8 +1617,8 @@ msgstr ""
 msgid "e.g. ff00ab"
 msgstr ""
 
-#: src/components/TokenCard.tsx:169
-#: src/contexts/WalletConnectContext.tsx:446
+#: src/components/TokenCard.tsx:176
+#: src/contexts/WalletConnectContext.tsx:447
 msgid "Edit"
 msgstr "编辑"
 
@@ -1621,7 +1645,7 @@ msgstr ""
 msgid "Edit profile for {selectedCount} selected NFTs"
 msgstr ""
 
-#: src/components/TokenCard.tsx:234
+#: src/components/TokenCard.tsx:241
 msgid "Edit Token Details"
 msgstr "编辑代币详情"
 
@@ -1664,7 +1688,7 @@ msgstr "输入地址"
 #~ msgid "Enter amount"
 #~ msgstr "输入金额"
 
-#: src/pages/Settings.tsx:1421
+#: src/pages/Settings.tsx:1576
 msgid "Enter change address"
 msgstr ""
 
@@ -1678,7 +1702,7 @@ msgstr "请输入以逗号分隔的网址"
 msgid "Enter count"
 msgstr ""
 
-#: src/pages/Settings.tsx:1591
+#: src/pages/Settings.tsx:1746
 msgid "Enter derivation index"
 msgstr ""
 
@@ -1734,7 +1758,7 @@ msgstr ""
 msgid "Enter the IP addresses of the peers you want to connect to."
 msgstr ""
 
-#: src/components/TokenCard.tsx:237
+#: src/components/TokenCard.tsx:244
 msgid "Enter the new display details for this token"
 msgstr "输入此代币的新显示详情"
 
@@ -1925,7 +1949,7 @@ msgstr ""
 #~ msgid "Failed to open dexie.space"
 #~ msgstr ""
 
-#: src/components/TokenCard.tsx:190
+#: src/components/TokenCard.tsx:197
 #: src/components/TokenColumns.tsx:208
 msgid "Failed to open dexie.space: {error}"
 msgstr ""
@@ -1940,8 +1964,8 @@ msgstr ""
 
 #: src/components/AdvancedTransactionSummary.tsx:89
 #: src/components/ConfirmationDialog.tsx:453
-#: src/contexts/WalletConnectContext.tsx:426
-#: src/contexts/WalletConnectContext.tsx:466
+#: src/contexts/WalletConnectContext.tsx:427
+#: src/contexts/WalletConnectContext.tsx:467
 msgid "Fee"
 msgstr "手续费"
 
@@ -1995,7 +2019,7 @@ msgid "Finalize Clawback"
 msgstr ""
 
 #: src/components/ClawbackCoinsCard.tsx:272
-#: src/pages/Token.tsx:167
+#: src/pages/Token.tsx:173
 msgid "Finalize Clawback Details"
 msgstr ""
 
@@ -2003,7 +2027,7 @@ msgstr ""
 msgid "Fresh Address"
 msgstr "刷新地址"
 
-#: src/pages/Settings.tsx:960
+#: src/pages/Settings.tsx:1115
 msgid "Frontend"
 msgstr ""
 
@@ -2011,11 +2035,11 @@ msgstr ""
 msgid "Full title: {title}"
 msgstr ""
 
-#: src/pages/Settings.tsx:138
+#: src/pages/Settings.tsx:146
 msgid "General"
 msgstr ""
 
-#: src/pages/Settings.tsx:1646
+#: src/pages/Settings.tsx:1801
 msgid "Generate"
 msgstr ""
 
@@ -2027,7 +2051,7 @@ msgstr ""
 #~ msgid "Generate addresses automatically"
 #~ msgstr "自动生成地址"
 
-#: src/pages/Settings.tsx:1644
+#: src/pages/Settings.tsx:1799
 msgid "Generating"
 msgstr ""
 
@@ -2035,7 +2059,7 @@ msgstr ""
 msgid "Ghost"
 msgstr ""
 
-#: src/pages/Settings.tsx:1345
+#: src/pages/Settings.tsx:1500
 msgid "Give your wallet a memorable name"
 msgstr ""
 
@@ -2096,7 +2120,7 @@ msgstr ""
 #~ msgstr ""
 
 #: src/pages/ImportWallet.tsx:253
-#: src/pages/Settings.tsx:1619
+#: src/pages/Settings.tsx:1774
 msgid "Hardened Keys"
 msgstr ""
 
@@ -2124,7 +2148,7 @@ msgstr ""
 #: src/components/NftGroupCard.tsx:349
 #: src/components/OptionCard.tsx:183
 #: src/components/OptionColumns.tsx:234
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
 #: src/pages/DidList.tsx:323
@@ -2196,8 +2220,8 @@ msgstr ""
 #: src/pages/MakeOffer.tsx:268
 #: src/pages/MintOption.tsx:275
 #: src/pages/Send.tsx:500
-#: src/pages/Settings.tsx:376
-#: src/pages/Settings.tsx:414
+#: src/pages/Settings.tsx:387
+#: src/pages/Settings.tsx:425
 msgid "Hours"
 msgstr "小时"
 
@@ -2247,15 +2271,15 @@ msgstr ""
 msgid "Includes a 1% swap fee"
 msgstr ""
 
-#: src/pages/Settings.tsx:1446
+#: src/pages/Settings.tsx:1601
 msgid "Increase"
 msgstr ""
 
-#: src/pages/Settings.tsx:1568
+#: src/pages/Settings.tsx:1723
 msgid "Increase Derivation Index"
 msgstr ""
 
-#: src/pages/Settings.tsx:1571
+#: src/pages/Settings.tsx:1726
 msgid "Increase the derivation index to generate new addresses. Setting this too high can cause issues, and it can't be reversed without resyncing the wallet."
 msgstr ""
 
@@ -2299,13 +2323,13 @@ msgstr "IP地址"
 msgid "IP Addresses"
 msgstr ""
 
-#: src/pages/TokenList.tsx:182
+#: src/pages/TokenList.tsx:183
 msgid "Issue new token"
 msgstr ""
 
 #: src/pages/IssueToken.tsx:72
 #: src/pages/IssueToken.tsx:203
-#: src/pages/TokenList.tsx:186
+#: src/pages/TokenList.tsx:187
 msgid "Issue Token"
 msgstr "发行代币"
 
@@ -2330,7 +2354,7 @@ msgstr "类型"
 msgid "Kind is required"
 msgstr "需提供类型"
 
-#: src/pages/Settings.tsx:323
+#: src/pages/Settings.tsx:334
 msgid "Language"
 msgstr "语言"
 
@@ -2357,7 +2381,7 @@ msgstr ""
 msgid "Launcher ID copied to clipboard"
 msgstr ""
 
-#: src/components/TokenCard.tsx:217
+#: src/components/TokenCard.tsx:224
 msgid "Learn more"
 msgstr ""
 
@@ -2406,7 +2430,7 @@ msgstr ""
 msgid "Loading NFT details..."
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:610
+#: src/contexts/WalletConnectContext.tsx:611
 msgid "Loading offer details..."
 msgstr ""
 
@@ -2441,7 +2465,7 @@ msgstr ""
 #~ msgid "Loading XCH details..."
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1498
+#: src/pages/Settings.tsx:1653
 msgid "Loading..."
 msgstr ""
 
@@ -2462,11 +2486,11 @@ msgstr ""
 msgid "Locked in offer"
 msgstr ""
 
-#: src/pages/Settings.tsx:918
+#: src/pages/Settings.tsx:1073
 msgid "Log Level"
 msgstr ""
 
-#: src/pages/Settings.tsx:887
+#: src/pages/Settings.tsx:1042
 msgid "Log Viewer"
 msgstr ""
 
@@ -2603,8 +2627,8 @@ msgstr "正在铸造"
 #: src/pages/MakeOffer.tsx:291
 #: src/pages/MintOption.tsx:290
 #: src/pages/Send.tsx:517
-#: src/pages/Settings.tsx:381
-#: src/pages/Settings.tsx:419
+#: src/pages/Settings.tsx:392
+#: src/pages/Settings.tsx:430
 msgid "Minutes"
 msgstr "分钟"
 
@@ -2613,12 +2637,20 @@ msgstr "分钟"
 msgid "Mnemonic"
 msgstr "助记词"
 
-#: src/components/TokenCard.tsx:162
+#: src/components/TokenCard.tsx:169
 msgid "More options"
 msgstr ""
 
-#: src/pages/Settings.tsx:304
+#: src/pages/Settings.tsx:315
 msgid "More Themes..."
+msgstr ""
+
+#: src/pages/Settings.tsx:753
+msgid "Move {name} down"
+msgstr ""
+
+#: src/pages/Settings.tsx:744
+msgid "Move {name} up"
 msgstr ""
 
 #: src/components/WalletAddressPicker.tsx:96
@@ -2626,7 +2658,7 @@ msgid "My wallets"
 msgstr ""
 
 #: src/components/OptionColumns.tsx:35
-#: src/components/TokenCard.tsx:243
+#: src/components/TokenCard.tsx:250
 #: src/components/TokenColumns.tsx:57
 #: src/pages/CreateProfile.tsx:70
 #: src/pages/DidList.tsx:350
@@ -2639,7 +2671,7 @@ msgstr "名称"
 msgid "Name is required"
 msgstr "需提供名称"
 
-#: src/components/TokenCard.tsx:247
+#: src/components/TokenCard.tsx:254
 msgid "Name of this token"
 msgstr ""
 
@@ -2664,8 +2696,8 @@ msgid "Navigation menu"
 msgstr ""
 
 #: src/components/WalletCard.tsx:466
-#: src/pages/Settings.tsx:152
-#: src/pages/Settings.tsx:578
+#: src/pages/Settings.tsx:160
+#: src/pages/Settings.tsx:589
 msgid "Network"
 msgstr "网络"
 
@@ -2794,7 +2826,7 @@ msgstr ""
 msgid "No"
 msgstr ""
 
-#: src/pages/Settings.tsx:521
+#: src/pages/Settings.tsx:532
 msgid "No active sessions"
 msgstr "没有活跃的会话"
 
@@ -2845,7 +2877,7 @@ msgstr ""
 msgid "No items found."
 msgstr ""
 
-#: src/pages/Settings.tsx:973
+#: src/pages/Settings.tsx:1128
 msgid "No matching log entries found"
 msgstr ""
 
@@ -2898,7 +2930,7 @@ msgstr ""
 msgid "No tokens to export"
 msgstr ""
 
-#: src/pages/Settings.tsx:184
+#: src/pages/Settings.tsx:192
 msgid "No Wallet Connected"
 msgstr ""
 
@@ -2956,7 +2988,7 @@ msgstr ""
 #~ msgid "Number of addresses to generate at once"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:637
+#: src/pages/Settings.tsx:648
 msgid "Number of peers to maintain connections with"
 msgstr ""
 
@@ -3070,11 +3102,11 @@ msgstr ""
 msgid "Open menu"
 msgstr ""
 
-#: src/pages/Settings.tsx:1485
+#: src/pages/Settings.tsx:1640
 msgid "Optimize"
 msgstr ""
 
-#: src/pages/Settings.tsx:1483
+#: src/pages/Settings.tsx:1638
 msgid "Optimizing..."
 msgstr ""
 
@@ -3178,11 +3210,11 @@ msgstr "转出数量"
 #~ msgid "Override Delta Sync"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1372
+#: src/pages/Settings.tsx:1527
 msgid "Override Network"
 msgstr ""
 
-#: src/pages/Settings.tsx:1373
+#: src/pages/Settings.tsx:1528
 msgid "Override the default network for this wallet"
 msgstr ""
 
@@ -3231,11 +3263,11 @@ msgstr ""
 #~ msgid "Page size"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1544
+#: src/pages/Settings.tsx:1699
 msgid "Page Size"
 msgstr ""
 
-#: src/pages/Settings.tsx:1686
+#: src/pages/Settings.tsx:1841
 msgid "Pages Vacuumed"
 msgstr ""
 
@@ -3369,7 +3401,7 @@ msgstr "端口:"
 msgid "Position the QR code within the frame"
 msgstr ""
 
-#: src/pages/Settings.tsx:289
+#: src/pages/Settings.tsx:300
 msgid "Preferences"
 msgstr ""
 
@@ -3400,6 +3432,10 @@ msgstr ""
 #: src/components/TokenColumns.tsx:138
 #~ msgid "Price (USD)"
 #~ msgstr ""
+
+#: src/pages/Settings.tsx:712
+msgid "Price & Token Sources"
+msgstr ""
 
 #: src/components/TokenColumns.tsx:147
 msgid "Price per token: "
@@ -3493,7 +3529,7 @@ msgstr ""
 #~ msgid "Reassign Profile"
 #~ msgstr "重新分配个人资料"
 
-#: src/components/TokenCard.tsx:153
+#: src/components/TokenCard.tsx:160
 msgid "Receive"
 msgstr "接收"
 
@@ -3540,25 +3576,29 @@ msgstr ""
 #~ msgid "Redownloading NFT data"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1500
+#: src/pages/Settings.tsx:1655
 msgid "Refresh"
 msgstr ""
 
-#: src/components/TokenCard.tsx:173
+#: src/components/TokenCard.tsx:180
 #: src/components/TokenColumns.tsx:186
 #: src/components/TokenGridView.tsx:62
 msgid "Refresh Info"
 msgstr "刷新信息"
 
-#: src/pages/TokenList.tsx:153
+#: src/pages/TokenList.tsx:154
 msgid "Refreshing token info..."
+msgstr ""
+
+#: src/pages/Settings.tsx:763
+msgid "Remove {name}"
 msgstr ""
 
 #: src/components/WalletCard.tsx:309
 msgid "Remove Emoji"
 msgstr ""
 
-#: src/components/TokenCard.tsx:291
+#: src/components/TokenCard.tsx:298
 #: src/components/WalletCard.tsx:296
 #: src/components/WalletCard.tsx:447
 #: src/pages/DidList.tsx:307
@@ -3595,11 +3635,11 @@ msgstr ""
 msgid "Requesting in exchange:"
 msgstr ""
 
-#: src/pages/Settings.tsx:312
+#: src/pages/Settings.tsx:323
 msgid "Require biometrics for sensitive actions"
 msgstr ""
 
-#: src/contexts/WalletConnectContext.tsx:484
+#: src/contexts/WalletConnectContext.tsx:485
 msgid "Reset"
 msgstr ""
 
@@ -3609,8 +3649,8 @@ msgstr ""
 
 #: src/components/dialogs/ResyncDialog.tsx:47
 #: src/components/dialogs/ResyncDialog.tsx:120
-#: src/pages/Settings.tsx:1453
-#: src/pages/Settings.tsx:1461
+#: src/pages/Settings.tsx:1608
+#: src/pages/Settings.tsx:1616
 msgid "Resync"
 msgstr "重新同步"
 
@@ -3651,7 +3691,7 @@ msgstr ""
 msgid "Revocable"
 msgstr ""
 
-#: src/components/TokenCard.tsx:207
+#: src/components/TokenCard.tsx:214
 #: src/pages/IssueToken.tsx:166
 msgid "Revocable CAT"
 msgstr ""
@@ -3685,15 +3725,15 @@ msgstr "税率"
 msgid "royalty to"
 msgstr "版税支付给"
 
-#: src/pages/Settings.tsx:1117
+#: src/pages/Settings.tsx:1272
 msgid "RPC Server"
 msgstr ""
 
-#: src/pages/Settings.tsx:1141
+#: src/pages/Settings.tsx:1296
 msgid "Run on startup"
 msgstr ""
 
-#: src/pages/Settings.tsx:1127
+#: src/pages/Settings.tsx:1282
 msgid "Running"
 msgstr ""
 
@@ -3754,7 +3794,7 @@ msgstr ""
 #~ msgid "Search for a token"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:907
+#: src/pages/Settings.tsx:1062
 msgid "Search logs..."
 msgstr ""
 
@@ -3864,12 +3904,12 @@ msgstr ""
 msgid "Select kind"
 msgstr "选择种类"
 
-#: src/pages/Settings.tsx:893
+#: src/pages/Settings.tsx:1048
 msgid "Select log file"
 msgstr ""
 
-#: src/pages/Settings.tsx:606
-#: src/pages/Settings.tsx:1400
+#: src/pages/Settings.tsx:617
+#: src/pages/Settings.tsx:1555
 msgid "Select network"
 msgstr "选择网络"
 
@@ -3958,7 +3998,7 @@ msgstr ""
 msgid "Selection options"
 msgstr ""
 
-#: src/components/TokenCard.tsx:149
+#: src/components/TokenCard.tsx:156
 msgid "Send"
 msgstr "发送"
 
@@ -3993,20 +4033,20 @@ msgstr "已发送"
 #~ msgid "Set a custom address to send change to"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:355
+#: src/pages/Settings.tsx:366
 msgid "Set a default clawback time for transactions"
 msgstr ""
 
-#: src/pages/Settings.tsx:393
+#: src/pages/Settings.tsx:404
 msgid "Set a default expiration time for new offers"
 msgstr ""
 
-#: src/pages/Settings.tsx:1416
+#: src/pages/Settings.tsx:1571
 msgid "Set a specific address to send change to"
 msgstr ""
 
 #: src/components/Nav.tsx:223
-#: src/pages/Settings.tsx:111
+#: src/pages/Settings.tsx:119
 msgid "Settings"
 msgstr "设置"
 
@@ -4026,7 +4066,7 @@ msgstr ""
 #: src/components/NftGroupCard.tsx:356
 #: src/components/OptionCard.tsx:183
 #: src/components/OptionColumns.tsx:234
-#: src/components/TokenCard.tsx:183
+#: src/components/TokenCard.tsx:190
 #: src/components/TokenColumns.tsx:198
 #: src/components/TokenGridView.tsx:72
 #: src/pages/DidList.tsx:323
@@ -4202,11 +4242,23 @@ msgstr ""
 #~ msgid "Sort Recent"
 #~ msgstr "按最近排序"
 
-#: src/pages/Settings.tsx:950
+#: src/pages/Settings.tsx:1105
 msgid "Source"
 msgstr ""
 
-#: src/components/TokenCard.tsx:123
+#: src/pages/Settings.tsx:714
+#~ msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. A token index's name, ticker and icon are shown only where a token has none, and are never saved to the wallet."
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:714
+#~ msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names from a token index are shown only for tokens that have no name, and are never saved to the wallet."
+#~ msgstr ""
+
+#: src/pages/Settings.tsx:714
+msgid "Sources are used in this order. For each token, the first enabled source with a price wins and later sources only fill gaps. Names, tickers and icons from a token index are shown only where a token has none, and are never saved to the wallet."
+msgstr ""
+
+#: src/components/TokenCard.tsx:130
 msgid "spendable"
 msgstr ""
 
@@ -4237,7 +4289,7 @@ msgid "Split {ticker}"
 msgstr "拆分 {ticker}"
 
 #: src/components/confirmations/TokenConfirmation.tsx:54
-#: src/pages/Token.tsx:130
+#: src/pages/Token.tsx:136
 msgid "Split Coins"
 msgstr ""
 
@@ -4245,13 +4297,13 @@ msgstr ""
 msgid "Split Details"
 msgstr ""
 
-#: src/pages/Settings.tsx:1135
+#: src/pages/Settings.tsx:1290
 msgid "Start"
 msgstr ""
 
 #: src/components/confirmations/CancelOfferConfirmation.tsx:93
 #: src/components/OptionColumns.tsx:141
-#: src/pages/Settings.tsx:1467
+#: src/pages/Settings.tsx:1622
 msgid "Status"
 msgstr ""
 
@@ -4265,11 +4317,11 @@ msgstr ""
 msgid "Status: {offerStatus}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1135
+#: src/pages/Settings.tsx:1290
 msgid "Stop"
 msgstr ""
 
-#: src/pages/Settings.tsx:1127
+#: src/pages/Settings.tsx:1282
 msgid "Stopped"
 msgstr ""
 
@@ -4297,7 +4349,7 @@ msgstr "提交"
 msgid "Submitting"
 msgstr "正在提交"
 
-#: src/contexts/WalletConnectContext.tsx:428
+#: src/contexts/WalletConnectContext.tsx:429
 msgid "suggested by dApp"
 msgstr ""
 
@@ -4372,7 +4424,7 @@ msgstr ""
 msgid "synced to peak {peerMaxHeight}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1434
+#: src/pages/Settings.tsx:1589
 msgid "Syncing"
 msgstr ""
 
@@ -4380,11 +4432,11 @@ msgstr ""
 msgid "Syncing {syncedCoins} / {totalCoins}"
 msgstr "正在同步 {syncedCoins} / {totalCoins}"
 
-#: src/pages/Settings.tsx:429
+#: src/pages/Settings.tsx:440
 msgid "Syncing Defaults"
 msgstr ""
 
-#: src/pages/TokenList.tsx:213
+#: src/pages/TokenList.tsx:214
 msgid "Syncing in progress..."
 msgstr "同步进行中..."
 
@@ -4413,7 +4465,7 @@ msgstr ""
 msgid "Taking this offer will send the assets you are paying to the recipient."
 msgstr ""
 
-#: src/pages/Settings.tsx:636
+#: src/pages/Settings.tsx:647
 msgid "Target Peers"
 msgstr "目标节点"
 
@@ -4462,7 +4514,7 @@ msgstr ""
 msgid "The assets you will receive."
 msgstr ""
 
-#: src/pages/Settings.tsx:344
+#: src/pages/Settings.tsx:355
 msgid "The default fee to use for transactions"
 msgstr ""
 
@@ -4478,7 +4530,7 @@ msgstr ""
 #~ msgid "The network which this wallet will use"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1437
+#: src/pages/Settings.tsx:1592
 msgid "The number of addresses managed by this wallet"
 msgstr ""
 
@@ -4490,6 +4542,10 @@ msgstr ""
 msgid "The offer to fulfill the swap has been created successfully. It will now be executed on Dexie and imported on the offers page."
 msgstr ""
 
+#: src/pages/Settings.tsx:811
+msgid "The token index URL must start with https://"
+msgstr ""
+
 #: src/components/confirmations/CancelOfferConfirmation.tsx:49
 msgid "The transaction fee of {fee} applies to each offer being canceled."
 msgstr ""
@@ -4498,12 +4554,12 @@ msgstr ""
 msgid "The wallet generates a new address after each transaction. Old ones stay valid."
 msgstr "钱包在每次交易后会生成一个新的地址, 旧地址仍然有效."
 
-#: src/pages/TokenList.tsx:216
+#: src/pages/TokenList.tsx:217
 msgid "The wallet is still syncing. Balances may not be accurate until it completes."
 msgstr "钱包仍在同步中. 同步完成之前, 余额可能不准确."
 
 #: src/components/NftCard.tsx:371
-#: src/pages/Settings.tsx:291
+#: src/pages/Settings.tsx:302
 msgid "Theme"
 msgstr ""
 
@@ -4563,7 +4619,7 @@ msgstr ""
 msgid "These profiles will be transferred to the address below."
 msgstr ""
 
-#: src/components/TokenCard.tsx:210
+#: src/components/TokenCard.tsx:217
 msgid "This asset can be revoked by its issuer."
 msgstr ""
 
@@ -4586,7 +4642,7 @@ msgstr ""
 #~ msgid "This does not include a fee of {makerFee} which was already added by the maker."
 #~ msgstr "这不包括已由创建者添加的手续费 {makerFee}."
 
-#: src/pages/TokenList.tsx:252
+#: src/pages/TokenList.tsx:253
 msgid "This is an estimate only and does not account for liquidity"
 msgstr ""
 
@@ -4672,7 +4728,7 @@ msgstr ""
 msgid "This profile will be transferred to the address below."
 msgstr ""
 
-#: src/walletconnect/handler.ts:51
+#: src/walletconnect/handler.ts:52
 msgid "This wallet is read-only and cannot sign, so {command} is not available"
 msgstr ""
 
@@ -4805,12 +4861,12 @@ msgstr "这将拆分所有选定的硬币."
 #~ msgstr "这将取消NFT与其个人资料的关联."
 
 #: src/components/confirmations/TokenConfirmation.tsx:186
-#: src/components/TokenCard.tsx:262
+#: src/components/TokenCard.tsx:269
 #: src/pages/IssueToken.tsx:100
 msgid "Ticker"
 msgstr "简称"
 
-#: src/components/TokenCard.tsx:266
+#: src/components/TokenCard.tsx:273
 msgid "Ticker for this token"
 msgstr ""
 
@@ -4858,6 +4914,10 @@ msgstr ""
 msgid "Token Icon"
 msgstr ""
 
+#: src/pages/Settings.tsx:795
+msgid "Token index URL"
+msgstr ""
+
 #: src/components/confirmations/TokenConfirmation.tsx:81
 msgid "Token Issuance"
 msgstr ""
@@ -4896,11 +4956,11 @@ msgstr ""
 msgid "Total Amount"
 msgstr ""
 
-#: src/pages/Settings.tsx:1678
+#: src/pages/Settings.tsx:1833
 msgid "Total Duration"
 msgstr ""
 
-#: src/pages/TokenList.tsx:243
+#: src/pages/TokenList.tsx:244
 msgid "Total Estimated Balance"
 msgstr ""
 
@@ -4912,7 +4972,7 @@ msgstr ""
 msgid "Total items: {total}"
 msgstr ""
 
-#: src/pages/Settings.tsx:1528
+#: src/pages/Settings.tsx:1683
 msgid "Total Pages"
 msgstr ""
 
@@ -4940,7 +5000,7 @@ msgstr ""
 msgid "Transaction #{heightLabel}"
 msgstr ""
 
-#: src/pages/Settings.tsx:341
+#: src/pages/Settings.tsx:352
 msgid "Transaction Defaults"
 msgstr ""
 
@@ -5089,7 +5149,7 @@ msgid "Underlying Asset (Locked)"
 msgstr ""
 
 #: src/pages/ImportWallet.tsx:239
-#: src/pages/Settings.tsx:1605
+#: src/pages/Settings.tsx:1760
 msgid "Unhardened Keys"
 msgstr ""
 
@@ -5103,8 +5163,8 @@ msgstr ""
 msgid "Unknown"
 msgstr "未知"
 
-#: src/pages/Settings.tsx:503
-#: src/pages/Settings.tsx:507
+#: src/pages/Settings.tsx:514
+#: src/pages/Settings.tsx:518
 msgid "Unknown App"
 msgstr "未知App"
 
@@ -5282,11 +5342,15 @@ msgstr "需提供网址"
 msgid "USD Value: "
 msgstr ""
 
+#: src/pages/Settings.tsx:771
+msgid "Use {name}"
+msgstr ""
+
 #: src/pages/CreateWallet.tsx:210
 msgid "Use 24 words"
 msgstr "使用24词"
 
-#: src/contexts/WalletConnectContext.tsx:455
+#: src/contexts/WalletConnectContext.tsx:456
 msgid "Use default"
 msgstr ""
 
@@ -5316,7 +5380,7 @@ msgstr ""
 msgid "UTF-8 string"
 msgstr ""
 
-#: src/pages/Settings.tsx:1718
+#: src/pages/Settings.tsx:1873
 msgid "Vacuum Duration"
 msgstr ""
 
@@ -5324,7 +5388,7 @@ msgstr ""
 msgid "Value"
 msgstr ""
 
-#: src/pages/Settings.tsx:116
+#: src/pages/Settings.tsx:124
 msgid "Version {version}"
 msgstr ""
 
@@ -5388,7 +5452,7 @@ msgstr "查看报价"
 msgid "View on {marketplaceName}"
 msgstr ""
 
-#: src/components/TokenCard.tsx:195
+#: src/components/TokenCard.tsx:202
 #: src/components/TokenColumns.tsx:213
 msgid "View on dexie"
 msgstr ""
@@ -5421,15 +5485,15 @@ msgstr ""
 #~ msgid "View Unknown CAT token details"
 #~ msgstr ""
 
-#: src/pages/Settings.tsx:1702
+#: src/pages/Settings.tsx:1857
 msgid "WAL Checkpoint Duration"
 msgstr ""
 
-#: src/pages/Settings.tsx:1552
+#: src/pages/Settings.tsx:1707
 msgid "WAL Pages"
 msgstr ""
 
-#: src/pages/Settings.tsx:1710
+#: src/pages/Settings.tsx:1865
 msgid "WAL Pages Checkpointed"
 msgstr ""
 
@@ -5439,8 +5503,8 @@ msgstr ""
 #: src/components/WalletSwitcher.tsx:320
 #: src/components/WalletSwitcher.tsx:349
 #: src/pages/Login.tsx:205
-#: src/pages/Settings.tsx:145
-#: src/pages/Settings.tsx:1342
+#: src/pages/Settings.tsx:153
+#: src/pages/Settings.tsx:1497
 msgid "Wallet"
 msgstr "钱包"
 
@@ -5471,15 +5535,15 @@ msgstr "钱包密钥"
 #: src/components/WalletCard.tsx:419
 #: src/pages/CreateWallet.tsx:163
 #: src/pages/ImportWallet.tsx:134
-#: src/pages/Settings.tsx:1344
+#: src/pages/Settings.tsx:1499
 msgid "Wallet Name"
 msgstr "钱包名称"
 
-#: src/pages/Settings.tsx:493
+#: src/pages/Settings.tsx:504
 msgid "WalletConnect"
 msgstr "WalletConnect"
 
-#: src/pages/Settings.tsx:530
+#: src/pages/Settings.tsx:541
 msgid "WalletConnect URI"
 msgstr ""
 
@@ -5497,7 +5561,7 @@ msgstr "警告"
 msgid "Warning: This is a one-sided offer. You are not requesting anything in return."
 msgstr ""
 
-#: src/pages/Settings.tsx:1058
+#: src/pages/Settings.tsx:1213
 msgid "When enabled, cold wallets can build transactions and export the unsigned spend bundle for external signing, instead of being blocked from transacting entirely."
 msgstr ""
 
@@ -5521,6 +5585,10 @@ msgstr ""
 #: src/components/TokenListView.tsx:56
 #~ msgid "XCH logo"
 #~ msgstr ""
+
+#: src/pages/Settings.tsx:680
+msgid "XCH/USD rate"
+msgstr ""
 
 #: src/components/confirmations/TokenConfirmation.tsx:211
 msgid "Yes"
