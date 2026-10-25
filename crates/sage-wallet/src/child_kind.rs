@@ -1,10 +1,12 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, Proof, nft::NftMetadata},
+    chia::puzzle_types::{LineageProof, Proof},
     driver::{Clawback as ClawbackV1, ClawbackV2},
     prelude::*,
     puzzles::SINGLETON_LAUNCHER_HASH,
 };
-use sage_database::{SerializePrimitive, SerializedDidInfo, SerializedNftInfo};
+use sage_database::{
+    NftUpdaterKind, ParsedNftMetadata, SerializePrimitive, SerializedDidInfo, SerializedNftInfo,
+};
 use tracing::{debug_span, warn};
 
 use crate::WalletError;
@@ -33,7 +35,7 @@ pub enum ChildKind {
     Nft {
         info: SerializedNftInfo,
         lineage_proof: LineageProof,
-        metadata: Option<NftMetadata>,
+        metadata: Option<ParsedNftMetadata>,
         clawback: Option<ClawbackV2>,
     },
     Option {
@@ -209,7 +211,11 @@ impl ChildKind {
                         return Ok(Self::Unknown);
                     };
 
-                    let metadata = NftMetadata::from_clvm(allocator, nft.info.metadata.ptr()).ok();
+                    let metadata = ParsedNftMetadata::parse(
+                        allocator,
+                        nft.info.metadata.ptr(),
+                        NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash),
+                    );
 
                     let clawback = parse_clawback_unchecked(allocator, &create_coin, true)
                         .filter(|clawback| clawback.tree_hash() == nft.info.p2_puzzle_hash.into());

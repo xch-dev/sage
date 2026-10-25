@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                wallet_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',\n                asset_hidden_puzzle_hash\n            FROM wallet_nfts\n            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id\n            WHERE wallet_nfts.asset_hash = ?\n            ",
+  "query": "\n            SELECT        \n                asset_hash, asset_name, asset_ticker, asset_precision, asset_icon_url,\n                asset_description, asset_is_sensitive_content, asset_is_visible,\n                collections.hash AS 'collection_hash?', collections.name AS collection_name, \n                wallet_nfts.minter_hash, owner_hash, metadata, metadata_updater_puzzle_hash,\n                royalty_puzzle_hash, royalty_basis_points, data_hash, metadata_hash, license_hash,\n                edition_number, edition_total, display_name,\n                parent_coin_hash, puzzle_hash, amount, p2_puzzle_hash, created_height, spent_height,\n                offer_hash AS 'offer_hash?', created_timestamp, spent_timestamp,\n                clawback_expiration_seconds AS 'clawback_timestamp?', clawback_version AS 'clawback_version?',\n                asset_hidden_puzzle_hash\n            FROM wallet_nfts\n            LEFT JOIN collections ON collections.id = wallet_nfts.collection_id\n            WHERE wallet_nfts.asset_hash = ?\n            ",
   "describe": {
     "columns": [
       {
@@ -109,63 +109,68 @@
         "type_info": "Integer"
       },
       {
-        "name": "parent_coin_hash",
+        "name": "display_name",
         "ordinal": 21,
-        "type_info": "Blob"
+        "type_info": "Text"
       },
       {
-        "name": "puzzle_hash",
+        "name": "parent_coin_hash",
         "ordinal": 22,
         "type_info": "Blob"
       },
       {
-        "name": "amount",
+        "name": "puzzle_hash",
         "ordinal": 23,
         "type_info": "Blob"
       },
       {
-        "name": "p2_puzzle_hash",
+        "name": "amount",
         "ordinal": 24,
         "type_info": "Blob"
       },
       {
-        "name": "created_height",
+        "name": "p2_puzzle_hash",
         "ordinal": 25,
-        "type_info": "Integer"
+        "type_info": "Blob"
       },
       {
-        "name": "spent_height",
+        "name": "created_height",
         "ordinal": 26,
         "type_info": "Integer"
       },
       {
-        "name": "offer_hash?",
+        "name": "spent_height",
         "ordinal": 27,
+        "type_info": "Integer"
+      },
+      {
+        "name": "offer_hash?",
+        "ordinal": 28,
         "type_info": "Blob"
       },
       {
         "name": "created_timestamp",
-        "ordinal": 28,
-        "type_info": "Integer"
-      },
-      {
-        "name": "spent_timestamp",
         "ordinal": 29,
         "type_info": "Integer"
       },
       {
-        "name": "clawback_timestamp?",
+        "name": "spent_timestamp",
         "ordinal": 30,
         "type_info": "Integer"
       },
       {
-        "name": "clawback_version?",
+        "name": "clawback_timestamp?",
         "ordinal": 31,
         "type_info": "Integer"
       },
       {
-        "name": "asset_hidden_puzzle_hash",
+        "name": "clawback_version?",
         "ordinal": 32,
+        "type_info": "Integer"
+      },
+      {
+        "name": "asset_hidden_puzzle_hash",
+        "ordinal": 33,
         "type_info": "Blob"
       }
     ],
@@ -194,6 +199,7 @@
       true,
       true,
       true,
+      true,
       false,
       false,
       false,
@@ -208,5 +214,5 @@
       true
     ]
   },
-  "hash": "ca27ebffd50efef5323539abf4438a14ba1efadbaeee2ac5bafe2355344261e7"
+  "hash": "41dc08edcad62a282f10cf04805d9a53a8260085230514424de4159970366a23"
 }

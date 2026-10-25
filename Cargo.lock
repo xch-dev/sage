@@ -6869,6 +6869,7 @@ dependencies = [
  "anyhow",
  "chia-wallet-sdk",
  "hex",
+ "hex-literal 0.4.1",
  "sqlx",
  "thiserror 1.0.69",
  "tokio",

@@ -1,13 +1,10 @@
 use std::collections::{HashMap, HashSet};
 
-use chia_wallet_sdk::{
-    chia::puzzle_types::{LineageProof, nft::NftMetadata},
-    prelude::*,
-};
+use chia_wallet_sdk::{chia::puzzle_types::LineageProof, prelude::*};
 use sage_assets::base64_data_uri;
 use sage_database::{
     Asset, AssetKind, Database, DatabaseTx, DidCoinInfo, NftCoinInfo, OptionCoinInfo,
-    SerializedNftInfo,
+    ParsedNftMetadata, SerializedNftInfo,
 };
 use tracing::{error, warn};
 
@@ -266,7 +263,7 @@ pub async fn insert_nft(
     coin_state: CoinState,
     lineage_proof: Option<LineageProof>,
     info: SerializedNftInfo,
-    metadata: Option<NftMetadata>,
+    metadata: Option<ParsedNftMetadata>,
     context: PuzzleContext,
 ) -> Result<(), WalletError> {
     if let Some(lineage_proof) = lineage_proof {
@@ -311,8 +308,9 @@ pub async fn insert_nft(
         data_hash: metadata.as_ref().and_then(|m| m.data_hash),
         metadata_hash: metadata.as_ref().and_then(|m| m.metadata_hash),
         license_hash: metadata.as_ref().and_then(|m| m.license_hash),
-        edition_number: metadata.as_ref().map(|m| m.edition_number),
-        edition_total: metadata.as_ref().map(|m| m.edition_total),
+        edition_number: metadata.as_ref().and_then(|m| m.edition_number),
+        edition_total: metadata.as_ref().and_then(|m| m.edition_total),
+        display_name: metadata.as_ref().and_then(|m| m.display_name.clone()),
     };
 
     if let Some(metadata_hash) = &metadata.as_ref().and_then(|m| m.metadata_hash)
