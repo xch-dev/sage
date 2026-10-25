@@ -52,7 +52,7 @@ impl Wallet {
         hardened: bool,
         reuse: bool,
     ) -> Result<Vec<Bytes32>, WalletError> {
-        let mut tx = self.db.tx().await?;
+        let mut tx = self.db.read_tx().await?;
 
         let unused_index = tx.unused_derivation_index(hardened).await?;
         let next_index = tx.derivation_index(hardened).await?;

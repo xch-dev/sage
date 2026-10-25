@@ -4,10 +4,11 @@ use anyhow::{Context, Result};
 use sqlx::{Row, SqliteConnection, sqlite::SqliteRow};
 
 use crate::{
-    AppsDb, AppsDbTx, CorruptedInstalledSageApp, ListedSageApp, MANIFEST_FILE_NAME, SageAppCommon,
-    SageAppIconView, SageAppIdentity, SageAppPackageManifest, SageAppSnapshot, SageAppStorage,
-    SageAppUrl, SageAppWalletScope, SageGrantedPermissions, UserSageApp, UserSageAppPendingUpdate,
-    UserSageAppSource, parse_manifest_header_v0_from_value, unix_timestamp_ms,
+    AppsDb, AppsDbTx, CorruptedInstalledSageApp, ListedSageApp, MANIFEST_FILE_NAME,
+    RecoverableUserSageApp, SageAppIconView, SageAppIdentity, SageAppPackageManifest,
+    SageAppSnapshot, SageAppStorage, SageAppUrl, SageAppWalletScope, SageGrantedPermissions,
+    UserSageApp, UserSageAppPendingUpdate, UserSageAppSource,
+    parse_manifest_recovery_header_v0_from_value, unix_timestamp_ms,
 };
 
 impl AppsDb {
@@ -37,6 +38,40 @@ impl AppsDb {
             .detach();
 
         load_user_app_optional_from_conn(&mut conn, app_id).await
+    }
+
+    pub(crate) async fn get_recoverable_user_app(
+        &self,
+        app_id: &str,
+    ) -> Result<Option<RecoverableUserSageApp>> {
+        let mut conn = self
+            .pool()
+            .acquire()
+            .await
+            .context("failed to acquire apps db connection")?
+            .detach();
+
+        load_recoverable_user_app_optional_from_conn(&mut conn, app_id).await
+    }
+
+    pub(crate) async fn get_corrupted_user_app(
+        &self,
+        app_id: &str,
+        error: anyhow::Error,
+    ) -> Result<CorruptedInstalledSageApp> {
+        let mut conn = self
+            .pool()
+            .acquire()
+            .await
+            .context("failed to acquire apps db connection")?
+            .detach();
+
+        let ListedSageApp::Corrupted(app) =
+            load_corrupted_user_app_from_conn(&mut conn, app_id, error).await?
+        else {
+            unreachable!("corrupted app loader returned a different app kind")
+        };
+        Ok(app)
     }
 
     pub async fn list_installed_apps(&self) -> Result<Vec<ListedSageApp>> {
@@ -286,6 +321,19 @@ async fn load_user_app_optional_from_conn(
     row.as_ref().map(row_to_user_app).transpose()
 }
 
+async fn load_recoverable_user_app_optional_from_conn(
+    conn: &mut SqliteConnection,
+    app_id: &str,
+) -> Result<Option<RecoverableUserSageApp>> {
+    let row = sqlx::query(load_user_app_sql())
+        .bind(app_id)
+        .fetch_optional(conn)
+        .await
+        .with_context(|| format!("failed to load recovery state for app {app_id}"))?;
+
+    row.as_ref().map(row_to_recoverable_user_app).transpose()
+}
+
 async fn load_user_app_from_conn(conn: &mut SqliteConnection, app_id: &str) -> Result<UserSageApp> {
     let row = sqlx::query(load_user_app_sql())
         .bind(app_id)
@@ -322,6 +370,13 @@ fn load_user_app_sql() -> &'static str {
 }
 
 fn row_to_user_app(row: &SqliteRow) -> Result<UserSageApp> {
+    let persisted = row_to_recoverable_user_app(row)?;
+    let active_snapshot = snapshot_from_row(row)?;
+    let pending_update = pending_update_from_row(row)?;
+    persisted.restore(active_snapshot, pending_update)
+}
+
+fn row_to_recoverable_user_app(row: &SqliteRow) -> Result<RecoverableUserSageApp> {
     let app_id: String = row.try_get("app_id")?;
     let app_dir: String = row.try_get("app_dir")?;
     let origin_id: String = row.try_get("origin_id")?;
@@ -329,31 +384,25 @@ fn row_to_user_app(row: &SqliteRow) -> Result<UserSageApp> {
 
     let storage: SageAppStorage = serde_json::from_str(&row.try_get::<String, _>("storage_json")?)
         .context("failed to deserialize app storage")?;
-
     let source: UserSageAppSource = serde_json::from_str(&row.try_get::<String, _>("source_json")?)
         .context("failed to deserialize app source")?;
-
     let granted_permissions: SageGrantedPermissions =
         serde_json::from_str(&row.try_get::<String, _>("granted_permissions_json")?)
             .context("failed to deserialize granted permissions")?;
-
     let wallet_scope: SageAppWalletScope =
         serde_json::from_str(&row.try_get::<String, _>("wallet_scope_json")?)
-            .context("failed to deserialize wallet scope")?;
+            .context("failed to deserialize app wallet scope")?;
 
-    let active_snapshot = snapshot_from_row(row)?;
-    let pending_update = pending_update_from_row(row)?;
-
-    let common = SageAppCommon::from_persisted_parts(
+    let active_snapshot_dir: String = row.try_get("active_snapshot_dir")?;
+    Ok(RecoverableUserSageApp::new(
         SageAppIdentity::new(app_id, origin_id, app_dir)?,
+        source,
         granted_permissions,
         storage,
         may_contain_secrets != 0,
-        active_snapshot,
         wallet_scope,
-    )?;
-
-    Ok(UserSageApp::load_persisted(common, source, pending_update))
+        active_snapshot_dir,
+    ))
 }
 
 async fn load_corrupted_user_app_from_conn(
@@ -367,14 +416,13 @@ async fn load_corrupted_user_app_from_conn(
             app_id,
             app_dir,
             source_json,
-            active_snapshot_manifest_hash,
             active_snapshot_dir
         FROM sage_apps
         WHERE app_id = ?
         ",
     )
     .bind(app_id)
-    .fetch_one(conn)
+    .fetch_one(&mut *conn)
     .await
     .with_context(|| format!("failed to load corrupted app fallback {app_id}"))?;
 
@@ -384,9 +432,20 @@ async fn load_corrupted_user_app_from_conn(
         .try_get::<Option<String>, _>("app_dir")?
         .unwrap_or_default();
 
-    let source = row
-        .try_get::<Option<String>, _>("source_json")?
-        .and_then(|json| serde_json::from_str::<UserSageAppSource>(&json).ok());
+    let recovery = load_recoverable_user_app_optional_from_conn(conn, &app_id)
+        .await
+        .ok()
+        .flatten();
+
+    let source = recovery
+        .as_ref()
+        .map(|recoverable| recoverable.source().clone())
+        .or_else(|| {
+            row.try_get::<Option<String>, _>("source_json")
+                .ok()
+                .flatten()
+                .and_then(|json| serde_json::from_str::<UserSageAppSource>(&json).ok())
+        });
 
     let snapshot_dir = row.try_get::<Option<String>, _>("active_snapshot_dir")?;
 
@@ -397,7 +456,7 @@ async fn load_corrupted_user_app_from_conn(
             std::fs::read_to_string(path).ok()
         })
         .and_then(|text| serde_json::from_str::<serde_json::Value>(&text).ok())
-        .and_then(|manifest| parse_manifest_header_v0_from_value(manifest).ok());
+        .and_then(|manifest| parse_manifest_recovery_header_v0_from_value(manifest).ok());
 
     let icon = manifest_header
         .as_ref()
@@ -410,7 +469,7 @@ async fn load_corrupted_user_app_from_conn(
         .and_then(|path| SageAppIconView::from_file_path(&path));
 
     Ok(ListedSageApp::Corrupted(
-        CorruptedInstalledSageApp::new(app_id, app_dir, error.to_string())
+        CorruptedInstalledSageApp::new(app_id, app_dir, format!("{error:#}"))
             .with_manifest_header(manifest_header)
             .with_source(source)
             .with_icon(icon),

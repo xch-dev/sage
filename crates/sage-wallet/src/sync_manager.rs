@@ -150,10 +150,21 @@ impl SyncManager {
         while let Ok(command) = self.command_receiver.try_recv() {
             match command {
                 SyncCommand::SwitchWallet { wallet, delta_sync } => {
+                    let previous_fingerprint =
+                        self.wallet.as_ref().map(|wallet| wallet.fingerprint);
+                    let fingerprint = wallet.as_ref().map(|wallet| wallet.fingerprint);
+
                     self.clear_subscriptions().await;
                     self.abort_wallet_tasks();
                     self.wallet = wallet;
                     self.options.delta_sync = delta_sync;
+
+                    if previous_fingerprint != fingerprint {
+                        let _ = self
+                            .event_sender
+                            .send(SyncEvent::WalletChanged { fingerprint })
+                            .await;
+                    }
                 }
                 SyncCommand::SwitchNetwork(network) => {
                     if self.network.network_id() != network.network_id()
@@ -495,6 +506,10 @@ impl SyncManager {
     }
 
     async fn poll_tasks(&mut self) {
+        // Set when initial sync just finished, so the analyze below happens after
+        // the borrow of `initial_wallet_sync` has been released.
+        let mut initial_sync_completed = false;
+
         if let InitialWalletSync::Syncing { ip, task } = &mut self.initial_wallet_sync
             && let Ok(Some(result)) = timeout(Duration::from_secs(1), poll_once(task)).await
         {
@@ -502,6 +517,7 @@ impl SyncManager {
                 Ok(Ok(())) => {
                     self.initial_wallet_sync = InitialWalletSync::Subscribed(*ip);
                     self.event_sender.send(SyncEvent::Subscribed).await.ok();
+                    initial_sync_completed = true;
                 }
                 Ok(Err(error)) => {
                     warn!("Initial wallet sync failed: {error}");
@@ -624,6 +640,16 @@ impl SyncManager {
                     self.blocktime_queue_task = None;
                 }
                 None => {}
+            }
+        }
+
+        // The startup analyze writes nothing for a wallet whose tables were still
+        // empty, so a first sync would otherwise run with no statistics at all.
+        if initial_sync_completed && let Some(wallet) = self.wallet.clone() {
+            if let Err(error) = wallet.db.analyze().await {
+                warn!("Failed to refresh query planner statistics: {error}");
+            } else {
+                info!("Refreshed query planner statistics after initial sync");
             }
         }
     }

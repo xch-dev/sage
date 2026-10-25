@@ -4,65 +4,116 @@
 //! non-public infrastructure. Each request resolves and vets its destination,
 //! pins the connection to the vetted addresses, and validates redirect hops.
 
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
+use std::{
+    collections::HashMap,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr},
+};
 
 use anyhow::{Context, Result as AnyResult};
+use tokio::sync::Mutex;
 use url::{Host, Url};
 
 const MAX_DOWNLOAD_REDIRECTS: usize = 5;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ValidatedClientKey {
+    origin: String,
+    allow_loopback: bool,
+}
+
+/// Reuses connection pools while keeping every origin DNS-pinned to addresses
+/// that passed the SSRF checks. Redirect origins get their own validated client.
+#[derive(Debug, Default)]
+pub(crate) struct SsrfGuardedClient {
+    clients: Mutex<HashMap<ValidatedClientKey, reqwest::Client>>,
+}
+
+impl SsrfGuardedClient {
+    /// Fetches an app-related URL while validating every destination and redirect.
+    /// Status handling is deliberately left to the caller.
+    pub(crate) async fn get(&self, url: &str) -> AnyResult<reqwest::Response> {
+        let mut current = Url::parse(url).with_context(|| format!("invalid download URL {url}"))?;
+        let initial_is_loopback = is_explicit_loopback_host(&current);
+
+        for redirects in 0..=MAX_DOWNLOAD_REDIRECTS {
+            // A public app must never gain permission to target loopback merely by
+            // redirecting there or embedding a loopback asset URL. Local development
+            // apps retain that permission for explicit loopback destinations.
+            let allow_loopback = allows_loopback_target(initial_is_loopback, &current);
+            let response = self.send_validated_get(&current, allow_loopback).await?;
+            if !response.status().is_redirection() {
+                return Ok(response);
+            }
+
+            if redirects == MAX_DOWNLOAD_REDIRECTS {
+                anyhow::bail!("too many redirects while downloading {url}");
+            }
+
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .with_context(|| format!("redirect from {current} is missing a location header"))?;
+
+            current = current
+                .join(location)
+                .with_context(|| format!("invalid redirect location from {current}"))?;
+        }
+
+        unreachable!("redirect loop is bounded above")
+    }
+
+    async fn send_validated_get(
+        &self,
+        url: &Url,
+        allow_loopback: bool,
+    ) -> AnyResult<reqwest::Response> {
+        let client = self.validated_client(url, allow_loopback).await?;
+        client
+            .get(url.clone())
+            .send()
+            .await
+            .with_context(|| format!("failed to GET {url}"))
+    }
+
+    async fn validated_client(
+        &self,
+        url: &Url,
+        allow_loopback: bool,
+    ) -> AnyResult<reqwest::Client> {
+        let key = ValidatedClientKey {
+            origin: url.origin().ascii_serialization(),
+            allow_loopback,
+        };
+        let mut clients = self.clients.lock().await;
+
+        if let Some(client) = clients.get(&key) {
+            return Ok(client.clone());
+        }
+
+        // Keep this lock while validating so concurrent first requests for the
+        // same origin all receive the one DNS-pinned client and connection pool.
+        let pinned_addrs = validate_download_target(url, allow_loopback).await?;
+        let mut builder = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            // A proxy receives the hostname rather than the vetted socket address,
+            // so it would defeat DNS pinning and could reintroduce SSRF.
+            .no_proxy();
+
+        if let (Some(domain), Some(addrs)) = (url.domain(), pinned_addrs.as_deref()) {
+            builder = builder.resolve_to_addrs(domain, addrs);
+        }
+
+        let client = builder.build().context("failed to build download client")?;
+        clients.insert(key, client.clone());
+        Ok(client)
+    }
+}
+
 /// Fetches an app-related URL while validating every destination and redirect.
 /// Status handling is deliberately left to the caller.
 pub(crate) async fn get_with_ssrf_guard(url: &str) -> AnyResult<reqwest::Response> {
-    let mut current = Url::parse(url).with_context(|| format!("invalid download URL {url}"))?;
-    let initial_is_loopback = is_explicit_loopback_host(&current);
-
-    for redirects in 0..=MAX_DOWNLOAD_REDIRECTS {
-        // A public app must never gain permission to target loopback merely by
-        // redirecting there or embedding a loopback asset URL. Local development
-        // apps retain that permission for explicit loopback destinations.
-        let allow_loopback = allows_loopback_target(initial_is_loopback, &current);
-        let response = send_validated_get(&current, allow_loopback).await?;
-        if !response.status().is_redirection() {
-            return Ok(response);
-        }
-
-        if redirects == MAX_DOWNLOAD_REDIRECTS {
-            anyhow::bail!("too many redirects while downloading {url}");
-        }
-
-        let location = response
-            .headers()
-            .get(reqwest::header::LOCATION)
-            .and_then(|value| value.to_str().ok())
-            .with_context(|| format!("redirect from {current} is missing a location header"))?;
-
-        current = current
-            .join(location)
-            .with_context(|| format!("invalid redirect location from {current}"))?;
-    }
-
-    unreachable!("redirect loop is bounded above")
-}
-
-async fn send_validated_get(url: &Url, allow_loopback: bool) -> AnyResult<reqwest::Response> {
-    let pinned_addrs = validate_download_target(url, allow_loopback).await?;
-    let mut builder = reqwest::Client::builder()
-        .redirect(reqwest::redirect::Policy::none())
-        // A proxy receives the hostname rather than the vetted socket address,
-        // so it would defeat DNS pinning and could reintroduce SSRF.
-        .no_proxy();
-
-    if let (Some(domain), Some(addrs)) = (url.domain(), pinned_addrs.as_deref()) {
-        builder = builder.resolve_to_addrs(domain, addrs);
-    }
-
-    let client = builder.build().context("failed to build download client")?;
-    client
-        .get(url.clone())
-        .send()
-        .await
-        .with_context(|| format!("failed to GET {url}"))
+    SsrfGuardedClient::default().get(url).await
 }
 
 /// Validates a URL and, for domains, returns the resolved addresses to pin.
@@ -295,5 +346,32 @@ mod tests {
             .await
             .unwrap_err();
         assert!(err.to_string().contains("disallowed address"));
+    }
+
+    #[tokio::test]
+    async fn guarded_client_reuses_one_client_per_origin() {
+        let guarded = SsrfGuardedClient::default();
+        let first = Url::parse("http://127.0.0.1:4173/app/a").unwrap();
+        let second = Url::parse("http://127.0.0.1:4173/app/b").unwrap();
+
+        guarded.validated_client(&first, true).await.unwrap();
+        guarded.validated_client(&second, true).await.unwrap();
+
+        assert_eq!(guarded.clients.lock().await.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn cached_loopback_client_cannot_bypass_redirect_policy() {
+        let guarded = SsrfGuardedClient::default();
+        let loopback = Url::parse("https://127.0.0.1:4173/app").unwrap();
+
+        guarded.validated_client(&loopback, true).await.unwrap();
+        let err = guarded
+            .validated_client(&loopback, false)
+            .await
+            .expect_err("public redirects must not reuse a loopback-enabled client");
+
+        assert!(err.to_string().contains("disallowed address"));
+        assert_eq!(guarded.clients.lock().await.len(), 1);
     }
 }

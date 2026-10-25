@@ -241,10 +241,19 @@ pub async fn incremental_sync(
             .await?;
         }
 
-        confirmed_transactions.extend(
-            tx.mempool_items_for_output(coin_state.coin.coin_id())
-                .await?,
-        );
+        if let Some(height) = coin_state.created_height {
+            // A coin can only be created by spending its parent, so mark the parent spent now
+            // rather than letting it look unspent until its own coin state arrives. Other inputs
+            // of our mempool items can't be assumed spent, since a different spend bundle may
+            // have created this coin.
+            tx.mark_coin_spent(coin_state.coin.parent_coin_info, height)
+                .await?;
+
+            confirmed_transactions.extend(
+                tx.mempool_items_for_output(coin_state.coin.coin_id())
+                    .await?,
+            );
+        }
 
         if coin_state.spent_height.is_some() {
             confirmed_transactions.extend(

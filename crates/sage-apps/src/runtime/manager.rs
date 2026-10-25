@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use tauri::{AppHandle, LogicalPosition, LogicalSize, State};
@@ -7,13 +9,21 @@ use crate::{
     SageAppRuntimeVisibility, SharedRuntime, emit_active_taskbar_runtime_changed,
     emit_runtime_manager_runtimes_changed, ensure_apps_workspace_active,
     find_active_taskbar_runtime, find_runtime_by_runtime_id_optional, get_sage_window,
-    get_webview_in_sage_window, kill_runtime_inner, list_runtimes, resolve_running_app,
+    get_taskbar_runtimes, get_webview_in_sage_window, kill_runtime_inner, list_runtimes,
+    resolve_running_app,
 };
 
 #[derive(Debug, Clone, Deserialize, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeTargetParams {
     pub app_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct ReorderTaskbarRuntimesParams {
+    pub window_label: String,
+    pub app_ids: Vec<String>,
 }
 
 struct RuntimeWindowIdentity {
@@ -111,6 +121,41 @@ pub(crate) async fn focus_taskbar_runtime(
     changes.emit(app_handle, apps_state).await;
 
     Ok(runtime)
+}
+
+pub(crate) async fn reorder_taskbar_runtimes(
+    app_handle: &AppHandle,
+    apps_state: &State<'_, AppsHostState>,
+    params: ReorderTaskbarRuntimesParams,
+) -> Result<(), String> {
+    let runtimes = get_taskbar_runtimes(apps_state, &params.window_label)
+        .await
+        .into_iter()
+        .filter(|runtime| !runtime.with_runtime(SageAppRuntimeRecord::internal));
+    let mut runtime_by_app_id = runtimes
+        .map(|runtime| (runtime.app_id(), runtime))
+        .collect::<BTreeMap<_, _>>();
+    let mut ordered_runtimes = Vec::with_capacity(params.app_ids.len());
+
+    for app_id in params.app_ids {
+        let runtime = runtime_by_app_id
+            .remove(&app_id)
+            .ok_or_else(|| format!("taskbar runtime not found for app {app_id}"))?;
+        ordered_runtimes.push(runtime);
+    }
+
+    if !runtime_by_app_id.is_empty() {
+        return Err("taskbar order must include every current taskbar runtime".to_string());
+    }
+
+    for (order, runtime) in ordered_runtimes.iter().enumerate() {
+        let order = u32::try_from(order).map_err(|_| "too many taskbar runtimes".to_string())?;
+        runtime.with_runtime_mut(|runtime| runtime.set_taskbar_order(order));
+    }
+
+    emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+
+    Ok(())
 }
 
 pub(crate) async fn hide_runtime(

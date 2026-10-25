@@ -27,6 +27,9 @@ export type SageBridgeErrorResponse = {
 };
 
 export type SageWalletClient = {
+  onSelectedWalletChanged(
+    handler: (event: Generated.SelectedWalletChangedEvent) => void,
+  ): () => void;
   sendTransaction(
     input: Generated.WalletSendTransactionParams,
   ): Promise<Generated.WalletSendTransactionResult>;
@@ -48,10 +51,8 @@ export type SageWalletClient = {
   getPublicKeys(
     input?: Generated.WalletGetPublicKeysParams,
   ): Promise<Generated.WalletGetPublicKeysResult>;
-  getKey(input: Generated.GetKey): Promise<Generated.GetKeyResponse>;
-  getSecretKey(
-    input: Generated.GetSecretKey,
-  ): Promise<Generated.GetSecretKeyResponse>;
+  getKey(): Promise<Generated.GetKeyResponse>;
+  getSecretKey(): Promise<Generated.GetSecretKeyResponse>;
 
   getSyncStatus(): Promise<Generated.GetSyncStatusResponse>;
   getVersion(): Promise<Generated.GetVersionResponse>;
@@ -94,12 +95,17 @@ export type SageAppClient = {
   bridgeSend(input: SageBridgeSendPayload): Promise<Generated.BridgeSendResult>;
   getInfo(): Promise<Generated.AppGetInfoResult>;
   getCapabilities(): Promise<string[]>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestCapabilityGrant(
     input: Generated.RequestCapabilityGrantParams,
   ): Promise<Generated.RequestCapabilityGrantResult>;
+  /** @deprecated Use requestPermissionGrants instead. */
   requestNetworkWhitelistGrant(
     input: Generated.RequestNetworkWhitelistGrantParams,
   ): Promise<Generated.RequestNetworkWhitelistGrantResult>;
+  requestPermissionGrants(
+    input: Generated.RequestPermissionGrantsParams,
+  ): Promise<Generated.RequestPermissionGrantsResult>;
   onGrantedCapabilitiesChange(
     handler: (event: Generated.GrantedCapabilitiesChangeEvent) => void,
   ): () => void;
@@ -122,6 +128,9 @@ export type SageEnvironmentThemeClient = {
 export type SageEnvironmentClient = {
   theme: SageEnvironmentThemeClient;
   getNetwork(): Promise<Generated.EnvironmentGetNetworkResult>;
+  openExternalUrl(
+    input: Generated.EnvironmentOpenExternalUrlParams,
+  ): Promise<Generated.EnvironmentOpenExternalUrlResult>;
 };
 
 export type SageClient = {

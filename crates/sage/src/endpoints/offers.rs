@@ -1,6 +1,6 @@
 use chia_wallet_sdk::{
     chia::puzzle_types::nft::NftMetadata,
-    driver::{decode_offer, encode_offer},
+    driver::{coin_amount, decode_offer, encode_offer},
     prelude::*,
 };
 use itertools::Itertools;
@@ -25,7 +25,7 @@ use tracing::debug;
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
     offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id,
+    parse_offer_id, parse_option_id, selectable_coin_ids,
 };
 
 #[derive(Debug, Clone)]
@@ -304,8 +304,8 @@ impl Sage {
 
         let offered_amounts = offer.offered_coins().amounts();
         let requested_amounts = offer.requested_payments().amounts();
-        let offered_royalties = offer.offered_royalty_amounts();
-        let requested_royalties = offer.requested_royalty_amounts();
+        let offered_royalties = offer.offered_royalty_amounts()?;
+        let requested_royalties = offer.requested_royalty_amounts()?;
 
         let mut cat_rows = Vec::new();
         let mut nft_rows = Vec::new();
@@ -316,8 +316,8 @@ impl Sage {
                 offer_id,
                 is_requested: false,
                 asset_id,
-                amount,
-                royalty: offered_royalties.cats.get(&asset_id).copied().unwrap_or(0),
+                amount: coin_amount(amount)?,
+                royalty: coin_amount(offered_royalties.cats.get(&asset_id).copied().unwrap_or(0))?,
             });
         }
 
@@ -383,12 +383,14 @@ impl Sage {
                 offer_id,
                 is_requested: true,
                 asset_id,
-                amount,
-                royalty: requested_royalties
-                    .cats
-                    .get(&asset_id)
-                    .copied()
-                    .unwrap_or(0),
+                amount: coin_amount(amount)?,
+                royalty: coin_amount(
+                    requested_royalties
+                        .cats
+                        .get(&asset_id)
+                        .copied()
+                        .unwrap_or(0),
+                )?,
             });
         }
 
@@ -485,8 +487,8 @@ impl Sage {
             tx.insert_offer_asset(
                 offer_id,
                 Bytes32::default(),
-                offered_amounts.xch,
-                offered_royalties.xch,
+                coin_amount(offered_amounts.xch)?,
+                coin_amount(offered_royalties.xch)?,
                 false,
             )
             .await?;
@@ -496,8 +498,8 @@ impl Sage {
             tx.insert_offer_asset(
                 offer_id,
                 Bytes32::default(),
-                requested_amounts.xch,
-                requested_royalties.xch,
+                coin_amount(requested_amounts.xch)?,
+                coin_amount(requested_royalties.xch)?,
                 true,
             )
             .await?;
@@ -713,7 +715,8 @@ impl Sage {
         };
 
         let offer = decode_offer(&row.encoded_offer)?;
-        let coin_spends = wallet.cancel_offer(offer, fee).await?;
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -728,17 +731,27 @@ impl Sage {
             .map(|offer_id| parse_offer_id(offer_id.clone()))
             .collect::<Result<Vec<_>>>()?;
 
-        let mut coin_spends = Vec::new();
+        let mut offers = Vec::with_capacity(offer_ids.len());
 
         for offer_id in offer_ids {
             let Some(row) = wallet.db.offer(offer_id).await? else {
                 return Err(Error::MissingOffer(offer_id));
             };
 
-            let offer = decode_offer(&row.encoded_offer)?;
-            let spends = wallet.cancel_offer(offer, fee).await?;
-            coin_spends.extend(spends);
+            offers.push(decode_offer(&row.encoded_offer)?);
         }
+
+        // The fee is per offer (the UI labels it "Network Fee (per offer)"), but the batch is
+        // one spend, so its fee coins are selected once and can never be picked twice.
+        let total_fee = u64::try_from(offers.len())
+            .ok()
+            .and_then(|count| fee.checked_mul(count))
+            .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
+
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet
+            .cancel_offers(offers, total_fee, fee_coin_ids)
+            .await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }

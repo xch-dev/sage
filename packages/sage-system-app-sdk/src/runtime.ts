@@ -311,14 +311,14 @@ export function initSageSystemRuntimeBridge(): boolean {
 
         appInstall: {
           async previewUrl(input: Generated.AppInstallPreviewUrlParams) {
-            return await callHost<Generated.SageAppUrlPreview>(
+            return await callHost<Generated.AppInstallPreviewUrlResult>(
               'appInstall.previewUrl',
               input,
             );
           },
 
           async previewZip(input: Generated.AppInstallPreviewZipParams) {
-            return await callHost<Generated.SageAppPackageManifest>(
+            return await callHost<Generated.AppInstallPreviewZipResult>(
               'appInstall.previewZip',
               input,
             );
@@ -335,6 +335,15 @@ export function initSageSystemRuntimeBridge(): boolean {
             return await callHost<Generated.AppInstallInstallResult>(
               'appInstall.installZip',
               input,
+            );
+          },
+
+          onDownloadProgress(
+            handler: (event: Generated.AppInstallDownloadProgressEvent) => void,
+          ) {
+            return onSystemRuntimeEventType<Generated.AppInstallDownloadProgressEvent>(
+              'appInstall.downloadProgress',
+              handler,
             );
           },
         },

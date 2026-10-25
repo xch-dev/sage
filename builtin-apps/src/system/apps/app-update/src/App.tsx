@@ -28,9 +28,14 @@ export function App() {
     return <PermissionsReviewBody state={state} />;
   }
 
+  const pendingUpdate =
+    state.updateContext.target.kind === 'installed'
+      ? state.updateContext.target.app.pendingUpdate
+      : state.updateContext.target.pendingUpdate;
+
   return (
     <UpdateReviewBody
-      key={state.app.pendingUpdate?.manifestHash ?? 'no-pending-update'}
+      key={pendingUpdate?.manifestHash ?? 'no-pending-update'}
       state={state}
       onReload={reload}
     />

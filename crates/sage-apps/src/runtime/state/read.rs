@@ -90,7 +90,7 @@ pub(crate) async fn is_apps_workspace_active(apps_state: &State<'_, AppsHostStat
     *apps_state.runtime.apps_workspace_active.read().await
 }
 
-async fn get_taskbar_runtimes(
+pub(crate) async fn get_taskbar_runtimes(
     apps_state: &State<'_, AppsHostState>,
     host_window_label: &str,
 ) -> Vec<SharedRuntime> {

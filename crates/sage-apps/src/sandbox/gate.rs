@@ -1,5 +1,9 @@
+use semver::Version;
+
 use super::{AppLaunchGateResult, SandboxCapability, SandboxCapabilityStatus, SandboxState};
-use crate::{SharedSageApp, UserBridgeCapability};
+use crate::{
+    SageAppCompatibility, SageAppCompatibilityStatus, SharedSageApp, UserBridgeCapability,
+};
 
 fn capability_status(
     state: &SandboxState,
@@ -33,6 +37,7 @@ fn required_capabilities_for_app(app: &SharedSageApp) -> Vec<SandboxCapability> 
 pub fn evaluate_app_launch_gate(
     app: &SharedSageApp,
     effective: &SandboxState,
+    current_sage_version: &Version,
 ) -> AppLaunchGateResult {
     if app.is_system_app() || app.id().starts_with("__sage_test_") {
         return AppLaunchGateResult {
@@ -42,6 +47,40 @@ pub fn evaluate_app_launch_gate(
             message: None,
         };
     }
+
+    let compatibility = app.with(|app| {
+        SageAppCompatibility::evaluate(
+            current_sage_version,
+            app.common().active_manifest().sage_version(),
+        )
+    });
+
+    let compatibility_warning = match compatibility.status() {
+        SageAppCompatibilityStatus::RequiresNewerSage { minimum_version } => {
+            return AppLaunchGateResult {
+                allowed: false,
+                kind: "requiresNewerSage".into(),
+                capability: None,
+                message: Some(format!(
+                    "This app requires Sage {minimum_version} or newer. You are running Sage {current_sage_version}."
+                )),
+            };
+        }
+        SageAppCompatibilityStatus::Invalid { reason } => {
+            return AppLaunchGateResult {
+                allowed: false,
+                kind: "invalidSageVersion".into(),
+                capability: None,
+                message: Some(format!(
+                    "This app has an invalid Sage version requirement: {reason}"
+                )),
+            };
+        }
+        SageAppCompatibilityStatus::UntestedNewerSage { tested_max_version } => Some(format!(
+            "This app has only been tested through Sage {tested_max_version}. You are running Sage {current_sage_version}."
+        )),
+        SageAppCompatibilityStatus::Compatible => None,
+    };
 
     for capability in required_capabilities_for_app(app) {
         match capability_status(effective, capability) {
@@ -70,10 +109,18 @@ pub fn evaluate_app_launch_gate(
         }
     }
 
-    AppLaunchGateResult {
-        allowed: true,
-        kind: "allowed".into(),
-        capability: None,
-        message: None,
+    match compatibility_warning {
+        Some(message) => AppLaunchGateResult {
+            allowed: true,
+            kind: "sageUntested".into(),
+            capability: None,
+            message: Some(message),
+        },
+        None => AppLaunchGateResult {
+            allowed: true,
+            kind: "allowed".into(),
+            capability: None,
+            message: None,
+        },
     }
 }

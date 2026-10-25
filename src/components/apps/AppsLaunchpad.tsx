@@ -2,6 +2,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CorruptedAppCard } from '@/components/apps/CorruptedAppCard';
 import { AppsLaunchpadContextMenu } from '@/components/apps/AppsLaunchpadContextMenu';
 import { Button } from '@/components/ui/button';
+import {
+  getEffectiveSandboxState,
+  listSandboxCapabilities,
+} from '@/lib/apps/sandbox';
 import { formatSandboxLaunchDecision } from '@/lib/apps/sandboxPolicy';
 import {
   commands,
@@ -10,7 +14,7 @@ import {
   UserSageAppView,
 } from '@/bindings.ts';
 import { useApps } from '@/contexts/AppsContext.tsx';
-import { Plus } from 'lucide-react';
+import { Plus, TriangleAlert } from 'lucide-react';
 import { AppsPageActionsMenu } from '@/components/apps/AppsPageActionsMenu';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppTile } from '@/components/apps/AppTile';
@@ -88,6 +92,10 @@ async function openApp(appId: string) {
 
 export function AppsLaunchpad() {
   const [contextMenu, setContextMenu] = useState<AppContextMenuState>(null);
+  const [sandboxRerunPending, setSandboxRerunPending] = useState(false);
+  const [sandboxRerunError, setSandboxRerunError] = useState<string | null>(
+    null,
+  );
   const pageRef = useRef<HTMLDivElement | null>(null);
 
   const [updateCheckStateByAppId, setUpdateCheckStateByAppId] = useState<
@@ -112,8 +120,18 @@ export function AppsLaunchpad() {
     clearAppStorage,
     pendingUpdates,
     busyAppIds,
+    sandboxState,
+    setBusy,
     getLaunchGate,
   } = useApps();
+
+  const effectiveSandboxState = getEffectiveSandboxState(sandboxState);
+  const failedSandboxTestCount = effectiveSandboxState
+    ? listSandboxCapabilities(effectiveSandboxState).filter(
+        ([, result]) => result.status === 'failed',
+      ).length
+    : 0;
+  const sandboxTestsRunning = Boolean(sandboxState?.currentRun);
 
   const runningAppIds = useMemo(() => {
     return new Set(runtimes.map((runtime) => runtime.app.common.identity.id));
@@ -151,6 +169,19 @@ export function AppsLaunchpad() {
 
   const contextMenuClearDataError = contextMenuAppId
     ? (clearDataErrorByAppId[contextMenuAppId] ?? null)
+    : null;
+
+  const contextMenuLaunchDecision = contextMenu
+    ? contextMenu.app.kind === 'system'
+      ? {
+          allowed: true,
+          warning: false,
+          title: 'System app',
+          description: 'System apps are managed by Sage.',
+        }
+      : formatSandboxLaunchDecision(
+          getLaunchGate(contextMenu.app.common.identity.id),
+        )
     : null;
 
   const contextMenuHasUpdate = contextMenuPendingUpdate.kind !== 'none';
@@ -208,14 +239,16 @@ export function AppsLaunchpad() {
     }
   }
 
-  async function handleApplyUpdate(appId: string) {
+  async function handleApplyUpdate(appId: string, manifestHash: string) {
     setClearDataErrorByAppId((prev) => ({
       ...prev,
       [appId]: null,
     }));
 
+    setBusy(appId, true);
+
     try {
-      await commands.appsApplyAppUpdate(appId);
+      await commands.appsApplyAppUpdate(appId, manifestHash);
     } catch (err) {
       const message = formatAppError(err);
 
@@ -225,6 +258,21 @@ export function AppsLaunchpad() {
         ...prev,
         [appId]: `Update failed: ${message}`,
       }));
+    } finally {
+      setBusy(appId, false);
+    }
+  }
+
+  async function handleRerunSandboxTests() {
+    setSandboxRerunPending(true);
+    setSandboxRerunError(null);
+
+    try {
+      await commands.appsRerunSandboxTests();
+    } catch (err) {
+      setSandboxRerunError(formatErrorMessage(err));
+    } finally {
+      setSandboxRerunPending(false);
     }
   }
 
@@ -372,6 +420,41 @@ export function AppsLaunchpad() {
       </div>
 
       <div className='mx-auto w-full max-w-7xl flex-1 min-h-0 overflow-auto px-4 pb-4 md:px-6 md:pb-6'>
+        {failedSandboxTestCount > 0 ? (
+          <Alert variant='warning' className='mb-6'>
+            <TriangleAlert className='h-4 w-4' aria-hidden='true' />
+            <AlertTitle>
+              {failedSandboxTestCount} sandbox{' '}
+              {failedSandboxTestCount === 1 ? 'test' : 'tests'} failed
+            </AlertTitle>
+            <AlertDescription className='flex flex-wrap items-center justify-between gap-3'>
+              <div>
+                <p>
+                  Some apps may be blocked for your protection. Try running the
+                  sandbox tests again.
+                </p>
+                {sandboxRerunError ? (
+                  <p className='mt-1 text-destructive'>
+                    Could not re-run tests: {sandboxRerunError}
+                  </p>
+                ) : null}
+              </div>
+              <Button
+                variant='outline'
+                size='sm'
+                disabled={sandboxTestsRunning || sandboxRerunPending}
+                onClick={() => {
+                  void handleRerunSandboxTests();
+                }}
+              >
+                {sandboxTestsRunning || sandboxRerunPending
+                  ? 'Running tests…'
+                  : 'Re-run tests'}
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : null}
+
         {error ? (
           <Alert className='mb-6'>
             <AlertTitle>Apps error</AlertTitle>
@@ -398,6 +481,7 @@ export function AppsLaunchpad() {
                   app.kind === 'system'
                     ? {
                         allowed: true,
+                        warning: false,
                         title: 'System app',
                         description: 'System apps are managed by Sage.',
                       }
@@ -448,10 +532,11 @@ export function AppsLaunchpad() {
           <div className='mt-8 space-y-4'>
             <div>
               <h2 className='text-lg font-semibold tracking-tight'>
-                Corrupted apps
+                Apps needing attention
               </h2>
               <p className='text-sm text-muted-foreground'>
-                These app installations could not be loaded correctly.
+                These apps could not be loaded, but may be recoverable with an
+                update.
               </p>
             </div>
 
@@ -476,6 +561,7 @@ export function AppsLaunchpad() {
         hasUpdate={contextMenuHasUpdate}
         updateIsInstallable={contextMenuUpdateIsInstallable}
         isRunning={contextMenuAppIsRunning}
+        canOpen={contextMenuLaunchDecision?.allowed ?? false}
         updateCheckState={contextMenuCheckState}
         clearDataBusy={contextMenuClearDataBusy}
         clearDataError={contextMenuClearDataError}
@@ -501,15 +587,20 @@ export function AppsLaunchpad() {
           void handleCheckForUpdate(contextMenu.app.common.identity.id);
         }}
         onUpdate={() => {
-          if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {
+          if (
+            !contextMenu ||
+            !isUserInstalledEntry(contextMenu.app) ||
+            contextMenuPendingUpdate.kind === 'none'
+          ) {
             return;
           }
 
           const appId = contextMenu.app.common.identity.id;
+          const manifestHash = contextMenuPendingUpdate.manifestHash;
 
           closeContextMenu();
 
-          void handleApplyUpdate(appId);
+          void handleApplyUpdate(appId, manifestHash);
         }}
         onChangePermissions={() => {
           if (!contextMenu || !isUserInstalledEntry(contextMenu.app)) {

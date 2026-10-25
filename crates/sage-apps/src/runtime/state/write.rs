@@ -5,22 +5,37 @@ use crate::AppsHostState;
 
 pub(crate) async fn write_runtime(
     apps_state: &State<'_, AppsHostState>,
-    runtime: SageAppRuntimeRecord,
+    mut runtime: SageAppRuntimeRecord,
 ) -> SharedRuntime {
     let runtime_id = runtime.runtime_id();
     let app_id = runtime.app().id().clone();
-
-    let runtime = SharedRuntime::new(runtime);
-
-    {
-        let mut by_app_id = apps_state.runtime.runtime_id_by_app_id.lock().await;
-        by_app_id.insert(app_id, runtime_id.clone());
-    }
-
-    {
+    let runtime = {
         let mut by_runtime_id = apps_state.runtime.runtime_by_runtime_id.lock().await;
-        by_runtime_id.insert(runtime_id, runtime.clone());
-    }
+
+        if runtime.presentation() == crate::AppPresentation::Taskbar && !runtime.internal() {
+            let host_window_label = runtime.host_window_label();
+            let next_order = by_runtime_id
+                .values()
+                .filter_map(|runtime| {
+                    runtime.with_runtime(|runtime| {
+                        (runtime.presentation() == crate::AppPresentation::Taskbar
+                            && !runtime.internal()
+                            && runtime.host_window_label() == host_window_label)
+                            .then_some(runtime.taskbar_order())
+                    })
+                })
+                .max()
+                .map_or(0, |order| order.saturating_add(1));
+            runtime.set_taskbar_order(next_order);
+        }
+
+        let runtime = SharedRuntime::new(runtime);
+        by_runtime_id.insert(runtime_id.clone(), runtime.clone());
+        runtime
+    };
+
+    let mut by_app_id = apps_state.runtime.runtime_id_by_app_id.lock().await;
+    by_app_id.insert(app_id, runtime_id);
 
     runtime
 }

@@ -230,3 +230,59 @@ fn granted_permissions_reject_secret_capability_with_external_capability() {
         "unexpected error: {err}"
     );
 }
+
+#[test]
+fn external_url_opening_is_effective_without_a_user_grant() {
+    let requested =
+        SageRequestedCapabilities::new([UserBridgeCapability::EnvironmentOpenExternalUrl], []);
+
+    let effective = requested.resolve_effective_grants([]);
+
+    assert_eq!(
+        effective,
+        vec![UserBridgeCapability::EnvironmentOpenExternalUrl]
+    );
+}
+
+#[test]
+fn external_url_opening_cannot_be_added_as_a_user_grant() {
+    let requested = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::empty(),
+        SageRequestedCapabilities::new([UserBridgeCapability::EnvironmentOpenExternalUrl], []),
+    )
+    .unwrap();
+
+    let err = SageGrantedPermissions::new(
+        &requested,
+        [UserBridgeCapability::EnvironmentOpenExternalUrl],
+        [],
+        BTreeMap::new(),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string().contains("not user grantable"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+fn requested_permissions_reject_required_secret_access_with_external_url_opening() {
+    let err = SageRequestedPermissions::new(
+        SageRequestedNetworkPermissions::empty(),
+        SageRequestedCapabilities::new(
+            [
+                UserBridgeCapability::WalletGetSecretKey,
+                UserBridgeCapability::EnvironmentOpenExternalUrl,
+            ],
+            [],
+        ),
+    )
+    .unwrap_err();
+
+    assert!(
+        err.to_string()
+            .contains("cannot include both external access and sensitive secret access"),
+        "unexpected error: {err}"
+    );
+}

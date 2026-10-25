@@ -6,7 +6,7 @@ use rustls::crypto::aws_lc_rs::default_provider;
 use sage::Sage;
 use sage_api::SyncEvent;
 use tauri::Manager;
-#[cfg(not(mobile))]
+#[cfg(all(not(mobile), not(debug_assertions)))]
 use tauri::path::BaseDirectory;
 use tauri_specta::{Builder, ErrorHandlingMode, collect_commands, collect_events};
 use tokio::sync::Mutex;
@@ -63,6 +63,7 @@ macro_rules! sage_commands {
             commands::add_nft_uri,
             commands::assign_nfts_to_did,
             commands::finalize_clawback,
+            commands::claim_clawback,
             commands::create_transaction,
             commands::sign_coin_spends,
             commands::view_coin_spends,
@@ -171,6 +172,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_uninstall_app,
             apps::apps_check_app_update,
             apps::apps_apply_app_update,
+            apps::apps_recover_app_update,
             apps::apps_clear_runtime_browsing_data,
             apps::apps_start_system_app,
             apps::apps_start_user_app,
@@ -178,6 +180,7 @@ fn specta_builder() -> Builder<tauri::Wry> {
             apps::apps_focus_taskbar_runtime,
             apps::apps_clear_active_taskbar_runtime,
             apps::apps_kill_taskbar_runtime,
+            apps::apps_reorder_taskbar_runtimes,
             apps::apps_dev_reload_runtime,
             apps::apps_get_auto_update_enabled,
             apps::apps_set_auto_update_enabled,
@@ -310,17 +313,20 @@ pub fn run() {
 
             #[cfg(not(mobile))]
             {
-                let bundled_builtin_apps = app
-                    .path()
-                    .resolve("builtin-apps", BaseDirectory::Resource)?;
+                #[cfg(not(debug_assertions))]
+                {
+                    let bundled_builtin_apps = app
+                        .path()
+                        .resolve("builtin-apps", BaseDirectory::Resource)?;
 
-                if bundled_builtin_apps.is_dir() {
-                    apps::set_builtin_apps_root(bundled_builtin_apps);
-                } else {
-                    tracing::warn!(
-                        "bundled builtin apps directory not found at {}; using development path",
-                        bundled_builtin_apps.display()
-                    );
+                    if bundled_builtin_apps.is_dir() {
+                        apps::set_builtin_apps_root(bundled_builtin_apps);
+                    } else {
+                        tracing::warn!(
+                            "bundled builtin apps directory not found at {}; using development path",
+                            bundled_builtin_apps.display()
+                        );
+                    }
                 }
 
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))

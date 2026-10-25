@@ -11,25 +11,31 @@ pub(in crate::sandbox) async fn run_network_test(
     let run_id = unique_run_id("sandbox-network");
     let app_ids = [BUILTIN_NETWORK_ALLOW_A_ID, BUILTIN_NETWORK_ALLOW_B_ID];
 
-    stop_test_apps(app, apps_state, &app_ids).await;
+    stop_test_apps(app, apps_state, &app_ids).await?;
 
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_NETWORK_ALLOW_A_ID,
-        &[("runId", run_id.clone())],
-    )
-    .await?;
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_NETWORK_ALLOW_B_ID,
-        &[("runId", run_id.clone())],
-    )
-    .await?;
+    let probe_result = async {
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_NETWORK_ALLOW_A_ID,
+            &[("runId", run_id.clone())],
+        )
+        .await?;
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_NETWORK_ALLOW_B_ID,
+            &[("runId", run_id.clone())],
+        )
+        .await?;
 
-    let results = poll_network(apps_state, &run_id, 2, 4_000).await?;
-    stop_test_apps(app, apps_state, &app_ids).await;
+        poll_network(apps_state, &run_id, 2, 4_000).await
+    }
+    .await;
+
+    let stop_result = stop_test_apps(app, apps_state, &app_ids).await;
+    let results = probe_result?;
+    stop_result?;
 
     for result in &results {
         if result.data.error.is_some() {

@@ -13,6 +13,7 @@ interface Props {
   hasUpdate: boolean;
   updateIsInstallable: boolean;
   isRunning: boolean;
+  canOpen: boolean;
   updateCheckState: AppsLaunchpadContextMenuUpdateState;
   clearDataBusy?: boolean;
   clearDataError?: string | null;
@@ -35,6 +36,7 @@ export function AppsLaunchpadContextMenu({
   hasUpdate,
   updateIsInstallable,
   isRunning,
+  canOpen,
   updateCheckState,
   clearDataBusy = false,
   clearDataError = null,
@@ -77,7 +79,8 @@ export function AppsLaunchpadContextMenu({
       >
         <button
           type='button'
-          className='flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted'
+          className='flex w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted disabled:opacity-50'
+          disabled={!canOpen || busy || clearDataBusy}
           onClick={onOpen}
         >
           Open

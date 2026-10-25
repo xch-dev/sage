@@ -16,6 +16,7 @@ use super::{parse_coin_id, parse_hash, parse_program, parse_signature};
 #[derive(Debug, Default)]
 pub struct ConfirmationInfo {
     pub nft_data: HashMap<Bytes32, Data>,
+    pub uri_hashes: HashMap<Vec<String>, Bytes32>,
 }
 
 impl Sage {

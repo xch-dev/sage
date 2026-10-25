@@ -45,16 +45,17 @@ pub(crate) async fn start_user_app(
             query: BTreeMap::new(),
         },
     )
-    .await
-    .map(Into::into);
+    .await;
 
     emit_runtime_manager_runtimes_changed(app_handle, apps_state).await;
+
+    let created_runtime = created_runtime?;
 
     if args.focus.unwrap_or(true) {
         focus_taskbar_runtime(app_handle, apps_state, &args.app_id).await?;
     }
 
-    created_runtime
+    Ok(created_runtime.into())
 }
 
 pub(crate) async fn start_system_app(
@@ -165,7 +166,7 @@ async fn create_runtime_for_app(
         || app.id() == sandbox::BUILTIN_ORIGIN_CLEANUP_RUNTIME_ID;
 
     if !is_internal {
-        check_gates(apps_state, &app).await?;
+        check_gates(app_handle, apps_state, &app).await?;
     }
 
     if apply_user_lifecycle {
@@ -278,13 +279,15 @@ fn debug_layout_for_app(app_id: &str) -> (f64, f64, f64, f64) {
 }
 
 async fn check_gates(
+    app_handle: &AppHandle,
     apps_state: &State<'_, AppsHostState>,
     app: &SharedSageApp,
 ) -> Result<(), String> {
     let baseline = apps_state.sandbox.baseline.lock().await.clone();
     let current_run = apps_state.sandbox.current_run.lock().await.clone();
     let effective = sandbox::build_effective_state(&baseline, current_run.as_ref());
-    let gate = sandbox::evaluate_app_launch_gate(app, &effective);
+    let gate =
+        sandbox::evaluate_app_launch_gate(app, &effective, &app_handle.package_info().version);
 
     if !gate.allowed {
         tracing::error!("App launch blocked by sandbox policy");
@@ -323,13 +326,26 @@ fn build_storage(
     build_persistent_storage_target(builder, app)
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[cfg(target_os = "windows")]
 fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
-    if !app.with(|app| app.common().has_persistent_webview_storage()) {
-        return builder.incognito(true);
-    }
+    let builder = if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    };
 
-    build_persistent_storage_target(builder, app)
+    // Incognito webviews still need their app-specific storage target. On Windows this scopes the
+    // WebView2 InPrivate session so another incognito app cannot keep its in-memory data alive.
+    build_windows_storage_target(builder, app)
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
+fn build_storage(builder: WebviewBuilder<Wry>, app: &SharedSageApp) -> WebviewBuilder<Wry> {
+    if app.with(|app| app.common().has_persistent_webview_storage()) {
+        builder
+    } else {
+        builder.incognito(true)
+    }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
@@ -349,21 +365,17 @@ fn build_persistent_storage_target(
     }
 }
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
-fn build_persistent_storage_target(
+#[cfg(target_os = "windows")]
+fn build_windows_storage_target(
     builder: WebviewBuilder<Wry>,
     app: &SharedSageApp,
 ) -> WebviewBuilder<Wry> {
     let storage = app.with(|app| app.storage().clone());
 
     match storage {
-        #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
             builder.data_directory(data_directory_for(&directory_name))
         }
-
-        #[cfg(not(target_os = "windows"))]
-        SageAppStorage::WindowsProfile { .. } => builder,
 
         SageAppStorage::AppleDataStore { .. } | SageAppStorage::Unmanaged => builder,
     }

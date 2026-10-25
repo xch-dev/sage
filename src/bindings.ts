@@ -107,6 +107,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
 },
+async claimClawback(req: ClaimClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("claim_clawback", { req });
+},
 async createTransaction(req: CreateTransaction) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_transaction", { req });
 },
@@ -398,8 +401,11 @@ async appsUninstallApp(appId: string) : Promise<null> {
 async appsCheckAppUpdate(appId: string) : Promise<SageAppUrlPreview | null> {
     return await TAURI_INVOKE("apps_check_app_update", { appId });
 },
-async appsApplyAppUpdate(appId: string) : Promise<SageAppView> {
-    return await TAURI_INVOKE("apps_apply_app_update", { appId });
+async appsApplyAppUpdate(appId: string, expectedManifestHash: string) : Promise<SageAppView> {
+    return await TAURI_INVOKE("apps_apply_app_update", { appId, expectedManifestHash });
+},
+async appsRecoverAppUpdate(appId: string) : Promise<null> {
+    return await TAURI_INVOKE("apps_recover_app_update", { appId });
 },
 async appsClearRuntimeBrowsingData(appId: string) : Promise<null> {
     return await TAURI_INVOKE("apps_clear_runtime_browsing_data", { appId });
@@ -421,6 +427,9 @@ async appsClearActiveTaskbarRuntime(params: WindowTargetParams) : Promise<null> 
 },
 async appsKillTaskbarRuntime(params: RuntimeTargetParams) : Promise<SystemKillRuntimeResult> {
     return await TAURI_INVOKE("apps_kill_taskbar_runtime", { params });
+},
+async appsReorderTaskbarRuntimes(params: ReorderTaskbarRuntimesParams) : Promise<null> {
+    return await TAURI_INVOKE("apps_reorder_taskbar_runtimes", { params });
 },
 async appsDevReloadRuntime(params: RuntimeTargetParams) : Promise<SageAppRuntimeRecordView> {
     return await TAURI_INVOKE("apps_dev_reload_runtime", { params });
@@ -695,7 +704,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Cancel multiple offers
  */
@@ -711,7 +724,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Validate and check an address
  */
@@ -728,6 +745,22 @@ export type CheckAddressResponse = {
  * Whether the address is valid and belongs to this wallet
  */
 valid: boolean }
+/**
+ * Claim Clawback
+ */
+export type ClaimClawback = { 
+/**
+ * The coins to claim from the clawback v1 coin.
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Coin structure
  */
@@ -746,8 +779,8 @@ puzzle_hash: string;
 amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
-export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; clawback_version: number | null; clawback_is_sender: boolean | null; clawback_is_receiver: boolean | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp" | "clawback_version"
 /**
  * Coin spend structure
  */
@@ -797,7 +830,7 @@ export type CombineOffersResponse = {
  * Combined offer string
  */
 offer: string }
-export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestHeaderV0 | null; source?: UserSageAppSource | null }
+export type CorruptedInstalledSageApp = { id: string; icon?: SageAppIconView | null; appDir: string; error: string; manifestHeader?: SageAppManifestRecoveryHeaderV0 | null; source?: UserSageAppSource | null; compatibility?: SageAppCompatibility | null }
 /**
  * Create a new DID
  */
@@ -921,7 +954,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Send CAT tokens to an address
+ * Finalize the clawback for a set of coins
  */
 export type FinalizeClawback = { 
 /**
@@ -1459,7 +1492,11 @@ find_value: string | null;
 /**
  * Include hidden options
  */
-include_hidden?: boolean }
+include_hidden?: boolean; 
+/**
+ * Which options to list (defaults to owned options)
+ */
+filter?: OptionFilter }
 /**
  * Response with options list
  */
@@ -2132,7 +2169,20 @@ asset_id: string | null;
  */
 amount: Amount }
 export type OptionAssets = { underlying_asset: Asset; underlying_amount: Amount; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number }
-export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null }
+export type OptionFilter = 
+/**
+ * Options currently held by the wallet
+ */
+"owned" | 
+/**
+ * Options minted by the wallet, including ones that have since been transferred
+ */
+"created" | 
+/**
+ * Both owned and created options
+ */
+"all"
+export type OptionRecord = { launcher_id: string; name: string | null; visible: boolean; coin_id: string; address: string; amount: Amount; underlying_asset: Asset; underlying_amount: Amount; underlying_coin_id: string; strike_asset: Asset; strike_amount: Amount; expiration_seconds: number; created_height: number | null; created_timestamp: number | null; is_owned: boolean }
 export type OptionSortMode = "name" | "created_height" | "expiration_seconds"
 export type PeerRecord = { ip_addr: string; port: number; peak_height: number; user_managed: boolean }
 export type PendingTransactionRecord = { transaction_id: string; fee: Amount; submitted_at: number | null; spent: TransactionCoinRecord[]; created: TransactionCoinRecord[] }
@@ -2212,6 +2262,7 @@ name: string }
  * Response for key rename
  */
 export type RenameKeyResponse = Record<string, never>
+export type ReorderTaskbarRuntimesParams = { windowLabel: string; appIds: string[] }
 /**
  * Resynchronize wallet data with the blockchain
  */
@@ -2268,17 +2319,25 @@ export type RustBridgeRequest = { bridgeVersion: string | null; id: string; meth
 export type RustBridgeSuccessResponse = { bridgeVersion: string; id: string; ok: boolean; resultJson: string }
 export type SageAppAuthor = { name: string; avatar: string | null }
 export type SageAppCommonView = { identity: SageAppIdentityView; grantedPermissions: SageGrantedPermissionsView; walletScope: SageAppWalletScope; activeSnapshot: SageAppSnapshotView; icon: SageAppIconView | null }
+export type SageAppCompatibility = { currentVersion: string; status: SageAppCompatibilityStatus }
+export type SageAppCompatibilityStatus = { kind: "compatible" } | { kind: "requiresNewerSage"; minimumVersion: string } | { kind: "untestedNewerSage"; testedMaxVersion: string } | { kind: "invalid"; reason: string }
 export type SageAppDonation = { address: string }
 export type SageAppIconView = { mime: string; bytes: number[] }
 export type SageAppIdentityView = { id: string; originId: string }
 export type SageAppManifestFile = { path: string; sha256: string; size: number }
 export type SageAppManifestHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion: SageAppManifestSageVersion }
+/**
+ * Minimal header used to identify and recover an installed app even when its
+ * full manifest no longer matches the current manifest schema. Compatibility
+ * metadata is optional here so legacy manifests still retain their identity.
+ */
+export type SageAppManifestRecoveryHeaderV0 = { manifestVersion?: SageAppManifestVersion; name: string; icon?: string | null; sageVersion?: SageAppManifestSageVersion | null }
 export type SageAppManifestSageVersion = { min: string; testedMax?: string | null }
 export type SageAppManifestVersion = number
 export type SageAppPackageManifest = { manifestVersion: SageAppManifestVersion; name: string; icon: string | null; sageVersion: SageAppManifestSageVersion; version: string; permissions: SageRequestedPermissions; files: SageAppManifestFile[]; totalBytes: number; entry: string | null; author: SageAppAuthor | null; donation: SageAppDonation | null }
 export type SageAppPackageManifestPreview = { kind: "full"; manifest: SageAppPackageManifest } | { kind: "partial"; manifest_header: SageAppManifestHeaderV0; parse_error: string }
 export type SageAppRuntimeMode = "Inline" | "Windowed"
-export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; startedAt: number; lastActiveAt: number; internal: boolean }
+export type SageAppRuntimeRecordView = { runtimeId: string; app: SageAppView; hostWindowLabel: string; webviewLabel: string; presentation: AppPresentation; mode: SageAppRuntimeMode; visibility: SageAppRuntimeVisibility; taskbarOrder: number; startedAt: number; lastActiveAt: number; internal: boolean }
 export type SageAppRuntimeVisibility = "Visible" | "Hidden"
 export type SageAppSnapshotView = { manifest: SageAppPackageManifest }
 export type SageAppUrl = string
@@ -2367,7 +2426,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Send a transaction immediately
  */
@@ -2415,7 +2478,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Set the change address for transactions
  */
@@ -2867,7 +2934,7 @@ visible: boolean }
  * Response after updating an option
  */
 export type UpdateOptionResponse = Record<string, never>
-export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "storage.persistent_webview"
+export type UserBridgeCapability = "bridge.send" | "app.get_info" | "app.lifecycle.ready_to_stop" | "app.lifecycle.set_before_stop_listener" | "app.get_capabilities" | "app.request_capability_grant" | "app.request_network_whitelist_grant" | "app.request_permission_grants" | "wallet.get_key" | "wallet.get_secret_key" | "wallet.send_xch" | "wallet.send_xch_auto_submit" | "wallet.get_sync_status" | "wallet.get_version" | "wallet.get_xch_usd_price" | "wallet.check_address" | "wallet.filter_unlocked_coins" | "wallet.get_asset_coins" | "wallet.get_asset_balance" | "wallet.sign_coin_spends" | "wallet.sign_message" | "wallet.send_transaction" | "wallet.get_public_keys" | "wallet.get_derivations" | "wallet.get_spendable_coin_count" | "wallet.get_coins_by_ids" | "wallet.get_coins" | "wallet.get_pending_transactions" | "wallet.get_transaction" | "wallet.get_transactions" | "wallet.listen_selected_wallet_changed" | "environment.theme.get_current" | "environment.theme.css_vars" | "environment.theme.listen_changed" | "environment.get_network" | "environment.open_external_url" | "storage.persistent_webview"
 export type UserSageAppPendingUpdateDecisionReviewView = { requiredUserGrantableCapabilities: UserBridgeCapability[]; requiredNetworkWhitelist: SageNetworkWhitelistEntry[]; requiredNetworkWhitelistByNetwork: Partial<{ [key in string]: SageNetworkWhitelistEntry[] }> }
 export type UserSageAppPendingUpdateDecisionView = { kind: "apply" } | ({ kind: "review" } & UserSageAppPendingUpdateDecisionReviewView)
 export type UserSageAppPendingUpdateView = { appUrl: SageAppUrl; manifestHash: string; manifest: SageAppPackageManifest; decision: UserSageAppPendingUpdateDecisionView }

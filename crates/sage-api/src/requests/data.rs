@@ -204,7 +204,7 @@ pub struct GetVersion {}
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 pub struct GetVersionResponse {
     /// Semantic version string
-    #[cfg_attr(feature = "openapi", schema(example = "0.13.0"))]
+    #[cfg_attr(feature = "openapi", schema(example = "0.13.1"))]
     pub version: String,
 }
 
@@ -273,6 +273,7 @@ pub enum CoinSortMode {
     CreatedHeight,
     SpentHeight,
     ClawbackTimestamp,
+    ClawbackVersion,
 }
 
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
@@ -499,6 +500,20 @@ pub enum OptionSortMode {
     ExpirationSeconds,
 }
 
+#[derive(Debug, Default, Clone, Copy, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum OptionFilter {
+    /// Options currently held by the wallet
+    #[default]
+    Owned,
+    /// Options minted by the wallet, including ones that have since been transferred
+    Created,
+    /// Both owned and created options
+    All,
+}
+
 /// List options with filtering
 #[cfg_attr(
     feature = "openapi",
@@ -531,6 +546,9 @@ pub struct GetOptions {
     #[serde(default)]
     #[cfg_attr(feature = "openapi", schema(default = false))]
     pub include_hidden: bool,
+    /// Which options to list (defaults to owned options)
+    #[serde(default)]
+    pub filter: OptionFilter,
 }
 
 /// Response with options list

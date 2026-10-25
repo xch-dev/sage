@@ -118,6 +118,15 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
+      async requestPermissionGrants(
+        input: Generated.RequestPermissionGrantsParams,
+      ) {
+        return await callHost<Generated.RequestPermissionGrantsResult>(
+          'app.requestPermissionGrants',
+          input,
+        );
+      },
+
       onGrantedCapabilitiesChange(handler) {
         return onRuntimeEventType<Generated.GrantedCapabilitiesChangeEvent>(
           'grantedCapabilitiesChange',
@@ -146,6 +155,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
     },
 
     wallet: {
+      onSelectedWalletChanged(handler) {
+        return onRuntimeEventType<Generated.SelectedWalletChangedEvent>(
+          'wallet.selectedWallet.changed',
+          handler,
+        );
+      },
+
       async sendTransaction(input: Generated.WalletSendTransactionParams) {
         return await callHost<Generated.WalletSendTransactionResult>(
           'wallet.sendTransaction',
@@ -197,14 +213,13 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
         );
       },
 
-      async getKey(input: Generated.GetKey) {
-        return await callHost<Generated.GetKeyResponse>('wallet.getKey', input);
+      async getKey() {
+        return await callHost<Generated.GetKeyResponse>('wallet.getKey');
       },
 
-      async getSecretKey(input: Generated.GetSecretKey) {
+      async getSecretKey() {
         return await callHost<Generated.GetSecretKeyResponse>(
           'wallet.getSecretKey',
-          input,
         );
       },
 
@@ -328,6 +343,12 @@ export function createSageClient(core: BridgeRuntimeCore): SageClient {
       getNetwork() {
         return callHost<Generated.EnvironmentGetNetworkResult>(
           'environment.getNetwork',
+        );
+      },
+      openExternalUrl(input: Generated.EnvironmentOpenExternalUrlParams) {
+        return callHost<Generated.EnvironmentOpenExternalUrlResult>(
+          'environment.openExternalUrl',
+          input,
         );
       },
     },

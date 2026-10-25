@@ -3,9 +3,9 @@ use tauri::{AppHandle, Manager, State, Webview};
 use crate::{
     AppState, AppsHostState, BridgeApprovalsChangedEvent, BridgeCapability, BridgeContext,
     BridgeMethod, BridgeMethodCapability, BridgeOrigin, BridgeRegistry, BridgeRegistryKind,
-    BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalBody,
-    RustBridgeApprovalRequest, RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse,
-    SharedSageApp, SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
+    BridgeTools, PendingBridgeApproval, ResolveBridgeApprovalArgs, RustBridgeApprovalRequest,
+    RustBridgeInvokeResult, RustBridgeRequest, RustBridgeResponse, SharedSageApp,
+    SystemBridgeCapability, UserBridgeCapability, assert_bridge_origin,
     emit_bridge_response_to_app, emit_system_runtime_event_to_listeners,
     ensure_app_is_enabled_for_scope, ensure_approval_expiry_loop, get_system_capability_definition,
     get_user_capability_definition, list_pending_approvals, resolve_app,
@@ -42,7 +42,6 @@ pub(crate) async fn process(
         &origin,
         BridgeRegistryKind::User,
         &request,
-        false,
     )
     .await
 }
@@ -75,7 +74,6 @@ pub(crate) async fn process_system(
         &origin,
         BridgeRegistryKind::System,
         &request,
-        false,
     )
     .await
 }
@@ -117,22 +115,16 @@ pub(crate) async fn process_after_approval(
             "approval_timeout",
             "Approval expired before it was resolved".to_string(),
         )
-    } else if wallet_binding_violated(app_state, &pending).await {
-        RustBridgeInvokeResult::error(
-            &pending.request.id,
-            "wallet_changed",
-            "Active wallet changed since the approval was requested".to_string(),
-        )
     } else {
-        process_shared(
+        execute_approved_bridge_request(
             app_handle,
             app_state,
             &origin,
-            pending.registry_kind,
-            &pending.request,
-            true,
+            &pending,
+            args.approval_response.as_ref(),
         )
-        .await?
+        .await
+        .into()
     };
 
     emit_bridge_response_to_app(app_handle, &origin.app, &invoke_result.try_into()?).await?;
@@ -145,7 +137,6 @@ async fn process_shared(
     origin: &BridgeOrigin,
     registry_kind: BridgeRegistryKind,
     request: &RustBridgeRequest,
-    approved: bool,
 ) -> Result<RustBridgeInvokeResult, String> {
     let registry = BridgeRegistry::new(registry_kind);
 
@@ -171,13 +162,6 @@ async fn process_shared(
                 return Ok(response.into());
             }
         }
-    }
-
-    if approved {
-        let response =
-            execute_bridge_request(app_handle, app_state, origin, registry, request).await;
-
-        return Ok(response.into());
     }
 
     match method
@@ -242,16 +226,72 @@ async fn execute_bridge_request(
         )
         .await;
 
+    bridge_handle_result_to_response(&request.id, method.name(), result)
+}
+
+async fn execute_approved_bridge_request(
+    app_handle: &AppHandle,
+    app_state: &State<'_, AppState>,
+    origin: &BridgeOrigin,
+    pending: &PendingBridgeApproval,
+    response: Option<&crate::RustBridgeApprovalResponse>,
+) -> RustBridgeResponse {
+    if let Err(err) = ensure_app_is_enabled_for_scope(app_state, &origin.app).await {
+        return RustBridgeResponse::error(&pending.request.id, "app_not_enabled_for_scope", err);
+    }
+
+    let registry = BridgeRegistry::new(pending.registry_kind);
+    let method = match assert_method(&registry, &pending.request) {
+        Ok(method) => method,
+        Err(response) => return response,
+    };
+
+    if let BridgeMethodCapability::Required(capability) = method.capability()
+        && let Err(response) = verify_capability(&origin.app, &pending.request, capability)
+    {
+        return response;
+    }
+
+    if wallet_binding_violated(app_state, pending, method).await {
+        return RustBridgeResponse::error(
+            &pending.request.id,
+            "wallet_changed",
+            "Active wallet changed since the approval was requested",
+        );
+    }
+
+    let result = method
+        .handle_approved(
+            &pending.approval,
+            BridgeContext { app: &origin.app },
+            BridgeTools {
+                app_handle,
+                app_state,
+                host_state: &app_handle.state::<AppsHostState>(),
+            },
+            &pending.request,
+            response,
+        )
+        .await;
+
+    bridge_handle_result_to_response(&pending.request.id, method.name(), result)
+}
+
+fn bridge_handle_result_to_response(
+    request_id: &str,
+    method_name: &str,
+    result: crate::BridgeHandleResult,
+) -> RustBridgeResponse {
     match result {
         Ok(value) => match erased_serde::serialize(&*value, serde_json::value::Serializer) {
-            Ok(value) => RustBridgeResponse::success(&request.id, &value),
+            Ok(value) => RustBridgeResponse::success(request_id, &value),
             Err(err) => RustBridgeResponse::error(
-                &request.id,
+                request_id,
                 "internal_error",
-                format!("failed to encode {} result: {err}", method.name()),
+                format!("failed to encode {method_name} result: {err}"),
             ),
         },
-        Err(err) => RustBridgeResponse::error(&request.id, err.code, err.message),
+        Err(err) => RustBridgeResponse::error(request_id, err.code, err.message),
     }
 }
 
@@ -267,15 +307,9 @@ async fn active_wallet_fingerprint(app_state: &State<'_, AppState>) -> Option<u3
 async fn wallet_binding_violated(
     app_state: &State<'_, AppState>,
     pending: &PendingBridgeApproval,
+    method: &dyn BridgeMethod,
 ) -> bool {
-    let requires_wallet_binding = matches!(
-        pending.approval.body,
-        RustBridgeApprovalBody::SendXch { .. }
-            | RustBridgeApprovalBody::SignCoinSpends { .. }
-            | RustBridgeApprovalBody::SignMessage { .. }
-    );
-
-    if !requires_wallet_binding {
+    if !method.binds_approval_to_wallet() {
         return false;
     }
 

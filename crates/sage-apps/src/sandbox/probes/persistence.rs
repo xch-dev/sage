@@ -14,25 +14,31 @@ pub(in crate::sandbox) async fn run_persistence_test(
         BUILTIN_PERSISTENCE_INCOGNITO_ID,
     ];
 
-    stop_test_apps(app, apps_state, &app_ids).await;
+    stop_test_apps(app, apps_state, &app_ids).await?;
 
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_PERSISTENCE_PERSISTENT_ID,
-        &[("runId", run_id.clone()), ("phase", "write".into())],
-    )
-    .await?;
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_PERSISTENCE_INCOGNITO_ID,
-        &[("runId", run_id.clone()), ("phase", "write".into())],
-    )
-    .await?;
+    let write_probe_result = async {
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_PERSISTENCE_PERSISTENT_ID,
+            &[("runId", run_id.clone()), ("phase", "write".into())],
+        )
+        .await?;
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_PERSISTENCE_INCOGNITO_ID,
+            &[("runId", run_id.clone()), ("phase", "write".into())],
+        )
+        .await?;
 
-    let write_results = poll_persistence_write(apps_state, &run_id, 2, 2_000).await?;
-    stop_test_apps(app, apps_state, &app_ids).await;
+        poll_persistence_write(apps_state, &run_id, 2, 2_000).await
+    }
+    .await;
+
+    let stop_result = stop_test_apps(app, apps_state, &app_ids).await;
+    let write_results = write_probe_result?;
+    stop_result?;
 
     let persistent_write = write_results
         .iter()
@@ -110,23 +116,29 @@ pub(in crate::sandbox) async fn run_persistence_test(
         ));
     }
 
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_PERSISTENCE_PERSISTENT_ID,
-        &[("runId", run_id.clone()), ("phase", "read".into())],
-    )
-    .await?;
-    start_test_app(
-        app,
-        apps_state,
-        BUILTIN_PERSISTENCE_INCOGNITO_ID,
-        &[("runId", run_id.clone()), ("phase", "read".into())],
-    )
-    .await?;
+    let read_probe_result = async {
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_PERSISTENCE_PERSISTENT_ID,
+            &[("runId", run_id.clone()), ("phase", "read".into())],
+        )
+        .await?;
+        start_test_app(
+            app,
+            apps_state,
+            BUILTIN_PERSISTENCE_INCOGNITO_ID,
+            &[("runId", run_id.clone()), ("phase", "read".into())],
+        )
+        .await?;
 
-    let read_results = poll_persistence_read(apps_state, &run_id, 2, 2_000).await?;
-    stop_test_apps(app, apps_state, &app_ids).await;
+        poll_persistence_read(apps_state, &run_id, 2, 2_000).await
+    }
+    .await;
+
+    let stop_result = stop_test_apps(app, apps_state, &app_ids).await;
+    let read_results = read_probe_result?;
+    stop_result?;
 
     let persistent_read = read_results
         .iter()
@@ -178,7 +190,13 @@ pub(in crate::sandbox) async fn run_persistence_test(
                     .data
                     .error
                     .clone()
-                    .unwrap_or_else(|| "Incognito read probe mismatch.".into())
+                    .unwrap_or_else(|| {
+                        format!(
+                            "Incognito read probe mismatch: localStorage present={}, IndexedDB present={}.",
+                            incognito_read.data.local_storage_present,
+                            incognito_read.data.indexed_db_present,
+                        )
+                    })
             }),
         ),
     ))

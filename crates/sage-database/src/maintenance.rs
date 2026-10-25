@@ -65,7 +65,31 @@ impl Database {
         })
     }
 
+    /// Recomputes query planner statistics for every table.
+    pub async fn analyze(&self) -> Result<()> {
+        // `analysis_limit` is per-connection, so it has to be set on the same
+        // connection as the `ANALYZE` it bounds.
+        let mut conn = self.pool.acquire().await?;
+
+        sqlx::query("PRAGMA analysis_limit = 400")
+            .execute(&mut *conn)
+            .await?;
+        sqlx::query("ANALYZE").execute(&mut *conn).await?;
+
+        Ok(())
+    }
+
     pub async fn perform_sqlite_maintenance(&self, force_vacuum: bool) -> Result<MaintenanceStats> {
+        let vacuum = if force_vacuum {
+            Vacuum::Always
+        } else {
+            Vacuum::IfNeeded
+        };
+
+        self.maintenance(vacuum).await
+    }
+
+    async fn maintenance(&self, vacuum: Vacuum) -> Result<MaintenanceStats> {
         let total_start = Instant::now();
         let mut stats = MaintenanceStats {
             vacuum_duration_ms: 0,
@@ -108,14 +132,16 @@ impl Database {
             }
         }
 
-        // 3. Check if VACUUM is needed (unless forced)
-        let should_vacuum = if force_vacuum {
-            true
-        } else {
-            let db_stats = self.get_database_stats().await?;
+        // 3. Check if VACUUM is needed (unless forced or skipped entirely)
+        let should_vacuum = match vacuum {
+            Vacuum::Never => false,
+            Vacuum::Always => true,
+            Vacuum::IfNeeded => {
+                let db_stats = self.get_database_stats().await?;
 
-            // VACUUM if more than 10% free space or more than 1000 free pages
-            db_stats.free_percentage > 10.0 || db_stats.free_pages > 1000
+                // VACUUM if more than 10% free space or more than 1000 free pages
+                db_stats.free_percentage > 10.0 || db_stats.free_pages > 1000
+            }
         };
 
         // 4. Perform VACUUM if needed
@@ -158,18 +184,24 @@ impl Database {
         Ok(stats)
     }
 
-    /// Performs a quick maintenance routine suitable for regular automated runs
-    ///
-    /// This is a lighter version that only runs ANALYZE and WAL checkpoint,
-    /// skipping VACUUM unless specifically needed.
+    /// Runs `ANALYZE` and a WAL checkpoint, never `VACUUM`.
     pub async fn perform_quick_maintenance(&self) -> Result<MaintenanceStats> {
-        self.perform_sqlite_maintenance(false).await
+        self.maintenance(Vacuum::Never).await
     }
 
     /// Performs a full maintenance routine including forced VACUUM
-    ///
-    /// This is suitable for periodic deep maintenance (e.g., weekly or monthly)
     pub async fn perform_full_maintenance(&self) -> Result<MaintenanceStats> {
-        self.perform_sqlite_maintenance(true).await
+        self.maintenance(Vacuum::Always).await
     }
+}
+
+/// Whether a maintenance run is allowed to `VACUUM`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Vacuum {
+    /// Skip `VACUUM` entirely, whatever the free page count.
+    Never,
+    /// `VACUUM` only when enough free space has accumulated to be worth reclaiming.
+    IfNeeded,
+    /// Always `VACUUM`.
+    Always,
 }

@@ -6,7 +6,8 @@
     "build": "node ./build.mjs"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.11.1",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@tauri-apps/api": "^2.10.1",
     "sage-system-app-sdk": "workspace:*",
     "sage-app-ui": "workspace:*",
     "react": "^18.3.1",

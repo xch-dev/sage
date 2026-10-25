@@ -9,10 +9,9 @@ export function UnsupportedManifestView({
   source: InstallSource;
   error: string | null;
 }) {
-  const partial =
-    source.kind === 'url' && source.preview.manifest.kind === 'partial'
-      ? source.preview.manifest
-      : null;
+  const preview =
+    source.kind === 'zip' ? source.preview : source.preview.manifest;
+  const partial = preview.kind === 'partial' ? preview : null;
 
   return (
     <AppModalShell

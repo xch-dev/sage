@@ -15,10 +15,12 @@ specta = { workspace = true, features = ["derive", "function", "url"] }
 specta-typescript = { workspace = true }
 tauri = { workspace = true, features = ["macos-private-api"] }
 tauri-plugin-dialog = "2.7.1"
+tauri-plugin-opener = { workspace = true }
 tokio = { workspace = true, features = ["net"] }
 tracing = { workspace = true }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 anyhow = { workspace = true }
+semver = { workspace = true }
 hex = { workspace = true }
 sqlx = { workspace = true, features = ["sqlite", "runtime-tokio"] }
 sha2 = "0.10.9"

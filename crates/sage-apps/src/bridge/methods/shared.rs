@@ -2,14 +2,19 @@ use async_trait::async_trait;
 use serde::de::DeserializeOwned;
 
 use crate::{
-    AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest, RustBridgeRequest,
-    SharedSageApp, SystemBridgeCapability, UserBridgeCapability,
+    AppState, AppsHostState, BridgeCapability, RustBridgeApprovalRequest,
+    RustBridgeApprovalResponse, RustBridgeRequest, SharedSageApp, SystemBridgeCapability,
+    UserBridgeCapability,
 };
 
 #[async_trait]
 pub(crate) trait BridgeMethod: Send + Sync {
     fn name(&self) -> &'static str;
     fn capability(&self) -> BridgeMethodCapability;
+
+    fn deprecated_in_favor_of(&self) -> Option<&'static str> {
+        None
+    }
 
     fn approval_request(
         &self,
@@ -27,6 +32,29 @@ pub(crate) trait BridgeMethod: Send + Sync {
         request: &RustBridgeRequest,
     ) -> BridgeApprovalRequestResult {
         self.approval_request(ctx, request)
+    }
+
+    fn binds_approval_to_wallet(&self) -> bool {
+        false
+    }
+
+    /// Override only when approved execution differs from the normal request path.
+    async fn handle_approved(
+        &self,
+        _approval: &RustBridgeApprovalRequest,
+        ctx: BridgeContext<'_>,
+        tools: BridgeTools<'_>,
+        request: &RustBridgeRequest,
+        response: Option<&RustBridgeApprovalResponse>,
+    ) -> BridgeHandleResult {
+        if response.is_some() {
+            return Err(BridgeMethodHandleError::invalid_request(format!(
+                "{} does not accept approval response data",
+                self.name()
+            )));
+        }
+
+        self.handle(ctx, tools, request).await
     }
 
     async fn handle(

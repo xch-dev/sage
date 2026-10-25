@@ -73,6 +73,7 @@ define_bridge_capabilities! {
         AppGetCapabilities => "app.get_capabilities",
         AppRequestCapabilityGrant => "app.request_capability_grant",
         AppRequestNetworkWhitelistGrant => "app.request_network_whitelist_grant",
+        AppRequestPermissionGrants => "app.request_permission_grants",
 
         WalletGetKey => "wallet.get_key",
         WalletGetSecretKey => "wallet.get_secret_key",
@@ -96,11 +97,13 @@ define_bridge_capabilities! {
         WalletGetPendingTransactions => "wallet.get_pending_transactions",
         WalletGetTransaction => "wallet.get_transaction",
         WalletGetTransactions => "wallet.get_transactions",
+        WalletListenSelectedWalletChanged => "wallet.listen_selected_wallet_changed",
 
         EnvironmentThemeGetCurrent => "environment.theme.get_current",
         EnvironmentThemeCssVars => "environment.theme.css_vars",
         EnvironmentThemeListenChanged => "environment.theme.listen_changed",
         EnvironmentGetNetwork => "environment.get_network",
+        EnvironmentOpenExternalUrl => "environment.open_external_url",
 
         StoragePersistentWebview => "storage.persistent_webview",
     }

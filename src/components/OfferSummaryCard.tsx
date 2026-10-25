@@ -4,16 +4,31 @@ import { formatTimestamp, fromMojos, getOfferStatus } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
 import BigNumber from 'bignumber.js';
 import { AssetIcon } from './AssetIcon';
+import { SelectionState } from './SelectableCard';
+import { Checkbox } from './ui/checkbox';
 
 export interface OfferSummaryCardProps {
   record: OfferRecord;
   content: React.ReactNode;
+  selectionState?: SelectionState;
 }
 
-export function OfferSummaryCard({ record, content }: OfferSummaryCardProps) {
+export function OfferSummaryCard({
+  record,
+  content,
+  selectionState = null,
+}: OfferSummaryCardProps) {
   return (
-    <div className='block p-4 rounded-sm bg-card border border-border'>
-      <div className='flex justify-between'>
+    <div className='flex items-start gap-3 p-4 rounded-sm bg-card border border-border'>
+      {selectionState !== null && (
+        <Checkbox
+          checked={selectionState[0]}
+          className='mt-1 flex-shrink-0'
+          aria-label={selectionState[0] ? t`Deselect offer` : t`Select offer`}
+        />
+      )}
+
+      <div className='flex justify-between flex-1 min-w-0'>
         <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
           <div className='flex flex-col gap-1'>
             <div>{getOfferStatus(record.status)}</div>

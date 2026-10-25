@@ -53,6 +53,10 @@ impl BridgeMethod for AppRequestCapabilityGrant {
         BridgeMethodCapability::user(UserBridgeCapability::AppRequestCapabilityGrant)
     }
 
+    fn deprecated_in_favor_of(&self) -> Option<&'static str> {
+        Some("app.requestPermissionGrants")
+    }
+
     fn approval_request(
         &self,
         ctx: BridgeContext<'_>,

@@ -1,7 +1,7 @@
 use sage_api::{
     CheckAddress, CheckAddressResponse, GetCoins, GetCoinsByIds, GetCoinsByIdsResponse,
-    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKey, GetKeyResponse,
-    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKey, GetSecretKeyResponse,
+    GetCoinsResponse, GetDerivations, GetDerivationsResponse, GetKeyResponse,
+    GetPendingTransactions, GetPendingTransactionsResponse, GetSecretKeyResponse,
     GetSpendableCoinCount, GetSpendableCoinCountResponse, GetSyncStatus, GetSyncStatusResponse,
     GetTransaction, GetTransactionResponse, GetTransactions, GetTransactionsResponse, GetVersion,
     GetVersionResponse, GetXchUsdPriceResponse, TransactionResponse,
@@ -10,27 +10,31 @@ use specta::TypeCollection;
 use specta_typescript::{BigIntExportBehavior, Typescript};
 
 use crate::{
-    AppGetInfoResult, AppInstallInstallResult, AppInstallInstallUrlParams,
-    AppInstallInstallZipParams, AppInstallPreviewUrlParams, AppInstallPreviewZipParams,
+    AppGetInfoResult, AppInstallDownloadProgressEvent, AppInstallInstallResult,
+    AppInstallInstallUrlParams, AppInstallInstallZipParams, AppInstallPreviewUrlParams,
+    AppInstallPreviewUrlResult, AppInstallPreviewZipParams, AppInstallPreviewZipResult,
     AppPermissionsApplyPermissionsParams, AppPermissionsApplyPermissionsResult,
     AppPermissionsGetReviewContextParams, AppPermissionsReviewContext, AppUpdateApplyUpdateParams,
     AppUpdateApplyUpdateResult, AppUpdateGetReviewContextParams, AppUpdateReviewContext,
     BeforeStopEvent, BridgeApprovalsChangedEvent, BridgePingResult, BridgeSendResult,
     DonationDetails, DonationGetDetailsParams, EnvironmentGetNetworkResult,
+    EnvironmentOpenExternalUrlParams, EnvironmentOpenExternalUrlResult,
     EnvironmentThemeChangedEvent, EnvironmentThemeGetCurrentResult, FileSystemSelectFileParams,
     FileSystemSelectFileResult, GrantedCapabilitiesChangeEvent, GrantedNetworkWhitelistChangeEvent,
     ListedAppsChangedEvent, PendingBridgeApprovalView, PendingUpdateChangedEvent,
     ReadyToStopParams, RequestCapabilityGrantParams, RequestCapabilityGrantResult,
     RequestNetworkWhitelistGrantParams, RequestNetworkWhitelistGrantResult,
-    ResolveBridgeApprovalArgs, RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
-    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeInvokeResult,
-    SageAppCapabilityDefinitionView, SageAppWalletScope, SageNetworkPermissionInfo,
-    SandboxStateChangedEvent, SandboxStateView, SetBeforeStopListenerParams,
-    SystemKillRuntimeResult, SystemWalletView, WalletFilterUnlockedCoinsParams,
-    WalletFilterUnlockedCoinsResult, WalletGetAssetBalanceParams, WalletGetAssetBalanceResult,
-    WalletGetAssetCoinsParams, WalletGetAssetCoinsResult, WalletGetPublicKeysParams,
-    WalletGetPublicKeysResult, WalletListWalletsResult, WalletSendTransactionParams,
-    WalletSendTransactionResult, WalletSendXchParams, WalletSignCoinSpendsParams,
+    RequestPermissionGrantsParams, RequestPermissionGrantsResult, ResolveBridgeApprovalArgs,
+    RuntimeAckResult, RuntimeManagerActiveTaskbarRuntimeChangedEvent,
+    RuntimeManagerRuntimesChangedEvent, RuntimeTargetParams, RustBridgeApprovalResponse,
+    RustBridgeInvokeResult, SageAppCapabilityDefinitionView, SageAppWalletScope,
+    SageNetworkPermissionInfo, SandboxStateChangedEvent, SandboxStateView,
+    SelectedWalletChangedEvent, SetBeforeStopListenerParams, SystemKillRuntimeResult,
+    SystemWalletView, WalletFilterUnlockedCoinsParams, WalletFilterUnlockedCoinsResult,
+    WalletGetAssetBalanceParams, WalletGetAssetBalanceResult, WalletGetAssetCoinsParams,
+    WalletGetAssetCoinsResult, WalletGetPublicKeysParams, WalletGetPublicKeysResult,
+    WalletListWalletsResult, WalletSendTransactionParams, WalletSendTransactionResult,
+    WalletSendXchApprovalResponse, WalletSendXchParams, WalletSignCoinSpendsParams,
     WalletSignCoinSpendsResult, WalletSignMessageParams, WalletSignMessageResult,
 };
 
@@ -49,16 +53,16 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<RequestCapabilityGrantResult>();
     types.register::<RequestNetworkWhitelistGrantParams>();
     types.register::<RequestNetworkWhitelistGrantResult>();
+    types.register::<RequestPermissionGrantsParams>();
+    types.register::<RequestPermissionGrantsResult>();
     types.register::<GrantedCapabilitiesChangeEvent>();
     types.register::<GrantedNetworkWhitelistChangeEvent>();
     types.register::<BeforeStopEvent>();
     types.register::<SetBeforeStopListenerParams>();
     types.register::<ReadyToStopParams>();
     types.register::<RuntimeAckResult>();
-    types.register::<GetKey>();
     types.register::<GetKeyResponse>();
     types.register::<GetXchUsdPriceResponse>();
-    types.register::<GetSecretKey>();
     types.register::<GetSecretKeyResponse>();
     types.register::<WalletGetPublicKeysParams>();
     types.register::<WalletGetPublicKeysResult>();
@@ -94,9 +98,12 @@ pub fn export_user_bridge_typescript() -> Result<String, String> {
     types.register::<GetTransactionResponse>();
     types.register::<GetTransactions>();
     types.register::<GetTransactionsResponse>();
+    types.register::<SelectedWalletChangedEvent>();
     types.register::<EnvironmentThemeGetCurrentResult>();
     types.register::<EnvironmentThemeChangedEvent>();
     types.register::<EnvironmentGetNetworkResult>();
+    types.register::<EnvironmentOpenExternalUrlParams>();
+    types.register::<EnvironmentOpenExternalUrlResult>();
 
     Typescript::default()
         .bigint(BigIntExportBehavior::Number)
@@ -113,10 +120,13 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<RuntimeManagerActiveTaskbarRuntimeChangedEvent>();
 
     types.register::<AppInstallPreviewUrlParams>();
+    types.register::<AppInstallPreviewUrlResult>();
     types.register::<AppInstallPreviewZipParams>();
+    types.register::<AppInstallPreviewZipResult>();
     types.register::<AppInstallInstallUrlParams>();
     types.register::<AppInstallInstallZipParams>();
     types.register::<AppInstallInstallResult>();
+    types.register::<AppInstallDownloadProgressEvent>();
 
     types.register::<AppUpdateGetReviewContextParams>();
     types.register::<AppUpdateReviewContext>();
@@ -136,6 +146,8 @@ pub fn export_system_bridge_typescript() -> Result<String, String> {
     types.register::<FileSystemSelectFileResult>();
 
     types.register::<ResolveBridgeApprovalArgs>();
+    types.register::<RustBridgeApprovalResponse>();
+    types.register::<WalletSendXchApprovalResponse>();
     types.register::<PendingBridgeApprovalView>();
     types.register::<BridgeApprovalsChangedEvent>();
 

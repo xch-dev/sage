@@ -1,12 +1,23 @@
 import type {
   SageAppCapabilityDefinitionView,
-  SageAppPackageManifest,
+  SageAppCompatibility,
+  SageAppPackageManifestPreview,
   SageAppUrlPreview,
 } from 'sage-system-app-sdk';
 
 export type InstallSource =
-  | { kind: 'zip'; zipPath: string; manifest: SageAppPackageManifest }
-  | { kind: 'url'; appUrl: string; preview: SageAppUrlPreview };
+  | {
+      kind: 'zip';
+      zipPath: string;
+      preview: SageAppPackageManifestPreview;
+      compatibility: SageAppCompatibility;
+    }
+  | {
+      kind: 'url';
+      appUrl: string;
+      preview: SageAppUrlPreview;
+      compatibility: SageAppCompatibility;
+    };
 
 export type LoadState =
   | { kind: 'loading' }

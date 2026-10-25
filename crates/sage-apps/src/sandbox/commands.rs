@@ -30,7 +30,9 @@ pub async fn apps_get_app_launch_gate(
 
     let effective = build_effective_state(&baseline, current_run.as_ref());
 
-    let evaluated_gate = resolved_app.with_app(|app| evaluate_app_launch_gate(app, &effective));
+    let evaluated_gate = resolved_app.with_app(|app| {
+        evaluate_app_launch_gate(app, &effective, &app_handle.package_info().version)
+    });
 
     Ok(evaluated_gate)
 }

@@ -238,6 +238,10 @@ impl BridgeMethod for WalletSignCoinSpends {
         BridgeMethodCapability::user(UserBridgeCapability::WalletSignCoinSpends)
     }
 
+    fn binds_approval_to_wallet(&self) -> bool {
+        true
+    }
+
     async fn prepare_approval(
         &self,
         _ctx: BridgeContext<'_>,

@@ -1,13 +1,11 @@
-import { commands, events, OfferRecord, TransactionResponse } from '@/bindings';
-import ConfirmationDialog from '@/components/ConfirmationDialog';
-import { CancelOfferConfirmation } from '@/components/confirmations/CancelOfferConfirmation';
+import { commands, events, OfferRecord } from '@/bindings';
 import Container from '@/components/Container';
-import { CancelOfferDialog } from '@/components/dialogs/CancelOfferDialog';
 import { DeleteOfferDialog } from '@/components/dialogs/DeleteOfferDialog';
 import { NfcScanDialog } from '@/components/dialogs/NfcScanDialog';
 import { ViewOfferDialog } from '@/components/dialogs/ViewOfferDialog';
 import Header from '@/components/Header';
 import { OfferRowCard } from '@/components/OfferRowCard';
+import { OffersMultiSelectActions } from '@/components/OffersMultiSelectActions';
 import { ReadOnlyButton } from '@/components/ReadOnlyButton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -25,19 +23,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useScannerOrClipboard } from '@/hooks/useScannerOrClipboard';
-import { amount } from '@/lib/formTypes';
-import { cn, toMojos } from '@/lib/utils';
-import { useOfferState, useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { deleteOffers } from '@/lib/offers';
+import { cn } from '@/lib/utils';
+import { useOfferState } from '@/state';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { platform } from '@tauri-apps/plugin-os';
-import BigNumber from 'bignumber.js';
 import {
-  CircleOff,
+  CopyPlus,
   FilterIcon,
   HandCoins,
   ImageIcon,
@@ -46,19 +41,15 @@ import {
   TrashIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { getNdefPayloads, isNdefAvailable } from 'tauri-plugin-sage';
 import { useLocalStorage } from 'usehooks-ts';
-import { z } from 'zod';
 
 const OFFER_FILTER_STORAGE_KEY = 'sage-offer-filter';
 
 export function Offers() {
   const navigate = useNavigate();
   const offerState = useOfferState();
-  const walletState = useWalletState();
-  const { isTransactionDisabled } = useWallet();
   const { addError } = useErrors();
   const [offerString, setOfferString] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -69,22 +60,15 @@ export function Offers() {
     OFFER_FILTER_STORAGE_KEY,
     'all',
   );
-  const [isCancelAllOpen, setIsCancelAllOpen] = useState(false);
-  const [cancelAllResponse, setCancelAllResponse] =
-    useState<TransactionResponse | null>(null);
-  const [cancelAllFee, setCancelAllFee] = useState<string>('');
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selected, setSelected] = useState<string[]>([]);
   const [isDeleteAllOpen, setIsDeleteAllOpen] = useState(false);
-  const cancelAllSchema = z.object({
-    fee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
 
-  const cancelAllForm = useForm<z.infer<typeof cancelAllSchema>>({
-    resolver: zodResolver(cancelAllSchema),
-  });
+  const toggleSelected = useCallback((offerId: string, value: boolean) => {
+    setSelected((prev) =>
+      value ? [...prev, offerId] : prev.filter((id) => id !== offerId),
+    );
+  }, []);
 
   const viewOffer = useCallback(
     (offer: string) => {
@@ -190,47 +174,10 @@ export function Offers() {
     statusFilter === 'all' ? true : offer.status === statusFilter,
   );
 
-  const activeOfferCount = filteredOffers.filter(
-    (offer) => offer.status === 'active',
-  ).length;
-
-  const handleDeleteAll = async () => {
-    try {
-      for (const offer of filteredOffers) {
-        await commands.deleteOffer({ offer_id: offer.offer_id });
-      }
-      updateOffers();
-      setIsDeleteAllOpen(false);
-    } catch (error) {
-      addError({
-        kind: 'internal',
-        reason: `Failed to delete offers: ${error}`,
-      });
-    }
-  };
-
-  const cancelAllHandler = (values: z.infer<typeof cancelAllSchema>) => {
-    const fee = toMojos(values.fee, walletState.sync.unit.precision);
-    const activeOffers = filteredOffers.filter(
-      (offer) => offer.status === 'active',
-    );
-
-    // Store the fee for display in confirmation
-    setCancelAllFee(`${values.fee} ${walletState.sync.unit.ticker}`);
-
-    commands
-      .cancelOffers({
-        offer_ids: activeOffers.map((offer) => offer.offer_id),
-        fee,
-      })
-      .then((response) => {
-        setCancelAllResponse(response);
-      })
-      .catch(addError)
-      .finally(() => {
-        setIsCancelAllOpen(false);
-      });
-  };
+  useEffect(() => {
+    setMultiSelect(false);
+    setSelected([]);
+  }, [statusFilter]);
 
   const scanImageButton = (
     <Button
@@ -358,45 +305,31 @@ export function Offers() {
                     </Select>
                   </div>
                   <div className='flex items-center gap-2 min-w-fit'>
-                    {filteredOffers.some(
-                      (offer) => offer.status === 'active',
-                    ) && (
+                    {filteredOffers.length > 0 && (
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span
-                              className={cn(
-                                'inline-flex',
-                                isTransactionDisabled && 'cursor-not-allowed',
-                              )}
+                            <Button
+                              variant='outline'
+                              size='icon'
+                              onClick={() => {
+                                setMultiSelect(!multiSelect);
+                                setSelected([]);
+                              }}
+                              aria-label={t`Toggle multi-select`}
                             >
-                              <Button
-                                variant='outline'
-                                size='sm'
+                              <CopyPlus
                                 className={cn(
-                                  'flex items-center gap-1',
-                                  isTransactionDisabled &&
-                                    'pointer-events-none',
+                                  'h-4 w-4',
+                                  multiSelect &&
+                                    'text-green-600 dark:text-green-400',
                                 )}
-                                disabled={isTransactionDisabled}
-                                onClick={() => setIsCancelAllOpen(true)}
-                              >
-                                <CircleOff
-                                  className='h-4 w-4'
-                                  aria-hidden='true'
-                                />
-                                <span className='hidden sm:inline'>
-                                  <Trans>Cancel All Active</Trans>
-                                </span>
-                              </Button>
-                            </span>
+                                aria-hidden='true'
+                              />
+                            </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {isTransactionDisabled ? (
-                              <Trans>Not available for read-only wallets</Trans>
-                            ) : (
-                              <Trans>Cancel All Active Offers</Trans>
-                            )}
+                            <Trans>Toggle multi-select</Trans>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -435,6 +368,14 @@ export function Offers() {
                       record={record}
                       key={record.offer_id}
                       refresh={updateOffers}
+                      selectionState={
+                        multiSelect
+                          ? [
+                              selected.includes(record.offer_id),
+                              (value) => toggleSelected(record.offer_id, value),
+                            ]
+                          : null
+                      }
                     />
                   ))}
                 </div>
@@ -449,46 +390,30 @@ export function Offers() {
       <DeleteOfferDialog
         open={isDeleteAllOpen}
         onOpenChange={setIsDeleteAllOpen}
-        onDelete={handleDeleteAll}
         offerCount={filteredOffers.length}
-      />
-
-      <CancelOfferDialog
-        open={isCancelAllOpen}
-        onOpenChange={setIsCancelAllOpen}
-        form={cancelAllForm}
-        onSubmit={cancelAllHandler}
-        title={<Trans>Cancel all active offers?</Trans>}
-        description={
-          <Trans>
-            This will cancel all {activeOfferCount} active offers on-chain with
-            transactions, preventing them from being taken even if someone has
-            the original offer files.
-          </Trans>
-        }
-        feeLabel={<Trans>Network Fee (per offer)</Trans>}
-      />
-
-      <ConfirmationDialog
-        response={cancelAllResponse}
-        showRecipientDetails={false}
-        close={() => {
-          setCancelAllResponse(null);
-          setCancelAllFee('');
-        }}
-        onConfirm={updateOffers}
-        additionalData={{
-          title: t`Cancel All Active Offers`,
-          content: cancelAllResponse && (
-            <CancelOfferConfirmation
-              offers={filteredOffers.filter(
-                (offer) => offer.status === 'active',
-              )}
-              fee={cancelAllFee}
-            />
-          ),
+        onDelete={() => {
+          deleteOffers(filteredOffers.map((offer) => offer.offer_id))
+            .then(updateOffers)
+            .catch(addError)
+            .finally(() => setIsDeleteAllOpen(false));
         }}
       />
+
+      {selected.length > 0 && (
+        <OffersMultiSelectActions
+          selected={selected}
+          offers={filteredOffers}
+          onConfirm={() => {
+            updateOffers();
+            setSelected([]);
+            setMultiSelect(false);
+          }}
+          onSelectAll={() =>
+            setSelected(filteredOffers.map((offer) => offer.offer_id))
+          }
+          onClearSelection={() => setSelected([])}
+        />
+      )}
     </>
   );
 }

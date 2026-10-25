@@ -58,7 +58,7 @@ export function DeleteOfferDialog({
             <Trans>Cancel</Trans>
           </Button>
           <Button variant='destructive' onClick={onDelete}>
-            {isMultiple ? <Trans>Delete All</Trans> : <Trans>Delete</Trans>}
+            <Trans>Delete</Trans>
           </Button>
         </DialogFooter>
       </DialogContent>

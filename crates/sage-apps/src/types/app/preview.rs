@@ -3,7 +3,7 @@ use specta::Type;
 
 use crate::{
     SageAppIconView, SageAppPackageManifest, SageAppPackageManifestPreview, SageAppUrl,
-    normalized_non_empty_string,
+    UserSageAppSource, normalized_non_empty_string, validate_network_permissions_for_source,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -55,6 +55,15 @@ impl SageAppUrlPreview {
         manifest: SageAppPackageManifestPreview,
         manifest_hash: String,
     ) -> anyhow::Result<Self> {
+        if let Some(full_manifest) = manifest.full_manifest() {
+            validate_network_permissions_for_source(
+                full_manifest.permissions(),
+                &UserSageAppSource::Url {
+                    app_url: app_url.clone(),
+                },
+            )?;
+        }
+
         let icon = SageAppIconView::from_url_preview(app_url, &manifest).await;
 
         Ok(Self {

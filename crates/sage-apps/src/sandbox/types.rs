@@ -157,9 +157,9 @@ pub fn build_running_sandbox_state(started_at: i64) -> SandboxState {
     SandboxState {
         overall_critical_status: SandboxCapabilityStatus::Running,
         storage_isolation_from_sage: make_cap(SandboxCapabilityStatus::Running, None),
-        storage_persistence_normal: make_cap(SandboxCapabilityStatus::Running, None),
-        storage_non_persistence_incognito: make_cap(SandboxCapabilityStatus::Running, None),
-        network_allowlist_enforced: make_cap(SandboxCapabilityStatus::Running, None),
+        storage_persistence_normal: make_cap(SandboxCapabilityStatus::Pending, None),
+        storage_non_persistence_incognito: make_cap(SandboxCapabilityStatus::Pending, None),
+        network_allowlist_enforced: make_cap(SandboxCapabilityStatus::Pending, None),
         started_at: Some(started_at),
         finished_at: None,
     }

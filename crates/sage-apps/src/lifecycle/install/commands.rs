@@ -1,6 +1,6 @@
 use std::{fs, io};
 
-use tauri::{State, command};
+use tauri::{AppHandle, State, command};
 
 use crate::{
     AppState, AppsHostState, ListedSageAppView, Result, apps_root, list_installed_apps_internal,
@@ -9,6 +9,7 @@ use crate::{
 #[command]
 #[specta::specta]
 pub async fn apps_list_installed_apps(
+    app_handle: AppHandle,
     state: State<'_, AppState>,
     apps_state: State<'_, AppsHostState>,
 ) -> Result<Vec<ListedSageAppView>> {
@@ -28,6 +29,15 @@ pub async fn apps_list_installed_apps(
 
     list_installed_apps_internal(&apps_state.db)
         .await
-        .map(|apps| apps.iter().map(Into::into).collect())
+        .map(|apps| {
+            apps.iter()
+                .map(|app| {
+                    ListedSageAppView::from_listed_with_current_version(
+                        app,
+                        &app_handle.package_info().version,
+                    )
+                })
+                .collect()
+        })
         .map_err(|err| io::Error::other(format!("failed to list installed apps: {err}")).into())
 }

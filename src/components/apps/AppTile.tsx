@@ -66,6 +66,12 @@ export function AppTile({ app, launchDecision, onOpen, onContextMenu }: Props) {
             {launchDecision.title}
           </div>
         ) : null}
+
+        {launchDecision.allowed && launchDecision.warning ? (
+          <div className='mt-1 text-xs text-amber-600'>
+            {launchDecision.title}
+          </div>
+        ) : null}
       </div>
     </div>
   );
