@@ -1,4 +1,5 @@
 import { useWallet } from '@/contexts/WalletContext';
+import { supportsSageApps } from '@/lib/apps/platform';
 import { DeepLink, parseDeepLinkUrl } from '@/lib/deepLink';
 import { addressInfo } from '@/lib/utils';
 import { t } from '@lingui/core/macro';
@@ -6,6 +7,9 @@ import { useEffect, useState } from 'react';
 import { NavigateFunction, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { commands } from '../bindings';
+
+// Matches SYSTEM_APP_APP_INSTALL_ID in crates/sage-apps
+const APP_INSTALL_ID = 'app-install';
 
 /** Handles `sage:` deep links; per-platform setup is in deep-links/README.md. */
 export function useDeepLink() {
@@ -78,6 +82,32 @@ export function useDeepLink() {
 }
 
 async function openDeepLink(link: DeepLink, navigate: NavigateFunction) {
+  if (link.action === 'install_app') {
+    // The installer is a modal shown over the apps launchpad. Only the URL
+    // field is prefilled; nothing is fetched until the user asks to review it.
+    if (!supportsSageApps) {
+      toast.error(t`Sage apps aren't supported on this device`);
+      return;
+    }
+    navigate('/apps');
+
+    // Starting the installer while it's open just returns the open one, which
+    // keeps its own URL, so say so rather than appear to ignore the link
+    const runtimes = await commands.appsListRuntimes().catch(() => []);
+    if (runtimes.some((r) => r.app.common.identity.id === APP_INSTALL_ID)) {
+      toast.info(t`The app installer is already open`);
+      return;
+    }
+
+    await commands
+      .appsStartSystemApp({
+        kind: 'appInstall',
+        source: { kind: 'selectSource', app_url: link.url },
+      })
+      .catch(() => toast.error(t`Couldn't open the app installer`));
+    return;
+  }
+
   if (link.action === 'take_offer') {
     const query = link.fee
       ? `?${new URLSearchParams({ fee: link.fee }).toString()}`

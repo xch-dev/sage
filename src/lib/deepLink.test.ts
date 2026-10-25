@@ -270,4 +270,52 @@ describe('parseDeepLinkUrl', () => {
       expect(result.ok && result.link).toMatchObject({ memos: 'salt&pepper' });
     });
   });
+
+  describe('install_app', () => {
+    it('parses an app url', () => {
+      expect(
+        parseDeepLinkUrl('sage:install_app?url=https://xch.place'),
+      ).toEqual({
+        ok: true,
+        link: { action: 'install_app', url: 'https://xch.place/' },
+      });
+    });
+
+    it('keeps the path and drops the query string and fragment', () => {
+      const result = parseDeepLinkUrl(
+        `sage:install_app?url=${encodeURIComponent('https://example.com/apps/demo/?ref=x#top')}`,
+      );
+      expect(result.ok && result.link).toEqual({
+        action: 'install_app',
+        url: 'https://example.com/apps/demo/',
+      });
+    });
+
+    it('shows an internationalized host as punycode', () => {
+      const result = parseDeepLinkUrl('sage:install_app?url=https://xch.plаce');
+      expect(result.ok && result.link).toMatchObject({
+        url: 'https://xch.xn--plce-63d/',
+      });
+    });
+
+    it.each([
+      ['missing url', 'sage:install_app'],
+      ['non-https url', 'sage:install_app?url=http://xch.place'],
+      ['javascript url', 'sage:install_app?url=javascript:alert(1)'],
+      ['bare host', 'sage:install_app?url=xch.place'],
+      [
+        'credentials disguising the host',
+        `sage:install_app?url=${encodeURIComponent('https://xch.place@evil.example')}`,
+      ],
+      [
+        'overlong url',
+        `sage:install_app?url=https://example.com/${'a'.repeat(2048)}`,
+      ],
+    ])('rejects %s', (_, url) => {
+      expect(parseDeepLinkUrl(url)).toEqual({
+        ok: false,
+        error: 'invalid_params',
+      });
+    });
+  });
 });

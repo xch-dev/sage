@@ -7,6 +7,7 @@ const SCHEME_PREFIX = 'sage:';
 // Chia offers are bech32m encoded, max ~10KB when compressed
 const MAX_OFFER_LENGTH = 15000;
 const MAX_OFFER_URL_LENGTH = 2048;
+const MAX_APP_URL_LENGTH = 2048;
 const MAX_MEMO_LENGTH = 1000;
 const MAX_U64 = 18446744073709551615n;
 const OFFER_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
@@ -28,7 +29,12 @@ interface SendDeepLink {
   assetId?: string;
 }
 
-export type DeepLink = TakeOfferDeepLink | SendDeepLink;
+interface InstallAppDeepLink {
+  action: 'install_app';
+  url: string;
+}
+
+export type DeepLink = TakeOfferDeepLink | SendDeepLink | InstallAppDeepLink;
 
 type DeepLinkError =
   | 'invalid_scheme'
@@ -151,6 +157,25 @@ function parseSend(params: URLSearchParams): SendDeepLink | null {
   return link;
 }
 
+function parseInstallApp(params: URLSearchParams): InstallAppDeepLink | null {
+  const value = params.get('url');
+  if (!value || value.length > MAX_APP_URL_LENGTH) return null;
+
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+
+  // The URL is shown for the user to review, so reject credentials that could
+  // disguise the real host (`https://trusted.example@evil.example`). The
+  // installer drops the query string and fragment anyway.
+  if (url.protocol !== 'https:' || url.username || url.password) return null;
+
+  return { action: 'install_app', url: `${url.origin}${url.pathname}` };
+}
+
 /** Parses `sage:<action>?<params>` (or `sage://<action>?<params>`). */
 export function parseDeepLinkUrl(url: string): ParseResult {
   if (!url.toLowerCase().startsWith(SCHEME_PREFIX)) {
@@ -175,6 +200,9 @@ export function parseDeepLinkUrl(url: string): ParseResult {
       break;
     case 'send':
       link = parseSend(params);
+      break;
+    case 'install_app':
+      link = parseInstallApp(params);
       break;
     default:
       // Only echo the action back when it is short and printable

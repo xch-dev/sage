@@ -76,6 +76,22 @@ sage:send?address=xch1abc123...&amount=1000000000000&fee=1000000&memos=Payment%2
 sage:send?address=xch1abc123...&amount=1000000000000&asset_id=db1a9020d48d9d4ad22631b66ab4b9ebd3637ef7758ad38881348c5d24c38f20
 ```
 
+### `install_app`: install a Sage app
+
+```
+sage:install_app?url=<app_url>
+```
+
+Opens the Apps page with the installer showing and the URL field prefilled. Nothing is fetched until the user chooses to review the app, and installing still goes through the normal review and permissions screens. Not available on iOS or Android, where Sage apps aren't supported. If the installer is already open, the link leaves it as it is and shows "The app installer is already open".
+
+| Parameter | Required | Description                                                                                                                   |
+| --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `url`     | Yes      | `https://` URL of the app. Its query string and fragment are dropped; a URL containing credentials (`user@host`) is rejected. |
+
+```
+sage:install_app?url=https://xch.place
+```
+
 ## Android URL Encoding Requirement
 
 **Important:** On Android, the `&` character in query parameters must be URL-encoded as `%26`. Android's Intent system interprets literal `&` as a command separator, which causes the URL to be truncated at the first `&`.

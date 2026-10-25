@@ -223,6 +223,11 @@
     </section>
 
     <section>
+      <h2>install_app</h2>
+      <table id="t-install_app"></table>
+    </section>
+
+    <section>
       <h2>Scheme and action handling</h2>
       <table id="t-protocol"></table>
     </section>
@@ -559,6 +564,45 @@ memos=test memo</textarea
           [
             'Bad address',
             link('send', [['address', 'xch1notvalid']]),
+            ERR,
+            'Invalid deep link',
+          ],
+        ],
+        install_app: () => [
+          [
+            'App url',
+            link('install_app', [['url', 'https://xch.place']]),
+            OK,
+            'Apps page, installer open with https://xch.place/ in the URL field',
+          ],
+          [
+            'Query string and fragment dropped',
+            link('install_app', [['url', 'https://xch.place/?ref=link#top']]),
+            OK,
+            'Installer prefilled with https://xch.place/',
+          ],
+          [
+            'Lookalike host',
+            link('install_app', [['url', 'https://xch.pl\u0430ce']]),
+            OK,
+            'Installer prefilled with the punycode host https://xch.xn--plce-63d/',
+          ],
+          ['Missing url', link('install_app', []), ERR, 'Invalid deep link'],
+          [
+            'http url',
+            link('install_app', [['url', 'http://xch.place']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Bare host',
+            link('install_app', [['url', 'xch.place']]),
+            ERR,
+            'Invalid deep link',
+          ],
+          [
+            'Credentials disguising the host',
+            link('install_app', [['url', 'https://xch.place@evil.example']]),
             ERR,
             'Invalid deep link',
           ],

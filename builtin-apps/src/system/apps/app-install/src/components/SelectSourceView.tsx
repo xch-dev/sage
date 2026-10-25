@@ -5,11 +5,13 @@ import { closeSelf, previewUrl, selectAndPreviewZip } from '../api';
 import type { InstallSource } from '../types';
 
 export function SelectSourceView({
+  initialUrl,
   onReview,
 }: {
+  initialUrl: string;
   onReview: (source: InstallSource) => void;
 }) {
-  const [urlInput, setUrlInput] = useState('');
+  const [urlInput, setUrlInput] = useState(initialUrl);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -2697,7 +2697,7 @@ fee: Amount;
  */
 auto_submit?: boolean }
 export type StartAppInstallArgs = { source: StartAppInstallSource }
-export type StartAppInstallSource = { kind: "selectSource" } | { kind: "url"; app_url: string }
+export type StartAppInstallSource = { kind: "selectSource"; app_url?: string | null } | { kind: "url"; app_url: string }
 export type StartAppUpdateArgs = { mode: StartAppUpdateMode; appId: string }
 export type StartAppUpdateMode = "reviewUpdate" | "reviewPermissions"
 export type StartDonationArgs = { appId: string }

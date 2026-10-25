@@ -64,7 +64,7 @@ import Wallet from './pages/Wallet';
 import { AppsProvider } from '@/contexts/AppsContext.tsx';
 import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
-import { platform } from '@tauri-apps/plugin-os';
+import { supportsSageApps } from '@/lib/apps/platform';
 
 function RootLayout() {
   useDeepLink();
@@ -107,10 +107,6 @@ function ThemeAwareToastContainer() {
     />
   );
 }
-
-const currentPlatform = platform();
-const supportsSageApps =
-  currentPlatform !== 'android' && currentPlatform !== 'ios';
 
 const router = createHashRouter(
   createRoutesFromElements(
