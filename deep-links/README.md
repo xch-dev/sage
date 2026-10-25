@@ -73,7 +73,7 @@ If `asset_id` is present but the asset isn't held by the current wallet, the app
 sage:send?address=xch1abc123...&amount=1000000000000&fee=1000000&memos=Payment%20for%20services
 
 # Send a CAT instead of XCH
-sage:send?address=xch1abc123...&amount=1000000000000&asset_id=a628c1c2c6fcb74d53746157e438e108eab5c0bb3e5c80ff9b1910b3e98a1e14
+sage:send?address=xch1abc123...&amount=1000000000000&asset_id=db1a9020d48d9d4ad22631b66ab4b9ebd3637ef7758ad38881348c5d24c38f20
 ```
 
 ## Android URL Encoding Requirement
