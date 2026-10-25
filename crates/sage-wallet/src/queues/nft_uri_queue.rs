@@ -57,7 +57,8 @@ impl NftUriQueue {
         let testnet = self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for (hash, items) in groups {
-            futures.push(fetch_file(hash, items, testnet));
+            let has_data = self.db.file_has_data(hash).await?;
+            futures.push(fetch_file(hash, items, has_data, testnet));
         }
 
         while let Some(fetched) = futures.next().await {
@@ -95,7 +96,11 @@ struct Fetched {
 /// Fetches a file from MintGarden's archive, which is tried first since it's
 /// content addressed and will work even if the NFT's own URIs have gone
 /// offline, and then from the NFT's URIs (see [`nft_sources`]).
-async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetched {
+///
+/// If `has_data` is set, a file that doesn't match its hash has already been
+/// saved, and this is a periodic retry to see if the right file has become
+/// available (for example, after MintGarden archives it).
+async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, has_data: bool, testnet: bool) -> Fetched {
     let uris: Vec<String> = items.into_iter().map(|item| item.uri).collect();
 
     let outcome = race_sources(
@@ -117,18 +122,17 @@ async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> Fetche
         };
     }
 
-    // A mismatching file is saved permanently, so don't settle for one if a
-    // source that might have had the right file was temporarily unavailable
-    // (such as being rate limited). Fall back to it otherwise, so that there's
-    // at least something to show.
+    // Fall back to a file that doesn't match the hash, so that there's at least
+    // something to show. It will be retried later, and replaced if the right
+    // file turns up. If one has already been saved, keep it rather than doing
+    // the work of saving it again.
     if let Some(download) = outcome.mismatch {
         warn!(
             "Hash mismatch for {hash} (found {}), from URIs {uris:?}",
             download.hash
         );
 
-        let data = if outcome.transient_failure {
-            debug!("Not saving mismatched file for {hash}, since a source may succeed later");
+        let data = if has_data {
             None
         } else {
             Some((download.into_data(testnet).await, false))
@@ -204,6 +208,10 @@ async fn save_data(
 
     tx.update_file(hash, data.blob, data.mime_type, is_hash_match)
         .await?;
+
+    // The file may be replacing one that didn't match, so clear out the old
+    // resized images rather than adding to them.
+    tx.delete_resized_images(hash).await?;
 
     if let Some(thumbnail) = data.thumbnail {
         tx.insert_resized_image(hash, ResizedImageKind::Icon, thumbnail.icon)
