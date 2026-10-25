@@ -86,14 +86,6 @@ impl DatabaseTx<'_> {
         mempool_items_for_output(&mut *self.tx, coin_id).await
     }
 
-    pub async fn mark_confirmed_mempool_inputs_spent(
-        &mut self,
-        output_coin_id: Bytes32,
-        spent_height: u32,
-    ) -> Result<()> {
-        mark_confirmed_mempool_inputs_spent(&mut *self.tx, output_coin_id, spent_height).await
-    }
-
     pub async fn remove_mempool_item(&mut self, mempool_item_id: Bytes32) -> Result<()> {
         remove_mempool_item(&mut self.tx, mempool_item_id).await
     }
@@ -294,47 +286,6 @@ async fn mempool_items_for_output(
     .into_iter()
     .map(|row| row.mempool_item_hash.convert())
     .collect()
-}
-
-/// Marks the inputs of the mempool item that created a confirmed coin as spent.
-/// If multiple competing mempool items create the same coin, we can't tell which one
-/// was confirmed, so only the inputs they all share are known to be spent.
-async fn mark_confirmed_mempool_inputs_spent(
-    conn: impl SqliteExecutor<'_>,
-    output_coin_id: Bytes32,
-    spent_height: u32,
-) -> Result<()> {
-    let output_coin_id = output_coin_id.as_ref();
-    let spent_height = i64::from(spent_height);
-
-    query!(
-        "
-        WITH candidates AS (
-            SELECT DISTINCT mempool_coins.mempool_item_id
-            FROM mempool_coins
-            INNER JOIN coins ON coins.id = mempool_coins.coin_id
-            WHERE coins.hash = ?
-              AND mempool_coins.is_output = TRUE
-        )
-        UPDATE coins
-        SET spent_height = ?
-        WHERE spent_height IS NULL
-          AND id IN (
-            SELECT mempool_coins.coin_id
-            FROM mempool_coins
-            INNER JOIN candidates ON candidates.mempool_item_id = mempool_coins.mempool_item_id
-            WHERE mempool_coins.is_input = TRUE
-            GROUP BY mempool_coins.coin_id
-            HAVING COUNT(DISTINCT mempool_coins.mempool_item_id) = (SELECT COUNT(*) FROM candidates)
-          )
-        ",
-        output_coin_id,
-        spent_height
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
 }
 
 async fn remove_mempool_item(conn: &mut SqliteConnection, mempool_item_id: Bytes32) -> Result<()> {

@@ -246,6 +246,10 @@ impl DatabaseTx<'_> {
         insert_coin(&mut *self.tx, coin_state).await
     }
 
+    pub async fn mark_coin_spent(&mut self, coin_id: Bytes32, spent_height: u32) -> Result<()> {
+        mark_coin_spent(&mut *self.tx, coin_id, spent_height).await
+    }
+
     pub async fn is_known_coin(&mut self, coin_id: Bytes32) -> Result<bool> {
         is_known_coin(&mut *self.tx, coin_id).await
     }
@@ -331,6 +335,24 @@ async fn insert_coin(conn: impl SqliteExecutor<'_>, coin_state: CoinState) -> Re
         amount,
         coin_state.created_height,
         coin_state.spent_height,
+    )
+    .execute(conn)
+    .await?;
+
+    Ok(())
+}
+
+async fn mark_coin_spent(
+    conn: impl SqliteExecutor<'_>,
+    coin_id: Bytes32,
+    spent_height: u32,
+) -> Result<()> {
+    let coin_id = coin_id.as_ref();
+
+    query!(
+        "UPDATE coins SET spent_height = ? WHERE hash = ? AND spent_height IS NULL",
+        spent_height,
+        coin_id
     )
     .execute(conn)
     .await?;
