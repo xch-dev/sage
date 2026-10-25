@@ -278,14 +278,16 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
 
-            let root_override = sage_config::sage_root_override();
+            let default_root = app.path().app_data_dir()?;
+
+            // Pointing `SAGE_ROOT` at the default root shouldn't hide the main webview's existing
+            // storage, such as WalletConnect sessions and settings.
+            let root_override = sage_config::sage_root_override()
+                .filter(|root| !is_same_path(root, &default_root));
 
             create_main_window(app, root_override.as_deref())?;
 
-            let path = match root_override {
-                Some(path) => path,
-                None => app.path().app_data_dir()?,
-            };
+            let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
             app.manage(Initialized(Mutex::new(false)));
@@ -374,6 +376,13 @@ fn create_main_window(app: &tauri::App, isolated_root: Option<&Path>) -> tauri::
     Ok(())
 }
 
+fn is_same_path(a: &Path, b: &Path) -> bool {
+    match (a.canonicalize(), b.canonicalize()) {
+        (Ok(a), Ok(b)) => a == b,
+        _ => a == b,
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn data_store_identifier_for(root: &Path) -> [u8; 16] {
     use chia_wallet_sdk::chia::sha2::Sha256;
@@ -390,6 +399,23 @@ fn data_store_identifier_for(root: &Path) -> [u8; 16] {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
+    #[test]
+    fn same_path_resolves_equivalent_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("root");
+        std::fs::create_dir(&root).unwrap();
+
+        assert!(is_same_path(&root, &dir.path().join("root/")));
+        assert!(is_same_path(&root, &root.join("../root")));
+        assert!(!is_same_path(&root, dir.path()));
+        assert!(is_same_path(
+            &dir.path().join("missing"),
+            &dir.path().join("missing/")
+        ));
+    }
+
     #[test]
     fn tauri_identifier_matches_default_sage_root() {
         let config: serde_json::Value =
