@@ -196,6 +196,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
                 include_hint: true,
                 memos,
                 clawback: None,
+                coin_ids: None,
                 auto_submit: false,
             })
             .await)?;
@@ -210,6 +211,7 @@ async fn send(client: &Client, args: SendArgs, json: bool) -> Result<()> {
                 fee: Amount::u64(fee),
                 memos,
                 clawback: None,
+                coin_ids: None,
                 auto_submit: false,
             })
             .await)?;
