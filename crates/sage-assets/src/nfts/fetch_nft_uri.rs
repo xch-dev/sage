@@ -1,16 +1,21 @@
-use std::time::{Duration, Instant};
+use std::{
+    future::Future,
+    pin::Pin,
+    sync::LazyLock,
+    time::{Duration, Instant},
+};
 
 use chia_wallet_sdk::{chia::sha2::Sha256, prelude::*};
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
 use mime_sniffer::MimeTypeSniffer;
-use reqwest::{StatusCode, header::CONTENT_TYPE};
+use reqwest::{Client, Response, StatusCode, header::CONTENT_TYPE};
 use tokio::task::spawn_blocking;
 use tracing::debug;
 
 use crate::UriError;
 
-use super::{Thumbnail, thumbnail as make_thumbnail};
+use super::{Thumbnail, thumbnail as make_thumbnail, uri_candidates};
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -20,8 +25,112 @@ pub struct Data {
     pub thumbnail: Option<Thumbnail>,
 }
 
+/// MintGarden archives NFT data, metadata, and license files by their SHA-256
+/// hash, so this works even after every URI baked into the NFT has died.
+const MINTGARDEN_ARCHIVE_URL: &str = "https://archive.mintgarden.io/content";
+
+static CLIENT: LazyLock<Client> = LazyLock::new(|| {
+    Client::builder()
+        // Some gateways sit behind bot protection that challenges clients
+        // pretending to be a browser, so identify honestly as Sage.
+        .user_agent(concat!("Sage/", env!("CARGO_PKG_VERSION")))
+        .connect_timeout(Duration::from_secs(10))
+        .build()
+        .unwrap_or_default()
+});
+
+/// Fetches an NFT URI, translating `ipfs://` and `ar://` URIs to HTTPS
+/// gateways and falling back to other gateways when an IPFS or Arweave
+/// gateway link fails. See [`uri_candidates`].
 pub async fn fetch_uri(uri: String, testnet: bool) -> Result<Data, UriError> {
-    let response = reqwest::get(&uri).await?;
+    fetch_uri_inner(uri, None, testnet).await
+}
+
+/// Like [`fetch_uri`], but if a gateway serves content that doesn't match the
+/// expected hash, the remaining gateways are tried before giving up. If none
+/// of them match, the first mismatching file is returned.
+pub async fn fetch_uri_with_hash(
+    uri: String,
+    hash: Bytes32,
+    testnet: bool,
+) -> Result<Data, UriError> {
+    fetch_uri_inner(uri, Some(hash), testnet).await
+}
+
+async fn fetch_uri_inner(
+    uri: String,
+    expected_hash: Option<Bytes32>,
+    testnet: bool,
+) -> Result<Data, UriError> {
+    let mut mismatch = None;
+    let mut last_error = None;
+
+    for url in uri_candidates(&uri) {
+        let (blob, mime_type) = match download(&url).await {
+            Ok(download) => download,
+            Err(error) => {
+                debug!("Failed to fetch {url} for NFT URI {uri}: {error}");
+                last_error = Some(error);
+                continue;
+            }
+        };
+
+        let hash = sha256(&blob);
+
+        if expected_hash.is_none_or(|expected| expected == hash) {
+            return Ok(process_data(&uri, blob, mime_type, hash, testnet).await);
+        }
+
+        debug!("Hash mismatch for {url} (NFT URI {uri}), found {hash}");
+
+        if mismatch.is_none() {
+            mismatch = Some((blob, mime_type, hash));
+        }
+    }
+
+    if let Some((blob, mime_type, hash)) = mismatch {
+        return Ok(process_data(&uri, blob, mime_type, hash, testnet).await);
+    }
+
+    Err(last_error.unwrap_or(UriError::NoUris))
+}
+
+/// Fetches a file from MintGarden's archive by its hash. Returns `None` if
+/// MintGarden doesn't have it, or if what it returns doesn't match the hash.
+pub async fn fetch_mintgarden_archive(
+    hash: Bytes32,
+    testnet: bool,
+) -> Result<Option<Data>, UriError> {
+    let url = format!("{MINTGARDEN_ARCHIVE_URL}/{hash}");
+
+    let response = CLIENT.get(&url).send().await?;
+
+    if response.status() == StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+
+    let (blob, mime_type) = read_response(response).await?;
+
+    let found = sha256(&blob);
+
+    if found != hash {
+        debug!("Hash mismatch from MintGarden archive, expected {hash} but found {found}");
+        return Ok(None);
+    }
+
+    Ok(Some(
+        process_data(&url, blob, mime_type, found, testnet).await,
+    ))
+}
+
+async fn download(url: &str) -> Result<(Vec<u8>, String), UriError> {
+    read_response(CLIENT.get(url).send().await?).await
+}
+
+async fn read_response(response: Response) -> Result<(Vec<u8>, String), UriError> {
+    // Error pages (such as a gateway's 404, 429, or bot challenge) aren't the
+    // file, so treat them as a failure rather than as mismatched content.
+    let response = response.error_for_status()?;
 
     let mime_type = match response.headers().get(CONTENT_TYPE) {
         Some(header) => Some(
@@ -35,19 +144,39 @@ pub async fn fetch_uri(uri: String, testnet: bool) -> Result<Data, UriError> {
 
     let blob = response.bytes().await?.to_vec();
 
-    let mime_type = if let Some(mime_type) = mime_type {
-        mime_type
-    } else {
-        blob.as_slice()
+    // Object storage (including MintGarden's archive) often serves files as a
+    // generic binary type, which isn't useful for displaying them.
+    let mime_type = match mime_type {
+        Some(mime_type) if !is_generic_mime_type(&mime_type) => mime_type,
+        _ => blob
+            .as_slice()
             .sniff_mime_type()
             .unwrap_or("image/png")
-            .to_string()
+            .to_string(),
     };
 
-    let mut hasher = Sha256::new();
-    hasher.update(&blob);
-    let hash = Bytes32::new(hasher.finalize());
+    Ok((blob, mime_type))
+}
 
+fn is_generic_mime_type(mime_type: &str) -> bool {
+    let essence = mime_type.split(';').next().unwrap_or_default().trim();
+    essence.eq_ignore_ascii_case("application/octet-stream")
+        || essence.eq_ignore_ascii_case("binary/octet-stream")
+}
+
+fn sha256(blob: &[u8]) -> Bytes32 {
+    let mut hasher = Sha256::new();
+    hasher.update(blob);
+    Bytes32::new(hasher.finalize())
+}
+
+async fn process_data(
+    uri: &str,
+    blob: Vec<u8>,
+    mime_type: String,
+    hash: Bytes32,
+    testnet: bool,
+) -> Data {
     let mut thumbnail = match mintgarden_thumbnail(hash, testnet).await {
         Ok(thumbnail) => thumbnail,
         Err(error) => {
@@ -82,12 +211,12 @@ pub async fn fetch_uri(uri: String, testnet: bool) -> Result<Data, UriError> {
         }
     }
 
-    Ok(Data {
+    Data {
         blob,
         mime_type,
         hash,
         thumbnail,
-    })
+    }
 }
 
 pub async fn fetch_uris_without_hash(uris: Vec<String>, testnet: bool) -> Result<Data, UriError> {
@@ -127,24 +256,44 @@ pub async fn fetch_uris_without_hash(uris: Vec<String>, testnet: bool) -> Result
     data.ok_or(UriError::NoUris)
 }
 
+/// Fetches a file with a known hash, using MintGarden's archive alongside the
+/// NFT's own URIs. The first source that produces matching content wins.
 pub async fn fetch_uris_with_hash(uris: Vec<String>, hash: Bytes32, testnet: bool) -> Option<Data> {
     let mut futures = FuturesUnordered::new();
 
+    futures.push(Box::pin(async move {
+        match fetch_mintgarden_archive(hash, testnet).await {
+            Ok(data) => data,
+            Err(error) => {
+                debug!("Failed to fetch {hash} from MintGarden archive: {error}");
+                None
+            }
+        }
+    }) as Pin<Box<dyn Future<Output = Option<Data>> + Send>>);
+
     for uri in uris {
-        futures.push(async move { (uri.clone(), fetch_uri(uri, testnet).await) });
+        futures.push(Box::pin(async move {
+            match fetch_uri_with_hash(uri.clone(), hash, testnet).await {
+                Ok(item) if item.hash == hash => Some(item),
+                Ok(item) => {
+                    debug!(
+                        "Hash mismatch for NFT URI {uri}, expected {hash} but found {}",
+                        item.hash
+                    );
+                    None
+                }
+                Err(error) => {
+                    debug!("Failed to fetch NFT URI {uri}, expected hash {hash}: {error}");
+                    None
+                }
+            }
+        }));
     }
 
-    while let Some((uri, result)) = futures.next().await {
-        let Ok(item) = result else {
-            debug!("Failed to fetch NFT URI {uri}, expected hash {hash}");
-            continue;
-        };
-
-        if hash != item.hash {
-            return None;
+    while let Some(result) = futures.next().await {
+        if let Some(item) = result {
+            return Some(item);
         }
-
-        return Some(item);
     }
 
     None
@@ -159,7 +308,7 @@ pub async fn mintgarden_thumbnail(
         if testnet { "testnet" } else { "mainnet" }
     );
 
-    let response = reqwest::get(&url).await?;
+    let response = CLIENT.get(&url).send().await?;
 
     if response.status() != StatusCode::OK {
         return Ok(None);

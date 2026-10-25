@@ -1,9 +1,10 @@
-use std::time::Duration;
+use std::{collections::HashMap, time::Duration};
 
+use chia_wallet_sdk::prelude::*;
 use futures_lite::StreamExt;
 use futures_util::stream::FuturesUnordered;
-use sage_assets::{base64_data_uri, fetch_uri};
-use sage_database::{Database, NftMetadataInfo, ResizedImageKind};
+use sage_assets::{Data, base64_data_uri, fetch_mintgarden_archive, fetch_uri_with_hash};
+use sage_database::{Database, DatabaseTx, FileUri, NftMetadataInfo, ResizedImageKind};
 use tokio::{
     sync::mpsc,
     time::{sleep, timeout},
@@ -13,6 +14,11 @@ use tracing::{debug, info, warn};
 use crate::{SyncEvent, WalletError, compute_nft_info};
 use chia_wallet_sdk::types::TESTNET11_CONSTANTS;
 use sage_config::Network;
+
+/// Each source may try several gateways in turn, so this is longer than a
+/// single request would need.
+const FETCH_TIMEOUT: Duration = Duration::from_secs(30);
+
 #[derive(Debug)]
 pub struct NftUriQueue {
     db: Database,
@@ -45,87 +51,62 @@ impl NftUriQueue {
 
         info!("Processing batch of {} NFT URIs", batch.len());
 
-        let mut futures = FuturesUnordered::new();
-        let testnet = self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+        let mut groups: HashMap<Bytes32, Vec<FileUri>> = HashMap::new();
+
         for item in batch {
-            futures.push(async move {
-                let result = timeout(
-                    Duration::from_secs(15),
-                    fetch_uri(item.uri.clone(), testnet),
-                )
-                .await;
-                (item, result)
-            });
+            groups.entry(item.hash).or_default().push(item);
         }
 
-        while let Some((item, result)) = futures.next().await {
+        let mut futures = FuturesUnordered::new();
+        let testnet = self.network.genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
+
+        for (hash, items) in groups {
+            futures.push(fetch_file(hash, items, testnet));
+        }
+
+        while let Some((hash, outcome)) = futures.next().await {
             let mut tx = self.db.tx().await?;
 
-            match result {
-                Ok(Ok(data)) => {
-                    let is_hash_match = data.hash == item.hash;
+            match outcome {
+                Outcome::Archived { data, items } => {
+                    save_data(&mut tx, hash, data, true).await?;
 
-                    if !is_hash_match {
-                        warn!(
-                            "Hash mismatch for URI {} (expected {} but found {})",
-                            item.uri, item.hash, data.hash
-                        );
+                    for item in items {
+                        tx.update_checked_uri(hash, item.uri).await?;
+                    }
+                }
+                Outcome::Fetched(results) => {
+                    // Prefer a file that matches the hash, but fall back to one
+                    // that doesn't so that there's at least something to show.
+                    let best = results
+                        .iter()
+                        .filter_map(|(_, result)| result.as_ref().ok())
+                        .min_by_key(|data| data.hash != hash)
+                        .cloned();
+
+                    if let Some(data) = best {
+                        let is_hash_match = data.hash == hash;
+                        save_data(&mut tx, hash, data, is_hash_match).await?;
                     }
 
-                    let icon_url = data
-                        .thumbnail
-                        .as_ref()
-                        .map(|thumbnail| base64_data_uri(&thumbnail.icon, "image/png"));
+                    for (item, result) in results {
+                        match result {
+                            Ok(data) => {
+                                if data.hash != hash {
+                                    warn!(
+                                        "Hash mismatch for URI {} (expected {} but found {})",
+                                        item.uri, hash, data.hash
+                                    );
+                                }
 
-                    if let Some(icon_url) = icon_url {
-                        tx.update_nft_data_hash_urls(item.hash, icon_url).await?;
-                    }
-
-                    for nft in tx.nfts_with_metadata_hash(item.hash).await? {
-                        let info = compute_nft_info(nft.minter_hash, &data.blob);
-
-                        let collection_id = info.collection.as_ref().map(|col| col.hash);
-
-                        if let Some(collection) = info.collection {
-                            tx.insert_collection(collection).await?;
+                                tx.update_checked_uri(hash, item.uri).await?;
+                            }
+                            Err(error) => {
+                                debug!("Error fetching URI {}: {error}", item.uri);
+                                tx.update_failed_uri(hash, item.uri).await?;
+                            }
                         }
-
-                        tx.update_nft_metadata(
-                            nft.hash,
-                            NftMetadataInfo {
-                                name: info.name,
-                                description: info.description,
-                                is_sensitive_content: info.sensitive_content,
-                                collection_id: collection_id.unwrap_or_default(),
-                            },
-                        )
-                        .await?;
                     }
-
-                    tx.update_file(item.hash, data.blob, data.mime_type, is_hash_match)
-                        .await?;
-
-                    if let Some(thumbnail) = data.thumbnail {
-                        tx.insert_resized_image(item.hash, ResizedImageKind::Icon, thumbnail.icon)
-                            .await?;
-
-                        tx.insert_resized_image(
-                            item.hash,
-                            ResizedImageKind::Thumbnail,
-                            thumbnail.thumbnail,
-                        )
-                        .await?;
-                    }
-
-                    tx.update_checked_uri(item.hash, item.uri).await?;
-                }
-                Ok(Err(error)) => {
-                    debug!("Error fetching URI {}: {error}", item.uri);
-                    tx.update_failed_uri(item.hash, item.uri).await?;
-                }
-                Err(_error) => {
-                    debug!("Timed out fetching URI {}", item.uri);
-                    tx.update_failed_uri(item.hash, item.uri).await?;
                 }
             }
 
@@ -136,4 +117,99 @@ impl NftUriQueue {
 
         Ok(())
     }
+}
+
+#[derive(Debug)]
+enum Outcome {
+    Archived { data: Data, items: Vec<FileUri> },
+    Fetched(Vec<(FileUri, Result<Data, String>)>),
+}
+
+/// Tries MintGarden's archive first, since it's content addressed and will
+/// work even if the NFT's own URIs have gone offline. If it doesn't have the
+/// file, falls back to fetching each of the NFT's URIs.
+async fn fetch_file(hash: Bytes32, items: Vec<FileUri>, testnet: bool) -> (Bytes32, Outcome) {
+    match timeout(FETCH_TIMEOUT, fetch_mintgarden_archive(hash, testnet)).await {
+        Ok(Ok(Some(data))) => return (hash, Outcome::Archived { data, items }),
+        Ok(Ok(None)) => {}
+        Ok(Err(error)) => debug!("Error fetching {hash} from MintGarden archive: {error}"),
+        Err(_) => debug!("Timed out fetching {hash} from MintGarden archive"),
+    }
+
+    let mut futures = FuturesUnordered::new();
+
+    for item in items {
+        futures.push(async move {
+            let result = match timeout(
+                FETCH_TIMEOUT,
+                fetch_uri_with_hash(item.uri.clone(), hash, testnet),
+            )
+            .await
+            {
+                Ok(Ok(data)) => Ok(data),
+                Ok(Err(error)) => Err(error.to_string()),
+                Err(_) => Err("timed out".to_string()),
+            };
+
+            (item, result)
+        });
+    }
+
+    let mut results = Vec::new();
+
+    while let Some(result) = futures.next().await {
+        results.push(result);
+    }
+
+    (hash, Outcome::Fetched(results))
+}
+
+async fn save_data(
+    tx: &mut DatabaseTx<'_>,
+    hash: Bytes32,
+    data: Data,
+    is_hash_match: bool,
+) -> Result<(), WalletError> {
+    let icon_url = data
+        .thumbnail
+        .as_ref()
+        .map(|thumbnail| base64_data_uri(&thumbnail.icon, "image/png"));
+
+    if let Some(icon_url) = icon_url {
+        tx.update_nft_data_hash_urls(hash, icon_url).await?;
+    }
+
+    for nft in tx.nfts_with_metadata_hash(hash).await? {
+        let info = compute_nft_info(nft.minter_hash, &data.blob);
+
+        let collection_id = info.collection.as_ref().map(|col| col.hash);
+
+        if let Some(collection) = info.collection {
+            tx.insert_collection(collection).await?;
+        }
+
+        tx.update_nft_metadata(
+            nft.hash,
+            NftMetadataInfo {
+                name: info.name,
+                description: info.description,
+                is_sensitive_content: info.sensitive_content,
+                collection_id: collection_id.unwrap_or_default(),
+            },
+        )
+        .await?;
+    }
+
+    tx.update_file(hash, data.blob, data.mime_type, is_hash_match)
+        .await?;
+
+    if let Some(thumbnail) = data.thumbnail {
+        tx.insert_resized_image(hash, ResizedImageKind::Icon, thumbnail.icon)
+            .await?;
+
+        tx.insert_resized_image(hash, ResizedImageKind::Thumbnail, thumbnail.thumbnail)
+            .await?;
+    }
+
+    Ok(())
 }
