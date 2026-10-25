@@ -306,18 +306,11 @@ const ClawbackCell = ({ row }: { row: Row<CoinRecord> }) => {
   // V1 stores relative seconds; unlock = birth block time + timelock.
   if (row.original.clawback_version === 1) {
     const created = row.original.created_timestamp;
-    if (created != null) {
-      const createdSeconds = Number(created);
-      if (Number.isFinite(createdSeconds)) {
-        return formatTimestamp(createdSeconds + lockSeconds, 'short', 'short');
-      }
+    if (created == null) {
+      // The unlock time isn't known until the coin is confirmed and its block time is synced.
+      return row.original.created_height == null ? t`Pending` : t`Unknown`;
     }
-    // Mempool / missing block time: estimate from now.
-    return formatTimestamp(
-      Math.floor(Date.now() / 1000) + lockSeconds,
-      'short',
-      'short',
-    );
+    return formatTimestamp(Number(created) + lockSeconds, 'short', 'short');
   }
 
   return formatTimestamp(lockSeconds, 'short', 'short');

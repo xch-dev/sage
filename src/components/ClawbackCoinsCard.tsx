@@ -1,34 +1,15 @@
 import CoinList from '@/components/CoinList';
+import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { useWallet } from '@/contexts/WalletContext';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
-import { amount } from '@/lib/formTypes';
-import { fromMojos, toMojos } from '@/lib/utils';
-import { useWallet } from '@/contexts/WalletContext';
+import { toMojos } from '@/lib/utils';
 import { useWalletState } from '@/state';
-import type { CustomError } from '@/contexts/ErrorContext';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
-import BigNumber from 'bignumber.js';
 import { CheckIcon, HandCoins, UndoIcon, XIcon } from 'lucide-react';
 import {
   Dispatch,
@@ -38,8 +19,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import {
   CoinRecord,
   CoinSortMode,
@@ -48,7 +27,6 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
-import { FeeAmountInput } from './ui/masked-input';
 
 interface ClawbackCoinsCardProps {
   asset: TokenRecord;
@@ -108,22 +86,6 @@ export function ClawbackCoinsCard({
 
   const { addError } = useErrors();
   const { isTestnet } = useNetwork();
-
-  const reportError = (error: unknown) => {
-    const e = error as {
-      kind?: CustomError['kind'];
-      reason?: string;
-      message?: string;
-    };
-    addError({
-      kind: e?.kind ?? 'internal',
-      reason:
-        e?.reason ||
-        e?.message ||
-        (typeof error === 'string' ? error : null) ||
-        t`Something went wrong. Check the logs for details.`,
-    });
-  };
 
   const [selectedCoinRecords, setSelectedCoinRecords] = useState<CoinRecord[]>(
     [],
@@ -306,166 +268,41 @@ export function ClawbackCoinsCard({
     }
   }, [selectedCoinIds.length, updateCoins]);
 
-  const clawBackFormSchema = z.object({
-    clawBackFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
-
-  const clawBackForm = useForm<z.infer<typeof clawBackFormSchema>>({
-    resolver: zodResolver(clawBackFormSchema),
-    defaultValues: { clawBackFee: '0' },
-  });
-
-  const onClawBackSubmit = (values: z.infer<typeof clawBackFormSchema>) => {
-    const fee = toMojos(
-      values.clawBackFee || '0',
-      walletState.sync.unit.precision,
-    );
-
-    // Get IDs from the selected coin records
-    const coinIdsForRequest = selectedCoinRecords.map(
-      (record) => record.coin_id,
-    );
-
-    commands
-      .combine({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
-      .then((result) => {
-        // Add confirmation data to the response
-        const resultWithDetails = Object.assign({}, result, {
-          additionalData: {
-            title: t`Claw Back Details`,
-            content: {
-              type: 'clawback',
-              coins: selectedCoinRecords,
-              ticker: asset.ticker,
-              precision: asset.precision,
-            },
-          },
-        });
-
-        setResponse(resultWithDetails);
-      })
-      .catch(reportError)
-      .finally(() => setClawBackOpen(false));
-  };
-
-  const finalizeFormSchema = z.object({
-    finalizeFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
-
-  const finalizeForm = useForm<z.infer<typeof finalizeFormSchema>>({
-    resolver: zodResolver(finalizeFormSchema),
-    defaultValues: { finalizeFee: '0' },
-  });
-
-  const onFinalizeSubmit = (values: z.infer<typeof finalizeFormSchema>) => {
-    const fee = toMojos(
-      values.finalizeFee || '0',
-      walletState.sync.unit.precision,
-    );
-
-    // Get IDs from the selected coin records
-    const coinIdsForRequest = selectedCoinRecords.map(
-      (record) => record.coin_id,
-    );
-
-    commands
-      .finalizeClawback({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
-      .then((result) => {
-        // Add confirmation data to the response
-        const resultWithDetails = Object.assign({}, result, {
-          additionalData: {
-            title: t`Finalize Clawback Details`,
-            content: {
-              type: 'finalize_clawback',
-              coins: selectedCoinRecords,
-              ticker: asset.ticker,
-              precision: asset.precision,
-            },
-          },
-        });
-
-        setResponse(resultWithDetails);
-      })
-      .catch(reportError)
-      .finally(() => setFinalizeOpen(false));
-  };
-
-  const claimFormSchema = z.object({
-    claimFee: amount(walletState.sync.unit.precision).refine(
-      (fee) => {
-        const feeDisplay = fee || '0';
-        if (BigNumber(feeDisplay).isLessThanOrEqualTo(0)) return true;
-        return BigNumber(
-          fromMojos(
-            walletState.sync.selectable_balance,
-            walletState.sync.unit.precision,
+  const submit =
+    (
+      type: 'clawback' | 'finalize_clawback' | 'claim_clawback',
+      title: string,
+      request: (coinIds: string[], fee: string) => Promise<TransactionResponse>,
+      setOpen: (open: boolean) => void,
+    ) =>
+    (fee: string) => {
+      request(
+        selectedCoinRecords.map((record) => record.coin_id),
+        toMojos(fee || '0', walletState.sync.unit.precision),
+      )
+        .then((result) =>
+          setResponse(
+            Object.assign({}, result, {
+              additionalData: {
+                title,
+                content: {
+                  type,
+                  coins: selectedCoinRecords,
+                  ticker: asset.ticker,
+                  precision: asset.precision,
+                },
+              },
+            }),
           ),
-        ).gte(feeDisplay);
-      },
-      t`Not enough funds to cover the fee`,
-    ),
-  });
-
-  const claimForm = useForm<z.infer<typeof claimFormSchema>>({
-    resolver: zodResolver(claimFormSchema),
-    defaultValues: { claimFee: '0' },
-  });
-
-  const onClaimSubmit = (values: z.infer<typeof claimFormSchema>) => {
-    const fee = toMojos(
-      values.claimFee || '0',
-      walletState.sync.unit.precision,
-    );
-
-    // Get IDs from the selected coin records
-    const coinIdsForRequest = selectedCoinRecords.map(
-      (record) => record.coin_id,
-    );
-
-    commands
-      .claimClawback({
-        coin_ids: coinIdsForRequest,
-        fee,
-        auto_submit: false,
-      })
-      .then((result) => {
-        // Add confirmation data to the response
-        const resultWithDetails = Object.assign({}, result, {
-          additionalData: {
-            title: t`Claim Clawback Details`,
-            content: {
-              type: 'claim_clawback',
-              coins: selectedCoinRecords,
-              ticker: asset.ticker,
-              precision: asset.precision,
-            },
-          },
-        });
-
-        setResponse(resultWithDetails);
-      })
-      .catch(reportError)
-      .finally(() => setClaimOpen(false));
-  };
+        )
+        .catch(addError)
+        .finally(() => setOpen(false));
+    };
 
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
-  const ticker = asset.ticker;
+  const ticker = asset.ticker ?? '';
 
   if (!hasLoaded || totalCoins === 0) {
     return null;
@@ -549,154 +386,59 @@ export function ClawbackCoinsCard({
         )}
       </CardContent>
 
-      <Dialog open={clawBackOpen} onOpenChange={setClawBackOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Claw Back {ticker}</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>This will claw back all of the selected coins.</Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...clawBackForm}>
-            <form
-              onSubmit={clawBackForm.handleSubmit(onClawBackSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={clawBackForm.control}
-                name='clawBackFee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <FeeAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setClawBackOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Claw Back</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <FeeOnlyDialog
+        title={t`Claw Back ${ticker}`}
+        open={clawBackOpen}
+        setOpen={setClawBackOpen}
+        onSubmit={submit(
+          'clawback',
+          t`Claw Back Details`,
+          (coin_ids, fee) => commands.combine({ coin_ids, fee }),
+          setClawBackOpen,
+        )}
+        submitButtonLabel={t`Claw Back`}
+      >
+        <Trans>This will claw back all of the selected coins.</Trans>
+      </FeeOnlyDialog>
 
-      <Dialog open={finalizeOpen} onOpenChange={setFinalizeOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Finalize {ticker} Clawback</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This will complete the clawback for all of the selected coins,
-                and send the funds to the original recipient (even if the
-                recipient wallet does not support clawbacks).
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...finalizeForm}>
-            <form
-              onSubmit={finalizeForm.handleSubmit(onFinalizeSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={finalizeForm.control}
-                name='finalizeFee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <FeeAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setFinalizeOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Finalize</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <FeeOnlyDialog
+        title={t`Finalize ${ticker} Clawback`}
+        open={finalizeOpen}
+        setOpen={setFinalizeOpen}
+        onSubmit={submit(
+          'finalize_clawback',
+          t`Finalize Clawback Details`,
+          (coin_ids, fee) => commands.finalizeClawback({ coin_ids, fee }),
+          setFinalizeOpen,
+        )}
+        submitButtonLabel={t`Finalize`}
+      >
+        <Trans>
+          This will complete the clawback for all of the selected coins, and
+          send the funds to the original recipient (even if the recipient wallet
+          does not support clawbacks).
+        </Trans>
+      </FeeOnlyDialog>
 
-      <Dialog open={claimOpen} onOpenChange={setClaimOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Claim {asset.ticker} Clawback</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This will claim all of the selected coins from a v1 clawback.
-                This will send the funds to your wallet, and the original sender
-                will no longer be able to claw it back.
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...claimForm}>
-            <form
-              onSubmit={claimForm.handleSubmit(onClaimSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={claimForm.control}
-                name='claimFee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <FeeAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setClaimOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Claim</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <FeeOnlyDialog
+        title={t`Claim ${ticker} Clawback`}
+        open={claimOpen}
+        setOpen={setClaimOpen}
+        onSubmit={submit(
+          'claim_clawback',
+          t`Claim Clawback Details`,
+          (coin_ids, fee) =>
+            commands.claimClawback({ coin_ids, fee, auto_submit: false }),
+          setClaimOpen,
+        )}
+        submitButtonLabel={t`Claim`}
+      >
+        <Trans>
+          This will claim all of the selected coins from a v1 clawback. This
+          will send the funds to your wallet, and the original sender will no
+          longer be able to claw it back.
+        </Trans>
+      </FeeOnlyDialog>
     </Card>
   );
 }
