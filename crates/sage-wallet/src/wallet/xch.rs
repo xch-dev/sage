@@ -4,7 +4,7 @@ use chia_wallet_sdk::{
     driver::{Clawback as ClawbackV1, ClawbackV2},
     prelude::*,
 };
-use sage_database::{CoinKind, Database, P2Puzzle};
+use sage_database::{CoinKind, CoinRow, Database, P2Puzzle};
 
 use crate::{
     WalletError,
@@ -13,16 +13,19 @@ use crate::{
 
 use super::Wallet;
 
-async fn ensure_clawback_unspent(db: &Database, coin_id: Bytes32) -> Result<(), WalletError> {
-    let coin_id_hex = hex::encode(coin_id);
-    let rows = db.coins_by_ids(&[coin_id_hex]).await?;
-    let Some(row) = rows.first() else {
+async fn ensure_clawback_unspent(db: &Database, coin_id: Bytes32) -> Result<CoinRow, WalletError> {
+    let Some(row) = db
+        .coins_by_ids(&[hex::encode(coin_id)])
+        .await?
+        .into_iter()
+        .next()
+    else {
         return Err(WalletError::MissingCoin(coin_id));
     };
     if row.spent_height.is_some() || row.mempool_item_hash.is_some() || row.offer_hash.is_some() {
         return Err(WalletError::ClawbackAlreadySpentOrPending(coin_id));
     }
-    Ok(())
+    Ok(row)
 }
 
 impl Wallet {
@@ -196,17 +199,7 @@ impl Wallet {
                         });
                     }
 
-                    let coin_id_hex = hex::encode(coin_id);
-                    let rows = self.db.coins_by_ids(&[coin_id_hex]).await?;
-                    let Some(row) = rows.first() else {
-                        return Err(WalletError::MissingCoin(coin_id));
-                    };
-                    if row.spent_height.is_some()
-                        || row.mempool_item_hash.is_some()
-                        || row.offer_hash.is_some()
-                    {
-                        return Err(WalletError::ClawbackAlreadySpentOrPending(coin_id));
-                    }
+                    let row = ensure_clawback_unspent(&self.db, coin_id).await?;
                     // Must be confirmed on-chain before claim (relative lock is from birth).
                     if row.created_height.is_none() {
                         return Err(WalletError::ClawbackNotYetClaimable(coin_id));
@@ -219,14 +212,6 @@ impl Wallet {
                     }
 
                     // Receiver path only — sender claws via combine / complete_spends.
-                    if !self
-                        .db
-                        .is_custody_p2_puzzle_hash(clawback.receiver_puzzle_hash)
-                        .await?
-                    {
-                        return Err(WalletError::UnknownPublicKey);
-                    }
-
                     let Some(receiver_key) =
                         self.db.public_key(clawback.receiver_puzzle_hash).await?
                     else {

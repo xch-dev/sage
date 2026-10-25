@@ -1,15 +1,14 @@
 /*
  * Clawback V1: version column + custody-correct views.
  * expiration_seconds is absolute unix for V2, relative seconds for V1.
- * clawback_coins lists both parties (pending visibility); claim stays gated
- * in claimable_clawback_coins / UI.
+ * clawback_coins lists both parties (pending visibility); claim eligibility
+ * is gated in claim_clawback and the UI.
  */
 
 ALTER TABLE clawbacks ADD COLUMN version INTEGER NOT NULL DEFAULT 2;
 
 CREATE INDEX idx_clawbacks_version ON clawbacks(version);
 
-DROP VIEW IF EXISTS claimable_clawback_coins;
 DROP VIEW wallet_coins;
 DROP VIEW selectable_coins;
 DROP VIEW owned_coins;
@@ -130,22 +129,9 @@ FROM wallet_coins
 WHERE 1=1
   AND spent_height IS NULL
   AND (
-    (clawback_version = 2 AND clawback_sender_p2_puzzle_id IS NOT NULL)
-    OR
-    (clawback_version = 2 AND clawback_receiver_p2_puzzle_id IS NOT NULL)
-    OR
-    (clawback_version = 1 AND clawback_sender_p2_puzzle_id IS NOT NULL)
-    OR
-    (clawback_version = 1 AND clawback_receiver_p2_puzzle_id IS NOT NULL)
+    clawback_sender_p2_puzzle_id IS NOT NULL
+    OR clawback_receiver_p2_puzzle_id IS NOT NULL
   );
-
-CREATE VIEW claimable_clawback_coins AS
-SELECT *
-FROM clawback_coins
-WHERE clawback_version = 1
-  AND clawback_receiver_p2_puzzle_id IS NOT NULL
-  AND created_timestamp IS NOT NULL
-  AND unixepoch() >= created_timestamp + clawback_expiration_seconds;
 
 CREATE VIEW spendable_coins AS
 SELECT *
