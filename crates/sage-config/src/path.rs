@@ -1,5 +1,6 @@
 use std::{
     env,
+    ffi::OsString,
     path::{self, PathBuf},
 };
 
@@ -14,16 +15,18 @@ pub const SAGE_APP_IDENTIFIER: &str = "com.rigidnetwork.sage";
 /// Relative values are resolved against the current directory up front, so that every consumer
 /// (including webviews, which resolve relative paths on their own) agrees on the location.
 pub fn sage_root_override() -> Option<PathBuf> {
-    env::var_os(SAGE_ROOT_ENV)
-        .filter(|value| !value.is_empty())
-        .map(|value| {
-            let root = PathBuf::from(value);
-            path::absolute(&root).unwrap_or(root)
-        })
+    parse_sage_root(env::var_os(SAGE_ROOT_ENV))
 }
 
 pub fn sage_root() -> Option<PathBuf> {
     resolve_sage_root(sage_root_override(), dirs::data_dir())
+}
+
+fn parse_sage_root(value: Option<OsString>) -> Option<PathBuf> {
+    value.filter(|value| !value.is_empty()).map(|value| {
+        let root = PathBuf::from(value);
+        path::absolute(&root).unwrap_or(root)
+    })
 }
 
 fn resolve_sage_root(root: Option<PathBuf>, data_dir: Option<PathBuf>) -> Option<PathBuf> {
@@ -35,6 +38,27 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+
+    #[test]
+    fn unset_or_empty_root_is_ignored() {
+        assert_eq!(parse_sage_root(None), None);
+        assert_eq!(parse_sage_root(Some(OsString::new())), None);
+    }
+
+    #[test]
+    fn relative_root_is_made_absolute() {
+        let root = parse_sage_root(Some("relative/sage".into())).unwrap();
+
+        assert!(root.is_absolute());
+        assert_eq!(root, env::current_dir().unwrap().join("relative/sage"));
+    }
+
+    #[test]
+    fn absolute_root_is_kept() {
+        let root = env::temp_dir().join("sage");
+
+        assert_eq!(parse_sage_root(Some(root.clone().into())), Some(root));
+    }
 
     #[test]
     fn environment_root_overrides_data_directory() {

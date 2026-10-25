@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use anyhow::Result as AnyResult;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use anyhow::anyhow;
@@ -7,10 +5,8 @@ use tauri::{AppHandle, Manager, State, command};
 #[cfg(any(target_os = "macos", target_os = "ios", target_os = "windows"))]
 use uuid::Uuid;
 #[cfg(target_os = "windows")]
-use {anyhow::Context, std::fs};
+use {anyhow::Context, std::fs, std::path::Path};
 
-#[cfg(target_os = "windows")]
-use crate::data_directory_for;
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 use crate::parse_data_store_id;
 use crate::{
@@ -18,6 +14,8 @@ use crate::{
     ResolvedStoppedApp, SageAppStorage, SharedSageApp, find_runtime_by_app_id_optional,
     fresh_origin_id, resolve_stopped_app, run_origin_cleanup, start_user_app,
 };
+#[cfg(target_os = "windows")]
+use crate::{windows_profile_dir, windows_profiles_dir};
 
 pub(crate) struct RegisteredSageAppStorage {
     pub(crate) storage_id: i64,
@@ -62,16 +60,15 @@ pub async fn apps_clear_runtime_browsing_data(
 pub(crate) async fn allocate_new_storage(
     app: &AppHandle,
     host_state: &State<'_, AppsHostState>,
-    base_path: &Path,
 ) -> AnyResult<RegisteredSageAppStorage> {
     #[cfg(any(target_os = "macos", target_os = "ios"))]
-    let storage = allocate_new_os_storage(app, base_path).await?;
+    let storage = allocate_new_os_storage(app).await?;
 
     #[cfg(target_os = "windows")]
-    let storage = allocate_new_os_storage(app, base_path)?;
+    let storage = allocate_new_os_storage(app, &host_state.webview_root)?;
 
     #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-    let storage = allocate_new_os_storage(app, base_path);
+    let storage = allocate_new_os_storage(app);
 
     let storage_id = host_state.db.register_storage(&storage).await?;
 
@@ -82,10 +79,7 @@ pub(crate) async fn allocate_new_storage(
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
-pub async fn allocate_new_os_storage(
-    app: &AppHandle,
-    _base_path: &Path,
-) -> AnyResult<SageAppStorage> {
+pub async fn allocate_new_os_storage(app: &AppHandle) -> AnyResult<SageAppStorage> {
     loop {
         let identifier = *Uuid::new_v4().as_bytes();
         let existing_ids = app
@@ -102,8 +96,8 @@ pub async fn allocate_new_os_storage(
 }
 
 #[cfg(target_os = "windows")]
-pub fn allocate_new_os_storage(_app: &AppHandle, base_path: &Path) -> AnyResult<SageAppStorage> {
-    let profiles_root = base_path.join("profiles");
+pub fn allocate_new_os_storage(_app: &AppHandle, webview_root: &Path) -> AnyResult<SageAppStorage> {
+    let profiles_root = windows_profiles_dir(webview_root);
     fs::create_dir_all(&profiles_root).with_context(|| {
         format!(
             "failed to create profiles directory {}",
@@ -113,7 +107,7 @@ pub fn allocate_new_os_storage(_app: &AppHandle, base_path: &Path) -> AnyResult<
 
     loop {
         let directory_name = format!("profile-{}", Uuid::new_v4());
-        let candidate = profiles_root.join(&directory_name);
+        let candidate = windows_profile_dir(webview_root, &directory_name);
 
         if !candidate.exists() {
             return Ok(SageAppStorage::WindowsProfile { directory_name });
@@ -122,7 +116,7 @@ pub fn allocate_new_os_storage(_app: &AppHandle, base_path: &Path) -> AnyResult<
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
-pub fn allocate_new_os_storage(_app: &AppHandle, _base_path: &Path) -> SageAppStorage {
+pub fn allocate_new_os_storage(_app: &AppHandle) -> SageAppStorage {
     SageAppStorage::Unmanaged
 }
 
@@ -165,7 +159,7 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle) -> AnyResult<()> {
                     .map_err(anyhow::Error::msg)?;
 
                 #[cfg(target_os = "windows")]
-                clear_app_storage_by_target(app, &host_state.root, &target.storage)
+                clear_app_storage_by_target(app, &host_state.webview_root, &target.storage)
                     .map_err(anyhow::Error::msg)?;
 
                 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
@@ -217,13 +211,13 @@ pub async fn clear_app_storage_by_target(
 #[cfg(target_os = "windows")]
 pub fn clear_app_storage_by_target(
     _app: &AppHandle,
-    base_path: &Path,
+    webview_root: &Path,
     target: &SageAppStorage,
 ) -> Result<(), String> {
     match target {
         #[cfg(target_os = "windows")]
         SageAppStorage::WindowsProfile { directory_name } => {
-            let profile_dir = base_path.join(data_directory_for(directory_name));
+            let profile_dir = windows_profile_dir(webview_root, directory_name);
 
             match fs::remove_dir_all(&profile_dir) {
                 Ok(()) => {}
@@ -263,7 +257,7 @@ pub(crate) async fn rotate_app_storage_and_origin(
 ) -> Result<(), String> {
     let app_id = app.id();
 
-    let next_storage = allocate_new_storage(app_handle, apps_state, &apps_state.root)
+    let next_storage = allocate_new_storage(app_handle, apps_state)
         .await
         .map_err(|err| format!("failed to allocate rotated storage: {err}"))?;
 

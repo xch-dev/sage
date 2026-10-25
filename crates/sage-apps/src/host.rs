@@ -18,7 +18,15 @@ pub type AppState = Arc<Mutex<Sage>>;
 
 #[derive(Debug)]
 pub struct AppsHostState {
+    /// The Sage root, which holds the apps database and installed app files.
     pub(crate) root: PathBuf,
+    /// The webview data directory of the main window. On Windows, app profiles are created inside
+    /// it, and on Linux, app webviews share it. It's kept out of the Sage root by default, because
+    /// on Windows that is in roaming app data, where webview data shouldn't be stored.
+    pub webview_root: PathBuf,
+    /// Distinguishes the deterministic data stores of builtin apps on macOS between Sage roots.
+    /// It's `None` for the default root.
+    pub(crate) builtin_storage_namespace: Option<String>,
     pub app_operation_locks: RwLock<HashMap<String, Arc<Mutex<()>>>>,
     pub app_update_locks: RwLock<HashSet<String>>,
     pub runtime: AppRuntimeState,
@@ -29,9 +37,11 @@ pub struct AppsHostState {
 }
 
 impl AppsHostState {
-    pub fn new(root: PathBuf, db: AppsDb) -> Self {
+    pub fn new(root: PathBuf, webview_root: PathBuf, db: AppsDb) -> Self {
         Self {
             root,
+            webview_root,
+            builtin_storage_namespace: None,
             app_operation_locks: RwLock::default(),
             app_update_locks: RwLock::default(),
             runtime: AppRuntimeState::default(),
@@ -40,6 +50,12 @@ impl AppsHostState {
             environment: AppsEnvironmentState::default(),
             db,
         }
+    }
+
+    #[must_use]
+    pub fn with_builtin_storage_namespace(mut self, namespace: Option<String>) -> Self {
+        self.builtin_storage_namespace = namespace;
+        self
     }
 
     pub fn operation_lock_for_app(&self, app_id: &str) -> Arc<Mutex<()>> {

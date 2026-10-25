@@ -94,7 +94,6 @@ impl BridgeMethod for AppRequestNetworkWhitelistGrant {
         let grant_result = grant_network_whitelist_entry(
             tools.app_handle,
             tools.host_state,
-            &tools.host_state.root,
             &ctx.app.id(),
             params.network_id.as_deref(),
             &params.entry,

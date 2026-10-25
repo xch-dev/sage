@@ -1,6 +1,7 @@
-use std::path::Path;
-#[cfg(all(debug_assertions, not(mobile)))]
-use std::path::PathBuf;
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use app_state::{AppState, Initialized, RpcTask};
 use rustls::crypto::aws_lc_rs::default_provider;
@@ -279,13 +280,22 @@ pub fn run() {
             builder.mount_events(app);
 
             let default_root = app.path().app_data_dir()?;
+            let root_override = resolve_root_override(&default_root)?;
 
-            // Pointing `SAGE_ROOT` at the default root shouldn't hide the main webview's existing
-            // storage, such as WalletConnect sessions and settings.
-            let root_override = sage_config::sage_root_override()
-                .filter(|root| !is_same_path(root, &default_root));
+            // This is also Tauri's default data directory for webviews on Windows and Linux.
+            let webview_root = match &root_override {
+                Some(root) => root.join("webview"),
+                None => app.path().app_local_data_dir()?,
+            };
 
-            create_main_window(app, root_override.as_deref())?;
+            // WebKit data stores are global on macOS, so a custom root needs its own.
+            let data_store_identifier = if cfg!(target_os = "macos") && root_override.is_some() {
+                Some(load_data_store_identifier(&webview_root)?)
+            } else {
+                None
+            };
+
+            create_main_window(app, &webview_root, data_store_identifier)?;
 
             let path = root_override.unwrap_or(default_root);
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
@@ -315,7 +325,13 @@ pub fn run() {
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
 
-                app.manage(AppsHostState::new(path.clone(), apps_db));
+                app.manage(
+                    AppsHostState::new(path.clone(), webview_root, apps_db)
+                        .with_builtin_storage_namespace(
+                            data_store_identifier
+                                .map(|identifier| uuid::Uuid::from_bytes(identifier).to_string()),
+                        ),
+                );
 
                 apps::start_background_app_update_checker(app.handle().clone());
 
@@ -341,11 +357,45 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+/// Returns the root set by `SAGE_ROOT`, unless it's the default root.
+///
+/// `SAGE_ROOT` is ignored on mobile, where each app has a single sandboxed data directory.
+fn resolve_root_override(default_root: &Path) -> anyhow::Result<Option<PathBuf>> {
+    if cfg!(mobile) {
+        return Ok(None);
+    }
+
+    let Some(root) = sage_config::sage_root_override() else {
+        return Ok(None);
+    };
+
+    // The root has to exist to be compared reliably with the default root.
+    fs::create_dir_all(&root).map_err(|err| {
+        anyhow::anyhow!(
+            "failed to create {} directory {}: {err}",
+            sage_config::SAGE_ROOT_ENV,
+            root.display()
+        )
+    })?;
+
+    // Pointing `SAGE_ROOT` at the default root shouldn't hide the main webview's existing
+    // storage, such as WalletConnect sessions and settings.
+    if is_same_path(&root, default_root) {
+        return Ok(None);
+    }
+
+    Ok(Some(root))
+}
+
 /// Creates the main window from `tauri.conf.json`, where it is declared with `"create": false`.
 ///
-/// When `SAGE_ROOT` is set, the main webview gets its own storage so that frontend state such as
-/// local storage isn't shared with instances using a different root.
-fn create_main_window(app: &tauri::App, isolated_root: Option<&Path>) -> tauri::Result<()> {
+/// When `SAGE_ROOT` is set, the main webview gets its own storage so that frontend state, such as
+/// `WalletConnect` sessions and settings, isn't shared with instances using a different root.
+fn create_main_window(
+    app: &tauri::App,
+    webview_root: &Path,
+    data_store_identifier: Option<[u8; 16]>,
+) -> anyhow::Result<()> {
     let config = app
         .config()
         .app
@@ -356,20 +406,32 @@ fn create_main_window(app: &tauri::App, isolated_root: Option<&Path>) -> tauri::
     #[allow(unused_mut)]
     let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), config)?;
 
-    if let Some(root) = isolated_root {
-        #[cfg(any(target_os = "windows", target_os = "linux"))]
-        {
-            builder = builder.data_directory(root.join("webview"));
-        }
-
-        #[cfg(target_os = "macos")]
-        {
-            builder = builder.data_store_identifier(data_store_identifier_for(root));
-        }
-
-        #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-        let _ = root;
+    // Set explicitly, since app webviews share or nest inside this directory.
+    #[cfg(any(target_os = "windows", target_os = "linux"))]
+    {
+        builder = builder.data_directory(webview_root.to_path_buf());
     }
+
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    let _ = webview_root;
+
+    #[cfg(target_os = "macos")]
+    if let Some(identifier) = data_store_identifier {
+        if supports_data_store_identifiers() {
+            builder = builder.data_store_identifier(identifier);
+        } else {
+            // WebKit would silently fall back to the default data store, which is shared with the
+            // default root. Keep the storage in memory instead.
+            tracing::warn!(
+                "macOS 14 or later is required to persist webview storage with {}",
+                sage_config::SAGE_ROOT_ENV
+            );
+            builder = builder.incognito(true);
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = data_store_identifier;
 
     builder.build()?;
 
@@ -384,17 +446,44 @@ fn is_same_path(a: &Path, b: &Path) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-fn data_store_identifier_for(root: &Path) -> [u8; 16] {
-    use chia_wallet_sdk::chia::sha2::Sha256;
+fn supports_data_store_identifiers() -> bool {
+    // Treat an unknown version as unsupported, so storage is never shared by mistake.
+    matches!(
+        tauri_plugin_os::version(),
+        tauri_plugin_os::Version::Semantic(major, _, _) if major >= 14
+    )
+}
 
-    let mut hasher = Sha256::new();
-    hasher.update(b"sage-main-webview:");
-    hasher.update(root.as_os_str().as_encoded_bytes());
+/// Loads the identifier of the main webview's data store, generating it on first use.
+///
+/// The identifier is random and stored inside the root, so deleting the root also abandons its
+/// webview storage, and different spellings of the same root path share it.
+fn load_data_store_identifier(webview_root: &Path) -> anyhow::Result<[u8; 16]> {
+    let path = webview_root.join("data-store-id");
 
-    let hash = hasher.finalize();
-    let mut identifier = [0; 16];
-    identifier.copy_from_slice(&hash[..16]);
-    identifier
+    match fs::read_to_string(&path) {
+        Ok(contents) => match uuid::Uuid::parse_str(contents.trim()) {
+            Ok(identifier) => return Ok(*identifier.as_bytes()),
+            Err(err) => tracing::warn!(
+                "replacing invalid webview data store identifier in {}: {err}",
+                path.display()
+            ),
+        },
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+        Err(err) => anyhow::bail!("failed to read {}: {err}", path.display()),
+    }
+
+    let identifier = uuid::Uuid::new_v4();
+
+    fs::create_dir_all(webview_root)
+        .map_err(|err| anyhow::anyhow!("failed to create {}: {err}", webview_root.display()))?;
+
+    let temp_path = path.with_extension("tmp");
+    fs::write(&temp_path, identifier.to_string())
+        .and_then(|()| fs::rename(&temp_path, &path))
+        .map_err(|err| anyhow::anyhow!("failed to write {}: {err}", path.display()))?;
+
+    Ok(*identifier.as_bytes())
 }
 
 #[cfg(test)]
@@ -414,6 +503,33 @@ mod tests {
             &dir.path().join("missing"),
             &dir.path().join("missing/")
         ));
+    }
+
+    #[test]
+    fn data_store_identifier_is_persisted() {
+        let dir = tempfile::tempdir().unwrap();
+        let webview_root = dir.path().join("webview");
+
+        let identifier = load_data_store_identifier(&webview_root).unwrap();
+
+        assert_eq!(
+            load_data_store_identifier(&webview_root).unwrap(),
+            identifier
+        );
+        assert_ne!(
+            load_data_store_identifier(&dir.path().join("other")).unwrap(),
+            identifier
+        );
+    }
+
+    #[test]
+    fn invalid_data_store_identifier_is_replaced() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("data-store-id"), "invalid").unwrap();
+
+        let identifier = load_data_store_identifier(dir.path()).unwrap();
+
+        assert_eq!(load_data_store_identifier(dir.path()).unwrap(), identifier);
     }
 
     #[test]

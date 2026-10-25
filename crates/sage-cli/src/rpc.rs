@@ -45,7 +45,7 @@ impl_endpoints! {
                     Ok(())
                 },
                 (repeat Self::Endpoint { body } => {
-                    let client = Client::from_dir(&sage_root()?)?;
+                    let client = Client::new()?;
                     handle(client.endpoint(body).await);
                     Ok(())
                 } ,)
