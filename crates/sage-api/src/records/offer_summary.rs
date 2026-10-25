@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{Amount, Asset};
+use crate::{Amount, Asset, NftUpdaterKind};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
@@ -22,6 +22,12 @@ pub struct OfferAsset {
     pub royalty: Amount,
     pub nft_royalty: Option<NftRoyalty>,
     pub option_assets: Option<OptionAssets>,
+    /// The metadata updater kind, if the asset is an NFT. Mutable NFTs can have all of
+    /// their metadata replaced by the owner, including after the offer is accepted.
+    pub nft_metadata_updater_kind: Option<NftUpdaterKind>,
+    /// The owner-editable display name (`dn`) from `XCHandles` metadata, if the asset is
+    /// an NFT that has one.
+    pub nft_display_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

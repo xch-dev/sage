@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use chia_wallet_sdk::{chia::puzzle_types::nft::NftMetadata, driver::BURN_PUZZLE_HASH, prelude::*};
+use chia_wallet_sdk::{driver::BURN_PUZZLE_HASH, prelude::*};
 use sage_api::{
     Amount, CoinJson, CoinSpendJson, SpendBundleJson, TransactionInput, TransactionOutput,
     TransactionSummary,
 };
 use sage_assets::{Data, base64_data_uri};
-use sage_database::{Asset, AssetKind, Database};
+use sage_database::{Asset, AssetKind, Database, ParsedNftMetadata};
 use sage_wallet::{CoinKind, Transaction, compute_nft_info};
 
 use crate::{Error, Result, Sage};
@@ -57,8 +57,14 @@ impl Sage {
                     let metadata = info.metadata.to_clvm(&mut allocator)?;
                     p2_puzzle_hash = info.p2_puzzle_hash;
                     Some(
-                        self.cache_nft(&allocator, info.launcher_id, metadata, &mut cache)
-                            .await?,
+                        self.cache_nft(
+                            &allocator,
+                            info.launcher_id,
+                            metadata,
+                            info.metadata_updater_puzzle_hash,
+                            &mut cache,
+                        )
+                        .await?,
                     )
                 }
                 CoinKind::Did { info, .. } => {
@@ -139,7 +145,7 @@ pub struct ExtractedNftData {
 
 pub async fn extract_nft_data(
     db: Option<&Database>,
-    onchain_metadata: Option<NftMetadata>,
+    onchain_metadata: Option<ParsedNftMetadata>,
     cache: &ConfirmationInfo,
 ) -> Result<ExtractedNftData> {
     let mut result = ExtractedNftData::default();

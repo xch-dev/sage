@@ -10,6 +10,30 @@ pub enum NftSpecialUseType {
     Theme,
 }
 
+/// The kind of metadata updater puzzle an NFT uses, which determines how its
+/// on-chain metadata can change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "tauri", derive(specta::Type))]
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[serde(rename_all = "snake_case")]
+pub enum NftUpdaterKind {
+    /// The standard CHIP-7 updater. Metadata is append-only: URIs can be added, but
+    /// nothing else can change.
+    Default,
+    /// The any metadata updater, used by `XCHandles`. The owner can replace all metadata
+    /// at any time.
+    Any,
+    /// An updater that isn't recognized. Its metadata should be treated as mutable.
+    Unknown,
+}
+
+impl NftUpdaterKind {
+    /// Whether the owner may be able to change metadata beyond appending URIs.
+    pub fn is_mutable(self) -> bool {
+        !matches!(self, Self::Default)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(feature = "tauri", derive(specta::Type))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -22,6 +46,10 @@ pub struct NftRecord {
     pub visible: bool,
     pub sensitive_content: bool,
     pub name: Option<String>,
+    /// The owner-editable display name (`dn`) from `XCHandles` metadata. This is a display
+    /// value and lookup hint only, and doesn't prove ownership of a handle.
+    pub display_name: Option<String>,
+    pub metadata_updater_kind: NftUpdaterKind,
     pub created_height: Option<u32>,
     pub coin_id: String,
     pub address: String,

@@ -5,7 +5,7 @@ use chia_wallet_sdk::{
     types::puzzles::{ANY_METADATA_UPDATER_HASH, HandleNftMetadata},
 };
 
-use crate::{Convert, DatabaseError, Result};
+use crate::{Convert, DatabaseError, Result, SerializedNftInfo};
 
 /// The maximum number of characters kept from an on-chain display name.
 const MAX_DISPLAY_NAME_CHARS: usize = 128;
@@ -16,7 +16,7 @@ const MAX_DISPLAY_NAME_CHARS: usize = 128;
 pub enum NftUpdaterKind {
     /// The standard CHIP-7 updater, which can only append URIs.
     Default = 0,
-    /// The updater used by XCHandles, which lets the owner replace all metadata.
+    /// The updater used by `XCHandles`, which lets the owner replace all metadata.
     Any = 1,
     /// An updater Sage doesn't recognize, so nothing is known about its behavior.
     Unknown = 2,
@@ -53,7 +53,7 @@ impl Convert<NftUpdaterKind> for i64 {
 /// On-chain NFT metadata, parsed according to the NFT's metadata updater.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedNftMetadata {
-    /// The `dn` field of XCHandles metadata. This is owner-editable display data
+    /// The `dn` field of `XCHandles` metadata. This is owner-editable display data
     /// and a lookup hint only, never proof of handle ownership.
     pub display_name: Option<String>,
     pub data_uris: Vec<String>,
@@ -84,6 +84,16 @@ impl ParsedNftMetadata {
         let mut allocator = Allocator::new();
         let ptr = program.to_clvm(&mut allocator).ok()?;
         Self::parse(&allocator, ptr, kind)
+    }
+}
+
+impl SerializedNftInfo {
+    pub fn metadata_updater_kind(&self) -> NftUpdaterKind {
+        NftUpdaterKind::from_puzzle_hash(self.metadata_updater_puzzle_hash)
+    }
+
+    pub fn parsed_metadata(&self) -> Option<ParsedNftMetadata> {
+        ParsedNftMetadata::parse_program(&self.metadata, self.metadata_updater_kind())
     }
 }
 
@@ -154,7 +164,7 @@ mod tests {
 
     use super::*;
 
-    /// The on-chain metadata of the `@yakuhito` XCHandles NFT on mainnet
+    /// The on-chain metadata of the `@yakuhito` `XCHandles` NFT on mainnet
     /// (launcher `dfc272581333cf5b1b3b584d216966e4f543fb1bfc2b6ef3a78b389f18b7a37e`).
     const YAKUHITO_METADATA: [u8; 298] = hex!(
         "

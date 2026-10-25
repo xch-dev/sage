@@ -104,6 +104,14 @@ impl Sage {
                 sage_api::Action::UpdateNft(action) => {
                     let id = parse_id(action.id)?;
 
+                    // NFTs minted in this transaction use the default updater, but existing
+                    // NFTs may not support appending URIs.
+                    if !action.new_uris.is_empty()
+                        && let Id::Existing(nft_id) = id
+                    {
+                        wallet.ensure_append_only_nft(nft_id).await?;
+                    }
+
                     let mut metadata_update_spends = vec![];
 
                     for uri in action.new_uris {

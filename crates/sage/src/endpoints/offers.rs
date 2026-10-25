@@ -1,5 +1,4 @@
 use chia_wallet_sdk::{
-    chia::puzzle_types::nft::NftMetadata,
     driver::{coin_amount, decode_offer, encode_offer},
     prelude::*,
 };
@@ -13,7 +12,9 @@ use sage_api::{
     ViewOffer, ViewOfferResponse,
 };
 use sage_assets::fetch_uris_with_hash;
-use sage_database::{AssetKind, OfferRow, OfferStatus, OfferedAsset};
+use sage_database::{
+    AssetKind, NftUpdaterKind, OfferRow, OfferStatus, OfferedAsset, ParsedNftMetadata,
+};
 use sage_wallet::{
     Offered, Requested, RequestedCat, SyncCommand, TakenOffer, Transaction, Wallet, WalletError,
     aggregate_offers, insert_transaction, sort_offer,
@@ -22,9 +23,9 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::debug;
 
 use crate::{
-    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
-    offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id, selectable_coin_ids,
+    ConfirmationInfo, Error, ExtractedNftData, Result, Sage, encode_nft_updater_kind,
+    extract_nft_data, json_bundle, offer_expiration, parse_amount, parse_asset_id, parse_coin_ids,
+    parse_hash, parse_nft_id, parse_offer_id, parse_option_id, selectable_coin_ids,
 };
 
 #[derive(Debug, Clone)]
@@ -323,7 +324,11 @@ impl Sage {
         let testnet = self.network().genesis_challenge == TESTNET11_CONSTANTS.genesis_challenge;
 
         for nft in offer.offered_coins().nfts.values() {
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.info.metadata.ptr()) {
+            let _info = if let Some(metadata) = ParsedNftMetadata::parse(
+                &ctx,
+                nft.info.metadata.ptr(),
+                NftUpdaterKind::from_puzzle_hash(nft.info.metadata_updater_puzzle_hash),
+            ) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
@@ -407,11 +412,16 @@ impl Sage {
                 &ctx,
                 launcher_id,
                 nft.metadata.ptr(),
+                nft.metadata_updater_puzzle_hash,
                 &mut ConfirmationInfo::default(),
             )
             .await?;
 
-            let _info = if let Ok(metadata) = ctx.extract::<NftMetadata>(nft.metadata.ptr()) {
+            let _info = if let Some(metadata) = ParsedNftMetadata::parse(
+                &ctx,
+                nft.metadata.ptr(),
+                NftUpdaterKind::from_puzzle_hash(nft.metadata_updater_puzzle_hash),
+            ) {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
@@ -642,10 +652,15 @@ impl Sage {
             ..
         } in assets
         {
-            let nft_royalty = if asset.kind == AssetKind::Nft {
-                let info = wallet.db.offer_nft_info(asset.hash).await?;
+            let nft_info = if asset.kind == AssetKind::Nft {
+                wallet.db.offer_nft_info(asset.hash).await?
+            } else {
+                None
+            };
 
-                info.map(|info| {
+            let nft_royalty = nft_info
+                .as_ref()
+                .map(|info| {
                     Result::Ok(NftRoyalty {
                         royalty_address: Address::new(
                             info.royalty_puzzle_hash,
@@ -655,10 +670,16 @@ impl Sage {
                         royalty_basis_points: info.royalty_basis_points,
                     })
                 })
-                .transpose()?
-            } else {
-                None
-            };
+                .transpose()?;
+
+            let nft_metadata_updater_kind = nft_info
+                .as_ref()
+                .map(|info| encode_nft_updater_kind(info.metadata_updater_kind()));
+
+            let nft_display_name = nft_info.and_then(|info| {
+                ParsedNftMetadata::parse_program(&info.metadata, info.metadata_updater_kind())
+                    .and_then(|metadata| metadata.display_name)
+            });
 
             let option_assets = if asset.kind == AssetKind::Option {
                 let Some(row) = wallet.db.option_assets(asset.hash).await? else {
@@ -682,6 +703,8 @@ impl Sage {
                 asset: self.encode_asset(asset)?,
                 nft_royalty,
                 option_assets,
+                nft_metadata_updater_kind,
+                nft_display_name,
             };
 
             if is_requested {
