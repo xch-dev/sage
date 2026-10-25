@@ -6,7 +6,7 @@ use crate::{
 };
 use chia_wallet_sdk::utils::Address;
 use reqwest::StatusCode;
-use sage::Error;
+use sage::{Error, Sage};
 use sage_api::{wallet_connect::*, *};
 use sage_api_macro::impl_endpoints_tauri;
 #[cfg(not(mobile))]
@@ -69,7 +69,11 @@ impl_endpoints_tauri! {
         #[command]
         #[specta]
         pub async fn endpoint(state: State<'_, AppState>, req: Endpoint) -> Result<EndpointResponse> {
-            Ok(state.lock().await.endpoint(req) maybe_await?)
+            (if_unlocked {
+                Ok(Sage::endpoint(&state, req).await?)
+            } {
+                Ok(state.lock().await.endpoint(req) maybe_await?)
+            })
         }
     )
 }

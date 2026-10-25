@@ -312,10 +312,14 @@ impl SyncManager {
                 if let Some(wallet) = self.wallet.as_ref() {
                     // Handle mappings verified against blocks above the fork point must be
                     // verified again, since those blocks may no longer be in the chain.
-                    wallet
+                    // This must not stop the coin states below from being processed.
+                    if let Err(error) = wallet
                         .db
                         .invalidate_xchandles_above(message.fork_height)
-                        .await?;
+                        .await
+                    {
+                        warn!("Failed to invalidate handle mappings after a reorg: {error}");
+                    }
 
                     let unspent_count = message
                         .items

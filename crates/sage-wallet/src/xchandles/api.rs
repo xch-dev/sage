@@ -38,17 +38,17 @@ pub enum XchandlesApiError {
 }
 
 impl XchandlesApiError {
-    /// Whether the error is caused by the API or the connection to it being unavailable,
-    /// rather than by the API's answer. Only these may fall back to cached resolutions.
+    /// Whether the API failed to give an answer about the handle, rather than answering
+    /// that it isn't registered. This includes rate limiting, server errors, responses that
+    /// can't be parsed (such as a captive portal page), and a misconfigured API URL, none of
+    /// which say anything about the handle itself.
     pub fn is_unavailable(&self) -> bool {
-        match self {
-            Self::IndexStale | Self::Request(..) => true,
-            Self::Status { status, .. } => *status >= 500,
-            Self::HandleNotFound
-            | Self::HandleExpired
-            | Self::InvalidUrl(..)
-            | Self::InvalidResponse(..) => false,
-        }
+        !self.is_not_registered()
+    }
+
+    /// Whether the API answered that the handle has no live registration.
+    pub fn is_not_registered(&self) -> bool {
+        matches!(self, Self::HandleNotFound | Self::HandleExpired)
     }
 }
 
@@ -342,6 +342,7 @@ mod tests {
     fn test_decode_errors() {
         let error = decode::<HandleResponse>(StatusCode::NOT_FOUND, NOT_FOUND_FIXTURE.as_bytes());
         assert!(matches!(error, Err(XchandlesApiError::HandleNotFound)));
+        assert!(!error.unwrap_err().is_unavailable());
 
         let body = r#"{"code":"handle_expired","message":"Handle expired","request_id":"x"}"#;
         let error = decode::<HandleResponse>(StatusCode::GONE, body.as_bytes());
@@ -358,15 +359,23 @@ mod tests {
         assert!(
             matches!(&error, XchandlesApiError::Status { status: 400, code, .. } if code == "invalid_handle")
         );
-        assert!(!error.is_unavailable());
+        assert!(error.is_unavailable());
+
+        let body = r#"{"code":"rate_limited","message":"Slow down","request_id":"x"}"#;
+        let error = decode::<HandleResponse>(StatusCode::TOO_MANY_REQUESTS, body.as_bytes())
+            .unwrap_err();
+        assert!(matches!(&error, XchandlesApiError::Status { status: 429, .. }));
+        assert!(error.is_unavailable());
 
         let error = decode::<HandleResponse>(StatusCode::BAD_GATEWAY, b"<html>bad gateway</html>")
             .unwrap_err();
         assert!(matches!(&error, XchandlesApiError::Status { status: 502, .. }));
         assert!(error.is_unavailable());
 
-        let error = decode::<HandleResponse>(StatusCode::OK, b"{}").unwrap_err();
+        // For example, a captive portal page.
+        let error = decode::<HandleResponse>(StatusCode::OK, b"<html>Sign in</html>").unwrap_err();
         assert!(matches!(error, XchandlesApiError::InvalidResponse(..)));
+        assert!(error.is_unavailable());
     }
 
     #[test]
@@ -395,6 +404,8 @@ mod tests {
             "http://localhost:8080/v1/price"
         );
 
-        assert!(XchandlesClient::new("not a url", launcher_id).is_err());
+        let error = XchandlesClient::new("not a url", launcher_id).unwrap_err();
+        assert!(matches!(error, XchandlesApiError::InvalidUrl(..)));
+        assert!(error.is_unavailable());
     }
 }

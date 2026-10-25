@@ -6,9 +6,13 @@
 //!   stored mapping never stands in for a lookup that succeeded or was rejected.
 //! - When the API or peers are unavailable, a mapping that was verified within
 //!   [`OFFLINE_MAX_AGE_SECONDS`] is returned instead, marked as cached, as long as it has
-//!   not expired by the later of the local clock and the peak it was verified at.
-//! - A rejected lookup marks the stored mapping unverified, and a reorg below anything it
-//!   was verified against marks it stale. Neither can be used offline until verified again.
+//!   not expired by the later of the local clock and the peak it was verified at. This
+//!   includes rate limiting, server errors, unparseable responses, and an API whose view
+//!   of the chain is behind.
+//! - A lookup whose answer is rejected, or which shows the handle is no longer registered,
+//!   marks the stored mapping unverified, and a reorg below anything it was verified against
+//!   marks it stale. Neither can be used offline until verified again. Lookups which fail
+//!   for any other reason leave the stored mapping untouched.
 //! - Mappings are stored per registry launcher ID, and each wallet database belongs to a
 //!   single network, so mappings never cross deployments or networks.
 //! - If a verification finds a different resolved address than the last verified one, the
@@ -109,6 +113,10 @@ pub fn usable_offline(row: &XchandleRow, now: u64) -> bool {
 
 /// Runs a verified lookup and records its outcome in the store, falling back to the
 /// stored mapping only if the lookup couldn't be performed.
+///
+/// The stored mapping is read after the lookup, in the same transaction as the write, so
+/// changes made while the lookup was in flight (such as recording the address last sent
+/// to, or acknowledging a change) aren't overwritten.
 pub async fn resolve_and_store(
     db: &Database,
     registry_launcher_id: Bytes32,
@@ -116,29 +124,36 @@ pub async fn resolve_and_store(
     now: u64,
     lookup: impl Future<Output = Result<VerifiedHandle, XchandlesError>>,
 ) -> Result<HandleResolution, XchandlesError> {
-    let previous = db.xchandle(registry_launcher_id, handle.as_str()).await?;
-
-    match lookup.await {
+    let error = match lookup.await {
         Ok(verified) => {
-            let row = verified_row(previous.as_ref(), &verified, now);
-            db.upsert_xchandle(&row).await?;
-            Ok(HandleResolution { row, cached: false })
-        }
-        Err(error) if error.is_unavailable() => match previous {
-            Some(row) if usable_offline(&row, now) => Ok(HandleResolution { row, cached: true }),
-            _ => Err(error),
-        },
-        Err(error) => {
-            if previous.is_some() {
-                db.set_xchandle_status(
-                    registry_launcher_id,
-                    handle.as_str(),
-                    XchandleStatus::Unverified,
-                    Some(&error.to_string()),
-                )
+            let mut tx = db.tx().await?;
+            let previous = tx
+                .xchandle(registry_launcher_id, handle.as_str())
                 .await?;
-            }
-            Err(error)
+            let row = verified_row(previous.as_ref(), &verified, now);
+            tx.upsert_xchandle(&row).await?;
+            tx.commit().await?;
+            return Ok(HandleResolution { row, cached: false });
         }
+        Err(error) => error,
+    };
+
+    if error.is_unavailable() {
+        if let Some(row) = db.xchandle(registry_launcher_id, handle.as_str()).await?
+            && usable_offline(&row, now)
+        {
+            return Ok(HandleResolution { row, cached: true });
+        }
+    } else if error.is_rejection() {
+        // Only affects an existing mapping, keeping its last verified values.
+        db.set_xchandle_status(
+            registry_launcher_id,
+            handle.as_str(),
+            XchandleStatus::Unverified,
+            Some(&error.to_string()),
+        )
+        .await?;
     }
+
+    Err(error)
 }

@@ -1,7 +1,7 @@
 use chia_wallet_sdk::prelude::*;
 use sqlx::SqliteExecutor;
 
-use crate::{Convert, Database, DatabaseError, Result};
+use crate::{Convert, Database, DatabaseError, DatabaseTx, Result};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
@@ -112,6 +112,20 @@ impl Database {
         puzzle_hash: Bytes32,
     ) -> Result<()> {
         set_xchandle_last_sent(&self.pool, registry_launcher_id, handle, puzzle_hash).await
+    }
+}
+
+impl DatabaseTx<'_> {
+    pub async fn xchandle(
+        &mut self,
+        registry_launcher_id: Bytes32,
+        handle: &str,
+    ) -> Result<Option<XchandleRow>> {
+        xchandle(&mut *self.tx, registry_launcher_id, handle).await
+    }
+
+    pub async fn upsert_xchandle(&mut self, row: &XchandleRow) -> Result<()> {
+        upsert_xchandle(&mut *self.tx, row).await
     }
 }
 

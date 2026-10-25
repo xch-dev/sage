@@ -130,14 +130,6 @@ pub async fn verify_handle(
     let slot = handle_slot(registry_launcher_id, response)?;
     let slot_coin_id = slot.coin.coin_id();
 
-    // The expire action can be performed once the timestamp reaches the expiration.
-    if slot.info.value.expiration <= tip.timestamp {
-        return Err(XchandlesError::Expired {
-            expiration: slot.info.value.expiration,
-            peak_timestamp: tip.timestamp,
-        });
-    }
-
     let slot_state = peer
         .fetch_optional_coin(slot_coin_id, genesis_challenge)
         .await?;
@@ -150,6 +142,16 @@ pub async fn verify_handle(
     // likely means the API is behind, not that the handle has changed.
     if slot_state.is_some_and(|state| state.spent_height.is_some()) {
         return Err(XchandlesError::SlotSpent(slot_coin_id));
+    }
+
+    // The expire action can be performed once the timestamp reaches the expiration. This
+    // is only checked once the slot is confirmed, since until then the expiration is just
+    // the API's claim.
+    if slot.info.value.expiration <= tip.timestamp {
+        return Err(XchandlesError::Expired {
+            expiration: slot.info.value.expiration,
+            peak_timestamp: tip.timestamp,
+        });
     }
 
     let resolved_launcher_id = slot.info.value.resolved_launcher_id;

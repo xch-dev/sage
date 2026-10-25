@@ -354,6 +354,22 @@ async fn test_tampered_slot_value_is_not_verified() -> anyhow::Result<()> {
 }
 
 #[tokio::test]
+async fn test_unconfirmed_expiration_is_not_trusted() -> anyhow::Result<()> {
+    let setup = Setup::new().await?;
+
+    // An API claiming the handle has expired isn't believed until the slot carrying that
+    // expiration is found on chain.
+    let mut response = setup.response();
+    response.slot.expiration = 500;
+
+    let error = setup.verify(&response).await.unwrap_err();
+    assert!(matches!(error, XchandlesError::SlotNotFound(..)));
+    assert!(!error.is_rejection());
+
+    Ok(())
+}
+
+#[tokio::test]
 async fn test_slot_from_another_registry_is_rejected() -> anyhow::Result<()> {
     let setup = Setup::new().await?;
 
@@ -822,6 +838,64 @@ mod store {
         assert!(error.is_not_registered());
         let row = db.xchandle(registry(), "alice").await?.unwrap();
         assert_eq!(row.status, XchandleStatus::Unverified);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_unavailable_api_leaves_mapping_untouched() -> anyhow::Result<()> {
+        let db = test_db().await?;
+
+        let verified_row = store(&db, NOW, Ok(verified(A))).await?.row;
+
+        for error in [
+            XchandlesError::Api(XchandlesApiError::Status {
+                status: 429,
+                code: "rate_limited".to_string(),
+                message: String::new(),
+            }),
+            XchandlesError::Api(XchandlesApiError::InvalidResponse(
+                serde_json::from_str::<HandleResponse>("<html>").unwrap_err(),
+            )),
+            XchandlesError::Api(XchandlesApiError::InvalidUrl("not a url".to_string())),
+            XchandlesError::ResolutionUnavailable,
+            XchandlesError::SlotSpent(Bytes32::default()),
+        ] {
+            let resolution = store(&db, NOW, Err(error)).await?;
+            assert!(resolution.cached);
+        }
+
+        let row = db.xchandle(registry(), "alice").await?.unwrap();
+        assert_eq!(row, verified_row);
+
+        // Errors which are neither leave it untouched too.
+        let error = store(&db, NOW, Err(XchandlesError::UnsupportedNetwork))
+            .await
+            .unwrap_err();
+        assert!(matches!(error, XchandlesError::UnsupportedNetwork));
+        assert_eq!(db.xchandle(registry(), "alice").await?.unwrap(), verified_row);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_writes_during_lookup_are_kept() -> anyhow::Result<()> {
+        let db = test_db().await?;
+
+        store(&db, NOW, Ok(verified(A))).await?;
+        store(&db, NOW, Ok(verified(B))).await?;
+
+        // The address is sent to and the change acknowledged while a lookup is in flight.
+        let resolution = resolve_and_store(&db, registry(), &handle(), NOW, async {
+            db.set_xchandle_last_sent(registry(), "alice", B).await?;
+            db.acknowledge_xchandle_change(registry(), "alice").await?;
+            Ok(verified(B))
+        })
+        .await?;
+
+        assert_eq!(resolution.row.last_sent_puzzle_hash, Some(B));
+        assert_eq!(resolution.changed_from(), None);
+        assert_eq!(db.xchandle(registry(), "alice").await?.unwrap(), resolution.row);
 
         Ok(())
     }

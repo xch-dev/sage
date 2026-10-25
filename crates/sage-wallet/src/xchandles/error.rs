@@ -63,9 +63,8 @@ pub enum XchandlesError {
 impl XchandlesError {
     /// Whether the handle may have been valid, but couldn't be verified because the API,
     /// the peers, or the API's view of the chain was unavailable or out of date. These are
-    /// the only failures that may fall back to a previously verified resolution.
-    ///
-    /// Every other failure means the API's answer was rejected and must not be trusted.
+    /// the only failures that may fall back to a previously verified resolution, and they
+    /// leave the stored mapping untouched.
     pub fn is_unavailable(&self) -> bool {
         match self {
             Self::Api(error) => error.is_unavailable(),
@@ -73,6 +72,7 @@ impl XchandlesError {
             | Self::NoPeers
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
+            | Self::ResolutionUnavailable
             | Self::ResolvedSingletonNotFound(..) => true,
             Self::InvalidHandle(..)
             | Self::Database(..)
@@ -80,19 +80,41 @@ impl XchandlesError {
             | Self::ResponseMismatch
             | Self::InvalidLineage
             | Self::Expired { .. }
-            | Self::ResolutionUnavailable
             | Self::ResolvedSingletonMelted(..)
             | Self::InvalidResolvedSingleton(..)
             | Self::ResolvedSingletonInClawback(..) => false,
         }
     }
 
+    /// Whether the lookup produced an answer that was rejected, or showed that the handle
+    /// is no longer registered. The stored mapping is marked unverified when this happens.
+    pub fn is_rejection(&self) -> bool {
+        match self {
+            Self::Api(error) => error.is_not_registered(),
+            Self::ResponseMismatch
+            | Self::InvalidLineage
+            | Self::Expired { .. }
+            | Self::ResolvedSingletonMelted(..)
+            | Self::InvalidResolvedSingleton(..)
+            | Self::ResolvedSingletonInClawback(..) => true,
+            Self::InvalidHandle(..)
+            | Self::Wallet(..)
+            | Self::Database(..)
+            | Self::UnsupportedNetwork
+            | Self::NoPeers
+            | Self::SlotNotFound(..)
+            | Self::SlotSpent(..)
+            | Self::ResolutionUnavailable
+            | Self::ResolvedSingletonNotFound(..) => false,
+        }
+    }
+
     /// Whether the handle has no live registration, as opposed to a failed verification.
     pub fn is_not_registered(&self) -> bool {
-        matches!(
-            self,
-            Self::Api(XchandlesApiError::HandleNotFound | XchandlesApiError::HandleExpired)
-                | Self::Expired { .. }
-        )
+        match self {
+            Self::Api(error) => error.is_not_registered(),
+            Self::Expired { .. } => true,
+            _ => false,
+        }
     }
 }
