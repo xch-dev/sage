@@ -61,6 +61,23 @@ impl AppsDb {
             .map(Some)
     }
 
+    pub async fn list_storages(&self) -> Result<Vec<SageAppStorage>> {
+        let rows = sqlx::query("SELECT id, storage_json FROM sage_app_storages ORDER BY id ASC")
+            .fetch_all(&self.pool)
+            .await
+            .context("failed to list storages")?;
+
+        rows.into_iter()
+            .map(|row| {
+                let storage_id: i64 = row.try_get("id")?;
+                let storage_json: String = row.try_get("storage_json")?;
+
+                serde_json::from_str::<SageAppStorage>(&storage_json)
+                    .with_context(|| format!("failed to deserialize storage {storage_id}"))
+            })
+            .collect()
+    }
+
     pub async fn list_abandoned_storage_cleanup_targets(
         &self,
     ) -> Result<Vec<AbandonedStorageCleanupTarget>> {

@@ -6,7 +6,7 @@ use crate::{
     BridgeApprovalRequestResult, BridgeContext, BridgeHandleResult, BridgeMethod,
     BridgeMethodCapability, BridgeMethodHandleError, BridgeTools, GrantCapabilityOutcome,
     RustBridgeApprovalBody, RustBridgeApprovalRequest, RustBridgeRequest, UserBridgeCapability,
-    get_user_capability_definition, grant_capability, parse_required_params, resolve_app_base_path,
+    get_user_capability_definition, grant_capability, parse_required_params,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -90,12 +90,10 @@ impl BridgeMethod for AppRequestCapabilityGrant {
 
         ensure_capability_requestable_by_app(params.capability)?;
 
-        let base_path = resolve_app_base_path(&tools);
-
         let result = match grant_capability(
             tools.app_handle,
             tools.host_state,
-            &base_path,
+            &tools.host_state.root,
             &ctx.app.id(),
             params.capability,
         )

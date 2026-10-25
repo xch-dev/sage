@@ -121,12 +121,84 @@ pub fn allocate_new_os_storage(_app: &AppHandle, base_path: &Path) -> AnyResult<
     }
 }
 
+/// Moves Windows profiles created by older versions into the Sage root.
+///
+/// Older versions passed WebView2 a relative `profiles/<name>` data directory, which was resolved
+/// against the process working directory rather than the Sage root. Only profiles registered in
+/// this root's database are moved, so this must run before any app webview or storage cleanup.
+#[cfg(target_os = "windows")]
+pub async fn migrate_legacy_windows_profiles(host_state: &AppsHostState) -> AnyResult<()> {
+    let profiles_root = host_state.root.join("profiles");
+
+    let mut legacy_roots = Vec::new();
+
+    if let Ok(dir) = std::env::current_dir() {
+        legacy_roots.push(dir.join("profiles"));
+    }
+
+    if let Some(dir) = std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(Path::to_path_buf))
+    {
+        legacy_roots.push(dir.join("profiles"));
+    }
+
+    legacy_roots.retain(|dir| *dir != profiles_root && dir.is_dir());
+    legacy_roots.dedup();
+
+    if legacy_roots.is_empty() {
+        return Ok(());
+    }
+
+    for storage in host_state.db.list_storages().await? {
+        let SageAppStorage::WindowsProfile { directory_name } = storage else {
+            continue;
+        };
+
+        let target = host_state.root.join(data_directory_for(&directory_name));
+
+        if target.exists() {
+            continue;
+        }
+
+        let Some(source) = legacy_roots
+            .iter()
+            .map(|root| root.join(&directory_name))
+            .find(|source| source.is_dir())
+        else {
+            continue;
+        };
+
+        fs::create_dir_all(&profiles_root).with_context(|| {
+            format!(
+                "failed to create profiles directory {}",
+                profiles_root.display()
+            )
+        })?;
+
+        match fs::rename(&source, &target) {
+            Ok(()) => tracing::info!(
+                "migrated legacy app profile {} to {}",
+                source.display(),
+                target.display()
+            ),
+            Err(err) => tracing::warn!(
+                "failed to migrate legacy app profile {} to {}: {err}",
+                source.display(),
+                target.display()
+            ),
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]
 pub fn allocate_new_os_storage(_app: &AppHandle, _base_path: &Path) -> SageAppStorage {
     SageAppStorage::Unmanaged
 }
 
-pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path) -> AnyResult<()> {
+pub async fn process_pending_storage_cleanup(app: &AppHandle) -> AnyResult<()> {
     let host_state: State<'_, AppsHostState> = app.state();
 
     let cleanup_targets = host_state
@@ -165,7 +237,7 @@ pub async fn process_pending_storage_cleanup(app: &AppHandle, _base_path: &Path)
                     .map_err(anyhow::Error::msg)?;
 
                 #[cfg(target_os = "windows")]
-                clear_app_storage_by_target(app, _base_path, &target.storage)
+                clear_app_storage_by_target(app, &host_state.root, &target.storage)
                     .map_err(anyhow::Error::msg)?;
 
                 #[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "windows")))]

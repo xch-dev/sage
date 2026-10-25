@@ -1,13 +1,25 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{self, PathBuf},
+};
 
 pub const SAGE_ROOT_ENV: &str = "SAGE_ROOT";
 
-const SAGE_DATA_DIRECTORY: &str = "com.rigidnetwork.sage";
+/// Must match the `identifier` in `src-tauri/tauri.conf.json`, since the desktop app resolves its
+/// default root from the Tauri app data directory.
+pub const SAGE_APP_IDENTIFIER: &str = "com.rigidnetwork.sage";
 
+/// Returns the absolute root set by `SAGE_ROOT`, if any.
+///
+/// Relative values are resolved against the current directory up front, so that every consumer
+/// (including webviews, which resolve relative paths on their own) agrees on the location.
 pub fn sage_root_override() -> Option<PathBuf> {
     env::var_os(SAGE_ROOT_ENV)
         .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
+        .map(|value| {
+            let root = PathBuf::from(value);
+            path::absolute(&root).unwrap_or(root)
+        })
 }
 
 pub fn sage_root() -> Option<PathBuf> {
@@ -15,7 +27,7 @@ pub fn sage_root() -> Option<PathBuf> {
 }
 
 fn resolve_sage_root(root: Option<PathBuf>, data_dir: Option<PathBuf>) -> Option<PathBuf> {
-    root.or_else(|| data_dir.map(|path| path.join(SAGE_DATA_DIRECTORY)))
+    root.or_else(|| data_dir.map(|path| path.join(SAGE_APP_IDENTIFIER)))
 }
 
 #[cfg(test)]

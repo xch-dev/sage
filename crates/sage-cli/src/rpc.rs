@@ -24,10 +24,10 @@ impl_endpoints! {
     }
 
     impl RpcCommand {
-        pub async fn handle(self, path: PathBuf) -> anyhow::Result<()> {
+        pub async fn handle(self) -> anyhow::Result<()> {
             match self {
                 Self::Start => {
-                    let mut sage = Sage::new(&path, false);
+                    let mut sage = Sage::new(&sage_root()?, false);
                     let mut receiver = sage.initialize().await?;
                     sage.switch_wallet().await?;
                     tokio::spawn(async move { while let Some(_message) = receiver.recv().await {} });
@@ -45,13 +45,17 @@ impl_endpoints! {
                     Ok(())
                 },
                 (repeat Self::Endpoint { body } => {
-                    let client = Client::from_dir(&path)?;
+                    let client = Client::from_dir(&sage_root()?)?;
                     handle(client.endpoint(body).await);
                     Ok(())
                 } ,)
             }
         }
     }
+}
+
+fn sage_root() -> Result<PathBuf> {
+    sage_config::sage_root().ok_or_else(|| anyhow::anyhow!("could not get Sage root directory"))
 }
 
 fn handle<T: Serialize>(result: Result<T, SageRpcError>) {

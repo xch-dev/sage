@@ -1,3 +1,4 @@
+use std::path::Path;
 #[cfg(all(debug_assertions, not(mobile)))]
 use std::path::PathBuf;
 
@@ -277,10 +278,13 @@ pub fn run() {
         .setup(move |app| {
             builder.mount_events(app);
 
-            let path = if let Some(path) = sage_config::sage_root_override() {
-                path
-            } else {
-                app.path().app_data_dir()?
+            let root_override = sage_config::sage_root_override();
+
+            create_main_window(app, root_override.as_deref())?;
+
+            let path = match root_override {
+                Some(path) => path,
+                None => app.path().app_data_dir()?,
             };
             let app_state = AppState::new(Mutex::new(Sage::new(&path, false)));
 
@@ -309,20 +313,26 @@ pub fn run() {
                 let apps_db = tauri::async_runtime::block_on(apps::AppsDb::initialize(&path))
                     .expect("failed to initialize Sage apps database");
 
-                app.manage(AppsHostState::new(path.clone(), apps_db));
+                let apps_host_state = AppsHostState::new(path.clone(), apps_db);
+
+                #[cfg(target_os = "windows")]
+                if let Err(err) = tauri::async_runtime::block_on(
+                    apps::migrate_legacy_windows_profiles(&apps_host_state),
+                ) {
+                    tracing::error!("failed to migrate legacy app profiles: {err}");
+                }
+
+                app.manage(apps_host_state);
 
                 apps::start_background_app_update_checker(app.handle().clone());
 
                 let app_handle = app.handle().clone();
-                let cleanup_base_path = path.clone();
 
                 tauri::async_runtime::spawn(async move {
                     tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                     tracing::info!("starting pending storage cleanup task");
 
-                    if let Err(err) =
-                        apps::process_pending_storage_cleanup(&app_handle, &cleanup_base_path).await
-                    {
+                    if let Err(err) = apps::process_pending_storage_cleanup(&app_handle).await {
                         tracing::error!(
                             "failed to retry pending storage cleanup on startup: {err}"
                         );
@@ -336,4 +346,68 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Creates the main window from `tauri.conf.json`, where it is declared with `"create": false`.
+///
+/// When `SAGE_ROOT` is set, the main webview gets its own storage so that frontend state such as
+/// local storage isn't shared with instances using a different root.
+fn create_main_window(app: &tauri::App, isolated_root: Option<&Path>) -> tauri::Result<()> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("missing main window config"))?;
+
+    #[allow(unused_mut)]
+    let mut builder = tauri::WebviewWindowBuilder::from_config(app.handle(), config)?;
+
+    if let Some(root) = isolated_root {
+        #[cfg(any(target_os = "windows", target_os = "linux"))]
+        {
+            builder = builder.data_directory(root.join("webview"));
+        }
+
+        #[cfg(target_os = "macos")]
+        {
+            builder = builder.data_store_identifier(data_store_identifier_for(root));
+        }
+
+        #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+        let _ = root;
+    }
+
+    builder.build()?;
+
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn data_store_identifier_for(root: &Path) -> [u8; 16] {
+    use chia_wallet_sdk::chia::sha2::Sha256;
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"sage-main-webview:");
+    hasher.update(root.as_os_str().as_encoded_bytes());
+
+    let hash = hasher.finalize();
+    let mut identifier = [0; 16];
+    identifier.copy_from_slice(&hash[..16]);
+    identifier
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tauri_identifier_matches_default_sage_root() {
+        let config: serde_json::Value =
+            serde_json::from_str(include_str!("../tauri.conf.json")).unwrap();
+
+        assert_eq!(
+            config["identifier"].as_str(),
+            Some(sage_config::SAGE_APP_IDENTIFIER),
+            "the CLI and RPC client resolve the default root from this identifier"
+        );
+    }
 }
