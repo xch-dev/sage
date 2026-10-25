@@ -103,7 +103,8 @@ impl Sage {
                             clawback.receiver_puzzle_hash,
                             clawback.seconds,
                             row.coin.amount,
-                            true,
+                            // Only clawbacks of assets with an outer puzzle are hinted
+                            req.kind.is_some(),
                         );
                         v2.into_1_of_n().construct_puzzle(&mut ctx)?
                     }
