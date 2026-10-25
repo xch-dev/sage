@@ -159,11 +159,14 @@ fn ipfs_path_from_gateway_url(uri: &str) -> Option<(String, Option<&str>, String
     let host = url.host_str()?.to_ascii_lowercase();
 
     // The subdomain form is tried first, so that a subdomain gateway serving a
-    // directory whose own path starts with `/ipfs/` keeps its CID.
-    let (path, gateway) = if let Some((label, gateway)) = host.split_once(".ipfs.")
+    // directory whose own path starts with `/ipfs/` keeps its CID. The operator
+    // is the host without the CID label (`ipfs.io` for `<CID>.ipfs.io`), since
+    // what follows `.ipfs.` alone can be as short as a bare TLD.
+    let (path, gateway) = if let Some((label, _)) = host.split_once(".ipfs.")
         && is_cid(label)
     {
-        (format!("{label}{}", url.path()), gateway.to_string())
+        let gateway = host[label.len() + 1..].to_string();
+        (format!("{label}{}", url.path()), gateway)
     } else {
         let path = strip_prefix_ignore_case(url.path(), "/ipfs/")?;
         (path.to_string(), host.clone())
@@ -523,6 +526,15 @@ mod tests {
     #[test]
     fn test_subdomain_link_skips_same_operator() {
         let uri = format!("https://{CID_V1}.ipfs.dweb.link/1.png");
+        let mut expected = vec![uri.clone()];
+        expected.extend(
+            ipfs_gateways(&format!("{CID_V1}/1.png"))
+                .into_iter()
+                .filter(|url| !url.starts_with("https://ipfs.io/")),
+        );
+        assert_eq!(uri_candidates(&uri, true), expected);
+
+        let uri = format!("https://{CID_V1}.ipfs.io/1.png");
         let mut expected = vec![uri.clone()];
         expected.extend(
             ipfs_gateways(&format!("{CID_V1}/1.png"))
