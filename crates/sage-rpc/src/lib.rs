@@ -35,11 +35,7 @@ struct AppState {
 
 impl_endpoints! {
     (repeat async fn endpoint(State(state): State<AppState>, Json(req): Json<sage_api::Endpoint>) -> Response {
-        handle((if_unlocked {
-            Sage::endpoint(&state.sage, req).await
-        } {
-            state.sage.lock().await.endpoint(req) maybe_await
-        }))
+        handle(state.sage.lock().await.endpoint(req) maybe_await)
     })
 
     fn api_router() -> Router<AppState> {

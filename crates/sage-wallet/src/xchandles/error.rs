@@ -26,6 +26,9 @@ pub enum XchandlesError {
     #[error("No peers are available to verify the handle")]
     NoPeers,
 
+    #[error("Timed out while verifying the handle")]
+    Timeout,
+
     #[error("The API response is for a different registry or handle")]
     ResponseMismatch,
 
@@ -70,6 +73,7 @@ impl XchandlesError {
             Self::Api(error) => error.is_unavailable(),
             Self::Wallet(..)
             | Self::NoPeers
+            | Self::Timeout
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable
@@ -102,6 +106,7 @@ impl XchandlesError {
             | Self::Database(..)
             | Self::UnsupportedNetwork
             | Self::NoPeers
+            | Self::Timeout
             | Self::SlotNotFound(..)
             | Self::SlotSpent(..)
             | Self::ResolutionUnavailable

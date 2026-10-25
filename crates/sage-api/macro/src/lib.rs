@@ -68,17 +68,8 @@ pub fn response_schemas(input: TokenStream) -> TokenStream {
     openapi::impl_response_schemas(input)
 }
 
-/// The endpoints to generate code for.
-struct Endpoints {
-    /// Each endpoint, and whether it is async.
-    kinds: IndexMap<String, bool>,
-    /// Endpoints which manage the Sage lock themselves, so that they can release it while
-    /// waiting on the network. They take `&Mutex<Sage>` rather than `&self`.
-    unlocked: Vec<String>,
-}
-
 fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
-    let mut kinds: IndexMap<String, bool> =
+    let mut endpoints: IndexMap<String, bool> =
         serde_json::from_str(include_str!("../../endpoints.json")).expect("Invalid endpoint file");
 
     if tauri {
@@ -86,21 +77,8 @@ fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
             serde_json::from_str(include_str!("../../endpoints-tauri.json"))
                 .expect("Invalid endpoint file");
 
-        kinds.extend(tauri_endpoints);
+        endpoints.extend(tauri_endpoints);
     }
-
-    let unlocked: Vec<String> =
-        serde_json::from_str(include_str!("../../endpoints-unlocked.json"))
-            .expect("Invalid endpoint file");
-
-    for endpoint in &unlocked {
-        assert!(
-            kinds.get(endpoint).copied().unwrap_or(false),
-            "Unlocked endpoint {endpoint} must be an async endpoint"
-        );
-    }
-
-    let endpoints = Endpoints { kinds, unlocked };
 
     let mut output = proc_macro2::TokenStream::new();
 
@@ -113,7 +91,7 @@ fn generate(input: &TokenStream, tauri: bool) -> TokenStream {
 
 fn convert(
     tree: TokenTree,
-    endpoints: &Endpoints,
+    endpoints: &IndexMap<String, bool>,
     endpoint: Option<&str>,
     output: &mut proc_macro2::TokenStream,
 ) {
@@ -123,7 +101,7 @@ fn convert(
                 output.extend(proc_macro2::TokenStream::from(TokenStream::from(tree)));
                 return;
             };
-            let is_async = endpoints.kinds[endpoint];
+            let is_async = endpoints[endpoint];
 
             let ident = old.to_string();
 
@@ -159,56 +137,34 @@ fn convert(
         TokenTree::Group(group) => {
             let mut stream = group.stream().into_iter().peekable();
 
-            let keyword = stream.peek().and_then(|token| {
-                if let TokenTree::Ident(ident) = &token
-                    && group.delimiter() == Delimiter::Parenthesis
-                {
-                    Some(ident.to_string())
+            let repeat = stream.peek().is_some_and(|token| {
+                if let TokenTree::Ident(ident) = &token {
+                    ident.to_string() == "repeat" && group.delimiter() == Delimiter::Parenthesis
                 } else {
-                    None
+                    false
                 }
             });
 
-            match keyword.as_deref() {
-                Some("repeat") => {
-                    stream.next();
+            if repeat {
+                stream.next();
+            }
 
-                    for endpoint in endpoints.kinds.keys() {
-                        for tree in stream.clone() {
-                            convert(tree, endpoints, Some(endpoint), output);
-                        }
+            if repeat {
+                for endpoint in endpoints.keys() {
+                    for tree in stream.clone() {
+                        convert(tree, endpoints, Some(endpoint), output);
                     }
                 }
-                // `(if_unlocked { ... } { ... })` expands to the first block for endpoints
-                // which manage the Sage lock themselves, and to the second otherwise.
-                Some("if_unlocked") if endpoint.is_some() => {
-                    stream.next();
+            } else {
+                let mut inner = proc_macro2::TokenStream::new();
 
-                    let blocks: Vec<TokenTree> = stream.collect();
-                    let [TokenTree::Group(unlocked), TokenTree::Group(locked)] = blocks.as_slice()
-                    else {
-                        panic!("Expected `(if_unlocked {{ ... }} {{ ... }})`");
-                    };
-
-                    let is_unlocked = endpoint
-                        .is_some_and(|endpoint| endpoints.unlocked.iter().any(|e| e == endpoint));
-                    let block = if is_unlocked { unlocked } else { locked };
-
-                    for tree in block.stream() {
-                        convert(tree, endpoints, endpoint, output);
-                    }
+                for tree in stream {
+                    convert(tree, endpoints, endpoint, &mut inner);
                 }
-                _ => {
-                    let mut inner = proc_macro2::TokenStream::new();
 
-                    for tree in stream {
-                        convert(tree, endpoints, endpoint, &mut inner);
-                    }
-
-                    output.extend(proc_macro2::TokenStream::from(TokenStream::from(
-                        TokenTree::Group(Group::new(group.delimiter(), inner.into())),
-                    )));
-                }
+                output.extend(proc_macro2::TokenStream::from(TokenStream::from(
+                    TokenTree::Group(Group::new(group.delimiter(), inner.into())),
+                )));
             }
         }
     }

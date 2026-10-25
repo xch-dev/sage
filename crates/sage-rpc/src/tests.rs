@@ -422,33 +422,3 @@ async fn test_resolve_handle_rejects_unsupported_networks() -> Result<()> {
 
     Ok(())
 }
-
-#[tokio::test]
-async fn test_resolve_handle_does_not_block_other_endpoints() -> Result<()> {
-    let mut app = TestApp::new().await?;
-    app.setup_bls(0).await?;
-
-    // The simulator never answers block header requests, so the lookup stays in flight
-    // until the request times out.
-    let router = app.router.clone();
-    let lookup = tokio::spawn(async move {
-        let req = Request::builder()
-            .method("POST")
-            .uri("/resolve_handle")
-            .header("content-type", "application/json")
-            .body(Body::from(r#"{"handle":"alice"}"#))
-            .expect("valid request");
-        router.oneshot(req).await
-    });
-
-    tokio::time::sleep(Duration::from_millis(500)).await;
-    assert!(!lookup.is_finished(), "lookup should still be in flight");
-
-    // Other endpoints need the Sage lock, which the lookup must not be holding.
-    timeout(Duration::from_secs(2), app.get_sync_status(GetSyncStatus {})).await??;
-    assert!(!lookup.is_finished(), "lookup should still be in flight");
-
-    lookup.abort();
-
-    Ok(())
-}

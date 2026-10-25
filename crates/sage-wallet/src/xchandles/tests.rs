@@ -860,6 +860,7 @@ mod store {
             XchandlesError::Api(XchandlesApiError::InvalidUrl("not a url".to_string())),
             XchandlesError::ResolutionUnavailable,
             XchandlesError::SlotSpent(Bytes32::default()),
+            XchandlesError::Timeout,
         ] {
             let resolution = store(&db, NOW, Err(error)).await?;
             assert!(resolution.cached);
