@@ -37,6 +37,18 @@ impl Wallet {
         Ok((ctx.take(), outputs.cats[&Id::New(1)][0].info.asset_id))
     }
 
+    /// Returns a wallet synthetic key that can be curried into an
+    /// `EverythingWithSignature` TAIL. Since it belongs to an unhardened
+    /// derivation, the wallet can sign with it later to issue more of the CAT.
+    pub async fn multi_issuance_key(&self) -> Result<PublicKey, WalletError> {
+        let p2_puzzle_hash = self.p2_puzzle_hashes(1, false, true).await?[0];
+
+        self.db
+            .public_key(p2_puzzle_hash)
+            .await?
+            .ok_or(WalletError::UnknownPublicKey)
+    }
+
     /// Sends the given amount of CAT to the given puzzle hash.
     pub async fn send_cat(
         &self,
@@ -93,6 +105,8 @@ impl Wallet {
 mod tests {
     use std::time::Duration;
 
+    use chia_wallet_sdk::chia::puzzle_types::cat::EverythingWithSignatureTailArgs;
+
     use test_log::test;
     use tokio::time::sleep;
 
@@ -119,6 +133,27 @@ mod tests {
                 .and_then(|asset| asset.hidden_puzzle_hash),
             Some(hidden_puzzle_hash)
         );
+
+        Ok(())
+    }
+
+    #[test(tokio::test)]
+    async fn test_issue_multi_issuance_cat() -> anyhow::Result<()> {
+        let mut test = TestWallet::new(1000).await?;
+        let public_key = test.wallet.multi_issuance_key().await?;
+
+        let (coin_spends, asset_id) = test.wallet.issue_cat(1000, 0, Some(public_key)).await?;
+
+        assert_eq!(
+            asset_id,
+            EverythingWithSignatureTailArgs::curry_tree_hash(public_key).into()
+        );
+        assert!(test.wallet.db.derivation(public_key).await?.is_some());
+
+        test.transact(coin_spends).await?;
+        test.wait_for_coins().await;
+
+        assert_eq!(test.wallet.db.cat_balance(asset_id).await?, 1000);
 
         Ok(())
     }

@@ -1837,6 +1837,10 @@ amount: Amount;
  */
 revocable?: boolean; 
 /**
+ * Whether more of the CAT can be issued later by this wallet
+ */
+multi_issuance?: boolean; 
+/**
  * Transaction fee
  */
 fee: Amount; 
