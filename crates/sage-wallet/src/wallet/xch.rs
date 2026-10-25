@@ -212,10 +212,10 @@ impl Wallet {
                         return Err(WalletError::ClawbackNotYetClaimable(coin_id));
                     }
                     // Preflight relative lock when created_timestamp is known; otherwise defer to chain.
-                    if let Some(created_timestamp) = row.created_timestamp {
-                        if now < created_timestamp.saturating_add(clawback.seconds) {
-                            return Err(WalletError::ClawbackNotYetClaimable(coin_id));
-                        }
+                    if let Some(created_timestamp) = row.created_timestamp
+                        && now < created_timestamp.saturating_add(clawback.seconds)
+                    {
+                        return Err(WalletError::ClawbackNotYetClaimable(coin_id));
                     }
 
                     // Receiver path only — sender claws via combine / complete_spends.
@@ -360,7 +360,7 @@ mod tests {
     }
 
     /// Seed `blocks.timestamp` for the coin's created height.
-    /// Test mode disables BlockTimeQueue, so relative-lock preflight never sees a timestamp otherwise.
+    /// Test mode disables `BlockTimeQueue`, so relative-lock preflight never sees a timestamp otherwise.
     async fn seed_created_timestamp(
         wallet: &TestWallet,
         coin_id: Bytes32,
@@ -372,34 +372,34 @@ mod tests {
                 .db
                 .coins_by_ids(&[hex::encode(coin_id)])
                 .await?;
-            if let Some(row) = rows.first() {
-                if let Some(height) = row.created_height {
-                    let header_hash = wallet
-                        .wallet
-                        .db
-                        .latest_peak()
-                        .await?
-                        .map(|(peak_height, hash)| {
-                            if peak_height == height {
-                                hash
-                            } else {
-                                Bytes32::default()
-                            }
-                        })
-                        .unwrap_or_default();
-                    wallet
-                        .wallet
-                        .db
-                        .insert_block(height, header_hash, Some(timestamp.try_into()?), false)
-                        .await?;
-                    let rows = wallet
-                        .wallet
-                        .db
-                        .coins_by_ids(&[hex::encode(coin_id)])
-                        .await?;
-                    if rows.first().and_then(|r| r.created_timestamp) == Some(timestamp) {
-                        return Ok(());
-                    }
+            if let Some(row) = rows.first()
+                && let Some(height) = row.created_height
+            {
+                let header_hash = wallet
+                    .wallet
+                    .db
+                    .latest_peak()
+                    .await?
+                    .map(|(peak_height, hash)| {
+                        if peak_height == height {
+                            hash
+                        } else {
+                            Bytes32::default()
+                        }
+                    })
+                    .unwrap_or_default();
+                wallet
+                    .wallet
+                    .db
+                    .insert_block(height, header_hash, Some(timestamp.try_into()?), false)
+                    .await?;
+                let rows = wallet
+                    .wallet
+                    .db
+                    .coins_by_ids(&[hex::encode(coin_id)])
+                    .await?;
+                if rows.first().and_then(|r| r.created_timestamp) == Some(timestamp) {
+                    return Ok(());
                 }
             }
             sleep(Duration::from_millis(100)).await;
