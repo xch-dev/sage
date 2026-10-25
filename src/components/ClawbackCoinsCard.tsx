@@ -1,44 +1,29 @@
 import CoinList from '@/components/CoinList';
+import { FeeOnlyDialog } from '@/components/FeeOnlyDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useWallet } from '@/contexts/WalletContext';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+  COIN_PAGE_SIZE_OPTIONS,
+  useCoinPageSize,
+} from '@/hooks/useCoinPageSize';
 import { useErrors } from '@/hooks/useErrors';
 import { useNetwork } from '@/hooks/useNetwork';
-import { amount } from '@/lib/formTypes';
 import { toMojos } from '@/lib/utils';
-import { useWallet } from '@/contexts/WalletContext';
 import { useWalletState } from '@/state';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from '@lingui/core/macro';
 import { Trans } from '@lingui/react/macro';
 import { RowSelectionState } from '@tanstack/react-table';
-import BigNumber from 'bignumber.js';
-import { CheckIcon, UndoIcon, XIcon } from 'lucide-react';
+import { CheckIcon, HandCoins, UndoIcon, XIcon } from 'lucide-react';
 import {
   Dispatch,
   SetStateAction,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import {
   CoinRecord,
   CoinSortMode,
@@ -47,13 +32,54 @@ import {
   TokenRecord,
   TransactionResponse,
 } from '../bindings';
-import { FeeAmountInput } from './ui/masked-input';
 
 interface ClawbackCoinsCardProps {
   asset: TokenRecord;
   setResponse: (response: TransactionResponse) => void;
   selectedCoins: RowSelectionState;
   setSelectedCoins: Dispatch<SetStateAction<RowSelectionState>>;
+}
+
+function isClawBackEligible(coin: CoinRecord, now: number): boolean {
+  // Unconfirmed coins can't be spent yet.
+  if (!coin.clawback_is_sender || coin.created_height == null) return false;
+  // V1 sender can claw until claimed; V2 only before absolute expiry.
+  if (coin.clawback_version === 1) return true;
+  if (coin.clawback_version === 2) {
+    return (
+      coin.clawback_timestamp != null && now < Number(coin.clawback_timestamp)
+    );
+  }
+  return false;
+}
+
+// Pushing through an expired V2 clawback needs no key, so either party can finalize.
+function isFinalizeEligible(coin: CoinRecord, now: number): boolean {
+  return (
+    coin.clawback_version === 2 &&
+    coin.created_height != null &&
+    coin.clawback_timestamp != null &&
+    now >= Number(coin.clawback_timestamp)
+  );
+}
+
+function isClaimEligible(coin: CoinRecord, now: number): boolean {
+  if (
+    coin.clawback_version !== 1 ||
+    !coin.clawback_is_receiver ||
+    coin.clawback_timestamp == null ||
+    coin.created_height == null
+  ) {
+    return false;
+  }
+  // Match backend: if birth time is not synced yet, allow the attempt and
+  // let claim_clawback / the chain enforce the relative lock.
+  if (coin.created_timestamp == null) {
+    return true;
+  }
+  return (
+    now >= Number(coin.created_timestamp) + Number(coin.clawback_timestamp)
+  );
 }
 
 export function ClawbackCoinsCard({
@@ -74,18 +100,31 @@ export function ClawbackCoinsCard({
   const [coins, setCoins] = useState<CoinRecord[]>([]);
   const [currentPage, setCurrentPage] = useState<number>(0);
   const [totalCoins, setTotalCoins] = useState<number>(0);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [sortMode, setSortMode] = useState<CoinSortMode>('created_height');
   const [sortDirection, setSortDirection] = useState<boolean>(false); // false = descending, true = ascending
   const [includeSpentCoins, setIncludeSpentCoins] = useState<boolean>(false);
   const [canClawBack, setCanClawBack] = useState(false);
   const [clawBackOpen, setClawBackOpen] = useState(false);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [canFinalize, setCanFinalize] = useState(false);
+  const [canClaim, setCanClaim] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
 
-  const pageSize = 10;
+  const { pageSize, setPageSize } = useCoinPageSize();
+
+  const handlePageSizeChange = useCallback(
+    (size: number) => {
+      setPageSize(size);
+      setCurrentPage(0);
+    },
+    [setPageSize],
+  );
 
   // Use ref to track current page to avoid dependency issues
   const currentPageRef = useRef(currentPage);
   currentPageRef.current = currentPage;
+  const prevSelectedCountRef = useRef(0);
 
   const selectedCoinIds = useMemo(() => {
     return Object.keys(selectedCoins).filter((key) => selectedCoins[key]);
@@ -115,36 +154,64 @@ export function ClawbackCoinsCard({
   useEffect(() => {
     let isMounted = true;
 
-    const checkSpendable = async () => {
-      if (selectedCoinIds.length === 0) {
+    const checkEligibility = async () => {
+      if (
+        selectedCoinIds.length === 0 ||
+        selectedCoinRecords.length !== selectedCoinIds.length
+      ) {
         if (isMounted) {
           setCanClawBack(false);
+          setCanFinalize(false);
+          setCanClaim(false);
         }
         return;
       }
 
-      try {
-        const isSpendable = await commands.getAreCoinsSpendable({
-          coin_ids: selectedCoinIds,
-        });
+      const now = Math.floor(Date.now() / 1000);
 
-        if (isMounted) {
-          setCanClawBack(isSpendable.spendable);
+      const nonePending = selectedCoinRecords.every(
+        (c) => !c.transaction_id && !c.spent_height && !c.offer_id,
+      );
+
+      const allClawBack = selectedCoinRecords.every((c) =>
+        isClawBackEligible(c, now),
+      );
+      const allFinalize = selectedCoinRecords.every((c) =>
+        isFinalizeEligible(c, now),
+      );
+      const allClaim = selectedCoinRecords.every((c) =>
+        isClaimEligible(c, now),
+      );
+
+      let spendable = nonePending;
+      if (allClawBack && nonePending) {
+        const anyV2 = selectedCoinRecords.some((c) => c.clawback_version === 2);
+        if (anyV2) {
+          try {
+            const result = await commands.getAreCoinsSpendable({
+              coin_ids: selectedCoinIds,
+            });
+            spendable = result.spendable;
+          } catch (error) {
+            console.error('Error checking if coins are spendable:', error);
+            spendable = false;
+          }
         }
-      } catch (error) {
-        console.error('Error checking if coins are spendable:', error);
-        if (isMounted) {
-          setCanClawBack(false);
-        }
+      }
+
+      if (isMounted) {
+        setCanClawBack(allClawBack && spendable);
+        setCanFinalize(allFinalize && nonePending);
+        setCanClaim(allClaim && nonePending);
       }
     };
 
-    checkSpendable();
+    checkEligibility();
 
     return () => {
       isMounted = false;
     };
-  }, [selectedCoinIds]);
+  }, [selectedCoinIds, selectedCoinRecords]);
 
   const updateCoins = useMemo(
     () =>
@@ -163,6 +230,7 @@ export function ClawbackCoinsCard({
           .then((res) => {
             setCoins(res.coins);
             setTotalCoins(res.total);
+            setHasLoaded(true);
           })
           .catch(addError);
       },
@@ -170,12 +238,23 @@ export function ClawbackCoinsCard({
   );
 
   useEffect(() => {
+    setHasLoaded(false);
+    setCoins([]);
+    setTotalCoins(0);
+    setCurrentPage(0);
+  }, [asset.asset_id]);
+
+  useEffect(() => {
     updateCoins();
 
     const unlisten = events.syncEvent.listen((event) => {
       const type = event.payload.type;
 
-      if (type === 'coin_state' || type === 'puzzle_batch_synced') {
+      if (
+        type === 'coin_state' ||
+        type === 'puzzle_batch_synced' ||
+        type === 'transaction_failed'
+      ) {
         updateCoins();
       }
     });
@@ -195,102 +274,54 @@ export function ClawbackCoinsCard({
     updateCoins(currentPage);
   }, [currentPage, updateCoins]);
 
-  const clawBackFormSchema = z.object({
-    clawBackFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
+  // Refresh after confirm clears selection (non-empty → empty).
+  useEffect(() => {
+    const prev = prevSelectedCountRef.current;
+    prevSelectedCountRef.current = selectedCoinIds.length;
+    if (prev > 0 && selectedCoinIds.length === 0) {
+      updateCoins();
+    }
+  }, [selectedCoinIds.length, updateCoins]);
 
-  const clawBackForm = useForm<z.infer<typeof clawBackFormSchema>>({
-    resolver: zodResolver(clawBackFormSchema),
-  });
-
-  const onClawBackSubmit = (values: z.infer<typeof clawBackFormSchema>) => {
-    const fee = toMojos(values.clawBackFee, walletState.sync.unit.precision);
-
-    // Get IDs from the selected coin records
-    const coinIdsForRequest = selectedCoinRecords.map(
-      (record) => record.coin_id,
-    );
-
-    commands
-      .combine({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
-      .then((result) => {
-        // Add confirmation data to the response
-        const resultWithDetails = Object.assign({}, result, {
-          additionalData: {
-            title: t`Claw Back Details`,
-            content: {
-              type: 'clawback',
-              coins: selectedCoinRecords,
-              ticker: asset.ticker,
-              precision: asset.precision,
-            },
-          },
-        });
-
-        setResponse(resultWithDetails);
-      })
-      .catch(addError)
-      .finally(() => setClawBackOpen(false));
-  };
-
-  const finalizeFormSchema = z.object({
-    finalizeFee: amount(walletState.sync.unit.precision).refine(
-      (amount) =>
-        BigNumber(walletState.sync.selectable_balance).gte(amount || 0),
-      t`Not enough funds to cover the fee`,
-    ),
-  });
-
-  const finalizeForm = useForm<z.infer<typeof finalizeFormSchema>>({
-    resolver: zodResolver(finalizeFormSchema),
-  });
-
-  const onFinalizeSubmit = (values: z.infer<typeof finalizeFormSchema>) => {
-    const fee = toMojos(values.finalizeFee, walletState.sync.unit.precision);
-
-    // Get IDs from the selected coin records
-    const coinIdsForRequest = selectedCoinRecords.map(
-      (record) => record.coin_id,
-    );
-
-    commands
-      .finalizeClawback({
-        coin_ids: coinIdsForRequest,
-        fee,
-      })
-      .then((result) => {
-        // Add confirmation data to the response
-        const resultWithDetails = Object.assign({}, result, {
-          additionalData: {
-            title: t`Finalize Clawback Details`,
-            content: {
-              type: 'finalize_clawback',
-              coins: selectedCoinRecords,
-              ticker: asset.ticker,
-              precision: asset.precision,
-            },
-          },
-        });
-
-        setResponse(resultWithDetails);
-      })
-      .catch(addError)
-      .finally(() => setFinalizeOpen(false));
-  };
+  const submit =
+    (
+      type: 'clawback' | 'finalize_clawback' | 'claim_clawback',
+      title: string,
+      request: (coinIds: string[], fee: string) => Promise<TransactionResponse>,
+      setOpen: (open: boolean) => void,
+    ) =>
+    (fee: string) => {
+      request(
+        selectedCoinRecords.map((record) => record.coin_id),
+        toMojos(fee || '0', walletState.sync.unit.precision),
+      )
+        .then((result) =>
+          setResponse(
+            Object.assign({}, result, {
+              additionalData: {
+                title,
+                content: {
+                  type,
+                  coins: selectedCoinRecords,
+                  ticker: asset.ticker,
+                  precision: asset.precision,
+                },
+              },
+            }),
+          ),
+        )
+        .catch(addError)
+        .finally(() => setOpen(false));
+    };
 
   const pageCount = Math.ceil(totalCoins / pageSize);
   const selectedCoinCount = selectedCoinIds.length;
   const selectedCoinLabel = selectedCoinCount === 1 ? t`coin` : t`coins`;
-  const ticker = asset.ticker;
+  const ticker = asset.ticker ?? '';
 
-  if (!totalCoins) return null;
+  if (!hasLoaded || totalCoins === 0) {
+    return null;
+  }
 
   return (
     <Card className='max-w-full overflow-auto'>
@@ -311,6 +342,9 @@ export function ClawbackCoinsCard({
           totalPages={pageCount}
           setCurrentPage={setCurrentPage}
           maxRows={totalCoins}
+          pageSize={pageSize}
+          onPageSizeChange={handlePageSizeChange}
+          pageSizeOptions={COIN_PAGE_SIZE_OPTIONS}
           sortMode={sortMode}
           sortDirection={sortDirection}
           includeSpentCoins={includeSpentCoins}
@@ -332,17 +366,24 @@ export function ClawbackCoinsCard({
 
               <Button
                 variant='outline'
-                disabled={
-                  isTransactionDisabled ||
-                  selectedCoinIds.length === 0 ||
-                  canClawBack
-                }
+                disabled={isTransactionDisabled || !canFinalize}
                 onClick={() => {
-                  setFinalizeOpen(true);
+                  if (canFinalize) setFinalizeOpen(true);
                 }}
               >
                 <CheckIcon className='mr-2 h-4 w-4' />
                 <Trans>Finalize</Trans>
+              </Button>
+
+              <Button
+                variant='outline'
+                disabled={isTransactionDisabled || !canClaim}
+                onClick={() => {
+                  if (canClaim) setClaimOpen(true);
+                }}
+              >
+                <HandCoins className='mr-2 h-4 w-4' />
+                <Trans>Claim</Trans>
               </Button>
             </>
           }
@@ -363,103 +404,59 @@ export function ClawbackCoinsCard({
         )}
       </CardContent>
 
-      <Dialog open={clawBackOpen} onOpenChange={setClawBackOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Claw Back {ticker}</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>This will claw back all of the selected coins.</Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...clawBackForm}>
-            <form
-              onSubmit={clawBackForm.handleSubmit(onClawBackSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={clawBackForm.control}
-                name='clawBackFee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <FeeAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setClawBackOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Claw Back</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <FeeOnlyDialog
+        title={t`Claw Back ${ticker}`}
+        open={clawBackOpen}
+        setOpen={setClawBackOpen}
+        onSubmit={submit(
+          'clawback',
+          t`Claw Back Details`,
+          (coin_ids, fee) => commands.combine({ coin_ids, fee }),
+          setClawBackOpen,
+        )}
+        submitButtonLabel={t`Claw Back`}
+      >
+        <Trans>This will claw back all of the selected coins.</Trans>
+      </FeeOnlyDialog>
 
-      <Dialog open={finalizeOpen} onOpenChange={setFinalizeOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              <Trans>Finalize {ticker} Clawback</Trans>
-            </DialogTitle>
-            <DialogDescription>
-              <Trans>
-                This will complete the clawback for all of the selected coins,
-                and send the funds to the original recipient (even if the
-                recipient wallet does not support clawbacks).
-              </Trans>
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...finalizeForm}>
-            <form
-              onSubmit={finalizeForm.handleSubmit(onFinalizeSubmit)}
-              className='space-y-4'
-            >
-              <FormField
-                control={finalizeForm.control}
-                name='finalizeFee'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      <Trans>Network Fee</Trans>
-                    </FormLabel>
-                    <FormControl>
-                      <FeeAmountInput {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className='gap-2'>
-                <Button
-                  type='button'
-                  variant='outline'
-                  onClick={() => setFinalizeOpen(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
-                <Button type='submit'>
-                  <Trans>Finalize</Trans>
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <FeeOnlyDialog
+        title={t`Finalize ${ticker} Clawback`}
+        open={finalizeOpen}
+        setOpen={setFinalizeOpen}
+        onSubmit={submit(
+          'finalize_clawback',
+          t`Finalize Clawback Details`,
+          (coin_ids, fee) => commands.finalizeClawback({ coin_ids, fee }),
+          setFinalizeOpen,
+        )}
+        submitButtonLabel={t`Finalize`}
+      >
+        <Trans>
+          This will complete the clawback for all of the selected coins, and
+          send the funds to the original recipient (even if the recipient wallet
+          does not support clawbacks).
+        </Trans>
+      </FeeOnlyDialog>
+
+      <FeeOnlyDialog
+        title={t`Claim ${ticker} Clawback`}
+        open={claimOpen}
+        setOpen={setClaimOpen}
+        onSubmit={submit(
+          'claim_clawback',
+          t`Claim Clawback Details`,
+          (coin_ids, fee) =>
+            commands.claimClawback({ coin_ids, fee, auto_submit: false }),
+          setClaimOpen,
+        )}
+        submitButtonLabel={t`Claim`}
+      >
+        <Trans>
+          This will claim all of the selected coins from a v1 clawback. This
+          will send the funds to your wallet, and the original sender will no
+          longer be able to claw it back.
+        </Trans>
+      </FeeOnlyDialog>
     </Card>
   );
 }

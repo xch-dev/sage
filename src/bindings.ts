@@ -107,6 +107,9 @@ async assignNftsToDid(req: AssignNftsToDid) : Promise<TransactionResponse> {
 async finalizeClawback(req: FinalizeClawback) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("finalize_clawback", { req });
 },
+async claimClawback(req: ClaimClawback) : Promise<TransactionResponse> {
+    return await TAURI_INVOKE("claim_clawback", { req });
+},
 async createTransaction(req: CreateTransaction) : Promise<TransactionResponse> {
     return await TAURI_INVOKE("create_transaction", { req });
 },
@@ -331,6 +334,12 @@ async signMessageByAddress(req: SignMessageByAddress) : Promise<SignMessageByAdd
 },
 async sendTransactionImmediately(req: SendTransactionImmediately) : Promise<SendTransactionImmediatelyResponse> {
     return await TAURI_INVOKE("send_transaction_immediately", { req });
+},
+async getSelectedTheme(req: GetSelectedTheme) : Promise<GetSelectedThemeResponse> {
+    return await TAURI_INVOKE("get_selected_theme", { req });
+},
+async setSelectedTheme(req: SetSelectedTheme) : Promise<EmptyResponse> {
+    return await TAURI_INVOKE("set_selected_theme", { req });
 },
 async isRpcRunning() : Promise<boolean> {
     return await TAURI_INVOKE("is_rpc_running");
@@ -701,7 +710,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Cancel multiple offers
  */
@@ -717,7 +730,11 @@ fee: Amount;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to pay the fee with. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Validate and check an address
  */
@@ -734,6 +751,22 @@ export type CheckAddressResponse = {
  * Whether the address is valid and belongs to this wallet
  */
 valid: boolean }
+/**
+ * Claim Clawback
+ */
+export type ClaimClawback = { 
+/**
+ * The coins to claim from the clawback v1 coin.
+ */
+coin_ids: string[]; 
+/**
+ * Transaction fee
+ */
+fee: Amount; 
+/**
+ * Whether to automatically submit the transaction
+ */
+auto_submit?: boolean }
 /**
  * Coin structure
  */
@@ -752,8 +785,8 @@ puzzle_hash: string;
 amount: Amount }
 export type CoinFilterMode = "all" | "selectable" | "owned" | "spent" | "clawback"
 export type CoinJson = { parent_coin_info: string; puzzle_hash: string; amount: Amount }
-export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
-export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp"
+export type CoinRecord = { coin_id: string; address: string; amount: Amount; transaction_id: string | null; offer_id: string | null; clawback_timestamp: number | null; clawback_version: number | null; clawback_is_sender: boolean | null; clawback_is_receiver: boolean | null; created_height: number | null; spent_height: number | null; spent_timestamp: number | null; created_timestamp: number | null }
+export type CoinSortMode = "coin_id" | "amount" | "created_height" | "spent_height" | "clawback_timestamp" | "clawback_version"
 /**
  * Coin spend structure
  */
@@ -927,7 +960,7 @@ export type FilterUnlockedCoinsResponse = {
  */
 coin_ids: string[] }
 /**
- * Send CAT tokens to an address
+ * Finalize the clawback for a set of coins
  */
 export type FinalizeClawback = { 
 /**
@@ -1522,6 +1555,18 @@ export type GetSecretKeyResponse = {
  * Secret key information if authorized
  */
 secrets: SecretKeyInfo | null }
+/**
+ * Get the UI theme the user last selected
+ */
+export type GetSelectedTheme = Record<string, never>
+/**
+ * Response with the selected UI theme
+ */
+export type GetSelectedThemeResponse = { 
+/**
+ * Theme name, if one has been selected
+ */
+theme: string | null }
 /**
  * Get the count of spendable coins
  */
@@ -2399,7 +2444,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional coin IDs to spend first: coins of this CAT for the amount, XCH coins for the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Send a transaction immediately
  */
@@ -2447,7 +2496,11 @@ clawback?: number | null;
 /**
  * Whether to automatically submit the transaction
  */
-auto_submit?: boolean }
+auto_submit?: boolean;
+/**
+ * Optional XCH coin IDs to spend first, for the amount and the fee. Each must be selectable: confirmed, unspent, and not pending or locked in an offer
+ */
+coin_ids?: string[] | null }
 /**
  * Set the change address for transactions
  */
@@ -2508,6 +2561,14 @@ fingerprint: number;
  * Network name (null to reset to default)
  */
 name: string | null }
+/**
+ * Remember the UI theme the user selected
+ */
+export type SetSelectedTheme = { 
+/**
+ * Theme name (null to clear)
+ */
+theme: string | null }
 /**
  * Set target number of peers to maintain
  */

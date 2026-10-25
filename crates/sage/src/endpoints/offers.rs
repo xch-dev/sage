@@ -19,13 +19,12 @@ use sage_wallet::{
     aggregate_offers, insert_transaction, sort_offer,
 };
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::time::timeout;
 use tracing::debug;
 
 use crate::{
     ConfirmationInfo, Error, ExtractedNftData, Result, Sage, extract_nft_data, json_bundle,
     offer_expiration, parse_amount, parse_asset_id, parse_coin_ids, parse_hash, parse_nft_id,
-    parse_offer_id, parse_option_id,
+    parse_offer_id, parse_option_id, selectable_coin_ids,
 };
 
 #[derive(Debug, Clone)]
@@ -328,9 +327,11 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.data_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -338,9 +339,11 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.metadata_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -412,9 +415,11 @@ impl Sage {
                 let mut confirmation_info = ConfirmationInfo::default();
 
                 if let Some(hash) = metadata.data_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.data_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -422,9 +427,11 @@ impl Sage {
                 }
 
                 if let Some(hash) = metadata.metadata_hash
-                    && let Ok(Some(data)) = timeout(
+                    && let Some(data) = fetch_uris_with_hash(
+                        metadata.metadata_uris.clone(),
+                        hash,
+                        testnet,
                         Duration::from_secs(10),
-                        fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                     )
                     .await
                 {
@@ -715,7 +722,8 @@ impl Sage {
         };
 
         let offer = decode_offer(&row.encoded_offer)?;
-        let coin_spends = wallet.cancel_offer(offer, fee).await?;
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet.cancel_offers(vec![offer], fee, fee_coin_ids).await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }
@@ -730,17 +738,27 @@ impl Sage {
             .map(|offer_id| parse_offer_id(offer_id.clone()))
             .collect::<Result<Vec<_>>>()?;
 
-        let mut coin_spends = Vec::new();
+        let mut offers = Vec::with_capacity(offer_ids.len());
 
         for offer_id in offer_ids {
             let Some(row) = wallet.db.offer(offer_id).await? else {
                 return Err(Error::MissingOffer(offer_id));
             };
 
-            let offer = decode_offer(&row.encoded_offer)?;
-            let spends = wallet.cancel_offer(offer, fee).await?;
-            coin_spends.extend(spends);
+            offers.push(decode_offer(&row.encoded_offer)?);
         }
+
+        // The fee is per offer (the UI labels it "Network Fee (per offer)"), but the batch is
+        // one spend, so its fee coins are selected once and can never be picked twice.
+        let total_fee = u64::try_from(offers.len())
+            .ok()
+            .and_then(|count| fee.checked_mul(count))
+            .ok_or_else(|| Error::InvalidAmount("fee times offer count overflows".to_string()))?;
+
+        let fee_coin_ids = selectable_coin_ids(&wallet, req.coin_ids, None).await?;
+        let coin_spends = wallet
+            .cancel_offers(offers, total_fee, fee_coin_ids)
+            .await?;
 
         self.transact(coin_spends, req.auto_submit).await
     }

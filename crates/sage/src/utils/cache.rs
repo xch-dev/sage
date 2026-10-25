@@ -83,9 +83,11 @@ impl Sage {
 
             if let Some(hash) = metadata.data_hash
                 && let Entry::Vacant(entry) = confirmation_info.nft_data.entry(hash)
-                && let Ok(Some(data)) = timeout(
+                && let Some(data) = fetch_uris_with_hash(
+                    metadata.data_uris.clone(),
+                    hash,
+                    testnet,
                     Duration::from_secs(10),
-                    fetch_uris_with_hash(metadata.data_uris.clone(), hash, testnet),
                 )
                 .await
             {
@@ -94,9 +96,11 @@ impl Sage {
 
             if let Some(hash) = metadata.metadata_hash
                 && let Entry::Vacant(entry) = confirmation_info.nft_data.entry(hash)
-                && let Ok(Some(data)) = timeout(
+                && let Some(data) = fetch_uris_with_hash(
+                    metadata.metadata_uris.clone(),
+                    hash,
+                    testnet,
                     Duration::from_secs(10),
-                    fetch_uris_with_hash(metadata.metadata_uris.clone(), hash, testnet),
                 )
                 .await
             {
