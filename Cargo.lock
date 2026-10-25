@@ -6852,6 +6852,7 @@ dependencies = [
  "chia-wallet-sdk",
  "expect-test",
  "hex",
+ "hex-literal 0.4.1",
  "indexmap 2.12.1",
  "serde",
  "serde_json",

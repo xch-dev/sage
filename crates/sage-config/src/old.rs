@@ -193,6 +193,7 @@ pub fn migrate_networks(old: IndexMap<String, OldNetwork>) -> NetworkList {
                     additional_dns_introducers: network.dns_introducers,
                     additional_peer_introducers: vec![],
                     inherit,
+                    xchandles: None,
                 }
             })
             .collect(),
