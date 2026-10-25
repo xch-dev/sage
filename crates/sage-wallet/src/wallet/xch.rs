@@ -19,7 +19,12 @@ async fn unspent_clawback(
     db: &Database,
     coin_id: Bytes32,
     version: u8,
-) -> Result<(CoinRow, Clawback), WalletError> {
+) -> Result<(CoinKind, CoinRow, Clawback), WalletError> {
+    // CoinRow::kind is always Xch, so the kind has to be looked up separately
+    let Some(kind) = db.coin_kind(coin_id).await? else {
+        return Err(WalletError::MissingCoin(coin_id));
+    };
+
     let Some(row) = db
         .coins_by_ids(&[hex::encode(coin_id)])
         .await?
@@ -45,7 +50,7 @@ async fn unspent_clawback(
         });
     }
 
-    Ok((row, clawback))
+    Ok((kind, row, clawback))
 }
 
 /// Removes duplicate coin ids, which would otherwise result in the same coin being spent twice.
@@ -109,9 +114,9 @@ impl Wallet {
         let mut ctx = SpendContext::new();
 
         for &coin_id in &coin_ids {
-            let (row, clawback) = unspent_clawback(&self.db, coin_id, 2).await?;
+            let (kind, row, clawback) = unspent_clawback(&self.db, coin_id, 2).await?;
 
-            match row.kind {
+            match kind {
                 CoinKind::Xch => {
                     ClawbackV2::new(
                         clawback.sender_puzzle_hash,
@@ -159,10 +164,10 @@ impl Wallet {
         let now = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
 
         for &coin_id in &coin_ids {
-            let (row, clawback) = unspent_clawback(&self.db, coin_id, 1).await?;
+            let (kind, row, clawback) = unspent_clawback(&self.db, coin_id, 1).await?;
 
-            if row.kind != CoinKind::Xch {
-                return Err(WalletError::UnsupportedClawbackCoinKind(row.kind));
+            if kind != CoinKind::Xch {
+                return Err(WalletError::UnsupportedClawbackCoinKind(kind));
             }
 
             // Must be confirmed on-chain before claim (relative lock is from birth).
