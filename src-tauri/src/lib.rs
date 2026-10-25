@@ -215,7 +215,6 @@ pub fn run() {
         .commands(sage_commands![])
         .events(collect_events![SyncEvent]);
 
-    #[allow(unused_mut)]
     let mut tauri_builder = tauri::Builder::default();
 
     // The single instance plugin has to be registered before every other plugin
@@ -229,7 +228,7 @@ pub fn run() {
             }));
     }
 
-    let mut tauri_builder = tauri_builder
+    tauri_builder = tauri_builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
@@ -299,7 +298,12 @@ pub fn run() {
             #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
             {
                 use tauri_plugin_deep_link::DeepLinkExt;
-                if let Err(e) = app.deep_link().register_all() {
+                // Registering rewrites the handler and shells out to xdg tools on Linux,
+                // so skip it on launches where this executable already owns the scheme
+                let deep_link = app.deep_link();
+                if !deep_link.is_registered("sage").unwrap_or(false)
+                    && let Err(e) = deep_link.register_all()
+                {
                     eprintln!("Failed to register deep link: {e}");
                 }
             }

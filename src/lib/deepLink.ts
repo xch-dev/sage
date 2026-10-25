@@ -1,4 +1,5 @@
-import { addressInfo } from '@/lib/utils';
+import { OFFER_URL_HOSTS } from '@/lib/offerData';
+import { addressInfo, isValidAssetId } from '@/lib/utils';
 import { bech32m } from 'bech32';
 
 const SCHEME_PREFIX = 'sage:';
@@ -7,19 +8,17 @@ const SCHEME_PREFIX = 'sage:';
 const MAX_OFFER_LENGTH = 15000;
 const MAX_OFFER_URL_LENGTH = 2048;
 const MAX_MEMO_LENGTH = 1000;
-
-// Hosts resolveOfferData knows how to fetch an offer from
-const OFFER_URL_HOSTS = ['dexie.space', 'offerco.de', 'chia-offer.com'];
+const MAX_U64 = 18446744073709551615n;
 const OFFER_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
-export interface TakeOfferDeepLink {
+interface TakeOfferDeepLink {
   action: 'take_offer';
   /** Either a raw `offer1...` string or a canonical marketplace offer URL. */
   offer: string;
   fee?: string;
 }
 
-export interface SendDeepLink {
+interface SendDeepLink {
   action: 'send';
   address: string;
   amount?: string;
@@ -31,13 +30,13 @@ export interface SendDeepLink {
 
 export type DeepLink = TakeOfferDeepLink | SendDeepLink;
 
-export type DeepLinkError =
+type DeepLinkError =
   | 'invalid_scheme'
   | 'missing_action'
   | 'unsupported_action'
   | 'invalid_params';
 
-export type ParseResult =
+type ParseResult =
   | { ok: true; link: DeepLink }
   | { ok: false; error: DeepLinkError; action?: string };
 
@@ -55,8 +54,7 @@ function decodeQueryString(queryString: string): URLSearchParams {
 }
 
 function isMojos(value: string | null): value is string {
-  // At most 20 digits, the width of a u64
-  return !!value && /^\d{1,20}$/.test(value);
+  return !!value && /^\d{1,20}$/.test(value) && BigInt(value) <= MAX_U64;
 }
 
 // Any network's address is accepted here; the link handler checks it against
@@ -107,9 +105,9 @@ function parseOfferUrl(value: string): string | null {
     return null;
   }
 
-  // resolveOfferData reads the offer id from the last path segment and
-  // interpolates it unencoded into marketplace API requests, so it must be a
-  // plain token. The query string and fragment are dropped for the same reason.
+  // resolveOfferData reads the offer id from the last path segment. Marketplace
+  // ids are plain tokens, so reject anything else up front and drop the query
+  // string and fragment, which would otherwise end up in that segment.
   const path = url.pathname.replace(/\/+$/, '');
   if (!OFFER_ID_PATTERN.test(path.split('/').pop() ?? '')) return null;
 
@@ -125,7 +123,7 @@ function parseTakeOffer(params: URLSearchParams): TakeOfferDeepLink | null {
 
   const offer = offerParam
     ? parseOfferString(offerParam)
-    : parseOfferUrl(urlParam as string);
+    : parseOfferUrl(urlParam ?? '');
   if (!offer) return null;
 
   const link: TakeOfferDeepLink = { action: 'take_offer', offer };
@@ -147,20 +145,11 @@ function parseSend(params: URLSearchParams): SendDeepLink | null {
   if (isMojos(amount)) link.amount = amount;
   if (isMojos(fee)) link.fee = fee;
   if (memos && memos.length <= MAX_MEMO_LENGTH) link.memos = memos;
-  // CAT asset IDs are 32-byte hex strings
-  if (assetId && /^[0-9a-fA-F]{64}$/.test(assetId)) {
+  if (assetId && isValidAssetId(assetId)) {
     link.assetId = assetId.toLowerCase();
   }
   return link;
 }
-
-const ACTIONS: Record<
-  DeepLink['action'],
-  (params: URLSearchParams) => DeepLink | null
-> = {
-  take_offer: parseTakeOffer,
-  send: parseSend,
-};
 
 /** Parses `sage:<action>?<params>` (or `sage://<action>?<params>`). */
 export function parseDeepLinkUrl(url: string): ParseResult {
@@ -178,17 +167,23 @@ export function parseDeepLinkUrl(url: string): ParseResult {
     return { ok: false, error: 'missing_action' };
   }
 
-  if (!Object.prototype.hasOwnProperty.call(ACTIONS, action)) {
-    // Only echo the action back when it is short and printable
-    return {
-      ok: false,
-      error: 'unsupported_action',
-      action: /^[a-z0-9_-]{1,32}$/.test(action) ? action : undefined,
-    };
+  const params = decodeQueryString(queryString);
+  let link: DeepLink | null;
+  switch (action) {
+    case 'take_offer':
+      link = parseTakeOffer(params);
+      break;
+    case 'send':
+      link = parseSend(params);
+      break;
+    default:
+      // Only echo the action back when it is short and printable
+      return {
+        ok: false,
+        error: 'unsupported_action',
+        action: /^[a-z0-9_-]{1,32}$/.test(action) ? action : undefined,
+      };
   }
 
-  const link = ACTIONS[action as DeepLink['action']](
-    decodeQueryString(queryString),
-  );
   return link ? { ok: true, link } : { ok: false, error: 'invalid_params' };
 }

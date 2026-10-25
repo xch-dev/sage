@@ -230,6 +230,13 @@ describe('parseDeepLinkUrl', () => {
         ok: true,
         link: { action: 'send', address: XCH },
       });
+      const overMax = parseDeepLinkUrl(
+        `sage:send?address=${XCH}&amount=18446744073709551616`,
+      );
+      expect(overMax.ok && overMax.link).toEqual({
+        action: 'send',
+        address: XCH,
+      });
       const max = '18446744073709551615';
       const result = parseDeepLinkUrl(`sage:send?address=${XCH}&amount=${max}`);
       expect(result.ok && result.link).toMatchObject({ amount: max });

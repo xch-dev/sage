@@ -163,7 +163,7 @@ Notes:
 
 - `export SDKROOT="$(xcrun --show-sdk-path)"` is required for `cargo`/Tauri builds on macOS and is set automatically by the script.
 - macOS only honors `sage:` links from the bundled `/Applications` build, never from `pnpm tauri dev` — see [Development Limitations](#development-limitations) below.
-- On a cold launch (app not already running), the initial deep link URL can arrive before the wallet has finished loading. The app waits briefly (up to 5s) for the wallet lookup to settle before deciding whether to show "Please log into a wallet first" — if you still see that error with a wallet configured, it likely means the wallet lookup itself failed or took longer than that window.
+- On a cold launch (app not already running), the initial deep link URL can arrive before the wallet has finished loading. The app holds the link until the initial wallet lookup settles before deciding whether to show "Please log into a wallet first"; if you see that error with a wallet configured, the wallet lookup itself failed.
 
 #### Development Limitations
 

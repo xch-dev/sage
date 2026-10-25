@@ -1,7 +1,7 @@
 import { discoverThemes, resolveThemeImage } from '@/lib/themes';
 import { i18n } from '@lingui/core';
 import { I18nProvider } from '@lingui/react';
-import { useEffect, useState } from 'react';
+import { Fragment, ReactNode, useEffect, useState } from 'react';
 import {
   createHashRouter,
   createRoutesFromElements,
@@ -9,6 +9,7 @@ import {
   Navigate,
   Route,
   RouterProvider,
+  useLocation,
 } from 'react-router-dom';
 import { useDeepLink } from './hooks/useDeepLink';
 import { Slide, ToastContainer } from 'react-toastify';
@@ -65,12 +66,17 @@ import { RustThemeSync } from '@/components/RustThemeSync.tsx';
 import { Apps } from '@/pages/Apps.tsx';
 import { platform } from '@tauri-apps/plugin-os';
 
-// Root layout component that handles deep linking
 function RootLayout() {
-  // Initialize deep link handler
   useDeepLink();
 
   return <Outlet />;
+}
+
+// Remounts its page whenever the URL changes, so a deep link that lands on a
+// page already showing starts from fresh state instead of the previous link's
+function RemountOnUrl({ children }: { children: ReactNode }) {
+  const { pathname, search } = useLocation();
+  return <Fragment key={pathname + search}>{children}</Fragment>;
 }
 
 // Theme-aware toast container component
@@ -116,7 +122,14 @@ const router = createHashRouter(
         <Route path='' element={<TokenList />} />
         <Route path='token/:asset_id' element={<Token />} />
         <Route path='issue-token' element={<IssueToken />} />
-        <Route path='send/:asset_id' element={<Send />} />
+        <Route
+          path='send/:asset_id'
+          element={
+            <RemountOnUrl>
+              <Send />
+            </RemountOnUrl>
+          }
+        />
       </Route>
       <Route path='/nfts' element={<Wallet />}>
         <Route path='' element={<NftList />} />
@@ -149,7 +162,14 @@ const router = createHashRouter(
       <Route path='/offers' element={<Wallet />}>
         <Route path='' element={<Offers />} />
         <Route path='make' element={<MakeOffer />} />
-        <Route path='view/:offer' element={<Offer />} />
+        <Route
+          path='view/:offer'
+          element={
+            <RemountOnUrl>
+              <Offer />
+            </RemountOnUrl>
+          }
+        />
         <Route path='view_saved/:offer_id' element={<SavedOffer />} />
       </Route>
       <Route path='/swap' element={<Wallet />}>

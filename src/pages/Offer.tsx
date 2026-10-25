@@ -39,22 +39,15 @@ export function Offer() {
   const [summary, setSummary] = useState<OfferSummary | null>(null);
   const [status, setStatus] = useState<OfferRecordStatus | null>(null);
   const [response, setResponse] = useState<TakeOfferResponse | null>(null);
-  const [fee, setFee] = useState('');
+  // Prefilled from the URL (e.g. deep links); the route remounts per URL
+  const [fee, setFee] = useState(() => {
+    const feeMojos = searchParams.get('fee');
+    return feeMojos
+      ? fromMojos(feeMojos, walletState.sync.unit.precision).toString()
+      : '';
+  });
   const [resolvedOffer, setResolvedOffer] = useState<string | null>(null);
   const { isTestnet } = useNetwork();
-
-  // A different offer (e.g. from a second deep link while this page is open)
-  // stays on this component, so drop any pending confirmation, which was built
-  // for the previous offer, and take the fee only from the new URL (e.g. deep links)
-  useEffect(() => {
-    setResponse(null);
-    const feeMojos = searchParams.get('fee');
-    setFee(
-      feeMojos
-        ? fromMojos(feeMojos, walletState.sync.unit.precision).toString()
-        : '',
-    );
-  }, [offer, searchParams, walletState.sync.unit.precision]);
 
   const resolveOffer = useCallback(async () => {
     if (!offer) return;
